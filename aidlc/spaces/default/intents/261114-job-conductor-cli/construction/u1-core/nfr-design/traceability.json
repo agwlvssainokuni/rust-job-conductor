@@ -1,0 +1,15 @@
+{
+  "stage": "nfr-design",
+  "unit": "u1-core",
+  "upstream_ids": ["NFR4.1","NFR4.2","NFR4.3","NFR4.4","NFR4.5","NFR4.6","NFR4.7"],
+  "coverage": [
+    { "id": "NFR4.1", "status": "OK", "target": "型付けの変換(Typed)と構造の検査(Validate)で、実行前に typeMismatch などを返す(security-design の二段階の読み取り 4、5)" },
+    { "id": "NFR4.2", "status": "OK", "target": "型付けの変換(Typed)で、知らないキーを拒否する(security-design の二段階の読み取り 4)" },
+    { "id": "NFR4.3", "status": "OK", "target": "版の確認(VersionCheck)を、型付けの前に行う二段階の読み取り(security-design の二段階の読み取り 3)" },
+    { "id": "NFR4.4", "status": "OK", "target": "入力の取り込み(Intake)で、上限 + 1 バイトまでを読み取り、tooLarge で拒否する(security-design の D3)" },
+    { "id": "NFR4.5", "status": "OK", "target": "検証を副作用のない純粋な処理にし、入出力は Intake だけに限る(security-design の 2、logical-components)" },
+    { "id": "NFR4.6", "status": "OK", "target": "表示用の組み立て(Describe)で、固定の文から表示を作る(security-design の 3)" },
+    { "id": "NFR4.7", "status": "OK", "target": "戻り値のエラーで失敗を返し、入れ子の深さに上限(32 段)を置く。syntax の種類を足す(security-design の 4)" }
+  ],
+  "reverse": []
+}
