@@ -28,8 +28,12 @@ types:
     fields: [id, command, warningExitCodes, successExitCodes, transitions]
     transitions: [{ on: success|warning, next: <jobId>|@end }]   # on: error は書けない
   JobExecution:
-    fields: [jobId, command, exitCode, terminatedBySignal, startFailure, interrupted]
+    fields: [jobId, command, exitCode, terminatedBySignal, startFailure, interrupted, started]
     terminatedBySignal: シグナル番号(シグナルで終了していなければ無し)。128 + シグナル番号の計算に使う
+    started: ジョブを起動したか。合図が呼び出しの前にすでに立っていて、起動しなかったときは false(このとき interrupted は true、exitCode と terminatedBySignal は無し)
+  Decision:
+    values: [run, skip, reject]
+    reject: 理由つき(順序外などの条件は、未解決事項を参照)
   JobOutcome:
     fields: [jobId, classification, reportedExitCode]
     classification: success|warning|error
@@ -65,11 +69,11 @@ operations:
     failure: なし                         # 純粋な判断。入出力なし
   classify_and_decide:                    # ジョブを実行した「後」の判断
     input: [jobDefinition, jobExecution, jobStates, pipelineDefinition]
-    output: [JobOutcome, NextStep]        # 終了コードの規則(警告は 0、成功コードに含まれない 0 は 1、起動失敗は 127、シグナルは 128 + シグナル番号)を含む。中断された実行(interrupted)は、エラーに分類する
+    output: [JobOutcome, NextStep]        # 終了コードの規則(警告は 0、成功コードに含まれない 0 は 1、起動失敗は 127、シグナルは 128 + シグナル番号)を含む。ジョブを起動して中断された実行(started が true で interrupted)は、エラー(128 + terminatedBySignal の番号)に分類し、そのジョブを再開位置にする。ジョブを起動しなかった実行(started が false)は、エラーとして扱わず、そのジョブを再開位置にし(ジョブとジョブのあいだの中断と同じ扱い)、スケジューラへ返す終了コードは、受け取ったシグナルの番号による 128 + シグナル番号とする
     failure: なし
   resume_point_on_interrupt:              # ジョブとジョブのあいだで中断されたときの判断
     input: [pipelineDefinition, jobStates]
-    output: resumeJobId                   # 次に実行するジョブ。最後のジョブの直後なら、完了とみなす(null)
+    output: [resumeJobId, endReached, completed]   # resumeJobId は、次に実行するジョブ。最後のジョブの直後なら、resumeJobId は無しで、completed が true。@end に到達ずみなら endReached が true
     failure: なし
 ```
 
@@ -88,7 +92,7 @@ operations:
     notes: >
       ジョブの標準出力・標準エラーは、そのまま通す。時間制限はない。
       中断の合図が立ったら、受け取ったシグナルをジョブに転送して終了を待ち、interrupted を立てて返す。
-      呼び出しの前に、すでに合図が立っているときは、ジョブを起動せず、interrupted の JobExecution を返す。
+      呼び出しの前に、すでに合図が立っているときは、ジョブを起動せず、started が false で、interrupted の JobExecution を返す。
       2回目以降のシグナルは、転送済みとして扱い、追加の動作はしない(強制終了はしない)。
       合図は、シグナルの番号を運ぶ(terminatedBySignal の算出に使う)
   read_state:
@@ -145,7 +149,10 @@ exit_codes:
   success_code_not_listed_zero: 1          # success_exit_codes に含まれない 0 で終了した場合
   command_not_started: 127
   killed_by_signal: 128 + シグナル番号
-  conductor_own_error: 非0(定義・ステートの誤り。具体の値は設計で定める)
+  conductor_own_error: 非0(定義・ステートの誤り、拒否(reject)。具体の値は設計で定める)
+  interrupted_by_signal: 128 + 受け取ったシグナルの番号(ジョブを起動する前、起動中、ジョブとジョブのあいだのいずれも)
+reject:
+  動き: 拒否(reject)が返ったときは、ジョブを実行せず、理由を conductor 自身のエラーとして常に表示し、非0で終了する。ステートは変更しない
 output:
   default: ジョブ本体の標準出力・標準エラーのみ。conductor 自身のエラーは常に表示
   language: 環境のロケール(英語・日本語)
