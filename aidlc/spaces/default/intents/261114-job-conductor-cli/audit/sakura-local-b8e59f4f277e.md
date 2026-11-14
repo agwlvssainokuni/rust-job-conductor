@@ -15138,3 +15138,86 @@
 **Error**: Refusing to complete unit "u1-core" for "code-generation": it is not the active unit (no unit is active; start it first with `aidlc engine state unit start --stage code-generation --unit u1-core`).
 
 ---
+
+## Unit Started
+**Timestamp**: 2026-11-14T21:09:13Z
+**Event**: UNIT_STARTED
+**Stage**: code-generation
+**Unit**: u1-core
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-14T21:09:13Z
+**Event**: UNIT_COMPLETED
+**Stage**: code-generation
+**Unit**: u1-core
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T21:09:26Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/verification-command.txt
+**Context**: verification-command.txt
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T21:09:26Z
+**Event**: DECISION_RECORDED
+**Stage**: code-generation
+**Decision**: Use this command to verify each completed Unit?
+**Options**: Approve,Request Changes
+**Checkpoint**: Construction Verification Command
+**Command SHA-256**: 0a8993d912bfc0f06970313fbbbbc38b1d85b2a85ad570654a2ce4e091cbfafa
+**Command Label**: cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Id**: 15ba7890
+**Question Type**: verification-command
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:7e5b3b750cdab361e6d79c4451854d925e6c1d57d981b3f98fa2ccfe9eba275e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T21:09:57Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 9204a560
+**Open Questions**: 4284b255, 6ca95be8, ac2cdf79, 71c1b9b6, 15ba7890
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/code-generation/code-generation-questions.md","entries":{"Plan Approval":"6c35aa287593d091"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T21:09:57Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Use this command to verify each completed Unit?\n\ncargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked\n\n(整形の確認、静的解析、テストを、ワークスペース全体で実行します。Unit を完了するたびにこれを実行し、通らなければ止まります)
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Verification Command Recorded
+**Timestamp**: 2026-11-14T21:10:01Z
+**Event**: VERIFICATION_COMMAND_RECORDED
+**Stage**: code-generation
+**Details**: Approve
+**Checkpoint**: Construction Verification Command
+**Command SHA-256**: 0a8993d912bfc0f06970313fbbbbc38b1d85b2a85ad570654a2ce4e091cbfafa
+**Command Label**: cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked
+**User Input**: Approve
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Person Reply**: Approve
+**Message Id**: 9204a560
+**Git Name**: agwlvssainokuni
+
+---

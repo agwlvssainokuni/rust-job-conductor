@@ -60,6 +60,11 @@
 
 
 
+
+
+
+- **Construction Verification Command**: cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -120,7 +125,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-14T20:39:33Z
+- **Last Updated**: 2026-11-14T21:09:13Z
 
 - **Construction Autonomy Mode**: autonomous
 
