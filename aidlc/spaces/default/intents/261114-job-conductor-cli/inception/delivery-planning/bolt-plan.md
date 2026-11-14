@@ -1,6 +1,6 @@
 # Bolt Plan(Bolt の計画)
 
-上流: requirements、stories、unit-of-work、unit-of-work-dependency、unit-of-work-story-map、contract-summary、team-practices。
+上流: requirements、stories、components(7つの部品。各 Bolt の「含む部品」の元)、unit-of-work、unit-of-work-dependency、unit-of-work-story-map、contract-summary、team-practices。
 
 **Bolt** とは、Construction(実装)での、作業の1回のまとまりである。1つ以上の Unit(作業単位)を作り、動くもの(または、確かめられる成果物)に到達するまでを指す。この計画では、1つの Bolt に1つの Unit を入れる。
 

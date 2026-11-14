@@ -11986,3 +11986,140 @@
 **Context**: verification > phase-check-inception.md
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_FIRED
+**Fire id**: f15b8ec0
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/bolt-plan.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_PASSED
+**Fire id**: f15b8ec0
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/bolt-plan.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_FIRED
+**Fire id**: afac4652
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/team-allocation.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_PASSED
+**Fire id**: afac4652
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/team-allocation.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_FIRED
+**Fire id**: af9fae48
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/risk-and-sequencing-rationale.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_PASSED
+**Fire id**: af9fae48
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/risk-and-sequencing-rationale.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_FIRED
+**Fire id**: 302818cf
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/external-dependency-map.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T20:10:35Z
+**Event**: SENSOR_PASSED
+**Fire id**: 302818cf
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/external-dependency-map.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T20:10:36Z
+**Event**: SENSOR_FIRED
+**Fire id**: d179dfc7
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/delivery-planning-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T20:10:36Z
+**Event**: SENSOR_PASSED
+**Fire id**: d179dfc7
+**Sensor ID**: required-sections
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/delivery-planning-questions.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T20:10:36Z
+**Event**: SENSOR_FIRED
+**Fire id**: 2f28fe03
+**Sensor ID**: upstream-coverage
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/bolt-plan.md
+
+---
+
+## Sensor Failed
+**Timestamp**: 2026-11-14T20:10:36Z
+**Event**: SENSOR_FAILED
+**Fire id**: 2f28fe03
+**Sensor ID**: upstream-coverage
+**Stage slug**: delivery-planning
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/bolt-plan.md
+**Detail path**: aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/sensors/delivery-planning/upstream-coverage-2f28fe03.md
+**Findings count**: 1
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T20:10:43Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/bolt-plan.md
+**Context**: inception > delivery-planning > bolt-plan.md
+**Summary Authorization Id**: 1d7dd0716cf65a9c27f2e8b2ef047011c2110cf8f2e2033eddc558aa52a41646
+
+---
