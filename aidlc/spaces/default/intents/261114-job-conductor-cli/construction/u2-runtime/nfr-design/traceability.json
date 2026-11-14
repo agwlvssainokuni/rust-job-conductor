@@ -1,0 +1,18 @@
+{
+  "stage": "nfr-design",
+  "unit": "u2-runtime",
+  "upstream_ids": ["NFR4.1","NFR4.2","NFR4.3","NFR4.4","NFR1.1","NFR4.5","NFR4.6","NFR4.7","NFR4.8","NFR4.9"],
+  "coverage": [
+    { "id": "NFR4.1", "status": "OK", "target": "起動(Spawn)が、シェルを介さず、引数を1つずつ渡す(security-design の 1 の 3)" },
+    { "id": "NFR4.2", "status": "OK", "target": "分け方(Split)が、BR1.1 の規則を状態機械で実装し、check_command で起動前に検査する(security-design の 1 の 1)" },
+    { "id": "NFR4.3", "status": "OK", "target": "ステートの読み込み(StateReader)が、上限つき・版を先に・矛盾の検査・長さ 0 と completed を空として返す(security-design の 2、D4)" },
+    { "id": "NFR4.4", "status": "OK", "target": "ステートの書き込み(StateWriter)が、新規作成の一時ファイル・同期(Durable)・置き換え・失敗時の後始末を行う(security-design の 3、D4)" },
+    { "id": "NFR1.1", "status": "OK", "target": "起動前の初期ステートの書き込みは Fast(同期なし)、静的な初期化なし、待ちのくり返しは最初 1ms(security-design の 他の NFR の設計、D1、D4)" },
+    { "id": "NFR4.5", "status": "OK", "target": "ステートに command・環境変数を書かない。表示は固定の文とパスだけ(Describe。security-design の 2 の 7)" },
+    { "id": "NFR4.6", "status": "OK", "target": "作業ディレクトリ・環境変数・標準入出力を引き継ぐ(Spawn。security-design の 1 の 3)" },
+    { "id": "NFR4.7", "status": "OK", "target": "戻り値のエラーで失敗を返し、`128 + signalNumber` などは飽和させ、添字は長さを確かめる(security-design の 5)" },
+    { "id": "NFR4.8", "status": "OK", "target": "platform::signal の1か所だけが unsafe。pid の検査、子プロセスの pid だけ、回収の前の1回だけ(security-design の 1 の 6、D1、D3)" },
+    { "id": "NFR4.9", "status": "OK", "target": "起動(Spawn)が、標準のライブラリに従い、.bat・.cmd の危険な引数を startFailure にする。Windows の CI で確かめる(security-design の 1 の 3)" }
+  ],
+  "reverse": []
+}
