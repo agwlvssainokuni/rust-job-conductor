@@ -44,6 +44,16 @@
 - **Construction Iteration**: unit-major
 - **Construction Execution**: serial
 
+- **Unit Ownership**: solo
+
+- **Skeleton Stance**: off
+
+- **Active Unit**: u1-core
+
+- **Unit Stage**: functional-design
+
+- **Unit State**: in-progress
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -104,7 +114,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-14T20:11:30Z
+- **Last Updated**: 2026-11-14T20:12:59Z
 
 ## Session Resume Point
 - **Last Completed Stage**: delivery-planning

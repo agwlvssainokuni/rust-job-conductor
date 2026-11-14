@@ -12350,3 +12350,246 @@
 **Answer Mode**: guide (reused from intent-capture)
 
 ---
+
+## Memory Empty
+**Timestamp**: 2026-11-14T20:11:30Z
+**Event**: MEMORY_EMPTY
+**Stage**: delivery-planning
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-14T20:11:36Z
+**Event**: QUESTION_ASKED
+**Question Id**: d1852cfa
+**Question Type**: construction-staffing
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:68bce55da58717f00ef8690401dfda13a4b0673eda1e4d34af596a7ae7d9659d
+**Stage**: functional-design
+**Options**: ["Just me","Several teams"]
+**State Digest**: a9b7cb7d14b5ed08bfeea916edd20ab57720cd59723b683b54f8a5c579d9ddb2
+**Question Text SHA-256**: 7897a55db4e500dac02fad800a2f0d6aae66860fe6fdd26d2c0b33e6ed3ebe13
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T20:12:08Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Open Question**: construction-staffing
+**Picked**: ["Just me"]
+**Message Id**: cc22435f
+**Open Questions**: d1852cfa
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/delivery-planning/delivery-planning-questions.md","entries":{"Q1":"f17998d27bd90a71","Q2":"f563f27ada9dd2c6","Q3":"997f2708b33cb0f7","Q4":"c7de6696fbf90646","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T20:12:08Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Inception が終わり、計画は4つの Unit です。誰が作りますか?
+**Reply**: Just me
+**Options**: ["Just me","Several teams"]
+
+---
+
+## Unit Ownership Set
+**Timestamp**: 2026-11-14T20:12:12Z
+**Event**: UNIT_OWNERSHIP_SET
+**Mode**: solo
+
+---
+
+## Unit Started
+**Timestamp**: 2026-11-14T20:12:59Z
+**Event**: UNIT_STARTED
+**Stage**: functional-design
+**Unit**: u1-core
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T20:13:07Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-design-questions.md
+**Context**: construction > u1-core > functional-design > functional-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T20:13:08Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Q1-Q3 presented
+**Options**: Q1: A/B/C,Q2: A/B/C/D,Q3: A/B/C
+**Unit**: u1-core
+**Question Id**: 4284b255
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:0fcef1bf094c6af09054ce96c98b16c6e918c258dc63c206eb30e3dfad8e8e37
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T20:14:40Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A","A"]
+**Message Id**: 8de0e81b
+**Open Questions**: 4284b255
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-design-questions.md","entries":{"Q1":"8bfe62f16f1c4ca9","Q2":"3226fee82bc8f45d","Q3":"84f7c8bc3092d654","既定として決めること(質問なし)":"ce5e003457d9bbe3"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T20:14:41Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q1. 順序外のジョブ(直前までに実行されているはずのジョブが未実行)が呼ばれたときは?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T20:14:41Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q2. 実行済み(成功・警告)のジョブが再び呼ばれたときは?
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T20:14:41Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q3. conductor 自身のエラーの終了コードは?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T20:15:00Z
+**Event**: QUESTION_ANSWERED
+**Stage**: functional-design
+**Details**: Q1: A; Q2: A; Q3: A
+**Unit**: u1-core
+**Person Reply**: A\nA\nA
+**Message Id**: 8de0e81b
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T20:15:00Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-design-questions.md
+**Unit**: u1-core
+**Question Id**: 277115df
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T20:17:36Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: b813d717
+**Open Questions**: 4284b255, 277115df
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-design-questions.md","entries":{"Q1":"8bfe62f16f1c4ca9","Q2":"3226fee82bc8f45d","Q3":"84f7c8bc3092d654","既定として決めること(質問なし)":"ce5e003457d9bbe3","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T20:17:37Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、u1-core の機能設計の成果物を生成してよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T20:17:40Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-design-questions.md
+**Context**: construction > u1-core > functional-design > functional-design-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T20:17:41Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: functional-design
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-design-questions.md
+**Questions SHA-256**: 13b3a6935bb8dcd3aa7185568f04036f1d3b972d4080dd34c7da3bb3e58b4d9c
+**Hash Scope**: confirmed-content-v2
+**Unit**: u1-core
+**Message Id**: b813d717
+**Person Reply**: Looks correct
+**Summary Authorization Id**: abe9a7719ebab8088b6361000c28685671e06bcedfb70ab55e9a18a19145d594
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T20:18:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/entities.md
+**Context**: construction > u1-core > functional-design > entities.md
+**Summary Authorization Id**: abe9a7719ebab8088b6361000c28685671e06bcedfb70ab55e9a18a19145d594
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T20:18:40Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/rules.md
+**Context**: construction > u1-core > functional-design > rules.md
+**Summary Authorization Id**: abe9a7719ebab8088b6361000c28685671e06bcedfb70ab55e9a18a19145d594
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T20:19:05Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/functional-spec.md
+**Context**: construction > u1-core > functional-design > functional-spec.md
+**Summary Authorization Id**: abe9a7719ebab8088b6361000c28685671e06bcedfb70ab55e9a18a19145d594
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T20:19:23Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/functional-design/traceability.json
+**Context**: construction > u1-core > functional-design > traceability.json
+**Summary Authorization Id**: abe9a7719ebab8088b6361000c28685671e06bcedfb70ab55e9a18a19145d594
+
+---
