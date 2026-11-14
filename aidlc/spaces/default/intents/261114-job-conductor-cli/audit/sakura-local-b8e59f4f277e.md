@@ -2524,3 +2524,424 @@
 **Summary Authorization Id**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 23769dc4
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 23769dc4
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: e6c52b8d
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: e6c52b8d
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: fe8a6478
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: fe8a6478
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: b1f5d6f5
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: b1f5d6f5
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 75
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-14T13:56:12Z
+**Event**: REVIEW_REQUESTED
+**Stage**: rough-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:10f359220967f05672c6f5d05ce42d46ed18292044ab716ce5a7cd263e313fff
+**Request Id**: review:6edce63146c37e3c2cbbdb0dd86baa75
+**Review File**: .aidlc-engine/reviews/rough-mockups/stage/e722211012c70c4a/1.6edce63146c37e3c2cbbdb0dd86baa75.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T13:56:23Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-product-lead-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:56:38Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/reviews/rough-mockups/stage/e722211012c70c4a/1.6edce63146c37e3c2cbbdb0dd86baa75.review.md
+**Context**: .aidlc-engine > reviews > rough-mockups > stage > e722211012c70c4a > 1.6edce63146c37e3c2cbbdb0dd86baa75.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T13:56:42Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-product-lead-agent
+**Agent ID**: a2c77144e4993e2ce
+**Review File Digest**: .aidlc-engine/reviews/rough-mockups/stage/e722211012c70c4a/1.6edce63146c37e3c2cbbdb0dd86baa75.review.md=d78ea5de6aa49657e858bcad7bbec75c33cb5bb8dce7b9fbb7a9b9e80ca03e72
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T13:56:42Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-14T13:56:46Z
+**Event**: REVIEW_COMPLETED
+**Stage**: rough-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:10f359220967f05672c6f5d05ce42d46ed18292044ab716ce5a7cd263e313fff
+**Artifact Fingerprint**: sha256:10f359220967f05672c6f5d05ce42d46ed18292044ab716ce5a7cd263e313fff
+**Request Id**: review:6edce63146c37e3c2cbbdb0dd86baa75
+**Review Record**: .aidlc-engine/reviews/rough-mockups/stage/e722211012c70c4a/1.json
+**Review Record Digest**: sha256:4d28ed8ff1a39aaa176e6413c49dad3e65556236cc4572c9b2b6164dae55d93d
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:46Z
+**Event**: SENSOR_FIRED
+**Fire id**: 32eae416
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:46Z
+**Event**: SENSOR_PASSED
+**Fire id**: 32eae416
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:46Z
+**Event**: SENSOR_FIRED
+**Fire id**: 5e9ab00f
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:47Z
+**Event**: SENSOR_PASSED
+**Fire id**: 5e9ab00f
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:47Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7df248d1
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:47Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7df248d1
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Duration ms**: 80
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:56:47Z
+**Event**: SENSOR_FIRED
+**Fire id**: f76c8f28
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:56:47Z
+**Event**: SENSOR_PASSED
+**Fire id**: f76c8f28
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 74
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-14T13:56:47Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: rough-mockups
+**Details**: Re-entering gate after revision
+**Next Stage**: practices-discovery
+**Brief Digest**: sha256:52b628aeede1c0fe9dcce7e921421ce4897d61ed3e2feff81dc69650c8d960e0
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md=passed; upstream-coverage@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md=passed
+**Open Decisions**: 0
+**Question Id**: 3e6765f6
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:3149f23660f27f5fadab1afcdc9f75d29bbe811f902904e040cf560329f9f655
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:57:11Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["推奨は？"]
+**Message Id**: d764e256
+**Open Questions**: 5b62530b, c93cac16, 3e6765f6
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:57:11Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Rough Mockups の修正版です。どう進めますか?
+**Reply**: 推奨は？
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T13:57:16Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: afb56b22ee08de6a3
+**Message**: 推奨の方針で直して
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:57:19Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: typed
+**Message Id**: 7bbdeabe
+**Open Questions**: 5b62530b, c93cac16, 3e6765f6
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Gate Rejected
+**Timestamp**: 2026-11-14T13:57:23Z
+**Event**: GATE_REJECTED
+**Stage**: rough-mockups
+**Feedback**: 推奨は？\n推奨の方針で直して
+**Message Id**: 7bbdeabe
+**Message Ids**: d764e256,7bbdeabe
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Revising
+**Timestamp**: 2026-11-14T13:57:23Z
+**Event**: STAGE_REVISING
+**Stage**: rough-mockups
+**Revision count**: 2
+**Feedback**: 推奨は？\n推奨の方針で直して
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T13:57:31Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Context**: ideation > rough-mockups > rough-mockups-questions.md
+**Summary Authorization Id**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:57:32Z
+**Event**: DECISION_RECORDED
+**Stage**: rough-mockups
+**Decision**: Q7 (follow-up) presented
+**Options**: A,B,C
+**Question Id**: 441fc001
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:058dc3b1356d36c71c01c672e9f4efcc4c57e3012de80f03d06b22e83354de3c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:58:23Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A"]
+**Message Id**: bc204920
+**Open Questions**: 5b62530b, c93cac16, 441fc001
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b","Q7":"f705ba9f13ee247c","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:58:24Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q7. conductor 自身のエラー(定義ファイルの誤りなど)の表示はどうしますか?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T13:58:29Z
+**Event**: QUESTION_ANSWERED
+**Stage**: rough-mockups
+**Details**: Q7: A
+**Person Reply**: A
+**Message Id**: bc204920
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:58:34Z
+**Event**: DECISION_RECORDED
+**Stage**: rough-mockups
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Question Id**: c4bda55e
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:58:49Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 0df2ed01
+**Open Questions**: 5b62530b, c93cac16, 441fc001, c4bda55e
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b","Q7":"f705ba9f13ee247c","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:58:49Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめ(Q7 追加)で、成果物を更新してよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T13:58:54Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: rough-mockups
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Questions SHA-256**: b0e6b53945f956746b3a0d0abdc92258baeb82d887d87da24c18e665bbf0e5eb
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 0df2ed01
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 68d821bcd463dfaddd4b7487e24b1c863e72ea7010091567ca4f30fda743e1a6
+**Git Name**: agwlvssainokuni
+
+---

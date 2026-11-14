@@ -69,6 +69,17 @@
 
 [Answer]: B
 
+## Q7. [プロダクト] `conductor` 自身のエラー表示の扱い(追補)
+
+Q2・Q3 では、`conductor` 自身の表示はオプションで有効にしない限り出さないとしました。一方 Q5 では、定義ファイルの誤りの原因を表示するとしています。両者の関係を確認します。
+
+- A. 定義ファイルの誤りなど `conductor` 自身のエラーは、オプションの有無にかかわらず常に表示する
+- B. エラーも、オプションで有効にしたときだけ表示する
+- C. Not yet defined(まだ定まっていない)
+- X. Other (please specify)
+
+[Answer]: A
+
 ## Consolidated Summary Confirmation
 
 Does this all look correct before I generate the artifact?
