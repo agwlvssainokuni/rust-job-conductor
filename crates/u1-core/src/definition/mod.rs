@@ -1,0 +1,54 @@
+//! 定義の読み込みと検証(DefinitionLoader)。
+//!
+//! 流れは Intake → Parse → Depth → VersionCheck → Walk(Locate を使う)。
+//! 入出力に触れるのは Intake だけで、それ以外は、文字列だけを受け取る純粋な処理である。
+
+pub mod depth;
+pub mod intake;
+pub mod parse;
+pub mod version;
+pub mod walk;
+
+use std::path::Path;
+
+use crate::error::{DefinitionError, Locate};
+use crate::types::PipelineDefinition;
+
+/// 定義ファイルを読み込み、検証して、`PipelineDefinition` を返す(契約 C2 の `load_definition`)。
+///
+/// - `path`: 定義ファイルのパス。`None` のときは、実行ディレクトリの `conductor.toml`(BR4.1)。
+/// - `expected_pipeline_name`: `pipeline` コマンドで渡された名前。あれば、定義の `name` と比べる(BR1.8)。
+///
+/// 失敗のときは、見つかった誤りをすべて返す(ファイルの取り込みや文法・版の誤りは、1 件だけ)。
+/// ジョブは起動しない。ファイルへの書き込みもしない。
+pub fn load_definition(
+    path: Option<&Path>,
+    expected_pipeline_name: Option<&str>,
+) -> Result<PipelineDefinition, Vec<DefinitionError>> {
+    let path = intake::resolve_path(path);
+    let text = intake::read_definition(&path).map_err(|e| vec![e])?;
+    parse_definition(&text, &intake::file_label(&path), expected_pipeline_name)
+}
+
+/// 文字列として渡された定義を、検証して `PipelineDefinition` にする。
+///
+/// ファイルに触れないため、検証だけを試せる。`file_label` は、エラーの表示に使う名前。
+/// 定義の内容は、実行も評価もしない(コマンドの文字列は、そのまま保持する。NFR4.5)。
+pub fn parse_definition(
+    text: &str,
+    file_label: &str,
+    expected_pipeline_name: Option<&str>,
+) -> Result<PipelineDefinition, Vec<DefinitionError>> {
+    let locate = Locate::new(text);
+    let doc = parse::parse_document(text, file_label, &locate).map_err(|e| vec![e])?;
+    let root = doc.get_ref();
+    depth::check_depth(root, file_label, &locate).map_err(|e| vec![e])?;
+    let format_version = version::check_version(root, file_label, &locate).map_err(|e| vec![e])?;
+    walk::walk(
+        root,
+        format_version,
+        file_label,
+        &locate,
+        expected_pipeline_name,
+    )
+}

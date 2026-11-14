@@ -1,0 +1,41 @@
+//! 判断(Flow)。分類、終了コード、遷移、完了、起動前の判断、中断時の再開位置。
+//!
+//! ここにある関数は、すべて純粋な関数である。ファイルにもプロセスにも触れず、引数だけから
+//! 結果を決める(NFR5.1、ADR-005)。失敗せず、必ず結果を返す(契約 C2)。
+//! 各ジョブの記録(`JobState`)が無いジョブは、pending と同じ扱いにする。
+
+pub mod classify;
+pub mod decide;
+pub mod next_step;
+pub mod resume;
+
+pub use classify::classify;
+pub use decide::decide_before_run;
+pub use next_step::classify_and_decide;
+pub use resume::resume_point_on_interrupt;
+
+use crate::types::{JobState, JobStatus, SkipReason};
+
+/// ジョブの記録を引く。記録が無ければ pending(理由なし)として返す。
+pub(crate) fn record_of(states: &[JobState], job_id: &str) -> (JobStatus, Option<SkipReason>) {
+    states
+        .iter()
+        .find(|s| s.job_id == job_id)
+        .map(|s| (s.status, s.skip_reason))
+        .unwrap_or((JobStatus::Pending, None))
+}
+
+/// 成功・警告・スキップのいずれか(「済んだ」状態)か。
+pub(crate) fn is_settled(status: JobStatus) -> bool {
+    matches!(
+        status,
+        JobStatus::Success | JobStatus::Warning | JobStatus::Skipped
+    )
+}
+
+/// `@end` によるスキップの記録があるか(`@end` に到達済みの印)。
+pub(crate) fn has_end_skip(states: &[JobState]) -> bool {
+    states
+        .iter()
+        .any(|s| s.status == JobStatus::Skipped && s.skip_reason == Some(SkipReason::ByEnd))
+}

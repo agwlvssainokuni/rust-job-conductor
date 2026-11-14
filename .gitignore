@@ -30,3 +30,6 @@ aidlc/diagnostics/
 
 # Local reference documents (not tracked)
 local-docs/
+
+# Rust build artifacts
+target/

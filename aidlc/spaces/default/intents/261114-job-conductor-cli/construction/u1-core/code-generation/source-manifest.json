@@ -1,0 +1,11 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-core",
+  "version": 1,
+  "writes": [
+    { "path": "Cargo.toml" },
+    { "path": "Cargo.lock" },
+    { "path": ".gitignore" },
+    { "path": "crates/u1-core/" }
+  ]
+}

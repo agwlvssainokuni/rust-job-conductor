@@ -1,0 +1,19 @@
+format_version = 1
+unknown_top = true
+
+[pipeline]
+name = "p"
+
+[[jobs]]
+id = "a"
+command = "x"
+success_exit_codes = ["zero"]
+
+[[jobs]]
+id = "b"
+command = "y"
+colour = "red"
+
+[[jobs.transitions]]
+on = "success"
+next = "nowhere"
