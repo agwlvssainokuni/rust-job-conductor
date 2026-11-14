@@ -40,7 +40,7 @@ entities:
     attributes:
       - { name: file, type: text, required: true }
       - { name: line, type: integer, required: false }
-      - { name: kind, type: enum, required: true, allowed: [fileMissing, unreadable, typeMismatch, unknownKey, versionMissing, versionUnsupported, unknownTarget, errorTransition, backwardOrSelfTarget, overlappingExitCodes, zeroAsWarning, pipelineNameMismatch] }
+      - { name: kind, type: enum, required: true, allowed: [fileMissing, unreadable, typeMismatch, unknownKey, versionMissing, versionUnsupported, unknownTarget, errorTransition, backwardOrSelfTarget, overlappingExitCodes, zeroAsWarning, pipelineNameMismatch, duplicateJobId, invalidJobId, noJobs, emptyField, duplicateTransition] }
       - { name: reason, type: text, required: true }
 
   - name: JobExecution
@@ -97,7 +97,7 @@ entities:
     attributes:
       - { name: jobId, type: text, required: true, references: JobDefinition.id }
       - { name: classification, type: enum, required: true, allowed: [success, warning, error] }
-      - { name: reportedExitCode, type: integer, required: true, constraints: 規則 BR2.2・BR2.3 による }
+      - { name: reportedExitCode, type: integer, required: true, constraints: 規則 BR2.2・BR2.3・BR2.4 による。ジョブの終了コードがそのまま返る場合は、64〜67 などの conductor 自身の終了コードと重なりうる(Assumptions を参照) }
       - { name: conductorError, type: boolean, required: true, default: false, constraints: 成功コードに含まれない 0 のときなど、conductor 自身が原因を表示するエラーのとき true }
     relationships:
       - { to: JobExecution, cardinality: one-to-one, direction: JobOutcome -> JobExecution }
@@ -126,4 +126,5 @@ entities:
 ## Assumptions & Open Questions
 
 - `definitionKey` の確定(別パスの定義ファイルとステートの紐づけ)は、u2-runtime の Functional Design で行う。 [assumption]
+- ジョブの終了コードをそのまま返す場合(エラー)は、conductor 自身のエラーの終了コード(64〜67)と、同じ値になりうる。スケジューラは、0 / 非0 しか見ないため、実害は小さい。完全に区別するには、ジョブの終了コードの範囲を制限する必要があるが、要件にはないため、行わない。 [assumption]
 - 論理的な型(text、integer など)は、技術に依存しない記述であり、実装の型への対応は Code Generation で決める。 [assumption]
