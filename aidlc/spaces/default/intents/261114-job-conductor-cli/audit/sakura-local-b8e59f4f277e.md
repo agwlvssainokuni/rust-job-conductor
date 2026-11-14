@@ -10837,3 +10837,158 @@
 **Answer Mode**: guide (reused from intent-capture)
 
 ---
+
+## Memory Empty
+**Timestamp**: 2026-11-14T19:56:31Z
+**Event**: MEMORY_EMPTY
+**Stage**: units-generation
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T19:56:56Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T19:56:57Z
+**Event**: DECISION_RECORDED
+**Stage**: contract-design
+**Decision**: Q1-Q3 presented
+**Options**: Q1: A/B/C,Q2: A/B/C,Q3: A/B/C
+**Question Id**: a0562d59
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:db24f906a5ab349356c21b4af23d05b8076b2896b8550d4fb3114f343f88bc3d
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T19:58:46Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A","A"]
+**Message Id**: f6992528
+**Open Questions**: a0562d59
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-design-questions.md","entries":{"Q1":"1703db6a5cbe8241","Q2":"13f2ebd1a8ac30a9","Q3":"06438dda86abd9ac"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T19:58:47Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q1. 外部との境界として、正式な約束事にするものは?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T19:58:47Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q2. 書式の変更に対する方針(互換性)は?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T19:58:47Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q3. 定義ファイルの、知らないキーの扱いは?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T19:58:52Z
+**Event**: QUESTION_ANSWERED
+**Stage**: contract-design
+**Details**: Q1: A; Q2: A; Q3: A
+**Person Reply**: A\nA\nA
+**Message Id**: f6992528
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T19:58:53Z
+**Event**: DECISION_RECORDED
+**Stage**: contract-design
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-design-questions.md
+**Question Id**: 223e247c
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T19:59:09Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 071a56bd
+**Open Questions**: a0562d59, 223e247c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-design-questions.md","entries":{"Q1":"1703db6a5cbe8241","Q2":"13f2ebd1a8ac30a9","Q3":"06438dda86abd9ac","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T19:59:10Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、約束事のまとめ(contract-summary.md)を生成してよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T19:59:12Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T19:59:13Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: contract-design
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-design-questions.md
+**Questions SHA-256**: 73d2ccca0db11c2182ec20db0c1811d13e1dd89f0eedf45bcfc2dddaf0b89b14
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 071a56bd
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 8203d85d77ed8d14c9af286dd9d4e3e1ec049e07326131e83e8dafeaee072fa5
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T19:59:53Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 8203d85d77ed8d14c9af286dd9d4e3e1ec049e07326131e83e8dafeaee072fa5
+
+---
