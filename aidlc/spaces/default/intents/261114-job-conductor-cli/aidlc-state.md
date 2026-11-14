@@ -80,6 +80,12 @@
 
 
 
+- **Active Unit**: u2-runtime
+
+- **Unit Stage**: functional-design
+
+- **Unit State**: in-progress
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -140,7 +146,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-14T22:29:17Z
+- **Last Updated**: 2026-11-14T22:29:47Z
 
 - **Construction Autonomy Mode**: autonomous
 
