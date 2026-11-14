@@ -7151,3 +7151,352 @@
 **Answer Mode**: guide (reused from intent-capture)
 
 ---
+
+## Memory Empty
+**Timestamp**: 2026-11-14T14:48:42Z
+**Event**: MEMORY_EMPTY
+**Stage**: user-stories
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:49:07Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+**Context**: inception > refined-mockups > refined-mockups-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:49:08Z
+**Event**: DECISION_RECORDED
+**Stage**: refined-mockups
+**Decision**: Q1-Q4 presented
+**Options**: Q1: A/B/C,Q2: A/B/C,Q3: A/B/C/D,Q4: A/B/C
+**Question Id**: 69a59e79
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:b2fa848a5b172e6ceee272d947a57ff48b16e31f903ed174be9a3749d7acf334
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:51:36Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","B","A","A. 書かなければ 0 のみ、書けばそれのみが有効(0を書かなければ0でも正常にならない）ですよね？"]
+**Message Id**: b61af3ff
+**Open Questions**: 69a59e79
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md","entries":{"Q1":"8a0af8ef33d8bfb6","Q2":"cbfcd69ba28aec1d","Q3":"06743c5153cfb577","Q4":"04ba604ace1751c5","Q5":"7b2f179443861f22","Q6":"804caa05fba74e0e","Q7":"d7922d4116345ae7"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:51:37Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q1. conductor 自身の表示を有効にするオプションは?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:51:37Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q2. 定義ファイルのパスを指定するオプションは?
+**Reply**: B
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:51:37Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q3. 「パイプラインをここで終える」の書き方は?
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:51:37Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q4. 「成功とみなす終了コード」のキー名は?
+**Reply**: A. 書かなければ 0 のみ、書けばそれのみが有効(0を書かなければ0でも正常にならない）ですよね？
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T14:51:48Z
+**Event**: QUESTION_ANSWERED
+**Stage**: refined-mockups
+**Details**: Q1: A; Q2: B; Q3: A; Q4: A. 書かなければ 0 のみ、書けばそれのみが有効(0を書かなければ0でも正常にならない)
+**Person Reply**: A\nB\nA\nA. 書かなければ 0 のみ、書けばそれのみが有効(0を書かなければ0でも正常にならない）ですよね？
+**Message Id**: b61af3ff
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:51:48Z
+**Event**: DECISION_RECORDED
+**Stage**: refined-mockups
+**Decision**: Q5-Q7 presented
+**Options**: Q5: A/B/C/D,Q6: A/B/C,Q7: A/B/C
+**Question Id**: 0ed71ffe
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:d0a74e671197f7445846b31019abf1841189b3db588a7b135bc994935e6dcc85
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:54:30Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["C","B","A. conductorがシグナルを受け取ったらそこから起動したコマンドにもシグナルを送るの？"]
+**Message Id**: f7e5f5a9
+**Open Questions**: 69a59e79, 0ed71ffe
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md","entries":{"Q1":"8a0af8ef33d8bfb6","Q2":"cbfcd69ba28aec1d","Q3":"06743c5153cfb577","Q4":"04ba604ace1751c5","Q5":"7b2f179443861f22","Q6":"804caa05fba74e0e","Q7":"d7922d4116345ae7"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:54:30Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q5. conductor 自身が出す文言(watch・エラー・-v)の言語は?
+**Reply**: C
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:54:30Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q6. watch の一覧の見せ方は?
+**Reply**: B
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:54:30Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [運用] Q7. コマンドを起動できない場合・シグナルで終了した場合の終了コードは?
+**Reply**: A. conductorがシグナルを受け取ったらそこから起動したコマンドにもシグナルを送るの？
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T14:54:40Z
+**Event**: QUESTION_ANSWERED
+**Stage**: refined-mockups
+**Details**: Q5: C; Q6: B; Q7: A. conductorがシグナルを受け取ったらそこから起動したコマンドにもシグナルを送るの?
+**Person Reply**: C\nB\nA. conductorがシグナルを受け取ったらそこから起動したコマンドにもシグナルを送るの？
+**Message Id**: f7e5f5a9
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T14:54:44Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: aaee47d6e66dda8b3
+**Message**: その方針で。Windowsは同等の動きに読み替えて
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:55:12Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: typed
+**Message Id**: 49d40518
+**Open Questions**: 69a59e79, 0ed71ffe
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md","entries":{"Q1":"8a0af8ef33d8bfb6","Q2":"cbfcd69ba28aec1d","Q3":"06743c5153cfb577","Q4":"04ba604ace1751c5","Q5":"7b2f179443861f22","Q6":"804caa05fba74e0e","Q7":"d7922d4116345ae7"}}
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:55:22Z
+**Event**: DECISION_RECORDED
+**Stage**: refined-mockups
+**Decision**: Q8 (signal forwarding) presented
+**Options**: A,B,C
+**Question Id**: 3a92aab3
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:f4fd5e062ccd08088947e33a28621c82f6e5fffc1d559f1aee2623e367249c50
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T14:55:22Z
+**Event**: QUESTION_ANSWERED
+**Stage**: refined-mockups
+**Details**: Q8: A
+**Message Id**: 49d40518
+**Person Reply**: ok
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:55:23Z
+**Event**: DECISION_RECORDED
+**Stage**: refined-mockups
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+**Question Id**: 0049eb0f
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:56:22Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Q4はどうなったっけ？"]
+**Message Id**: 5553fd9e
+**Open Questions**: 69a59e79, 0ed71ffe, 3a92aab3, 0049eb0f
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md","entries":{"Q1":"8a0af8ef33d8bfb6","Q2":"cbfcd69ba28aec1d","Q3":"06743c5153cfb577","Q4":"04ba604ace1751c5","Q5":"7b2f179443861f22","Q6":"804caa05fba74e0e","Q7":"d7922d4116345ae7","Q8":"8240029e9ea03616","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:56:23Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、コマンド体験の仕様書を生成してよいですか?
+**Reply**: Q4はどうなったっけ？
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:56:42Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 1913b8d1
+**Open Questions**: 69a59e79, 0ed71ffe, 3a92aab3, 0049eb0f
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md","entries":{"Q1":"8a0af8ef33d8bfb6","Q2":"cbfcd69ba28aec1d","Q3":"06743c5153cfb577","Q4":"04ba604ace1751c5","Q5":"7b2f179443861f22","Q6":"804caa05fba74e0e","Q7":"d7922d4116345ae7","Q8":"8240029e9ea03616","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:56:42Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Q4 は success_exit_codes(書かなければ 0 のみ成功、書けばその値だけ成功)で確定しています。このまま仕様書を生成してよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T14:56:46Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+**Context**: inception > refined-mockups > refined-mockups-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T14:56:47Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: refined-mockups
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+**Questions SHA-256**: ba0d15466508c2bd664e243fa445ea437a1efac420cfe11a0ccb64334c0bac4d
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 1913b8d1
+**Message Ids**: 5553fd9e,1913b8d1
+**Person Reply**: Q4はどうなったっけ？\nLooks correct
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:57:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Context**: inception > refined-mockups > mockups.md
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:57:24Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/interaction-spec.md
+**Context**: inception > refined-mockups > interaction-spec.md
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:57:30Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/design-system-mapping.md
+**Context**: inception > refined-mockups > design-system-mapping.md
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:57:37Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/accessibility-checklist.md
+**Context**: inception > refined-mockups > accessibility-checklist.md
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T14:57:43Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Context**: inception > refined-mockups > mockups.md
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T14:57:44Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Context**: inception > refined-mockups > mockups.md
+**Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
+
+---
