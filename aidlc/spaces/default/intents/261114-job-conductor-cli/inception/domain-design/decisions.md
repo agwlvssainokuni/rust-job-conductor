@@ -1,0 +1,134 @@
+# Architecture Decision Records
+
+上流: requirements、stories、team-practices、components(コンポーネント一覧)。Inception フェーズの規則に従い、各 ADR は Context、Decision、Consequences、Alternatives Rejected を持ち、セキュリティ・コンプライアンスへの影響にも触れる。
+
+## ADR-001: 部品を7つの中間の粒度に分ける
+
+**Status:** Proposed
+
+**Context**
+- `conductor` は単一バイナリで、開発者は Rust に不慣れである。(constraint-register の C4、C5)
+- 責務が複数あり(定義の検証、遷移の判断、プロセスの起動、ステートの安全な保持、変換、表示)、変更の理由が互いに異なる。
+- 部品が多すぎると、部品間のやり取りが増え、Rust に不慣れな開発者には負担が大きい。少なすぎると、1つの責務が大きくなり、テストしにくい。
+
+**Decision**
+- 部品を、Cli / DefinitionLoader / Flow / JobRunner / StateStore / Converter / Reporter の7つに分ける。[Q1: B]
+
+**Consequences**
+- 良い点: 責務の境界が分かりやすい。OS ごとの違い(JobRunner)や、ステートの安全性(StateStore)を、他の部品から切り離せる。
+- 良い点: 部品どうしは直接呼び合わないため、やり取りが少なく、各部品を単体でテストしやすい。
+- 悪い点: Cli が、流れの組み立てを担うため、大きくなりうる。大きくなりすぎたら、Cli の中をさらに分ける余地を残す。
+- 戻しやすさ: 部品は単一バイナリ内の論理的な区分であり、あとから統合・分割しやすい。
+
+**Alternatives Rejected**
+- 細かく分ける案(「結果の分類」を Flow から独立させるなど、8部品): 責務は明確になるが、結果の分類と遷移の判断は、一緒に変わることが多く、分けるとやり取りが増える。Rust に不慣れな開発者に負担が大きいため退けた。
+- 粗く分ける案(4部品): 部品は少ないが、DefinitionLoader と StateStore、Flow と JobRunner が混ざり、OS 依存の部分(JobRunner)を閉じ込められず、テストもしにくくなるため退けた。
+
+**Security / Compliance:** 規制・機密データに関する要件はない。(constraint-register の C9) ジョブのコマンドの起動を JobRunner に閉じ込めることで、コマンド実行まわりの確認箇所を1か所にまとめられる。
+
+## ADR-002: Cli を唯一の調整役とし、他の部品は互いを呼ばない
+
+**Status:** Proposed
+
+**Context**
+- 個別実行と一連の実行は、同じ部品(読み込み、判断、起動、記録、表示)の組み合わせで実現できる。
+- 部品どうしが直接呼び合うと、依存が複雑になり、循環が起きやすくなる。
+
+**Decision**
+- 1回の実行の流れ(読み込み、判断、起動、記録、表示)は Cli だけが組み立てる。DefinitionLoader、Flow、JobRunner、StateStore、Converter、Reporter は、互いを呼ばない。
+
+**Consequences**
+- 良い点: 依存の向きが一方向(Cli → 他の6部品)で、循環が起きない。各部品は他の部品を知らずにテストできる。
+- 良い点: 個別実行と一連の実行で、同じ部品を再利用できる。
+- 悪い点: 流れの組み立てが Cli に集中する。流れの変更は、Cli に影響が集まる。
+- 戻しやすさ: 調整役を別の部品に切り出すことは、あとからでもできる。
+
+**Alternatives Rejected**
+- Flow が StateStore や JobRunner を直接呼ぶ案: 判断と入出力が混ざり、Flow を単体でテストしにくくなる(ADR-005 と矛盾する)ため退けた。
+- 部品どうしがイベントで連携する案: 単一プロセスの小さな CLI には過剰で、Rust に不慣れな開発者には複雑すぎるため退けた。
+
+**Security / Compliance:** 影響なし。
+
+## ADR-003: Reporter を独立した部品にする
+
+**Status:** Proposed
+
+**Context**
+- 表示には、既定で出さない・`-v` で出す・エラーは常に出す、という規則がある。
+- 文言の言語は、環境のロケールに従う(英語と日本語)。端末以外では色を無効にする。
+
+**Decision**
+- 表示と言語の切り替えを、独立した Reporter にする。他の部品は、表示の種類とデータだけを Cli に返し、Cli が Reporter に渡す。文言は Reporter が組み立てる。[Q2: A]
+
+**Consequences**
+- 良い点: 文言の追加や言語の追加が、他の部品に影響しない。表示の規則(既定では出さない、エラーは常に出す)を1か所に置ける。
+- 悪い点: 部品が1つ増え、表示の種類を表すデータの定義が必要になる。
+
+**Alternatives Rejected**
+- Cli の一部にする案: 部品は減るが、Cli に文言の組み立てと言語の切り替えが混ざり、Cli が大きくなる。変更の理由も異なるため退けた。
+
+**Security / Compliance:** エラー表示には、ジョブのコマンドの引数や環境変数が含まれうる。認証情報の扱いに関する要件はない(constraint-register の C9)が、表示する内容は、原因の把握に必要な範囲に限る。
+
+## ADR-004: ステートと定義の食い違いの検知は StateStore が受け持つ
+
+**Status:** Proposed
+
+**Context**
+- ステートが残った状態で、定義のジョブ構成(ジョブIDの追加・削除・改名・記述順)が変わると、誤ったスキップや再開が起きる。(requirements の FR4.6)
+- ステートの形式と整合は、StateStore の関心事である。
+
+**Decision**
+- StateStore が、定義のジョブ構成を受け取って、記録済みのものと照合する。食い違いを返し、実行するかどうかは Cli が決める。[Q3: A]
+
+**Consequences**
+- 良い点: ステートの形式を知っているのは StateStore だけになる。形式を変えても、他の部品に影響しない。
+- 悪い点: StateStore が、定義のジョブ構成(IDと順序)を受け取る口を持つ。ただし、定義そのものには依存せず、必要な最小限の情報だけを引数で受ける。
+
+**Alternatives Rejected**
+- Flow が比べる案: Flow がステートの形式を知る必要が生じ、Flow の入出力のない性質(ADR-005)が弱まるため退けた。
+
+**Security / Compliance:** ステートの整合を保つことで、誤ったジョブの実行を防げる。
+
+## ADR-005: Flow は入出力を持たない判断ロジックにする
+
+**Status:** Proposed
+
+**Context**
+- 結果の分類、遷移・スキップ、完了の判定は、仕様が細かく、境界条件が多い。(requirements の FR2.2〜FR2.4、FR4.2)
+- 実践として、実装のあとにテストを書く(test-after)。開発者は Rust に不慣れである。(team-practices)
+
+**Decision**
+- Flow は、ファイルやプロセスに触れず、必要な情報をすべて引数で受け取り、結果を返すだけの部品にする。
+
+**Consequences**
+- 良い点: 判断ロジックを、ファイルやプロセスなしで単体テストできる。境界条件の網羅が容易になる。
+- 悪い点: 呼び出し側(Cli)が、必要な情報を集めて渡す手間が増える。
+
+**Alternatives Rejected**
+- Flow が、ステートを読み、ジョブを起動する案: 入出力が混ざり、テストが重くなる。複数 OS での挙動の差も、判断ロジックに入り込むため退けた。
+
+**Security / Compliance:** 影響なし。
+
+## ADR-006: エンティティの所有を、定義・実行・ステートで分ける
+
+**Status:** Proposed
+
+**Context**
+- 同じ「ジョブ」という言葉が、定義(何を実行するか)、実行(いま起動した結果)、ステート(これまでの結果)の3つの意味で使われる。
+- 1つのエンティティは、ちょうど1つの部品に所有させる必要がある。
+
+**Decision**
+- JobDefinition と PipelineDefinition は DefinitionLoader、JobExecution は JobRunner、JobState と PipelineState は StateStore が所有する。他の部品のエンティティは、識別子(ジョブIDなど)で参照する。
+
+**Consequences**
+- 良い点: 所有があいまいにならず、各部品の変更が、他に波及しにくい。
+- 悪い点: ジョブIDなどの識別子で結びつける約束が必要で、食い違いの検知(ADR-004)が必要になる。
+
+**Alternatives Rejected**
+- 「ジョブ」を1つのエンティティにまとめて、定義・実行・ステートを持たせる案: 変更の理由が異なるものが1か所に集まり、所有があいまいになるため退けた。
+
+**Security / Compliance:** 影響なし。
+
+## Assumptions & Open Questions
+
+None.

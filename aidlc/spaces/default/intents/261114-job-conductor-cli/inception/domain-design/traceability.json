@@ -1,0 +1,24 @@
+{
+  "stage": "domain-design",
+  "upstream_ids": ["US1.1","US1.2","US1.3","US2.1","US2.2","US4.1","US2.3","US2.4","US2.5","US3.1","US3.2","US4.2","US4.3","US6.1","US4.4","US5.1","US7.1"],
+  "coverage": [
+    { "id": "US1.1", "status": "OK", "target": "DefinitionLoader, Flow, PipelineDefinition, JobDefinition" },
+    { "id": "US1.2", "status": "OK", "target": "DefinitionLoader" },
+    { "id": "US1.3", "status": "OK", "target": "Cli, DefinitionLoader" },
+    { "id": "US2.1", "status": "OK", "target": "JobRunner, Flow, JobExecution" },
+    { "id": "US2.2", "status": "OK", "target": "Flow, StateStore, JobState" },
+    { "id": "US4.1", "status": "OK", "target": "StateStore, PipelineState, JobState" },
+    { "id": "US2.3", "status": "OK", "target": "Cli, Flow" },
+    { "id": "US2.4", "status": "OK", "target": "Reporter" },
+    { "id": "US2.5", "status": "OK", "target": "JobRunner, Cli" },
+    { "id": "US3.1", "status": "OK", "target": "Cli, Flow, DefinitionLoader" },
+    { "id": "US3.2", "status": "OK", "target": "Flow, StateStore, JobState" },
+    { "id": "US4.2", "status": "OK", "target": "Flow, StateStore, PipelineState" },
+    { "id": "US4.3", "status": "OK", "target": "Flow, StateStore, JobState" },
+    { "id": "US6.1", "status": "OK", "target": "StateStore, Cli" },
+    { "id": "US4.4", "status": "OK", "target": "StateStore, PipelineState" },
+    { "id": "US5.1", "status": "OK", "target": "Reporter, StateStore, JobState" },
+    { "id": "US7.1", "status": "OK", "target": "Converter" }
+  ],
+  "reverse": []
+}
