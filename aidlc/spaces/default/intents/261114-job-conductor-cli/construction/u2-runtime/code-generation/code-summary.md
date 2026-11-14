@@ -56,6 +56,15 @@
 | nfr_content | 3 |
 | nfr_performance | 1 |
 
+## レビュー(1 回目、READY)で残った Minor(次の機会に直す)
+
+- 「回収後に送らない」性質を確かめる WaitLoop の単体テストがない(既存の「先に終わったジョブは転送なしで観測される」は、`run_job` が返ったあとに合図を立てるため、この性質に触れない)。
+- 古い一時ファイルの後始末(`remove_stale_temps`)は、接頭辞だけで消すため、`.<名>.tmp.bak` のような通常のファイルも、24 時間以上たてば消える。名前の型(プロセス番号・時刻・連番)まで照合するように、厳しくする。
+- `try_wait` の失敗のとき、子を止めずに `start_failure` で返すため、再開すると、同じジョブが重複して動きうる。この経路を、lib.rs の「保証の範囲」に書く。
+- シグナルのテストは、`sleep 1`/`sleep 2` の時間の余裕に依存する。SIGINT のテストは、SIGINT を無視する環境から実行されると失敗する。
+- `File::open` が、FIFO で永久にブロックしうる(reader.rs)。通常のファイルでなければ開く前に拒否する、または、開く前の `metadata` で確かめる。
+- 記録のずれ: `cfg(windows)` のコードは、`cargo check --target x86_64-pc-windows-msvc` で、型検査まで通る(実行は未確認)。unit-test-instructions の「約 80 件」は、実際は 152 件。コミットに、IDE の設定ファイル(`.idea/rust-job-conductor.iml`)の変更が含まれる(この Unit の変更ではない)。
+
 ## 実行していないテスト・測定
 
 - **行カバレッジ:** `cargo llvm-cov` が未導入のため、測っていない。80% の判定は Build and Test が行う(`--ignore-filename-regex 'bin/conductor-test-helper'`)。`cfg(windows)` のコードは、Linux の測定に入らない。
