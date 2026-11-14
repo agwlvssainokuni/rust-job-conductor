@@ -96,6 +96,10 @@ components:
       @end 以降のジョブは、すべてスキップにする。記述順で最後のジョブが実行またはスキップで
       終わったとき、または一連の実行で @end に到達したときを、完了と判定する。
       エラーで終わったときは停止とし、再開の位置(エラーになったジョブ)を決める。
+      シグナルで中断された実行(JobExecution の interrupted)は、エラー(128 + シグナル番号)に
+      分類し、実行中だったジョブを再開位置(resumeJobId)にする。ジョブとジョブのあいだで
+      中断されたときは、まだ起動していない、次に実行するジョブ(NextStep の nextJobId)を、
+      再開位置(resumeJobId)として残す(ジョブの結果は、エラーとしては記録しない)。
       ファイルやプロセスには触れず、必要な情報はすべて引数で受け取り、結果を値として返す。
       受け取る情報と返す結果の形は、下のエンティティで示す。
     responsibilities:
@@ -122,6 +126,9 @@ components:
           - entity: JobDefinition
             owned_by: DefinitionLoader
             relationship: 各 NextStep は、遷移ルールを持つ JobDefinition に基づいて決まる
+          - entity: JobState
+            owned_by: StateStore
+            relationship: 各 NextStep は、これまでの各ジョブの状態(JobState)を踏まえて決まる
 
   - name: JobRunner
     summary: ジョブのコマンドを、シェルを介さず直接起動し、終了コードとシグナルを扱う
@@ -284,7 +291,7 @@ Text fallback: `Cli` が、`DefinitionLoader`、`Flow`、`JobRunner`、`StateSto
 | PipelineDefinition | DefinitionLoader | name | name、description、jobs | なし |
 | JobDefinition | DefinitionLoader | id | id、command、warningExitCodes、successExitCodes、transitions | なし |
 | JobOutcome | Flow | jobId | jobId、classification、reportedExitCode | JobExecution(JobRunner) |
-| NextStep | Flow | jobId | jobId、nextJobId、skippedJobIds、skipReasonKind、endReached、completed、resumeJobId | JobDefinition(DefinitionLoader) |
+| NextStep | Flow | jobId | jobId、nextJobId、skippedJobIds、skipReasonKind、endReached、completed、resumeJobId | JobDefinition(DefinitionLoader)、JobState(StateStore) |
 | JobExecution | JobRunner | jobId | jobId、command、exitCode、terminatedBySignal、startFailure、interrupted | JobDefinition(DefinitionLoader) |
 | PipelineState | StateStore | definitionKey(仮) | definitionKey、pipelineName、definitionPath、jobStates、jobOrder、resumeJobId、endReached、completed | PipelineDefinition(DefinitionLoader) |
 | JobState | StateStore | jobId | jobId、status、exitCode、skipReason | JobDefinition(DefinitionLoader) |
