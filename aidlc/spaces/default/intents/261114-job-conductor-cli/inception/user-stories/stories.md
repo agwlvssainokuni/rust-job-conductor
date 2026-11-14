@@ -6,58 +6,69 @@
 
 ## 1. 定義ファイル
 
-### US1.1 定義を書いて、実行前に誤りを検知する【Must】
+### US1.1 定義に従って、ジョブの実行順と遷移を決める【Must】
 
-As a P1 運用担当者・開発者, I want to ジョブ・終了コードの対応・遷移ルールを `conductor.toml` に書いて、誤りがあれば実行前に拒否されるようにしたい, so that 間違った定義で本番のジョブを動かしてしまうことを防げる。
+As a P1 運用担当者・開発者, I want to ジョブ・終了コードの対応・遷移ルールを `conductor.toml` に書いて、その定義どおりに実行されるようにしたい, so that 警告のときの分岐を、スケジューラを変えずに定義で決められる。
 
-対応する要件: FR1.1、FR1.2、FR1.3、FR1.4、FR1.5、NFR4
+対応する要件: FR1.1、FR1.2、FR1.3、FR1.5
 
 受け入れ基準:
-- AC1.1.1: Given 正しい定義ファイルがある、When `conductor run <job-id>` を実行する、Then 定義に従ってジョブが実行される。
-- AC1.1.2: Given 存在しないジョブIDを遷移先に書いた定義ファイルがある、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、ファイル名・行・原因が表示され、非0で終了する。
-- AC1.1.3: Given エラー結果に遷移先を書いた、またはジョブ自身か記述順で前のジョブを遷移先にした定義ファイルがある、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、原因が表示され、非0で終了する。
-- AC1.1.4: Given 同じ終了コードを `warning_exit_codes` と成功コードの両方に書いた、または 0 を警告に指定した定義ファイルがある、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、原因が表示され、非0で終了する。
-- AC1.1.5: Given 成功時の遷移先を書かないジョブがある、When そのジョブが成功する、Then 記述順で次のジョブが次の実行対象になる。
-- AC1.1.6: Given 定義の `name` と異なる名前を `conductor pipeline` に渡す、When 実行する、Then 実行されず、名前の不一致が表示され、非0で終了する。
-- AC1.1.7: Given 終了コードを文字列で書くなど、型の誤りがある定義ファイル、When `conductor run <job-id>` を実行する、Then ジョブが実行される前に、誤りが検知されて表示される。(NFR4)
+- AC1.1.1: Given パイプラインの名前と説明、ジョブID、コマンド、`warning_exit_codes` を書いた正しい定義ファイルがある、When `conductor run <job-id>` を実行する、Then 定義に従ってジョブが実行される。
+- AC1.1.2: Given 成功時の遷移先を書かないジョブがある、When そのジョブが成功する、Then 記述順で次のジョブが次の実行対象になる。
+- AC1.1.3: Given 警告時の遷移先に、記述順で2つ後ろのジョブを書いた、When そのジョブが警告で終わる、Then 間のジョブはスキップ対象になり、2つ後ろのジョブが次の実行対象になる。
+- AC1.1.4: Given 定義ファイルに複数のジョブがある、When `conductor pipeline <pipeline-name>` を実行する、Then ジョブは定義ファイルに書いた順に実行される。
 
-INVEST: Independent(定義の検証だけで完結する)、Valuable(誤った定義の実行を防ぐ)、Testable(各 AC が合否を判定できる)。Small(AC が多いが、すべて起動時の検証である。実装時に分割してもよい)。
+INVEST: Independent、Valuable(分岐の定義が価値の中心)、Small、Testable。
 
 依存: なし。
 
-### US1.2 定義ファイルの場所を指定する【Must】
+### US1.2 定義の誤りを、実行前に検知する【Must】
+
+As a P1 運用担当者・開発者, I want to 定義に誤りがあれば、ジョブを動かす前に拒否されてほしい, so that 間違った定義で本番のジョブを動かしてしまうことを防げる。
+
+対応する要件: FR1.4、FR1.5、NFR4
+
+受け入れ基準:
+- AC1.2.1: Given 存在しないジョブIDを遷移先に書いた定義ファイルがある、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、ファイル名・行・原因が表示され、非0で終了する。
+- AC1.2.2: Given エラー結果に遷移先を書いた、またはジョブ自身か記述順で前のジョブを遷移先にした定義ファイルがある、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、原因が表示され、非0で終了する。
+- AC1.2.3: Given 同じ終了コードを `warning_exit_codes` と成功コードの両方に書いた、または 0 を警告に指定した定義ファイルがある、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、原因が表示され、非0で終了する。
+- AC1.2.4: Given 終了コードを文字列で書くなど、型の誤りがある定義ファイル、When `conductor run <job-id>` を実行する、Then ジョブが実行される前に、誤りが検知されて表示される。(NFR4)
+- AC1.2.5: Given 定義の `name` が `nightly` である、When `conductor pipeline other` を実行する、Then 実行されず、名前の不一致が表示され、非0で終了する。
+
+INVEST: Independent(検証だけで完結する)、Valuable、Small、Testable。
+
+依存: US1.1。
+
+### US1.3 定義ファイルの場所を指定する【Must】
 
 As a P1 運用担当者・開発者, I want to 定義ファイルを、実行ディレクトリの既定の場所に置くか、パスを指定して使いたい, so that ジョブごと・環境ごとに定義ファイルを使い分けられる。
 
 対応する要件: FR1.6
 
 受け入れ基準:
-- AC1.2.1: Given 実行ディレクトリに `conductor.toml` がある、When オプションなしで `conductor run <job-id>` を実行する、Then その `conductor.toml` が使われる。
-- AC1.2.2: Given 別のパスに定義ファイルがある、When オプションでそのパスを指定して実行する、Then 指定したファイルが使われる。
-- AC1.2.3: Given 定義ファイルが存在しない、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、存在しないファイルのパスが表示され、非0で終了する。
+- AC1.3.1: Given 実行ディレクトリに `conductor.toml` がある、When オプションなしで `conductor run <job-id>` を実行する、Then その `conductor.toml` が使われる。
+- AC1.3.2: Given 別のパスに定義ファイルがある、When オプションでそのパスを指定して実行する、Then 指定したファイルが使われる。
+- AC1.3.3: Given 定義ファイルが存在しない、When `conductor run <job-id>` を実行する、Then ジョブは実行されず、存在しないファイルのパスが表示され、非0で終了する。
 
 INVEST: Independent、Small、Testable。
 
-依存: US1.1(定義の読み込み)。
+依存: US1.1。
 
 ## 2. 個別実行
 
-### US2.1 ジョブを1つ実行して、結果を分類する【Must】
+### US2.1 ジョブを1つ起動して、結果を分類する【Must】
 
 As a P1 運用担当者・開発者, I want to 既存のスケジューラから `conductor run <job-id>` を呼んで、ジョブの終了コードを成功・警告・エラーに分類したい, so that 警告のときに別の処理へ分岐できる。
 
-対応する要件: FR2.1、FR2.2、FR2.7、FR2.8、NFR1、NFR2、NFR3
+対応する要件: FR2.1、FR2.2
 
 受け入れ基準:
-- AC2.1.1: Given ジョブのコマンドがシェルのメタ文字(`;`、`&&`、`|`)を含む引数を持つ、When `conductor run` で実行する、Then メタ文字はシェルに解釈されず、そのまま引数として渡される。(FR2.1)
-- AC2.1.2: Given 終了コード 0、`warning_exit_codes` の値、それ以外の非0を返すジョブ、When それぞれ実行する、Then 順に成功、警告、エラーとして分類される。(FR2.2)
-- AC2.1.3: Given 存在しないコマンド、またはシグナルで終了するジョブ、When `conductor run` で実行する、Then エラーとして扱われ、原因が表示され、非0で終了する。(FR2.2)
-- AC2.1.4: Given 長時間かかるジョブ、When `conductor run` で実行する、Then `conductor` は時間切れにせず、ジョブの終了を待つ。(FR2.7)
-- AC2.1.5: Given 同じ定義に対して `conductor run` を2つ同時に起動する、When 実行する、Then `conductor` は排他制御をせず、それぞれが実行される。(FR2.8)
-- AC2.1.6: Given ジョブ10個程度の定義ファイル、When `conductor run <job-id>` を同じ環境で20回測定する、Then `conductor` 自身のオーバーヘッドの p95 が 100ms 以内で、Linux・macOS・Windows のそれぞれで満たす。(NFR1、NFR3)
-- AC2.1.7: Given 外部ランタイムをインストールしていない環境、When `conductor` を実行する、Then 追加のインストールなしで動作する。(NFR2)
+- AC2.1.1: Given ジョブのコマンドがシェルのメタ文字(`;`、`&&`、`|`)を含む引数を持つ、When `conductor run` で実行する、Then メタ文字はシェルに解釈されず、そのまま引数として渡される。
+- AC2.1.2: Given 作業ディレクトリと環境変数を設定した状態で `conductor` を起動する、When ジョブを実行する、Then ジョブは同じ作業ディレクトリと環境変数で起動される。
+- AC2.1.3: Given 終了コード 0、`warning_exit_codes` の値、それ以外の非0を返すジョブ、When それぞれ実行する、Then 順に成功、警告、エラーとして分類される。
+- AC2.1.4: Given 存在しないコマンド、またはシグナルで終了するジョブ、When `conductor run` で実行する、Then エラーとして扱われ、原因が表示され、非0で終了する。
 
-INVEST: Independent、Valuable(分類が分岐の前提)、Testable。
+INVEST: Independent、Valuable(分類が分岐の前提)、Small、Testable。
 
 依存: US1.1。
 
@@ -73,7 +84,7 @@ As a P1 運用担当者・開発者, I want to 警告のときに後続の特定
 - AC2.2.3: Given 遷移先が「パイプラインをここで終える」である、When そのジョブが警告で終わる、Then 以降のジョブはすべてスキップ対象になる。
 - AC2.2.4: Given 遷移先を書かない成功のジョブ、When 成功する、Then 記述順で次のジョブが実行され、スキップは起きない。
 
-INVEST: Independent(US2.1 の分類があれば成立)、Valuable、Testable。
+INVEST: Independent(US2.1 の分類があれば成立)、Valuable、Small、Testable。
 
 依存: US2.1、US4.1。
 
@@ -102,8 +113,26 @@ As a P1 運用担当者・開発者, I want to 既定ではジョブ本体の出
 - AC2.4.1: Given オプションを付けない、When 成功するジョブを `conductor run` で実行する、Then `conductor` 自身の表示は出ず、ジョブ本体の出力だけが流れる。
 - AC2.4.2: Given オプションを付けない、When 定義ファイルの誤りなど `conductor` 自身のエラーが起きる、Then 原因が表示される。
 - AC2.4.3: Given スキップ対象のジョブ、When オプションを付けずに `conductor run` で実行する、Then 何も表示されず、終了コード 0 で終了する。
+- AC2.4.4: Given `conductor` 自身の表示を有効にするオプションを付ける、When ジョブを `conductor run` で実行する、Then オプションなしでは出なかった `conductor` 自身の表示が出る。オプションの名称と、表示する内容の粒度は設計で定める。
 
-INVEST: Independent、Small、Testable。表示を有効にするオプションの名称は、設計で定める。
+INVEST: Independent、Small、Testable。
+
+依存: US2.1。
+
+### US2.5 実行時の取り決め(時間制限・同時実行・起動の速さ・配布形態)【Must】
+
+As a P1 運用担当者・開発者, I want to `conductor` が時間制限や排他制御をせず、毎回すばやく起動し、追加の準備なしで3つのOSで動くようにしたい, so that 既存のスケジューラの運用を変えず、毎ステップの呼び出しにも負担をかけない。
+
+対応する要件: FR2.7、FR2.8、NFR1、NFR2、NFR3
+
+受け入れ基準:
+- AC2.5.1: Given 長時間かかるジョブ、When `conductor run` で実行する、Then `conductor` は時間切れにせず、ジョブの終了を待つ。(FR2.7)
+- AC2.5.2: Given 同じ定義に対して `conductor run` を2つ同時に起動する、When 実行する、Then `conductor` は排他制御をせず、それぞれが実行される。(FR2.8)
+- AC2.5.3: Given ジョブ10個程度の定義ファイル、When `conductor run <job-id>` を同じ環境で20回測定する、Then `conductor` 自身のオーバーヘッドの p95 が 100ms 以内で、Linux・macOS・Windows のそれぞれで満たす。(NFR1、NFR3)
+- AC2.5.4: Given 外部ランタイムをインストールしていない環境、When `conductor` を実行する、Then 追加のインストールなしで動作する。(NFR2)
+- AC2.5.5: Given Linux・macOS・Windows のそれぞれ、When 同じ定義で `conductor run <job-id>` を実行する、Then 同じ結果になる。(NFR3)
+
+INVEST: Independent、Valuable、Small、Testable。
 
 依存: US2.1。
 
@@ -118,10 +147,10 @@ As a P2 ローカル開発者, I want to `conductor pipeline <pipeline-name>` �
 受け入れ基準:
 - AC3.1.1: Given 3つのジョブを定義し、すべて成功する、When `conductor pipeline` を実行する、Then 3つが順に実行され、終了コード 0 で終了する。
 - AC3.1.2: Given 2つ目のジョブが警告で、警告時の遷移先が4つ目のジョブである、When `conductor pipeline` を実行する、Then 3つ目のジョブはスキップされ、4つ目が実行される。
-- AC3.1.3: Given 2つ目のジョブの遷移先が「パイプラインをここで終える」である、When `conductor pipeline` を実行する、Then 以降のジョブは実行されず、パイプラインは完了とみなされる。
+- AC3.1.3: Given 2つ目のジョブの遷移先が「パイプラインをここで終える」である、When `conductor pipeline` を実行する、Then 以降のジョブは実行されず、パイプラインは完了とみなされ、ステートが初期化される。
 - AC3.1.4: Given Linux・macOS・Windows のそれぞれ、When 同じ定義で `conductor pipeline` を実行する、Then 同じ結果になる。(NFR3)
 
-INVEST: Independent(個別実行とは別に提供できる)、Valuable、Testable。
+INVEST: Independent(個別実行とは別に提供できる)、Valuable、Small、Testable。
 
 依存: US1.1、US2.1、US4.1。
 
@@ -138,7 +167,7 @@ As a P2 ローカル開発者, I want to 一括実行中にジョブがエラー
 
 INVEST: Independent、Small、Testable。
 
-依存: US3.1、US4.3。
+依存: US3.1、US4.1。
 
 ## 4. ステート
 
@@ -166,9 +195,10 @@ As a P1 運用担当者・開発者, I want to パイプラインが最後まで
 受け入れ基準:
 - AC4.2.1: Given 3つのジョブを個別実行で最後まで実行した、When 最後のジョブが終わる、Then ステートは初期化され、次に最初のジョブを実行できる。
 - AC4.2.2: Given 最後のジョブがスキップ対象である、When 最後のジョブを `conductor run` で呼び出す、Then スキップされ、その時点で完了とみなされ、ステートが初期化される。
-- AC4.2.3: Given 2つ目のジョブの遷移先が「パイプラインをここで終える」で、3つ目が最後のジョブである、When 2つ目から順に呼び出す、Then 3つ目は実行されずにスキップされ、その時点でステートが初期化される。
+- AC4.2.3: Given 2つ目のジョブの遷移先が「パイプラインをここで終える」で、3つ目が最後のジョブである、When 個別実行で2つ目から順に呼び出す、Then 3つ目は実行されずにスキップされ、その時点でステートが初期化される。
+- AC4.2.4: Given 一連の実行で「パイプラインをここで終える」に到達した、When 実行が終わる、Then その時点でステートが初期化される。
 
-INVEST: Independent、Valuable、Testable。
+INVEST: Independent、Valuable、Small、Testable。
 
 依存: US4.1、US2.2。
 
@@ -179,11 +209,12 @@ As a P1 運用担当者・開発者, I want to ジョブがエラーで終わっ
 対応する要件: FR4.3
 
 受け入れ基準:
-- AC4.3.1: Given 2つ目のジョブがエラーで終わった、When 同じパイプラインを再び流す、Then 1つ目はスキップされ、2つ目から再開する。
-- AC4.3.2: Given エラーで終わったあと、When `conductor reset` を実行して流し直す、Then 先頭から実行される。
-- AC4.3.3: Given エラーで終わったあと、When 何も操作しない、Then 自動での再実行は行われない。
+- AC4.3.1: Given 個別実行で、2つ目のジョブがエラーで終わった、When スケジューラが同じパイプラインを1つ目から呼び直す、Then 1つ目はスキップされ、2つ目から再開する。
+- AC4.3.2: Given 一連の実行で、2つ目のジョブがエラーで終わった、When `conductor pipeline` をもう一度実行する、Then 1つ目はスキップされ、2つ目から再開する。
+- AC4.3.3: Given エラーで終わったあと、When `conductor reset` を実行して流し直す、Then 先頭から実行される。
+- AC4.3.4: Given エラーで終わったあと、When 何も操作しない、Then 自動での再実行は行われない。
 
-INVEST: Independent、Valuable、Testable。
+INVEST: Independent、Valuable、Small、Testable。
 
 依存: US4.1、US6.1。
 
@@ -198,7 +229,7 @@ As a P1 運用担当者・開発者, I want to ステートが残った状態で
 - AC4.4.2: Given 食い違いが検知された、When `conductor reset` を実行してから流し直す、Then 正常に実行できる。
 - AC4.4.3: Given ジョブの記述順だけを変えた、When `conductor run <job-id>` を実行する、Then 食い違いとして検知される。
 
-INVEST: Independent、Valuable、Testable。
+INVEST: Independent、Valuable、Small、Testable。
 
 依存: US4.1、US6.1。
 
@@ -250,16 +281,30 @@ INVEST: Independent(他の機能に依存しない)、Small、Testable。
 
 ## ストーリーの優先度と依存の概観
 
-| ストーリー | 優先度 | 依存 |
-|------------|--------|------|
-| US1.1、US1.2 | Must | なし、US1.1 |
-| US2.1〜US2.4 | Must | US1.1、US2.1、US4.1 |
-| US3.1、US3.2 | Must | US1.1、US2.1、US4.1、US4.3 |
-| US4.1〜US4.4 | Must | US4.1、US2.2、US6.1 |
+| ストーリー | 優先度 | 依存するストーリー |
+|------------|--------|--------------------|
+| US1.1 | Must | なし |
+| US1.2 | Must | US1.1 |
+| US1.3 | Must | US1.1 |
+| US2.1 | Must | US1.1 |
+| US2.2 | Must | US2.1、US4.1 |
+| US2.3 | Must | US2.1、US2.2 |
+| US2.4 | Must | US2.1 |
+| US2.5 | Must | US2.1 |
+| US3.1 | Must | US1.1、US2.1、US4.1 |
+| US3.2 | Must | US3.1、US4.1 |
+| US4.1 | Must | なし |
+| US4.2 | Must | US4.1、US2.2 |
+| US4.3 | Must | US4.1、US6.1 |
+| US4.4 | Must | US4.1、US6.1 |
 | US5.1 | Should | US4.1 |
 | US6.1 | Must | US4.1 |
 | US7.1 | Should | なし |
 
 ## Assumptions & Open Questions
 
-None.
+- 次の項目は、要件(requirements)の未解決事項を引き継ぎ、設計で決める。いずれも、US4.1〜US4.4 と US2.4 の受け入れ基準の前提に関わる。 [assumption]
+  - 個別実行で、順序外のジョブ(前のジョブが未実行のまま)が呼ばれた場合と、すでに実行済みのジョブが再び呼ばれた場合の動作。
+  - ステートファイルの名前と保存場所の具体、別パスの定義ファイルを指定したときのステートの紐づけ。
+  - `conductor` 自身の表示を有効にするオプションの名称と粒度、「パイプラインをここで終える」の名称と書き方、成功コードを指定するキー名、起動失敗・シグナル終了時の具体的な終了コードの値。
+- 一連の実行(`conductor pipeline`)の入出力イメージは未作成であり、AC3.1.x は、Requirements と Rough Mockups の記述に基づく。 [assumption]
