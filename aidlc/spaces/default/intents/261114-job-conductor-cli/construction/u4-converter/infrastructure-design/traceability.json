@@ -1,0 +1,19 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u4-converter",
+  "upstream_ids": ["NFR4.1","NFR4.7","NFR1.1","NFR2.1","NFR3.1","NFR5.1","NFR4.2","NFR4.4","NFR4.3","NFR4.5","NFR4.6"],
+  "coverage": [
+    { "id": "NFR1.1", "status": "N/A", "target": "この Unit は convert のときだけ呼ばれ、起動経路にない。起動時間の測定は u3-cli の CI の対象(インフラの資源は要らない)" },
+    { "id": "NFR2.1", "status": "OK", "target": "cicd-pipeline の段階 3(`cargo tree` で -sys がないこと、最小の Rust のバージョンでのビルド)と段階 7(依存の確認の候補)" },
+    { "id": "NFR3.1", "status": "OK", "target": "cicd-pipeline の段階 4(Linux・macOS・Windows の3つでテスト)" },
+    { "id": "NFR5.1", "status": "OK", "target": "cicd-pipeline の段階 4(テスト)と段階 6(行カバレッジ 80% の下限)" },
+    { "id": "NFR4.1", "status": "OK", "target": "cicd-pipeline の段階 4(各 kind のテストを、3つの OS で実行)" },
+    { "id": "NFR4.2", "status": "OK", "target": "cicd-pipeline の段階 4(大きさの上限のテスト)" },
+    { "id": "NFR4.3", "status": "OK", "target": "cicd-pipeline の段階 5(展開で膨らむ YAML のテストに各 30 秒の上限)" },
+    { "id": "NFR4.4", "status": "OK", "target": "cicd-pipeline の段階 5(深さ 100,000 の入力のテストに各 30 秒の上限。3つの OS で実行)" },
+    { "id": "NFR4.5", "status": "N/A", "target": "設計(入力のファイルを読む以外の入出力を持たない)と、ソースの検索で満たす。インフラの資源は要らない。検索は段階 4 のテストの一部" },
+    { "id": "NFR4.6", "status": "OK", "target": "cicd-pipeline の段階 4(エラー表示にキー名のエスケープと、入力の値が現れないことのテスト)" },
+    { "id": "NFR4.7", "status": "OK", "target": "cicd-pipeline の段階 4・段階 5(範囲を超える整数、深い入力、壊れた UTF-8 でパニックしないテスト)" }
+  ],
+  "reverse": []
+}
