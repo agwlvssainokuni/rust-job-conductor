@@ -32,6 +32,9 @@
 
 ## 設計の隙間(後の Unit・ステージで解決する)
 
+- **`end_reached` の引き継ぎ(レビュー 2 回目の指摘):** `resume_point_on_interrupt` の `end_reached` は、`skipped(byEnd)` の記録だけから決まる。個別実行で `@end` に着いたあと、最初のスキップを記録する前に中断されると、false が返る。u3-cli は、`end_reached` を、戻り値で上書きせず、積み上げる(一度 true になったら、true のまま)必要がある。u3-cli の設計で確かめる。
+- **Rust 1.85 での実機コンパイル:** let チェーンは取り除いたが、rustc 1.97 でしか確かめていない。CI で、最低版(1.85)のビルドを確かめる(CI Pipeline のステージで検討)。
+
 - **契約 C2:** `decide_before_run` に `resume_job_id`・`end_reached`、`classify_and_decide` に `run_mode` が要る。契約の更新は、u3-cli の設計で行う。
 - **個別実行の `@end` のあとの完了(レビュー 1 回目で修正):** `RunMode::Individual` で `@end` に着いたときは、`end_reached = true`、`skip_reason_kind = ByEnd`、`skipped_job_ids` は空、`completed = false`(BR3.6 のとおり、以降のジョブはスケジューラから呼ばれたとき、`decide_before_run` が `Skip(AfterEnd)` を返す)。Cli は、呼ばれたジョブだけをスキップとして記録する。最後のジョブを記録したあとの `resume_point_on_interrupt` が `completed = true` を返す。`RunMode::Pipeline` は BR3.3 のとおり、以降のジョブを一括でスキップし、`completed = true`。BR3.3 の「全ジョブ」は pipeline の方式の規則であり、individual は BR3.6 に従う。
 - **`signal_number` がないままの中断:** 128 + 0 になる。仕様に、この場合の値がない。u2-runtime の `JobExecution` の生成で、番号を必ず持たせる。
