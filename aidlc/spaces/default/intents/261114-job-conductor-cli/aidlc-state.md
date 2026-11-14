@@ -71,11 +71,8 @@
 
 
 
-- **Active Unit**: u4-converter
 
-- **Unit Stage**: nfr-design
 
-- **Unit State**: in-progress
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -137,7 +134,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-14T21:26:55Z
+- **Last Updated**: 2026-11-14T21:34:23Z
 
 - **Construction Autonomy Mode**: autonomous
 
