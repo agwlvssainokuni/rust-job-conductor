@@ -6,6 +6,8 @@
 
 - 2026-11-14T14:04:03Z — Deployment の org.md 既定(マージ時にステージングへデプロイ)は単一バイナリ CLI に当てはまらないため、タグによるリリース成果物作成に読み替えた。
 
+- 2026-11-14T14:11:33Z — Q1(squash しない)と Q2(Walking Skeleton なし)は org.md/ドラフトの既定から変更された。Q4 の補足(主な OS 以外は CI)は、ローカルと CI の分担として team-practices.md に反映した。
+
 ## Deviations
 <!-- example: 2026-05-29T10:14:32Z — skipped the optional caching layer the stage prose suggested; the dataset is small enough that it adds risk -->
 

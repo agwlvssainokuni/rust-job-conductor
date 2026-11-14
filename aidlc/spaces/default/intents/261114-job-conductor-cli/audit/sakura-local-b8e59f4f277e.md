@@ -3417,3 +3417,282 @@
 **Agent ID**: ad48d61e8cbdc5292
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:04:42Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:04:43Z
+**Event**: DECISION_RECORDED
+**Stage**: practices-discovery
+**Decision**: Q1-Q4 presented
+**Options**: Q1: A/B/C,Q2: A/B/C,Q3: A/B/C/D,Q4: A/B/C/D
+**Question Id**: b6e8c63c
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:eae6285d775be36a5a2bbab4cd91807bb910945ad419c67f262d924871cd0821
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T14:04:44Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:09:42Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["B","B","A","A. 主な開発環境のOS以外はCIで(GitHub Actions)。"]
+**Message Id**: 62963002
+**Open Questions**: b6e8c63c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"4fe331d7e2977c07","Q2":"3cb4e6e06912ecad","Q3":"c900a0f6c13e9796","Q4":"7935e33258ff1956","Q5":"05506f6baac318fa","Q6":"54a832ac90a622fa","Q7":"d444eb28dac15656"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:09:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q1. ブランチとマージの進め方は?(初稿の既定: main を統合先とし、短命ブランチを squash マージ)
+**Reply**: B
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:09:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q2. 最初に薄いエンドツーエンドの縦切りを作りますか?(ウォーキングスケルトンとは、全体を端から端まで一通り動かせる最小限のバージョンで、本格的な機能を足す前に各部がつながることを確かめるために最初に作ります)
+**Reply**: B
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:09:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q3. テストをいつ書きますか?(Rust に不慣れな開発者が進めるため、品質に影響します)
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:09:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q4. テストの基準と実行環境は?(初稿の既定: 行カバレッジ 80%、3 OS で実行)
+**Reply**: A. 主な開発環境のOS以外はCIで(GitHub Actions)。
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T14:09:46Z
+**Event**: QUESTION_ANSWERED
+**Stage**: practices-discovery
+**Details**: Q1: B; Q2: B; Q3: A; Q4: A. 主な開発環境のOS以外はCIで(GitHub Actions)。
+**Person Reply**: B\nB\nA\nA. 主な開発環境のOS以外はCIで(GitHub Actions)。
+**Message Id**: 62963002
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:09:47Z
+**Event**: DECISION_RECORDED
+**Stage**: practices-discovery
+**Decision**: Q5-Q7 presented
+**Options**: Q5: A/B/C,Q6: A/B/C,Q7: A/B/C
+**Question Id**: c5110d7d
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:296286f78847d6d3843dd66c4ba6da820e95c724679e3d37de9fdd9015055950
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:10:48Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A","A"]
+**Message Id**: 8f16078f
+**Open Questions**: b6e8c63c, c5110d7d
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"4fe331d7e2977c07","Q2":"3cb4e6e06912ecad","Q3":"c900a0f6c13e9796","Q4":"7935e33258ff1956","Q5":"05506f6baac318fa","Q6":"54a832ac90a622fa","Q7":"d444eb28dac15656"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:10:48Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [運用] Q5. リリースと配布の進め方は?(初稿の既定: ケースタグ付けで CI が3OS向けバイナリを作成)
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:10:48Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [開発] Q6. コードの整形と静的チェックは?(初稿の既定: rustfmt と clippy、CI で失敗したらマージ不可)
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:10:48Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q7. 必ず守る決まり(ALWAYS)や禁止する決まり(NEVER)はありますか?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T14:10:54Z
+**Event**: QUESTION_ANSWERED
+**Stage**: practices-discovery
+**Details**: Q5: A; Q6: A; Q7: A
+**Person Reply**: A\nA\nA
+**Message Id**: 8f16078f
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T14:11:02Z
+**Event**: DECISION_RECORDED
+**Stage**: practices-discovery
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md
+**Question Id**: b6a3dd0a
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:11:10Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 786e6047
+**Open Questions**: b6e8c63c, c5110d7d, b6a3dd0a
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"4fe331d7e2977c07","Q2":"3cb4e6e06912ecad","Q3":"c900a0f6c13e9796","Q4":"7935e33258ff1956","Q5":"05506f6baac318fa","Q6":"54a832ac90a622fa","Q7":"d444eb28dac15656","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:11:10Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、成果物を最終版にまとめてよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T14:11:12Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T14:11:14Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: practices-discovery
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-questions.md
+**Questions SHA-256**: 1587a86bc687ad655a1c4d7bb9ac9a6efb59c82c34cfe8b1f97bf3797fb8837c
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 786e6047
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 216b203e8945db94247c417869001b95649e9fbb4de0df69fd743d7d1a5ed353
+**Git Name**: agwlvssainokuni
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T14:11:27Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-pipeline-deploy-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:11:41Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/team-practices.md
+**Context**: inception > practices-discovery > team-practices.md
+**Summary Authorization Id**: 216b203e8945db94247c417869001b95649e9fbb4de0df69fd743d7d1a5ed353
+
+---
+
+## Practices Discovered
+**Timestamp**: 2026-11-14T14:11:47Z
+**Event**: PRACTICES_DISCOVERED
+**Sources Scanned**: aidlc/spaces/default/memory/org.md, interview answers
+**Drafts**: team-practices.md, discovered-rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:11:48Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/evidence.md
+**Context**: inception > practices-discovery > evidence.md
+**Summary Authorization Id**: 216b203e8945db94247c417869001b95649e9fbb4de0df69fd743d7d1a5ed353
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:11:48Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/practices-discovery-timestamp.md
+**Context**: inception > practices-discovery > practices-discovery-timestamp.md
+**Summary Authorization Id**: 216b203e8945db94247c417869001b95649e9fbb4de0df69fd743d7d1a5ed353
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T14:11:50Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/practices-discovery/memory.md
+**Context**: inception > practices-discovery > memory.md
+**Summary Authorization Id**: 216b203e8945db94247c417869001b95649e9fbb4de0df69fd743d7d1a5ed353
+
+---
