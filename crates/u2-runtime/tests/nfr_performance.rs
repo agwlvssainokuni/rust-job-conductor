@@ -1,0 +1,96 @@
+//! NFR1.1: 起動前の処理の時間(ジョブ 10 個の定義)。基準(p95 20ms。仮)を超えても、失敗にしない。
+//! 測定値は標準エラーに出し、`GITHUB_STEP_SUMMARY` があれば、そこにも書き出す。
+
+mod common;
+
+use std::io::Write;
+use std::time::{Duration, Instant};
+
+use conductor_core::PipelineDefinition;
+use conductor_runtime::{
+    ConsistencyResult, Durability, check_command, check_consistency, initial_state, read_state,
+    write_state,
+};
+
+const RUNS: usize = 100;
+const TARGET: Duration = Duration::from_millis(20);
+
+fn definition() -> PipelineDefinition {
+    PipelineDefinition {
+        name: "bench".into(),
+        description: None,
+        format_version: 1,
+        jobs: (0..10)
+            .map(|i| {
+                common::job(
+                    &format!("job{i}"),
+                    format!("prog --opt 'value {i}' \"x y\" z{i}"),
+                )
+            })
+            .collect(),
+    }
+}
+
+fn p95(samples: &mut [Duration]) -> Duration {
+    samples.sort();
+    // 昇順の 95 番目(100 回のとき、添字 94)。
+    let rank = (samples.len() * 95).div_ceil(100).max(1);
+    samples[rank - 1]
+}
+
+fn report(line: &str) {
+    eprintln!("{line}");
+    if let Ok(path) = std::env::var("GITHUB_STEP_SUMMARY") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(path)
+        {
+            let _ = writeln!(f, "{line}");
+        }
+    }
+}
+
+#[test]
+fn 起動前の処理の_p95_を測る() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def_path = dir.path().join("conductor.toml");
+    let d = definition();
+
+    let mut fast = Vec::with_capacity(RUNS);
+    for _ in 0..RUNS {
+        let start = Instant::now();
+        for job in &d.jobs {
+            assert!(check_command(&job.command).is_ok());
+        }
+        let existing = read_state(&def_path).expect("読める");
+        if let Some(state) = &existing {
+            assert_eq!(check_consistency(state, &d), ConsistencyResult::Ok);
+        }
+        let state = existing.unwrap_or_else(|| initial_state(&d, &def_path));
+        write_state(&def_path, &state, Durability::Fast).expect("書ける");
+        fast.push(start.elapsed());
+    }
+
+    let mut durable = Vec::with_capacity(RUNS);
+    let state = initial_state(&d, &def_path);
+    for _ in 0..RUNS {
+        let start = Instant::now();
+        write_state(&def_path, &state, Durability::Durable).expect("書ける");
+        durable.push(start.elapsed());
+    }
+
+    let fast_p95 = p95(&mut fast);
+    let durable_p95 = p95(&mut durable);
+    report(&format!(
+        "NFR1.1 u2-runtime: 起動前の処理(ジョブ 10 個、{RUNS} 回、同期なし)p95 = {fast_p95:?}(基準 {TARGET:?}、仮)"
+    ));
+    report(&format!(
+        "NFR1.1 u2-runtime: 結果の書き込み(Durable、{RUNS} 回)p95 = {durable_p95:?}(基準なし。記録のみ)"
+    ));
+    if fast_p95 > TARGET {
+        report(&format!(
+            "警告: 起動前の処理の p95 が基準を超えました({fast_p95:?} > {TARGET:?})。失敗にはしません"
+        ));
+    }
+}

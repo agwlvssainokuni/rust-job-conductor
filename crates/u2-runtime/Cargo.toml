@@ -1,0 +1,26 @@
+[package]
+name = "conductor-runtime"
+version = "0.1.0"
+description = "conductor の実行ライブラリ(ジョブの起動とシグナルの転送、ステートの保持と照合)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+conductor-core = { path = "../u1-core" }
+toml = { version = "1.2.1", default-features = false, features = ["parse", "std", "display", "serde"] }
+thiserror = "2.0.21"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+# テスト専用の補助の実行ファイル。配布には含めない(u3-cli は `-p` で自分のパッケージだけをビルドする)。
+[[bin]]
+name = "conductor-test-helper"
+path = "src/bin/conductor-test-helper.rs"
+test = false
+doc = false

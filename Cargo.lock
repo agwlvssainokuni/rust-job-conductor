@@ -40,6 +40,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conductor-runtime"
+version = "0.1.0"
+dependencies = [
+ "conductor-core",
+ "libc",
+ "tempfile",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,0 +1,404 @@
+{
+  "stage": "code-generation",
+  "unit": "u2-runtime",
+  "upstream_ids": [
+    "AC2.1.1",
+    "AC2.1.2",
+    "AC2.1.3",
+    "AC2.1.4",
+    "AC2.1.5",
+    "AC2.1.6",
+    "AC2.2.1",
+    "AC2.2.2",
+    "AC2.2.3",
+    "AC2.2.4",
+    "AC2.5.1",
+    "AC2.5.2",
+    "AC2.5.3",
+    "AC2.5.4",
+    "AC2.5.5",
+    "AC2.5.6",
+    "AC3.2.1",
+    "AC3.2.2",
+    "AC3.2.3",
+    "AC4.1.1",
+    "AC4.1.2",
+    "AC4.1.3",
+    "AC4.2.1",
+    "AC4.2.2",
+    "AC4.2.3",
+    "AC4.2.4",
+    "AC4.3.1",
+    "AC4.3.2",
+    "AC4.3.3",
+    "AC4.3.4",
+    "AC4.4.1",
+    "AC4.4.2",
+    "AC4.4.3",
+    "AC5.1.1",
+    "AC5.1.2",
+    "AC5.1.3",
+    "AC6.1.1",
+    "AC6.1.2",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR4.3",
+    "NFR4.4",
+    "NFR1.1",
+    "NFR4.5",
+    "NFR4.6",
+    "NFR4.7",
+    "NFR4.8",
+    "NFR4.9",
+    "BR1.1",
+    "BR1.2",
+    "BR1.3",
+    "BR1.4",
+    "BR1.5",
+    "BR1.6",
+    "BR1.7",
+    "BR2.9",
+    "BR2.1",
+    "BR2.2",
+    "BR2.3",
+    "BR2.7",
+    "BR2.4",
+    "BR2.5",
+    "BR2.6",
+    "BR2.8",
+    "BR3.8",
+    "BR2.10"
+  ],
+  "coverage": [
+    {
+      "id": "AC2.1.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/split.rs"
+    },
+    {
+      "id": "AC2.1.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "AC2.1.3",
+      "status": "N/A",
+      "target": "delivered by u1-core(終了コードの分類)"
+    },
+    {
+      "id": "AC2.1.4",
+      "status": "N/A",
+      "target": "delivered by u1-core(成功コードの分類)"
+    },
+    {
+      "id": "AC2.1.5",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "AC2.1.6",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC2.2.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC2.2.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC2.2.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC2.2.4",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC2.5.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "AC2.5.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "AC2.5.3",
+      "status": "N/A",
+      "target": "delivered by u3-cli(起動オーバーヘッドの測定。CI で確認)"
+    },
+    {
+      "id": "AC2.5.4",
+      "status": "N/A",
+      "target": "delivered by u3-cli(単一バイナリの配布。CI で確認)"
+    },
+    {
+      "id": "AC2.5.5",
+      "status": "N/A",
+      "target": "delivered by u3-cli(3つの OS での同じ結果。CI で確認)"
+    },
+    {
+      "id": "AC2.5.6",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/platform/unix.rs"
+    },
+    {
+      "id": "AC3.2.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC3.2.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC3.2.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC4.1.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC4.1.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "AC4.1.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "AC4.2.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "AC4.2.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "AC4.2.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "AC4.2.4",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "AC4.3.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC4.3.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "AC4.3.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "AC4.3.4",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "AC4.4.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/consistency.rs"
+    },
+    {
+      "id": "AC4.4.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/consistency.rs"
+    },
+    {
+      "id": "AC4.4.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/consistency.rs"
+    },
+    {
+      "id": "AC5.1.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "AC5.1.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "AC5.1.3",
+      "status": "N/A",
+      "target": "delivered by u3-cli(Reporter。色の無効化と文字での判別)"
+    },
+    {
+      "id": "AC6.1.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "AC6.1.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/split.rs"
+    },
+    {
+      "id": "NFR4.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "NFR4.4",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/nfr_performance.rs"
+    },
+    {
+      "id": "NFR4.5",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/nfr_content.rs"
+    },
+    {
+      "id": "NFR4.6",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "NFR4.7",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/nfr_robust.rs"
+    },
+    {
+      "id": "NFR4.8",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/platform/unix.rs"
+    },
+    {
+      "id": "NFR4.9",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "BR1.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/split.rs"
+    },
+    {
+      "id": "BR1.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "BR1.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "BR1.4",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "BR1.5",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "BR1.6",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/runner.rs"
+    },
+    {
+      "id": "BR1.7",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/platform/unix.rs"
+    },
+    {
+      "id": "BR2.9",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "BR2.1",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "BR2.2",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "BR2.3",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/reader.rs"
+    },
+    {
+      "id": "BR2.7",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    },
+    {
+      "id": "BR2.4",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "BR2.5",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/consistency.rs"
+    },
+    {
+      "id": "BR2.6",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/writer.rs"
+    },
+    {
+      "id": "BR2.8",
+      "status": "OK",
+      "target": "crates/u2-runtime/src/state/record.rs"
+    },
+    {
+      "id": "BR3.8",
+      "status": "N/A",
+      "target": "u1-core の規則(拒否。ステートを変えない)。この Unit は、拒否のときに、ステートを書き込まない(呼び出し側の責務)"
+    },
+    {
+      "id": "BR2.10",
+      "status": "OK",
+      "target": "crates/u2-runtime/tests/flow_with_state.rs"
+    }
+  ]
+}
