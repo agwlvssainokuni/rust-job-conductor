@@ -2945,3 +2945,399 @@
 **Git Name**: agwlvssainokuni
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:58:58Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4cc6b285
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:58:58Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4cc6b285
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 88
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:58:58Z
+**Event**: SENSOR_FIRED
+**Fire id**: ceb6babf
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:58:58Z
+**Event**: SENSOR_PASSED
+**Fire id**: ceb6babf
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+**Duration ms**: 72
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:58:58Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7074c6f9
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:58:58Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7074c6f9
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:58:59Z
+**Event**: SENSOR_FIRED
+**Fire id**: 24cdbef6
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:58:59Z
+**Event**: SENSOR_PASSED
+**Fire id**: 24cdbef6
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 73
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-14T13:58:59Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: rough-mockups
+**Checkpoint**: summary-confirmation
+**Changed**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Recorded**: 68d821bcd463dfaddd4b7487e24b1c863e72ea7010091567ca4f30fda743e1a6
+**Current**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
+**Details**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md was saved before you confirmed the current summary; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-14T13:58:59Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: rough-mockups
+**Checkpoint**: summary-confirmation
+**Changed**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+**Recorded**: 68d821bcd463dfaddd4b7487e24b1c863e72ea7010091567ca4f30fda743e1a6
+**Current**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
+**Details**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md was saved before you confirmed the current summary; carrying on.
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-14T13:58:59Z
+**Event**: REVIEW_REQUESTED
+**Stage**: rough-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:9674a0fe4468e0c97628da8e9bb3dde268c9b78eac0596236446a04468405c67
+**Request Id**: review:2bc0ad4a4a60c52c0bf21aae9e7efaf7
+**Review File**: .aidlc-engine/reviews/rough-mockups/stage/f0df6500db15c7e6/1.2bc0ad4a4a60c52c0bf21aae9e7efaf7.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T13:59:08Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-product-lead-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T13:59:20Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-product-lead-agent
+**Agent ID**: ab5caf7d0dff863bb
+**Review File Digest**: .aidlc-engine/reviews/rough-mockups/stage/f0df6500db15c7e6/1.2bc0ad4a4a60c52c0bf21aae9e7efaf7.review.md=absent
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T14:00:42Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-14T14:02:19Z
+**Event**: REVIEW_REQUESTED
+**Stage**: rough-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Retry**: pending-request
+**Artifact Fingerprint**: sha256:9674a0fe4468e0c97628da8e9bb3dde268c9b78eac0596236446a04468405c67
+**Request Id**: review:2bc0ad4a4a60c52c0bf21aae9e7efaf7
+**Review File**: .aidlc-engine/reviews/rough-mockups/stage/f0df6500db15c7e6/1.2bc0ad4a4a60c52c0bf21aae9e7efaf7.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T14:02:27Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-product-lead-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T14:02:37Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/reviews/rough-mockups/stage/f0df6500db15c7e6/1.2bc0ad4a4a60c52c0bf21aae9e7efaf7.review.md
+**Context**: .aidlc-engine > reviews > rough-mockups > stage > f0df6500db15c7e6 > 1.2bc0ad4a4a60c52c0bf21aae9e7efaf7.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T14:02:41Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-product-lead-agent
+**Agent ID**: a89c6ec309ad00f66
+**Review File Digest**: .aidlc-engine/reviews/rough-mockups/stage/f0df6500db15c7e6/1.2bc0ad4a4a60c52c0bf21aae9e7efaf7.review.md=93269a68e0e47d97939210b186423c8023dd2a104ff4b8f45bc1bd03825fc0f2
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T14:02:43Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-14T14:02:47Z
+**Event**: REVIEW_COMPLETED
+**Stage**: rough-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:9674a0fe4468e0c97628da8e9bb3dde268c9b78eac0596236446a04468405c67
+**Artifact Fingerprint**: sha256:9674a0fe4468e0c97628da8e9bb3dde268c9b78eac0596236446a04468405c67
+**Request Id**: review:2bc0ad4a4a60c52c0bf21aae9e7efaf7
+**Review Record**: .aidlc-engine/reviews/rough-mockups/stage/f0df6500db15c7e6/1.json
+**Review Record Digest**: sha256:b0963d7880295f4e1ea97bf160e70d0ee7a4f77a4eb0f9d9a1e3d6d2a4b335d3
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_FIRED
+**Fire id**: 98164da4
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_PASSED
+**Fire id**: 98164da4
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_FIRED
+**Fire id**: edb79038
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_PASSED
+**Fire id**: edb79038
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+**Duration ms**: 83
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_FIRED
+**Fire id**: f7125440
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_PASSED
+**Fire id**: f7125440
+**Sensor ID**: required-sections
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Duration ms**: 79
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_FIRED
+**Fire id**: d67e3171
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: SENSOR_PASSED
+**Fire id**: d67e3171
+**Sensor ID**: upstream-coverage
+**Stage slug**: rough-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Duration ms**: 78
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-14T14:02:48Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: rough-mockups
+**Details**: Re-entering gate after revision
+**Next Stage**: practices-discovery
+**Brief Digest**: sha256:c0b3cc4bbbcd3bd3ce15850a6ab294dfa33d103befdf9caf115be0e8aa28bb65
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md=passed; upstream-coverage@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md=passed
+**Open Decisions**: 0
+**Question Id**: bc4385a6
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:4d19c7f6f7daa2f47d98b821deb8c71e5e2cafcb1609fb7764333e371f38469e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T14:03:11Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 83807b9e
+**Open Questions**: 5b62530b, c93cac16, 441fc001, bc4385a6
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b","Q7":"f705ba9f13ee247c","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T14:03:11Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Rough Mockups の修正版(R-07 反映)です。どう進めますか?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-14T14:03:15Z
+**Event**: GATE_APPROVED
+**Stage**: rough-mockups
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 83807b9e
+**Brief Digest**: sha256:9db7c7ba1ef142b865d8388aaf32bb718816ed19641a079ba3695f3f956ede62
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-14T14:03:15Z
+**Event**: STAGE_COMPLETED
+**Stage**: rough-mockups
+**Validation Basis**: {"graphContract":"sha256:5fba28f1cd240c14897220333a49791025975ed0959b36140f54f85ea567bf03","inputs":[{"artifact":"intent-backlog","contentHash":"sha256:91a14226407ff6fe48aa0190248aa5390c200f29fe33e12c0c2e579a356bbfd8","instanceCount":1,"presentCount":1,"producer":"scope-definition","required":true,"structureHash":"sha256:d7a25489982c24d038121c0b4ab5caf64714fc3951c79312b9432542306f0490"},{"artifact":"intent-statement","contentHash":"sha256:3cd7ce409c988b5d51a4c406196ecbc5dee5db6c8ac37d0a6b93ba903a90ae86","instanceCount":1,"presentCount":1,"producer":"intent-capture","required":true,"structureHash":"sha256:2423dfd0a2b293f32882720951538a00afe2ddee299aaf3e6023b6fa115f4821"},{"artifact":"scope-document","contentHash":"sha256:ae4206e7d16e7a90e2a166559213442f9578e704963d675256cf7aab440348df","instanceCount":1,"presentCount":1,"producer":"scope-definition","required":true,"structureHash":"sha256:6cc9f3afdb1548ea3bce8624337554c45fef3407dfbd578527a0d94c50429c1e"}],"outputs":[{"artifact":"rough-mockups-questions","contentHash":"sha256:9a65b612d9e7fbb1ea185597fd757b20a0194f2b928d704006c52545ac5363c3","instanceCount":1,"presentCount":1,"producer":"rough-mockups","required":true,"structureHash":"sha256:b1ac44f4f50fae2940f1deac59a62ce1e11fbd1f71767997277692cdee9fb8ed"},{"artifact":"user-flow","contentHash":"sha256:822bd2273a46770e03aea23b22b347555ad6dc60dd8c46df5078a13a915ed920","instanceCount":1,"presentCount":1,"producer":"rough-mockups","required":true,"structureHash":"sha256:4e76c2ff9e0f680c8ce9afc6cdff0220f0548b573a216a7cadccf092f4b6d5d2"},{"artifact":"wireframes","contentHash":"sha256:213bba37c3cc375ed2ecb9be171344de5c07b25ea2fc4395444fac18d1002fb9","instanceCount":1,"presentCount":1,"producer":"rough-mockups","required":true,"structureHash":"sha256:2518b3f1e4e1126a485fb2319b154e1f76955b1f62752e4a389899a7ebd4f421"}],"projectType":"greenfield","schema":3}
+**Details**: Stage Rough Mockups approved by gate
+**Tokens In**: 108
+**Tokens Out**: 36221
+**Cache Read**: 11766473
+**Cache Write**: 235061
+**Cost USD**: 2.22
+**By Model**: sonnet-5-5=2.22
+**By Agent**: main=1.64; aidlc-product-lead-agent=0.57
+**Tokens By Model**: sonnet-5-5=108/36.2k/11.8M/235.1k
+**Tokens By Agent**: main=84/28k/11.3M/59.3k; aidlc-product-lead-agent=24/8.2k/515.7k/175.7k
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-14T14:03:15Z
+**Event**: PHASE_COMPLETED
+**From phase**: ideation
+**To phase**: inception
+**Stages completed**: 7
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-14T14:03:15Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: ideation → inception
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-14T14:03:15Z
+**Event**: PHASE_STARTED
+**Phase**: inception
+**Scope**: mvp
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-14T14:03:15Z
+**Event**: STAGE_STARTED
+**Stage**: practices-discovery
+**Agent**: aidlc-pipeline-deploy-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
