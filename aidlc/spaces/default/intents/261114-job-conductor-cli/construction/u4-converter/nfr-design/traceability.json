@@ -1,0 +1,15 @@
+{
+  "stage": "nfr-design",
+  "unit": "u4-converter",
+  "upstream_ids": ["NFR4.1","NFR4.2","NFR4.3","NFR4.4","NFR4.5","NFR4.6","NFR4.7"],
+  "coverage": [
+    { "id": "NFR4.1", "status": "OK", "target": "段階を分けた変換の流れ(Intake → Read → RootCheck → Normalize → Write)で、失敗のとき出力を作らず、種類と場所で返す(security-design の 1、D3)" },
+    { "id": "NFR4.2", "status": "OK", "target": "取り込み(Intake)が、上限 + 1 バイトまでを読み、tooLarge で拒否する(security-design の 1)" },
+    { "id": "NFR4.3", "status": "OK", "target": "展開の大きさの強制: (a) 展開しながら数える、(b) 展開前に見積もる。どちらも使えなければライブラリを選ばない(security-design の 3)" },
+    { "id": "NFR4.4", "status": "OK", "target": "深さ 32 を読み取り時と展開後の2回数える。ライブラリの再帰の制限を確かめて任せ、だめなら事前の走査を足す(security-design の 3、D2)" },
+    { "id": "NFR4.5", "status": "OK", "target": "入力のファイルを読む以外の入出力を持たない純粋な処理。タグを実行しない。std::process と std::net を使わない(security-design の 2、logical-components)" },
+    { "id": "NFR4.6", "status": "OK", "target": "表示用の組み立て(Describe)が、固定の文から表示を作り、キー名は制御文字・書式文字をエスケープして 64 文字までに切る(security-design の 4、D4)" },
+    { "id": "NFR4.7", "status": "OK", "target": "戻り値のエラーで失敗を返す。整数は範囲を事前に確かめ、桁あふれで黙って変わらないようにする。添字を長さの確認なしに使わない(security-design の 5)" }
+  ],
+  "reverse": []
+}
