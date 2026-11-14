@@ -54,11 +54,8 @@
 
 
 
-- **Active Unit**: u1-core
 
-- **Unit Stage**: nfr-design
 
-- **Unit State**: in-progress
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -120,7 +117,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-14T20:28:23Z
+- **Last Updated**: 2026-11-14T20:35:39Z
 
 ## Session Resume Point
 - **Last Completed Stage**: delivery-planning
