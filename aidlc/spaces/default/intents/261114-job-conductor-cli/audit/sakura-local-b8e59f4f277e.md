@@ -20368,3 +20368,225 @@
 **Summary Authorization Id**: 2a5922a08afa763fd1dd2a7c9dd32020b42ccedbd58fdf9bdfe99109daa9048b
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T23:39:09Z
+**Event**: SENSOR_FIRED
+**Fire id**: f8655739
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: f8655739
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/entities.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: c4ddf2b6
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: c4ddf2b6
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/rules.md
+**Duration ms**: 81
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: d6f0af08
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: d6f0af08
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: 50ef2445
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: 50ef2445
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T23:39:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: 02b2abe6
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T23:39:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 02b2abe6
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/entities.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T23:39:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: a0f5f2d0
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/traceability.json
+
+---
+
+## Sensor Failed
+**Timestamp**: 2026-11-14T23:39:11Z
+**Event**: SENSOR_FAILED
+**Fire id**: a0f5f2d0
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u3-cli
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/traceability.json
+**Detail path**: aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/sensors/functional-design/traceability-a0f5f2d0.md
+**Findings count**: 1
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-14T23:39:16Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-cli
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:7d62c662652af2f569174e273e7cd5c422b1ff679e3e558de7257071c5d520e2
+**Request Id**: review:0b4f5415b3c574335cd89eaa498eb9dc
+**Review File**: .aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.0b4f5415b3c574335cd89eaa498eb9dc.review.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T23:39:22Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/reviewer-dispatch.json
+**Context**: .aidlc-engine > reviewer-dispatch.json
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T23:39:34Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T23:42:09Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.0b4f5415b3c574335cd89eaa498eb9dc.review.md
+**Context**: .aidlc-engine > reviews > functional-design > units > u3-cli > 889de73d10f64068 > 1.0b4f5415b3c574335cd89eaa498eb9dc.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T23:42:21Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a4825f2ff43ec4a59
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u2-runtime/889de73d10f64068/2.e489385720ab0a5f4025d3fb29e0ef44.review.md=84702a6e16c5f09088263bde1b8c55f986d20509244c428f8cbb109cf1792c36; .aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.0b4f5415b3c574335cd89eaa498eb9dc.review.md=db1c001d9ea93be50dfc9939a7d87c6052f9d1bdb3273762f4744077b85438b5
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T23:42:22Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-14T23:43:16Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-cli
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:7d62c662652af2f569174e273e7cd5c422b1ff679e3e558de7257071c5d520e2
+**Artifact Fingerprint**: sha256:7d62c662652af2f569174e273e7cd5c422b1ff679e3e558de7257071c5d520e2
+**Request Id**: review:0b4f5415b3c574335cd89eaa498eb9dc
+**Review Record**: .aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json
+**Review Record Digest**: sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-14T23:43:17Z
+**Event**: UNIT_COMPLETED
+**Stage**: functional-design
+**Unit**: u3-cli
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+
+---

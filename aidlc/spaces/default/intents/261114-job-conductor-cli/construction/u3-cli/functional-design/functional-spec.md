@@ -8,6 +8,7 @@
 
 ### W1 コマンドの受け付け(Cli。US1.3、US2.4)
 
+0. `--help`・`-h`・`--version`・`-V` は、先に処理して、終了コード 0。引数がなければ、使い方の誤り(68)。(BR1.6)
 1. 引数を解釈して、CliCommand を作る。使い方の誤りは、UsageError として、使い方を標準エラーに出して、終了コード 68 で終わる。(BR1.1〜BR1.3)
 2. run・pipeline・watch・reset は、定義ファイルの場所を決める。(BR1.4)
 3. run・pipeline は、シグナルを受け取る準備をして、中断の合図を用意する(定義の検査より前)。(BR4.1)
@@ -35,12 +36,12 @@
 ### W3 `conductor pipeline <pipeline-name>`(US3.1、US3.2)
 
 1. W2 の 1〜5 と同じ検査(パイプライン名を、`load_definition` に渡す)。(BR3.1)
-2. ステートが空なら、初期ステートを書く(`Fast`)。(BR3.2)
-3. 定義の記述順に、次のジョブを決めて、くり返す。(BR3.2)
-   - `decide_before_run`:`Skip` なら、`apply_skip` で記録して書き、次へ。`Reject` なら、終了コード 66。`Run` なら、W2 の 8〜11(実行の方式 Pipeline)。
+2. 定義の記述順に、1つずつ、ジョブを取り出して、くり返す。次のジョブは、NextStep の nextJobId では決めず、`decide_before_run` と、ステートが運ぶ(遷移先とスキップは、`apply_outcome` が記録済み)。(BR3.2)
+   - `decide_before_run`:`Skip` なら、`apply_skip` で記録して書き、次へ。`Reject` なら、終了コード 66。`Run` なら、ステートが空のとき初期ステートを書いて(`Fast`)から、W2 の 8〜11(実行の方式 Pipeline)。
    - ジョブが error で終わったら、停止し、ジョブの終了コードで終わる(再試行なし)。(BR3.4)
-   - `completed`(最後のジョブの完了、`@end`)なら、`reset_state` して、終了コード 0。(BR3.3)
+   - **ジョブの結果、またはスキップを記録するたびに、ステートの `completed` を確かめ、true なら、`reset_state` して、終了コード 0 で終わる**(最後のジョブ、`@end`、スキップで完了した場合のすべて)。(BR3.2、BR3.3)
    - 次のジョブへ進む前に、合図が立っていれば、`resume_point_on_interrupt` と `apply_interrupt` で、再開位置を記録して、128 + 番号で終わる。(BR4.2)
+   - 記述順のジョブがなくなったのに、`completed` でなく、エラーの停止でもない場合は、起こらない想定。起きたら、初期化せず、ステートの誤り(65)として終わる。(BR3.2)
 
 ### W4 `conductor watch`(US5.1)
 
@@ -82,12 +83,12 @@ Text fallback: 引数の解釈 → 検査 → ステートの確認 → 起動�
 
 | 規則 | 内容 |
 |------|------|
-| BR1.1〜BR1.5 | 5つのコマンド、`--config`、`-v` の範囲、定義ファイルの場所、単一の実行ファイル |
+| BR1.1〜BR1.6 | 5つのコマンド、`--config`、`-v` の範囲、定義ファイルの場所、単一の実行ファイル、`--help`・`--version` |
 | BR2.1〜BR2.6 | 個別実行の検査、ステート、判断、スキップ、実行と記録、成功コードに含まれない 0 |
 | BR3.1〜BR3.4 | 一括実行の検査、記述順の実行、完了と初期化、エラーで停止 |
 | BR4.1〜BR4.3 | シグナルの受け取り、合図の確認、中断の終了コード |
 | BR5.1〜BR5.3 | 終了コード、OS の範囲、3つの OS で同じ結果 |
-| BR6.1〜BR6.5 | 言語、既定の表示、-v、エラーの組み立て、色 |
+| BR6.1〜BR6.6 | 言語、既定の表示、-v、エラーの組み立て、色、起動の速さ |
 | BR7.1〜BR7.3 | watch、reset、convert |
 
 ## 他の Unit との分担(この Unit が実装しない部分)
@@ -102,8 +103,8 @@ Text fallback: 引数の解釈 → 検査 → ステートの確認 → 起動�
 
 - **C2(u1-core):** `decide_before_run` の入力に、ステートの `resume_job_id` と `end_reached` を足す。`classify_and_decide` の入力に、`runMode`(Individual / Pipeline)を足す。Decision の理由(`skipTarget`、`afterEnd`、`alreadyExecuted`、`outOfOrder`)を明記する。`resume_point_on_interrupt` を、ジョブのあいだの中断の記録に使う(W3)。
 - **C3(u2-runtime):** `check_command`、`initial_state`、`apply_outcome`(JobExecution を受け取る)、`apply_skip`(定義を受け取り、completed も書く)、`apply_interrupt` を足す。`read_state`・`write_state`・`reset_state` の入力は、定義ファイルのパス。`write_state` に、耐久性の指定(`Durable`/`Fast`)を足す。`check_consistency` の入力は、ステートと定義(パイプライン名を含む)。
-- **E1(コマンド):** 使い方の誤りの終了コード 68 を足す。conductor 自身のエラーの具体の値を、64(定義)、65(ステート、食い違い)、66(拒否)、67(変換)、68(使い方)と確定する。`convert` の出力は、標準出力だけ。`--config` は run・pipeline・watch・reset、`-v` は run・pipeline だけ。
-- **E2(定義ファイル):** ジョブを並べる表の名前を `job`(`[[job]]`、`[[job.transitions]]`)にする(Q1: A)。u1-core の実装の `jobs` を `job` に直す(この Unit の Code Generation の手順に含める)。
+- **E1(コマンド):** 終了コードは、どの OS でも、0〜255 の範囲に合わせる(255 を超える、または負の値は、下位 8 ビット。エラーで 0 になる場合は 1。BR5.2)。`--help`・`--version` を足す。使い方の誤りの終了コード 68 を足す。conductor 自身のエラーの具体の値を、64(定義)、65(ステート、食い違い)、66(拒否)、67(変換)、68(使い方)と確定する。`convert` の出力は、標準出力だけ。`--config` は run・pipeline・watch・reset、`-v` は run・pipeline だけ。
+- **E2(定義ファイル):** ジョブを並べる表の名前を `job`(`[[job]]`、`[[job.transitions]]`)にする(Q1: A)。E2 は u1-core が所有する契約のため、変更の提案は u1-core 側(契約の所有と変更の規則)だが、人の承認(Q1: A)を受けたため、実装(u1-core の `jobs` → `job`、テストと例の更新)は、この Unit の Code Generation の手順に含める。u1-core の functional-design の成果物は、書き換えず、差分を、この Unit の code-summary に記録する。
 - **E3(ステートファイル):** u2-runtime の functional-design のとおり(`definition_path` の追加、ステートの場所)。
 
 ## Assumptions & Open Questions

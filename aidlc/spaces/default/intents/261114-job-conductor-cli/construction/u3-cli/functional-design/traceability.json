@@ -98,7 +98,7 @@
     {
       "id": "AC2.5.3",
       "status": "OK",
-      "target": "BR6.1"
+      "target": "BR6.1, BR6.6"
     },
     {
       "id": "AC2.5.4",
@@ -113,7 +113,7 @@
     {
       "id": "AC2.5.6",
       "status": "OK",
-      "target": "BR4.1, BR4.2, BR4.3"
+      "target": "BR4.1, BR4.2, BR4.2a, BR4.3"
     },
     {
       "id": "AC3.1.1",
@@ -221,6 +221,11 @@
       "id": "BR3.1",
       "status": "N/A",
       "target": "要件 FR1.5(パイプライン名の照合)に由来"
+    },
+    {
+      "id": "BR1.6",
+      "status": "N/A",
+      "target": "契約 E1 のコマンドラインの慣習(--help・--version)に由来"
     }
   ]
 }
