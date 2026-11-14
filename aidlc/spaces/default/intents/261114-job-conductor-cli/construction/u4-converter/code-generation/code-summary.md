@@ -1,6 +1,6 @@
 # Code Summary(u4-converter)
 
-15 ステップをすべて完了した。`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`(この Unit は 103 件、失敗 0。u1-core の既存のテストも通過)が通った。
+15 ステップをすべて完了した。`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`(この Unit は 112 件、失敗 0。u1-core の既存のテストも通過。レビュー 1 回目の修正後)が通った。
 
 ## 作成・変更したファイル
 
@@ -34,7 +34,16 @@
 - 空の YAML、コメントだけの YAML は `rootNotMap`(reason は「文書が空です」)。複数の文書の YAML は、ストリームの終わりまで読むため、後の文書の文法の誤りが、複数の文書の `unrepresentable` より先に返る(BR1.12 の 5 → 6)。最初の文書の木だけを保つ。
 - TOML の文法の誤りの行は、バイトの範囲から求める。範囲のない失敗(非常に深いテーブルなど)は、行を持たない。`convert_text` は 1 MiB の上限を適用しない(`convert` の Intake が適用する)。
 
+## レビュー(1 回目)で直した点
+
+- **Critical: 展開の上限が、ノード数だけで、メモリを守れていなかった。** 35 KB の入力(20,000 バイトのアンカーの文字列を 5,000 回参照)が、100 MB の出力と 324 MB のメモリになった。**展開後の文字列の合計バイト数の上限 `MAX_EXPANDED_BYTES` = 16 MiB を足した**(キーと値のすべての訪問を、エイリアスと、マージで捨てられる項目を含めて数える。複製の前に確かめ、超えたら `tooLarge`、reason は「展開後の文字の大きさが上限(16 MiB)を超えています」)。ノード数(100,000)と深さ(32)は変えていない。**この 16 MiB は、設計(security-requirements の NFR4.3、rules の BR1.7)に書かれていない、この Unit で決めた値であり、人の確認が要る。**ピークのメモリは、キーの複製のため、上限の数倍になりうる(共有の文字列型には、していない)。
+- Major: Intake の順序。ファイルを先に開き(失敗は `fileMissing` / `unreadable`)、開いたハンドルのメタデータから大きさを見る(BR1.12 の 1〜4)。権限なし(mode 000)のファイルと、1 MiB を超える権限なしのファイルが、ともに `unreadable` になるテストを足した(UNIX のみ。権限が効かない環境では、自分でスキップする)。
+- Minor: 公開の API を、契約 C4 の範囲に絞った(公開: `convert`、`convert_text`、`ConversionRequest`、`ConvertedText`、`TargetFormat`、`ConversionError`、`ConversionErrorKind`。ほかは `pub(crate)`、またはテスト用の `#[doc(hidden)]`)。
+- Minor: 展開だけで生じる重複するキー(アンカーやマージ)は、BR1.12 の 8 の位置で `syntax`(リテラルの重複は 5 の位置)。挙動は変えず、文書に書いた。
+
 ## 設計の隙間(後のステージ・Unit で解決する)
+
+- **展開のバイト数の上限(16 MiB):** 設計の成果物に、まだ書かれていない(上の「レビューで直した点」)。値は、人の確認が要る。
 
 - **TOML のキーの順(上の 2):** `preserve_order` を、ワークスペース全体で有効にするか、整列のままにするか。
 - **D4(エラー表示の補助の、u1-core との揃え):** u1-core のテストを変えていないため、共通の入力と期待値の表は、まだ置いていない。レビューで見比べる。

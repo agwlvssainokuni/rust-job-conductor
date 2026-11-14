@@ -14,7 +14,7 @@
 use thiserror::Error;
 
 /// キー名を表示するときの最大の文字数(NFR4.6)。
-pub const MAX_KEY_DISPLAY_CHARS: usize = 64;
+pub(crate) const MAX_KEY_DISPLAY_CHARS: usize = 64;
 
 /// ファイル名を表示するときの最大の文字数。
 const MAX_FILE_DISPLAY_CHARS: usize = 256;
@@ -37,7 +37,8 @@ pub enum ConversionErrorKind {
 }
 
 impl ConversionErrorKind {
-    /// 種類を表す識別子(機械が読む用。entities.md の `kind` の名前)。
+    /// 種類を表す識別子(機械が読む用。entities.md の `kind` の名前)。契約 C4 の外(テスト用)。
+    #[doc(hidden)]
     pub fn code(self) -> &'static str {
         match self {
             Self::FileMissing => "fileMissing",
@@ -49,7 +50,8 @@ impl ConversionErrorKind {
         }
     }
 
-    /// すべての種類(網羅のテストに使う)。
+    /// すべての種類(網羅のテストに使う)。契約 C4 の外(テスト用)。
+    #[doc(hidden)]
     pub const ALL: [ConversionErrorKind; 6] = [
         Self::FileMissing,
         Self::Unreadable,
@@ -114,6 +116,7 @@ pub(crate) mod reason {
     pub const NOT_UTF8: &str = "UTF-8 として読めません";
     pub const INPUT_TOO_LARGE: &str = "入力が上限(1 MiB)を超えています";
     pub const EXPANDED_TOO_LARGE: &str = "展開後の要素数が上限(100000)を超えています";
+    pub const EXPANDED_BYTES_TOO_LARGE: &str = "展開後の文字の大きさが上限(16 MiB)を超えています";
     pub const SYNTAX: &str = "文法の誤りです";
     pub const DUPLICATE_KEY: &str = "キーが重複しています";
     pub const RECURSIVE_ANCHOR: &str = "アンカーが自分自身を含んでいます";
@@ -135,7 +138,7 @@ pub(crate) mod reason {
 /// 入力に由来する文字列を、表示用に整える。制御文字をエスケープし、`max_chars` 文字で切る。
 ///
 /// 出力は、エスケープ後の文字数で `max_chars` 文字までに収め、切ったときは末尾に `…` を付ける。
-pub fn sanitize(input: &str, max_chars: usize) -> String {
+pub(crate) fn sanitize(input: &str, max_chars: usize) -> String {
     let mut out = String::new();
     let mut count = 0usize;
     for c in input.chars() {

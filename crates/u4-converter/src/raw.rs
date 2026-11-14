@@ -9,6 +9,13 @@ pub(crate) const MAX_DEPTH: usize = 32;
 /// 展開後の要素数の上限(NFR4.3)。展開のために訪れたノードを、すべて数える。
 pub(crate) const MAX_NODES: usize = 100_000;
 
+/// 展開後のスカラーの文字の総バイト数の上限(NFR4.3 を、メモリの上限としても働かせる。16 MiB)。
+///
+/// 展開で訪れたすべてのスカラー(キーと値、捨てられるマージの項目、エイリアスの参照のたびの
+/// 複製を含む)の文字のバイト数を足し、超えたら `tooLarge`。ノード数の上限(`MAX_NODES`)だけでは、
+/// 大きな文字列を何度も参照する入力(数十 KB で数百 MB に展開される)を止められない。
+pub(crate) const MAX_EXPANDED_BYTES: usize = 16 * 1024 * 1024;
+
 /// YAML のタグの分類(BR1.6)。標準のタグ(`!!str` など)と、それ以外を分ける。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Tag {

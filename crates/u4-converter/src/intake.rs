@@ -12,10 +12,10 @@ use std::path::Path;
 use crate::error::{ConversionError, ConversionErrorKind, reason};
 
 /// 入力の大きさの上限(1 MiB。NFR4.2)。
-pub const MAX_INPUT_BYTES: u64 = 1024 * 1024;
+pub(crate) const MAX_INPUT_BYTES: u64 = 1024 * 1024;
 
 /// 表示用のファイル名。
-pub fn file_label(path: &Path) -> String {
+pub(crate) fn file_label(path: &Path) -> String {
     path.display().to_string()
 }
 
@@ -31,17 +31,31 @@ fn io_reason(kind: ErrorKind) -> &'static str {
 }
 
 /// 入力ファイルを読み取って、文字列として返す。
-pub fn read_input(path: &Path) -> Result<String, ConversionError> {
+pub(crate) fn read_input(path: &Path) -> Result<String, ConversionError> {
     let file = file_label(path);
 
-    let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
+    // BR1.12 の 1〜2: 先に開く(ない → fileMissing、権限など → unreadable)
+    let handle = File::open(path).map_err(|e| match e.kind() {
         ErrorKind::NotFound => error(
             &file,
             ConversionErrorKind::FileMissing,
             reason::FILE_MISSING,
         ),
-        k => error(&file, ConversionErrorKind::Unreadable, io_reason(k)),
+        k => {
+            // Windows ではディレクトリを開くと権限のエラーになるので、通常でないことを見分ける
+            let not_regular = std::fs::metadata(path).is_ok_and(|m| !m.is_file());
+            let why = if not_regular {
+                reason::NOT_REGULAR
+            } else {
+                io_reason(k)
+            };
+            error(&file, ConversionErrorKind::Unreadable, why)
+        }
     })?;
+    // BR1.12 の 3: 大きさは、開いたハンドルから取る(権限のないファイルは、ここへ来ない)
+    let meta = handle
+        .metadata()
+        .map_err(|e| error(&file, ConversionErrorKind::Unreadable, io_reason(e.kind())))?;
     if !meta.is_file() {
         return Err(error(
             &file,
@@ -53,8 +67,7 @@ pub fn read_input(path: &Path) -> Result<String, ConversionError> {
         return Err(too_large(&file));
     }
 
-    let handle = File::open(path)
-        .map_err(|e| error(&file, ConversionErrorKind::Unreadable, io_reason(e.kind())))?;
+    // BR1.12 の 4: 上限 + 1 バイトまでの読み取りと、UTF-8 の確認
     let bytes = match read_bounded(handle, MAX_INPUT_BYTES) {
         Ok(Some(bytes)) => bytes,
         Ok(None) => return Err(too_large(&file)),
@@ -178,6 +191,52 @@ mod tests {
             read_input(&p).unwrap_err().kind,
             ConversionErrorKind::TooLarge
         );
+    }
+
+    #[cfg(unix)]
+    fn set_mode(p: &Path, mode: u32) {
+        // 本体の検査(OS 固有の API を使わない)に触れないよう、`use` を使わずに書く
+        let perm = <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(mode);
+        std::fs::set_permissions(p, perm).unwrap();
+    }
+
+    /// root などで権限が効かない環境では、確かめられないので、確認をやめる。
+    #[cfg(unix)]
+    fn permissions_enforced(p: &Path) -> bool {
+        File::open(p).is_err()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn mode_000_file_is_unreadable() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = write_file(dir.path(), "locked.yaml", b"a: 1\n");
+        set_mode(&p, 0o000);
+        if permissions_enforced(&p) {
+            let e = read_input(&p).unwrap_err();
+            assert_eq!(e.kind, ConversionErrorKind::Unreadable);
+            assert_eq!(e.reason, reason::PERMISSION);
+        }
+        set_mode(&p, 0o644);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn mode_000_file_over_1_mib_is_unreadable_not_too_large() {
+        // BR1.12: 2) 権限は 3) 大きさより先
+        let dir = tempfile::tempdir().unwrap();
+        let p = write_file(
+            dir.path(),
+            "locked-big.yaml",
+            &vec![b'a'; MAX_INPUT_BYTES as usize + 1],
+        );
+        set_mode(&p, 0o000);
+        if permissions_enforced(&p) {
+            let e = read_input(&p).unwrap_err();
+            assert_eq!(e.kind, ConversionErrorKind::Unreadable);
+            assert_eq!(e.reason, reason::PERMISSION);
+        }
+        set_mode(&p, 0o644);
     }
 
     #[test]

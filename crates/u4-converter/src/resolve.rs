@@ -12,11 +12,29 @@
 //!
 //! 数え方: 展開で訪れたノード(キーのスカラーも含む)を1つずつ数える。エイリアスは、エイリアス
 //! 自身ではなく、展開した参照先のノードを数える。マージキー `<<` のキーのノードも数える。
+//!
+//! # 展開後の大きさの上限(`MAX_EXPANDED_BYTES` = 16 MiB。NFR4.3 のメモリの面)
+//!
+//! ノード数の上限だけでは、大きな文字列(アンカー)を何度も参照する入力が、数十 KB のまま数百 MB
+//! (1 MiB の入力なら数十 GB)に展開される。そこで、訪れたすべてのスカラー(キーと値、
+//! 捨てられるマージの項目、エイリアスの参照のたびの複製)の文字のバイト数を足し、上限を超えたら
+//! `tooLarge`(理由は「展開後の文字の大きさが上限を超えた」)とする。確認は、文字列を複製する
+//! **前**に行うので、予算を超えて確保する量は、高々スカラー1つ分である。キーは、重複の確認の
+//! ために、数回複製される(定数倍)ので、メモリの最大は、予算の数倍に収まる。
+//!
+//! # 展開でだけ生じる重複キー
+//!
+//! 同じマップに、リテラルで重複するキーは、読み取りで `syntax`(BR1.12 の 5)になる。エイリアスや
+//! マージの展開で初めて重複するキー(エイリアスのキー、`<<` を使わない展開など)は、展開の
+//! 時点(BR1.12 の 8)で `syntax` として報告する。種類は同じで、判明する段階だけが違う。
+//! したがって、展開前の上限超過(`tooLarge` など)が先に見つかれば、そちらが返る。
 
 use std::collections::HashSet;
 
 use crate::error::{ConversionError, ConversionErrorKind, PathSeg, format_key_path, reason};
-use crate::raw::{CoreTag, MAX_DEPTH, MAX_NODES, RawKind, RawScalar, RawTree, Tag};
+use crate::raw::{
+    CoreTag, MAX_DEPTH, MAX_EXPANDED_BYTES, MAX_NODES, RawKind, RawScalar, RawTree, Tag,
+};
 use crate::scalar::{Unrep, scalar_value};
 use crate::types::Value;
 use crate::yaml_read::YamlRead;
@@ -94,6 +112,10 @@ struct Walker<'a> {
     file: &'a str,
     stack: Vec<Frame>,
     count: usize,
+    /// ここまでに訪れたスカラーの文字のバイト数の合計。
+    bytes: usize,
+    /// `bytes` の上限(通常は `MAX_EXPANDED_BYTES`。テストでは小さくできる)。
+    max_bytes: usize,
     /// 最初に見つけた、表せない値(経路と理由)。
     first_unrep: Option<(Option<String>, &'static str)>,
 }
@@ -163,6 +185,19 @@ impl<'a> Walker<'a> {
         Ok(())
     }
 
+    /// スカラーの文字の `len` バイトを予算に足す。複製・確保の**前**に呼ぶ。
+    fn charge_bytes(&mut self, node: usize, len: usize) -> Result<(), ConversionError> {
+        self.bytes = self.bytes.saturating_add(len);
+        if self.bytes > self.max_bytes {
+            return Err(self.error_at(
+                node,
+                ConversionErrorKind::TooLarge,
+                reason::EXPANDED_BYTES_TOO_LARGE,
+            ));
+        }
+        Ok(())
+    }
+
     fn record(&mut self, why: &'static str) {
         if self.first_unrep.is_none() {
             self.first_unrep = Some((format_key_path(&self.path()), why));
@@ -192,13 +227,21 @@ impl<'a> Walker<'a> {
         };
         self.count_node(target)?;
         match &tree.nodes[target].kind {
-            RawKind::Scalar { scalar, tag } => match scalar_value(scalar, *tag) {
-                Ok(v) => Ok(Entered::Leaf(v)),
-                Err(u) => {
-                    self.record_unrep(u);
-                    Ok(Entered::Leaf(Value::Bool(false)))
+            RawKind::Scalar { scalar, tag } => {
+                let len = match scalar {
+                    RawScalar::Yaml { text, .. } => text.len(),
+                    RawScalar::Str(s) => s.len(),
+                    _ => 0,
+                };
+                self.charge_bytes(target, len)?;
+                match scalar_value(scalar, *tag) {
+                    Ok(v) => Ok(Entered::Leaf(v)),
+                    Err(u) => {
+                        self.record_unrep(u);
+                        Ok(Entered::Leaf(Value::Bool(false)))
+                    }
                 }
-            },
+            }
             RawKind::Seq { tag, .. } => {
                 if !matches!(tag, Tag::None | Tag::Core(CoreTag::Seq)) {
                     self.record_unrep(Unrep::Tagged);
@@ -412,6 +455,8 @@ impl<'a> Walker<'a> {
             Outcome::Child(c) => Ok(Next::Child(c)),
             Outcome::MergeChild { key, value } => {
                 self.count_node(key)?;
+                // キーの文字は `<<` の2バイト
+                self.charge_bytes(key, 2)?;
                 Ok(Next::Child(value))
             }
             Outcome::Finish => Ok(Next::Done(self.finish_frame())),
@@ -474,13 +519,24 @@ impl<'a> Walker<'a> {
 
 /// 素の木を展開して、途中の表現にする(Resolve)。
 ///
-/// 展開の上限の超過(`tooLarge`、`syntax`)は、表せない値(`unrepresentable`)より先に返す。
+/// 展開の上限(要素数 100,000、文字の大きさ 16 MiB、深さ 32)の超過(`tooLarge`、`syntax`)は、表せない値(`unrepresentable`)より先に返す。
 pub(crate) fn resolve(tree: &RawTree, file: &str) -> Result<Value, ConversionError> {
+    resolve_with_budget(tree, file, MAX_EXPANDED_BYTES)
+}
+
+/// `resolve` の、展開後の文字の大きさの上限(`max_bytes`)を指定できる版(テスト用)。
+pub(crate) fn resolve_with_budget(
+    tree: &RawTree,
+    file: &str,
+    max_bytes: usize,
+) -> Result<Value, ConversionError> {
     let mut walker = Walker {
         tree,
         file,
         stack: Vec::new(),
         count: 0,
+        bytes: 0,
+        max_bytes,
         first_unrep: None,
     };
     let value = walker.run()?;
@@ -494,4 +550,60 @@ pub(crate) fn resolve(tree: &RawTree, file: &str) -> Result<Value, ConversionErr
         ));
     }
     Ok(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tree(text: &str) -> RawTree {
+        let read = crate::yaml_read::read(text, "t.yaml").expect("読める");
+        root_check(read, "t.yaml").expect("最上位はマップ")
+    }
+
+    fn run(text: &str, budget: usize) -> Result<Value, ConversionError> {
+        resolve_with_budget(&tree(text), "t.yaml", budget)
+    }
+
+    #[test]
+    fn budget_exactly_at_limit_is_accepted_and_one_byte_over_is_too_large() {
+        // キー `a`(1)+ 値 `abc`(3)= 4 バイト
+        assert!(run("a: abc\n", 4).is_ok());
+        let e = run("a: abc\n", 3).unwrap_err();
+        assert_eq!(e.kind, ConversionErrorKind::TooLarge);
+        assert_eq!(e.reason, reason::EXPANDED_BYTES_TOO_LARGE);
+    }
+
+    #[test]
+    fn every_alias_visit_is_charged() {
+        // 値 `vvvv`(4)を、エイリアスで 3 回参照する。キー 4 バイト + 値 16 バイト
+        let text = "a: &a vvvv\nb: *a\nc: *a\nd: *a\n";
+        assert!(run(text, 20).is_ok());
+        assert_eq!(
+            run(text, 19).unwrap_err().kind,
+            ConversionErrorKind::TooLarge
+        );
+    }
+
+    #[test]
+    fn aliased_merge_keys_and_discarded_items_are_charged() {
+        // base: `b`(1)+ `k`(1)+ `vvvv`(4)= 6。m: `m`(1)+ `<<`(2)+ 参照先の `k` `vvvv`(5)= 8
+        let text = "b: &b {k: vvvv}\nm:\n  <<: *b\n";
+        assert!(run(text, 14).is_ok());
+        assert_eq!(
+            run(text, 13).unwrap_err().kind,
+            ConversionErrorKind::TooLarge
+        );
+        // 同じキーばかりで、結果は小さくなるが、捨てられる項目も数える
+        let many = "b: &b {kkkk: vvvv}\nm:\n  <<: [*b, *b, *b, *b]\n";
+        assert_eq!(
+            run(many, 40).unwrap_err().kind,
+            ConversionErrorKind::TooLarge
+        );
+    }
+
+    #[test]
+    fn default_budget_is_16_mib() {
+        assert_eq!(MAX_EXPANDED_BYTES, 16 * 1024 * 1024);
+    }
 }

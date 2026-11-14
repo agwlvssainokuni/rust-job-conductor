@@ -138,7 +138,8 @@ fn toml_input_has_the_same_node_limit() {
 #[test]
 fn alias_bomb_is_too_large_without_exhausting_memory() {
     let result = with_timeout(|| {
-        let mut text = String::from("l0: &l0 [x, x, x, x, x, x, x, x, x]\n");
+        // 大きなスカラー(10,000 バイト)を含めても、要素数と文字の大きさのどちらかの上限で止まる
+        let mut text = format!("l0: &l0 [{}, x, x, x, x, x, x, x, x]\n", "y".repeat(10_000));
         for n in 1..=10 {
             let refs = vec![format!("*l{}", n - 1); 9].join(", ");
             text.push_str(&format!("l{n}: &l{n} [{refs}]\n"));
@@ -146,6 +147,53 @@ fn alias_bomb_is_too_large_without_exhausting_memory() {
         yaml(&text)
     });
     assert_eq!(result.unwrap_err().kind, K::TooLarge);
+}
+
+#[test]
+fn alias_bomb_of_large_scalars_is_too_large_by_size() {
+    // 20,000 バイトの文字列を 5,000 回参照する(入力は約 35 KB。ノード数は 5,001 で上限の内)
+    let result = with_timeout(|| {
+        let big = "x".repeat(20_000);
+        let refs = vec!["*s"; 5_000].join(",");
+        let text = format!("s: &s {big}\nl: [{refs}]\n");
+        assert!(text.len() < 40_000);
+        let start = std::time::Instant::now();
+        let r = yaml(&text);
+        (r, start.elapsed())
+    });
+    let (r, elapsed) = result;
+    let e = r.unwrap_err();
+    assert_eq!(e.kind, K::TooLarge);
+    assert_eq!(e.reason, "展開後の文字の大きさが上限(16 MiB)を超えています");
+    assert!(elapsed.as_secs() < 5, "{elapsed:?}");
+}
+
+#[test]
+fn alias_bomb_through_merge_keys_and_values_is_too_large_by_size() {
+    let result = with_timeout(|| {
+        let big_key = "k".repeat(20_000);
+        let refs = vec!["*b"; 2_000].join(", ");
+        let text = format!("b: &b {{{big_key}: {big_key}}}\nm:\n  <<: [{refs}]\n");
+        yaml(&text)
+    });
+    assert_eq!(result.unwrap_err().kind, K::TooLarge);
+}
+
+#[test]
+fn expanded_size_budget_boundary_with_the_default_16_mib() {
+    // a, b, c が、`n` バイトの文字列(a はアンカー、b と c は参照)。キー 4 つ(a b c d)で 4 バイト。
+    // 数値のスカラー(`d` の値)も、文字のバイト数で数える。3n + 4 + 3 = 16 MiB ちょうど
+    let n = (16 * 1024 * 1024 - 7) / 3;
+    assert_eq!(3 * n + 7, 16 * 1024 * 1024);
+    let (ok, over) = with_timeout(move || {
+        let s = "x".repeat(n);
+        let ok = yaml(&format!("a: &a {s}\nb: *a\nc: *a\nd: 123\n"));
+        // d の値を 1 バイト長くして、1 バイト超える
+        let over = yaml(&format!("a: &a {s}\nb: *a\nc: *a\nd: 1234\n"));
+        (ok, over)
+    });
+    assert!(ok.is_ok(), "ちょうど 16 MiB は受理");
+    assert_eq!(over.unwrap_err().kind, K::TooLarge);
 }
 
 #[test]
