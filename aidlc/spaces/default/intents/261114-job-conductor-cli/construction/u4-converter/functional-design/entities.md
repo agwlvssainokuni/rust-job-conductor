@@ -38,7 +38,7 @@ entities:
 
 - 値の「生成」は、すべて Converter が行う。永続する状態はなく、入力のファイルを読み、文字列を返すだけである。
 - 変換の途中で使う、キーと値の木(文字列、整数、浮動小数、真偽、配列、マップ)は、内部の表現であり、他の Unit に公開しない。
-- 失敗の `kind`: `fileMissing`(ファイルがない)、`unreadable`(読めない・UTF-8 でない)、`tooLarge`(大きさの上限を超えた)、`syntax`(入力の文法の誤り)、`unrepresentable`(相手の形式で意味を変えずに表せない値がある)、`rootNotMap`(最上位がキーと値の集まり(マップ)でない)。
+- 失敗の `kind`: `fileMissing`(ファイルがない)、`unreadable`(読めない・UTF-8 でない)、`tooLarge`(入力、または YAML の展開後の大きさが上限を超えた)、`syntax`(入力の文法の誤り、重複するキー、再帰するアンカー、深さの超過)、`unrepresentable`(相手の形式で意味を変えずに表せない値がある、複数の文書、展開できないマージキー)、`rootNotMap`(最上位がキーと値の集まり(マップ)でない)。
 
 ## Assumptions & Open Questions
 
