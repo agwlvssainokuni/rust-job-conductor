@@ -1677,3 +1677,248 @@
 **Summary Authorization Id**: 63d2cfd5060988488fe738e6bd2318143fc658d63eeaa4266907ce1606799c42
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:30Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7d2a2674
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7d2a2674
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: c0645abe
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/intent-backlog.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: c0645abe
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/intent-backlog.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9360698f
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 9360698f
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 1d71085b
+**Sensor ID**: upstream-coverage
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 1d71085b
+**Sensor ID**: upstream-coverage
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: e80016dd
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_PASSED
+**Fire id**: e80016dd
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_FIRED
+**Fire id**: 44adfa90
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/intent-backlog.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_PASSED
+**Fire id**: 44adfa90
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/intent-backlog.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_FIRED
+**Fire id**: 72dee116
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_PASSED
+**Fire id**: 72dee116
+**Sensor ID**: required-sections
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_FIRED
+**Fire id**: e03bc687
+**Sensor ID**: upstream-coverage
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: SENSOR_PASSED
+**Fire id**: e03bc687
+**Sensor ID**: upstream-coverage
+**Stage slug**: scope-definition
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+**Duration ms**: 74
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-14T13:47:32Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: scope-definition
+**Next Stage**: rough-mockups
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/intent-backlog.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md=passed; upstream-coverage@aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md=passed
+**Open Decisions**: 0
+**Question Id**: 4ffc46ef
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:37eccde027421a43f094c5fb5120b79c748aaf647095da71db3239893bac896c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:47:42Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 9656d14b
+**Open Questions**: 0f5f1bc4, ffee3f91, 4ffc46ef
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"3e1440e0329e364e","Q2":"2ddacd03260d8d25","Q3":"d0569896fd514e67","Q4":"8d0b616d0cdca6fd","Q5":"3eebe6457b1791ed","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:47:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Scope Definition が完了しました。どう進めますか?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-14T13:47:47Z
+**Event**: GATE_APPROVED
+**Stage**: scope-definition
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 9656d14b
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-14T13:47:47Z
+**Event**: STAGE_COMPLETED
+**Stage**: scope-definition
+**Validation Basis**: {"graphContract":"sha256:f507bca6811bab5a3fbe73663d1debe5d0de707829c0a8a0d3c77b97f91a29c7","inputs":[{"artifact":"constraint-register","contentHash":"sha256:7076c28e8c3de95f448e518c89e167b1dad002f6accbb0990f2a1defa9c26196","instanceCount":1,"presentCount":1,"producer":"feasibility","required":false,"structureHash":"sha256:700c9e6664750329a6703b5435c3fd90ab486d6f37e646efcaa238f4f66c0b6a"},{"artifact":"feasibility-assessment","contentHash":"sha256:8ef1d2dfc1ced497230c9508cb60942a20568695d47b52711e13a1ae86b8a732","instanceCount":1,"presentCount":1,"producer":"feasibility","required":false,"structureHash":"sha256:601611c2c2629707c3f2e95eac4f00de611c091e3a73b831f65c5bb3b10338eb"},{"artifact":"intent-statement","contentHash":"sha256:3cd7ce409c988b5d51a4c406196ecbc5dee5db6c8ac37d0a6b93ba903a90ae86","instanceCount":1,"presentCount":1,"producer":"intent-capture","required":true,"structureHash":"sha256:2423dfd0a2b293f32882720951538a00afe2ddee299aaf3e6023b6fa115f4821"}],"outputs":[{"artifact":"intent-backlog","contentHash":"sha256:91a14226407ff6fe48aa0190248aa5390c200f29fe33e12c0c2e579a356bbfd8","instanceCount":1,"presentCount":1,"producer":"scope-definition","required":true,"structureHash":"sha256:d7a25489982c24d038121c0b4ab5caf64714fc3951c79312b9432542306f0490"},{"artifact":"scope-definition-questions","contentHash":"sha256:bf913dd324fa83a0ea634aa89ad8c3f43996d1ee2012e05e6a6ae2e105087867","instanceCount":1,"presentCount":1,"producer":"scope-definition","required":true,"structureHash":"sha256:095abe84fdcd6567c62a33bf027e37e9295268d0e02374c1f71da2bbfa439df5"},{"artifact":"scope-document","contentHash":"sha256:ae4206e7d16e7a90e2a166559213442f9578e704963d675256cf7aab440348df","instanceCount":1,"presentCount":1,"producer":"scope-definition","required":true,"structureHash":"sha256:6cc9f3afdb1548ea3bce8624337554c45fef3407dfbd578527a0d94c50429c1e"}],"projectType":"greenfield","schema":3}
+**Details**: Stage Scope Definition approved by gate
+**Tokens In**: 28
+**Tokens Out**: 9619
+**Cache Read**: 3181013
+**Cache Write**: 21054
+**Cost USD**: 0.50
+**By Model**: sonnet-5-5=0.50
+**By Agent**: main=0.50
+**Tokens By Model**: sonnet-5-5=28/9.6k/3.2M/21.1k
+**Tokens By Agent**: main=28/9.6k/3.2M/21.1k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-14T13:47:47Z
+**Event**: STAGE_STARTED
+**Stage**: rough-mockups
+**Agent**: aidlc-design-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
