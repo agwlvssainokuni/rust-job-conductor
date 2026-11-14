@@ -1922,3 +1922,234 @@
 **Answer Mode**: guide (reused from intent-capture)
 
 ---
+
+## Memory Empty
+**Timestamp**: 2026-11-14T13:47:47Z
+**Event**: MEMORY_EMPTY
+**Stage**: scope-definition
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:48:07Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Context**: ideation > rough-mockups > rough-mockups-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:48:08Z
+**Event**: DECISION_RECORDED
+**Stage**: rough-mockups
+**Decision**: Q1-Q4 presented
+**Options**: Q1: A/B/C/D,Q2: A/B/C,Q3: A/B/C,Q4: A/B/C
+**Question Id**: 5b62530b
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:48ec830cb6883ad8e75d38f57bc2c097b09d82292019e28762e92e83640dfd4d
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:52:02Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A. conductor自身の表示は、オプションで有効化しない限り、なし。","B. conductor自身の表示は、オプションで有効化しない限り、無し。","A"]
+**Message Id**: 803ef5f4
+**Open Questions**: 5b62530b
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:52:03Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q1. 最初に磨き込むべき主な利用場面は?
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:52:03Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q2. run 実行時に標準出力へ何を見せるか?
+**Reply**: A. conductor自身の表示は、オプションで有効化しない限り、なし。
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:52:03Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q3. ジョブをスキップしたときの見え方は?
+**Reply**: B. conductor自身の表示は、オプションで有効化しない限り、無し。
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:52:03Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q4. watch の見せ方は?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T13:52:07Z
+**Event**: QUESTION_ANSWERED
+**Stage**: rough-mockups
+**Details**: Q1: A; Q2: A. conductor自身の表示は、オプションで有効化しない限り、なし。; Q3: B. conductor自身の表示は、オプションで有効化しない限り、無し。; Q4: A
+**Person Reply**: A\nA. conductor自身の表示は、オプションで有効化しない限り、なし。\nB. conductor自身の表示は、オプションで有効化しない限り、無し。\nA
+**Message Id**: 803ef5f4
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:52:07Z
+**Event**: DECISION_RECORDED
+**Stage**: rough-mockups
+**Decision**: Q5-Q6 presented
+**Options**: Q5: A/B/C,Q6: A/B/C
+**Question Id**: c93cac16
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:d195e2e8ba13b3b1969f5e122f7622543a9321939aab9aa86ed0851b4b884c5e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:53:01Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","B"]
+**Message Id**: 39cbf342
+**Open Questions**: 5b62530b, c93cac16
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:53:01Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q5. 定義ファイルに誤りがあるときの見え方は?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:53:02Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q6. 出力の色・アクセシビリティの方針は?
+**Reply**: B
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T13:53:06Z
+**Event**: QUESTION_ANSWERED
+**Stage**: rough-mockups
+**Details**: Q5: A; Q6: B
+**Person Reply**: A\nB
+**Message Id**: 39cbf342
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:53:12Z
+**Event**: DECISION_RECORDED
+**Stage**: rough-mockups
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Question Id**: e76fa42b
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:53:31Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 26023d72
+**Open Questions**: 5b62530b, c93cac16, e76fa42b
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md","entries":{"Q1":"c51d7fbf35810293","Q2":"bb66ab2f09fddbc6","Q3":"4cce77994b21a314","Q4":"4680605c941b1340","Q5":"5bc42a6d0222f610","Q6":"3cfb4fc93733e30b","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:53:31Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、成果物を生成してよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T13:53:33Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Context**: ideation > rough-mockups > rough-mockups-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T13:53:34Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: rough-mockups
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/rough-mockups-questions.md
+**Questions SHA-256**: f2c578c421098fc003204cd42c26ec63e9c482e63c6cd701489a26466d3b7d9b
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 26023d72
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:53:48Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/wireframes.md
+**Context**: ideation > rough-mockups > wireframes.md
+**Summary Authorization Id**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:53:53Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/rough-mockups/user-flow.md
+**Context**: ideation > rough-mockups > user-flow.md
+**Summary Authorization Id**: 4bee8b3523bbe2fc56d5e77e1c2548e43e4ce598b7b999f18c3a1036a73fb54d
+
+---
