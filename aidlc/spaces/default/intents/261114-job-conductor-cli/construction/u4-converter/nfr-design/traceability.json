@@ -34,7 +34,7 @@
     {
       "id": "NFR4.5",
       "status": "OK",
-      "target": "入力のファイルを読む以外の入出力を持たない純粋な処理。タグを実行しない。std::process と std::net を使わない(security-design の 2、logical-components)"
+      "target": "入力のファイルを読む以外の入出力を持たない純粋な処理。タグを実行しない。std::process と std::net を使わない(security-design の 3、logical-components)"
     },
     {
       "id": "NFR4.6",
