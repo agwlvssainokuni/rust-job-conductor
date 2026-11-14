@@ -12,9 +12,9 @@
 
 1. command の文字列を、コマンド名と引数に分ける。(BR1.1)分けられないとき(閉じていない引用符、空)は、ここには来ない(Cli が、実行の前に、全ジョブを検査して、定義の誤りとして報告している)。来た場合は、起動失敗(startFailure)として返す(防御)。
 2. 合図が、すでに立っていれば、ジョブを起動せず、`started = false`、`interrupted = true`、`signalNumber = 合図の番号` の JobExecution を返して終わる。(BR1.6)
-3. ジョブを、シェルを介さずに、直接起動する。作業ディレクトリ、環境変数、標準入出力を引き継ぐ。(BR1.2、BR1.3)起動できなければ(見つからない、実行できない)、`started = true`、`startFailure = true` の JobExecution を返して終わる。(BR1.4)
+3. ジョブを、シェルを介さずに、直接起動する(UNIX 系では、新しいプロセスグループで)。作業ディレクトリ、環境変数、標準入出力を引き継ぐ。(BR1.2、BR1.3)起動できなければ(見つからない、実行できない)、`started = true`、`startFailure = true` の JobExecution を返して終わる。(BR1.4)
 4. ジョブの終了を待つ。時間切れにしない。(BR1.5)
-5. 待っているあいだに、合図が立ったら、受け取ったシグナルを、ジョブに1回だけ転送する(UNIX 系。Windows は、OS が Ctrl+C を配るため、追加の送信はしない)。2回目以降の合図は、転送済みとして扱う。引き続き、ジョブの終了を待つ。(BR1.7)
+5. 待っているあいだに、合図が立ったら、受け取ったシグナルを、ジョブに**必ず1回だけ**転送する(UNIX 系。ジョブは、別のプロセスグループで起動しているため、端末の Ctrl+C は、conductor だけに届き、二重に届かない。Windows は、OS が Ctrl+C を配るため、追加の送信はしない)。2回目以降の合図は、転送済みとして扱う。引き続き、ジョブの終了を待つ。(BR1.7)
 6. ジョブの終了を観測する。終了コードがあれば `exitCode`、シグナルで終了したとき(UNIX 系)は `terminatedBySignal`。(BR1.4)
 7. 観測の直後に、合図が立っていれば、`interrupted = true`、`signalNumber = 合図の番号` を足す。ジョブ自身の `exitCode` と `terminatedBySignal` は、そのまま持つ。(BR1.7)
 8. JobExecution を返す。分類と終了コードの決定は、u1-core の Flow が行う。
@@ -59,12 +59,12 @@
 
 - `initial_state(定義, 定義ファイルのパス)`: すべてのジョブが `pending` の PipelineState。
 - `apply_outcome(ステート, ジョブID, JobExecution, JobOutcome, NextStep)`: そのジョブの `status`(分類のとおり)と `exit_code`(JobExecution の exitCode そのまま)を書く。NextStep の `skippedJobIds` を、`skipped`(理由は `skipReasonKind`)にする。`resume_job_id`、`completed` を NextStep のとおりに書く。`end_reached` は、一度 true になったら、false に戻さない。
-- `apply_skip(ステート, ジョブID, 理由, 定義)`: `decide_before_run` が `skip` を返したジョブを、`skipped` にする(`skipTarget` は byTransition、`afterEnd` は byEnd。`alreadyExecuted` は、書き換えない)。そのあと、u1-core の `resume_point_on_interrupt` を、定義とステートに対して呼び、`resume_job_id`、`end_reached`(一度 true になったら戻さない)、`completed` を書く。**個別実行で、最後のジョブがスキップされたとき、`completed` が true になる**(AC4.2.2、AC4.2.3)。
+- `apply_skip(ステート, ジョブID, 理由, 定義)`: `decide_before_run` が `skip` を返したジョブを、`skipped` にする(`skipTarget` は byTransition、`afterEnd` は byEnd。`alreadyExecuted` は、書き換えない)。`alreadyExecuted` のときは、ステートを変えない。`skipTarget` と `afterEnd` のときは、`skipped` にしたあとに、(error のジョブがあれば、`resume_job_id` と `completed` を変えず)error のジョブがなければ、`completed`(すべてのジョブが success・warning・skipped)と、`resume_job_id`(定義の順で最初の pending。無ければ無し)を書く。`afterEnd` のときは、`end_reached` を true にする(一度 true になったら戻さない)。**個別実行で、最後のジョブがスキップされたとき、`completed` が true になる**(AC4.2.2、AC4.2.3)。
 - `apply_interrupt(ステート, ResumePoint)`: ジョブを起動しない中断、またはジョブのあいだの中断の記録。`resume_job_id`、`end_reached`、`completed` を、u1-core の `resume_point_on_interrupt` のとおりに書く。エラーとしては記録しない。
 
 完了(`completed`)のとき、呼び出し側は、記録したあとに、W5 を呼ぶ。(BR2.7)W5 の前に落ちる、または W5 が失敗すると、`completed` が true のステートが残るが、W2 が、それを空として扱うため、次の実行は、先頭から始まる。(BR2.3)
 
-呼び出しの順序(契約 C2 の順序の続き): ステートが空のときの最初のジョブの前に、`initial_state` を書く(BR2.9)。ジョブごとに、`decide_before_run` → (run のとき)`run_job` → `classify_and_decide` → `apply_outcome` → `write_state`。skip のときは、`apply_skip` → `write_state`。**保証の範囲(at-least-once):** `run_job` の終了と `write_state` のあいだに落ちると、そのジョブは、次の呼び出しで、再実行される。(BR2.9)
+呼び出しの順序(契約 C2 の順序の続き): ステートが空のとき、`decide_before_run` が `run` を返したあと、最初のジョブの前に、`initial_state` を書く(BR2.9。`reject` と `skip` の判断の前には書かない)。ジョブごとに、`decide_before_run` → (run のとき)`run_job` → `classify_and_decide` → `apply_outcome` → `write_state`。skip のときは、`apply_skip` → `write_state`。**保証の範囲(at-least-once):** `run_job` の終了と `write_state` のあいだに落ちると、そのジョブは、次の呼び出しで、再実行される。(BR2.9)
 
 ## 状態遷移
 
@@ -124,6 +124,7 @@ erDiagram
 ## Assumptions & Open Questions
 
 - 競合(ジョブの終了と、シグナルの到着)の規則(BR1.7)は、決め打ちである。 [assumption]
+- ジョブを別のプロセスグループで起動するため(UNIX 系)、端末から入力を読む対話的なジョブは、この版では、対象外である(SIGTTIN で止まる)。「ジョブを `conductor` なしで直接起動していたときと同じ条件」(AC2.1.2)から、プロセスグループだけが違う。この選択は、シグナルが二重に届くことと、`kill` で conductor にだけ送られたシグナルが、ジョブに届かないことを、避けるためである。 [assumption]
 - ジョブの終了と、ステートの書き込みのあいだに落ちたとき、ジョブが再実行される(at-least-once。BR2.9)。冪等でないジョブには、利用者側で注意が要る(利用者向けの説明は、README などで扱う)。 [assumption]
 - SIGKILL などで conductor が強制終了されたとき、ジョブのプロセスが残りうる。この Unit は、検知も停止もしない。 [assumption]
 - 定義ファイルのディレクトリが書き込めない場合(読み取り専用)は、この版では、使えない(最初のジョブの前に、writeFailed で止まる)。ステートの場所を指定する手段は、将来の拡張とする。 [assumption]
