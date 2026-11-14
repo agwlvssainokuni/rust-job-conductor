@@ -9978,3 +9978,150 @@
 **Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T18:40:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: ac055d47
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: ac055d47
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: 80d08449
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-dependency.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: 80d08449
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-dependency.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: d7e3b273
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-story-map.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: d7e3b273
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-story-map.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: ebb5b72b
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: ebb5b72b
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/traceability.json
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: 660f5a15
+**Sensor ID**: upstream-coverage
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T18:40:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: 660f5a15
+**Sensor ID**: upstream-coverage
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T18:40:55Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9e94d89e
+**Sensor ID**: traceability
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/traceability.json
+
+---
+
+## Sensor Failed
+**Timestamp**: 2026-11-14T18:40:55Z
+**Event**: SENSOR_FAILED
+**Fire id**: 9e94d89e
+**Sensor ID**: traceability
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/traceability.json
+**Detail path**: aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/sensors/units-generation/traceability-9e94d89e.md
+**Findings count**: 12
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T18:41:06Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/traceability.json
+**Context**: inception > units-generation > traceability.json
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T18:41:08Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-story-map.md
+**Context**: inception > units-generation > unit-of-work-story-map.md
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---

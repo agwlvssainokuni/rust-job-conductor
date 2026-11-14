@@ -22,6 +22,8 @@
 | US6.1 | U2;U3 | u2-runtime;u3-cli |
 | US7.1 | U3;U4 | u3-cli;u4-converter |
 
+`traceability.json` では、複数の Unit にまたがる行は、主に実装を担う Unit を1つだけ対象に記す(上の表にその Unit も載っている)。主な Unit は、US1.3 が U3、US2.1 が U2、US2.2・US2.3・US3.2・US4.2 が U1、US2.5・US4.3・US6.1 が U2、US3.1・US5.1 が U3、US7.1 が U4。他の Unit は、この表に残る。
+
 ## 複数の Unit にまたがる関心事
 
 - 表示とエラーの文言(Reporter): U3 が持つが、すべての Unit のエラーの種類を受け取って表示する。エラーの種類は、各 Unit が返す値として定義する(Contract Design で定める)。

@@ -4,21 +4,21 @@
   "coverage": [
     { "id": "US1.1", "status": "OK", "target": "U1" },
     { "id": "US1.2", "status": "OK", "target": "U1" },
-    { "id": "US1.3", "status": "OK", "target": "U1, U3" },
-    { "id": "US2.1", "status": "OK", "target": "U1, U2" },
-    { "id": "US2.2", "status": "OK", "target": "U1, U2" },
+    { "id": "US1.3", "status": "OK", "target": "U3" },
+    { "id": "US2.1", "status": "OK", "target": "U2" },
+    { "id": "US2.2", "status": "OK", "target": "U1" },
     { "id": "US4.1", "status": "OK", "target": "U2" },
-    { "id": "US2.3", "status": "OK", "target": "U1, U3" },
+    { "id": "US2.3", "status": "OK", "target": "U1" },
     { "id": "US2.4", "status": "OK", "target": "U3" },
-    { "id": "US2.5", "status": "OK", "target": "U2, U3" },
-    { "id": "US3.1", "status": "OK", "target": "U1, U3" },
-    { "id": "US3.2", "status": "OK", "target": "U1, U2, U3" },
-    { "id": "US4.2", "status": "OK", "target": "U1, U2" },
-    { "id": "US4.3", "status": "OK", "target": "U1, U2" },
-    { "id": "US6.1", "status": "OK", "target": "U2, U3" },
+    { "id": "US2.5", "status": "OK", "target": "U2" },
+    { "id": "US3.1", "status": "OK", "target": "U3" },
+    { "id": "US3.2", "status": "OK", "target": "U1" },
+    { "id": "US4.2", "status": "OK", "target": "U1" },
+    { "id": "US4.3", "status": "OK", "target": "U2" },
+    { "id": "US6.1", "status": "OK", "target": "U2" },
     { "id": "US4.4", "status": "OK", "target": "U2" },
-    { "id": "US5.1", "status": "OK", "target": "U2, U3" },
-    { "id": "US7.1", "status": "OK", "target": "U3, U4" }
+    { "id": "US5.1", "status": "OK", "target": "U3" },
+    { "id": "US7.1", "status": "OK", "target": "U4" }
   ],
   "reverse": []
 }
