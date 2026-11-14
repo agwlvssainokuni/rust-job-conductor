@@ -1,0 +1,21 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u2-runtime",
+  "upstream_ids": ["NFR4.1","NFR4.9","NFR1.1","NFR2.1","NFR3.1","NFR5.1","NFR4.6","NFR4.7","NFR4.8","NFR4.2","NFR4.3","NFR4.5","NFR4.4"],
+  "coverage": [
+    { "id": "NFR1.1", "status": "OK", "target": "cicd-pipeline の段階 7(起動前の処理の p95 を、3つの OS で測り、基準を超えたら警告として記録する。基準 20ms は仮)" },
+    { "id": "NFR2.1", "status": "OK", "target": "cicd-pipeline の段階 3(`cargo tree` で -sys がないこと、最小の Rust のバージョンでのビルド)と段階 9(依存の確認の候補)" },
+    { "id": "NFR3.1", "status": "OK", "target": "cicd-pipeline の段階 3(cfg が platform の外にないことの検索)と段階 4(Linux・macOS・Windows の3つでテスト)" },
+    { "id": "NFR5.1", "status": "OK", "target": "cicd-pipeline の段階 4(テスト)と段階 8(行カバレッジ 80% の下限。cfg(windows) は Windows の CI のテストの成功で確かめる)" },
+    { "id": "NFR4.1", "status": "OK", "target": "cicd-pipeline の段階 4(引数のメタ文字がそのまま渡るテストを、3つの OS で実行)" },
+    { "id": "NFR4.2", "status": "OK", "target": "cicd-pipeline の段階 4(分け方の規則の表のテストを、3つの OS で実行)" },
+    { "id": "NFR4.3", "status": "OK", "target": "cicd-pipeline の段階 4(ステートの読み込みの各 kind のテスト)" },
+    { "id": "NFR4.4", "status": "OK", "target": "cicd-pipeline の段階 4(置き換え先をディレクトリにして、書き込みの失敗を起こすテスト)と ‘Windows の rename’ の注意" },
+    { "id": "NFR4.5", "status": "OK", "target": "cicd-pipeline の段階 4(ステートの内容と、エラー表示に command・環境変数の値が現れないテスト)" },
+    { "id": "NFR4.6", "status": "OK", "target": "cicd-pipeline の段階 4(環境変数・作業ディレクトリの引き継ぎのテストを、3つの OS で実行)" },
+    { "id": "NFR4.7", "status": "OK", "target": "cicd-pipeline の段階 4・段階 6(パニックしないテストと、プロセスを起動するテストの 30 秒の上限)" },
+    { "id": "NFR4.8", "status": "OK", "target": "cicd-pipeline の段階 3(unsafe の場所の検索)と段階 5(UNIX 系のシグナル転送のテスト)" },
+    { "id": "NFR4.9", "status": "OK", "target": "cicd-pipeline の段階 5(Windows の .cmd に危険な引数を渡す OS 固有のテストを、必須のチェックにする)" }
+  ],
+  "reverse": []
+}
