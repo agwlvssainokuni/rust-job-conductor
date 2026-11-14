@@ -18318,3 +18318,61 @@
 **Error**: Refusing REVIEW_COMPLETED for "functional-design": the findings report could not be read: a Prior findings row names an ID the review context does not list, or repeats an ID. Write the whole review again with the required Prior findings and New findings tables. Rerun this review request with --retry-pending and dispatch the reviewer once more.
 
 ---
+
+## Error Logged
+**Timestamp**: 2026-11-14T22:42:59Z
+**Event**: ERROR_LOGGED
+**Tool**: aidlc-log
+**Command**: aidlc-log engine log review --stage functional-design --reviewer aidlc-architecture-reviewer-agent --unit u2-runtime --iteration 2 --retry-pending --project-dir <project-dir>
+**Error**: Refusing review retry for "functional-design": declared artifacts no longer match the bytes from REVIEW_REQUESTED iteration 2. A retry re-dispatches that exact request and cannot rebaseline changed content. Restore the requested artifact bytes before retrying. It never got a verdict, so request it again instead: `aidlc engine log review --stage functional-design --reviewer aidlc-architecture-reviewer-agent --unit u2-runtime --iteration 2 --project-dir /Users/agawa/Documents/project/git/rust-job-conductor`.
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-14T22:43:03Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u2-runtime
+**Iteration**: 2
+**Artifact Fingerprint**: sha256:d4a3d96ce67f0022816f8bced5ff8c69e4a001edb428e0a0ddaa8d57c251a546
+**Request Id**: review:92f1f3464974b96dc859bf9b844ccafe
+**Replaces Request Id**: review:e489385720ab0a5f4025d3fb29e0ef44
+**Review File**: .aidlc-engine/reviews/functional-design/units/u2-runtime/889de73d10f64068/2.92f1f3464974b96dc859bf9b844ccafe.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T22:43:28Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T22:44:55Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/reviews/functional-design/units/u2-runtime/889de73d10f64068/2.92f1f3464974b96dc859bf9b844ccafe.review.md
+**Context**: .aidlc-engine > reviews > functional-design > units > u2-runtime > 889de73d10f64068 > 2.92f1f3464974b96dc859bf9b844ccafe.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T22:45:05Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a44eb5d6f828106ae
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u2-runtime/889de73d10f64068/2.e489385720ab0a5f4025d3fb29e0ef44.review.md=84702a6e16c5f09088263bde1b8c55f986d20509244c428f8cbb109cf1792c36; .aidlc-engine/reviews/functional-design/units/u2-runtime/889de73d10f64068/2.92f1f3464974b96dc859bf9b844ccafe.review.md=c075f895b0106a2a6ed6dcbfac77d058eb0f846d0725a34e8d5fa682299cacb9
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T22:45:06Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
