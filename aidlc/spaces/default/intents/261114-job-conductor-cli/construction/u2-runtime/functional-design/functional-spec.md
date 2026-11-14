@@ -26,7 +26,8 @@
 1. ステートファイルの場所を決める。(BR2.1)
 2. ファイルが存在しなければ、空(初期状態)を返す。(BR2.3、AC5.1.2)
 3. 読めなければ `unreadable`、大きさが上限を超えれば `tooLarge`、TOML の誤りや内容の誤りは `corrupt`、版が違えば `versionMismatch` を返す。(BR2.2、BR2.3)
-4. 読めたら、PipelineState を返す。
+4. 読めたが、`completed` が true のステートは、パイプラインの完了後の初期化が、失敗または中断されて残ったものとして、**空として返す**(BR2.3)。
+5. 読めたら、PipelineState を返す。
 
 ### W3 ステートの書き込み(`write_state`。StateStore。US4.1)
 
@@ -57,11 +58,13 @@
 純粋な関数(入出力なし)。呼び出し側(Cli)が、結果を受け取り、記録して、`write_state` を呼ぶ。(BR2.8、BR2.9)
 
 - `initial_state(定義, 定義ファイルのパス)`: すべてのジョブが `pending` の PipelineState。
-- `apply_outcome(ステート, JobOutcome, NextStep)`: そのジョブの `status` と `exit_code` を書く。NextStep の `skippedJobIds` を、`skipped`(理由は `skipReasonKind`)にする。`resume_job_id`、`end_reached`、`completed` を NextStep のとおりに書く。
-- `apply_skip(ステート, ジョブID, 理由)`: `decide_before_run` が `skip` を返したジョブを、`skipped` にする(`skipTarget` は byTransition、`afterEnd` は byEnd。`alreadyExecuted` は、書き換えない)。
+- `apply_outcome(ステート, ジョブID, JobExecution, JobOutcome, NextStep)`: そのジョブの `status`(分類のとおり)と `exit_code`(JobExecution の exitCode そのまま)を書く。NextStep の `skippedJobIds` を、`skipped`(理由は `skipReasonKind`)にする。`resume_job_id`、`completed` を NextStep のとおりに書く。`end_reached` は、一度 true になったら、false に戻さない。
+- `apply_skip(ステート, ジョブID, 理由, 定義)`: `decide_before_run` が `skip` を返したジョブを、`skipped` にする(`skipTarget` は byTransition、`afterEnd` は byEnd。`alreadyExecuted` は、書き換えない)。そのあと、u1-core の `resume_point_on_interrupt` を、定義とステートに対して呼び、`resume_job_id`、`end_reached`(一度 true になったら戻さない)、`completed` を書く。**個別実行で、最後のジョブがスキップされたとき、`completed` が true になる**(AC4.2.2、AC4.2.3)。
 - `apply_interrupt(ステート, ResumePoint)`: ジョブを起動しない中断、またはジョブのあいだの中断の記録。`resume_job_id`、`end_reached`、`completed` を、u1-core の `resume_point_on_interrupt` のとおりに書く。エラーとしては記録しない。
 
-完了(`completed`)のとき、呼び出し側は、記録したあとに、W5 を呼ぶ。(BR2.7)
+完了(`completed`)のとき、呼び出し側は、記録したあとに、W5 を呼ぶ。(BR2.7)W5 の前に落ちる、または W5 が失敗すると、`completed` が true のステートが残るが、W2 が、それを空として扱うため、次の実行は、先頭から始まる。(BR2.3)
+
+呼び出しの順序(契約 C2 の順序の続き): ステートが空のときの最初のジョブの前に、`initial_state` を書く(BR2.9)。ジョブごとに、`decide_before_run` → (run のとき)`run_job` → `classify_and_decide` → `apply_outcome` → `write_state`。skip のときは、`apply_skip` → `write_state`。**保証の範囲(at-least-once):** `run_job` の終了と `write_state` のあいだに落ちると、そのジョブは、次の呼び出しで、再実行される。(BR2.9)
 
 ## 状態遷移
 
@@ -115,10 +118,13 @@ erDiagram
 ## 契約(contract-summary)への反映が必要な点
 
 この Functional Design で、契約 C3 と E3 に次を足す必要がある。契約を直すまでは、この Functional Design を優先する。
-- C3 に、`check_command`(command の検査。BR1.1)、`initial_state`・`apply_outcome`・`apply_skip`・`apply_interrupt`(記録。W6)を足す。`write_state` と `read_state` の入力は、定義ファイルのパス(ステートの場所を決める。Q1: A)。`check_consistency` の入力に、パイプライン名を足す。
+- C3 に、`check_command`(command の検査。BR1.1)、`initial_state`・`apply_outcome`(JobExecution を受け取る)・`apply_skip`(定義を受け取り、completed も書く)・`apply_interrupt`(記録。W6)を足す。`write_state` と `read_state` の入力は、定義ファイルのパス(ステートの場所を決める。Q1: A)。`check_consistency` の入力に、パイプライン名を足す。
 - E3 に、`definition_path` を足し、`definition_key` を「定義ファイルのパス(照合には使わない)」と確定する。ステートファイルの場所を「定義ファイルと同じディレクトリの `<定義ファイル名>.state`」と確定する。
 
 ## Assumptions & Open Questions
 
 - 競合(ジョブの終了と、シグナルの到着)の規則(BR1.7)は、決め打ちである。 [assumption]
+- ジョブの終了と、ステートの書き込みのあいだに落ちたとき、ジョブが再実行される(at-least-once。BR2.9)。冪等でないジョブには、利用者側で注意が要る(利用者向けの説明は、README などで扱う)。 [assumption]
+- SIGKILL などで conductor が強制終了されたとき、ジョブのプロセスが残りうる。この Unit は、検知も停止もしない。 [assumption]
+- 定義ファイルのディレクトリが書き込めない場合(読み取り専用)は、この版では、使えない(最初のジョブの前に、writeFailed で止まる)。ステートの場所を指定する手段は、将来の拡張とする。 [assumption]
 - 同時に実行された2つの conductor が、同じステートを書く場合は、後に書いた方が勝つ(排他制御をしない。BR2.10)。 [assumption]
