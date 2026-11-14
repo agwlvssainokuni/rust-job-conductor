@@ -4,6 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/crates/u1-core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/u1-core/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/u4-converter/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/u4-converter/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

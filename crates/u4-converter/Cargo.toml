@@ -1,0 +1,16 @@
+[package]
+name = "conductor-converter"
+version = "0.1.0"
+description = "conductor の定義ファイルの変換ライブラリ(YAML と TOML のあいだ)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+toml = { version = "1.2.1", default-features = false, features = ["parse", "std", "display", "serde"] }
+thiserror = "2.0.21"
+saphyr-parser = "0.3.4"
+
+[dev-dependencies]
+tempfile = "3.27.0"

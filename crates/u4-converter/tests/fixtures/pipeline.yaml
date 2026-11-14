@@ -1,0 +1,27 @@
+# 定義ファイルらしい YAML(アンカー、エイリアス、マージキー、`on` キーを含む)
+format_version: 1
+pipeline:
+  name: nightly
+  description: 夜間バッチ(抽出、変換、読み込み、通知)
+defaults: &defaults
+  success_exit_codes: [0, 2]
+  warning_exit_codes: [3, 4]
+jobs:
+  - id: extract
+    command: extract --all --since yesterday
+    <<: *defaults
+  - id: transform
+    command: 'transform "in dir" $HOME'
+    <<: *defaults
+    success_exit_codes: [0]
+    transitions:
+      - on: warning
+        next: notify
+      - on: error
+        next: "@end"
+  - id: load
+    command: load
+    transitions:
+      - { on: success, next: "@end" }
+  - id: notify
+    command: notify --channel ops
