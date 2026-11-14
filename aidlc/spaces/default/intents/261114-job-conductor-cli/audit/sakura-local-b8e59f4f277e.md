@@ -1450,3 +1450,230 @@
 **Message Id**: 540c7d78
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:45:08Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+**Context**: ideation > scope-definition > scope-definition-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:45:09Z
+**Event**: DECISION_RECORDED
+**Stage**: scope-definition
+**Decision**: Q1-Q5 presented
+**Options**: Q1: A/B/C/D multi-select,Q2: A/B/C/D,Q3: A/B/C/D,Q4: A/B/C/D,Q5: A/B/C
+**Question Id**: 0f5f1bc4
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:275e9838fbb8835a8be20240a8b10f3976578ca842795f094e1d47f041dc44b6
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:45:22Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: typed
+**Message Id**: 7caa3d74
+**Open Questions**: 0f5f1bc4
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"3e1440e0329e364e","Q2":"2ddacd03260d8d25","Q3":"d0569896fd514e67","Q4":"8d0b616d0cdca6fd","Q5":"3eebe6457b1791ed"}}
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:46:33Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A, B, C, D","B","B","A"]
+**Message Id**: df11db4d
+**Open Questions**: 0f5f1bc4
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"3e1440e0329e364e","Q2":"2ddacd03260d8d25","Q3":"d0569896fd514e67","Q4":"8d0b616d0cdca6fd","Q5":"3eebe6457b1791ed"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:46:33Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q1. 初版で必ず必要な機能(Must Have)は?(複数選択可)
+**Reply**: A, B, C, D
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:46:33Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q2. 状態確認(watch)とリセット(reset)の優先度は?
+**Reply**: B
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:46:33Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q3. YAML ⇔ TOML 変換(convert)の扱いは?
+**Reply**: B
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:46:33Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q4. 機能を作る順序の考え方は?
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T13:46:38Z
+**Event**: QUESTION_ANSWERED
+**Stage**: scope-definition
+**Details**: Q1: A, B, C, D; Q2: B; Q3: B; Q4: A
+**Person Reply**: stage終わったらコミットね。\n初稿書いたらコミット。レビュー反映したらコミット。\nA, B, C, D\nB\nB\nA
+**Message Id**: df11db4d
+**Message Ids**: 540c7d78,7caa3d74,df11db4d
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:46:39Z
+**Event**: DECISION_RECORDED
+**Stage**: scope-definition
+**Decision**: Q5 presented
+**Options**: A,B,C
+**Question Id**: ffee3f91
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:d1542b75660a5e13d7cc8c42fe459f15fa38e1217219294e87ce6ebaa01e7fc3
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:46:45Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A"]
+**Message Id**: e08b5c2a
+**Open Questions**: 0f5f1bc4, ffee3f91
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"3e1440e0329e364e","Q2":"2ddacd03260d8d25","Q3":"d0569896fd514e67","Q4":"8d0b616d0cdca6fd","Q5":"3eebe6457b1791ed"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:46:45Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [プロダクト] Q5. 特定の機能に結びついた期限はありますか?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T13:46:50Z
+**Event**: QUESTION_ANSWERED
+**Stage**: scope-definition
+**Details**: Q5: A
+**Person Reply**: A
+**Message Id**: e08b5c2a
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T13:46:56Z
+**Event**: DECISION_RECORDED
+**Stage**: scope-definition
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+**Question Id**: 225c1a3c
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T13:47:10Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 6dd7eebb
+**Open Questions**: 0f5f1bc4, ffee3f91, 225c1a3c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"3e1440e0329e364e","Q2":"2ddacd03260d8d25","Q3":"d0569896fd514e67","Q4":"8d0b616d0cdca6fd","Q5":"3eebe6457b1791ed","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T13:47:10Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、成果物を生成してよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T13:47:13Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+**Context**: ideation > scope-definition > scope-definition-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T13:47:14Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: scope-definition
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-definition-questions.md
+**Questions SHA-256**: 0490514750b0edfb7c61d5bfdc1d9dd44a6338ad3646ec8db7c2e2c9c7c7015c
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 6dd7eebb
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 63d2cfd5060988488fe738e6bd2318143fc658d63eeaa4266907ce1606799c42
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:47:22Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/scope-document.md
+**Context**: ideation > scope-definition > scope-document.md
+**Summary Authorization Id**: 63d2cfd5060988488fe738e6bd2318143fc658d63eeaa4266907ce1606799c42
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T13:47:27Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/ideation/scope-definition/intent-backlog.md
+**Context**: ideation > scope-definition > intent-backlog.md
+**Summary Authorization Id**: 63d2cfd5060988488fe738e6bd2318143fc658d63eeaa4266907ce1606799c42
+
+---
