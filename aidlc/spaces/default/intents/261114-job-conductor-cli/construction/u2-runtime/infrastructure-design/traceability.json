@@ -7,7 +7,7 @@
     { "id": "NFR2.1", "status": "OK", "target": "cicd-pipeline の段階 3(`cargo tree` で -sys がないこと、最小の Rust のバージョンでのビルド)と段階 9(依存の確認の候補)" },
     { "id": "NFR3.1", "status": "OK", "target": "cicd-pipeline の段階 3(cfg が platform の外にないことの検索)と段階 4(Linux・macOS・Windows の3つでテスト)" },
     { "id": "NFR5.1", "status": "OK", "target": "cicd-pipeline の段階 4(テスト)と段階 8(行カバレッジ 80% の下限。cfg(windows) は Windows の CI のテストの成功で確かめる)" },
-    { "id": "NFR4.1", "status": "OK", "target": "cicd-pipeline の段階 4(引数のメタ文字がそのまま渡るテストを、3つの OS で実行)" },
+    { "id": "NFR4.1", "status": "OK", "target": "cicd-pipeline の段階 4(引数のメタ文字がそのまま渡るテストを、3つの OS で実行)と段階 3(sh・cmd を呼ばないことのソース検索)" },
     { "id": "NFR4.2", "status": "OK", "target": "cicd-pipeline の段階 4(分け方の規則の表のテストを、3つの OS で実行)" },
     { "id": "NFR4.3", "status": "OK", "target": "cicd-pipeline の段階 4(ステートの読み込みの各 kind のテスト)" },
     { "id": "NFR4.4", "status": "OK", "target": "cicd-pipeline の段階 4(置き換え先をディレクトリにして、書き込みの失敗を起こすテスト)と ‘Windows の rename’ の注意" },
