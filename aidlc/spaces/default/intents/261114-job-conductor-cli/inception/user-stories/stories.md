@@ -67,7 +67,8 @@ As a P1 運用担当者・開発者, I want to 既存のスケジューラから
 - AC2.1.2: Given 作業ディレクトリと環境変数を設定した状態で `conductor` を起動する、When ジョブを実行する、Then ジョブは同じ作業ディレクトリと環境変数で起動される。
 - AC2.1.3: Given 終了コード 0、`warning_exit_codes` の値、それ以外の非0を返すジョブ、When それぞれ実行する、Then 順に成功、警告、エラーとして分類される。
 - AC2.1.4: Given 定義ファイルで「成功とみなす終了コード」に 0 以外の値(例: 3)を指定したジョブ、When そのジョブが同じ値の終了コードで終わる、Then 成功として分類される。(指定するキーの名称には依存しない)
-- AC2.1.5: Given 存在しないコマンド、またはシグナルで終了するジョブ、When `conductor run` で実行する、Then エラーとして扱われ、原因が表示され、非0で終了する。
+- AC2.1.5: Given 存在しないコマンド、またはシグナルで終了するジョブ、When `conductor run` で実行する、Then エラーとして扱われ、原因が表示され、起動できないときは 127、シグナルで終了したときは 128 + シグナル番号で終了する。
+- AC2.1.6: Given 成功コードに 3 だけを書いたジョブが 0 で終わる、When `conductor run` で実行する、Then エラーとして扱われ、原因が表示され、終了コード 1 で終了し、ステートにエラーの位置が残る。(0 を書かなければ 0 でも成功にならない)
 
 INVEST: Independent、Valuable(分類が分岐の前提)、Small、Testable。
 
@@ -124,7 +125,7 @@ INVEST: Independent、Small、Testable。
 
 As a P1 運用担当者・開発者, I want to `conductor` が時間制限や排他制御をせず、毎回すばやく起動し、追加の準備なしで3つのOSで動くようにしたい, so that 既存のスケジューラの運用を変えず、毎ステップの呼び出しにも負担をかけない。
 
-対応する要件: FR2.7、FR2.8、NFR1、NFR2、NFR3
+対応する要件: FR2.7、FR2.8、FR2.9、NFR1、NFR2、NFR3
 
 受け入れ基準:
 - AC2.5.1: Given 長時間かかるジョブ、When `conductor run` で実行する、Then `conductor` は時間切れにせず、ジョブの終了を待つ。(FR2.7)
@@ -132,6 +133,7 @@ As a P1 運用担当者・開発者, I want to `conductor` が時間制限や排
 - AC2.5.3: Given ジョブ10個程度の定義ファイル、When `conductor run <job-id>` を同じ環境で20回測定する、Then `conductor` 自身のオーバーヘッドの p95 が 100ms 以内で、Linux・macOS・Windows のそれぞれで満たす。(NFR1、NFR3)
 - AC2.5.4: Given 外部ランタイムをインストールしていない環境、When `conductor` を実行する、Then 追加のインストールなしで動作する。(NFR2)
 - AC2.5.5: Given Linux・macOS・Windows のそれぞれ、When 同じ定義で `conductor run <job-id>` を実行する、Then 同じ結果になる。(NFR3)
+- AC2.5.6: Given 実行中のジョブがある間に `conductor` がシグナルを受け取る、When ジョブが終了する、Then シグナルはジョブにも転送され、`conductor` はジョブの終了を待ち、エラーとして扱ってステートにエラーの位置を残して終了する。(FR2.9)
 
 INVEST: Independent、Valuable、Small、Testable。
 

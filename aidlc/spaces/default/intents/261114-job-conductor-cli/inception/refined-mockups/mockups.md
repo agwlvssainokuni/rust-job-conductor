@@ -102,6 +102,8 @@ $ echo $?
 
 ### 2.5 定義ファイルの誤り(`conductor` 自身のエラーは常に表示する)
 
+例: `transform` の遷移先に、記述順で前の `extract` を書いた定義の場合(1 節の例の定義とは別の、誤った定義である)。
+
 ```
 $ conductor run transform
 conductor: error: conductor.toml:21: job 'transform': transition target 'extract' is not after the current job
@@ -132,8 +134,10 @@ JOB                    STATUS    NOTE
 extract                warning   exit code 1
 transform              skipped   by warning of 'extract'
 load                   skipped   by warning of 'extract'
-slack_notify_and_skip  success
+slack_notify_and_skip  pending
 ```
+
+- 上の例は、`extract` が警告で終わり、`slack_notify_and_skip` がまだ呼ばれていない、実行の途中のステートである。最後のジョブまで終わるとステートは初期化されるため、そのあとの `watch` の一覧は空になる。 [requirements の FR4.2]
 
 - 現在の状態を、ジョブID、状態、補足の3列で、一覧として1回表示して終了する。 [Q6]、[Rough Mockups の Q4]
 - 状態は、成功(success)・警告(warning)・スキップ(skipped)・エラー(error)・未実行(pending)のように、文字で表す。 [Q6]
@@ -148,7 +152,7 @@ $ echo $?
 ```
 
 - ステートがあれば初期化し、なくてもエラーにしない。 [US6.1]
-- 既定では、`conductor` 自身の表示は出さない。 [Rough Mockups の Q2、Q3]
+- `conductor` 自身の表示は、常に出さない(エラーのときを除く)。`-v` は `run` と `pipeline` だけが受け付ける。 [Q1]、[Rough Mockups の Q2、Q3]
 
 ## 6. `conductor convert <file> --to <format>`(US7.1)
 
