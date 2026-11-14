@@ -8073,3 +8073,397 @@
 **Summary Authorization Id**: 09870b34fbd20a731d58175e4758e65dfe7cdc43cc1049db454120e4d36863b5
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:00:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: fd26809a
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: fd26809a
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9fe0033c
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/interaction-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 9fe0033c
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/interaction-spec.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 267b7336
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/design-system-mapping.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 267b7336
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/design-system-mapping.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 53869c8d
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/accessibility-checklist.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 53869c8d
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/accessibility-checklist.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: bd3d4ae2
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:00:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: bd3d4ae2
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:00:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: 77623c6a
+**Sensor ID**: upstream-coverage
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:00:27Z
+**Event**: SENSOR_PASSED
+**Fire id**: 77623c6a
+**Sensor ID**: upstream-coverage
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Duration ms**: 76
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-14T15:00:27Z
+**Event**: REVIEW_REQUESTED
+**Stage**: refined-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:a268e2f63b05d6fa69fab25e02d51a4825d8232a70075549a417f21c941d1d8a
+**Request Id**: review:c00e0b97973b4feefce0039e8867b48a
+**Review File**: .aidlc-engine/reviews/refined-mockups/stage/d50391587252935e/1.c00e0b97973b4feefce0039e8867b48a.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-14T15:00:37Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-product-lead-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T15:00:59Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/.aidlc-engine/reviews/refined-mockups/stage/d50391587252935e/1.c00e0b97973b4feefce0039e8867b48a.review.md
+**Context**: .aidlc-engine > reviews > refined-mockups > stage > d50391587252935e > 1.c00e0b97973b4feefce0039e8867b48a.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-14T15:01:05Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-product-lead-agent
+**Agent ID**: a527ee0f0d67466dc
+**Review File Digest**: .aidlc-engine/reviews/refined-mockups/stage/d50391587252935e/1.c00e0b97973b4feefce0039e8867b48a.review.md=2c29b3cb663845c7cddae35070204b7b701ad2d0661165c8f336b7dd196778cc
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-14T15:01:06Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-14T15:01:10Z
+**Event**: REVIEW_COMPLETED
+**Stage**: refined-mockups
+**Reviewer**: aidlc-product-lead-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:a268e2f63b05d6fa69fab25e02d51a4825d8232a70075549a417f21c941d1d8a
+**Artifact Fingerprint**: sha256:a268e2f63b05d6fa69fab25e02d51a4825d8232a70075549a417f21c941d1d8a
+**Request Id**: review:c00e0b97973b4feefce0039e8867b48a
+**Review Record**: .aidlc-engine/reviews/refined-mockups/stage/d50391587252935e/1.json
+**Review Record Digest**: sha256:3f2243c29eeb7a9e7ca6342904e1df4f8231b2dd3c564b623e199649a4686616
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:01:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: 83da6159
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:01:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: 83da6159
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:01:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: a5e5bca8
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/interaction-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:01:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: a5e5bca8
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/interaction-spec.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 5e477d10
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/design-system-mapping.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 5e477d10
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/design-system-mapping.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 768809a4
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/accessibility-checklist.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 768809a4
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/accessibility-checklist.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 05c436db
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 05c436db
+**Sensor ID**: required-sections
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9f59bcad
+**Sensor ID**: upstream-coverage
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 9f59bcad
+**Sensor ID**: upstream-coverage
+**Stage slug**: refined-mockups
+**Output path**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md
+**Duration ms**: 76
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-14T15:01:11Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: refined-mockups
+**Details**: Re-entering gate after revision
+**Next Stage**: domain-design
+**Brief Digest**: sha256:a16fa4a5957501619862e0e257d6dfd811266d10b864be7393a5653c45f6a47d
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/interaction-spec.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/design-system-mapping.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/accessibility-checklist.md=passed; required-sections@aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md=passed; upstream-coverage@aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md=passed
+**Open Decisions**: 0
+**Question Id**: 8526371b
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:dda44b386247fc2e3b306c133f616fdb9632dfc561aab21c9c04fe6dd841a2e1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T15:02:36Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 9c75cc49
+**Open Questions**: 69a59e79, 0ed71ffe, 3a92aab3, 8526371b
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/refined-mockups-questions.md","entries":{"Q1":"8a0af8ef33d8bfb6","Q2":"cbfcd69ba28aec1d","Q3":"06743c5153cfb577","Q4":"04ba604ace1751c5","Q5":"7b2f179443861f22","Q6":"804caa05fba74e0e","Q7":"d7922d4116345ae7","Q8":"8240029e9ea03616","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T15:02:37Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Refined Mockups の修正版です(新規は Minor 2件 R-06・R-07)。どう進めますか?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-14T15:02:41Z
+**Event**: GATE_APPROVED
+**Stage**: refined-mockups
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 9c75cc49
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md","id":"R-06","fingerprint":"sha256:9beb0a4f0a3b7baf3ad26b0eac06af5df82a54772a3d35a2f863769b29e65522","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/refined-mockups/stage/d50391587252935e/1.json","digest":"sha256:3f2243c29eeb7a9e7ca6342904e1df4f8231b2dd3c564b623e199649a4686616"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/refined-mockups/mockups.md","id":"R-07","fingerprint":"sha256:be08b29a764d7289b2c0ee0befe615526cbf9c742b71febe7fc421fb02bfa5bc","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/refined-mockups/stage/d50391587252935e/1.json","digest":"sha256:3f2243c29eeb7a9e7ca6342904e1df4f8231b2dd3c564b623e199649a4686616"}}]}
+**Brief Digest**: sha256:aeaef5004491eeb37f7d58bc12c3ee8e36034c5421ab6d21a9595d0c915660f5
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-14T15:02:41Z
+**Event**: STAGE_COMPLETED
+**Stage**: refined-mockups
+**Validation Basis**: {"graphContract":"sha256:a24fe5e76e30a54250dff6f40ed7dd073597cbf8edbc2b452e33e3c0f0dcfd03","inputs":[{"artifact":"requirements","contentHash":"sha256:cd540d2a7f7245bbd41405308904a607c7281d0bf5b6f41e86165f436d00a7bd","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:fbe2cf25c9859f4b3739f0460bda4ae9e3c2c6af4ec276187278181d7b7edd0e"},{"artifact":"stories","contentHash":"sha256:b38dad8c231766c00f7505cdab62e0e1ad0e1dc1c44b279b94150871aa1a1f1e","instanceCount":1,"presentCount":1,"producer":"user-stories","required":false,"structureHash":"sha256:8856cb68ca7d58970be106960ca6fa22a23e934c766a3798126c6f821c42c56a"},{"artifact":"team-practices","contentHash":"sha256:c7fec398b803c4d82a20559cffb3156be41ff48d752cf8ddd73bfee7003b47c2","instanceCount":1,"presentCount":1,"producer":"practices-discovery","required":false,"structureHash":"sha256:b24d47383288a336612b35a721ba355a5542889436c865c0156f5f04fc85fbdc"},{"artifact":"user-flow","contentHash":"sha256:822bd2273a46770e03aea23b22b347555ad6dc60dd8c46df5078a13a915ed920","instanceCount":1,"presentCount":1,"producer":"rough-mockups","required":true,"structureHash":"sha256:4e76c2ff9e0f680c8ce9afc6cdff0220f0548b573a216a7cadccf092f4b6d5d2"},{"artifact":"wireframes","contentHash":"sha256:213bba37c3cc375ed2ecb9be171344de5c07b25ea2fc4395444fac18d1002fb9","instanceCount":1,"presentCount":1,"producer":"rough-mockups","required":true,"structureHash":"sha256:2518b3f1e4e1126a485fb2319b154e1f76955b1f62752e4a389899a7ebd4f421"}],"outputs":[{"artifact":"accessibility-checklist","contentHash":"sha256:d88e0b0011331829fcc068b12a7adb9700842f640731c1e451f5e4fbaeebf574","instanceCount":1,"presentCount":1,"producer":"refined-mockups","required":true,"structureHash":"sha256:55133ef0183e9eeced160097af0cc530be1326ed6215cfdc56d4828fffca7896"},{"artifact":"design-system-mapping","contentHash":"sha256:b1b149ab315bc0cd2313ab5203ee123c59c296893440e2952e85b77ddc2218dc","instanceCount":1,"presentCount":1,"producer":"refined-mockups","required":true,"structureHash":"sha256:3e566239f14f69f85def921780038ca22c5bd18deb3d81ba995e3b72ddf6b5de"},{"artifact":"interaction-spec","contentHash":"sha256:c2566cec33f30a2b1048b43a21880d000e1d0c7f3bcf14212b617da9a455e736","instanceCount":1,"presentCount":1,"producer":"refined-mockups","required":true,"structureHash":"sha256:9236fe2ba765aac88e60176573f10b7bb12e9ec71772344b915b3079d7ca383b"},{"artifact":"mockups","contentHash":"sha256:c209d946188d520dbfeeff7beb2f53b160269dab42698c0ed382c11403d5632a","instanceCount":1,"presentCount":1,"producer":"refined-mockups","required":true,"structureHash":"sha256:0f0d34aef8c47190e34c30e5b38740e2f53ead286263d47250cb7c90a49714e2"},{"artifact":"refined-mockups-questions","contentHash":"sha256:4aeb60c32a9679636787f1aac863af75b1359cdd5d15ef9d9e09dce4b26c9950","instanceCount":1,"presentCount":1,"producer":"refined-mockups","required":true,"structureHash":"sha256:6d61bcf1bd81cbeae3e7a922f94174a8600434cb9e69ad6e7d7d9920bab74a3b"}],"projectType":"greenfield","schema":3}
+**Details**: Stage Refined Mockups approved by gate
+**Tokens In**: 74
+**Tokens Out**: 46369
+**Cache Read**: 16762426
+**Cache Write**: 176601
+**Cost USD**: 2.67
+**By Model**: sonnet-5-5=2.67
+**By Agent**: main=2.24; aidlc-product-lead-agent=0.43
+**Tokens By Model**: sonnet-5-5=74/46.4k/16.8M/176.6k
+**Tokens By Agent**: main=56/37.8k/16.3M/57.9k; aidlc-product-lead-agent=18/8.6k/457.3k/118.7k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-14T15:02:41Z
+**Event**: STAGE_STARTED
+**Stage**: domain-design
+**Agent**: aidlc-architect-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
