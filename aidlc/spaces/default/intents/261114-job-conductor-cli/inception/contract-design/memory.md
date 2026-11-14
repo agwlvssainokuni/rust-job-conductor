@@ -12,3 +12,4 @@
 
 ## Open questions
 <!-- example: 2026-05-29T10:14:32Z — confirm the retention window with compliance before the next stage hardens the schema -->
+- 2026-11-14T20:06:08Z — Functional Design への引き継ぎ(承認時に受け入れた Minor 3件): (1) 判断(classify_and_decide)に、受け取ったシグナルの番号を渡し、起動しなかった中断と、転送されたシグナルを捕まえてジョブが自分の終了コードで終わった場合の、分類と終了コードを決める(R-07、R-10)。(2) components.md の JobExecution に、契約で足した `started` を反映する。更新までは契約を優先する(R-11)。
