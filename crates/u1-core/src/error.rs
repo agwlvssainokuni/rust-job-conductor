@@ -167,9 +167,23 @@ fn escape_char(c: char) -> String {
         '\n' => "\\n".to_string(),
         '\r' => "\\r".to_string(),
         '\t' => "\\t".to_string(),
-        c if c.is_control() => format!("\\u{{{:x}}}", c as u32),
+        c if c.is_control() || is_format_char(c) => format!("\\u{{{:x}}}", c as u32),
         c => c.to_string(),
     }
+}
+
+/// 表示を乱す書式文字・双方向制御文字(ゼロ幅、方向指定、行・段落区切り、BOM など)。
+fn is_format_char(c: char) -> bool {
+    matches!(
+        c,
+        '\u{200B}'..='\u{200F}'
+            | '\u{2028}'
+            | '\u{2029}'
+            | '\u{202A}'..='\u{202E}'
+            | '\u{2060}'..='\u{2064}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{FEFF}'
+    )
 }
 
 /// キー名を、エラーの理由に入れる形(引用符つき、エスケープと 64 文字の切り詰め)にする。
@@ -210,6 +224,19 @@ impl Locate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn 書式文字と双方向制御文字もエスケープする() {
+        for c in [
+            '\u{200B}', '\u{200F}', '\u{2028}', '\u{2029}', '\u{202A}', '\u{202E}', '\u{2066}',
+            '\u{2069}', '\u{FEFF}',
+        ] {
+            let out = sanitize(&format!("a{c}b"), 64);
+            assert_eq!(out, format!("a\\u{{{:x}}}b", c as u32));
+            assert!(!out.contains(c));
+        }
+        assert_eq!(sanitize("日本語 abc", 64), "日本語 abc");
+    }
 
     #[test]
     fn 行番号_lf() {

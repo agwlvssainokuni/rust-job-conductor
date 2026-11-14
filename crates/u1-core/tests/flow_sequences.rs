@@ -181,6 +181,12 @@ fn 個別実行_end_のあとはスケジューラの呼び出しでスキップ
         sim.end_reached && !sim.completed,
         "個別実行では、@end に着いても、まだ完了しない"
     );
+    assert!(
+        sim.states[1..]
+            .iter()
+            .all(|s| s.status == JobStatus::Pending),
+        "個別実行では、@end の時点で後ろのジョブを記録しない"
+    );
     for id in ["b", "c"] {
         let (d, code) = sim.call(id, exited(id, 0), RunMode::Individual);
         assert_eq!(
@@ -188,16 +194,30 @@ fn 個別実行_end_のあとはスケジューラの呼び出しでスキップ
             (Decision::Skip(DecisionReason::AfterEnd), Some(0)),
             "{id}"
         );
-        // 注: `NextStep` が返した `skipped_job_ids` を、Cli が @end の時点で記録すると、
-        // 記録のあとの `resume_point_on_interrupt` は、残りのジョブがすべてスキップなので、
-        // 呼び出しの途中でも `completed` を返す(設計の隙間。code-summary に記録する)。
+        assert!(!sim.completed, "{id} の記録のあとは、まだ完了しない");
+        assert!(sim.end_reached);
     }
+    assert_eq!(sim.resume.as_deref(), Some("d"), "次の未呼び出しのジョブ");
     let (d, code) = sim.call("d", exited("d", 0), RunMode::Individual);
     assert_eq!(
         (d, code),
         (Decision::Skip(DecisionReason::AfterEnd), Some(0))
     );
     assert!(sim.completed, "最後のジョブがスキップされた時点で完了");
+    assert!(sim.resume.is_none());
+}
+
+#[test]
+fn 一連の実行_end_で以降をまとめてスキップして完了する() {
+    let def = definition("[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n");
+    let mut sim = Sim::new(def);
+    sim.call("a", exited("a", 0), RunMode::Pipeline);
+    assert!(sim.end_reached && sim.completed);
+    for s in &sim.states[1..] {
+        assert_eq!(s.status, JobStatus::Skipped, "{}", s.job_id);
+        assert_eq!(s.skip_reason, Some(SkipReason::ByEnd));
+    }
+    assert!(sim.resume.is_none());
 }
 
 #[test]

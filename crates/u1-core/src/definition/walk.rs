@@ -388,16 +388,17 @@ pub fn walk(
     };
     w.cross_check(&raw_jobs);
 
-    if w.errors.is_empty()
-        && let Some((name, description)) = pipeline
-        && let Some(jobs) = build_jobs(&raw_jobs)
-    {
-        return Ok(PipelineDefinition {
-            name,
-            description,
-            format_version,
-            jobs,
-        });
+    if w.errors.is_empty() {
+        if let Some((name, description)) = pipeline {
+            if let Some(jobs) = build_jobs(&raw_jobs) {
+                return Ok(PipelineDefinition {
+                    name,
+                    description,
+                    format_version,
+                    jobs,
+                });
+            }
+        }
     }
 
     let mut errors = w.errors;

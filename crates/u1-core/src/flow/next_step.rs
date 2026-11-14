@@ -17,9 +17,14 @@ use crate::types::{
 ///   `ByTransition` のスキップ(BR3.2)。`@end` なら、次の対象は無く、以降の全ジョブが `ByEnd` の
 ///   スキップで、`end_reached` が `true`(BR3.3)。遷移がなければ、記述順で次のジョブ(BR1.10)。
 /// - 完了(BR3.6): 記述順で最後のジョブが成功・警告で終われば、`run_mode` によらず `completed`。
-///   `Pipeline` で `@end` に到達したときも `completed`。`Individual` で `@end` に到達したときは、
-///   `end_reached` だけを `true` にし、`completed` は `false` のまま(以降のジョブがスキップされた
-///   とき、[`resume_point_on_interrupt`](super::resume_point_on_interrupt) で完了を判定する)。
+///   `Pipeline` で `@end` に到達したときは、以降の全ジョブを `skipped_job_ids`(`ByEnd`)に列挙し、
+///   `completed` は `true`。
+///   `Individual` で `@end` に到達したときは、`end_reached = true`、`skip_reason_kind = ByEnd` で、
+///   `skipped_job_ids` は空、`completed = false`。以降のジョブは、スケジューラが呼んだときに
+///   [`decide_before_run`](super::decide_before_run) が `Skip(AfterEnd)` を返し、Cli が呼ばれた
+///   ジョブだけをスキップとして記録する。最後のジョブが記録されたとき、
+///   [`resume_point_on_interrupt`](super::resume_point_on_interrupt) が `completed = true` を返す。
+///   (`@end` より後ろに未処理のジョブがなければ、`Individual` でも、その場で `completed`。)
 ///
 /// 再実行で成功・警告になったときは、再開位置は無し(BR3.4)。`job_states` は、すでに成功・警告・
 /// スキップとして記録されているジョブを、スキップの対象に加えないために使う。
@@ -88,12 +93,24 @@ fn next_step(
     let target = job.transition_for(on).map(|t| &t.next);
     match target {
         Some(TransitionTarget::End) => {
-            step.skipped_job_ids = pending_ids(&jobs[index + 1..]);
-            if !step.skipped_job_ids.is_empty() {
+            step.end_reached = true;
+            let pending = pending_ids(&jobs[index + 1..]);
+            if !pending.is_empty() {
                 step.skip_reason_kind = Some(SkipReason::ByEnd);
             }
-            step.end_reached = true;
-            step.completed = is_last || run_mode == RunMode::Pipeline;
+            match run_mode {
+                // BR3.3: 一連の実行では、以降の全ジョブをここでスキップとして列挙し、完了する。
+                RunMode::Pipeline => {
+                    step.skipped_job_ids = pending;
+                    step.completed = true;
+                }
+                // BR3.6: 個別実行では、以降のジョブはスケジューラが呼んだときに 1 つずつ
+                // スキップされる。ここでは列挙せず、最後のジョブのスキップが記録されるまで
+                // 完了しない(後ろに未処理のジョブがなければ、いま完了)。
+                RunMode::Individual => {
+                    step.completed = pending.is_empty();
+                }
+            }
         }
         Some(TransitionTarget::Job(target_id))
             if definition.job_index(target_id).is_some_and(|t| t > index) =>
@@ -242,7 +259,10 @@ mod tests {
 
         let i = run(&d, "j0", 0, &[], RunMode::Individual);
         assert!(i.end_reached && !i.completed && i.next_job_id.is_none());
-        assert_eq!(i.skipped_job_ids, vec!["j1", "j2", "j3"]);
+        assert!(
+            i.skipped_job_ids.is_empty(),
+            "個別実行では、呼び出し時に 1 つずつスキップする"
+        );
         assert_eq!(i.skip_reason_kind, Some(SkipReason::ByEnd));
     }
 

@@ -11,6 +11,8 @@ pub const EXIT_SIGNAL_BASE: i32 = 128;
 /// 成功コードに含まれない 0 のときに返す終了コード(BR2.2)。
 pub const EXIT_UNLISTED_ZERO: i32 = 1;
 
+/// `128 + シグナル番号`。番号が `None` のときは `128 + 0 = 128` になる(番号が取れなかった場合の
+/// 既定の挙動で、仕様どおり。呼び出し側は、取れたときは必ず番号を渡す)。
 fn signal_exit(signal: Option<i32>) -> i32 {
     EXIT_SIGNAL_BASE.saturating_add(signal.unwrap_or(0))
 }

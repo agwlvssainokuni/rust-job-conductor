@@ -70,14 +70,17 @@ pub fn read_definition(path: &Path) -> Result<String, DefinitionError> {
 
     let handle = File::open(path)
         .map_err(|e| error(&file, DefinitionErrorKind::Unreadable, io_reason(e.kind())))?;
-    let mut bytes = Vec::new();
-    handle
-        .take(MAX_DEFINITION_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|e| error(&file, DefinitionErrorKind::Unreadable, io_reason(e.kind())))?;
-    if bytes.len() as u64 > MAX_DEFINITION_BYTES {
-        return Err(too_large(&file));
-    }
+    let bytes = match read_bounded(handle, MAX_DEFINITION_BYTES) {
+        Ok(Some(bytes)) => bytes,
+        Ok(None) => return Err(too_large(&file)),
+        Err(e) => {
+            return Err(error(
+                &file,
+                DefinitionErrorKind::Unreadable,
+                io_reason(e.kind()),
+            ));
+        }
+    };
 
     String::from_utf8(bytes).map_err(|_| {
         error(
@@ -86,6 +89,22 @@ pub fn read_definition(path: &Path) -> Result<String, DefinitionError> {
             "文字コードが UTF-8 ではありません",
         )
     })
+}
+
+/// `reader` を、`limit` バイトまで読む。`limit` を超える内容があれば `Ok(None)`(超えた分は読まない)。
+///
+/// 「上限 + 1 バイト」までしか読まないので、確認と読み取りのあいだにファイルが大きくなっても、
+/// メモリを使いすぎない(NFR4.4)。
+fn read_bounded(reader: impl Read, limit: u64) -> std::io::Result<Option<Vec<u8>>> {
+    let mut bytes = Vec::new();
+    reader
+        .take(limit.saturating_add(1))
+        .read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > limit {
+        Ok(None)
+    } else {
+        Ok(Some(bytes))
+    }
 }
 
 fn too_large(file: &str) -> DefinitionError {
@@ -102,6 +121,47 @@ mod tests {
 
     fn kind_of(r: Result<String, DefinitionError>) -> DefinitionErrorKind {
         r.expect_err("失敗するはず").kind
+    }
+
+    /// 読まれたバイト数を数える読み取り。
+    struct Counting<'a> {
+        left: u64,
+        read: &'a std::cell::Cell<u64>,
+    }
+    impl Read for Counting<'_> {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let n = (buf.len() as u64).min(self.left) as usize;
+            buf[..n].fill(b'x');
+            self.left -= n as u64;
+            self.read.set(self.read.get() + n as u64);
+            Ok(n)
+        }
+    }
+
+    #[test]
+    fn 上限ちょうどは読める() {
+        let data = [b'a'; 16];
+        let got = read_bounded(&data[..], 16).unwrap();
+        assert_eq!(got.as_deref(), Some(&data[..]));
+    }
+
+    #[test]
+    fn 上限を超えると_none_で上限より先は読まない() {
+        let data = [b'a'; 17];
+        assert_eq!(read_bounded(&data[..], 16).unwrap(), None);
+        // 無限に近い読み取りでも、上限 + 1 バイトで止まる。
+        let read = std::cell::Cell::new(0);
+        let r = Counting {
+            left: u64::MAX,
+            read: &read,
+        };
+        assert_eq!(read_bounded(r, 16).unwrap(), None);
+        assert_eq!(read.get(), 17);
+    }
+
+    #[test]
+    fn 空の読み取りは空で返る() {
+        assert_eq!(read_bounded(&b""[..], 16).unwrap(), Some(Vec::new()));
     }
 
     #[test]

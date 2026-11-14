@@ -18,6 +18,11 @@ use crate::types::{Decision, DecisionReason, JobState, JobStatus, PipelineDefini
 /// 契約 C2 の入力(ジョブID、定義、各ジョブの状態)に加えて、`resume_job_id` と `end_reached`
 /// (`PipelineState` の同名のフィールド)を受け取る。BR3.5 の 2 と 4 が、これらを使うため。
 /// 定義にないジョブIDは、順序外として拒否する(パニックしない)。
+///
+/// 個別実行で `@end` に到達したあと(`end_reached = true`)は、`NextStep.skipped_job_ids` が空なので、
+/// 後ろのジョブは記録なし(pending)のまま。スケジューラが呼ぶたびに、2 で `Skip(AfterEnd)` を返す。
+/// Cli は、呼ばれたジョブだけを `skipped(byEnd)` として記録し、その都度
+/// [`resume_point_on_interrupt`](super::resume_point_on_interrupt) で完了を判定する(BR3.6)。
 pub fn decide_before_run(
     job_id: &str,
     definition: &PipelineDefinition,

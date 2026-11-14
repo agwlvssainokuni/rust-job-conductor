@@ -1,6 +1,6 @@
 # Code Summary(u1-core)
 
-17 ステップをすべて完了した。`cargo fmt --all -- --check`、`cargo clippy -p conductor-core --all-targets --locked -- -D warnings`、`cargo test -p conductor-core --locked`(109 件、失敗 0)が通った。
+17 ステップをすべて完了した。`cargo fmt --all -- --check`、`cargo clippy -p conductor-core --all-targets --locked -- -D warnings`、`cargo test -p conductor-core --locked`(115 件、失敗 0。レビュー 1 回目の修正後)が通った。
 
 ## 作成・変更したファイル
 
@@ -23,22 +23,29 @@
 5. `[[pipeline]]`(配列)は `typeMismatch`(BR1.12)。空白だけの `command`・パイプライン名は `emptyField`。整数でない `format_version` は `versionUnsupported`。`warning_exit_codes` に 0 があるときは、`zeroAsWarning` だけを返す。
 6. security-design の「既存の成果物との差分」は、コードには反映した(`syntax`、`tooLarge`、複数パイプラインの `typeMismatch`)。設計の成果物(entities.md の `kind`、rules.md の BR1.9・BR1.12・BR1.11、functional-spec の W1、security-requirements の NFR4.4)は、計画どおり、書き換えていない。差分として、ここに記録する。
 
+## レビュー(1 回目)で直した点
+
+- Major: 個別実行の `@end` 後の完了判定(上記)。テスト(`tests/flow_sequences.rs`)は、途中の呼び出しごとに `!completed` を確かめ、最後で `completed` を確かめる。pipeline の対のテストも追加。
+- Major: let チェーン(Rust 1.88 以降)を書き換え、宣言した `rust-version` 1.85 でコンパイルできるようにした。
+- Minor: 上限 + 1 バイトの読み取りを `read_bounded` に分け、上限ちょうど・+1・終わりのない入力でテスト。`escape_char` が書式・双方向制御文字も扱う。深さ 32/33/1000 の `syntax` を `parse_definition` でも確認。`signal_number = None` は 128(仕様に範囲がないため、挙動を文書化)。
+- Minor: `skipped_job_ids` は、すでに記録済みのジョブを除く(BR3.2・BR3.3 の「全ジョブ」の文面との差。ここに記録する)。
+
 ## 設計の隙間(後の Unit・ステージで解決する)
 
 - **契約 C2:** `decide_before_run` に `resume_job_id`・`end_reached`、`classify_and_decide` に `run_mode` が要る。契約の更新は、u3-cli の設計で行う。
-- **個別実行の `@end` のあとの完了:** `NextStep.skipped_job_ids` に、以降のジョブがすべて入る。Cli がそれらを `byEnd` として記録したあとの `resume_point_on_interrupt` が、`completed = true` を返す。u3-cli が、スキップの記録を 1 回ずつ適用するか、別の仕組みにするかを決める(`tests/flow_sequences.rs` にコメント)。
+- **個別実行の `@end` のあとの完了(レビュー 1 回目で修正):** `RunMode::Individual` で `@end` に着いたときは、`end_reached = true`、`skip_reason_kind = ByEnd`、`skipped_job_ids` は空、`completed = false`(BR3.6 のとおり、以降のジョブはスケジューラから呼ばれたとき、`decide_before_run` が `Skip(AfterEnd)` を返す)。Cli は、呼ばれたジョブだけをスキップとして記録する。最後のジョブを記録したあとの `resume_point_on_interrupt` が `completed = true` を返す。`RunMode::Pipeline` は BR3.3 のとおり、以降のジョブを一括でスキップし、`completed = true`。BR3.3 の「全ジョブ」は pipeline の方式の規則であり、individual は BR3.6 に従う。
 - **`signal_number` がないままの中断:** 128 + 0 になる。仕様に、この場合の値がない。u2-runtime の `JobExecution` の生成で、番号を必ず持たせる。
 - `NextStep.end_reached` は、`@end` に到達した呼び出しだけ true。以降は、`byEnd` の記録、または `PipelineState` が持つ。
 - `DefinitionError.reason` は固定の日本語。表示の言語の切り替え(E1)は、u3-cli が行う。
 
-## テスト(109 件)
+## テスト(115 件)
 
 | 範囲 | 件数 |
 |------|------|
-| `src/` の単体テスト | 67 |
-| definition_errors | 17 |
+| `src/` の単体テスト | 71 |
+| definition_errors | 18 |
 | definition_valid | 8 |
-| flow_sequences | 8 |
+| flow_sequences | 9 |
 | nfr_security | 5 |
 | library_capability | 3 |
 | nfr_performance | 1 |

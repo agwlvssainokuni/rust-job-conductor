@@ -326,6 +326,25 @@ fn 深さの上限と巨大な入れ子() {
 }
 
 #[test]
+fn 深さ_32_は受け入れ_33_と_1000_は_syntax() {
+    for (label, build) in [
+        (
+            "配列",
+            (|d: usize| format!("a = {}{}\n", "[".repeat(d), "]".repeat(d))) as fn(usize) -> String,
+        ),
+        ("インラインテーブル", |d: usize| {
+            format!("a = {}1{}\n", "{b = ".repeat(d), "}".repeat(d))
+        }),
+    ] {
+        // 深さの検査は通り、構造の検査で別の誤り(版の欠落)になる。syntax ではない。
+        assert_eq!(kinds(&build(32)), vec![K::VersionMissing], "{label} 32");
+        for depth in [33, 1000] {
+            assert_eq!(kinds(&build(depth)), vec![K::Syntax], "{label} {depth}");
+        }
+    }
+}
+
+#[test]
 fn キー名は_64_文字で切られて表示される() {
     let long = "k".repeat(300);
     let t = format!(
