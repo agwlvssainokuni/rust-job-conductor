@@ -9757,3 +9757,224 @@
 **Answer Mode**: guide (reused from intent-capture)
 
 ---
+
+## Memory Empty
+**Timestamp**: 2026-11-14T17:36:40Z
+**Event**: MEMORY_EMPTY
+**Stage**: domain-design
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T17:37:12Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T17:37:13Z
+**Event**: DECISION_RECORDED
+**Stage**: units-generation
+**Decision**: Q1-Q2 presented
+**Options**: Q1: A/B/C/D,Q2: A/B/C
+**Question Id**: 149df3c1
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:f4b1df391010d3a4756a2ba407fcde330dadd76ab10bd1e7655299424f8615ae
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T18:00:20Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A"]
+**Message Id**: 55eeaa06
+**Open Questions**: 149df3c1
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md","entries":{"Q1":"a41d5db805238ca5","Q2":"c1fb456668f46528"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T18:00:21Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q1. 7つの部品を、どう Unit にまとめますか?(Unit ごとに設計・実装・テストのステージが繰り返されます)
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T18:00:21Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q2. 独立した Unit の進め方の前提は?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-14T18:00:29Z
+**Event**: QUESTION_ANSWERED
+**Stage**: units-generation
+**Details**: Q1: A; Q2: A
+**Person Reply**: A\nA
+**Message Id**: 55eeaa06
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T18:00:29Z
+**Event**: DECISION_RECORDED
+**Stage**: units-generation
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md
+**Question Id**: af66269c
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T18:23:24Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 0a4ec74f
+**Open Questions**: 149df3c1, af66269c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md","entries":{"Q1":"a41d5db805238ca5","Q2":"c1fb456668f46528","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T18:23:24Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答のまとめで、Unit の分割の計画(4つの Unit)を進めてよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T18:23:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-14T18:23:28Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: units-generation
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md
+**Questions SHA-256**: 606f4164622ed952a0d5aadbdb22ff3e5c8d600f0572f03c78213e81de45b276
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 0a4ec74f
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+**Git Name**: agwlvssainokuni
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-14T18:23:32Z
+**Event**: DECISION_RECORDED
+**Stage**: units-generation
+**Decision**: Approve the Unit decomposition plan (4 units)?
+**Options**: Approve Plan,Revise Plan
+**Question Id**: 4c58e594
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:5cabf564697e125974e78b534bb5d9564446bc2f5496f10826084ddc0167f513
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-14T18:40:05Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve Plan"]
+**Message Id**: 5ca1fa69
+**Open Questions**: 149df3c1, 4c58e594
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/units-generation-questions.md","entries":{"Q1":"a41d5db805238ca5","Q2":"c1fb456668f46528","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-14T18:40:05Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Unit の分割の計画を承認しますか?  u1-core(library)、u2-runtime(library)、u3-cli(service)、u4-converter(library)の4つ。u1・u2・u4 は互いに独立、u3 がすべてに依存する。単一バイナリに組み込まれる。
+**Reply**: Approve Plan
+**Options**: ["Approve Plan","Revise Plan"]
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T18:40:26Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work.md
+**Context**: inception > units-generation > unit-of-work.md
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T18:40:35Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-dependency.md
+**Context**: inception > units-generation > unit-of-work-dependency.md
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T18:40:43Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-story-map.md
+**Context**: inception > units-generation > unit-of-work-story-map.md
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-14T18:40:48Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/unit-of-work-story-map.md
+**Context**: inception > units-generation > unit-of-work-story-map.md
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-14T18:40:52Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/inception/units-generation/traceability.json
+**Context**: inception > units-generation > traceability.json
+**Summary Authorization Id**: 52e2642f26b9b02bbdecedc91fa7ba085bb9bab4a0076b6e5e7b9baa829ee635
+
+---
