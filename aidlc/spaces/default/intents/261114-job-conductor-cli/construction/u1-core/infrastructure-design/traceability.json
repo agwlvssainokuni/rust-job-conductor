@@ -1,0 +1,19 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u1-core",
+  "upstream_ids": ["NFR4.1","NFR4.7","NFR1.1","NFR2.1","NFR3.1","NFR5.1","NFR4.4","NFR4.3","NFR4.6","NFR4.2","NFR4.5"],
+  "coverage": [
+    { "id": "NFR1.1", "status": "OK", "target": "cicd-pipeline の段階 6(起動時間の確認。3つの OS のベンチマーク)" },
+    { "id": "NFR2.1", "status": "OK", "target": "cicd-pipeline の段階 3(`--locked` でのビルド。C などの他言語を要しないこと)と段階 7(依存の確認の候補)" },
+    { "id": "NFR3.1", "status": "OK", "target": "cicd-pipeline の段階 4(Linux・macOS・Windows の3つでテスト)" },
+    { "id": "NFR5.1", "status": "OK", "target": "cicd-pipeline の段階 4(テスト)と段階 5(行カバレッジ 80% の下限)" },
+    { "id": "NFR4.1", "status": "OK", "target": "cicd-pipeline の段階 4(定義の検証のテストを、3つの OS で実行)" },
+    { "id": "NFR4.2", "status": "OK", "target": "cicd-pipeline の段階 4(知らないキーの拒否のテスト)" },
+    { "id": "NFR4.3", "status": "OK", "target": "cicd-pipeline の段階 4(版の確認のテスト)" },
+    { "id": "NFR4.4", "status": "OK", "target": "cicd-pipeline の段階 4(大きさの上限のテスト)" },
+    { "id": "NFR4.5", "status": "N/A", "target": "設計(検証を純粋な処理にする)で満たす。インフラの資源は要らない" },
+    { "id": "NFR4.6", "status": "OK", "target": "cicd-pipeline の段階 4(エラー表示の内容のテスト)" },
+    { "id": "NFR4.7", "status": "OK", "target": "cicd-pipeline の段階 4(深さ 33 と深さ 1000 の入力のテストを、3つの OS で実行)" }
+  ],
+  "reverse": []
+}
