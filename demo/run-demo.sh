@@ -104,8 +104,8 @@ pause
 scene "7. 定義を検査する(validate): ジョブは実行せず、定義の誤りだけを見つける"
 cmd "$CONDUCTOR" validate -v
 echo
-echo "command の引用符が閉じていない定義(bad.toml)を作って、検査する:"
-printf 'format_version = 1\n\n[pipeline]\nname = "bad"\n\n[[job]]\nid = "extract"\ncommand = "sh scripts/extract.sh\n' > bad.toml
+echo "command の中の引用符(')が閉じていない定義(bad.toml)を作って、検査する:"
+printf 'format_version = 1\n\n[pipeline]\nname = "bad"\n\n[[job]]\nid = "extract"\ncommand = "sh -c '"'"'echo hi"\n' > bad.toml
 cat bad.toml
 cmd "$CONDUCTOR" validate --config bad.toml
 echo

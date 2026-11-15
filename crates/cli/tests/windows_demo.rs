@@ -172,14 +172,19 @@ fn 場面_7_validate_は正しい定義で_0_誤りの定義で_64_ジョブも�
         text(&ok.stderr)
     );
 
-    // command の引用符が閉じていない定義
+    // command の中の引用符(')が閉じていない定義(TOML の文字列としては正しい)
     std::fs::write(
         demo.dir.path().join("bad.toml"),
-        "format_version = 1\n\n[pipeline]\nname = \"bad\"\n\n[[job]]\nid = \"extract\"\ncommand = 'scripts\\extract.cmd\n",
+        "format_version = 1\n\n[pipeline]\nname = \"bad\"\n\n[[job]]\nid = \"extract\"\ncommand = \"sh -c 'echo hi\"\n",
     )
     .expect("書ける");
     let bad = demo.run(&["validate", "--config", "bad.toml"], &[]);
     assert_eq!(bad.status.code(), Some(64), "{}", text(&bad.stderr));
+    assert!(
+        text(&bad.stderr).contains("unclosed quote"),
+        "{}",
+        text(&bad.stderr)
+    );
     assert!(!all_text(&bad).contains("実行中"), "{}", all_text(&bad));
     assert!(state_files(&demo).is_empty());
 }

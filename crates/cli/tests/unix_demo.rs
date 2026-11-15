@@ -63,6 +63,7 @@ fn assert_demo_output(output: &Output) {
     }
     // 場面 7: validate
     assert!(out.contains("definition is valid"), "{out}");
+    assert!(out.contains("command has an unclosed quote"), "{out}");
     assert!(out.contains("→ 終了コード 64"), "{out}");
     // 場面 8: run ID ごとにステートが分かれる
     assert!(out.contains("Run ID: build-1"), "{out}");

@@ -716,3 +716,39 @@
 **Context**: construction > code-generation > code-summary.md
 
 ---
+
+## Host Turn
+**Timestamp**: 2026-11-15T14:32:29Z
+**Event**: HOST_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T14:32:29Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a4701f1e1e39e35e6
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T14:33:10Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a277bc55910f6e4c7
+**Message**: pushしました。
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-15T14:33:38Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/code-summary.md
+**Context**: construction > code-generation > code-summary.md
+
+---

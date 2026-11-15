@@ -106,7 +106,7 @@ call :pause
 call :scene "7. 定義を検査する(validate): ジョブは実行せず、定義の誤りだけを見つける"
 call :runcmd validate -v
 echo.
-echo command の引用符が閉じていない定義(bad.toml)を作って、検査する:
+echo command の中の引用符(')が閉じていない定義(bad.toml)を作って、検査する:
 > bad.toml echo format_version = 1
 >> bad.toml echo.
 >> bad.toml echo [pipeline]
@@ -114,7 +114,7 @@ echo command の引用符が閉じていない定義(bad.toml)を作って、検
 >> bad.toml echo.
 >> bad.toml echo [[job]]
 >> bad.toml echo id = "extract"
->> bad.toml echo command = 'scripts\extract.cmd
+>> bad.toml echo command = "sh -c 'echo hi"
 type bad.toml
 call :runcmd validate --config bad.toml
 echo.

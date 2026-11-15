@@ -13,7 +13,7 @@
 
 ## 場面の実際の出力(UNIX 版を実行して確認。日本語・英語・環境汚染の 3 通り、すべて終了コード 0)
 
-- 場面 7: `validate -v` は 0(`definition is valid (4 jobs)`)。`bad.toml`(`command` の引用符が閉じていない)の `validate --config` は 64。ステートの一覧は `(なし)`。
+- 場面 7: `validate -v` は 0(`definition is valid (4 jobs)`)。`bad.toml`(`command = "sh -c 'echo hi"`。TOML の文字列は閉じていて、中のシェル風の `'` が閉じていない)の `validate --config` は 64(`command has an unclosed quote` / `command の引用符が閉じていません`)。ステートの一覧は `(なし)`。
 - 場面 8: `--run-id build-1` は 2 で止まる。`DEMO_RUN_ID=build-2` は 0 で完走。一覧は `conductor.toml.build-1.state` だけ。`watch --run-id build-1` は 0(`Run ID: build-1`)。同じ run ID の再実行は 0(`extract`・`transform` は `skipped (already executed)`)。一覧は `(なし)`。
 - 場面 9: `DEMO_RUN_ID=env-1` のみは 2(`env-1.state`)。`DEMO_RUN_ID=env-1` と `--run-id opt-1` は 2(`opt-1.state`。オプションが勝つ)。`--run-id ""` は 2(`conductor.toml.state`)。`--run-id opt-2` は 2。一覧は 4 個(`env-1`、`opt-1`、`opt-2`、run ID なし)。`reset --run-id opt-1` は 0(3 個になる)。`reset --all` は 0(`(なし)`)。`watch` は 0(`no state (nothing has run yet)`)。
 - `CONDUCTOR_RUN_ID=zzz DEMO_RUN_ID=zzz LC_ALL=C` を付けても完走し、日本語のまま、`zzz` は使われない。
