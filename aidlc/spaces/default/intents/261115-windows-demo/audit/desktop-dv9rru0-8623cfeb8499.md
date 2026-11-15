@@ -1179,3 +1179,94 @@
 **Answer Mode**: guide (reused from requirements-analysis)
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:19:53Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-15T07:19:54Z
+**Event**: DECISION_RECORDED
+**Stage**: deployment-execution
+**Decision**: How to publish this work (Q1)
+**Options**: No release; push main only,Release v0.3.1 as a draft
+**Question Id**: 3580469c
+**Question Type**: stage-question
+**Question Chat**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Question Shows**: sha256:a68d8298364775a59ea45d49b35fd7d9e96705f5ff4cad092044a29891eb70f0
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T07:20:15Z
+**Event**: HUMAN_TURN
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. リリースしない"]
+**Message Id**: be1cf661
+**Open Questions**: 3580469c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261115-windows-demo/operation/deployment-execution/deployment-execution-questions.md","entries":{"Q1":"3338bf868c4b3936"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T07:20:15Z
+**Event**: QUESTION_REPLIED
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Question**: Q1(リリース担当)この作業はデモと案内と Windows 専用のテストだけで、配布する実行ファイルのコードは変わっていません。どう公開しますか?
+**Reply**: A. リリースしない
+**Options**: ["A. リリースしない","B. v0.3.1 を出す"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-15T07:20:27Z
+**Event**: QUESTION_ANSWERED
+**Stage**: deployment-execution
+**Details**: Q1: A. No release; push main only
+**Person Reply**: A. リリースしない
+**Message Id**: be1cf661
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-15T07:20:29Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:20:30Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/operation/deployment-execution/deployment-log.md
+**Context**: operation > deployment-execution > deployment-log.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:20:31Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/operation/deployment-execution/smoke-test-results.md
+**Context**: operation > deployment-execution > smoke-test-results.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:20:32Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/operation/deployment-execution/health-check-report.md
+**Context**: operation > deployment-execution > health-check-report.md
+
+---
