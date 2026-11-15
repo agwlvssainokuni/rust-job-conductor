@@ -18,6 +18,7 @@ flowchart LR
 
 ## 備考
 
-- converter が core に依存しないため、cli が両方を橋渡しする。command の型を core で変えても、converter はコンパイルに影響を受けない。
-- runtime は core の型(`JobDefinition`、`JobExecution`、`PipelineState` など)を使う。`JobDefinition.command` の型を変えると、runtime の `runner.rs`、`state/record.rs`、`state/consistency.rs` と、cli の `ctx.rs` がコンパイルに影響を受ける(`flow/` と各テストの組み立ても)。
+- converter が core に依存しないため、cli が両方を橋渡しする。
+- runtime は core の型(`JobDefinition`、`Command`、`JobExecution`、`PipelineState`、`JobState` など)を使う。ステートの書式(キー名)は runtime だけが知り、core の型には出てこない(ファイルのキー `jobs` と、型のフィールド `job_states` は別)。そのため、ステートのキー名の変更は、runtime のクレートと、そのテスト、README の記述に閉じる見込み(cli と core、converter は影響を受けない。cli のテストにステートの `[[jobs]]` を書く箇所は、浅い grep では見つからなかった)。
+- ステートの読み書きは `toml` クレートの `Table`・`Value` に依存する。配列テーブルの出力形(`[[jobs]]`)は、`Value::Array` に `Table` を入れたときの `toml::to_string` の出力による。
 - 脆弱性の検査は `cargo audit`(警告のみ、週次と PR)。メジャー版の遅れは確認していない。

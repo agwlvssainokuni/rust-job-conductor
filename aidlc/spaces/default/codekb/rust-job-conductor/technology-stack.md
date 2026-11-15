@@ -11,7 +11,7 @@
 
 | 名前 | 版 | 用途 | 使うクレート |
 |------|----|------|--------------|
-| toml | 1.2.1 | 定義・ステートの読み書き | core, runtime, converter |
+| toml | 1.2.1 | 定義・ステートの読み書き。runtime は `parse`・`std`・`display`・`serde` 機能(`default-features = false`)で、`toml::Table` と `toml::Value` を手で歩く | core, runtime, converter |
 | thiserror | 2.0.21 | エラー型 | core, runtime, converter |
 | saphyr-parser | 0.3.4 | YAML のイベント読み取り | converter |
 | lexopt | 0.3.2 | 引数解析 | cli |
@@ -19,6 +19,8 @@
 | ctrlc | 3.5.2 | Windows の Ctrl+C | cli |
 | libc | 0.2(ロック 0.2.191) | プロセスグループ・シグナル送信 | runtime(UNIX) |
 | tempfile | 3.27.0 | テスト | 全クレート(dev) |
+
+runtime の `Cargo.toml` は v0.2.0(今回確認)。上の版は前回の記録を引き継ぎ、今回は runtime の `Cargo.toml` の指定だけを確認した。
 
 ## ツール・CI
 

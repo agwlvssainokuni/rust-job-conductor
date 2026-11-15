@@ -3,23 +3,26 @@
 ## Run Record
 
 - Date: 2026-11-15
-- Commit: 8cd1ba0c2ee46273451531d64548279bf245936d
+- Commit: 2f5d97da956a820b6c68aa23f65896e59d358765
 
 ## Scope of Analysis
 
 ```yaml
 scope_version: 1
-kind: full
-intent: command-array
-fingerprint: d0a71d96465dc01207c8ba9c7362519e259c9b15
+kind: partial
+intent: state-job-key
+fingerprint: 898e1865d3c944bfc32dfdb41262921160cf2c25
 analyzed:
   paths:
-    - ./
+    - crates/runtime/
+    - README.md
+    - demo/
   components:
-    - conductor-core
     - conductor-runtime
-    - conductor-converter
-    - conductor-cli
 shallow:
-  paths: []
+  paths:
+    - ./
+    - crates/core/
+    - crates/converter/
+    - crates/cli/
 ```
