@@ -152,14 +152,24 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
 
 #[cfg(windows)]
 #[test]
-fn cmd_への危険な引数は起動失敗() {
+fn cmd_への危険な引数は注入にならない() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let script = dir.path().join("echo-args.cmd");
     std::fs::write(&script, "@echo off\r\nexit /b 0\r\n").expect("書ける");
-    // 引用符を壊す引数。標準のライブラリが、安全に渡せないと判断して、起動を拒否する(NFR4.9)。
-    let command = format!("{} 'x\" & echo injected'", q(&script.display().to_string()));
+    let marker = dir.path().join("injected.txt");
+    // 引用符を壊して、別のコマンドを続ける引数。標準のライブラリは、安全にエスケープして渡すか、
+    // 渡せないと判断して起動を拒否する。どちらでも、続くコマンドは実行されない(NFR4.9)。
+    let command = format!(
+        "{} 'x\" & echo injected > {}'",
+        q(&script.display().to_string()),
+        marker.display()
+    );
     let e = run(command);
-    assert!(e.started && e.start_failure, "{e:?}");
+    assert!(e.started, "{e:?}");
+    assert!(
+        !marker.exists(),
+        "引数のメタ文字がコマンドとして実行された: {e:?}"
+    );
 }
 
 #[cfg(windows)]
