@@ -111,6 +111,8 @@ conductor reset                        # 最初からやり直す
 conductor convert conductor.yaml --to toml > conductor.toml
 ```
 
+動きを一通り見るには、[デモ](demo/README.md)(`demo/run-demo.sh`)が使えます。
+
 ## 定義ファイルの書き方
 
 既定の名前は `conductor.toml` です(`--config` で変えられます)。

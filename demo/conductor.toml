@@ -1,0 +1,27 @@
+format_version = 1
+
+[pipeline]
+name = "nightly"
+description = "デモ用の夜間バッチ"
+
+# 抽出: 終了コード 1 は「警告」。警告のときは、変換と読み込みをスキップして、通知へ進む。
+[[job]]
+id = "extract"
+command = "sh scripts/extract.sh"
+warning_exit_codes = [1]
+
+[[job.transitions]]
+on = "warning"
+next = "notify"
+
+[[job]]
+id = "transform"
+command = "sh scripts/transform.sh"
+
+[[job]]
+id = "load"
+command = "sh scripts/load.sh"
+
+[[job]]
+id = "notify"
+command = "sh scripts/notify.sh"
