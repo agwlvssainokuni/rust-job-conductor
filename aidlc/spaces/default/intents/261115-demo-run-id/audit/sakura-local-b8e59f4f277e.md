@@ -884,3 +884,179 @@
 **Context**: construction > build-and-test > cross-unit-traceability.md
 
 ---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-15T14:39:08Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: build-and-test
+**Next Stage**: deployment-pipeline
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/build-instructions.md=not-run; required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/build-and-test-summary.md=not-run; required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/test-results.md=not-run; required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/cross-unit-traceability.md=not-run; upstream-coverage@aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/build-instructions.md=not-run
+**Open Decisions**: 0
+**Question Id**: 5cfdccae
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:148c7bbedc41a88afe0dbde6684eae0531b2efcc4823b3c82b2d3b3898f5a53b
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T14:40:36Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 705570eb
+**Open Questions**: 5cfdccae
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T14:40:36Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Build and Test is ready for your review. It produced build-instructions.md, build-and-test-summary.md, test-results.md and cross-unit-traceability.md, in aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/.\n\n結果: テスト 666 件成功(安定版と Rust 1.85 の両方)、行カバレッジ 97.74%、fmt・clippy・Windows 向けの型検査も成功、UNIX 版のデモは日本語・英語・環境を設定した状態の 3 通りとも完走、要件の未対応 0 件、本体・ルートの README・版・.github は変更なし。\n\n未検証が 1 件あります(BT-11): Windows 版 demo\windows\run-demo.cmd 自体を、Windows 実機で実行すること。macOS では実行できず、CI でも実行されません(要件の承認のときに、あなたの確認の項目として合意済みです)。ワークフローの規則では「未検証」は失敗扱いのため、この承認で、「リリース前の人の確認の項目として受け入れる」ことも含めて確認します。Windows 実機で確かめる点: bad.toml を echo で作るところ、--run-id "" が空の引数として渡ること、dir /b が一致なしで errorlevel 1 を返すことへの依存。次は Deployment Pipeline です(前回と同じ理由でスキップする想定)。\n\nApprove Build and Test?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-15T14:40:39Z
+**Event**: GATE_APPROVED
+**Stage**: build-and-test
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 705570eb
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-15T14:40:39Z
+**Event**: STAGE_COMPLETED
+**Stage**: build-and-test
+**Validation Basis**: {"graphContract":"sha256:1aed809bd5f1f235d6ab1b1495c41997dd8cc201478d4991c474c4f1638a2b55","inputs":[{"artifact":"code-generation-plan","contentHash":"sha256:89ac020b0126440e5f8edef1491896e40da9af86374feb1ce8425685b6009c80","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:59c0d1dd33aa2fd742988172b562842c77f115e90fad7a1a44f5680d320784f8"},{"artifact":"code-summary","contentHash":"sha256:562f7685499e43dfc1f23da82dc736057830ebc6a2f9e1663cedf93142f4ac9e","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:bfdf9ad8f4aeb2161c40017c4cc24ebfe1436526a7c11fff6ce9ef6a4c2d9f06"},{"artifact":"unit-test-instructions","contentHash":"sha256:8262fdfd2e4da3b438b191c6ee2b28d281ef15d926d8717ecda5836195762fe5","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:d136deb5422e680cefdf6f6be86cca40ba75c23939f84cfa458255fed8f86c25"}],"outputs":[{"artifact":"build-and-test-summary","contentHash":"sha256:5c5fed3e17a11e121ddb830237eaed87bf1fdba9f0787987798633d0ca26e734","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:88534916d7ec306a6b7ad10d7c7916f5c966d8d3450cdaf6b67df45ed5b67b9a"},{"artifact":"build-instructions","contentHash":"sha256:6229fdb31d75efb1c5aa7d3ceb107da9a4b05812ea72d9384771e53ca6e9073f","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:764c40a949ff3d51b9d1677eccc66d805060115563601b758f4ac2119e607e8f"},{"artifact":"build-test-results","contentHash":"sha256:e202b4c650ffbfd0132c693e458ca6edece4362af740ae3760eba72758868e68","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:837b356586cf159f3bfa8dfdcc60c01a3792ba2e823a4820789136f7687450ad"},{"artifact":"cross-unit-traceability","contentHash":"sha256:3f97534ca7b27caa1ff8f907103a42f44d61d9ce04f0304d33e3b8a193a92c0e","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:4f3bae3128b573350ded22960394b9398438a1c54a1aa56eea106ada01906d20"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Build and Test approved by gate
+**Tokens In**: 10
+**Tokens Out**: 9731
+**Cache Read**: 3696504
+**Cache Write**: 12014
+**Cost USD**: 0.52
+**By Model**: sonnet-5-5=0.52
+**By Agent**: main=0.52
+**Tokens By Model**: sonnet-5-5=10/9.7k/3.7M/12k
+**Tokens By Agent**: main=10/9.7k/3.7M/12k
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-15T14:40:39Z
+**Event**: PHASE_COMPLETED
+**From phase**: construction
+**To phase**: operation
+**Stages completed**: 7
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-15T14:40:39Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: construction → operation
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-15T14:40:39Z
+**Event**: PHASE_STARTED
+**Phase**: operation
+**Scope**: express
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T14:40:39Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-pipeline
+**Agent**: aidlc-pipeline-deploy-agent
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T14:40:47Z
+**Event**: STAGE_SKIPPED
+**Stage**: deployment-pipeline
+**Reason**: release.yml already exists and was verified end to end through v0.5.0; this change (demo scenes and demo tests) needs no CD change
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T14:40:47Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-execution
+**Agent**: aidlc-pipeline-deploy-agent
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T14:40:52Z
+**Event**: STAGE_SKIPPED
+**Stage**: deployment-execution
+**Reason**: this change only touches demo files and tests; the request and the approved requirements state that no release is made and the version stays 0.5.0
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T14:40:52Z
+**Event**: STAGE_STARTED
+**Stage**: observability-setup
+**Agent**: aidlc-operations-agent
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T14:40:58Z
+**Event**: STAGE_SKIPPED
+**Stage**: observability-setup
+**Reason**: conductor is a single-binary CLI that runs on the user's machine; there is no deployed service to monitor
+**Skip Kind**: conditional-runtime
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-15T14:40:58Z
+**Event**: PHASE_COMPLETED
+**From phase**: operation
+**To phase**: (end)
+**Stages completed**: 7
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-15T14:40:58Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: operation → end
+
+---
+
+## Workflow Completion
+**Timestamp**: 2026-11-15T14:40:58Z
+**Event**: WORKFLOW_COMPLETED
+**Scope**: express
+**Details**: Scope: express, final stage observability-setup skipped
+**Reason**: conductor is a single-binary CLI that runs on the user's machine; there is no deployed service to monitor
+**Tokens In**: 220
+**Tokens Out**: 129675
+**Cache Read**: 33417139
+**Cache Write**: 386358
+**Cost USD**: 5.72
+**By Model**: sonnet-5-5=5.72
+**By Agent**: main=3.33; aidlc-developer-agent=2.39
+**Tokens By Model**: sonnet-5-5=220/129.7k/33.4M/386.4k
+**Tokens By Agent**: main=78/47.3k/25.6M/74.6k; aidlc-developer-agent=142/82.4k/7.8M/311.8k
+
+---
