@@ -862,3 +862,84 @@
 **Agent**: aidlc-pipeline-deploy-agent
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-11-15T03:32:52Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["このステージはスキップ(推奨)"]
+**Message Id**: 21dc8425
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T03:32:53Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 次は Deployment Execution(リリースの実行)です。v0.3.0 をここでリリースしますか? ステートのキーが変わる破壊的変更を含む版です。タグを付けて push すると、下書きのリリースができます(公開はあなたがする)。タグは公開されるものなので、あなたの決めです。
+**Reply**: このステージはスキップ(推奨)
+**Options**: ["このステージはスキップ(推奨)","いまリリースする"]
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T03:32:57Z
+**Event**: STAGE_SKIPPED
+**Stage**: deployment-execution
+**Reason**: the person chose to release v0.3.0 later by tagging it themselves (message 21dc8425); the release workflow is unchanged
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T03:32:57Z
+**Event**: STAGE_STARTED
+**Stage**: observability-setup
+**Agent**: aidlc-operations-agent
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T03:33:04Z
+**Event**: STAGE_SKIPPED
+**Stage**: observability-setup
+**Reason**: conductor is a single-binary CLI that runs on the user's machine; there is no deployed service to monitor
+**Skip Kind**: conditional-runtime
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-15T03:33:04Z
+**Event**: PHASE_COMPLETED
+**From phase**: operation
+**To phase**: (end)
+**Stages completed**: 7
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-15T03:33:04Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: operation → end
+
+---
+
+## Workflow Completion
+**Timestamp**: 2026-11-15T03:33:04Z
+**Event**: WORKFLOW_COMPLETED
+**Scope**: express
+**Details**: Scope: express, final stage observability-setup skipped
+**Reason**: conductor is a single-binary CLI that runs on the user's machine; there is no deployed service to monitor
+**Tokens In**: 158
+**Tokens Out**: 68633
+**Cache Read**: 19428981
+**Cache Write**: 259994
+**Cost USD**: 3.35
+**By Model**: sonnet-5-5=3.35
+**By Agent**: main=2.05; aidlc-developer-agent=1.31
+**Tokens By Model**: sonnet-5-5=158/68.6k/19.4M/260k
+**Tokens By Agent**: main=76/28.4k/15.7M/47.3k; aidlc-developer-agent=82/40.3k/3.7M/212.7k
+
+---
