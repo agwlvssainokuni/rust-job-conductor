@@ -38,6 +38,10 @@ if not exist "%CONDUCTOR%" (
   popd
 )
 
+REM 利用者の環境に左右されないよう、run ID の環境変数を消す(場面 8、9 で、デモが自分で設定する)。
+set "DEMO_RUN_ID="
+set "CONDUCTOR_RUN_ID="
+
 REM 表示の言語(既定は日本語。DEMO_LANG=en_US で英語)。conductor は、LC_ALL、LC_MESSAGES、LANG の順に見る。
 if not defined DEMO_LANG set "DEMO_LANG=ja_JP.UTF-8"
 set "LC_ALL="
@@ -97,6 +101,96 @@ call :scene "6. 定義ファイルを YAML に変換する(convert)"
 call :runcmd convert conductor.toml --to yaml
 echo.
 echo (YAML から TOML へも変換できます)
+call :pause
+
+call :scene "7. 定義を検査する(validate): ジョブは実行せず、定義の誤りだけを見つける"
+call :runcmd validate -v
+echo.
+echo command の引用符が閉じていない定義(bad.toml)を作って、検査する:
+> bad.toml echo format_version = 1
+>> bad.toml echo.
+>> bad.toml echo [pipeline]
+>> bad.toml echo name = "bad"
+>> bad.toml echo.
+>> bad.toml echo [[job]]
+>> bad.toml echo id = "extract"
+>> bad.toml echo command = 'scripts\extract.cmd
+type bad.toml
+call :runcmd validate --config bad.toml
+echo.
+echo ジョブは実行されず(出力なし)、ステートも作られない:
+call :states
+call :pause
+
+call :scene "8. run ID でステートを分ける: run ID ごとに、別のステートファイルになる"
+echo run ID build-1 で実行し、load で止める(--run-id):
+setlocal
+set "DEMO_LOAD_EXIT=2"
+call :runcmd pipeline -v --run-id build-1 nightly
+endlocal
+echo.
+echo 別の run ID build-2 を、環境変数 DEMO_RUN_ID で指定して実行する(定義の run_id_env = "DEMO_RUN_ID"):
+setlocal
+set "DEMO_RUN_ID=build-2"
+echo $ set DEMO_RUN_ID=build-2
+call :runcmd pipeline -v nightly
+endlocal
+echo.
+echo build-2 は最後まで進み、build-1 のステートは、そのまま残る:
+call :states
+echo.
+echo build-1 の止まった位置を見る:
+call :runcmd watch --run-id build-1
+echo.
+echo 同じ run ID で同じコマンドをもう一度: load から再開する:
+call :runcmd pipeline -v --run-id build-1 nightly
+echo.
+echo 完了したので、ステートファイルは無くなる:
+call :states
+call :pause
+
+call :scene "9. 環境変数と後始末: --run-id は環境変数に勝つ。reset --run-id と reset --all"
+echo 環境変数だけで run ID env-1 を指定して、load で止める:
+setlocal
+set "DEMO_RUN_ID=env-1"
+set "DEMO_LOAD_EXIT=2"
+echo $ set DEMO_RUN_ID=env-1
+call :runcmd pipeline -v nightly
+endlocal
+echo.
+echo 環境変数が env-1 でも、--run-id opt-1 が勝つ(別のステートになる):
+setlocal
+set "DEMO_RUN_ID=env-1"
+set "DEMO_LOAD_EXIT=2"
+echo $ set DEMO_RUN_ID=env-1
+call :runcmd pipeline -v --run-id opt-1 nightly
+endlocal
+echo.
+echo --run-id ""(空)は、環境変数があっても、run ID なしに固定する:
+setlocal
+set "DEMO_RUN_ID=env-1"
+set "DEMO_LOAD_EXIT=2"
+echo $ set DEMO_RUN_ID=env-1
+call :runcmd pipeline -v --run-id "" nightly
+endlocal
+echo.
+echo 止まった run をもう 1 つ(opt-2):
+setlocal
+set "DEMO_LOAD_EXIT=2"
+call :runcmd pipeline -v --run-id opt-2 nightly
+endlocal
+echo.
+echo 止まった run が、別々のステートファイルになっている:
+call :states
+echo.
+echo run ID を指定して、1 つだけ消す:
+call :runcmd reset --run-id opt-1
+call :states
+echo.
+echo reset --all で、残りをすべて消す:
+call :runcmd reset --all
+call :states
+call :runcmd watch
 echo.
 echo デモは以上です。
 
@@ -121,6 +215,13 @@ echo $ conductor %*
 "%CONDUCTOR%" %*
 set "code=%errorlevel%"
 echo → 終了コード %code%
+exit /b 0
+
+REM ステートファイルの一覧を見せる(無ければ「(なし)」)
+:states
+echo $ dir /b conductor.toml*.state
+dir /b conductor.toml*.state 2>nul
+if errorlevel 1 echo (なし)
 exit /b 0
 
 REM DEMO_PAUSE=1 のとき、Enter を待つ
