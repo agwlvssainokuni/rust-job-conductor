@@ -41,6 +41,16 @@
 
 `run` のオーバーヘッド p95 21.4 ms(基準 100 ms)、`pipeline` のジョブ 1 つあたり p95 24.9 ms(目標 50 ms)、ジョブ 1,000 個の定義の `run` 151 ms(基準 1 秒)、CPU 0.01 秒(基準 0.1 秒)。すべて基準内。
 
+## 修復後の再実行(loop-back 1 のあと)
+
+| 命令 | 終了コード | 結果 |
+|------|-----------|------|
+| `cargo +1.85 build --workspace --locked --all-targets` | 0 | 成功 |
+| `cargo +1.85 test --workspace --locked` | 0 | 564 件成功、失敗 0 |
+| `cargo test --workspace --locked`(1.97) | 0 | 564 件成功、失敗 0 |
+| `cargo llvm-cov --workspace ...` | 0 | 行 97.66% |
+| `cargo fmt --all -- --check`、`cargo clippy ... -D warnings` | 0、0 | 問題なし |
+
 ## Loop-Back Log
 
 ### Loop-back 1 — 2026-11-15T01:30:00Z
