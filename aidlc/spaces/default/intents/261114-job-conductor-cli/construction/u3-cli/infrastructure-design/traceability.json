@@ -153,7 +153,7 @@
     {
       "id": "NFR2.5",
       "status": "OK",
-      "target": "cicd-pipeline の`test`(中断のテスト: 実行中・起動前・ジョブのあいだ。UNIX 系)"
+      "target": "cicd-pipeline の`test`(中断のテスト: 実行中・起動前・ジョブのあいだ(UNIX 系)と、Windows の Ctrl+C の経路のテスト、または、リリース前の手動確認の記録)"
     },
     {
       "id": "NFR2.7",
