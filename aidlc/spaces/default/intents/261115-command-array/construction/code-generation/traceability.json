@@ -1,28 +1,109 @@
 {
   "stage": "code-generation",
   "upstream_ids": [
-    "FR1", "FR1.1", "FR1.2", "FR1.3", "FR1.4", "FR1.5",
-    "FR2", "FR2.1", "FR2.2", "FR2.3",
-    "FR3", "FR4", "FR5",
-    "NFR1", "NFR2", "NFR3", "NFR4"
+    "FR1",
+    "FR1.1",
+    "FR1.2",
+    "FR1.3",
+    "FR1.4",
+    "FR1.5",
+    "FR2",
+    "FR2.1",
+    "FR2.2",
+    "FR2.3",
+    "FR3",
+    "FR4",
+    "FR5",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4"
   ],
   "coverage": [
-    { "id": "FR1", "status": "OK", "target": "crates/core/src/types.rs (Command), crates/core/src/definition/walk.rs (Walker::command)" },
-    { "id": "FR1.1", "status": "OK", "target": "crates/core/src/types.rs (enum Command, From, program_name); tests: crates/core/src/types.rs 文字列から_line_を作れる / プログラム名は_line_では先頭の語_argv_では先頭の要素" },
-    { "id": "FR1.2", "status": "OK", "target": "crates/core/src/definition/walk.rs; tests: crates/core/tests/definition_valid.rs fr1_2_配列の_command_は要素のまま保持される, crates/runtime/tests/runner_basic.rs 配列の_command_の要素は分割も展開もされずにそのまま渡る" },
-    { "id": "FR1.3", "status": "OK", "target": "crates/core/src/definition/walk.rs (Walker::command); test: crates/core/tests/definition_errors.rs fr1_3_command_の型の誤り" },
-    { "id": "FR1.4", "status": "OK", "target": "crates/core/src/definition/walk.rs, crates/runtime/src/split.rs (command_line); tests: definition_errors.rs fr1_4_空の配列と先頭の要素の誤り, split.rs 配列の先頭が空または要素がなければ_empty, runner_basic.rs 配列の_command_の先頭が空なら起動失敗" },
-    { "id": "FR1.5", "status": "OK", "target": "crates/core/src/definition/walk.rs; test: crates/core/tests/definition_errors.rs fr1_5_文字列の_command_の空は従来どおり誤り" },
-    { "id": "FR2", "status": "OK", "target": "crates/runtime/src/split.rs, crates/runtime/src/runner.rs, crates/cli/src/ctx.rs, crates/cli/src/deps.rs" },
-    { "id": "FR2.1", "status": "OK", "target": "crates/runtime/src/split.rs (command_line, check_command), crates/runtime/src/runner.rs (run_job); tests: split.rs 配列の_command_は要素をそのまま引数にする, runner_basic.rs 配列の_command_の要素は分割も展開もされずにそのまま渡る, crates/cli/tests/binary_basic.rs 配列の_command_は_run_と_pipeline_で文字列と同じ結果になる" },
-    { "id": "FR2.2", "status": "OK", "target": "crates/cli/src/ctx.rs (program_name); tests: crates/cli/tests/flow_run.rs 配列の_command_の起動失敗は先頭の要素の名前を表示する, crates/runtime/tests/runner_basic.rs 配列の_command_で存在しないプログラムは起動失敗" },
-    { "id": "FR2.3", "status": "OK", "target": "crates/runtime/tests/runner_basic.rs cmd_への配列の危険な引数は注入にならない (cfg(windows); この環境では型検査のみ、実行は CI の Windows)" },
-    { "id": "FR3", "status": "OK", "target": "crates/converter/tests/convert_roundtrip.rs array_command_roundtrips_toml_yaml_toml, array_command_roundtrips_yaml_toml_yaml (実装の変更なし)" },
-    { "id": "FR4", "status": "OK", "target": "README.md (「command の書き方」の「配列で書く(v0.2.0 以降)」)" },
-    { "id": "FR5", "status": "OK", "target": "demo/conductor.toml (notify の command を配列に), demo/README.md (1 行追加); demo/run-demo.sh を DEMO_SLEEP=0.1 で実行し完走を確認" },
-    { "id": "NFR1", "status": "OK", "target": "既存の 564 件が成功のまま(cargo test --workspace --locked: 580 passed, 1 ignored)。既存テストの修正は、型の変更に伴うものだけ" },
-    { "id": "NFR2", "status": "OK", "target": "crates/core/src/definition/walk.rs (固定の文だけ); test: crates/core/tests/definition_errors.rs nfr2_command_の誤りのメッセージに入力の値が出ない" },
-    { "id": "NFR3", "status": "OK", "target": "cargo +1.85 build --workspace --locked --all-targets 成功(let チェーンなし)、cargo check --target x86_64-pc-windows-msvc 成功、cargo clippy -D warnings・cargo fmt --check 成功、行カバレッジ 97.79%(下限 80%)" },
-    { "id": "NFR4", "status": "OK", "target": "crates/*/Cargo.toml の version を 0.2.0 に、Cargo.lock が追従(cargo build --workspace --locked 成功)" }
+    {
+      "id": "FR1",
+      "status": "OK",
+      "target": "crates/core/src/types.rs"
+    },
+    {
+      "id": "FR1.1",
+      "status": "OK",
+      "target": "crates/core/src/types.rs"
+    },
+    {
+      "id": "FR1.2",
+      "status": "OK",
+      "target": "crates/core/src/definition/walk.rs"
+    },
+    {
+      "id": "FR1.3",
+      "status": "OK",
+      "target": "crates/core/src/definition/walk.rs"
+    },
+    {
+      "id": "FR1.4",
+      "status": "OK",
+      "target": "crates/core/src/definition/walk.rs"
+    },
+    {
+      "id": "FR1.5",
+      "status": "OK",
+      "target": "crates/core/src/definition/walk.rs"
+    },
+    {
+      "id": "FR2",
+      "status": "OK",
+      "target": "crates/runtime/src/split.rs"
+    },
+    {
+      "id": "FR2.1",
+      "status": "OK",
+      "target": "crates/runtime/src/split.rs"
+    },
+    {
+      "id": "FR2.2",
+      "status": "OK",
+      "target": "crates/cli/src/ctx.rs"
+    },
+    {
+      "id": "FR2.3",
+      "status": "OK",
+      "target": "crates/runtime/tests/runner_basic.rs"
+    },
+    {
+      "id": "FR3",
+      "status": "OK",
+      "target": "crates/converter/tests/convert_roundtrip.rs"
+    },
+    {
+      "id": "FR4",
+      "status": "OK",
+      "target": "README.md"
+    },
+    {
+      "id": "FR5",
+      "status": "OK",
+      "target": "demo/conductor.toml"
+    },
+    {
+      "id": "NFR1",
+      "status": "OK",
+      "target": "crates/cli/tests/binary_basic.rs"
+    },
+    {
+      "id": "NFR2",
+      "status": "OK",
+      "target": "crates/core/src/definition/walk.rs"
+    },
+    {
+      "id": "NFR3",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "NFR4",
+      "status": "OK",
+      "target": "crates/cli/Cargo.toml"
+    }
   ]
 }
