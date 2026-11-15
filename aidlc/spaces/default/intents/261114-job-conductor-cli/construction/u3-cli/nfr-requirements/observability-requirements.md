@@ -1,6 +1,6 @@
 # Observability Requirements(u3-cli)
 
-上流: requirements(FR2.6、NFR6)、functional-spec(W1〜W6)、rules(BR6.1〜BR6.6、BR7.1)、Refined Mockups。`conductor` は、1回で終わるコマンドで、ログの集約、メトリクスの収集、分散トレース、アラート、ダッシュボード、SLI/SLO の追跡の仕組みを、持たない。観測の手段は、**標準出力・標準エラーの内容と、終了コード、`watch` の表示**だけで、これらを、既存のスケジューラのログが拾う。各行は、inception の NFR の ID に枝番を付けた ID を持つ。
+上流: requirements(FR2.6、NFR6)、functional-spec(W1〜W6)、rules(BR6.1〜BR6.6、BR7.1)、Refined Mockups。`conductor` は、1回で終わるコマンドで、ログの集約、メトリクスの収集、分散トレース、アラート、ダッシュボード、SLI/SLO の追跡の仕組みを、持たない。観測の手段は、**標準出力・標準エラーの内容と、終了コード、`watch` の表示**だけで、これらを、既存のスケジューラのログが拾う。各行は、inception の NFR6(表示の判別性)の枝番である。NFR6.2〜NFR6.4 は、要件 FR2.6(`conductor` 自身の表示)と、NFR4(早期検知)に由来する(出典欄で示す)。
 
 ## 要件
 

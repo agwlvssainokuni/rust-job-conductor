@@ -1,6 +1,6 @@
 # Reliability Requirements(u3-cli)
 
-上流: requirements(FR2、FR3、FR4、NFR1〜NFR4)、functional-spec、rules(BR2.x〜BR5.x)、u1-core・u2-runtime の保証(at-least-once、原子的な書き込み)。`conductor` は、1回で終わるコマンドで、常駐せず、可用性(SLA)、フェイルオーバー、複製、バックアップ、サーキットブレーカーの対象ではない。ここでは、**1回の実行が、どう失敗し、何が保証されるか**を、要件として定める。各行は、inception の NFR の ID に枝番を付けた ID を持つ。
+上流: requirements(FR2、FR3、FR4、NFR1〜NFR4)、functional-spec、rules(BR2.x〜BR5.x)、u1-core・u2-runtime の保証(at-least-once、原子的な書き込み)。`conductor` は、1回で終わるコマンドで、常駐せず、可用性(SLA)、フェイルオーバー、複製、バックアップ、サーキットブレーカーの対象ではない。ここでは、**1回の実行が、どう失敗し、何が保証されるか**を、要件として定める。inception に、信頼性の NFR は無い。ここでは、要件(FR2.9、FR3.2、FR4.1、FR6.1 など)と、決めてある契約に由来する要件を、最も近い NFR(NFR2: 単一バイナリ、NFR3: 3つの OS で同じ)の枝番として置く。**出典は、各行の出典欄で示す**。
 
 ## 要件
 
