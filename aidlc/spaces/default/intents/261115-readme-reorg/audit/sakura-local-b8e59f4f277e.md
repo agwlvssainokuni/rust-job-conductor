@@ -774,3 +774,117 @@
 **Agent ID**: a37445116bd95124d
 
 ---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-15T15:22:57Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: code-generation
+**Next Stage**: build-and-test
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/code-generation-plan.md=not-run; required-sections@aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/unit-test-instructions.md=not-run; required-sections@aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/code-summary.md=not-run; required-sections@aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/traceability.json=not-run; traceability@aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/traceability.json=not-run
+**Open Decisions**: 0
+**Source Work**: found in a source change since the stage started
+**Question Id**: 32c217e2
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:4f31f2395a99be9205f6d509b8a53d32fa249604f221a1bc58ba5fa6cb014192
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T15:23:23Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: ee3aa8d6
+**Open Questions**: 32c217e2
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"82be48a38942da7e"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T15:23:24Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Code Generation is ready for your review. It produced code-generation-plan.md, unit-test-instructions.md, code-summary.md and traceability.json, in aidlc/spaces/default/intents/261115-readme-reorg/construction/code-generation/.\nThe build changed README.md and demo/README.md, files you had before this work started (your request names them).\n\n結果: README の節を使う順に並べ直し、目次とクイックスタート、ソースからのビルドの手順を足し、run ID の規則を「ステートファイルの場所」の 1 つの小節にまとめ、表のセルを 1 文に短くし、版の注記を揃えました(3 つのコミット)。見つかった誤り 6 項目(展開のディレクトリ、シグナルの validate、reset --all の注意、Intel macOS、(68) の書き方、demo の場面 0)も直しました。demo/README.md はスクリプトと突き合わせ、場面 0、環境変数の既定値を直しました。\n\n確認: docs-check の 7 語句が残っている、目次を含む 17 個のリンクが切れていない、run ID の規則が 1 か所にある、整理前のバッククォートの語句 110 個がすべて残っている、変更は README と demo/README.md だけ、テスト 666 件成功。クイックスタートは実際に実行して、出力と終了コードをそのまま載せています。ソースからのビルドも実際に実行しました(cargo install は、計画に --bin conductor を足しました: 足さないとテスト専用の補助の実行ファイルまで入るため)。実際の v0.6.0 のアーカイブで展開の構造も確かめました。未確認: Windows のクイックスタートと、Linux・Intel macOS・Windows のアーカイブの実物の確認(記述は release.yml から)。次は Build and Test です。\n\nApprove Code Generation?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-15T15:23:33Z
+**Event**: GATE_APPROVED
+**Stage**: code-generation
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: ee3aa8d6
+**Brief Digest**: none
+**Source Work**: found in a source change since the stage started
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-15T15:23:33Z
+**Event**: STAGE_COMPLETED
+**Stage**: code-generation
+**Validation Basis**: {"graphContract":"sha256:ac0ef7ae03ae2fcfab9e2a94500d84c4fe00d00384d1f8dcff92c96b2e1f50de","inputs":[{"artifact":"requirements","contentHash":"sha256:b2546a5e5f9d30d2e7a2c01f009fa8cb8a7288673981506e3ce3d4fcd288f5a1","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:5e086d674b92ffc48e1e55e4336c29b2750fb59f935c0c09e7378c4c0b2fcf48"},{"artifact":"unit-of-work","contentHash":"sha256:d5239ce715434ed09dfa207de9ff1cb22bb44ac9b24167a5face737f174e6f0f","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:df7116b42347da8872752cc47100b097e6f56de390f7183faad62daeeb4ca8ef"}],"outputs":[{"artifact":"code-generation-plan","contentHash":"sha256:5b9515cc56fe3ea593b8dd7f2934e968ea5752513067677a7013591b6f146267","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:68ed835086e6e3e642c45422f2323f1beec49d2eb9ded14e23d8e43db0ac390d"},{"artifact":"code-summary","contentHash":"sha256:e556643a5fd04cdebe8a25dff1161b629709e8beeeace8cfccb51e2e218b6187","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:7c345e33b92fd0968eca8c0e35c503dcf996fb5ea113d07c1c0d606363603ae8"},{"artifact":"traceability","contentHash":"sha256:671f5766e364aac2b276f28fafcc4cdf6d643d6501533a918abd8dfb69167533","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:725ff666ff9d9d3d2072da41329666bbeb7012d7d1bf7fe31e0b6953a6c52fac"},{"artifact":"unit-test-instructions","contentHash":"sha256:f240ff82957b49f03bbfa15c0150f489be24d2461825bf98b7298ef87a26ff9e","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:f19bf2de04def8fd0fd3adefd8b6bb033f0d6576d73c495dcded46cd1e12259f"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Code Generation approved by gate
+**Tokens In**: 86
+**Tokens Out**: 55078
+**Cache Read**: 11129296
+**Cache Write**: 171712
+**Cost USD**: 2.13
+**By Model**: sonnet-5-5=2.13
+**By Agent**: main=0.99; aidlc-developer-agent=1.14
+**Tokens By Model**: sonnet-5-5=86/55.1k/11.1M/171.7k
+**Tokens By Agent**: main=20/14.9k/7.4M/24.7k; aidlc-developer-agent=66/40.2k/3.7M/147k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T15:23:33Z
+**Event**: STAGE_STARTED
+**Stage**: build-and-test
+**Agent**: aidlc-quality-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T15:24:30Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-readme-reorg/construction/build-and-test/build-instructions.md
+**Context**: construction > build-and-test > build-instructions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T15:24:38Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-readme-reorg/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T15:24:51Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-readme-reorg/construction/build-and-test/build-and-test-summary.md
+**Context**: construction > build-and-test > build-and-test-summary.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T15:24:53Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-readme-reorg/construction/build-and-test/cross-unit-traceability.md
+**Context**: construction > build-and-test > cross-unit-traceability.md
+
+---
