@@ -1,3 +1,17 @@
+// Copyright 2026 agwlvssainokuni
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! ステートへの記録(Recorder。BR2.8)。入出力のない純粋な関数。
 //!
 //! 呼び出し側(Cli)が、結果を受け取り、記録して、`write_state` を呼ぶ。`end_reached` は、

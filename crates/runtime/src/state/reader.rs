@@ -1,3 +1,17 @@
+// Copyright 2026 agwlvssainokuni
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! ステートの読み込み(StateReader。BR2.1〜BR2.3、NFR4.3、NFR4.5、NFR4.7)。
 //!
 //! 開いたハンドルの大きさ確認 → 上限 + 1 バイトまでの読み取り → 長さ 0 は空 → UTF-8 →

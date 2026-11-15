@@ -1,3 +1,17 @@
+// Copyright 2026 agwlvssainokuni
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! NFR1.1: 起動前の処理の時間(ジョブ 10 個の定義)。基準(p95 20ms。仮)を超えても、失敗にしない。
 //! 測定値は標準エラーに出し、`GITHUB_STEP_SUMMARY` があれば、そこにも書き出す。
 

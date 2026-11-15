@@ -1,3 +1,17 @@
+// Copyright 2026 agwlvssainokuni
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! 流れの共通部分(Orchestrator の土台)。
 //!
 //! `run` と `pipeline` に共通の、実行の前の検査(W2 の 1〜5。BR2.1、BR2.2、BR3.1)と、

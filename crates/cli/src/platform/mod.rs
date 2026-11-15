@@ -1,3 +1,17 @@
+// Copyright 2026 agwlvssainokuni
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! OS 固有のコード(NFR3.1)。`cfg(unix)` / `cfg(windows)` は、このモジュールの中だけに置く。
 //!
 //! - シグナルの監視(SignalWatcher。NFR4.3): 専用のスレッドを 1 つ起動し、受け取った最初の
