@@ -73,10 +73,10 @@ cargo build --release --locked --bin conductor
 ## 使い方
 
 ```text
-conductor run [-v] [--config <パス>] <ジョブID>
-conductor pipeline [-v] [--config <パス>] <パイプライン名>
-conductor watch [--config <パス>]
-conductor reset [--config <パス>]
+conductor run [-v] [--config <パス>] [--run-id <ID>] <ジョブID>
+conductor pipeline [-v] [--config <パス>] [--run-id <ID>] <パイプライン名>
+conductor watch [--config <パス>] [--run-id <ID>]
+conductor reset [--config <パス>] [--run-id <ID> | --all]
 conductor validate [-v] [--config <パス>] [<パイプライン名>]
 conductor convert <ファイル> --to <yaml|toml>
 conductor --help | --version
@@ -86,8 +86,8 @@ conductor --help | --version
 |----------|------|
 | `run <ジョブID>` | ジョブ 1 つを実行する(個別実行)。起動前の判断(実行・スキップ・拒否)に従う |
 | `pipeline <パイプライン名>` | 定義の記述順に、ジョブを 1 つずつ実行する(一括実行)。エラーで止まる |
-| `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する |
-| `reset` | ステートを消す(最初からやり直す。壊れたステートの回復にも使う) |
+| `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する。run ID があるときは、パイプライン名の次の行に `Run ID: <ID>` を表示する |
+| `reset` | ステートを消す(最初からやり直す。壊れたステートの回復にも使う)。`--run-id` で、その run ID のステートだけを消す。`--all` で、その定義のステートを、run ID の有無によらず、すべて消す |
 | `validate [<パイプライン名>]` | 定義ファイルを検証し、全ジョブの `command` を検査する。ジョブは実行せず、ステートを読まず、書かず、消さない。パイプライン名を書くと、定義の名前と照合する(省略すると照合しない)。成功は何も表示しない |
 | `convert <ファイル> --to <形式>` | 定義ファイルを、YAML と TOML のあいだで変換し、結果を標準出力に書く |
 
@@ -95,6 +95,8 @@ conductor --help | --version
 |------------|------|
 | `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`) |
 | `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階)。`validate` では、検査が通ったときに 1 行(ジョブの数)だけ、標準エラーに表示する |
+| `--run-id <ID>`(`--run-id=<ID>`) | ステートを分ける run ID(`run`・`pipeline`・`watch`・`reset` だけ。`validate`・`convert` では使えない)。省略時は、環境変数から読む(「run ID でステートを分ける」を参照)。空の値(`--run-id ""`)は、環境変数があっても、run ID なしに固定する |
+| `--all` | `reset` だけ。その定義のステートを、run ID の有無によらず、すべて消す。`--run-id` とは、一緒に使えない(68) |
 | `--to <yaml\|toml>` | `convert` の変換後の形式(必須) |
 | `-h`、`--help` | 使い方を表示する |
 | `-V`、`--version` | 版を表示する |
@@ -110,6 +112,8 @@ conductor run -v extract               # 結果と遷移を表示しながら
 conductor pipeline nightly --config /etc/batch/conductor.toml
 conductor watch                        # 実行の状況を見る
 conductor reset                        # 最初からやり直す
+conductor pipeline nightly --run-id "$GITHUB_RUN_ID"   # 実行単位(run ID)ごとに、ステートを分ける
+conductor reset --all                  # その定義のステートを、すべて消す
 conductor validate                     # 定義を実行せずに検査する(成功は何も出さない)
 conductor validate -v nightly --config /etc/batch/conductor.toml   # 名前も照合し、結果を 1 行表示
 conductor convert conductor.yaml --to toml > conductor.toml
@@ -127,6 +131,7 @@ format_version = 1
 [pipeline]
 name = "nightly"
 description = "夜間バッチ"
+run_id_env = "GITHUB_RUN_ID"   # 省略可。run ID を読む環境変数の名前(省略すると CONDUCTOR_RUN_ID)
 
 [[job]]
 id = "extract"
@@ -159,6 +164,7 @@ command = "python scripts/notify.py --msg='Warning in extraction'"
 |------|------|
 | `format_version` | 書式の版。`1` だけ(必須) |
 | `[pipeline]` の `name` | パイプラインの名前(必須。`conductor pipeline <名前>` で照合する)。`description` は省略可 |
+| `[pipeline]` の `run_id_env` | 省略可。run ID を読む環境変数の名前(文字列)。`A-Za-z_` で始まり、`A-Za-z0-9_` が続く 1 文字以上。省略すると `CONDUCTOR_RUN_ID`。文字列でない、または形が違うと、定義の誤り(64。`validate` も同じ) |
 | `[[job]]` | ジョブ。**書いた順**に実行する。1 つ以上 |
 | `id` | ジョブID(必須。空でなく、定義の中で重複せず、`@` で始めない) |
 | `command` | 実行するコマンド(必須)。文字列、または文字列の配列(下の「command の書き方」) |
@@ -196,11 +202,11 @@ command = ["python", "scripts/notify.py", "--msg=Warning in extraction", ""]
 | 0 | 成功、警告、スキップ(実行済み・遷移・`@end` によるスキップ)、`watch`・`reset`・`validate`・`convert` の成功 |
 | ジョブの値 | エラーになったジョブの終了コードを、そのまま(0〜255) |
 | 1 | 成功コードに含まれない `0` で終わったジョブ(`success_exit_codes` に `0` がない)。原因を標準エラーに表示する |
-| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
-| 65 | ステートの誤り(読めない・壊れている・版の不一致・定義との食い違い・書き込みや初期化の失敗)、`watch` の標準出力に書けない |
+| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り・`run_id_env` の型や名前の形の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
+| 65 | ステートの誤り(読めない・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みや初期化の失敗)、`watch` の標準出力に書けない |
 | 66 | 拒否(順序外。前のジョブが終わっていない) |
 | 67 | 変換の誤り、`convert` の標準出力に書けない |
-| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む) |
+| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む)。run ID の値の誤り(`--run-id` の値、または環境変数の値が、規則に合わない)、`validate`・`convert` への `--run-id`、`reset` 以外への `--all`、`--all` と `--run-id` の併用も、この値 |
 | 70 | 内部の誤り(パニック、シグナルの準備の失敗) |
 | 127 | ジョブを起動できなかった |
 | 128 + 番号 | ジョブがシグナルで終了した、または、`conductor` が中断された(例: SIGTERM = 143、Ctrl+C = 130) |
@@ -216,7 +222,19 @@ command = ["python", "scripts/notify.py", "--msg=Warning in extraction", ""]
 - 最後のジョブの完了、`@end`、スキップでの完了で、ステートは消されます(次の実行は、先頭から始まります)。
 - エラーで止まったときは、エラーのジョブが、再開位置として残ります。同じコマンドを、もう一度実行すると、成功済みのジョブを飛ばして、エラーのジョブから再開します。**自動の再試行はしません**。
 - ステートが読めない・壊れている・定義と食い違っているときは、65 で終わります。`conductor reset` で消してください(`reset` は、ステートを読まず、検査もしないため、どんな状態でも動きます)。
-- 同じ定義に、複数の `conductor` を同時に動かしても、排他制御はしません(後に書いた方が、勝ちます)。同時の実行は、避けてください。
+- 同じ定義に、複数の `conductor` を同時に動かしても、排他制御はしません(後に書いた方が、勝ちます)。同時の実行は、避けてください。同じ定義を別々の実行単位で並行して使うときは、次の run ID で、ステートを分けてください。
+
+### run ID でステートを分ける(v0.5.0 以降)
+
+run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state`(例: `conductor.toml.12345.state`)に分かれ、run ID ごとに独立します。run ID を与えないときは、これまでどおり `<定義ファイル名>.state` で、形式もメッセージも変わりません。同じ run ID で呼び直すと、止まったジョブから再開します(完了した run のステートは、これまでどおり消えます)。
+
+- **与え方**: `--run-id <ID>`、または環境変数。環境変数の名前は、定義ファイルの `[pipeline]` の `run_id_env` で決めます(省略すると `CONDUCTOR_RUN_ID`)。`--run-id` があれば、環境変数は見ません。環境変数が未定義または空なら、run ID なしです。`--run-id ""` は、環境変数があっても、run ID なしに固定します。
+- **値の規則**: 文字は `A-Za-z0-9._-`、1〜64 文字、先頭が `.` でないこと(`..` も不可)。規則に合わない値は、オプションでも環境変数でも、使い方の誤り(68)です。誤りの文に、値は含めません。
+- **中身の `run_id`**: run ID つきのステートには、キー `run_id` を書きます(run ID なしのステートには書きません)。ファイル名の run ID と中身の `run_id` が食い違うと(たとえば、別の run ID のファイルをコピーしたとき)、壊れたステート(65)として扱います。`conductor reset --run-id <ID>` で消してください。
+- **`watch`・`reset`**: `--run-id` があれば、定義ファイルを読みません。なければ、定義から `run_id_env` だけを、ゆるく読みます(定義が壊れている、キーがない、型や形が違う、のときは `CONDUCTOR_RUN_ID`。ほかの誤りは無視するので、壊れた定義でも `reset` は動きます)。
+- **`reset --all`**: 定義ファイルと同じディレクトリの、`<定義ファイル名>.state` と、`<定義ファイル名>.<run-id>.state` のうち、名前の `<run-id>` が規則に合い、中身の `run_id` がその値と一致するものを、すべて消します。一時ファイル(`.<ステート名>.tmp.*`)、別の定義のステート(中身に `run_id` がない、または値が違うもの)、ディレクトリ、シンボリックリンクは、消しません。読めない・壊れているファイルは、消さずに、ファイル名を標準エラーに警告します(`conductor reset --run-id <ID>` で個別に消せます。終了コードは 0)。消すものがなければ、何も出力せず 0 で終わります。ステートは、自動では消えません(古い run のステートは、`reset --all` で片づけてください)。
+- **大文字小文字を区別しないファイルシステム**(macOS の既定、Windows)では、`A` と `a` は同じファイルになります。run ID は、大文字小文字だけで区別しないでください(食い違いは、中身の `run_id` との照合で、壊れたステート(65)として検出されます)。
+- 同じ run ID で、`conductor` を同時に動かすことは、避けてください(排他制御はしません)。
 
 ## 保証の範囲(at-least-once)
 
