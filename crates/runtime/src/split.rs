@@ -17,6 +17,8 @@
 //! 3 つの OS で同じ規則で、文字を 1 つずつ読む状態機械(再帰なし)で実装する。
 //! 変数・`*`・`|`・`;`・`&&`・`>` などは解釈しない(普通の文字として引数に入る)。
 
+use conductor_core::Command;
+
 use crate::error::{CommandError, CommandErrorKind};
 use crate::types::CommandLine;
 
@@ -126,13 +128,34 @@ pub(crate) fn split(command: &str) -> Result<CommandLine, CommandError> {
     }
 }
 
-/// command の文字列を、起動せずに検査する(契約 C3 の `check_command`。BR1.1、NFR4.2)。
+/// `command` を、プログラムと引数の列にする。
 ///
-/// 分けられるなら `Ok`(分けた結果を返す)、閉じていない引用符や空の command は
-/// [`CommandError`]。呼び出し側(Cli)は、実行の前に全ジョブの command を検査して、定義の誤りとして
-/// 報告する。
-pub fn check_command(command: &str) -> Result<CommandLine, CommandError> {
-    split(command)
+/// - [`Command::Line`] は、[`split`] で分ける。
+/// - [`Command::Argv`] は、要素をそのまま引数の列にする(分割も展開もしない)。先頭の要素が空の
+///   とき(定義の検査で防ぐが、二重の検査として)と、要素がないときは [`CommandErrorKind::Empty`]。
+pub(crate) fn command_line(command: &Command) -> Result<CommandLine, CommandError> {
+    match command {
+        Command::Line(line) => split(line),
+        Command::Argv(argv) => {
+            let mut iter = argv.iter();
+            match iter.next() {
+                Some(program) if !program.trim().is_empty() => Ok(CommandLine {
+                    program: program.clone(),
+                    args: iter.cloned().collect(),
+                }),
+                _ => Err(CommandError::new(CommandErrorKind::Empty)),
+            }
+        }
+    }
+}
+
+/// command を、起動せずに検査する(契約 C3 の `check_command`。BR1.1、NFR4.2)。
+///
+/// 文字列は、分けられるなら `Ok`(分けた結果を返す)、閉じていない引用符や空の command は
+/// [`CommandError`]。配列は、要素をそのまま返す(先頭が空なら [`CommandError`])。呼び出し側(Cli)は、
+/// 実行の前に全ジョブの command を検査して、定義の誤りとして報告する。
+pub fn check_command(command: &Command) -> Result<CommandLine, CommandError> {
+    command_line(command)
 }
 
 #[cfg(test)]
@@ -234,10 +257,32 @@ mod tests {
 
     #[test]
     fn check_command_は分けた結果を返す() {
-        let line = check_command("a 'b c'").expect("検査を通る");
+        let line = check_command(&"a 'b c'".into()).expect("検査を通る");
         assert_eq!(line.program, "a");
         assert_eq!(line.args, ["b c"]);
-        assert!(check_command("a 'b").is_err());
+        assert!(check_command(&"a 'b".into()).is_err());
+    }
+
+    #[test]
+    fn 配列の_command_は要素をそのまま引数にする() {
+        let argv = Command::Argv(vec![
+            "my prog".into(),
+            "a b".into(),
+            "'q'".into(),
+            "$HOME".into(),
+            String::new(),
+        ]);
+        let line = check_command(&argv).expect("検査を通る");
+        assert_eq!(line.program, "my prog");
+        assert_eq!(line.args, ["a b", "'q'", "$HOME", ""]);
+    }
+
+    #[test]
+    fn 配列の先頭が空または要素がなければ_empty() {
+        for argv in [vec![], vec![String::new()], vec!["  ".into(), "x".into()]] {
+            let e = check_command(&Command::Argv(argv)).expect_err("空");
+            assert_eq!(e.kind, CommandErrorKind::Empty);
+        }
     }
 
     #[test]

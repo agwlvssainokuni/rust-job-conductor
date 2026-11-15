@@ -40,6 +40,15 @@ command = "echo a"
 success_exit_codes = [2]
 "#;
 
+/// `command` が配列のジョブ 1 つだけの定義(先頭の要素は、存在しないプログラム)。
+const ARRAY_JOB: &str = r#"format_version = 1
+[pipeline]
+name = "p"
+[[job]]
+id = "a"
+command = ["conductor-array-prog", "x y"]
+"#;
+
 fn status_of(h: &Harness, id: &str) -> JobStatus {
     h.state()
         .expect("ステートがある")
@@ -455,6 +464,18 @@ fn 起動できないときは_127_で_cannot_start_command() {
         "conductor: error: job 'a': cannot start command 'echo'\n"
     );
     assert_eq!(status_of(&h, "a"), JobStatus::Error);
+}
+
+#[test]
+fn 配列の_command_の起動失敗は先頭の要素の名前を表示する() {
+    let mut h = Harness::new(ARRAY_JOB);
+    h.runtime.script("a", &[Exec::StartFailure]);
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 127);
+    assert_eq!(
+        out.err, "conductor: error: job 'a': cannot start command 'conductor-array-prog'\n",
+        "引数 `x y` は表示に出ない"
+    );
 }
 
 #[test]

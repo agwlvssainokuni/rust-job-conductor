@@ -27,7 +27,7 @@ use std::sync::Arc;
 
 use conductor_converter::{ConversionError, ConversionRequest, TargetFormat};
 use conductor_core::{
-    DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState,
+    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState,
 };
 use conductor_runtime::{CommandError, CommandLine, Durability, InterruptSignal, StateError};
 
@@ -79,7 +79,7 @@ pub trait Runtime {
         expected_pipeline_name: Option<&str>,
     ) -> Result<PipelineDefinition, Vec<DefinitionError>>;
     /// command を、起動せずに検査する(`check_command`)。
-    fn check_command(&self, command: &str) -> Result<CommandLine, CommandError>;
+    fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError>;
     /// ジョブを起動し、終了を待つ(`run_job`)。
     fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution;
     /// ステートを読む(`read_state`。`None` は空)。
@@ -118,7 +118,7 @@ impl Runtime for SystemRuntime {
         conductor_core::load_definition(Some(path), expected_pipeline_name)
     }
 
-    fn check_command(&self, command: &str) -> Result<CommandLine, CommandError> {
+    fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError> {
         conductor_runtime::check_command(command)
     }
 

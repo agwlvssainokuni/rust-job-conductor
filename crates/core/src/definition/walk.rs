@@ -25,7 +25,9 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
-use crate::types::{JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget};
+use crate::types::{
+    Command, JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget,
+};
 
 const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "job"];
 const PIPELINE_KEYS: &[&str] = &["name", "description"];
@@ -48,7 +50,7 @@ struct RawTransition {
 
 struct RawJob {
     id: Option<(String, usize)>,
-    command: Option<String>,
+    command: Option<Command>,
     warning: Option<(Vec<i32>, usize)>,
     success: Option<(Vec<i32>, usize)>,
     transitions: Vec<RawTransition>,
@@ -137,6 +139,64 @@ impl<'a> Walker<'a> {
             }
         }
         ok.then_some((codes, key_offset))
+    }
+
+    /// `command` を取り出す。文字列(`Line`)または文字列の配列(`Argv`)。
+    ///
+    /// 配列は、空でなく、先頭の要素が空・空白だけでないこと。2 番目以降の空の文字列は有効。
+    /// 誤りのメッセージに、入力の値を入れない。
+    fn command(&mut self, table: &DeTable<'_>, parent: usize) -> Option<Command> {
+        let Some(value) = table.get("command") else {
+            self.type_error(parent, "必須の値 `command` がありません");
+            return None;
+        };
+        let start = value.span().start;
+        match value.get_ref() {
+            DeValue::String(s) => {
+                if s.trim().is_empty() {
+                    self.push(start, Kind::EmptyField, "`command` が空です");
+                    None
+                } else {
+                    Some(Command::Line(s.to_string()))
+                }
+            }
+            DeValue::Array(items) => {
+                if items.is_empty() {
+                    self.push(start, Kind::EmptyField, "`command` の配列が空です");
+                    return None;
+                }
+                let mut argv = Vec::with_capacity(items.len());
+                let mut ok = true;
+                for item in items.iter() {
+                    match item.get_ref() {
+                        DeValue::String(s) => argv.push(s.to_string()),
+                        _ => {
+                            ok = false;
+                            self.type_error(
+                                item.span().start,
+                                "`command` の配列の要素は、文字列で書きます",
+                            );
+                        }
+                    }
+                }
+                if !ok {
+                    return None;
+                }
+                if argv[0].trim().is_empty() {
+                    self.push(
+                        items[0].span().start,
+                        Kind::EmptyField,
+                        "`command` の配列の先頭の要素が空です",
+                    );
+                    return None;
+                }
+                Some(Command::Argv(argv))
+            }
+            _ => {
+                self.type_error(start, "`command` は文字列、または文字列の配列で書きます");
+                None
+            }
+        }
     }
 
     fn pipeline_section(
@@ -251,14 +311,7 @@ impl<'a> Walker<'a> {
         let errors_before = self.errors.len();
         self.check_keys(table, JOB_KEYS);
         raw.id = self.string(table, "id", start, true);
-        let command = self.string(table, "command", start, true);
-        if let Some((c, offset)) = command {
-            if c.trim().is_empty() {
-                self.push(offset, Kind::EmptyField, "`command` が空です");
-            } else {
-                raw.command = Some(c);
-            }
-        }
+        raw.command = self.command(table, start);
         raw.warning = self.exit_codes(table, "warning_exit_codes");
         raw.success = self.exit_codes(table, "success_exit_codes");
         raw.transitions = self.transitions(table);

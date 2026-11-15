@@ -78,6 +78,73 @@ fn definition_like_yaml_roundtrips_through_toml() {
     assert!(!toml_text.contains("<<") && !toml_text.contains('*') && !toml_text.contains('&'));
 }
 
+/// 文字列と配列の `command` を持つ定義(配列には、空白・引用符・`$`・空の要素を含む)。
+const ARRAY_COMMAND_TOML: &str = r#"format_version = 1
+
+[pipeline]
+name = "p"
+
+[[job]]
+id = "a"
+command = "echo a"
+
+[[job]]
+id = "b"
+command = ["my prog", "a b", "'q'", "$HOME", ""]
+"#;
+
+const ARRAY_COMMAND_YAML: &str = r#"format_version: 1
+pipeline:
+  name: p
+job:
+  - id: a
+    command: echo a
+  - id: b
+    command:
+      - my prog
+      - a b
+      - "'q'"
+      - $HOME
+      - ""
+"#;
+
+fn command_of(tree: &Value, index: usize) -> Value {
+    let Value::Map(top) = tree else { panic!("map") };
+    let Value::Array(jobs) = &top.iter().find(|(k, _)| k == "job").expect("job").1 else {
+        panic!("array")
+    };
+    let Value::Map(job) = &jobs[index] else {
+        panic!("map")
+    };
+    job.iter()
+        .find(|(k, _)| k == "command")
+        .expect("command")
+        .1
+        .clone()
+}
+
+#[test]
+fn array_command_roundtrips_toml_yaml_toml() {
+    let yaml_text = assert_roundtrip(ARRAY_COMMAND_TOML, TargetFormat::Toml);
+    let tree = read(&yaml_text, TargetFormat::Yaml);
+    assert_eq!(command_of(&tree, 0), s("echo a"));
+    assert_eq!(
+        command_of(&tree, 1),
+        a(vec![s("my prog"), s("a b"), s("'q'"), s("$HOME"), s("")])
+    );
+}
+
+#[test]
+fn array_command_roundtrips_yaml_toml_yaml() {
+    let toml_text = assert_roundtrip(ARRAY_COMMAND_YAML, TargetFormat::Yaml);
+    let tree = read(&toml_text, TargetFormat::Toml);
+    assert_eq!(command_of(&tree, 0), s("echo a"));
+    assert_eq!(
+        command_of(&tree, 1),
+        a(vec![s("my prog"), s("a b"), s("'q'"), s("$HOME"), s("")])
+    );
+}
+
 #[test]
 fn merged_values_are_expanded_with_priority() {
     let tree = read(PIPELINE_YAML, TargetFormat::Yaml);

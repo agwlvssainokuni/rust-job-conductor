@@ -368,3 +368,61 @@ fn キー名は_64_文字で切られて表示される() {
     assert!(errs[0].reason.contains(&"k".repeat(64)));
     assert!(!errs[0].reason.contains(&"k".repeat(65)));
 }
+
+// ---- command の配列(FR1.3、FR1.4、FR1.5、NFR2) ----
+
+/// `command` の値だけを差し替えた、1 ジョブの定義。`command` は 6 行目。
+fn with_command(value: &str) -> String {
+    with_header(&format!("[[job]]\nid = \"a\"\ncommand = {value}\n"))
+}
+
+#[test]
+fn fr1_3_command_の型の誤り() {
+    for value in ["5", "true", "{ a = 1 }", "[\"a\", 5]", "[[\"a\"]]"] {
+        assert_eq!(
+            run(&with_command(value)),
+            vec![(K::TypeMismatch, Some(6))],
+            "{value}"
+        );
+    }
+}
+
+#[test]
+fn fr1_4_空の配列と先頭の要素の誤り() {
+    for value in ["[]", "[\"\"]", "[\"  \", \"x\"]"] {
+        assert_eq!(
+            run(&with_command(value)),
+            vec![(K::EmptyField, Some(6))],
+            "{value}"
+        );
+    }
+    // 受理: 2 番目以降の空の文字列は有効
+    assert!(run(&with_command("[\"echo\", \"\"]")).is_empty());
+}
+
+#[test]
+fn fr1_5_文字列の_command_の空は従来どおり誤り() {
+    for value in ["\"\"", "\"   \""] {
+        assert_eq!(
+            run(&with_command(value)),
+            vec![(K::EmptyField, Some(6))],
+            "{value}"
+        );
+    }
+}
+
+#[test]
+fn nfr2_command_の誤りのメッセージに入力の値が出ない() {
+    let secret = "SENTINEL_CMD_7b1e";
+    for value in [
+        format!("[\"{secret}\", 5]"),
+        format!("{{ {secret} = 1 }}"),
+        format!("[\"  \", \"{secret}\"]"),
+    ] {
+        let errs = parse_definition(&with_command(&value), "t.toml", None).unwrap_err();
+        assert!(!errs.is_empty());
+        for e in errs {
+            assert!(!e.to_string().contains(secret), "{value}: {e}");
+        }
+    }
+}

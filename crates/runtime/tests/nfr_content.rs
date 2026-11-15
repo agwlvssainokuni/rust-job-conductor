@@ -85,12 +85,12 @@ fn 全_kind_のエラーの表示に入力の値が現れない() {
 #[test]
 fn コマンドエラーの表示に入力の値が現れない() {
     for input in [format!("{SECRET} 'unclosed"), format!("\"{SECRET}")] {
-        let e = check_command(&input).expect_err("分けられない");
+        let e = check_command(&input.into()).expect_err("分けられない");
         assert_eq!(e.kind, CommandErrorKind::UnclosedQuote);
         assert!(!e.to_string().contains(SECRET));
         assert!(!format!("{e:?}").contains(SECRET));
     }
-    let e = check_command("   ").expect_err("空");
+    let e = check_command(&"   ".into()).expect_err("空");
     assert_eq!(e.kind, CommandErrorKind::Empty);
 }
 

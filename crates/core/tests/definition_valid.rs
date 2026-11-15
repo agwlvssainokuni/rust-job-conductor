@@ -17,7 +17,7 @@
 use std::path::{Path, PathBuf};
 
 use conductor_core::{
-    DefinitionErrorKind, JobDefinition, Transition, TransitionOn, TransitionTarget,
+    Command, DefinitionErrorKind, JobDefinition, Transition, TransitionOn, TransitionTarget,
     load_definition, parse_definition,
 };
 
@@ -46,7 +46,7 @@ fn 正しい定義をファイルから読める() {
     );
 
     let extract: &JobDefinition = &def.jobs[0];
-    assert_eq!(extract.command, "extract --all --since yesterday");
+    assert_eq!(extract.command, "extract --all --since yesterday".into());
     assert!(extract.warning_exit_codes.is_empty());
     assert_eq!(extract.success_exit_codes, None);
     assert_eq!(extract.effective_success_codes(), &[0], "既定の成功コード");
@@ -76,7 +76,7 @@ fn 正しい定義をファイルから読める() {
 fn コマンドの文字列はそのまま保持される() {
     let def = load_definition(Some(&fixture("valid_pipeline.toml")), None).unwrap();
     // 引用符も `$HOME` も、展開や解釈をしない(NFR4.5)。
-    assert_eq!(def.jobs[1].command, "transform \"in dir\" $HOME");
+    assert_eq!(def.jobs[1].command, "transform \"in dir\" $HOME".into());
 }
 
 #[test]
@@ -136,4 +136,20 @@ fn 定義の外の遷移も_next_が_end_なら受理される() {
         [[job]]\nid = \"b\"\ncommand = \"c\"\n";
     let def = parse_definition(text, "m.toml", None).unwrap();
     assert_eq!(def.jobs[0].transitions.len(), 2);
+}
+
+#[test]
+fn fr1_2_配列の_command_は要素のまま保持される() {
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = [\"my prog\", \"a b\", \"$HOME\", \"\"]\n[[job]]\nid = \"b\"\ncommand = \"echo x\"\n";
+    let def = parse_definition(text, "t.toml", None).expect("受理される");
+    assert_eq!(
+        def.jobs[0].command,
+        Command::Argv(vec![
+            "my prog".into(),
+            "a b".into(),
+            "$HOME".into(),
+            String::new()
+        ])
+    );
+    assert_eq!(def.jobs[1].command, Command::Line("echo x".into()));
 }

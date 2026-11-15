@@ -205,13 +205,7 @@ impl Ctx<'_> {
                 .runtime
                 .check_command(&job.command)
                 .map(|line| line.program)
-                .unwrap_or_else(|_| {
-                    job.command
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or_default()
-                        .to_string()
-                });
+                .unwrap_or_else(|_| job.command.program_name().unwrap_or_default().to_string());
             self.show(&DisplayEvent::StartFailure {
                 job_id: &job.id,
                 command: &name,

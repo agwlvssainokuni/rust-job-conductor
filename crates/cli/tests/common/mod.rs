@@ -25,7 +25,7 @@ use std::sync::Arc;
 use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
-    DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState,
+    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState,
 };
 use conductor_runtime::{
     CommandError, CommandLine, Durability, InterruptSignal, StateError, StateErrorKind,
@@ -244,7 +244,7 @@ impl Runtime for ScriptedRuntime {
         self.inner.load_definition(path, expected)
     }
 
-    fn check_command(&self, command: &str) -> Result<CommandLine, CommandError> {
+    fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError> {
         self.inner.check_command(command)
     }
 
@@ -533,7 +533,7 @@ impl Runtime for MemRuntime {
         }
     }
 
-    fn check_command(&self, command: &str) -> Result<CommandLine, CommandError> {
+    fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError> {
         conductor_runtime::check_command(command)
     }
 

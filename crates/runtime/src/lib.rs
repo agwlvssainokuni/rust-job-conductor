@@ -24,7 +24,7 @@
 //! | 関数 | 役割 | 入出力 | 失敗 |
 //! |------|------|--------|------|
 //! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `start_failure` の値) |
-//! | [`check_command`] | command を、起動せずに検査する(BR1.1) | 文字列 → [`CommandLine`] | [`CommandError`] |
+//! | [`check_command`] | command を、起動せずに検査する(BR1.1) | [`Command`](文字列または配列) → [`CommandLine`] | [`CommandError`] |
 //! | [`read_state`] | ステートを読む(W2。BR2.1〜BR2.3) | 定義ファイルのパス → `Option<PipelineState>`(`None` が空) | [`StateError`] |
 //! | [`write_state`] | ステートを、原子的に書く(W3。BR2.4)。耐久性の指定つき | 定義ファイルのパス、ステート、[`Durability`] | [`StateError`](`writeFailed`) |
 //! | [`check_consistency`] | ステートと定義の食い違いを検知する(W4。BR2.5) | ステート、定義 → [`ConsistencyResult`] | なし(純粋) |

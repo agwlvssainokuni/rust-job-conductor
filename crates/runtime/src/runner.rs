@@ -25,7 +25,7 @@ use std::time::Duration;
 use conductor_core::{JobDefinition, JobExecution};
 
 use crate::platform;
-use crate::split::split;
+use crate::split::command_line;
 use crate::types::InterruptSignal;
 
 /// 待ちの間隔の最初と最大(ミリ秒)。
@@ -99,7 +99,7 @@ fn base_execution(job: &JobDefinition) -> JobExecution {
 
 /// ジョブを、シェルを介さずに起動し、終了を待つ(契約 C3 の `run_job`。W1)。
 ///
-/// - command を分ける(BR1.1)。分けられないとき(Cli が、実行の前に検査するため、通常は来ない)は、
+/// - command を分ける(BR1.1。配列は、要素をそのまま引数にする)。分けられないとき(Cli が、実行の前に検査するため、通常は来ない)は、
 ///   `start_failure`(防御)。
 /// - 合図が、起動の前に立っていれば、起動せず、`started = false`、`interrupted = true`(BR1.6)。
 /// - 起動する(UNIX 系は新しいプロセスグループ)。作業ディレクトリ、環境変数、標準入出力は引き継ぐ。
@@ -112,7 +112,7 @@ fn base_execution(job: &JobDefinition) -> JobExecution {
 pub fn run_job(job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
     let mut execution = base_execution(job);
 
-    let line = match split(&job.command) {
+    let line = match command_line(&job.command) {
         Ok(line) => line,
         Err(_) => {
             execution.start_failure = true;

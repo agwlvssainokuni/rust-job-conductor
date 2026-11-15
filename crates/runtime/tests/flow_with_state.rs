@@ -512,7 +512,7 @@ fn ac2_1_6_成功コードに含まれない_0_はエラーでステートにエ
 fn 起動に失敗したジョブはエラーとして記録される() {
     let scene = Scene::new();
     let def = scene.definition(vec![
-        job("a", "conductor-no-such-command-zzz".into()),
+        job("a", "conductor-no-such-command-zzz"),
         scene.job("b", 0),
     ]);
     let d = invoke(&scene, &def, "a", RunMode::Individual).expect("実行できる");

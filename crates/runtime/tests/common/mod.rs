@@ -19,7 +19,7 @@ use std::path::Path;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use conductor_core::JobDefinition;
+use conductor_core::{Command, JobDefinition};
 
 /// プロセスを起動するテストの、時間の上限。
 pub const LIMIT: Duration = Duration::from_secs(30);
@@ -44,10 +44,10 @@ pub fn helper_command(out: &Path, rest: &str) -> String {
     )
 }
 
-pub fn job(id: &str, command: String) -> JobDefinition {
+pub fn job(id: &str, command: impl Into<Command>) -> JobDefinition {
     JobDefinition {
         id: id.to_string(),
-        command,
+        command: command.into(),
         warning_exit_codes: vec![],
         success_exit_codes: None,
         transitions: vec![],

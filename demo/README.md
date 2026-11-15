@@ -21,4 +21,5 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 | 6 | 定義ファイルを YAML に変換する(`convert`) |
 
 - 定義は `conductor.toml`、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(例 `DEMO_LOAD_EXIT=2`)で決まります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒)を変えられます。
+- `notify` の `command` は、文字列の配列(`["sh", "scripts/notify.sh"]`)で書いています。ほかのジョブは、文字列です。
 - Windows では、`sh` のスクリプトは動きません。`conductor.toml` の `command` を、Windows のコマンドに書き換えてください。

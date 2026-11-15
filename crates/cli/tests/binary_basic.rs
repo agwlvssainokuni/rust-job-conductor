@@ -161,6 +161,49 @@ fn pipeline_は最後まで実行して_初期化する() {
     assert!(!project.state_path().exists());
 }
 
+/// 補助の実行ファイルを、`command` の配列で呼ぶジョブ(`run <label> <code>`)。
+fn array_job_block(id: &str, label: &str, code: i32, out: &std::path::Path) -> String {
+    format!(
+        "[[job]]\nid = \"{id}\"\ncommand = ['{}', '--out', '{}', 'run', '{label}', '{code}']\n",
+        helper_path(),
+        out.display()
+    )
+}
+
+#[test]
+fn 配列の_command_は_run_と_pipeline_で文字列と同じ結果になる() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let out_line = dir.path().join("line.txt");
+    let out_argv = dir.path().join("argv.txt");
+
+    // 文字列の定義と配列の定義で、終了コードと表示が同じ。
+    for (form, out) in [("line", &out_line), ("argv", &out_argv)] {
+        let jobs = if form == "line" {
+            vec![
+                job_block("a", &helper_command_out(out, "run a 0"), ""),
+                job_block("b", &helper_command_out(out, "run b 7"), ""),
+            ]
+        } else {
+            vec![
+                array_job_block("a", "a", 0, out),
+                array_job_block("b", "b", 7, out),
+            ]
+        };
+        let project = Project::new(&definition("p", &jobs));
+        let output = project.run(&["run", "a"]);
+        assert_eq!(output.status.code(), Some(0), "{form}");
+        let output = project.run(&["pipeline", "p"]);
+        assert_eq!(output.status.code(), Some(7), "{form}");
+        assert!(
+            output.stdout.is_empty() && output.stderr.is_empty(),
+            "{form}"
+        );
+    }
+    let ran = |p: &std::path::Path| std::fs::read_to_string(p).expect("出力がある");
+    assert_eq!(ran(&out_line), ran(&out_argv));
+    assert_eq!(ran(&out_argv), "ran=a\nran=b\n");
+}
+
 #[test]
 fn convert_は変換結果だけを標準出力に出す() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");

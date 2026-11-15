@@ -17,9 +17,10 @@
 mod common;
 
 use common::*;
+use conductor_core::Command;
 use conductor_runtime::{InterruptSignal, run_job};
 
-fn run(command: String) -> conductor_core::JobExecution {
+fn run(command: impl Into<Command> + Send + 'static) -> conductor_core::JobExecution {
     run_with_limit(
         || {},
         move || run_job(&job("j", command), &InterruptSignal::new()),
@@ -45,6 +46,57 @@ fn 引数のメタ文字がそのまま渡る() {
         .map(|(i, a)| format!("arg[{i}]={a:?}"))
         .collect();
     assert_eq!(lines(&out), want);
+}
+
+#[test]
+fn 配列の_command_の要素は分割も展開もされずにそのまま渡る() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let out = dir.path().join("out.txt");
+    let expected = [
+        "a b",
+        "'q'",
+        "\"d\"",
+        "$HOME",
+        "a;b",
+        "*",
+        "",
+        "  lead and trail  ",
+    ];
+    let mut argv: Vec<String> = vec![
+        helper_path().to_string(),
+        "--out".into(),
+        out.display().to_string(),
+        "echo".into(),
+    ];
+    argv.extend(expected.iter().map(|a| a.to_string()));
+    let e = run(Command::Argv(argv));
+    assert!(e.started && !e.start_failure && !e.interrupted);
+    assert_eq!(e.exit_code, Some(0));
+    let want: Vec<String> = expected
+        .iter()
+        .enumerate()
+        .map(|(i, a)| format!("arg[{i}]={a:?}"))
+        .collect();
+    assert_eq!(lines(&out), want);
+}
+
+#[test]
+fn 配列の_command_の先頭が空なら起動失敗() {
+    for argv in [vec![String::new()], vec!["  ".into(), "x".into()], vec![]] {
+        let e = run(Command::Argv(argv));
+        assert!(e.started && e.start_failure && !e.interrupted);
+        assert_eq!((e.exit_code, e.terminated_by_signal), (None, None));
+    }
+}
+
+#[test]
+fn 配列の_command_で存在しないプログラムは起動失敗() {
+    let e = run(Command::Argv(vec![
+        "conductor-no-such-command-zzz".into(),
+        "--flag".into(),
+    ]));
+    assert!(e.started && e.start_failure);
+    assert_eq!((e.exit_code, e.terminated_by_signal), (None, None));
 }
 
 #[test]
@@ -179,6 +231,26 @@ fn cmd_への危険な引数は注入にならない() {
         marker.display()
     );
     let e = run(command);
+    assert!(e.started, "{e:?}");
+    assert!(
+        !marker.exists(),
+        "引数のメタ文字がコマンドとして実行された: {e:?}"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn cmd_への配列の危険な引数は注入にならない() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let script = dir.path().join("echo-args.cmd");
+    std::fs::write(&script, "@echo off\r\nexit /b 0\r\n").expect("書ける");
+    let marker = dir.path().join("injected.txt");
+    // 配列の要素は、そのまま引数になる。標準のライブラリが安全にエスケープして渡すか、渡せないと
+    // 判断して起動を拒否する。どちらでも、続くコマンドは実行されない(FR2.3)。
+    let e = run(Command::Argv(vec![
+        script.display().to_string(),
+        format!("x\" & echo injected > {}", marker.display()),
+    ]));
     assert!(e.started, "{e:?}");
     assert!(
         !marker.exists(),

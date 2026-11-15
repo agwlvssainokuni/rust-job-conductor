@@ -41,13 +41,44 @@ impl PipelineDefinition {
     }
 }
 
+/// ジョブのコマンド。定義ファイルには、文字列または文字列の配列で書く。ここでは解釈しない。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Command {
+    /// 1 つの文字列。起動のとき、コマンド名と引数に分ける(空白で区切り、引用符を解く)。
+    Line(String),
+    /// 文字列の配列。先頭がプログラム、残りが引数で、1 要素が 1 引数。分割も展開もしない。
+    Argv(Vec<String>),
+}
+
+impl Command {
+    /// 起動するプログラムの名前(起動失敗の表示用)。取り出せないとき(空)は `None`。
+    pub fn program_name(&self) -> Option<&str> {
+        match self {
+            Command::Line(line) => line.split_whitespace().next(),
+            Command::Argv(argv) => argv.first().map(String::as_str),
+        }
+    }
+}
+
+impl From<&str> for Command {
+    fn from(line: &str) -> Self {
+        Command::Line(line.to_string())
+    }
+}
+
+impl From<String> for Command {
+    fn from(line: String) -> Self {
+        Command::Line(line)
+    }
+}
+
 /// 1 つのジョブの定義(契約 C1)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobDefinition {
     /// ジョブID(空でなく、定義の中で一意。`@` で始めない)。
     pub id: String,
-    /// コマンド(空でない)。コマンド名と引数に分けて直接起動する書式。ここでは解釈しない。
-    pub command: String,
+    /// コマンド(空でない)。文字列(`Line`)または文字列の配列(`Argv`)。ここでは解釈しない。
+    pub command: Command,
     /// 警告にする終了コード。`success_exit_codes` と重ならず、0 を含まない。
     pub warning_exit_codes: Vec<i32>,
     /// 成功にする終了コード。省略時は `None`(`[0]` として扱う)。書いたら、その値だけが成功。
@@ -98,7 +129,7 @@ pub struct Transition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobExecution {
     pub job_id: String,
-    pub command: String,
+    pub command: Command,
     /// 合図が呼び出しの前に立っていて起動しなかったときだけ `false`。
     pub started: bool,
     /// 終了コード(`started` が `true` で、終了コードがあるときのみ)。
@@ -256,7 +287,7 @@ mod tests {
     fn job(id: &str) -> JobDefinition {
         JobDefinition {
             id: id.to_string(),
-            command: "echo".to_string(),
+            command: "echo".into(),
             warning_exit_codes: vec![],
             success_exit_codes: None,
             transitions: vec![],
@@ -299,6 +330,24 @@ mod tests {
         };
         assert_eq!(def.job_index("b"), Some(1));
         assert_eq!(def.job_index("zz"), None);
+    }
+
+    #[test]
+    fn 文字列から_line_を作れる() {
+        assert_eq!(Command::from("echo a"), Command::Line("echo a".into()));
+        assert_eq!(
+            Command::from(String::from("echo a")),
+            Command::Line("echo a".into())
+        );
+    }
+
+    #[test]
+    fn プログラム名は_line_では先頭の語_argv_では先頭の要素() {
+        assert_eq!(Command::from("  echo  a b").program_name(), Some("echo"));
+        assert_eq!(Command::from("   ").program_name(), None);
+        let argv = Command::Argv(vec!["my prog".into(), "x".into()]);
+        assert_eq!(argv.program_name(), Some("my prog"));
+        assert_eq!(Command::Argv(vec![]).program_name(), None);
     }
 
     #[test]
