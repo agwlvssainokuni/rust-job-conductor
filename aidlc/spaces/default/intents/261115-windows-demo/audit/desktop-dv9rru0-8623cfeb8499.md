@@ -980,3 +980,84 @@
 **Answer Mode**: guide (reused from requirements-analysis)
 
 ---
+
+## Decision Recorded
+**Timestamp**: 2026-11-15T07:11:53Z
+**Event**: DECISION_RECORDED
+**Stage**: build-and-test
+**Decision**: cargo-llvm-cov is not installed. How should the 80% line coverage floor be verified?
+**Options**: Install cargo-llvm-cov and measure here,Leave it to CI
+**Question Id**: 58e07fa5
+**Question Type**: stage-question
+**Question Chat**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Question Shows**: sha256:6a21eb489ec30771b1ed2e6a999f242d68690a71363bbe32ea2698d301e3508a
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T07:12:14Z
+**Event**: HUMAN_TURN
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Origin**: person
+**Source**: picker
+**Picked**: ["Install and measure here"]
+**Message Id**: d36fa1f5
+**Open Questions**: 58e07fa5
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T07:12:14Z
+**Event**: QUESTION_REPLIED
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Question**: 行カバレッジ 80% の確認に使う cargo-llvm-cov が、このマシンに入っていません。どうしますか?(この作業は Rust のコードを変えていません。前回の実測は 97.80% でした)
+**Reply**: Install and measure here
+**Options**: ["Install and measure here","Leave it to CI"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-15T07:12:20Z
+**Event**: QUESTION_ANSWERED
+**Stage**: build-and-test
+**Details**: Install cargo-llvm-cov and measure here
+**Person Reply**: Install and measure here
+**Message Id**: d36fa1f5
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:14:20Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/build-and-test/build-instructions.md
+**Context**: construction > build-and-test > build-instructions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:14:26Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:14:31Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/build-and-test/cross-unit-traceability.md
+**Context**: construction > build-and-test > cross-unit-traceability.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T07:14:38Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/build-and-test/build-and-test-summary.md
+**Context**: construction > build-and-test > build-and-test-summary.md
+
+---
