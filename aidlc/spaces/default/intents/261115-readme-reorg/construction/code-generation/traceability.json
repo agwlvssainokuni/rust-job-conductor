@@ -1,0 +1,27 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["FR1", "FR1.1", "FR1.2", "FR1.3", "FR2", "FR3", "FR4", "FR4.1", "FR4.2", "FR4.3", "FR4.4", "FR4.5", "FR4.6", "FR5", "FR6", "FR7", "FR8", "NFR1", "NFR2", "NFR3", "NFR4"],
+  "coverage": [
+    { "id": "FR1", "status": "OK", "target": "README.md" },
+    { "id": "FR1.1", "status": "OK", "target": "README.md" },
+    { "id": "FR1.2", "status": "OK", "target": "README.md" },
+    { "id": "FR1.3", "status": "OK", "target": "README.md" },
+    { "id": "FR2", "status": "OK", "target": "README.md" },
+    { "id": "FR3", "status": "OK", "target": "README.md" },
+    { "id": "FR4", "status": "OK", "target": "README.md" },
+    { "id": "FR4.1", "status": "OK", "target": "README.md" },
+    { "id": "FR4.2", "status": "OK", "target": "README.md" },
+    { "id": "FR4.3", "status": "OK", "target": "README.md" },
+    { "id": "FR4.4", "status": "OK", "target": "README.md" },
+    { "id": "FR4.5", "status": "OK", "target": "README.md" },
+    { "id": "FR4.6", "status": "OK", "target": "demo/README.md" },
+    { "id": "FR5", "status": "OK", "target": "README.md" },
+    { "id": "FR6", "status": "OK", "target": "README.md" },
+    { "id": "FR7", "status": "OK", "target": "demo/README.md" },
+    { "id": "FR8", "status": "OK", "target": "README.md" },
+    { "id": "NFR1", "status": "OK", "target": "README.md" },
+    { "id": "NFR2", "status": "OK", "target": "demo/README.md" },
+    { "id": "NFR3", "status": "OK", "target": "README.md" },
+    { "id": "NFR4", "status": "OK", "target": "README.md" }
+  ]
+}
