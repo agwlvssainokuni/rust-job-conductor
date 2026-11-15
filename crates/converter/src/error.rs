@@ -20,9 +20,9 @@
 //!
 //! # `key_path` の書式
 //!
-//! 最上位のキーは `jobs`、入れ子のキーは `.` で、配列の要素は `[添字]`(0 始まり)でつなぐ
-//! (例: `jobs[2].transitions[0]`)。キーが文字列でないときは、そのマップの経路に
-//! `(非文字列キー)` を付ける(最上位なら `(非文字列キー)`、入れ子なら `jobs[2].(非文字列キー)`)。
+//! 最上位のキーは `job`、入れ子のキーは `.` で、配列の要素は `[添字]`(0 始まり)でつなぐ
+//! (例: `job[2].transitions[0]`)。キーが文字列でないときは、そのマップの経路に
+//! `(非文字列キー)` を付ける(最上位なら `(非文字列キー)`、入れ子なら `job[2].(非文字列キー)`)。
 //! 各キー名は、エスケープと 64 文字の切り詰めを行ってから、そのまま(引用符なしで)つなぐ。
 
 use thiserror::Error;
@@ -281,14 +281,14 @@ mod tests {
     #[test]
     fn key_path_format() {
         let segs = vec![
-            PathSeg::Key("jobs".into()),
+            PathSeg::Key("job".into()),
             PathSeg::Index(2),
             PathSeg::Key("transitions".into()),
             PathSeg::Index(0),
         ];
         assert_eq!(
             format_key_path(&segs).as_deref(),
-            Some("jobs[2].transitions[0]")
+            Some("job[2].transitions[0]")
         );
         assert_eq!(format_key_path(&[]), None);
         assert_eq!(

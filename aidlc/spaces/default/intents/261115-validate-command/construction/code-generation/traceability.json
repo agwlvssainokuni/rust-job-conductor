@@ -1,0 +1,23 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["FR1", "FR1.1", "FR1.2", "FR1.3", "FR1.4", "FR1.5", "FR1.6", "FR1.7", "FR1.8", "FR2", "FR3", "FR3.1", "FR3.2", "NFR1", "NFR2", "NFR3", "NFR4"],
+  "coverage": [
+    { "id": "FR1", "status": "OK", "target": "crates/cli/src/aux_commands.rs" },
+    { "id": "FR1.1", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "FR1.2", "status": "OK", "target": "crates/cli/tests/flow_validate.rs" },
+    { "id": "FR1.3", "status": "OK", "target": "crates/cli/src/ctx.rs" },
+    { "id": "FR1.4", "status": "OK", "target": "crates/cli/tests/flow_validate.rs" },
+    { "id": "FR1.5", "status": "OK", "target": "crates/cli/tests/args_grammar.rs" },
+    { "id": "FR1.6", "status": "OK", "target": "crates/cli/src/report/messages.rs" },
+    { "id": "FR1.7", "status": "OK", "target": "crates/cli/tests/flow_validate.rs" },
+    { "id": "FR1.8", "status": "OK", "target": "crates/cli/src/lib.rs" },
+    { "id": "FR2", "status": "OK", "target": "crates/core/src/types.rs" },
+    { "id": "FR3", "status": "OK", "target": "README.md" },
+    { "id": "FR3.1", "status": "OK", "target": "README.md" },
+    { "id": "FR3.2", "status": "OK", "target": "README.md" },
+    { "id": "NFR1", "status": "OK", "target": "crates/core/tests/definition_valid.rs" },
+    { "id": "NFR2", "status": "OK", "target": "crates/cli/src/report/mod.rs" },
+    { "id": "NFR3", "status": "OK", "target": "crates/cli/Cargo.toml" },
+    { "id": "NFR4", "status": "OK", "target": "Cargo.lock" }
+  ]
+}

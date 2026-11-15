@@ -34,9 +34,9 @@ pub fn initial_state(definition: &PipelineDefinition, definition_path: &Path) ->
         definition_key: path.clone(),
         pipeline_name: definition.name.clone(),
         definition_path: path,
-        job_order: definition.jobs.iter().map(|j| j.id.clone()).collect(),
+        job_order: definition.job.iter().map(|j| j.id.clone()).collect(),
         job_states: definition
-            .jobs
+            .job
             .iter()
             .map(|j| JobState::pending(j.id.clone()))
             .collect(),
@@ -149,11 +149,11 @@ pub fn apply_skip(
         return out;
     }
     let first_pending = definition
-        .jobs
+        .job
         .iter()
         .find(|j| status_of(&j.id) == JobStatus::Pending)
         .map(|j| j.id.clone());
-    let is_last = definition.jobs.last().is_some_and(|j| j.id == job_id);
+    let is_last = definition.job.last().is_some_and(|j| j.id == job_id);
     out.completed = is_last && first_pending.is_none();
     out.resume_job_id = first_pending;
     out
@@ -181,7 +181,7 @@ mod tests {
             name: "p".into(),
             description: None,
             format_version: 1,
-            jobs: ids
+            job: ids
                 .iter()
                 .map(|id| JobDefinition {
                     id: (*id).into(),

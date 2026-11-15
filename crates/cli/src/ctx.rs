@@ -87,29 +87,7 @@ impl Ctx<'_> {
             }
         }
 
-        let path = definition_path(cmd);
-        let definition = match self.runtime.load_definition(&path, expected_pipeline) {
-            Ok(definition) => definition,
-            Err(errors) => return Err(self.definition_errors(&errors)),
-        };
-
-        let command_errors: Vec<_> = definition
-            .jobs
-            .iter()
-            .filter_map(|job| {
-                self.runtime
-                    .check_command(&job.command)
-                    .err()
-                    .map(|e| (job.id.clone(), e))
-            })
-            .collect();
-        if !command_errors.is_empty() {
-            self.show(&DisplayEvent::CommandErrors {
-                definition: &path,
-                errors: &command_errors,
-            });
-            return Err(EXIT_DEFINITION);
-        }
+        let (path, definition) = self.check_definition(cmd, expected_pipeline)?;
 
         if let Some(job_id) = require_job {
             if definition.job_index(job_id).is_none() {
@@ -140,6 +118,40 @@ impl Ctx<'_> {
             state,
             signal,
         })
+    }
+
+    /// 定義の読み込みと検証(64)、全ジョブの `command` の検査(64)。`prepare` と `validate` が共有する。
+    ///
+    /// シグナル・ステートには触れない。誤りは表示して、終了コードを `Err` で返す。
+    pub(crate) fn check_definition(
+        &mut self,
+        cmd: &CliCommand,
+        expected_pipeline: Option<&str>,
+    ) -> Result<(PathBuf, PipelineDefinition), i32> {
+        let path = definition_path(cmd);
+        let definition = match self.runtime.load_definition(&path, expected_pipeline) {
+            Ok(definition) => definition,
+            Err(errors) => return Err(self.definition_errors(&errors)),
+        };
+
+        let command_errors: Vec<_> = definition
+            .job
+            .iter()
+            .filter_map(|job| {
+                self.runtime
+                    .check_command(&job.command)
+                    .err()
+                    .map(|e| (job.id.clone(), e))
+            })
+            .collect();
+        if !command_errors.is_empty() {
+            self.show(&DisplayEvent::CommandErrors {
+                definition: &path,
+                errors: &command_errors,
+            });
+            return Err(EXIT_DEFINITION);
+        }
+        Ok((path, definition))
     }
 
     pub(crate) fn definition_errors(&mut self, errors: &[DefinitionError]) -> i32 {

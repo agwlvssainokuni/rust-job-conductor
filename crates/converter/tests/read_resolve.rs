@@ -291,9 +291,9 @@ fn extremely_deep_inputs_fail_with_syntax_not_abort() {
 #[test]
 fn first_unrepresentable_value_in_input_order_with_key_path() {
     let e =
-        yaml("a: 1\njobs:\n  - id: x\n  - id: y\n    note: ~\n  - z: ~\nlater: ~\n").unwrap_err();
+        yaml("a: 1\njob:\n  - id: x\n  - id: y\n    note: ~\n  - z: ~\nlater: ~\n").unwrap_err();
     assert_eq!(e.kind, K::Unrepresentable);
-    assert_eq!(e.key_path.as_deref(), Some("jobs[1].note"));
+    assert_eq!(e.key_path.as_deref(), Some("job[1].note"));
     assert_eq!(e.reason, "null は表せません");
 }
 

@@ -91,6 +91,29 @@ fn 警告は_0_スキップは_0_エラーはジョブの値() {
 }
 
 #[test]
+fn validate_は正しい定義で_0_誤りで_64_ステートを作らず_壊れたステートでも_0() {
+    let project = Project::new(&definition(
+        "p",
+        &[job_block("a", &helper_command("exit 0"), "")],
+    ));
+    let output = project.run(&["validate"]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(output.stdout.is_empty() && output.stderr.is_empty());
+    assert!(!project.state_path().exists(), "ステートを作らない");
+
+    std::fs::write(project.state_path(), "garbage = = =").expect("書ける");
+    let output = project.run(&["validate", "p"]);
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+
+    let bad = Project::new(&definition("p", &[job_block("a", "echo 'unclosed", "")]));
+    let output = bad.run(&["validate"]);
+    assert_eq!(output.status.code(), Some(64));
+    assert!(output.stdout.is_empty());
+    assert!(text(&output.stderr).starts_with("conductor: error: "));
+    assert!(!bad.state_path().exists());
+}
+
+#[test]
 fn ジョブを起動できないと_127() {
     let project = Project::new(&definition(
         "p",

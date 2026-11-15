@@ -54,7 +54,7 @@ fn nfr1_1_ジョブ_10_個の定義の読み込みの_p95() {
         let start = Instant::now();
         let def = load_definition(Some(&path), None).expect("正しい定義");
         samples.push(start.elapsed());
-        assert_eq!(def.jobs.len(), 10);
+        assert_eq!(def.job.len(), 10);
     }
     samples.sort();
     // 昇順の 95 番目(1 始まり)。

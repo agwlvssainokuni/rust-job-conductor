@@ -58,6 +58,33 @@ fn pipeline_はパイプライン名を受け取る() {
 }
 
 #[test]
+fn validate_はパイプライン名を省略でき_v_と_config_を受け付ける() {
+    let cmd = command(&["validate"]);
+    assert_eq!(cmd.kind, CommandKind::Validate);
+    assert!(cmd.pipeline_name.is_none());
+    assert!(!cmd.verbose);
+    let cmd = command(&["validate", "nightly"]);
+    assert_eq!(cmd.pipeline_name.as_deref(), Some("nightly"));
+    let cmd = command(&["validate", "-v", "--config", "c.toml", "nightly"]);
+    assert!(cmd.verbose);
+    assert_eq!(cmd.config_path, Some(OsString::from("c.toml")));
+    assert_eq!(cmd.pipeline_name.as_deref(), Some("nightly"));
+}
+
+#[test]
+fn validate_の位置引数は_2_個以上と_to_が使い方の誤り() {
+    assert_eq!(
+        kind_of(&["validate", "a", "b"]),
+        UsageErrorKind::UnexpectedArgument
+    );
+    assert_eq!(
+        kind_of(&["validate", "--to", "yaml"]),
+        UsageErrorKind::OptionNotAllowed
+    );
+    assert_eq!(kind_of(&["validate", "-vv"]), UsageErrorKind::InvalidValue);
+}
+
+#[test]
 fn watch_と_reset_は位置引数を受け取らない() {
     assert_eq!(command(&["watch"]).kind, CommandKind::Watch);
     assert_eq!(command(&["reset"]).kind, CommandKind::Reset);
@@ -324,6 +351,7 @@ fn コマンドの名前() {
         (CommandKind::Pipeline, "pipeline"),
         (CommandKind::Watch, "watch"),
         (CommandKind::Reset, "reset"),
+        (CommandKind::Validate, "validate"),
         (CommandKind::Convert, "convert"),
     ] {
         assert_eq!(kind.name(), name);

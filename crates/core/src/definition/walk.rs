@@ -458,7 +458,7 @@ pub fn walk(
                     name,
                     description,
                     format_version,
-                    jobs,
+                    job: jobs,
                 });
             }
         }

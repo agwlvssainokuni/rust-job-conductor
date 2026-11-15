@@ -68,7 +68,7 @@ impl Scene {
             name: "nightly".into(),
             description: None,
             format_version: 1,
-            jobs,
+            job: jobs,
         }
     }
 }
@@ -151,7 +151,7 @@ fn invoke_inner(
                 write_state(def_path, &state, Durability::Fast)?;
             }
             let job = definition
-                .jobs
+                .job
                 .iter()
                 .find(|j| j.id == job_id)
                 .expect("定義にある");
@@ -209,7 +209,7 @@ fn invoke(
 fn pipeline(scene: &Scene, definition: &PipelineDefinition) -> Result<Vec<Done>, Failure> {
     let start = read_state(&scene.def_path())?
         .and_then(|s| s.resume_job_id)
-        .unwrap_or_else(|| definition.jobs[0].id.clone());
+        .unwrap_or_else(|| definition.job[0].id.clone());
     let mut done = Vec::new();
     let mut current = Some(start);
     while let Some(id) = current {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 補助のコマンド(W4〜W6。BR7.1〜BR7.3): `watch`、`reset`、`convert`。
+//! 補助のコマンド(W4〜W6。BR7.1〜BR7.3): `watch`、`reset`、`validate`、`convert`。
 //!
 //! シグナルの準備は行わない(既定の動作で終わる。BR4.1)。
 
@@ -49,6 +49,22 @@ pub(crate) fn run_reset(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     match ctx.runtime.reset_state(&path) {
         Ok(()) => EXIT_OK,
         Err(error) => ctx.state_error(&error, StateContext::Plain),
+    }
+}
+
+/// `conductor validate [<name>]`: 定義の検証と、全ジョブの `command` の検査だけを行う。
+///
+/// ジョブは実行しない。シグナルの準備、ステートの読み書き、リセットもしない。
+/// 成功は何も出さない(`-v` のときだけ、標準エラーに 1 行)。誤りは `run` と同じ表示で 64。
+pub(crate) fn run_validate(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
+    match ctx.check_definition(cmd, cmd.pipeline_name.as_deref()) {
+        Ok((_, definition)) => {
+            ctx.show(&DisplayEvent::DefinitionValid {
+                job_count: definition.job.len(),
+            });
+            EXIT_OK
+        }
+        Err(code) => code,
     }
 }
 

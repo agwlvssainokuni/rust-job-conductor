@@ -26,6 +26,7 @@
 //! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 |
 //! | `watch` | なし | 不可 | 可 | 不可 |
 //! | `reset` | なし | 不可 | 可 | 不可 |
+//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 |
 //! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) |
 //!
 //! - `--config path` と `--config=path`(`--to` も同じ)の両方を受け付ける。
@@ -183,12 +184,16 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         "pipeline" => CommandKind::Pipeline,
         "watch" => CommandKind::Watch,
         "reset" => CommandKind::Reset,
+        "validate" => CommandKind::Validate,
         "convert" => CommandKind::Convert,
         _ => return Err(UsageError::with_subject(Kind::UnknownCommand, first)),
     };
 
     // 許されない場所のオプション。
-    let takes_verbose = matches!(kind, CommandKind::Run | CommandKind::Pipeline);
+    let takes_verbose = matches!(
+        kind,
+        CommandKind::Run | CommandKind::Pipeline | CommandKind::Validate
+    );
     let takes_config = !matches!(kind, CommandKind::Convert);
     let takes_to = matches!(kind, CommandKind::Convert);
     if verbose_count > 0 && !takes_verbose {
@@ -215,15 +220,22 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     command.verbose = verbose_count == 1;
     command.config_path = config.into_iter().next();
 
-    let wants_positional = !matches!(kind, CommandKind::Watch | CommandKind::Reset);
+    // `validate` の位置引数(パイプライン名)は、省略できる。
+    let wants_positional = !matches!(
+        kind,
+        CommandKind::Watch | CommandKind::Reset | CommandKind::Validate
+    );
+    let allows_operand = !matches!(kind, CommandKind::Watch | CommandKind::Reset);
     let operand = positionals.next();
     let extra = positionals.next();
     if wants_positional {
         if operand.is_none() {
             return Err(UsageError::new(Kind::MissingArgument));
         }
-    } else if let Some(unexpected) = &operand {
-        return Err(unexpected_argument(unexpected));
+    } else if !allows_operand {
+        if let Some(unexpected) = &operand {
+            return Err(unexpected_argument(unexpected));
+        }
     }
     if let Some(unexpected) = &extra {
         return Err(unexpected_argument(unexpected));
@@ -231,7 +243,9 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
 
     match kind {
         CommandKind::Run => command.job_id = operand.map(to_text).transpose()?,
-        CommandKind::Pipeline => command.pipeline_name = operand.map(to_text).transpose()?,
+        CommandKind::Pipeline | CommandKind::Validate => {
+            command.pipeline_name = operand.map(to_text).transpose()?;
+        }
         CommandKind::Convert => {
             command.convert_input = operand;
             let Some(target) = to.into_iter().next() else {

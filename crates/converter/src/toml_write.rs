@@ -125,7 +125,7 @@ mod tests {
             ("empty_map", Value::Map(vec![])),
             ("empty_arr", Value::Array(vec![])),
             (
-                "jobs",
+                "job",
                 Value::Array(vec![
                     map(vec![("id", Value::Str("a".into()))]),
                     map(vec![
@@ -141,7 +141,7 @@ mod tests {
         ]);
         let text = write(&v, "t").unwrap();
         let t = parse(&text);
-        assert_eq!(t["jobs"].as_array().map(Vec::len), Some(2));
+        assert_eq!(t["job"].as_array().map(Vec::len), Some(2));
         assert_eq!(t["mixed"].as_array().map(Vec::len), Some(2));
         assert!(t["empty_map"].as_table().is_some_and(|m| m.is_empty()));
     }

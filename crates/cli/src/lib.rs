@@ -161,6 +161,7 @@ where
         CommandKind::Pipeline => pipeline::run_pipeline(&mut ctx, &cmd),
         CommandKind::Watch => aux_commands::run_watch(&mut ctx, &cmd),
         CommandKind::Reset => aux_commands::run_reset(&mut ctx, &cmd),
+        CommandKind::Validate => aux_commands::run_validate(&mut ctx, &cmd),
         CommandKind::Convert => aux_commands::run_convert(&mut ctx, &cmd),
     }
 }

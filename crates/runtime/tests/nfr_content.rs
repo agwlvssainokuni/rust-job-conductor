@@ -99,7 +99,7 @@ fn definition() -> PipelineDefinition {
         name: "p".into(),
         description: None,
         format_version: 1,
-        jobs: vec![common::job(
+        job: vec![common::job(
             "a",
             format!("prog --token={SECRET} 'with {SECRET}'"),
         )],
@@ -114,7 +114,7 @@ fn ステートファイルに_command_と環境変数の値が現れない() {
     let state = initial_state(&d, &def_path);
     let execution = JobExecution {
         job_id: "a".into(),
-        command: d.jobs[0].command.clone(),
+        command: d.job[0].command.clone(),
         started: true,
         exit_code: Some(3),
         terminated_by_signal: None,

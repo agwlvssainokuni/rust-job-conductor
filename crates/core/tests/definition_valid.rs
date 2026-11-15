@@ -38,21 +38,21 @@ fn 正しい定義をファイルから読める() {
         Some("夜間バッチ(抽出、変換、読み込み、通知)")
     );
     assert_eq!(def.format_version, 1);
-    let ids: Vec<_> = def.jobs.iter().map(|j| j.id.as_str()).collect();
+    let ids: Vec<_> = def.job.iter().map(|j| j.id.as_str()).collect();
     assert_eq!(
         ids,
         ["extract", "transform", "load", "notify"],
         "記述順を保つ"
     );
 
-    let extract: &JobDefinition = &def.jobs[0];
+    let extract: &JobDefinition = &def.job[0];
     assert_eq!(extract.command, "extract --all --since yesterday".into());
     assert!(extract.warning_exit_codes.is_empty());
     assert_eq!(extract.success_exit_codes, None);
     assert_eq!(extract.effective_success_codes(), &[0], "既定の成功コード");
     assert!(extract.transitions.is_empty());
 
-    let transform = &def.jobs[1];
+    let transform = &def.job[1];
     assert_eq!(transform.warning_exit_codes, vec![3, 4]);
     assert_eq!(transform.effective_success_codes(), &[0, 2]);
     assert_eq!(
@@ -64,7 +64,7 @@ fn 正しい定義をファイルから読める() {
     );
 
     assert_eq!(
-        def.jobs[2].transitions,
+        def.job[2].transitions,
         vec![Transition {
             on: TransitionOn::Success,
             next: TransitionTarget::End
@@ -76,7 +76,7 @@ fn 正しい定義をファイルから読める() {
 fn コマンドの文字列はそのまま保持される() {
     let def = load_definition(Some(&fixture("valid_pipeline.toml")), None).unwrap();
     // 引用符も `$HOME` も、展開や解釈をしない(NFR4.5)。
-    assert_eq!(def.jobs[1].command, "transform \"in dir\" $HOME".into());
+    assert_eq!(def.job[1].command, "transform \"in dir\" $HOME".into());
 }
 
 #[test]
@@ -115,7 +115,7 @@ fn 一時ディレクトリの定義を読める() {
     )
     .unwrap();
     let def = load_definition(Some(&p), None).unwrap();
-    assert_eq!(def.jobs.len(), 1);
+    assert_eq!(def.job.len(), 1);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn 定義の外の遷移も_next_が_end_なら受理される() {
         [[job]]\nid = \"a\"\ncommand = \"c\"\ntransitions = [{ on = \"success\", next = \"b\" }, { on = \"warning\", next = \"@end\" }]\n\
         [[job]]\nid = \"b\"\ncommand = \"c\"\n";
     let def = parse_definition(text, "m.toml", None).unwrap();
-    assert_eq!(def.jobs[0].transitions.len(), 2);
+    assert_eq!(def.job[0].transitions.len(), 2);
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn fr1_2_配列の_command_は要素のまま保持される() {
     let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = [\"my prog\", \"a b\", \"$HOME\", \"\"]\n[[job]]\nid = \"b\"\ncommand = \"echo x\"\n";
     let def = parse_definition(text, "t.toml", None).expect("受理される");
     assert_eq!(
-        def.jobs[0].command,
+        def.job[0].command,
         Command::Argv(vec![
             "my prog".into(),
             "a b".into(),
@@ -151,5 +151,5 @@ fn fr1_2_配列の_command_は要素のまま保持される() {
             String::new()
         ])
     );
-    assert_eq!(def.jobs[1].command, Command::Line("echo x".into()));
+    assert_eq!(def.job[1].command, Command::Line("echo x".into()));
 }

@@ -34,7 +34,7 @@ fn definition() -> PipelineDefinition {
         name: "bench".into(),
         description: None,
         format_version: 1,
-        jobs: (0..10)
+        job: (0..10)
             .map(|i| {
                 common::job(
                     &format!("job{i}"),
@@ -74,7 +74,7 @@ fn 起動前の処理の_p95_を測る() {
     let mut fast = Vec::with_capacity(RUNS);
     for _ in 0..RUNS {
         let start = Instant::now();
-        for job in &d.jobs {
+        for job in &d.job {
             assert!(check_command(&job.command).is_ok());
         }
         let existing = read_state(&def_path).expect("読める");

@@ -468,6 +468,31 @@ fn v_の文言() {
 }
 
 #[test]
+fn 定義が正しいときの_v_の文言は_ジョブの数を含み_入力の値を含まない() {
+    let env_en = env_for(Language::En);
+    let env_ja = env_for(Language::Ja);
+    let reporter = Reporter::new(&env_en, true);
+    assert_eq!(
+        reporter.render(&DisplayEvent::DefinitionValid { job_count: 4 }),
+        "[conductor] definition is valid (4 jobs)\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::DefinitionValid { job_count: 1 }),
+        "[conductor] definition is valid (1 job)\n"
+    );
+    let reporter = Reporter::new(&env_ja, true);
+    assert_eq!(
+        reporter.render(&DisplayEvent::DefinitionValid { job_count: 4 }),
+        "[conductor] 定義は正しいです(ジョブ 4 個)\n"
+    );
+    // -v がなければ何も出さない。
+    let reporter = Reporter::new(&env_en, false);
+    let mut sink = FakeSink::default();
+    reporter.show(&mut sink, &DisplayEvent::DefinitionValid { job_count: 4 });
+    assert!(sink.out.is_empty() && sink.err.is_empty());
+}
+
+#[test]
 fn level_ごとに出力先が決まる() {
     let env = env_for(Language::En);
     // error: 常に標準エラー
@@ -689,7 +714,7 @@ fn 使い方は種類ごとの固定の文と使い方の一覧() {
         "start",
     )));
     assert!(text.starts_with("conductor: error: unknown command: 'start'\n\nUsage:\n"));
-    for command in ["run", "pipeline", "watch", "reset", "convert"] {
+    for command in ["run", "pipeline", "watch", "reset", "validate", "convert"] {
         assert!(text.contains(&format!("conductor {command}")), "{command}");
     }
 }

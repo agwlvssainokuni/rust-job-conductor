@@ -34,7 +34,7 @@ pub fn resume_point_on_interrupt(
     job_states: &[JobState],
 ) -> ResumePoint {
     let resume = definition
-        .jobs
+        .job
         .iter()
         .find(|j| {
             matches!(
@@ -60,7 +60,7 @@ mod tests {
             name: "p".into(),
             description: None,
             format_version: 1,
-            jobs: (0..n)
+            job: (0..n)
                 .map(|i| JobDefinition {
                     id: format!("j{i}"),
                     command: "c".into(),

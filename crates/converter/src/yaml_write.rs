@@ -258,7 +258,7 @@ mod tests {
             ("empty_a", Value::Array(vec![])),
             ("empty_m", Value::Map(vec![])),
             (
-                "jobs",
+                "job",
                 Value::Array(vec![
                     map(vec![("id", s("a")), ("cmd", s("echo hi"))]),
                     Value::Array(vec![Value::Int(1), Value::Array(vec![Value::Bool(true)])]),
@@ -272,7 +272,7 @@ name: demo
 num: -9223372036854775808
 empty_a: []
 empty_m: {}
-jobs:
+job:
   - id: a
     cmd: echo hi
   - - 1

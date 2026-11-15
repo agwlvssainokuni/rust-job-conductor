@@ -1,4 +1,4 @@
-# conductor
+# rust-job-conductor — Rust製のジョブ実行制御ツール
 
 `conductor` は、既存のジョブスケジューラ(cron など)から呼び出される、ジョブの流れの制御ツールです。
 定義ファイルに、ジョブと、結果(成功・警告・エラー)ごとの次の動きを書いておくと、`conductor` が、
@@ -77,6 +77,7 @@ conductor run [-v] [--config <パス>] <ジョブID>
 conductor pipeline [-v] [--config <パス>] <パイプライン名>
 conductor watch [--config <パス>]
 conductor reset [--config <パス>]
+conductor validate [-v] [--config <パス>] [<パイプライン名>]
 conductor convert <ファイル> --to <yaml|toml>
 conductor --help | --version
 ```
@@ -87,12 +88,13 @@ conductor --help | --version
 | `pipeline <パイプライン名>` | 定義の記述順に、ジョブを 1 つずつ実行する(一括実行)。エラーで止まる |
 | `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する |
 | `reset` | ステートを消す(最初からやり直す。壊れたステートの回復にも使う) |
+| `validate [<パイプライン名>]` | 定義ファイルを検証し、全ジョブの `command` を検査する。ジョブは実行せず、ステートを読まず、書かず、消さない。パイプライン名を書くと、定義の名前と照合する(省略すると照合しない)。成功は何も表示しない |
 | `convert <ファイル> --to <形式>` | 定義ファイルを、YAML と TOML のあいだで変換し、結果を標準出力に書く |
 
 | オプション | 意味 |
 |------------|------|
-| `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`) |
-| `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline` だけ。1 段階) |
+| `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`) |
+| `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階)。`validate` では、検査が通ったときに 1 行(ジョブの数)だけ、標準エラーに表示する |
 | `--to <yaml\|toml>` | `convert` の変換後の形式(必須) |
 | `-h`、`--help` | 使い方を表示する |
 | `-V`、`--version` | 版を表示する |
@@ -108,6 +110,8 @@ conductor run -v extract               # 結果と遷移を表示しながら
 conductor pipeline nightly --config /etc/batch/conductor.toml
 conductor watch                        # 実行の状況を見る
 conductor reset                        # 最初からやり直す
+conductor validate                     # 定義を実行せずに検査する(成功は何も出さない)
+conductor validate -v nightly --config /etc/batch/conductor.toml   # 名前も照合し、結果を 1 行表示
 conductor convert conductor.yaml --to toml > conductor.toml
 ```
 
@@ -189,14 +193,14 @@ command = ["python", "scripts/notify.py", "--msg=Warning in extraction", ""]
 
 | 終了コード | 意味 |
 |------------|------|
-| 0 | 成功、警告、スキップ(実行済み・遷移・`@end` によるスキップ)、`watch`・`reset`・`convert` の成功 |
+| 0 | 成功、警告、スキップ(実行済み・遷移・`@end` によるスキップ)、`watch`・`reset`・`validate`・`convert` の成功 |
 | ジョブの値 | エラーになったジョブの終了コードを、そのまま(0〜255) |
 | 1 | 成功コードに含まれない `0` で終わったジョブ(`success_exit_codes` に `0` がない)。原因を標準エラーに表示する |
-| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・`command` の誤り)。ジョブは実行しない |
+| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
 | 65 | ステートの誤り(読めない・壊れている・版の不一致・定義との食い違い・書き込みや初期化の失敗)、`watch` の標準出力に書けない |
 | 66 | 拒否(順序外。前のジョブが終わっていない) |
 | 67 | 変換の誤り、`convert` の標準出力に書けない |
-| 68 | 使い方の誤り(知らないコマンド、引数の不足、知らないジョブIDなど) |
+| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む) |
 | 70 | 内部の誤り(パニック、シグナルの準備の失敗) |
 | 127 | ジョブを起動できなかった |
 | 128 + 番号 | ジョブがシグナルで終了した、または、`conductor` が中断された(例: SIGTERM = 143、Ctrl+C = 130) |

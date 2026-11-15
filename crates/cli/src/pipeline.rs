@@ -51,7 +51,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     // ステートが空のあいだは `None`。最初のジョブが `Run` と決まったあとに、初期ステートを書く。
     let mut current: Option<PipelineState> = session.state.clone();
 
-    for job in &definition.jobs {
+    for job in &definition.job {
         let decision = {
             let (states, resume, end_reached) = match &current {
                 Some(state) => (

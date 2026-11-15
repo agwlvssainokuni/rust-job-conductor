@@ -130,6 +130,10 @@ pub enum DisplayEvent<'a> {
     Interrupted {
         signal: i32,
     },
+    /// `validate` が通った(ジョブの数)。
+    DefinitionValid {
+        job_count: usize,
+    },
     // ---- output(標準出力) ----
     WatchTable(&'a PipelineState),
     WatchEmpty,
@@ -158,7 +162,8 @@ impl DisplayEvent<'_> {
             Self::JobResult { .. }
             | Self::JobSkipped { .. }
             | Self::Transition { .. }
-            | Self::Interrupted { .. } => Level::Verbose,
+            | Self::Interrupted { .. }
+            | Self::DefinitionValid { .. } => Level::Verbose,
             Self::WatchTable(_) | Self::WatchEmpty | Self::Help | Self::Version => Level::Output,
         }
     }
@@ -323,6 +328,10 @@ impl<'a> Reporter<'a> {
             DisplayEvent::Interrupted { signal } => format!(
                 "{VERBOSE_PREFIX}{} {signal}\n",
                 messages::INTERRUPTED_BY_SIGNAL.get(lang)
+            ),
+            DisplayEvent::DefinitionValid { job_count } => format!(
+                "{VERBOSE_PREFIX}{}\n",
+                messages::definition_valid(lang, *job_count)
             ),
             DisplayEvent::WatchTable(state) => {
                 watch::render_table(lang, state, self.color_enabled())

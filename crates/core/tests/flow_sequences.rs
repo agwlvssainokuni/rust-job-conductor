@@ -58,7 +58,7 @@ fn exited(job: &str, code: i32) -> JobExecution {
 
 impl Sim {
     fn new(def: PipelineDefinition) -> Self {
-        let states = def.jobs.iter().map(|j| JobState::pending(&j.id)).collect();
+        let states = def.job.iter().map(|j| JobState::pending(&j.id)).collect();
         Self {
             def,
             states,
@@ -104,7 +104,7 @@ impl Sim {
                 (decision, Some(0))
             }
             Decision::Run => {
-                let job = self.def.jobs[self.def.job_index(id).unwrap()].clone();
+                let job = self.def.job[self.def.job_index(id).unwrap()].clone();
                 let (outcome, step) =
                     classify_and_decide(&job, &exec, &self.states, &self.def, mode);
                 let status = match outcome.classification {
@@ -246,7 +246,7 @@ fn 一連の実行_end_で即座に完了する() {
 fn 成功コードを書いたジョブの_0_はエラーで_conductor_のエラー() {
     let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\nsuccess_exit_codes = [2]\n";
     let def = parse_definition(text, "t.toml", None).unwrap();
-    let job = &def.jobs[0];
+    let job = &def.job[0];
     let (o, step) = classify_and_decide(job, &exited("a", 0), &[], &def, RunMode::Individual);
     assert_eq!(o.classification, Some(Classification::Error));
     assert_eq!((o.reported_exit_code, o.conductor_error), (1, true));
@@ -259,7 +259,7 @@ fn 成功コードを書いたジョブの_0_はエラーで_conductor_のエラ
 #[test]
 fn 優先順位_中断と起動失敗とシグナル() {
     let def = definition("");
-    let job = &def.jobs[0];
+    let job = &def.job[0];
     let mut e = exited("a", 0);
     e.start_failure = true;
     e.terminated_by_signal = Some(9);
@@ -290,7 +290,7 @@ fn ジョブのあいだの中断の再開位置() {
 #[test]
 fn 起動しなかった中断は再開位置になり_128_足す番号を返す() {
     let def = definition("");
-    let job = &def.jobs[0];
+    let job = &def.job[0];
     let e = JobExecution {
         job_id: "a".into(),
         command: "c".into(),

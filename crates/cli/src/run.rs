@@ -100,7 +100,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 // 検査済み(ジョブIDは定義にある)。ここには来ない。
                 return EXIT_REJECTED;
             };
-            let job = &definition.jobs[index];
+            let job = &definition.job[index];
 
             let execution = ctx.runtime.run_job(job, &session.signal);
             let (outcome, next) = classify_and_decide(

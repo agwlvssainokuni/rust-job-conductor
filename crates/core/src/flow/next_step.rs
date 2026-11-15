@@ -83,7 +83,7 @@ fn next_step(
     let Some(index) = definition.job_index(&job.id) else {
         return stop(job);
     };
-    let jobs = &definition.jobs;
+    let jobs = &definition.job;
     let is_last = index + 1 == jobs.len();
 
     let mut step = NextStep {
@@ -173,7 +173,7 @@ mod tests {
             name: "p".into(),
             description: None,
             format_version: 1,
-            jobs: vec![
+            job: vec![
                 job("j0", j0_transitions),
                 job("j1", vec![]),
                 job("j2", vec![]),
@@ -202,7 +202,7 @@ mod tests {
         states: &[JobState],
         mode: RunMode,
     ) -> NextStep {
-        let j = &d.jobs[d.job_index(id).unwrap()];
+        let j = &d.job[d.job_index(id).unwrap()];
         classify_and_decide(j, &exec(id, code), states, d, mode).1
     }
 
@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn 最後のジョブの_end_は_individual_でも完了する() {
         let mut d = def(vec![]);
-        d.jobs[3].transitions = vec![tr(TransitionOn::Success, TransitionTarget::End)];
+        d.job[3].transitions = vec![tr(TransitionOn::Success, TransitionTarget::End)];
         let s = run(&d, "j3", 0, &[], RunMode::Individual);
         assert!(s.end_reached && s.completed);
         assert!(s.skipped_job_ids.is_empty() && s.skip_reason_kind.is_none());
@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn 起動失敗とシグナルと中断も停止() {
         let d = def(vec![]);
-        let j = &d.jobs[1];
+        let j = &d.job[1];
         let variants = [
             JobExecution {
                 exit_code: None,
@@ -393,7 +393,7 @@ mod tests {
     fn 後ろ向きの遷移は既定の次のジョブにする() {
         // 検証済みの定義では起きない。起きても、パニックせず、既定の動きにする。
         let mut d = def(vec![]);
-        d.jobs[2].transitions = vec![tr(
+        d.job[2].transitions = vec![tr(
             TransitionOn::Success,
             TransitionTarget::Job("j0".into()),
         )];

@@ -61,11 +61,12 @@ Usage:
   conductor pipeline [-v] [--config <path>] <pipeline-name>
   conductor watch [--config <path>]
   conductor reset [--config <path>]
+  conductor validate [-v] [--config <path>] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
 
 Options:
-  -v, --verbose       print job results, skips and transitions to standard error (run, pipeline)
+  -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line)
   --config <path>     definition file (default: conductor.toml in the current directory)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
@@ -77,17 +78,29 @@ Options:
   conductor pipeline [-v] [--config <パス>] <パイプライン名>
   conductor watch [--config <パス>]
   conductor reset [--config <パス>]
+  conductor validate [-v] [--config <パス>] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
 
 オプション:
-  -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline)
+  -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)
   --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
   -V, --version       版を表示する
 ",
 );
+
+/// `validate` が通ったときの 1 行の本文(`-v` のとき。先頭の `[conductor] ` は含まない)。
+pub fn definition_valid(lang: Language, job_count: usize) -> String {
+    match lang {
+        Language::En => {
+            let unit = if job_count == 1 { "job" } else { "jobs" };
+            format!("definition is valid ({job_count} {unit})")
+        }
+        Language::Ja => format!("定義は正しいです(ジョブ {job_count} 個)"),
+    }
+}
 
 pub fn usage_kind(kind: UsageErrorKind) -> Text {
     match kind {

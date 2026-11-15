@@ -69,14 +69,14 @@ pub fn decide_before_run(
     }
     // 5
     let nothing_started = definition
-        .jobs
+        .job
         .iter()
         .all(|j| record_of(job_states, &j.id).0 == JobStatus::Pending);
     if nothing_started && index == 0 {
         return Decision::Run;
     }
     // 6
-    let predecessors_settled = definition.jobs[..index]
+    let predecessors_settled = definition.job[..index]
         .iter()
         .all(|j| is_settled(record_of(job_states, &j.id).0));
     if status == JobStatus::Pending && predecessors_settled {
@@ -96,7 +96,7 @@ mod tests {
             name: "p".into(),
             description: None,
             format_version: 1,
-            jobs: (0..n)
+            job: (0..n)
                 .map(|i| JobDefinition {
                     id: format!("j{i}"),
                     command: "c".into(),

@@ -29,7 +29,7 @@ pub fn check_consistency(
     if state.pipeline_name != definition.name {
         return ConsistencyResult::Mismatch(MismatchKind::PipelineName);
     }
-    let defined: Vec<&str> = definition.jobs.iter().map(|j| j.id.as_str()).collect();
+    let defined: Vec<&str> = definition.job.iter().map(|j| j.id.as_str()).collect();
     let recorded: Vec<&str> = state.job_order.iter().map(String::as_str).collect();
     if defined == recorded {
         return ConsistencyResult::Ok;
@@ -55,7 +55,7 @@ mod tests {
             name: name.into(),
             description: None,
             format_version: 1,
-            jobs: ids
+            job: ids
                 .iter()
                 .map(|id| JobDefinition {
                     id: (*id).into(),

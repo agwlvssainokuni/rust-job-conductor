@@ -21,13 +21,14 @@ use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
 
-/// コマンドの種類(BR1.1)。5つだけ。
+/// コマンドの種類(BR1.1)。6つだけ。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandKind {
     Run,
     Pipeline,
     Watch,
     Reset,
+    Validate,
     Convert,
 }
 
@@ -39,6 +40,7 @@ impl CommandKind {
             Self::Pipeline => "pipeline",
             Self::Watch => "watch",
             Self::Reset => "reset",
+            Self::Validate => "validate",
             Self::Convert => "convert",
         }
     }
@@ -52,7 +54,7 @@ pub struct CliCommand {
     pub kind: CommandKind,
     /// `run` のときのみ。
     pub job_id: Option<String>,
-    /// `pipeline` のときのみ。
+    /// `pipeline` のとき(必須)と `validate` のとき(省略可)。
     pub pipeline_name: Option<String>,
     /// `convert` のときのみ。変換する入力ファイルのパス。
     pub convert_input: Option<OsString>,
@@ -60,7 +62,7 @@ pub struct CliCommand {
     pub convert_target: Option<TargetFormat>,
     /// `--config <パス>`。run・pipeline・watch・reset のときのみ。
     pub config_path: Option<OsString>,
-    /// `-v` / `--verbose`。run・pipeline のときのみ指定できる。
+    /// `-v` / `--verbose`。run・pipeline・validate のときのみ指定できる。
     pub verbose: bool,
 }
 

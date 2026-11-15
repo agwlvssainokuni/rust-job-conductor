@@ -31,13 +31,13 @@ pub struct PipelineDefinition {
     /// 書式の版(初版は 1)。
     pub format_version: u32,
     /// ジョブ。定義ファイルに書いた順を保つ(BR1.11)。1 つ以上。
-    pub jobs: Vec<JobDefinition>,
+    pub job: Vec<JobDefinition>,
 }
 
 impl PipelineDefinition {
     /// ジョブIDから、記述順の位置(0 始まり)を求める。
     pub fn job_index(&self, job_id: &str) -> Option<usize> {
-        self.jobs.iter().position(|j| j.id == job_id)
+        self.job.iter().position(|j| j.id == job_id)
     }
 }
 
@@ -326,7 +326,7 @@ mod tests {
             name: "p".into(),
             description: None,
             format_version: 1,
-            jobs: vec![job("a"), job("b")],
+            job: vec![job("a"), job("b")],
         };
         assert_eq!(def.job_index("b"), Some(1));
         assert_eq!(def.job_index("zz"), None);

@@ -28,7 +28,7 @@ fn nfr4_5_コマンドの文字列はそのまま保持され展開も起動も�
         "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = {command:?}\n"
     );
     let def = parse_definition(&text, "t.toml", None).unwrap();
-    assert_eq!(def.jobs[0].command, command.into());
+    assert_eq!(def.job[0].command, command.into());
     assert!(!std::path::Path::new("SHOULD_NOT_EXIST").exists());
 }
 
