@@ -14,63 +14,63 @@
 
 ## 実装の手順
 
-### Step 1: 構成と下ごしらえ [ ]
+### Step 1: 構成と下ごしらえ [x]
 
-- [ ] `demo/windows/` と `demo/windows/scripts/` を作る(FR1.1)。
-- [ ] UNIX 版のファイル(`demo/run-demo.sh`、`demo/conductor.toml`、`demo/scripts/*.sh`)は触らない(FR1.1)。
-- [ ] 改行は CRLF で書く(cmd は LF だけの `.cmd` で、ラベルや `goto` が壊れることがあるため)。
+- [x] `demo/windows/` と `demo/windows/scripts/` を作る(FR1.1)。
+- [x] UNIX 版のファイル(`demo/run-demo.sh`、`demo/conductor.toml`、`demo/scripts/*.sh`)は触らない(FR1.1)。
+- [x] 改行は CRLF で書く(cmd は LF だけの `.cmd` で、ラベルや `goto` が壊れることがあるため)。
 
-### Step 2: ジョブスクリプト(4 本)を実装する [ ]
+### Step 2: ジョブスクリプト(4 本)を実装する [x]
 
-- [ ] `demo/windows/scripts/extract.cmd`、`transform.cmd`、`load.cmd`、`notify.cmd` を作る(FR1.2、FR2.2、FR2.3)。
-- [ ] 各ジョブは、`DEMO_<ジョブ名>_EXIT`(既定 0)で終了コードを決め、`DEMO_SLEEP`(既定 1 秒)だけ待ち、UNIX 版と同じ文面(`  [extract] 実行中...`、`  [extract] 終了コード N で終わります`)を出す。
-- [ ] 先頭に Apache のライセンスヘッダ(`REM`)と、日本語のコメントを付ける(NFR2)。
+- [x] `demo/windows/scripts/extract.cmd`、`transform.cmd`、`load.cmd`、`notify.cmd` を作る(FR1.2、FR2.2、FR2.3)。
+- [x] 各ジョブは、`DEMO_<ジョブ名>_EXIT`(既定 0)で終了コードを決め、`DEMO_SLEEP`(既定 1 秒)だけ待ち、UNIX 版と同じ文面(`  [extract] 実行中...`、`  [extract] 終了コード N で終わります`)を出す。
+- [x] 先頭に Apache のライセンスヘッダ(`REM`)と、日本語のコメントを付ける(NFR2)。
 
-### Step 3: 定義ファイル `demo/windows/conductor.toml` を実装する [ ]
+### Step 3: 定義ファイル `demo/windows/conductor.toml` を実装する [x]
 
-- [ ] UNIX 版と同じパイプライン `nightly`(`extract`、`transform`、`load`、`notify`)を書く(FR1.3)。
-- [ ] `extract` は `warning_exit_codes = [1]` と、警告のときの遷移(`next = "notify"`)を持つ。
-- [ ] 文字列の `command` は `scripts\extract.cmd` の形(バックスラッシュは、そのままの文字として扱われる)。TOML の書き方は、リテラル文字列(`'...'`)にして、バックスラッシュの重ねを避ける。
-- [ ] `notify` は、配列の `command`(`["cmd", "/c", "scripts\\notify.cmd"]`)で書き、UNIX 版と同じ「配列でも書ける」の見せ場を残す(FR1.3)。
+- [x] UNIX 版と同じパイプライン `nightly`(`extract`、`transform`、`load`、`notify`)を書く(FR1.3)。
+- [x] `extract` は `warning_exit_codes = [1]` と、警告のときの遷移(`next = "notify"`)を持つ。
+- [x] 文字列の `command` は `scripts\extract.cmd` の形(バックスラッシュは、そのままの文字として扱われる)。TOML の書き方は、リテラル文字列(`'...'`)にして、バックスラッシュの重ねを避ける。
+- [x] `notify` は、配列の `command`(`["cmd", "/c", "scripts\\notify.cmd"]`)で書き、UNIX 版と同じ「配列でも書ける」の見せ場を残す(FR1.3)。
 
-### Step 4: 実行スクリプト `demo/windows/run-demo.cmd` を実装する [ ]
+### Step 4: 実行スクリプト `demo/windows/run-demo.cmd` を実装する [x]
 
-- [ ] 一時ディレクトリ(`%TEMP%` の下)に、`conductor.toml` と `scripts\` を写して、そこで動かし、終わりに後片付けをする(FR2.6)。
-- [ ] `CONDUCTOR` が未指定のとき、`target\release\conductor.exe` を使う。無ければ `cargo build --release --locked --bin conductor` でビルドする(FR2.5)。
-- [ ] 言語: 既定は日本語。`DEMO_LANG`(例 `en_US`)で切り替える。切り替えの方法(`LANG` などの環境変数)は、Windows の `conductor` の言語判定を確かめてから決める(FR2.7)。
-- [ ] 場面 0〜6 を、UNIX 版と同じ順に、同じ見出しで見せる(FR2.1)。各コマンドの前に `$ <コマンド>`、後に `→ 終了コード N` を出す。
-- [ ] 場面 2・3 は、環境変数を、その場面のコマンドの中だけに効かせる(`setlocal` と `endlocal`)。
-- [ ] `DEMO_PAUSE=1` のとき、各場面の後で Enter を待つ(`pause` ではなく `set /p`。メッセージを UNIX 版に合わせる)(FR2.4)。
+- [x] 一時ディレクトリ(`%TEMP%` の下)に、`conductor.toml` と `scripts\` を写して、そこで動かし、終わりに後片付けをする(FR2.6)。
+- [x] `CONDUCTOR` が未指定のとき、`target\release\conductor.exe` を使う。無ければ `cargo build --release --locked --bin conductor` でビルドする(FR2.5)。
+- [x] 言語: 既定は日本語。`DEMO_LANG`(例 `en_US`)で切り替える。切り替えの方法(`LANG` などの環境変数)は、Windows の `conductor` の言語判定を確かめてから決める(FR2.7)。
+- [x] 場面 0〜6 を、UNIX 版と同じ順に、同じ見出しで見せる(FR2.1)。各コマンドの前に `$ <コマンド>`、後に `→ 終了コード N` を出す。
+- [x] 場面 2・3 は、環境変数を、その場面のコマンドの中だけに効かせる(`setlocal` と `endlocal`)。
+- [x] `DEMO_PAUSE=1` のとき、各場面の後で Enter を待つ(`pause` ではなく `set /p`。メッセージを UNIX 版に合わせる)(FR2.4)。
 
-### Step 5: 統合テストを書いて実行する(実装の後)[ ]
+### Step 5: 統合テストを書いて実行する(実装の後)[x]
 
-- [ ] `crates/cli/tests/windows_demo.rs` を新しく作る。`#[cfg(windows)]` で、Windows のときだけ動かす。既存の `bin_support` を使う。
-- [ ] テスト 1(FR1.3): `demo/windows/conductor.toml` が、`convert`(または読み込み)で、4 つのジョブと、`extract` の警告の遷移を持つ。
-- [ ] テスト 2(FR2.1 場面 1): 全部成功 → 終了コード 0。
-- [ ] テスト 3(FR2.1・FR2.2 場面 2): `DEMO_EXTRACT_EXIT=1` → 警告で `notify` へ進み、終了コード 0。
-- [ ] テスト 4(FR2.1・FR2.2 場面 3・4): `DEMO_LOAD_EXIT=2` → 終了コード 2。そのあと、環境変数なしでもう一度 → `load` から再開して完了。
-- [ ] テスト 5(FR2.1 場面 5・6): `run` と `reset`、`convert --to yaml` が、終了コード 0。
-- [ ] 既存の `cargo test` が通ることを確かめる(NFR4)。単体の実行コマンドは `unit-test-instructions.md` に書く。
+- [x] `crates/cli/tests/windows_demo.rs` を新しく作る。`#[cfg(windows)]` で、Windows のときだけ動かす。既存の `bin_support` を使う。
+- [x] テスト 1(FR1.3): `demo/windows/conductor.toml` が、`convert`(または読み込み)で、4 つのジョブと、`extract` の警告の遷移を持つ。
+- [x] テスト 2(FR2.1 場面 1): 全部成功 → 終了コード 0。
+- [x] テスト 3(FR2.1・FR2.2 場面 2): `DEMO_EXTRACT_EXIT=1` → 警告で `notify` へ進み、終了コード 0。
+- [x] テスト 4(FR2.1・FR2.2 場面 3・4): `DEMO_LOAD_EXIT=2` → 終了コード 2。そのあと、環境変数なしでもう一度 → `load` から再開して完了。
+- [x] テスト 5(FR2.1 場面 5・6): `run` と `reset`、`convert --to yaml` が、終了コード 0。
+- [x] 既存の `cargo test` が通ることを確かめる(NFR4)。単体の実行コマンドは `unit-test-instructions.md` に書く。
 
-### Step 6: Windows 実機で、デモを最後まで動かす [ ]
+### Step 6: Windows 実機で、デモを最後まで動かす [x]
 
-- [ ] このマシン(Windows 11)で、`demo\windows\run-demo.cmd` を最後まで動かし、場面 0〜6 の表示と終了コードが、README の説明と合うことを確かめる(NFR3)。`DEMO_PAUSE=1` と `DEMO_LANG` も、1 回ずつ確かめる。
-- [ ] 前提 A2(Windows の `watch` は色なし)と A1(整数の秒)が、実際にその通りか確かめ、違えば README の書き方に反映する。
+- [x] このマシン(Windows 11)で、`demo\windows\run-demo.cmd` を最後まで動かし、場面 0〜6 の表示と終了コードが、README の説明と合うことを確かめる(NFR3)。`DEMO_PAUSE=1` と `DEMO_LANG` も、1 回ずつ確かめる。
+- [x] 前提 A2(Windows の `watch` は色なし)と A1(整数の秒)が、実際にその通りか確かめ、違えば README の書き方に反映する。
 
-### Step 7: 案内を更新する(`demo/README.md` だけ)[ ]
+### Step 7: 案内を更新する(`demo/README.md` だけ)[x]
 
-- [ ] `demo/README.md` の見出しの文と、使い方に、Windows 版(`demo\windows\run-demo.cmd`)を並べて書く(FR3.1)。
-- [ ] 「Windows では、`sh` のスクリプトは動きません。…書き換えてください」の一文は、Windows 版の案内に書き換える(FR3.1)。
-- [ ] Windows 版の違い(`DEMO_SLEEP` は整数の秒、`watch` の色なし、`DEMO_LANG` の書き方)を、短く書く。
-- [ ] ルートの `README.md` は、変えない(FR3.2)。
+- [x] `demo/README.md` の見出しの文と、使い方に、Windows 版(`demo\windows\run-demo.cmd`)を並べて書く(FR3.1)。
+- [x] 「Windows では、`sh` のスクリプトは動きません。…書き換えてください」の一文は、Windows 版の案内に書き換える(FR3.1)。
+- [x] Windows 版の違い(`DEMO_SLEEP` は整数の秒、`watch` の色なし、`DEMO_LANG` の書き方)を、短く書く。
+- [x] ルートの `README.md` は、変えない(FR3.2)。
 
-### Step 8: 整形・lint と、既存テスト [ ]
+### Step 8: 整形・lint と、既存テスト [x]
 
-- [ ] `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test` が通る(NFR4)。
+- [x] `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test` が通る(NFR4)。
 
-### Step 9: 記録 [ ]
+### Step 9: 記録 [x]
 
-- [ ] `code-summary.md` と `traceability.json` を書く。
+- [x] `code-summary.md` と `traceability.json` を書く。
 
 ## 要件との対応
 
@@ -96,3 +96,70 @@
 ## 決めておくこと(確認のうえで、実装の中で決める)
 
 - `demo/README.md` は、作業の前から、プロジェクトにあるファイルである。この作業では、要件 FR3.1 のとおり、Windows の案内に必要な部分だけを書き換える。
+
+## Testing Contract
+
+```json
+{
+  "version": 1,
+  "methodology": "test-after",
+  "source": "team",
+  "ordering": "各テスト可能な層を実装してから、その層のテストを書いて実行する。",
+  "scope": "express",
+  "test_strategy": "minimal",
+  "project_type": "brownfield",
+  "applicable_notes": [
+    {
+      "layer": "org",
+      "text": "We treat tests as a first-class deliverable in every Bolt. The specific\nmethodology (TDD, BDD, ATDD, or classic test-after) is affirmed at\npractices-discovery and recorded in `team.md` under this heading with explicit\n`Methodology` and `Ordering` fields; Code Generation resolves those fields\nindependently from coverage, tooling, and scope notes.\n\nWhen no posture has been affirmed, our default per scope is:\n- **Methodology**: test-after\n- **Ordering**: implement each applicable testable layer, then write and run\n  that layer's tests.\n- `mvp`, `enterprise`, `feature`, `infra` add an 80% line-coverage\n  floor and CI execution before merge.\n- `bugfix`, `security-patch` add a targeted regression for the specific\n  bug/vulnerability and require the existing suite to remain green.\n- `express` uses the Minimal strategy: requirement-driven unit tests (one per\n  requirement, with a happy-path floor per component); existing tests remain\n  green.\n- `poc`, `refactor`, `workshop`, `classic` add no extra new-test floor and require the\n  existing suite to remain green.\n\nThe active `Test Strategy` still applies in every scope and determines test\nvolume/types. Scope floors are additive; they never reduce or replace the\nselected strategy.\n\nBuild and Test verifies defined coverage floors and affirmed quality targets;\nthey may not be weakened to make a step pass.\n\nAffirm a stricter posture in `team.md` if the team commits to one."
+    },
+    {
+      "layer": "team",
+      "text": "- **Methodology**: test-after\n- **Methodology evidence**: インタビュー Q3 で、チームは test-after(実装してからテストを書く)を選んだ。\n- **Ordering**: 各テスト可能な層を実装してから、その層のテストを書いて実行する。\n- `cargo test` による単体テストと、バイナリを実行する統合テストを含める。\n- 行カバレッジ 80% を下限とする(インタビュー Q4: A)。\n- 主な開発環境の OS では、ローカルでテストを実行する。それ以外の OS(Linux・macOS・Windows のうち該当するもの。制約 C3)のテストは、GitHub Actions の CI で実行する。マージ前に CI を通す。"
+    }
+  ],
+  "obligations": {
+    "strategy": "minimal",
+    "strategy_volume": [
+      "One verifiable test per requirement at the narrowest effective level.",
+      "At least one happy-path unit test per component.",
+      "Unit tests are the default; a bugfix/security scope floor may require an integration or E2E regression when that is the narrowest level that reproduces the defect."
+    ],
+    "scope_floor": [
+      "Keep the existing test suite green.",
+      "This scope adds no extra new-test floor beyond the selected test strategy."
+    ],
+    "combination_rule": "Apply every selected-strategy obligation and every scope-floor obligation; neither replaces the other, and a targeted scope regression may add the narrowest necessary test type beyond the strategy default."
+  },
+  "plan_profile": {
+    "methodology": "test-after",
+    "runner_step": "Verify the existing test runner/configuration and record the exact unit-scoped command.",
+    "runner_ready_before_first_test": true,
+    "testable_layers": [
+      "Data model / database behavior",
+      "Repository / data access",
+      "Business logic",
+      "API / endpoint",
+      "Frontend behavior"
+    ],
+    "steps": [
+      "Project structure and production configuration skeleton.",
+      "Verify the existing test runner/configuration and record the exact unit-scoped command.",
+      "Data model / database behavior - implement.",
+      "Data model / database behavior - write and run its tests after implementation.",
+      "Repository / data access - implement.",
+      "Repository / data access - write and run its tests after implementation.",
+      "Business logic - implement.",
+      "Business logic - write and run its tests after implementation.",
+      "API / endpoint - implement.",
+      "API / endpoint - write and run its tests after implementation.",
+      "Frontend behavior - implement.",
+      "Frontend behavior - write and run its tests after implementation.",
+      "Environment/build configuration.",
+      "Documentation and traceability."
+    ]
+  },
+  "input_sha256": "sha256:47c2e6e6f234580fd227d246415c56f693b43f2a7953fee56ef7217b54cbd097",
+  "contract_sha256": "sha256:3e75c1c022f49e57c8d1612ebaf8b3e7016754454c19abb2dc7f313d6288a4e3"
+}
+```

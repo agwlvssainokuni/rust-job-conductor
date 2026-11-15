@@ -744,3 +744,162 @@
 **Context**: construction > code-generation > unit-test-instructions.md
 
 ---
+
+## Plan Approval Skipped
+**Timestamp**: 2026-11-15T05:49:16Z
+**Event**: PLAN_APPROVAL_SKIPPED
+**Stage**: code-generation
+**Details**: Plan approval off
+**Checkpoint**: plan-approval
+**Plan Target**: stage:code-generation
+**Intent**: 01a1ddb9-82a4-7c16-be47-679c0ad00479
+**Directive Epoch**: sha256:c31aa2318c7cdf362cb77ff230631b7ee08af040605e65d956f08b3f999140d5
+**Run floor**: STAGE_STARTED:2026-11-15T05:48:03Z#1
+**Approval Fingerprint**: sha256:v3:97bbc6684d288b22cbeef6f3f78338eb2d204e83d1e8e228eeaccd8c978347f9
+**Questions File**: aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/code-generation-questions.md
+**Questions SHA-256**: 46ecd043d7da3695fd6cfc1019d4c97e6ce5c0ecf41cc49e0e7e2010b1ff5e05
+**Prompt SHA-256**: c5fea8be83c17a9ffdef4dc9685477f991ad8bbdffd7fd3e8749c298d5a98f2b
+**Source**: scope express
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-15T05:49:37Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-developer-agent
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-15T05:49:38Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Agent
+**Details**: dispatch of aidlc-developer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:49:42Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a05b4772281c80314
+**Message**: 進めて
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:50:10Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a1839aed444781537
+**Message**: Checking locale detection in report/mod.rs
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:50:42Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a11bf069b9fe619cc
+**Message**: Writing run-demo.cmd script
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:51:13Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a24c39f39e1c33d2d
+**Message**: Running run-demo.cmd end-to-end
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:51:45Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a2261ce698ce12d88
+**Message**: Checking git status of demo files
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:52:16Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a82e64918d7cb50a7
+**Message**: Editing demo/README.md usage block
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:52:48Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a502f8889aacb0420
+**Message**: Ticking boxes in code-generation-plan.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-15T05:52:54Z
+**Event**: HOST_TURN
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-15T05:52:55Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a1cf8b2727c4ecbbd
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T05:53:07Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/traceability.json
+**Context**: construction > code-generation > traceability.json
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T05:53:16Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/code-summary.md
+**Context**: construction > code-generation > code-summary.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-15T05:53:22Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-15T05:53:26Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: main
+**Stage**: code-generation
+**Tool**: Bash
+**Details**: cd <project-dir> && git add -A && git commit -q -m "AI-DLC: windows-demo の code-generation の初稿(Windows 向けデモ)\n\nCo-Authored-By: Clau
+
+---

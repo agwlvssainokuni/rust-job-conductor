@@ -1,0 +1,29 @@
+format_version = 1
+
+[pipeline]
+name = "nightly"
+description = "デモ用の夜間バッチ(Windows 版)"
+
+# 抽出: 終了コード 1 は「警告」。警告のときは、変換と読み込みをスキップして、通知へ進む。
+# `command` の文字列では、バックスラッシュは、そのままの文字として扱われる。
+[[job]]
+id = "extract"
+command = 'scripts\extract.cmd'
+warning_exit_codes = [1]
+
+[[job.transitions]]
+on = "warning"
+next = "notify"
+
+[[job]]
+id = "transform"
+command = 'scripts\transform.cmd'
+
+[[job]]
+id = "load"
+command = 'scripts\load.cmd'
+
+[[job]]
+id = "notify"
+# `command` は、文字列の配列でも書ける(1 要素が 1 引数。分割も展開もしない)。
+command = ["cmd", "/c", "scripts\\notify.cmd"]
