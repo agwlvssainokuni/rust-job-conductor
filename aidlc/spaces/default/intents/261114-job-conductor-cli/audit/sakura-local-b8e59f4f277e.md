@@ -22925,3 +22925,117 @@
 **Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
 
 ---
+
+## Change Accepted
+**Timestamp**: 2026-11-15T01:10:24Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: functional-design
+**Unit**: u3-cli
+**Checkpoint**: review-receipt
+**Changed**: (paths unavailable)
+**Recorded**: sha256:7d62c662652af2f569174e273e7cd5c422b1ff679e3e558de7257071c5d520e2
+**Current**: sha256:66e679c7b06d44f1ef49e035f5ba2058f1a99096d122adf6f1b8e91c6148a7b2
+**Details**: The cli Unit's Functional Design documents changed after they were reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-15T01:10:24Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: nfr-requirements
+**Unit**: u3-cli
+**Checkpoint**: review-receipt
+**Changed**: (paths unavailable)
+**Recorded**: sha256:174128ee9af724318ac500fad83904d06707bc430e89f7704fffeb4174cf877c
+**Current**: sha256:a51b2dda2b91f3a2eded6336111baea176bddf868960ae64b1b10249eb851c3c
+**Details**: The cli Unit's NFR Requirements documents changed after they were reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-15T01:10:24Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: nfr-design
+**Unit**: u3-cli
+**Checkpoint**: review-receipt
+**Changed**: (paths unavailable)
+**Recorded**: sha256:d6ef192d1ece663efbb2b8561cd9fdde278ba34a619e8fcfafe855f61f41b794
+**Current**: sha256:1f07bab9d0b061b161d3515b75302d7abf31ebf787b59474f083fb4a9e84fafa
+**Details**: The cli Unit's NFR Design documents changed after they were reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-15T01:10:24Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: infrastructure-design
+**Unit**: u3-cli
+**Checkpoint**: review-receipt
+**Changed**: (paths unavailable)
+**Recorded**: sha256:49717b8be810f0684a744b52e5915808beb75052ad19ebea8e4b2af1f5007776
+**Current**: sha256:da13e7326b0a179c5c99685e0ee526868a187e0ff3444ec8528e9321c20aa3b7
+**Details**: The cli Unit's Infrastructure Design documents changed after they were reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-15T01:10:24Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Unit**: u3-cli
+**Checkpoint**: review-receipt
+**Changed**: (paths unavailable)
+**Recorded**: sha256:b0be3ff08ae037dad6a6eb5505f14634f9942db4a134b887d5936e2cb99e642a
+**Current**: sha256:b2b2b3f44c44b0e9f85260eefe3154f52452830a844de080186f163698251bbb
+**Details**: The cli Unit's Code Generation documents changed after they were reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-15T01:10:24Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Unit**: u3-cli
+**Checkpoint**: review-receipt
+**Changed**: README.md, crates/u3-cli/src/bin/conductor-cli-test-helper.rs, crates/u3-cli/src/deps.rs, crates/u3-cli/src/main.rs, crates/u3-cli/src/pipeline.rs, crates/u3-cli/src/platform/unix.rs, crates/u3-cli/src/run.rs, crates/u3-cli/tests/flow_pipeline.rs, crates/u3-cli/tests/flow_run.rs, crates/u3-cli/tests/signals_order.rs
+**Recorded**: sha256:8b973e5e73448ab670e2c2596acb967878cd76f35a0ee905169fb6062020f54a
+**Current**: sha256:434065e78ab3784c3a24627c7153980b2e2cf0cdff4a83cbc4c923c5da37aceb
+**Details**: README.md, crates/u3-cli/src/bin/conductor-cli-test-helper.rs, crates/u3-cli/src/deps.rs, crates/u3-cli/src/main.rs, crates/u3-cli/src/pipeline.rs, crates/u3-cli/src/platform/unix.rs, crates/u3-cli/src/run.rs, crates/u3-cli/tests/flow_pipeline.rs, crates/u3-cli/tests/flow_run.rs, crates/u3-cli/tests/signals_order.rs changed after the cli Unit was reviewed; carrying on.
+
+---
+
+## Checkpoint Verification Recorded
+**Timestamp**: 2026-11-15T01:10:41Z
+**Event**: CHECKPOINT_VERIFICATION_RECORDED
+**Unit**: u3-cli
+**Kind**: unit
+**Stage**: code-generation
+**Stages**: functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation
+**Verification Id**: aa0aaba0-4b95-4d87-b7dc-8728d43bd7ed
+**Fingerprint**: sha256:8f9da472719a8f03246185598708d02ae8f0635fd6739410172f8bda7c9a08e1
+**Command SHA-256**: 0a8993d912bfc0f06970313fbbbbc38b1d85b2a85ad570654a2ce4e091cbfafa
+**Exit Code**: 0
+**Verified**: true
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-15T01:10:50Z
+**Event**: GATE_APPROVED
+**Unit**: u3-cli
+**Stage**: code-generation
+**Stages**: functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation
+**Gate Stages**: functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation
+**Gate Scope**: unit-end
+**Checkpoint**: construction-unit
+**Fingerprint**: sha256:8f9da472719a8f03246185598708d02ae8f0635fd6739410172f8bda7c9a08e1
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+**Run floors**: {"functional-design":"WORKFLOW_STARTED:2026-11-14T13:29:19Z#1","nfr-requirements":"WORKFLOW_STARTED:2026-11-14T13:29:19Z#1","nfr-design":"WORKFLOW_STARTED:2026-11-14T13:29:19Z#1","infrastructure-design":"WORKFLOW_STARTED:2026-11-14T13:29:19Z#1","code-generation":"WORKFLOW_STARTED:2026-11-14T13:29:19Z#1"}
+**Verification Command SHA-256**: 0a8993d912bfc0f06970313fbbbbc38b1d85b2a85ad570654a2ce4e091cbfafa
+**Verification Id**: aa0aaba0-4b95-4d87-b7dc-8728d43bd7ed
+**Approved Evidence**: {"functional-design":["sha256:7d62c662652af2f569174e273e7cd5c422b1ff679e3e558de7257071c5d520e2",null],"nfr-requirements":["sha256:174128ee9af724318ac500fad83904d06707bc430e89f7704fffeb4174cf877c",null],"nfr-design":["sha256:d6ef192d1ece663efbb2b8561cd9fdde278ba34a619e8fcfafe855f61f41b794",null],"infrastructure-design":["sha256:49717b8be810f0684a744b52e5915808beb75052ad19ebea8e4b2af1f5007776",null],"code-generation":["sha256:b0be3ff08ae037dad6a6eb5505f14634f9942db4a134b887d5936e2cb99e642a","sha256:8b973e5e73448ab670e2c2596acb967878cd76f35a0ee905169fb6062020f54a"]}
+**Autonomous**: true
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:3d7d4524125518868b20fec7c0459f7669ddff677c969933b4b7d0c63f235ba5","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:ae2eee963d2c6c6578a76e09b33f08d35bf04babf7a269bfbf6bedababe7aeb0"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/code-generation/code-generation-plan.md","id":"R-02","fingerprint":"sha256:6f8582c7e9b8c64dfbf0d41b56eb2fcc302810240c905bf81e052c331f39dc62","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:ae2eee963d2c6c6578a76e09b33f08d35bf04babf7a269bfbf6bedababe7aeb0"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/code-generation/code-generation-plan.md","id":"R-03","fingerprint":"sha256:50473f41f13a51aca13a694ade7148df8674f7344bbde826438fbf27b4387e5c","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:ae2eee963d2c6c6578a76e09b33f08d35bf04babf7a269bfbf6bedababe7aeb0"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/code-generation/code-generation-plan.md","id":"R-04","fingerprint":"sha256:1cf5e64e4d9a6dfa6e2e5545d138c71d1bfe29a2d379cc076834134916e177cd","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:ae2eee963d2c6c6578a76e09b33f08d35bf04babf7a269bfbf6bedababe7aeb0"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/code-generation/code-generation-plan.md","id":"R-05","fingerprint":"sha256:d51e0a0f4705c0922238efcaefdbf7448469095e11bf732af304c15180d8e388","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:ae2eee963d2c6c6578a76e09b33f08d35bf04babf7a269bfbf6bedababe7aeb0"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/code-generation/code-generation-plan.md","id":"R-06","fingerprint":"sha256:5e7b86ed6cc3c2e5ece6bf7763f46db70a298344b3467a5a55021d0800d8edb8","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:ae2eee963d2c6c6578a76e09b33f08d35bf04babf7a269bfbf6bedababe7aeb0"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:808aa92e0fe4507235999df354b5daa5069ae9b5fb4bd640a82b41ed5476ed0c","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:e28ae62d3c0a106440e32a6cf2249f385520a536fed09e3f46d1e9510fad176e","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:6533ed12c1fa99ef24d2837374e73cb1b244d940cec1cadd6855659aaba2a744","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-04","fingerprint":"sha256:9da5805b1c0a132490217da46b39d36a2d3d2d05d1218767d8366ecf3fcf089a","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:991bd6869a608e91d292d5aa89661e2f4c4e47b1dc0722af473394bed4ec509f","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-06","fingerprint":"sha256:e1d5f2f01cdf4fd55b5fea9337ade6a43bce1e30cfe5b70f180c4f5961a78b96","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-07","fingerprint":"sha256:83f2aa36f93417cbc04d3edfb9a79da238743e962ee59914cd45bb6ec7889e33","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-08","fingerprint":"sha256:fd6e2b58de0caacf22e18c3b688ab02ca6539a210835daf1104b8a8375931d80","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-09","fingerprint":"sha256:c4a59a677a8a526311404a7bb111275dc07ff389935fb0888657940f3c1cfdfd","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-10","fingerprint":"sha256:834bf2fa52af949c0ce4cd50c0a46413f6ccebc5f47cbe904e6ba7ec1c34845d","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/functional-design/functional-spec.md","id":"R-11","fingerprint":"sha256:355e985dedd36968056ae00859e083814b9430da57360fcf13bf7c290e86cbb1","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-cli/889de73d10f64068/1.json","digest":"sha256:da23c0e47a9387b1ad055258c44651c590cc96a4fc48e37d44d5cd955dc4bad3"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/infrastructure-design/cicd-pipeline.md","id":"R-04","fingerprint":"sha256:bff1c4b3fbc66b57165e28a9b73a74b31da3394e3f934e4ba4d8545adfe5da15","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/infrastructure-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:32a8c8f3b882958fb4c2c1eb0e5270184021f739516693e6d6896773ca27172f"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/infrastructure-design/cicd-pipeline.md","id":"R-09","fingerprint":"sha256:0198d96cba7b3b40b0a9591e742d0b1aea931daadf6572db7a2b009ea08e5be9","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/infrastructure-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:32a8c8f3b882958fb4c2c1eb0e5270184021f739516693e6d6896773ca27172f"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/infrastructure-design/cicd-pipeline.md","id":"R-10","fingerprint":"sha256:68c10a760402c96328763c6b53e95903586e4394b013b8c3534ae9907eaaa8fd","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/infrastructure-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:32a8c8f3b882958fb4c2c1eb0e5270184021f739516693e6d6896773ca27172f"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/infrastructure-design/cicd-pipeline.md","id":"R-11","fingerprint":"sha256:0952c0950f409e97919103c2bd7882faec5142295f6d3df60bec56902fab8840","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/infrastructure-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:32a8c8f3b882958fb4c2c1eb0e5270184021f739516693e6d6896773ca27172f"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/infrastructure-design/cicd-pipeline.md","id":"R-12","fingerprint":"sha256:90b04232563cebe159765482f72bfeff3bd4e819a8803e3c25ce82967ce5c7e4","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/infrastructure-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:32a8c8f3b882958fb4c2c1eb0e5270184021f739516693e6d6896773ca27172f"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/security-design.md","id":"R-01","fingerprint":"sha256:a07a88a115e2e578691a932945c97bc09cf0b5861790d3d6f63383533eb5fba6","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:e94aff03f9216902eb3eb495e2cdae0287cf5538419fb20cacd54deaad8fa1ee"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/security-design.md","id":"R-09","fingerprint":"sha256:cb6425f51fc65c49aa9b1e395efb19df14deb8c40434d6846a3c8f374f973cce","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:e94aff03f9216902eb3eb495e2cdae0287cf5538419fb20cacd54deaad8fa1ee"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/security-design.md","id":"R-10","fingerprint":"sha256:826bd1a5e70579e559170f0288617d3561b752db6c1689a8012c851aa4fee75b","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:e94aff03f9216902eb3eb495e2cdae0287cf5538419fb20cacd54deaad8fa1ee"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/security-design.md","id":"R-11","fingerprint":"sha256:a9fa6366d1b22705597c727a679f95d4e744449fb61d933938f5ac7b581c9adf","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:e94aff03f9216902eb3eb495e2cdae0287cf5538419fb20cacd54deaad8fa1ee"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-02","fingerprint":"sha256:5d526b7786ffb97fe3787cfcb48a1cdec9b572de67253d22c0baaaeba16410c6","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-09","fingerprint":"sha256:3ae4ab8eaa2f6528fd9dea8df6f2a55b1a2a890fbc7d37c44e3da6c83cea830f","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-10","fingerprint":"sha256:afe1b44057c681b1055db90c1a4ab4586d4b1c00c5c311b069d5aa3c353f48f7","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-11","fingerprint":"sha256:c3e76b0b681222373e4934e2b95c9ce3fee40e580f9ea6eff3fa52fa41d0ba8e","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-12","fingerprint":"sha256:63c9f9d3187bda2ead0b8fc6443935ada89397f5c6f217521f930861ba8a8591","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-13","fingerprint":"sha256:fba16e334b1393cd9e2dd8b4b586a4147751cac56e1efaedb08b34c604b70a50","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}},{"artifact":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-requirements/security-requirements.md","id":"R-14","fingerprint":"sha256:24d8a82e4e6af7c1994904ddf777e68ede1c37cf8ae94358564febaa6e13f120","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u3-cli/889de73d10f64068/2.json","digest":"sha256:bf652be59c0c83872d0e138bc4cb947423ea2af5be9b3f25e830017b8019bcaf"}}]}
+
+---
