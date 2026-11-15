@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  build-check:
+    name: build-check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    steps:
+      - uses: actions/checkout@v4
+      # 最小の Rust(rust-version = 1.85)で、全ターゲットがビルドできること
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: cargo build --workspace --locked --all-targets
+      - name: dependencies must not need a C build
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if cargo tree -p conductor-cli -e normal,build --locked | grep -E '(^|[ │├└─])(cc|cmake|pkg-config|bindgen) v'; then
+            echo "C build dependency found"; exit 1
+          fi
+          if cargo tree --workspace -e normal --locked | grep -E -- '-sys v' | grep -v -E '(linux-raw-sys|windows-sys) v'; then
+            echo "-sys crate found in runtime dependencies"; exit 1
+          fi
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace --locked
+
+  # 最小の Rust 1.85 でも、テストが通ること(ビルドだけでなく、実行も)
+  msrv-test:
+    name: msrv-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: cargo test --workspace --locked
+
+  # 行カバレッジが 80% 未満なら失敗(要件 NFR5)
+  coverage:
+    name: coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - name: line coverage must be at least 80%
+        run: >
+          cargo llvm-cov --workspace --locked
+          --ignore-filename-regex 'bin/conductor-(cli-)?test-helper'
+          --fail-under-lines 80
+          --summary-only
+
+  docs-check:
+    name: docs-check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: README must keep the required sections
+        shell: bash
+        run: |
+          fail=0
+          for pat in 'SHA-256' 'Gatekeeper' '終了コードの表' 'ステートファイルの場所' 'at-least-once' 'シグナル' 'convert'; do
+            if ! grep -q -- "$pat" README.md; then echo "README.md is missing: $pat"; fail=1; fi
+          done
+          exit $fail
+
+  # 起動のオーバーヘッドの測定。基準を超えても、警告のみ(強制は STARTUP_BENCH_ENFORCE=true のとき)
+  startup-bench:
+    name: startup-bench (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
+    env:
+      STARTUP_BENCH_ENFORCE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test -p conductor-cli --release --locked --test nfr_perf -- --nocapture
