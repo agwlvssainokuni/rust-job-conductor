@@ -31,7 +31,7 @@
 ### T2 シグナルは `signal-hook`(UNIX 系)と `ctrlc`(Windows) [Q2: A]
 
 - **Context:** 受け取ったシグナルの番号を知り(UNIX 系)、ハンドラの中で、安全な操作だけをしたい。この Unit に `unsafe` を置きたくない。
-- **Decision:** UNIX 系は `signal-hook`(フラグの登録、またはイテレータで番号を得る)、Windows は `ctrlc`(Ctrl+C)。
+- **Decision:** UNIX 系は `signal-hook` の `Signals`(イテレータ)を、専用のスレッドで回して、番号を得る。Windows は `ctrlc`(Ctrl+C)。受け取った番号のうち、最初の1つだけを、合図に書く。
 - **Consequences:** 良い点は、`unsafe` を自分で書かず、実績に頼れる。悪い点は、依存が2つ増え、OS ごとに別のライブラリを使う(`cfg` で分ける)。
 - **Alternatives Rejected:** (B) `libc` で、`sigaction` を自分で書く: 依存は増えないが、この Unit に `unsafe` が増え、ハンドラの安全性を、自分で守る必要がある。
 
