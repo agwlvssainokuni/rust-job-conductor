@@ -23863,3 +23863,93 @@
 **Stage**: build-and-test
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T01:30:47Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/ci-pipeline/ci-pipeline-questions.md
+**Context**: construction > ci-pipeline > ci-pipeline-questions.md
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T01:32:15Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. 5つすべてをブロック(推奨)","B. cargo audit を警告として(推奨)","A. vタグ、版の一致、下書き(推奨)"]
+**Message Id**: 61f4a50e
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/ci-pipeline/ci-pipeline-questions.md","entries":{"Q1":"f97cbdc851c63542","Q2":"d374690acc986978","Q3":"f4dbcb9791a593c0","Consolidated Summary Confirmation":"5452ada3c15bf595"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T01:32:15Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Q1. [品質の関門] マージ前に必ず通す CI のジョブは?
+**Reply**: A. 5つすべてをブロック(推奨)
+**Options**: ["A. 5つすべてをブロック(推奨)","B. 1.85 のビルドをブロックにしない","C. Not yet defined"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T01:32:15Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Q2. [依存の検査] 依存の脆弱性やライセンスの検査は?
+**Reply**: B. cargo audit を警告として(推奨)
+**Options**: ["B. cargo audit を警告として(推奨)","A. 検査しない","C. cargo deny をブロックに"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T01:32:15Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Q3. [リリース] タグの付け方と、リリース前の確認は?
+**Reply**: A. vタグ、版の一致、下書き(推奨)
+**Options**: ["A. vタグ、版の一致、下書き(推奨)","B. 自動で公開","C. Not yet defined"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-15T01:32:23Z
+**Event**: QUESTION_ANSWERED
+**Stage**: ci-pipeline
+**Details**: Q1: A, Q2: B, Q3: A
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T01:32:48Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: ea74f079
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/ci-pipeline/ci-pipeline-questions.md","entries":{"Q1":"f97cbdc851c63542","Q2":"d374690acc986978","Q3":"f4dbcb9791a593c0","Consolidated Summary Confirmation":"5452ada3c15bf595"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T01:32:48Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Does this all look correct before I generate the artifact?\n\nCI Pipeline の回答: Q1=A(fmt、clippy、3 OS のテスト、Rust 1.85、カバレッジ 80% をすべてブロック)、Q2=B(cargo audit を警告として)、Q3=A(vタグ、版の一致、下書きのリリース)。生成するのは ci-config.md と quality-gates.md(と、GitHub Actions のワークフロー)です。
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Error Logged
+**Timestamp**: 2026-11-15T01:32:53Z
+**Event**: ERROR_LOGGED
+**Tool**: aidlc-log
+**Command**: aidlc-log engine log answer --stage ci-pipeline --checkpoint summary-confirmation --details Looks correct --message ea74f079
+**Error**: Summary confirmation requires --questions-file <path> so the receipt can bind to the reviewed answers.
+
+---
