@@ -1,0 +1,164 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u3-cli",
+  "upstream_ids": [
+    "NFR1.1",
+    "NFR1.4",
+    "NFR1.5",
+    "NFR1.6",
+    "NFR1.3",
+    "NFR1.2",
+    "NFR4.1",
+    "NFR4.8",
+    "NFR4.2",
+    "NFR4.6",
+    "NFR4.3",
+    "NFR4.4",
+    "NFR4.7",
+    "NFR4.5",
+    "NFR2.2",
+    "NFR2.1",
+    "NFR3.1",
+    "NFR5.1",
+    "NFR6.1",
+    "NFR6.4",
+    "NFR2.8",
+    "NFR2.6",
+    "NFR2.4",
+    "NFR2.3",
+    "NFR2.5",
+    "NFR2.7"
+  ],
+  "coverage": [
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "cicd-pipeline の`startup-bench`(起動前 + ジョブのあいだの p95。3つの OS)と、monitoring-design のMetrics"
+    },
+    {
+      "id": "NFR1.4",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(成功の経路で、ロケールの判定と文言の用意が行われないテスト)"
+    },
+    {
+      "id": "NFR1.5",
+      "status": "OK",
+      "target": "cicd-pipeline の`startup-bench`(ジョブ 1,000 個の定義の起動の時間)"
+    },
+    {
+      "id": "NFR1.6",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(同じ定義に2つの run を同時に動かすテスト)"
+    },
+    {
+      "id": "NFR1.3",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(ジョブ実行中の CPU 時間と、出力がそのまま届くテスト)"
+    },
+    {
+      "id": "NFR1.2",
+      "status": "OK",
+      "target": "cicd-pipeline の`startup-bench`(内訳の記録)"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(引数の文法の表のテスト。終了コード 68)"
+    },
+    {
+      "id": "NFR4.8",
+      "status": "OK",
+      "target": "cicd-pipeline の「リリースのワークフロー」(4つの対象のビルド、`SHA256SUMS`、`gh release create`。版の一致の検査)"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(エスケープのテスト。4 Unit で揃えの表)"
+    },
+    {
+      "id": "NFR4.6",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(存在しない・ディレクトリ・権限なしのパスのテスト)"
+    },
+    {
+      "id": "NFR4.3",
+      "status": "OK",
+      "target": "cicd-pipeline の`build-check`(`unsafe`・`low_level` の検索)と `test`(シグナルを続けて送って、最初の番号が残るテスト)"
+    },
+    {
+      "id": "NFR4.4",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(convert の失敗で、標準出力が空のテスト)"
+    },
+    {
+      "id": "NFR4.7",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(閉じたパイプ、パニックのフックの単体テスト)"
+    },
+    {
+      "id": "NFR4.5",
+      "status": "OK",
+      "target": "cicd-pipeline の`build-check`(ネットワークのライブラリがない検索)"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(終了コードの表の全項目を、3つの OS で)"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "cicd-pipeline の`build-check`(`cargo tree -e normal,build` に C のコンパイルを要する依存がない)と、リリースのワークフローの、musl の静的リンク"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "cicd-pipeline の`build-check`(cfg の場所の検索)と `test`(3つの OS)"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "OK",
+      "target": "cicd-pipeline の`coverage`(Unit ごとに 80% 以上。Linux)と `test`"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(watch をファイルに出力したとき制御文字がない。NO_COLOR。Windows は色なし)"
+    },
+    {
+      "id": "NFR6.4",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(全種類のエラーで、表示が空でなく、場所を含むテスト)"
+    },
+    {
+      "id": "NFR2.8",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(版の違う定義とステートの、終了コードと表示のテスト)"
+    },
+    {
+      "id": "NFR2.6",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(全種類のエラーで、原因が標準エラーに出るテスト)"
+    },
+    {
+      "id": "NFR2.4",
+      "status": "OK",
+      "target": "cicd-pipeline の`docs-check`(保証の範囲を README に書くこと)"
+    },
+    {
+      "id": "NFR2.3",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(エラーのあと自動で再実行されないこと)"
+    },
+    {
+      "id": "NFR2.5",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(中断のテスト: 実行中・起動前・ジョブのあいだ。UNIX 系)"
+    },
+    {
+      "id": "NFR2.7",
+      "status": "OK",
+      "target": "cicd-pipeline の`test`(壊れた・食い違う・完了のまま残ったステートで、reset が動くテスト)"
+    }
+  ]
+}
