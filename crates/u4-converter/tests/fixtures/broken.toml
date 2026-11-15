@@ -3,5 +3,5 @@ format_version = 1
 [pipeline]
 name = "nightly"
 
-[[jobs]]
+[[job]]
 id = = "extract"

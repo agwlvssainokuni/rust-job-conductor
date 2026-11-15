@@ -25,12 +25,12 @@ fn kinds(text: &str) -> Vec<K> {
 #[test]
 fn br1_1_存在しない遷移先() {
     let t = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"zzz\"\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"zzz\"\n",
     );
     assert_eq!(run(&t), vec![(K::UnknownTarget, Some(9))]);
     // 受理: 後ろのジョブへ
     let ok = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"b\"\n[[jobs]]\nid = \"b\"\ncommand = \"c\"\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"b\"\n[[job]]\nid = \"b\"\ncommand = \"c\"\n",
     );
     assert!(run(&ok).is_empty());
 }
@@ -38,7 +38,7 @@ fn br1_1_存在しない遷移先() {
 #[test]
 fn br1_2_エラー結果への遷移() {
     let t = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"error\"\nnext = \"@end\"\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"error\"\nnext = \"@end\"\n",
     );
     assert_eq!(run(&t), vec![(K::ErrorTransition, Some(8))]);
 }
@@ -46,8 +46,8 @@ fn br1_2_エラー結果への遷移() {
 #[test]
 fn br1_3_自分自身と前のジョブへの遷移() {
     let t = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"a\"\n\
-         [[jobs]]\nid = \"b\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"warning\"\nnext = \"a\"\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"a\"\n\
+         [[job]]\nid = \"b\"\ncommand = \"c\"\n[[job.transitions]]\non = \"warning\"\nnext = \"a\"\n",
     );
     assert_eq!(
         run(&t),
@@ -61,22 +61,22 @@ fn br1_3_自分自身と前のジョブへの遷移() {
 #[test]
 fn br1_4_終了コードの重複と_0_の警告() {
     let overlap = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [2, 3]\nsuccess_exit_codes = [0, 3]\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [2, 3]\nsuccess_exit_codes = [0, 3]\n",
     );
     assert_eq!(run(&overlap), vec![(K::OverlappingExitCodes, Some(7))]);
 
-    let zero = with_header("[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [0]\n");
+    let zero = with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [0]\n");
     assert_eq!(run(&zero), vec![(K::ZeroAsWarning, Some(7))]);
 
     // 0 を明示的に成功に含め、さらに警告に 0 を書いたときは、0 の指定の誤りだけを報告する
     let both = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [0]\nsuccess_exit_codes = [0]\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [0]\nsuccess_exit_codes = [0]\n",
     );
     assert_eq!(kinds(&both), vec![K::ZeroAsWarning]);
 
     // 受理: 重ならない
     let ok = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [2]\nsuccess_exit_codes = [0, 3]\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [2]\nsuccess_exit_codes = [0, 3]\n",
     );
     assert!(run(&ok).is_empty());
 }
@@ -86,34 +86,34 @@ fn br1_5_型の誤り() {
     let cases = [
         (
             "終了コードが文字列",
-            "[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [\"x\"]\n",
+            "[[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [\"x\"]\n",
             7,
         ),
         (
             "終了コードがリストでない",
-            "[[jobs]]\nid = \"a\"\ncommand = \"c\"\nsuccess_exit_codes = 0\n",
+            "[[job]]\nid = \"a\"\ncommand = \"c\"\nsuccess_exit_codes = 0\n",
             7,
         ),
-        ("idが整数", "[[jobs]]\nid = 1\ncommand = \"c\"\n", 5),
-        ("commandが無い", "[[jobs]]\nid = \"a\"\n", 4),
+        ("idが整数", "[[job]]\nid = 1\ncommand = \"c\"\n", 5),
+        ("commandが無い", "[[job]]\nid = \"a\"\n", 4),
         (
             "終了コードが範囲外",
-            "[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [4294967296]\n",
+            "[[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [4294967296]\n",
             7,
         ),
         (
             "transitionsが配列でない",
-            "[[jobs]]\nid = \"a\"\ncommand = \"c\"\ntransitions = 3\n",
+            "[[job]]\nid = \"a\"\ncommand = \"c\"\ntransitions = 3\n",
             7,
         ),
         (
             "onが未知の値",
-            "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"later\"\nnext = \"@end\"\n",
+            "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"later\"\nnext = \"@end\"\n",
             8,
         ),
         (
             "nextが無い",
-            "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\n",
+            "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\n",
             7,
         ),
     ];
@@ -129,35 +129,35 @@ fn br1_5_型の誤り() {
 #[test]
 fn br1_5_パイプラインの型の誤りと欠落() {
     assert_eq!(
-        run("format_version = 1\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"),
+        run("format_version = 1\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"),
         vec![(K::TypeMismatch, Some(1))]
     );
     assert_eq!(
-        run("format_version = 1\n[pipeline]\nname = 5\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"),
+        run("format_version = 1\n[pipeline]\nname = 5\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"),
         vec![(K::TypeMismatch, Some(3))]
     );
     assert_eq!(
         run(
-            "format_version = 1\n[pipeline]\ndescription = \"d\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"
+            "format_version = 1\n[pipeline]\ndescription = \"d\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
         ),
         vec![(K::TypeMismatch, Some(2))]
     );
     assert_eq!(
-        run("format_version = 1\npipeline = 1\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"),
+        run("format_version = 1\npipeline = 1\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"),
         vec![(K::TypeMismatch, Some(2))]
     );
 }
 
 #[test]
 fn br1_6_知らないキー() {
-    let top = "format_version = 1\ntypo = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n";
+    let top = "format_version = 1\ntypo = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
     assert_eq!(run(top), vec![(K::UnknownKey, Some(2))]);
-    let pipe = "format_version = 1\n[pipeline]\nname = \"p\"\nowner = \"x\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n";
+    let pipe = "format_version = 1\n[pipeline]\nname = \"p\"\nowner = \"x\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
     assert_eq!(run(pipe), vec![(K::UnknownKey, Some(4))]);
-    let job = with_header("[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarn_exit_codes = [1]\n");
+    let job = with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\nwarn_exit_codes = [1]\n");
     assert_eq!(run(&job), vec![(K::UnknownKey, Some(7))]);
     let tr = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\nwhen = 1\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"\nwhen = 1\n",
     );
     assert_eq!(run(&tr), vec![(K::UnknownKey, Some(10))]);
 }
@@ -174,7 +174,7 @@ fn br1_7_版の確認が先で他の誤りは出ない() {
 
 #[test]
 fn br1_8_パイプライン名の不一致() {
-    let t = with_header("[[jobs]]\nid = \"a\"\ncommand = \"c\"\n");
+    let t = with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\n");
     let errs = parse_definition(&t, "t.toml", Some("other")).unwrap_err();
     assert_eq!(errs.len(), 1);
     assert_eq!(errs[0].kind, K::PipelineNameMismatch);
@@ -197,7 +197,7 @@ fn br1_9_取り込みの誤りはファイルを使って確かめる() {
 
     let exact = dir.path().join("exact.toml");
     let mut body = String::from(
-        "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n",
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n",
     );
     body.push_str(&"#".repeat(1024 * 1024 - body.len()));
     assert_eq!(body.len(), 1024 * 1024);
@@ -222,20 +222,19 @@ fn br1_9_取り込みの誤りはファイルを使って確かめる() {
 
 #[test]
 fn br1_12_パイプラインが_2_つ以上() {
-    let t = "format_version = 1\n[[pipeline]]\nname = \"a\"\n[[pipeline]]\nname = \"b\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n";
+    let t = "format_version = 1\n[[pipeline]]\nname = \"a\"\n[[pipeline]]\nname = \"b\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
     assert_eq!(run(t), vec![(K::TypeMismatch, Some(2))]);
 }
 
 #[test]
 fn br1_13_構造の制約() {
-    let dup = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n",
-    );
+    let dup =
+        with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n");
     assert_eq!(run(&dup), vec![(K::DuplicateJobId, Some(8))]);
 
-    let empty_id = with_header("[[jobs]]\nid = \"\"\ncommand = \"c\"\n");
+    let empty_id = with_header("[[job]]\nid = \"\"\ncommand = \"c\"\n");
     assert_eq!(run(&empty_id), vec![(K::InvalidJobId, Some(5))]);
-    let at_id = with_header("[[jobs]]\nid = \"@end\"\ncommand = \"c\"\n");
+    let at_id = with_header("[[job]]\nid = \"@end\"\ncommand = \"c\"\n");
     assert_eq!(run(&at_id), vec![(K::InvalidJobId, Some(5))]);
 
     assert_eq!(
@@ -243,24 +242,24 @@ fn br1_13_構造の制約() {
         vec![K::NoJobs]
     );
     assert_eq!(
-        kinds("format_version = 1\njobs = []\n[pipeline]\nname = \"p\"\n"),
+        kinds("format_version = 1\njob = []\n[pipeline]\nname = \"p\"\n"),
         vec![K::NoJobs]
     );
 
-    let empty_cmd = with_header("[[jobs]]\nid = \"a\"\ncommand = \"  \"\n");
+    let empty_cmd = with_header("[[job]]\nid = \"a\"\ncommand = \"  \"\n");
     assert_eq!(run(&empty_cmd), vec![(K::EmptyField, Some(6))]);
     assert_eq!(
-        run("format_version = 1\n[pipeline]\nname = \"\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"),
+        run("format_version = 1\n[pipeline]\nname = \"\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"),
         vec![(K::EmptyField, Some(3))]
     );
 
     let dup_tr = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n",
     );
     assert_eq!(run(&dup_tr), vec![(K::DuplicateTransition, Some(10))]);
     // 受理: success と warning は別
     let ok = with_header(
-        "[[jobs]]\nid = \"a\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n[[jobs.transitions]]\non = \"warning\"\nnext = \"@end\"\n",
+        "[[job]]\nid = \"a\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n[[job.transitions]]\non = \"warning\"\nnext = \"@end\"\n",
     );
     assert!(run(&ok).is_empty());
 }
@@ -292,7 +291,7 @@ fn 複数の誤りが一度にすべて返る() {
 
 #[test]
 fn 行番号は_crlf_でも一致する() {
-    let t = with_header("[[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarn = 1\n").replace('\n', "\r\n");
+    let t = with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\nwarn = 1\n").replace('\n', "\r\n");
     assert_eq!(run(&t), vec![(K::UnknownKey, Some(7))]);
 }
 
@@ -348,7 +347,7 @@ fn 深さ_32_は受け入れ_33_と_1000_は_syntax() {
 fn キー名は_64_文字で切られて表示される() {
     let long = "k".repeat(300);
     let t = format!(
-        "format_version = 1\n{long} = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"
+        "format_version = 1\n{long} = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
     );
     let errs = parse_definition(&t, "t.toml", None).unwrap_err();
     assert_eq!(errs[0].kind, K::UnknownKey);

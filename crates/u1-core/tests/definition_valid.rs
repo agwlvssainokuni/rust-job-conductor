@@ -97,7 +97,7 @@ fn 一時ディレクトリの定義を読める() {
     let p = dir.path().join("my.toml");
     std::fs::write(
         &p,
-        "format_version = 1\r\n[pipeline]\r\nname = \"x\"\r\n[[jobs]]\r\nid = \"a\"\r\ncommand = \"c\"\r\n",
+        "format_version = 1\r\n[pipeline]\r\nname = \"x\"\r\n[[job]]\r\nid = \"a\"\r\ncommand = \"c\"\r\n",
     )
     .unwrap();
     let def = load_definition(Some(&p), None).unwrap();
@@ -107,7 +107,7 @@ fn 一時ディレクトリの定義を読める() {
 #[test]
 fn 最小の定義は説明なしで受理される() {
     let def = parse_definition(
-        "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n",
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n",
         "m.toml",
         None,
     )
@@ -118,8 +118,8 @@ fn 最小の定義は説明なしで受理される() {
 #[test]
 fn 定義の外の遷移も_next_が_end_なら受理される() {
     let text = "format_version = 1\n[pipeline]\nname = \"p\"\n\
-        [[jobs]]\nid = \"a\"\ncommand = \"c\"\ntransitions = [{ on = \"success\", next = \"b\" }, { on = \"warning\", next = \"@end\" }]\n\
-        [[jobs]]\nid = \"b\"\ncommand = \"c\"\n";
+        [[job]]\nid = \"a\"\ncommand = \"c\"\ntransitions = [{ on = \"success\", next = \"b\" }, { on = \"warning\", next = \"@end\" }]\n\
+        [[job]]\nid = \"b\"\ncommand = \"c\"\n";
     let def = parse_definition(text, "m.toml", None).unwrap();
     assert_eq!(def.jobs[0].transitions.len(), 2);
 }

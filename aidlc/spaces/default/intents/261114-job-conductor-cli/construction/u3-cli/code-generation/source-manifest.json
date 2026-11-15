@@ -1,0 +1,15 @@
+{
+  "stage": "code-generation",
+  "unit": "u3-cli",
+  "version": 1,
+  "writes": [
+    { "path": "Cargo.toml" },
+    { "path": "Cargo.lock" },
+    { "path": "README.md" },
+    { "path": "crates/u3-cli/" },
+    { "path": "crates/u1-core/src/definition/walk.rs" },
+    { "path": "crates/u1-core/src/definition/depth.rs" },
+    { "path": "crates/u1-core/tests/" },
+    { "path": "crates/u4-converter/tests/" }
+  ]
+}

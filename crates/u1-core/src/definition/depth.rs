@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn 通常の定義の深さは浅い() {
-        let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\n[[jobs.transitions]]\non = \"success\"\n";
+        let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\n[[job.transitions]]\non = \"success\"\n";
         assert!(depth_result(text).is_ok());
     }
 

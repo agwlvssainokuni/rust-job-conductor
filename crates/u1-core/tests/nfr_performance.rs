@@ -17,11 +17,11 @@ fn ten_job_definition() -> String {
     );
     for i in 0..10 {
         text.push_str(&format!(
-            "[[jobs]]\nid = \"job{i}\"\ncommand = \"run-step --index {i}\"\nwarning_exit_codes = [3]\nsuccess_exit_codes = [0, 2]\n"
+            "[[job]]\nid = \"job{i}\"\ncommand = \"run-step --index {i}\"\nwarning_exit_codes = [3]\nsuccess_exit_codes = [0, 2]\n"
         ));
         if i < 8 {
             text.push_str(&format!(
-                "[[jobs.transitions]]\non = \"warning\"\nnext = \"job{}\"\n",
+                "[[job.transitions]]\non = \"warning\"\nnext = \"job{}\"\n",
                 i + 1
             ));
         }

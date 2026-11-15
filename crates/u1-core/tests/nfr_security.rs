@@ -11,7 +11,7 @@ const SENTINEL: &str = "SENTINEL_VALUE_9f3a";
 fn nfr4_5_コマンドの文字列はそのまま保持され展開も起動もされない() {
     let command = "sh -c 'touch SHOULD_NOT_EXIST' ; `id` $(id) ${CONDUCTOR_TEST_UNSET} $HOME ~/x";
     let text = format!(
-        "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = {command:?}\n"
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = {command:?}\n"
     );
     let def = parse_definition(&text, "t.toml", None).unwrap();
     assert_eq!(def.jobs[0].command, command);
@@ -24,7 +24,7 @@ fn nfr4_5_ファイルから読んでも定義のあるディレクトリは変�
     let path = dir.path().join("conductor.toml");
     std::fs::write(
         &path,
-        "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"touch created\"\n",
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"touch created\"\n",
     )
     .unwrap();
     let before = std::fs::read(&path).unwrap();
@@ -41,7 +41,7 @@ fn nfr4_5_ファイルから読んでも定義のあるディレクトリは変�
 fn cases() -> Vec<(DefinitionErrorKind, String)> {
     use DefinitionErrorKind as K;
     let head = "format_version = 1\n[pipeline]\nname = \"p\"\n";
-    let job = |extra: &str| format!("{head}[[jobs]]\nid = \"a\"\ncommand = \"c\"\n{extra}");
+    let job = |extra: &str| format!("{head}[[job]]\nid = \"a\"\ncommand = \"c\"\n{extra}");
     vec![
         (K::Syntax, format!("a = = \"{SENTINEL}\"\n")),
         (
@@ -51,7 +51,7 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
         (
             K::UnknownKey,
             format!(
-                "format_version = 1\nextra = \"{SENTINEL}\"\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"
+                "format_version = 1\nextra = \"{SENTINEL}\"\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
             ),
         ),
         (K::VersionMissing, format!("x = \"{SENTINEL}\"\n")),
@@ -62,19 +62,19 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
         (
             K::UnknownTarget,
             job(&format!(
-                "[[jobs.transitions]]\non = \"success\"\nnext = \"{SENTINEL}\"\n"
+                "[[job.transitions]]\non = \"success\"\nnext = \"{SENTINEL}\"\n"
             )),
         ),
         (
             K::ErrorTransition,
             job(&format!(
-                "[[jobs.transitions]]\non = \"error\"\nnext = \"{SENTINEL}\"\n"
+                "[[job.transitions]]\non = \"error\"\nnext = \"{SENTINEL}\"\n"
             )),
         ),
         (
             K::BackwardOrSelfTarget,
             format!(
-                "{head}[[jobs]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"{SENTINEL}\"\n"
+                "{head}[[job]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\n[[job.transitions]]\non = \"success\"\nnext = \"{SENTINEL}\"\n"
             ),
         ),
         (
@@ -85,22 +85,22 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
         (
             K::DuplicateJobId,
             format!(
-                "{head}[[jobs]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\n[[jobs]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\n"
+                "{head}[[job]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\n[[job]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\n"
             ),
         ),
         (
             K::InvalidJobId,
-            format!("{head}[[jobs]]\nid = \"@{SENTINEL}\"\ncommand = \"c\"\n"),
+            format!("{head}[[job]]\nid = \"@{SENTINEL}\"\ncommand = \"c\"\n"),
         ),
         (K::NoJobs, head.to_string()),
         (
             K::EmptyField,
-            format!("{head}[[jobs]]\nid = \"{SENTINEL}\"\ncommand = \"\"\n"),
+            format!("{head}[[job]]\nid = \"{SENTINEL}\"\ncommand = \"\"\n"),
         ),
         (
             K::DuplicateTransition,
             job(
-                "[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n",
+                "[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n",
             ),
         ),
     ]
@@ -124,7 +124,7 @@ fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
 
     // パイプライン名の不一致: 両方の名前が表示に出ない。
     let text = format!(
-        "format_version = 1\n[pipeline]\nname = \"{SENTINEL}_def\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n"
+        "format_version = 1\n[pipeline]\nname = \"{SENTINEL}_def\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
     );
     let errs = parse_definition(&text, "t.toml", Some(&format!("{SENTINEL}_arg"))).unwrap_err();
     assert_eq!(errs[0].kind, DefinitionErrorKind::PipelineNameMismatch);
@@ -155,7 +155,7 @@ fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
 
 #[test]
 fn nfr4_6_キー名は制御文字をエスケープして表示される() {
-    let text = "format_version = 1\n\"bad\\u001b[31mkey\" = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\n";
+    let text = "format_version = 1\n\"bad\\u001b[31mkey\" = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
     let errs = parse_definition(text, "t.toml", None).unwrap_err();
     let shown = errs[0].to_string();
     assert!(!shown.contains('\u{1b}'));
@@ -174,8 +174,8 @@ fn nfr4_7_壊れた入力でもパニックしない() {
         "a = 1979-05-27T07:32:00Z\n".into(),
         "a = { b = [ { c = 1 } ] }".into(),
         "\0\0\0".into(),
-        "format_version = 1\njobs = 5\npipeline = []\n".into(),
-        "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\ntransitions = [1, 2]\nwarning_exit_codes = [[1]]\n".into(),
+        "format_version = 1\njob = 5\npipeline = []\n".into(),
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\ntransitions = [1, 2]\nwarning_exit_codes = [[1]]\n".into(),
         format!("a = {}{}", "[".repeat(1000), "]".repeat(1000)),
         format!("a = {}1{}", "{b = ".repeat(1000), "}".repeat(1000)),
         format!("[{}]\n", vec!["k"; 1000].join(".")),

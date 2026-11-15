@@ -1,0 +1,681 @@
+//! 表示(Reporter。BR6.1〜BR6.5、NFR6.x、NFR4.2): 全種類の文言(英語・日本語)、ロケール、遅延、色。
+
+mod common;
+
+use std::path::Path;
+
+use common::{FakeEnv, FakeSink};
+use conductor_cli::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
+use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
+use conductor_converter::{ConversionError, ConversionErrorKind};
+use conductor_core::{
+    DecisionReason, DefinitionError, DefinitionErrorKind, JobState, JobStatus, PipelineState,
+    SkipReason,
+};
+use conductor_runtime::{CommandError, CommandErrorKind, MismatchKind, StateError, StateErrorKind};
+
+fn env_for(lang: Language) -> FakeEnv {
+    match lang {
+        Language::En => FakeEnv::with(&[("LANG", "en_US.UTF-8")]),
+        Language::Ja => FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]),
+    }
+}
+
+fn state_error(kind: StateErrorKind) -> StateError {
+    StateError {
+        path: Path::new("dir/c.toml.state").to_path_buf(),
+        kind,
+        reason: "reason",
+    }
+}
+
+fn pipeline_state() -> PipelineState {
+    let job = |id: &str, status, exit_code, skip_reason| JobState {
+        job_id: id.to_string(),
+        status,
+        exit_code,
+        skip_reason,
+    };
+    PipelineState {
+        definition_key: "c.toml".into(),
+        pipeline_name: "nightly".into(),
+        definition_path: "c.toml".into(),
+        job_order: vec![
+            "extract".into(),
+            "transform".into(),
+            "load".into(),
+            "x".into(),
+        ],
+        job_states: vec![
+            job("extract", JobStatus::Warning, Some(1), None),
+            job(
+                "transform",
+                JobStatus::Skipped,
+                None,
+                Some(SkipReason::ByTransition),
+            ),
+            job("load", JobStatus::Skipped, None, Some(SkipReason::ByEnd)),
+            job("x", JobStatus::Pending, None, None),
+        ],
+        resume_job_id: Some("x".into()),
+        end_reached: false,
+        completed: false,
+    }
+}
+
+/// 全種類のイベントを作って、`f` に渡す。
+fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
+    let definition_errors: Vec<DefinitionError> = DefinitionErrorKind::ALL
+        .iter()
+        .map(|kind| DefinitionError::new("c.toml", Some(7), *kind, "reason `k`"))
+        .collect();
+    f(&DisplayEvent::DefinitionErrors(&definition_errors));
+    f(&DisplayEvent::DefinitionErrors(&[DefinitionError::new(
+        "c.toml",
+        None,
+        DefinitionErrorKind::FileMissing,
+        "reason",
+    )]));
+
+    let command_errors = vec![
+        (
+            "a".to_string(),
+            CommandError {
+                kind: CommandErrorKind::UnclosedQuote,
+                reason: "reason",
+            },
+        ),
+        (
+            "b".to_string(),
+            CommandError {
+                kind: CommandErrorKind::Empty,
+                reason: "reason",
+            },
+        ),
+    ];
+    f(&DisplayEvent::CommandErrors {
+        definition: Path::new("c.toml"),
+        errors: &command_errors,
+    });
+
+    for kind in UsageErrorKind::ALL {
+        f(&DisplayEvent::Usage(&UsageError::new(kind)));
+        f(&DisplayEvent::Usage(&UsageError::with_subject(
+            kind, "subj",
+        )));
+    }
+
+    for kind in [
+        StateErrorKind::Unreadable,
+        StateErrorKind::TooLarge,
+        StateErrorKind::Corrupt,
+        StateErrorKind::VersionMismatch,
+        StateErrorKind::WriteFailed,
+        StateErrorKind::RemoveFailed,
+    ] {
+        let error = state_error(kind);
+        for context in [
+            StateContext::Read,
+            StateContext::JobNotStarted,
+            StateContext::JobExecuted,
+            StateContext::Plain,
+        ] {
+            f(&DisplayEvent::State {
+                error: &error,
+                context,
+            });
+        }
+    }
+
+    for kind in [
+        MismatchKind::PipelineName,
+        MismatchKind::JobIds,
+        MismatchKind::JobOrder,
+    ] {
+        f(&DisplayEvent::ConsistencyMismatch {
+            state_path: Path::new("c.toml.state"),
+            kind,
+        });
+    }
+    for reason in [
+        DecisionReason::OutOfOrder,
+        DecisionReason::SkipTarget,
+        DecisionReason::AfterEnd,
+        DecisionReason::AlreadyExecuted,
+    ] {
+        f(&DisplayEvent::Rejected {
+            job_id: "b",
+            reason,
+        });
+        f(&DisplayEvent::JobSkipped {
+            job_id: "b",
+            reason,
+        });
+    }
+    f(&DisplayEvent::StartFailure {
+        job_id: "a",
+        command: "python",
+    });
+    f(&DisplayEvent::SuccessCodeNotListed { job_id: "a" });
+    for kind in ConversionErrorKind::ALL {
+        f(&DisplayEvent::Conversion(&ConversionError {
+            file: "in.yaml".into(),
+            line: Some(2),
+            key_path: Some("job[1].note".into()),
+            kind,
+            reason: "reason".into(),
+        }));
+        f(&DisplayEvent::Conversion(&ConversionError {
+            file: "in.yaml".into(),
+            line: None,
+            key_path: None,
+            kind,
+            reason: "reason".into(),
+        }));
+    }
+    f(&DisplayEvent::OutputFailed);
+    f(&DisplayEvent::CompletionUndetermined {
+        state_path: Path::new("c.toml.state"),
+    });
+    f(&DisplayEvent::SignalSetupFailed);
+
+    let skipped = vec!["b".to_string(), "c".to_string()];
+    for detail in [
+        ResultDetail::ExitCode(0),
+        ResultDetail::ExitCode(256),
+        ResultDetail::Signal(9),
+        ResultDetail::StartFailure,
+        ResultDetail::Interrupted {
+            signal: 15,
+            started: true,
+        },
+        ResultDetail::Interrupted {
+            signal: 15,
+            started: false,
+        },
+    ] {
+        for result in ["success", "warning", "error", "interrupted"] {
+            f(&DisplayEvent::JobResult {
+                job_id: "a",
+                result,
+                detail,
+                conductor_exit: 1,
+            });
+        }
+    }
+    f(&DisplayEvent::Transition {
+        on: "warning",
+        target: "c",
+        skipped: &skipped,
+    });
+    f(&DisplayEvent::Transition {
+        on: "success",
+        target: "@end",
+        skipped: &[],
+    });
+    f(&DisplayEvent::Interrupted { signal: 15 });
+    let state = pipeline_state();
+    f(&DisplayEvent::WatchTable(&state));
+    f(&DisplayEvent::WatchEmpty);
+    f(&DisplayEvent::Help);
+    f(&DisplayEvent::Version);
+}
+
+fn has_control(text: &str) -> bool {
+    text.chars()
+        .any(|c| (c.is_control() && c != '\n') || c == '\u{202e}')
+}
+
+#[test]
+fn 全種類のイベントが空でなく_改行で終わり_生の制御文字を含まない() {
+    for lang in [Language::En, Language::Ja] {
+        let env = env_for(lang);
+        let reporter = Reporter::new(&env, true);
+        with_all_events(|event| {
+            let text = reporter.render(event);
+            assert!(!text.is_empty(), "{event:?}");
+            assert!(text.ends_with('\n'), "{event:?}: {text:?}");
+            assert!(!has_control(&text), "{event:?}: {text:?}");
+        });
+    }
+}
+
+#[test]
+fn エラーの行は_conductor_error_で始まり_場所を含む() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    with_all_events(|event| {
+        if event.level() != Level::Error {
+            return;
+        }
+        let text = reporter.render(event);
+        for line in text.lines().take_while(|l| !l.is_empty()) {
+            assert!(line.starts_with("conductor: error: "), "{event:?}: {line}");
+            assert!(line.len() > "conductor: error: ".len(), "{event:?}");
+        }
+    });
+}
+
+#[test]
+fn 英語の表示は英語の文だけで日本語の文字を含まない() {
+    // 上流(u1・u2・u4)の理由の文は日本語の固定の文のため、テストでは英語の理由を渡している。
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, true);
+    with_all_events(|event| {
+        let text = reporter.render(event);
+        assert!(text.is_ascii(), "{event:?}: {text}");
+    });
+}
+
+#[test]
+fn 日本語の表示は日本語の文を含む() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, true);
+    with_all_events(|event| {
+        let text = reporter.render(event);
+        let japanese = !text.is_ascii();
+        // 固定の英語の文、または、トークンだけでできている行
+        let token_only = match event {
+            DisplayEvent::SignalSetupFailed | DisplayEvent::Version => true,
+            DisplayEvent::Transition { skipped, .. } => skipped.is_empty(),
+            _ => false,
+        };
+        assert!(japanese || token_only, "{event:?}: {text}");
+    });
+}
+
+#[test]
+fn 定義の誤りは_ファイル_行_種類_原因を_1_行ずつ() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let errors = vec![
+        DefinitionError::new("c.toml", Some(3), DefinitionErrorKind::UnknownKey, "R1"),
+        DefinitionError::new("c.toml", None, DefinitionErrorKind::NoJobs, "R2"),
+    ];
+    let text = reporter.render(&DisplayEvent::DefinitionErrors(&errors));
+    assert_eq!(
+        text,
+        "conductor: error: c.toml:3: unknown key: R1\nconductor: error: c.toml: no jobs are defined: R2\n"
+    );
+}
+
+#[test]
+fn 定義の誤りの日本語は_u1_の種類の文を使う() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    let errors = vec![DefinitionError::new(
+        "c.toml",
+        Some(3),
+        DefinitionErrorKind::UnknownKey,
+        "R1",
+    )];
+    assert_eq!(
+        reporter.render(&DisplayEvent::DefinitionErrors(&errors)),
+        "conductor: error: c.toml:3: 定義にないキーです: R1\n"
+    );
+}
+
+#[test]
+fn 入力に由来する文字列は_エスケープされる() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, true);
+    let evil = "a\x1b[31m\n\u{202e}b";
+    let expected = "a\\u{1b}[31m\\n\\u{202e}b";
+    let texts = [
+        reporter.render(&DisplayEvent::Rejected {
+            job_id: evil,
+            reason: DecisionReason::OutOfOrder,
+        }),
+        reporter.render(&DisplayEvent::StartFailure {
+            job_id: evil,
+            command: evil,
+        }),
+        reporter.render(&DisplayEvent::SuccessCodeNotListed { job_id: evil }),
+        reporter.render(&DisplayEvent::JobSkipped {
+            job_id: evil,
+            reason: DecisionReason::AfterEnd,
+        }),
+        reporter.render(&DisplayEvent::Usage(&UsageError::with_subject(
+            UsageErrorKind::UnknownCommand,
+            evil,
+        ))),
+        reporter.render(&DisplayEvent::DefinitionErrors(&[DefinitionError::new(
+            evil,
+            Some(1),
+            DefinitionErrorKind::Syntax,
+            evil,
+        )])),
+        reporter.render(&DisplayEvent::State {
+            error: &StateError {
+                path: Path::new(evil).to_path_buf(),
+                kind: StateErrorKind::Corrupt,
+                reason: "r",
+            },
+            context: StateContext::Read,
+        }),
+        reporter.render(&DisplayEvent::CommandErrors {
+            definition: Path::new(evil),
+            errors: &[(
+                evil.to_string(),
+                CommandError {
+                    kind: CommandErrorKind::Empty,
+                    reason: "r",
+                },
+            )],
+        }),
+    ];
+    for text in texts {
+        assert!(text.contains(expected), "{text}");
+        assert!(!has_control(&text), "{text:?}");
+    }
+}
+
+#[test]
+fn ジョブidは_64_文字で切り_パスは切らない() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, true);
+    let long = "k".repeat(200);
+    let text = reporter.render(&DisplayEvent::SuccessCodeNotListed { job_id: &long });
+    assert!(text.contains(&format!("{}…", "k".repeat(64))), "{text}");
+    assert!(!text.contains(&"k".repeat(65)));
+    let text = reporter.render(&DisplayEvent::State {
+        error: &StateError {
+            path: Path::new(&long).to_path_buf(),
+            kind: StateErrorKind::WriteFailed,
+            reason: "r",
+        },
+        context: StateContext::Plain,
+    });
+    assert!(text.contains(&long), "パスは切らない");
+}
+
+#[test]
+fn ステートの誤りの補足は_文脈で決まる() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let corrupt = state_error(StateErrorKind::Corrupt);
+    let write = state_error(StateErrorKind::WriteFailed);
+    let render =
+        |error: &StateError, context| reporter.render(&DisplayEvent::State { error, context });
+    assert!(render(&corrupt, StateContext::Read).contains("conductor reset"));
+    assert!(!render(&write, StateContext::Read).contains("conductor reset"));
+    assert!(render(&write, StateContext::JobExecuted).contains("already been executed"));
+    assert!(render(&write, StateContext::JobNotStarted).contains("was not started"));
+    let plain = render(&write, StateContext::Plain);
+    assert!(
+        !plain.contains("executed") && !plain.contains("not started"),
+        "{plain}"
+    );
+    assert!(plain.contains("dir/c.toml.state"));
+}
+
+#[test]
+fn v_の文言() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, true);
+    assert_eq!(
+        reporter.render(&DisplayEvent::JobResult {
+            job_id: "extract",
+            result: "warning",
+            detail: ResultDetail::ExitCode(1),
+            conductor_exit: 0,
+        }),
+        "[conductor] job=extract result=warning (exit code 1)\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::JobResult {
+            job_id: "x",
+            result: "error",
+            detail: ResultDetail::ExitCode(256),
+            conductor_exit: 1,
+        }),
+        "[conductor] job=x result=error (exit code 256, conductor exits with 1)\n"
+    );
+    let skipped = vec!["transform".to_string(), "load".to_string()];
+    assert_eq!(
+        reporter.render(&DisplayEvent::Transition {
+            on: "warning",
+            target: "notify",
+            skipped: &skipped,
+        }),
+        "[conductor] transition: warning -> notify (skipped: transform, load)\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::JobSkipped {
+            job_id: "transform",
+            reason: DecisionReason::SkipTarget,
+        }),
+        "[conductor] job=transform skipped (skipped by a transition)\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::Interrupted { signal: 15 }),
+        "[conductor] interrupted by signal 15\n"
+    );
+}
+
+#[test]
+fn level_ごとに出力先が決まる() {
+    let env = env_for(Language::En);
+    // error: 常に標準エラー
+    let reporter = Reporter::new(&env, false);
+    let mut sink = FakeSink::default();
+    reporter.show(&mut sink, &DisplayEvent::OutputFailed);
+    assert!(sink.out.is_empty() && !sink.err.is_empty());
+    // verbose: -v のときだけ
+    let mut sink = FakeSink::default();
+    reporter.show(&mut sink, &DisplayEvent::Interrupted { signal: 2 });
+    assert!(sink.out.is_empty() && sink.err.is_empty());
+    let reporter = Reporter::new(&env, true);
+    reporter.show(&mut sink, &DisplayEvent::Interrupted { signal: 2 });
+    assert!(sink.out.is_empty() && !sink.err.is_empty());
+    // output: 標準出力。失敗は戻り値
+    let mut sink = FakeSink::default();
+    assert!(reporter.show(&mut sink, &DisplayEvent::WatchEmpty));
+    assert!(!sink.out.is_empty() && sink.err.is_empty());
+    sink.fail_out = true;
+    assert!(!reporter.show(&mut sink, &DisplayEvent::WatchEmpty));
+    // 標準エラーの失敗は無視する
+    sink.fail_err = true;
+    assert!(reporter.show(&mut sink, &DisplayEvent::OutputFailed));
+}
+
+#[test]
+fn ロケールの判定() {
+    let cases: [(&[(&str, &str)], Language); 8] = [
+        (&[("LANG", "ja_JP.UTF-8")], Language::Ja),
+        (&[("LANG", "en_US.UTF-8")], Language::En),
+        (&[], Language::En),
+        (
+            &[("LC_ALL", "en_US.UTF-8"), ("LANG", "ja_JP.UTF-8")],
+            Language::En,
+        ),
+        (
+            &[("LC_ALL", "ja_JP.UTF-8"), ("LANG", "en_US.UTF-8")],
+            Language::Ja,
+        ),
+        (
+            &[("LC_ALL", ""), ("LC_MESSAGES", "ja"), ("LANG", "en")],
+            Language::Ja,
+        ),
+        (&[("LC_MESSAGES", "fr_FR"), ("LANG", "ja_JP")], Language::En),
+        (&[("LANG", "C")], Language::En),
+    ];
+    for (vars, expected) in cases {
+        let env = FakeEnv::with(vars);
+        assert_eq!(Reporter::new(&env, false).language(), expected, "{vars:?}");
+    }
+}
+
+#[test]
+fn 言語と色の判定は_最初に必要になるまで行われない() {
+    let env = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
+    let reporter = Reporter::new(&env, false);
+    assert!(!reporter.language_resolved() && !reporter.color_resolved());
+    assert_eq!(env.var_calls.get() + env.terminal_calls.get(), 0);
+    // -v なしの verbose イベントは、組み立てない
+    let mut sink = FakeSink::default();
+    reporter.show(&mut sink, &DisplayEvent::Interrupted { signal: 2 });
+    assert!(!reporter.language_resolved());
+    assert_eq!(env.var_calls.get(), 0);
+    // 最初の表示で、言語だけが判定され、結果が保たれる
+    reporter.show(&mut sink, &DisplayEvent::OutputFailed);
+    assert!(reporter.language_resolved() && !reporter.color_resolved());
+    let calls = env.var_calls.get();
+    assert!(calls > 0);
+    reporter.show(&mut sink, &DisplayEvent::OutputFailed);
+    assert_eq!(env.var_calls.get(), calls, "判定は 1 回だけ");
+    assert_eq!(env.terminal_calls.get(), 0, "端末の判定は、watch の表だけ");
+}
+
+#[test]
+fn インスタンスどうしは互いに影響しない() {
+    let ja = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
+    let en = FakeEnv::with(&[("LANG", "en_US.UTF-8")]);
+    let a = Reporter::new(&ja, false);
+    let b = Reporter::new(&en, false);
+    assert_eq!(a.language(), Language::Ja);
+    assert_eq!(b.language(), Language::En);
+    assert_eq!(a.language(), Language::Ja);
+}
+
+#[test]
+fn バージョンとシグナルの準備の失敗は_ロケールを判定しない() {
+    let env = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&DisplayEvent::SignalSetupFailed);
+    assert_eq!(text, "conductor: error: failed to set up signal handling\n");
+    assert!(
+        reporter
+            .render(&DisplayEvent::Version)
+            .starts_with("conductor ")
+    );
+    assert_eq!(env.var_calls.get(), 0);
+    assert!(!reporter.language_resolved());
+}
+
+#[test]
+fn 色は端末で_no_color_が無いか空で_unix_のときだけ() {
+    let unix = cfg!(unix);
+    let cases = [
+        (true, None, unix),
+        (true, Some(""), unix),
+        (true, Some("1"), false),
+        (false, None, false),
+        (false, Some("1"), false),
+    ];
+    for (terminal, no_color, expected) in cases {
+        let mut env = FakeEnv {
+            terminal,
+            ..FakeEnv::default()
+        };
+        if let Some(v) = no_color {
+            env.vars.insert("NO_COLOR".into(), v.into());
+        }
+        assert_eq!(
+            Reporter::new(&env, false).color_enabled(),
+            expected,
+            "terminal={terminal} NO_COLOR={no_color:?}"
+        );
+    }
+}
+
+#[test]
+fn watch_の表は_3_列で_状態は文字で書く() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&DisplayEvent::WatchTable(&pipeline_state()));
+    let expected = "\
+Pipeline: nightly
+JOB        STATUS   NOTE
+extract    warning  exit code 1
+transform  skipped  skipped by a transition
+load       skipped  skipped after @end
+x          pending
+";
+    assert_eq!(text, expected);
+    assert!(!text.contains('\x1b'));
+}
+
+#[test]
+fn watch_の表は端末のとき_状態に色をつけても_文字は残る() {
+    let mut env = env_for(Language::En);
+    env.terminal = true;
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&DisplayEvent::WatchTable(&pipeline_state()));
+    if cfg!(unix) {
+        assert!(text.contains("\x1b[33mwarning\x1b[0m"), "{text:?}");
+        assert!(text.contains("\x1b[36mskipped\x1b[0m"));
+        assert!(!text.contains("\x1b[0mpending"), "pending は色なし");
+        let plain: String = strip_ansi(&text);
+        assert!(plain.contains("extract    warning  exit code 1"), "{plain}");
+    } else {
+        assert!(!text.contains('\x1b'));
+    }
+}
+
+fn strip_ansi(text: &str) -> String {
+    let mut out = String::new();
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            for n in chars.by_ref() {
+                if n == 'm' {
+                    break;
+                }
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+#[test]
+fn watch_の表は日本語の見出しと補足() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&DisplayEvent::WatchTable(&pipeline_state()));
+    assert!(text.starts_with("パイプライン: nightly\n"), "{text}");
+    assert!(text.contains("ジョブ") && text.contains("状態") && text.contains("補足"));
+    assert!(text.contains("終了コード 1"));
+    assert!(text.contains("遷移によりスキップ") && text.contains("@end の後ろのためスキップ"));
+    // 状態は、言語に関わらず英語の文字
+    assert!(text.contains("warning") && text.contains("pending"));
+}
+
+#[test]
+fn watch_の空の表示() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    assert_eq!(
+        reporter.render(&DisplayEvent::WatchEmpty),
+        "no state (nothing has run yet)\n"
+    );
+}
+
+#[test]
+fn ジョブidの制御文字は表の中でもエスケープされる() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let mut state = pipeline_state();
+    state.job_states[0].job_id = "e\x1b[31mx".to_string();
+    state.pipeline_name = "n\nm".to_string();
+    let text = reporter.render(&DisplayEvent::WatchTable(&state));
+    assert!(text.contains("e\\u{1b}[31mx"));
+    assert!(text.contains("n\\nm"));
+    assert!(!text.contains('\x1b'));
+}
+
+#[test]
+fn 使い方は種類ごとの固定の文と使い方の一覧() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&DisplayEvent::Usage(&UsageError::with_subject(
+        UsageErrorKind::UnknownCommand,
+        "start",
+    )));
+    assert!(text.starts_with("conductor: error: unknown command: 'start'\n\nUsage:\n"));
+    for command in ["run", "pipeline", "watch", "reset", "convert"] {
+        assert!(text.contains(&format!("conductor {command}")), "{command}");
+    }
+}

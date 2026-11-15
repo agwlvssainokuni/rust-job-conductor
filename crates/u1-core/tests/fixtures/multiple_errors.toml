@@ -4,16 +4,16 @@ unknown_top = true
 [pipeline]
 name = "p"
 
-[[jobs]]
+[[job]]
 id = "a"
 command = "x"
 success_exit_codes = ["zero"]
 
-[[jobs]]
+[[job]]
 id = "b"
 command = "y"
 colour = "red"
 
-[[jobs.transitions]]
+[[job.transitions]]
 on = "success"
 next = "nowhere"

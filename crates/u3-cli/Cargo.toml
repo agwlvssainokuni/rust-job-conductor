@@ -1,0 +1,40 @@
+[package]
+name = "conductor-cli"
+version = "0.1.0"
+description = "conductor の実行ファイル(コマンドの受け付け、流れの組み立て、シグナル、表示、終了コード)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "conductor_cli"
+path = "src/lib.rs"
+
+# 配布する実行ファイル。
+[[bin]]
+name = "conductor"
+path = "src/main.rs"
+
+# テスト専用の補助の実行ファイル。配布には含めない(`-p conductor-cli` のビルドには含まれるが、
+# リリースの成果物には入れない)。
+[[bin]]
+name = "conductor-cli-test-helper"
+path = "src/bin/conductor-cli-test-helper.rs"
+test = false
+doc = false
+
+[dependencies]
+conductor-core = { path = "../u1-core" }
+conductor-runtime = { path = "../u2-runtime" }
+conductor-converter = { path = "../u4-converter" }
+lexopt = "0.3.2"
+
+[target.'cfg(unix)'.dependencies]
+signal-hook = { version = "0.4.6", default-features = false, features = ["iterator"] }
+
+[target.'cfg(windows)'.dependencies]
+ctrlc = "3.5.2"
+
+[dev-dependencies]
+tempfile = "3.27.0"

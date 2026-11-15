@@ -42,7 +42,7 @@ fn ac_7_1_2_yaml_with_anchors_to_toml() {
     );
     assert!(!out.text.contains("<<"), "{}", out.text);
     // 展開された結果が、定義の形(表の配列)で出力される
-    assert!(out.text.contains("[[jobs]]"), "{}", out.text);
+    assert!(out.text.contains("[[job]]"), "{}", out.text);
 }
 
 #[test]

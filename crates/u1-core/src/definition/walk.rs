@@ -13,7 +13,7 @@ use toml::de::{DeTable, DeValue};
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::types::{JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget};
 
-const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "jobs"];
+const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "job"];
 const PIPELINE_KEYS: &[&str] = &["name", "description"];
 const JOB_KEYS: &[&str] = &[
     "id",
@@ -235,7 +235,7 @@ impl<'a> Walker<'a> {
             complete: false,
         };
         let DeValue::Table(table) = value.get_ref() else {
-            self.type_error(start, "`jobs` の要素はテーブルで書きます");
+            self.type_error(start, "`job` の要素はテーブルで書きます");
             return raw;
         };
         let errors_before = self.errors.len();
@@ -365,9 +365,9 @@ pub fn walk(
     w.check_keys(root, ROOT_KEYS);
     let pipeline = w.pipeline_section(root, expected_pipeline_name);
 
-    let raw_jobs: Vec<RawJob> = match root.get("jobs") {
+    let raw_jobs: Vec<RawJob> = match root.get("job") {
         None => {
-            w.push(0, Kind::NoJobs, "ジョブ(`jobs`)が 1 つもありません");
+            w.push(0, Kind::NoJobs, "ジョブ(`job`)が 1 つもありません");
             Vec::new()
         }
         Some(value) => match value.get_ref() {
@@ -375,13 +375,13 @@ pub fn walk(
                 w.push(
                     value.span().start,
                     Kind::NoJobs,
-                    "ジョブ(`jobs`)が 1 つもありません",
+                    "ジョブ(`job`)が 1 つもありません",
                 );
                 Vec::new()
             }
             DeValue::Array(items) => items.iter().map(|item| w.job(item)).collect(),
             _ => {
-                w.type_error(value.span().start, "`jobs` はテーブルの配列で書きます");
+                w.type_error(value.span().start, "`job` はテーブルの配列で書きます");
                 Vec::new()
             }
         },

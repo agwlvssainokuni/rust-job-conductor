@@ -49,7 +49,7 @@ fn definition_like_toml_roundtrips_through_yaml() {
     // `on` キーは、文字列のキーとして保たれる
     let tree = read(&yaml_text, TargetFormat::Yaml);
     let Value::Map(top) = tree else { panic!("map") };
-    let jobs = &top.iter().find(|(k, _)| k == "jobs").expect("jobs").1;
+    let jobs = &top.iter().find(|(k, _)| k == "job").expect("job").1;
     let Value::Array(jobs) = jobs else {
         panic!("array")
     };
@@ -59,7 +59,7 @@ fn definition_like_toml_roundtrips_through_yaml() {
 #[test]
 fn definition_like_yaml_roundtrips_through_toml() {
     let toml_text = assert_roundtrip(PIPELINE_YAML, TargetFormat::Yaml);
-    assert!(toml_text.contains("[[jobs]]"), "{toml_text}");
+    assert!(toml_text.contains("[[job]]"), "{toml_text}");
     // アンカー、エイリアス、マージキーは、出力に残らない
     assert!(!toml_text.contains("<<") && !toml_text.contains('*') && !toml_text.contains('&'));
 }
@@ -68,7 +68,7 @@ fn definition_like_yaml_roundtrips_through_toml() {
 fn merged_values_are_expanded_with_priority() {
     let tree = read(PIPELINE_YAML, TargetFormat::Yaml);
     let Value::Map(top) = tree else { panic!("map") };
-    let Value::Array(jobs) = &top.iter().find(|(k, _)| k == "jobs").unwrap().1 else {
+    let Value::Array(jobs) = &top.iter().find(|(k, _)| k == "job").unwrap().1 else {
         panic!("array")
     };
     let transform = &jobs[1];

@@ -6,6 +6,8 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/u1-core/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/crates/u2-runtime/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/u2-runtime/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/u3-cli/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/u3-cli/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/crates/u4-converter/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/u4-converter/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />

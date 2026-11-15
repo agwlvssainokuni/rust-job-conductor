@@ -12,10 +12,10 @@ use conductor_core::{
 fn definition(extra_transitions: &str) -> PipelineDefinition {
     let text = format!(
         "format_version = 1\n[pipeline]\nname = \"p\"\n\
-         [[jobs]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [3]\n{extra_transitions}\n\
-         [[jobs]]\nid = \"b\"\ncommand = \"c\"\n\
-         [[jobs]]\nid = \"c\"\ncommand = \"c\"\n\
-         [[jobs]]\nid = \"d\"\ncommand = \"c\"\n"
+         [[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [3]\n{extra_transitions}\n\
+         [[job]]\nid = \"b\"\ncommand = \"c\"\n\
+         [[job]]\nid = \"c\"\ncommand = \"c\"\n\
+         [[job]]\nid = \"d\"\ncommand = \"c\"\n"
     );
     parse_definition(&text, "t.toml", None).expect("正しい定義")
 }
@@ -124,7 +124,7 @@ impl Sim {
 
 #[test]
 fn 一連の実行_警告の遷移で間をスキップして完了する() {
-    let def = definition("[[jobs.transitions]]\non = \"warning\"\nnext = \"d\"\n");
+    let def = definition("[[job.transitions]]\non = \"warning\"\nnext = \"d\"\n");
     let mut sim = Sim::new(def);
     // a が警告(3)→ d へ。b、c はスキップ。
     let (d, code) = sim.call("a", exited("a", 3), RunMode::Pipeline);
@@ -174,7 +174,7 @@ fn 個別実行_エラーから再実行して完了までの流れ() {
 
 #[test]
 fn 個別実行_end_のあとはスケジューラの呼び出しでスキップされ最後で完了する() {
-    let def = definition("[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n");
+    let def = definition("[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n");
     let mut sim = Sim::new(def);
     sim.call("a", exited("a", 0), RunMode::Individual);
     assert!(
@@ -209,7 +209,7 @@ fn 個別実行_end_のあとはスケジューラの呼び出しでスキップ
 
 #[test]
 fn 一連の実行_end_で以降をまとめてスキップして完了する() {
-    let def = definition("[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n");
+    let def = definition("[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n");
     let mut sim = Sim::new(def);
     sim.call("a", exited("a", 0), RunMode::Pipeline);
     assert!(sim.end_reached && sim.completed);
@@ -222,7 +222,7 @@ fn 一連の実行_end_で以降をまとめてスキップして完了する() 
 
 #[test]
 fn 一連の実行_end_で即座に完了する() {
-    let def = definition("[[jobs.transitions]]\non = \"success\"\nnext = \"@end\"\n");
+    let def = definition("[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n");
     let mut sim = Sim::new(def);
     sim.call("a", exited("a", 0), RunMode::Pipeline);
     assert!(sim.end_reached && sim.completed);
@@ -230,7 +230,7 @@ fn 一連の実行_end_で即座に完了する() {
 
 #[test]
 fn 成功コードを書いたジョブの_0_はエラーで_conductor_のエラー() {
-    let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[jobs]]\nid = \"a\"\ncommand = \"c\"\nsuccess_exit_codes = [2]\n";
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\nsuccess_exit_codes = [2]\n";
     let def = parse_definition(text, "t.toml", None).unwrap();
     let job = &def.jobs[0];
     let (o, step) = classify_and_decide(job, &exited("a", 0), &[], &def, RunMode::Individual);
