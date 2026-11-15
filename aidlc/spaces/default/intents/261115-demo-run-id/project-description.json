@@ -1,0 +1,1 @@
+"デモ(UNIX 版 demo/run-demo.sh と Windows 版 demo/windows/run-demo.cmd、案内 demo/README.md)に、run ID(--run-id と環境変数、run ごとのステートの分離、同じ run ID での再開、watch の Run ID の行、reset --all)の場面を足す。あわせて validate の場面を足すかは、要件の整理で確認する。conductor 本体(crates/*/src)は変えない。Windows 版の自動テスト(crates/cli/tests/windows_demo.rs)も、足した場面に合わせて更新する。リリースはしない(版も上げない)。"
