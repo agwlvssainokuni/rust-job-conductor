@@ -34,7 +34,7 @@
 //! |------------|------|------|
 //! | `main.rs` | 入口(main) | パニックのフックを設定し、`run_cli` の結果で、1 回だけ `std::process::exit` |
 //! | [`args`] | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する |
-//! | `ctx`、`run`、`pipeline`、`aux` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、W4〜W6(watch・reset・convert) |
+//! | `ctx`、`run`、`pipeline`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、W4〜W6(watch・reset・convert) |
 //! | [`platform`] | シグナルの監視(SignalWatcher)ほか | OS 固有のコードは、ここだけ(`cfg(unix)`/`cfg(windows)`) |
 //! | [`exit`] | 終了コードの決定(ExitMapper) | 純粋な関数。0〜255 に合わせる(BR5.2) |
 //! | [`report`] | 表示(Reporter)、watch の表(WatchView)、エスケープ(Escape) | 文言(英語・日本語)の組み立て。言語・色は遅延 |
@@ -68,7 +68,7 @@
 #![forbid(unsafe_code)]
 
 pub mod args;
-mod aux;
+mod aux_commands;
 mod ctx;
 pub mod deps;
 pub mod exit;
@@ -145,8 +145,8 @@ where
     match cmd.kind {
         CommandKind::Run => run::run_individual(&mut ctx, &cmd),
         CommandKind::Pipeline => pipeline::run_pipeline(&mut ctx, &cmd),
-        CommandKind::Watch => aux::run_watch(&mut ctx, &cmd),
-        CommandKind::Reset => aux::run_reset(&mut ctx, &cmd),
-        CommandKind::Convert => aux::run_convert(&mut ctx, &cmd),
+        CommandKind::Watch => aux_commands::run_watch(&mut ctx, &cmd),
+        CommandKind::Reset => aux_commands::run_reset(&mut ctx, &cmd),
+        CommandKind::Convert => aux_commands::run_convert(&mut ctx, &cmd),
     }
 }
