@@ -110,11 +110,8 @@
 
 
 
-- **Active Unit**: u1-core
 
-- **Unit Stage**: code-generation
 
-- **Unit State**: in-progress
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -176,7 +173,7 @@
 - **Current Stage**: code-generation
 - **Next Stage**: build-and-test
 - **Status**: Running
-- **Last Updated**: 2026-11-15T01:25:10Z
+- **Last Updated**: 2026-11-15T01:26:13Z
 
 - **Construction Autonomy Mode**: autonomous
 
