@@ -1,24 +1,19 @@
 # Dependencies
 
-## 内部の依存(クレート間)
-
-```mermaid
-flowchart LR
-    cli["conductor-cli"] --> core["conductor-core"]
-    cli --> runtime["conductor-runtime"]
-    cli --> converter["conductor-converter"]
-    runtime --> core
-```
-
-テキストの代替: cli → core, runtime, converter / runtime → core。converter と core は、ほかの内部クレートに依存しない。循環は無い。
-
 ## 外部の依存
+| クレート | 版 | 使うクレート | 条件 |
+|----------|-----|--------------|------|
+| lexopt | 0.3.2 | cli | 全 OS |
+| signal-hook | 0.4.6(iterator のみ) | cli | cfg(unix) |
+| ctrlc | 3.5.2 | cli | cfg(windows) |
+| libc | 0.2 | runtime | cfg(unix) |
+| toml | 1.2.1 | core、converter、runtime | 全 OS |
+| saphyr-parser | 0.3.4 | converter | 全 OS |
+| thiserror | 2.0.21 | core、converter、runtime | 全 OS |
+| tempfile | 3.27.0 | 全クレート(dev) | テストのみ |
 
-[technology-stack.md](technology-stack.md) の表のとおり(toml 1.2.1、thiserror 2.0.21、saphyr-parser 0.3.4、lexopt 0.3.2、signal-hook 0.4.6、ctrlc 3.5.2、libc 0.2、tempfile 3.27.0)。`Cargo.lock` を `--locked` で使う。推移的な依存は `Cargo.lock` に 40 余り(`rustix`、`nix`、`windows-sys`、`winnow` など)。
+## 内部の依存
+cli → core、runtime、converter / runtime → core / converter は core に依存しない。
 
-## 備考
-
-- converter が core に依存しないため、cli が両方を橋渡しする。
-- runtime は core の型(`JobDefinition`、`Command`、`JobExecution`、`PipelineState`、`JobState` など)を使う。ステートの書式(キー名)は runtime だけが知り、core の型には出てこない(ファイルのキー `jobs` と、型のフィールド `job_states` は別)。そのため、ステートのキー名の変更は、runtime のクレートと、そのテスト、README の記述に閉じる見込み(cli と core、converter は影響を受けない。cli のテストにステートの `[[jobs]]` を書く箇所は、浅い grep では見つからなかった)。
-- ステートの読み書きは `toml` クレートの `Table`・`Value` に依存する。配列テーブルの出力形(`[[jobs]]`)は、`Value::Array` に `Table` を入れたときの `toml::to_string` の出力による。
-- 脆弱性の検査は `cargo audit`(警告のみ、週次と PR)。メジャー版の遅れは確認していない。
+## 制約
+CI が、C のビルドを要する依存(cc、cmake、pkg-config、bindgen)と、`windows-sys`・`linux-raw-sys` 以外の `-sys` クレートを禁止している(`ci.yml` の build-check)。`cargo audit` を毎週月曜と PR で実行(警告のみ)。

@@ -1,30 +1,15 @@
 # Business Overview
 
 ## 目的
-
-`conductor` は、既存のジョブスケジューラ(cron など)から呼び出される、ジョブの流れの制御ツールである(`README.md`)。定義ファイル(TOML)にジョブと、結果(成功・警告・エラー)ごとの次の動きを書くと、ジョブを記述順に実行し、遷移の規則でスキップや終了を行い、実行状態(ステート)を覚える。エラーで止まったあとは、エラーのジョブから再開できる。単一の実行ファイルで、Linux・macOS・Windows で同じ結果を返す。
+`conductor`(v0.3.0)は、cron などの既存のジョブスケジューラから呼ばれる、ジョブの流れの制御ツールである。定義ファイル(`conductor.toml`)にジョブと、結果(成功・警告・エラー)ごとの遷移を書くと、記述順に実行し、スキップや終了を行い、ステートを保持して、エラーのジョブから再開できる(`README.md`)。
 
 ## 主な機能
+- `run <ジョブID>`: 個別実行 / `pipeline <名前>`: 一括実行 / `watch`: ステートの表示 / `reset`: ステートの消去 / `convert`: YAML と TOML の変換。詳細は api-documentation.md。
+- 単一の実行ファイル。ネットワーク接続なし、テレメトリなし。Linux・macOS・Windows で同じ定義に同じ結果。表示は環境のロケールで英語と日本語を切り替える。
+- 保証は at-least-once(ジョブが 2 回動きうる)。自動の再試行・タイムアウト・排他制御はない。
 
-| 機能 | 入口 | 内容 |
-|------|------|------|
-| 個別実行 | `conductor run <job-id>` | 1 ジョブを実行し、結果をステートに記録する(`crates/cli/src/run.rs`) |
-| 一括実行 | `conductor pipeline <name>` | 記述順に全ジョブを実行する。エラーで停止し、再試行しない(`pipeline.rs`) |
-| 状況表示 | `conductor watch` | ステートを表で 1 回表示する(`aux_commands.rs`) |
-| 初期化 | `conductor reset` | ステートを消す |
-| 形式変換 | `conductor convert <file> --to <yaml\|toml>` | 定義ファイルを YAML と TOML のあいだで変換する(`conductor-converter`) |
+## 利用者と配布
+- 利用者は、バッチ運用の担当者。GitHub Releases から OS 別のアーカイブ(Linux musl、macOS arm64/x86_64、Windows msvc の zip)と `SHA256SUMS` を取得する。署名・公証はしていない。
 
-## 業務ルール(コードから読み取れるもの)
-
-- ジョブは `command` を、シェルを介さずに直接起動する。`command` は、文字列または文字列の配列で書く(v0.2.0 で配列に対応済み)。文字列は、空白で分け、`'...'` と `"..."` で空白を含む引数を書く(BR1.1、`crates/runtime/src/split.rs`)。配列は、1 要素が 1 引数で、分割も展開もしない。変数・`*`・`|`・`;`・`&&`・`>` は解釈しない。
-- 終了コードは 成功(既定 `[0]`)・警告・エラーに分類する。成功コードに含まれない 0 は、conductor 自身のエラー(終了コード 1)。
-- 遷移は `success`・`warning` だけに書け、遷移先は記述順で後ろのジョブか `@end`。
-- 終了コード: 0 成功、64 定義の誤り(command の誤りを含む)、65 ステート、66 拒否、67 変換、68 使い方、70 内部、127 起動失敗、128+番号 シグナル(`crates/cli/src/exit.rs`)。
-- ステートは定義ファイルと同じディレクトリの `<定義ファイル名>.state`(TOML)。完了で消す。ステートが読めない・壊れている・定義と食い違うときは 65 で止まり、`conductor reset` で消す(`README.md`)。
-- ステートは、エラーで止まった位置(再開位置)を覚え、同じコマンドの再実行で、成功済みのジョブを飛ばして再開する。保証の範囲は at-least-once(ジョブの終了とステートの記録のあいだで落ちると、ジョブが再実行されうる)。
-
-## 今回の変更(state-job-key)との関係
-
-ステートファイル内のジョブの配列のキーを、`[[jobs]]` から `[[job]]` に改める予定である。定義ファイルの `[[job]]` と書き方を揃えるためで、`format_version` は 1 のまま、旧形式の読み込み互換は設けない。利用者から見える影響は、旧形式のステートが残っていると 65(`corrupt`)になり、`conductor reset` が要ること。詳細は `architecture.md`、`api-documentation.md`、`code-quality-assessment.md` を参照。
-
-(前回の変更 command-array は、v0.2.0 として実装・リリース済み。)
+## 現在の意図(windows-demo)との関係
+- 動きを見せるデモが `demo/` にあるが、UNIX 系専用(`sh`)である(`demo/README.md` に「Windows では動かない」と明記)。Windows 版のデモを求められている。デモの構成は code-structure.md、制約は code-quality-assessment.md を参照。
