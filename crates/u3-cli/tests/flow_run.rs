@@ -392,6 +392,20 @@ fn 完了後の初期化の失敗は_65_で_completed_のまま残る() {
 }
 
 #[test]
+fn 起動前の中断の結果の書き込みの失敗は_65_でジョブは起動していない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.signals = FakeSignals::new(SignalMode::RaiseOnStart(15));
+    h.runtime
+        .write_failure
+        .set(WriteFailure::OnDurability(Durability::Durable));
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("the job was not started"), "{}", out.err);
+    assert!(!out.err.contains("already been executed"), "{}", out.err);
+    assert_eq!(h.runtime.ran(), Vec::<String>::new());
+}
+
+#[test]
 fn スキップの記録の書き込みの失敗は_65_でジョブは起動しない() {
     let mut h = Harness::new(WARNING_JUMPS);
     h.runtime.script("a", &[Exec::Exit(1)]);

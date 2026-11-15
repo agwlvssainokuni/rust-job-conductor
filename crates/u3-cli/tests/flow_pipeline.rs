@@ -244,6 +244,20 @@ fn ジョブの実行中の合図は_そのジョブをエラーとして記録�
 }
 
 #[test]
+fn 起動前の中断の結果の書き込みの失敗は_65_でジョブは起動していない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.signals = FakeSignals::new(SignalMode::RaiseOnStart(15));
+    h.runtime
+        .write_failure
+        .set(WriteFailure::OnDurability(Durability::Durable));
+    let out = h.run(&["pipeline", "p"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("the job was not started"), "{}", out.err);
+    assert!(!out.err.contains("already been executed"), "{}", out.err);
+    assert_eq!(h.runtime.ran(), Vec::<String>::new());
+}
+
+#[test]
 fn 起動の前の合図は_最初のジョブを起動せず_再開位置を記録する() {
     let mut h = Harness::new(THREE_JOBS);
     h.signals = FakeSignals::new(SignalMode::RaiseOnStart(2));

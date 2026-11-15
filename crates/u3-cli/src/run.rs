@@ -99,16 +99,17 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             ctx.report_execution(job, &execution, &outcome, &next);
 
             let recorded = apply_outcome(&base, job_id, &execution, &outcome, &next);
-            if let Err(code) = ctx.write(
-                path,
-                &recorded,
-                Durability::Durable,
-                StateContext::JobExecuted,
-            ) {
+            // 起動前の中断(started = false)は、ジョブが実行されていない。
+            let after = if execution.started {
+                StateContext::JobExecuted
+            } else {
+                StateContext::JobNotStarted
+            };
+            if let Err(code) = ctx.write(path, &recorded, Durability::Durable, after) {
                 return code;
             }
             if next.completed {
-                if let Err(code) = ctx.reset(path, StateContext::JobExecuted) {
+                if let Err(code) = ctx.reset(path, after) {
                     return code;
                 }
             }

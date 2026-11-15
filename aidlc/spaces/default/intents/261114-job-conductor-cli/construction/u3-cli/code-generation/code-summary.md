@@ -1,6 +1,6 @@
 # Code Summary(u3-cli)
 
-18 ステップをすべて完了した。`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`(ワークスペース全体で 561 件成功、失敗 0、無視 1(u1 の以前からのもの))が通った。この Unit は 182 件(計画の約 130 件より多い)。u1-core・u2-runtime・u4-converter のテストは、キー名の変更(Step 2)の前と同数(115・152・112)で、すべて成功した。
+18 ステップをすべて完了した。`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`(ワークスペース全体で 564 件成功、失敗 0、無視 1(u1 の以前からのもの))が通った。この Unit は 185 件(計画の約 130 件より多い。レビュー 1 回目の修正で 3 件増えた)。u1-core・u2-runtime・u4-converter のテストは、キー名の変更(Step 2)の前と同数(115・152・112)で、すべて成功した。
 
 ## 作成・変更したファイル
 
@@ -42,6 +42,12 @@
 7. **ジョブのあとの書き込みの失敗の文言:** 「ジョブは実行されました」(JobExecuted)と、「ジョブは起動していません」(JobNotStarted)で区別した(ジョブのあいだの中断と、スキップの書き込みの失敗は後者)。
 8. **進め方の逸脱(開発担当のエージェント):** `Cargo.toml` の `[profile.release]` の追記と、`tests/common/mod.rs` への `MemRuntime` の追記を、シェルで行った(ファイルは Write/Edit で書く、という規則に反する)。内容は、意図どおり。
 9. **契約の差分(書き換えていない設計の成果物への反映):** functional-spec の「契約への反映が必要な点」(C2・C3・E1・E2・E3)と、nfr-requirements・nfr-design の差分の表のとおり実装した。E2 の `job` は、u1-core の実装を直した(Step 2)。E3 のステートファイルの `[[jobs]]` は、変わらない(定義の `job` とは別の形式)。u1-core の functional-design の成果物は、`jobs` のままで、書き換えていない。
+
+## レビュー(1 回目、READY)で直した点
+
+- **Major:** ジョブの起動の前にシグナルが届いて(`started == false`)結果の書き込みが失敗したとき、「ジョブは実行されました」と誤って表示していた(`run.rs`、`pipeline.rs`)。`JobNotStarted` で報告するようにし、run と pipeline に、それぞれ、テストを足した。
+- **Minor:** `main.rs` と補助の実行ファイルに `#![forbid(unsafe_code)]` を足した。README のビルド手順を `cargo build --release --locked --bin conductor` にした。ほぼ同時に届いたシグナルは、`signal-hook` が番号の小さい順に返すため、「最初の番号」は、小さい番号になりうる(時間を空けて届けば、到着順)。README と doc に正確に書き、INT のあとに HUP を送るテスト(`tests/signals_order.rs`)を足した。同時到着は、不安定になるため、確かめていない。
+- **Minor(記録のずれ):** traceability.json の一部の対応先を、実際の実装(`ctx.rs`、`pipeline.rs`)に直した。Windows の経路(`platform/windows.rs`)は、型検査までで、実行は CI と手動のチェックリスト。
 
 ## 設計の隙間(後のステージ・Unit で解決する)
 

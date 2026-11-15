@@ -19,6 +19,8 @@
 //! 時刻は、プロセスをまたいで比べられる `SystemTime`(UNIX 時刻)で出す(`Instant` は、プロセスをまたいだ
 //! 値を持たず、`unsafe` なしでは、取り出せないため)。
 
+#![forbid(unsafe_code)]
+
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};

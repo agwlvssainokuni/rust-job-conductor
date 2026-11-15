@@ -49,6 +49,10 @@ pub trait Signals {
     /// 受け取ったシグナルのうち、最初の 1 つの番号を、`signal` に書く監視を始める。
     ///
     /// `signal` は、監視のスレッドに渡すため、共有する(`Arc`)。
+    ///
+    /// 「最初の番号」は、監視が `raise` を呼んだ順の最初である。ほぼ同時に複数のシグナルが届くと、
+    /// `signal-hook` の `Signals` が、番号の小さい順に返すため、到着順ではなく、小さい番号が
+    /// 先になりうる(例: INT(2)と HUP(1)なら HUP)。時間を空けて届いたときは、到着順である。
     fn start(&self, signal: &Arc<InterruptSignal>) -> Result<(), SignalError>;
 }
 

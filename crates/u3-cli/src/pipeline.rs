@@ -111,12 +111,13 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 ctx.report_execution(job, &execution, &outcome, &next);
 
                 let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
-                if let Err(code) = ctx.write(
-                    path,
-                    &recorded,
-                    Durability::Durable,
-                    StateContext::JobExecuted,
-                ) {
+                // 起動前の中断(started = false)は、ジョブが実行されていない。
+                let after = if execution.started {
+                    StateContext::JobExecuted
+                } else {
+                    StateContext::JobNotStarted
+                };
+                if let Err(code) = ctx.write(path, &recorded, Durability::Durable, after) {
                     return code;
                 }
                 let is_error = outcome.classification == Some(Classification::Error);
@@ -125,7 +126,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     return exit_code_for(outcome.reported_exit_code, is_error);
                 }
                 if next.completed {
-                    return finish(ctx, path, StateContext::JobExecuted);
+                    return finish(ctx, path, after);
                 }
 
                 // ジョブのあいだの中断(BR4.2)。次のジョブを起動せず、再開位置を記録する。
