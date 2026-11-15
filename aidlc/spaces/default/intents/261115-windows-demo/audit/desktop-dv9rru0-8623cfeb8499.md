@@ -1161,3 +1161,21 @@
 **Answer Mode**: guide (reused from requirements-analysis)
 
 ---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T07:19:29Z
+**Event**: STAGE_SKIPPED
+**Stage**: deployment-pipeline
+**Reason**: The release pipeline (tag-triggered release.yml) and CI already exist and are unchanged; this work only adds demo files and a Windows-only test, so no deployment strategy or rollback design is needed.
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T07:19:29Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-execution
+**Agent**: aidlc-pipeline-deploy-agent
+**Answer Mode**: guide (reused from requirements-analysis)
+
+---
