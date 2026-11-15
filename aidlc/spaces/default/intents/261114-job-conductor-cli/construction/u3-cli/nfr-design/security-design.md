@@ -9,6 +9,7 @@
 ### 1. 引数の解釈(ArgParser。NFR4.1)
 
 1. `lexopt` で、引数を、字句(オプションの名前、値、位置引数)に分ける。シェルの展開や解釈はしない(引数は、すでに、OS から、文字列の並びとして届く)。
+1a. **文法の細目:** オプションの値は、`--config path` と `--config=path` の両方を受け付ける(`--to` も同じ)。`--` は、オプションの終わりを示し、以降を、すべて位置引数とする(先頭が `-` のジョブIDは、`--` のあとなら使える)。短いオプションのまとめ書き(`-vv` など)は、受け付けない(`-v` は、ちょうど1回。2回以上、または `-vv` は、`UsageError(invalidValue)`。`-v` は1段階)。値のないオプション(`--config` で値が続かない)は、`UsageError(missingValue)`。`--help`・`-h`・`--version`・`-V` は、`--` より前に現れたときだけ、最初に処理する。
 2. 最初の位置引数を、コマンド名として、`run`、`pipeline`、`watch`、`reset`、`convert` のどれかに対応づける。コマンドごとに、受け付けるオプションと、位置引数の数を、表で持ち、表に無いものは、`UsageError` にする(`-v` は run・pipeline だけ、`--config` は run・pipeline・watch・reset だけ、`--to` は convert だけで必須)。`--help`・`-h`・`--version`・`-V` は、先に処理する(BR1.6)。
 3. 引数が文字列として読めない(UNIX 系で、UTF-8 でないバイト列)ときは、`UsageError(invalidValue)`。パスの値(`--config`、convert の入力)は、`OsString` のまま、保つ(UTF-8 でないパスでも、使える)。
 4. 使い方の誤りは、`UsageError` の種類と、固定の文で、標準エラーに出し、終了コード 68。ジョブは実行しない。
@@ -49,10 +50,23 @@ fn start_signal_watcher(sig: Arc<InterruptSignal>) {
 - 終了コードの決定は、純粋な関数(`exit_code_for(outcome_or_error) -> u8`)に分ける。`reportedExitCode`(`i32`)は、BR5.2 で、0〜255 に合わせる(範囲外は、下位 8 ビット。エラーで 0 になるなら 1)。conductor 自身のエラーは、64〜68、70 の定数。
 - 終了は、`main.rs` の最後で、1回だけ、`std::process::exit` を呼ぶ。
 
+## リリースの完全性(NFR4.8。この Unit の設計の範囲)
+
+- NFR4.8(タグを付けたときの、3つの OS 向けのビルドと、SHA-256 のチェックサムの公開)は、**この Unit のコードの設計の対象外**で、CI Pipeline と Deployment Pipeline のステージで、設計・実装する。この Unit に求める設計上の取り決めは、(1) 依存を `Cargo.lock` で固定し、`--locked` でビルドできること、(2) 実行ファイルの名前が `conductor` であること、(3) テスト専用の補助の実行ファイルが、配布のビルドに含まれないこと(`-p conductor-cli` のビルド)の3つで、tech-stack-decisions と cicd-pipeline に記録してある。
+
+## 他の NFR の設計(NFR2.1、NFR3.1、NFR5.1、NFR6.1〜NFR6.4)
+
+- **NFR2.1(単一バイナリ):** `lib.rs` と `main.rs` を、1つのパッケージ(`conductor-cli`)にし、u1-core・u2-runtime・u4-converter を、パス依存で静的に組み込む。C のコンパイルを要しない依存だけを使う。
+- **NFR3.1(OS 固有のコード):** この Unit では、シグナルの監視(`cfg(unix)`/`cfg(windows)`)と、端末の判定のモジュールの中だけ。
+- **NFR5.1(テスト):** Q1: A により、全部の処理が `lib.rs` にあり、同じプロセスのテストで、行カバレッジ 80% 以上(Linux)を測れる。バイナリを起動するテストは、終了コードと、標準出力・標準エラーの分け方を確かめる少数に絞る。Q2: A により、流れの失敗の経路(ジョブのあとの書き込みの失敗、初期化の失敗、シグナル、閉じたパイプ)を、偽の実装で確かめる。
+- **NFR6.1〜NFR6.4(表示):** observability-design に設計した(状態の文字表示、`-v` の1段階、言語の切り替え、診断のしやすさ)。
+
 ## 既存の成果物との差分(この設計を優先する)
 
 | 対象 | 変更の内容 |
 |------|------------|
+| functional-design の rules(BR7.1)と契約 E1 | `watch` の標準出力への書き込みの失敗(閉じたパイプなど)は、終了コード 65 とする(「ステートの誤り」の 65 と同じ値だが、ステートの誤りではない。表示は、標準エラーに、固定の文で出す)。E1 の、`watch` の終了コードに足す |
+| functional-design の rules(BR2.4) | `apply_skip` が、ステートを変えなかったとき(`alreadyExecuted`)は、`write_state` を呼ばない(変更のない `Durable` の書き込みを避ける) |
 | nfr-requirements の NFR4.7 | パニックのフックは、`main` の最初に設定し、終了の呼び出しを差し替えられる作りにする。フックの表示は、英語の固定の文 |
 | functional-design の rules(BR6.1) | パニックのフックと、シグナルの準備の失敗(70)の表示は、ロケールを判定せず、英語の固定の文にする(ロケールの判定は、通常の表示のときだけ) |
 
@@ -77,10 +91,11 @@ fn start_signal_watcher(sig: Arc<InterruptSignal>) {
 - **Context:** 内部の誤りを、見分けられるようにしたい。
 - **Decision:** フックで、固定の文を出し、70 で終了する。ジョブの実行中のパニックは、子プロセスを待たずに終わり、孤児が残りうる(at-least-once の範囲)。
 - **Consequences:** 良い点は、原因が見える。悪い点は、孤児のジョブが残りうる。
-- **Alternatives Rejected:** パニックの既定(101): 実装は不要だが、文言が固定でなく、100 番台が、ジョブの終了コードと紛れる。パニック時に、子プロセスを終了させる案: 子の pid を、パニックのフックから知る仕組みが要り、複雑で、この版では行わない。
+- **Alternatives Rejected:** パニックの既定(101): 実装は不要だが、文言が Rust の既定で固定でなく、利用者に見せたい形(固定の英語の文)にならない。パニック時に、子プロセスを終了させる案: 子の pid を、パニックのフックから知る仕組みが要り、複雑で、この版では行わない。
 
 ## Assumptions & Open Questions
 
+- `InterruptSignal`(`raise` と「最初の番号を保つ」)は、u2-runtime の entities.md が定義し、u2-runtime が所有する型である。この Unit は、`raise` を呼ぶだけ。 [assumption]
 - `signal-hook` の `Signals` が、最小の Rust のバージョン(1.85)で使えること、`ctrlc` が Windows で Ctrl+C を受け取ることは、Code Generation の最初に確かめる(止めて人に確認する手順は、tech-stack-decisions の通り)。 [assumption]
 - `escape_display` の4か所の複製の整理(共通のクレート)は、この版の範囲外で、将来の検討とする。 [assumption]
 - 認証・認可・暗号化は、この Unit に該当しない。 [assumption]

@@ -12,7 +12,7 @@
 |------|------|------------|
 | 入口(main) | パニックのフックを設定し、ライブラリの `run_cli(args, env, io)` を呼び、返った終了コードで、1回だけ終了する | NFR4.7、NFR2.2 |
 | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する。`UsageError` を返す | NFR4.1 |
-| 流れ(Orchestrator) | W2(run)、W3(pipeline)、W4〜W6 の手順。u1-core・u2-runtime・u4-converter の関数を、決まった順に呼ぶ。**依存は、小さな trait(`Runtime`、`Sink`、`Env`)で受け取る**(Q2: A) | NFR2.2〜NFR2.7 |
+| 流れ(Orchestrator) | W2(run)、W3(pipeline)、W4〜W6 の手順。u1-core・u2-runtime・u4-converter の関数を、決まった順に呼ぶ。**依存は、小さな trait(`Runtime`、`Sink`、`Env`、`Signals`)で受け取る**(Q2: A) | NFR2.2〜NFR2.7 |
 | シグナルの監視(SignalWatcher) | run・pipeline の起動の経路でだけ、専用のスレッドを起動し、受け取った最初の番号を、合図に書く(`cfg` で、UNIX 系は `signal-hook`、Windows は `ctrlc`) | NFR4.3 |
 | 終了コードの決定(ExitMapper) | 純粋な関数。`reportedExitCode`、conductor 自身のエラーの種類から、0〜255 の終了コードを決める(BR5.1、BR5.2) | NFR2.2 |
 | 表示(Reporter) | DisplayEvent から、文言(英語・日本語)を組み立てる。Locale・Color は遅延。Escape を通す | NFR6.1〜NFR6.4、NFR4.2、NFR1.4 |
@@ -27,6 +27,7 @@
 | `Runtime`(`check_command`、`run_job`、`read_state`、`write_state`、`reset_state`、`load_definition`) | u2-runtime・u1-core の実際の関数 | 失敗を起こす偽(例: ジョブのあとの書き込みの失敗、初期化の失敗、読み込みの失敗) |
 | `Sink`(標準出力、標準エラーへの書き込み) | 実際の標準出力・標準エラー | 内容を集める偽。書き込みの失敗を起こす偽(閉じたパイプ) |
 | `Env`(環境変数、端末かどうか、`NO_COLOR`) | 実際の環境 | 固定の値 |
+| `Signals`(`start(&InterruptSignal) -> Result<(), SignalError>`) | 実際のシグナルの監視(`signal-hook` / `ctrlc`。プロセスで1回だけ登録できる。2回目の呼び出しは、すでに登録済みとして成功とする) | 何もしない偽、または、指定したタイミングで、合図に `raise` する偽(起動前・ジョブのあいだ・検査の途中の中断を起こす)。登録に失敗する偽(70 の確認) |
 
 - 純粋な部品(ArgParser、ExitMapper、Reporter の文言の組み立て、WatchView、Escape)は、trait なしで、直接テストする。
 

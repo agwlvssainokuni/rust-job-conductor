@@ -1,29 +1,135 @@
 {
   "stage": "nfr-design",
   "unit": "u3-cli",
-  "upstream_ids": ["NFR1.1","NFR1.2","NFR1.3","NFR1.4","NFR4.1","NFR4.2","NFR4.3","NFR4.4","NFR4.5","NFR4.6","NFR4.7","NFR2.4","NFR4.8","NFR1.5","NFR1.6","NFR2.2","NFR2.3","NFR2.5","NFR2.6","NFR2.7","NFR2.8"],
+  "upstream_ids": [
+    "NFR1.1",
+    "NFR1.2",
+    "NFR1.3",
+    "NFR1.4",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR4.3",
+    "NFR4.4",
+    "NFR4.5",
+    "NFR4.6",
+    "NFR4.7",
+    "NFR2.4",
+    "NFR4.8",
+    "NFR1.5",
+    "NFR1.6",
+    "NFR2.2",
+    "NFR2.3",
+    "NFR2.5",
+    "NFR2.6",
+    "NFR2.7",
+    "NFR2.8"
+  ],
   "coverage": [
-    { "id": "NFR1.1", "status": "OK", "target": "performance-design の「起動の経路と時間の配分」(起動前 50ms + ジョブのあと 50ms)と、測定の設計" },
-    { "id": "NFR1.2", "status": "OK", "target": "performance-design の「測定の設計」(起動前とジョブのあとの内訳を別々に記録する)" },
-    { "id": "NFR1.3", "status": "OK", "target": "performance-design の 設計の要点 4(ジョブの出力を加工しない。待ちは同じスレッドの確認のくり返し)" },
-    { "id": "NFR1.4", "status": "OK", "target": "performance-design の D1(ロケールと文言の遅延)と、設計の要点 1(convert の初期化は convert の経路だけ)" },
-    { "id": "NFR1.5", "status": "OK", "target": "scalability-design の「設計」の表(定義 1 MiB、ジョブ 1,000 個、線形の走査、容量の測定)" },
-    { "id": "NFR1.6", "status": "OK", "target": "scalability-design の D1(排他制御をしない。同時の実行を許す)" },
-    { "id": "NFR2.2", "status": "OK", "target": "reliability-design の「失敗の経路と振る舞い」の表と、設計の要点 1(終了コードを純粋な関数に集める)" },
-    { "id": "NFR2.3", "status": "OK", "target": "reliability-design の 設計の要点 3(自動の再試行をしない)" },
-    { "id": "NFR2.4", "status": "OK", "target": "reliability-design の 設計の要点 2(at-least-once。流れの順序を固定し、保証の範囲を文書に書く)" },
-    { "id": "NFR2.5", "status": "OK", "target": "reliability-design の 設計の要点 4(中断の順序: 転送、待つ、記録、128 + 番号)と security-design の 3(シグナルの監視)" },
-    { "id": "NFR2.6", "status": "OK", "target": "reliability-design の表と observability-design の 設計の要点 2(全種類のエラーで原因を標準エラーに出す)" },
-    { "id": "NFR2.7", "status": "OK", "target": "reliability-design の 設計の要点 5(reset は検査を迂回して、どの状態でも動く)" },
-    { "id": "NFR2.8", "status": "OK", "target": "reliability-design の 設計の要点 6(書式の版 1 だけを読む。将来の版は 64 / 65)" },
-    { "id": "NFR4.1", "status": "OK", "target": "security-design の 1(引数の解釈。lexopt、コマンドごとの文法の表、68)" },
-    { "id": "NFR4.2", "status": "OK", "target": "security-design の 2(escape_display)と D1(4つ目の複製と、揃えの表)" },
-    { "id": "NFR4.3", "status": "OK", "target": "security-design の 3(専用のスレッドで受け、最初の番号だけを書く)と D2" },
-    { "id": "NFR4.4", "status": "OK", "target": "security-design の 4(convert は全部作ってから1回で書く。失敗のとき標準出力は空)" },
-    { "id": "NFR4.5", "status": "OK", "target": "security-design の 5(ネットワークなし。読み書きするファイルは定義・ステート・convert の入力だけ)" },
-    { "id": "NFR4.6", "status": "OK", "target": "security-design の 5(パスは OsString のまま渡す)と 1 の 3(UTF-8 でないパスも使える)" },
-    { "id": "NFR4.7", "status": "OK", "target": "security-design の 4(パニックのフック。終了の呼び出しを差し替えられる)と D3" },
-    { "id": "NFR4.8", "status": "OK", "target": "security-requirements の NFR4.8 を、リリースの要件として記録(実装は CI Pipeline・Deployment Pipeline のステージ)。security-design の範囲外であることを明記" }
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "performance-design の「起動の経路と時間の配分」(起動前 50ms + ジョブのあと 50ms)と、測定の設計"
+    },
+    {
+      "id": "NFR1.2",
+      "status": "OK",
+      "target": "performance-design の「測定の設計」(起動前とジョブのあとの内訳を別々に記録する)"
+    },
+    {
+      "id": "NFR1.3",
+      "status": "OK",
+      "target": "performance-design の 設計の要点 4(ジョブの出力を加工しない。待ちは同じスレッドの確認のくり返し)"
+    },
+    {
+      "id": "NFR1.4",
+      "status": "OK",
+      "target": "performance-design の D1(ロケールと文言の遅延)と、設計の要点 1(convert の初期化は convert の経路だけ)"
+    },
+    {
+      "id": "NFR1.5",
+      "status": "OK",
+      "target": "scalability-design の「設計」の表(定義 1 MiB、ジョブ 1,000 個、線形の走査、容量の測定)"
+    },
+    {
+      "id": "NFR1.6",
+      "status": "OK",
+      "target": "scalability-design の D1(排他制御をしない。同時の実行を許す)"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "reliability-design の「失敗の経路と振る舞い」の表(初期ステート・スキップ・ジョブのあいだ・完了の判定・シグナルの準備・検査中のシグナルの行を含む)と、設計の要点 1(終了コードを純粋な関数に集める)"
+    },
+    {
+      "id": "NFR2.3",
+      "status": "OK",
+      "target": "reliability-design の 設計の要点 3(自動の再試行をしない)"
+    },
+    {
+      "id": "NFR2.4",
+      "status": "OK",
+      "target": "reliability-design の 設計の要点 2(at-least-once。流れの順序を固定し、保証の範囲を文書に書く)"
+    },
+    {
+      "id": "NFR2.5",
+      "status": "OK",
+      "target": "reliability-design の 設計の要点 4(中断の順序: 転送、待つ、記録、128 + 番号)と security-design の 3(シグナルの監視)"
+    },
+    {
+      "id": "NFR2.6",
+      "status": "OK",
+      "target": "reliability-design の表と observability-design の 設計の要点 2(全種類のエラーで原因を標準エラーに出す)"
+    },
+    {
+      "id": "NFR2.7",
+      "status": "OK",
+      "target": "reliability-design の 設計の要点 5(reset は検査を迂回して、どの状態でも動く)"
+    },
+    {
+      "id": "NFR2.8",
+      "status": "OK",
+      "target": "reliability-design の 設計の要点 6(書式の版 1 だけを読む。将来の版は 64 / 65)"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "security-design の 1(引数の解釈。lexopt、コマンドごとの文法の表、68)"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "security-design の 2(escape_display)と D1(4つ目の複製と、揃えの表)"
+    },
+    {
+      "id": "NFR4.3",
+      "status": "OK",
+      "target": "security-design の 3(専用のスレッドで受け、最初の番号だけを書く)と D2"
+    },
+    {
+      "id": "NFR4.4",
+      "status": "OK",
+      "target": "security-design の 4(convert は全部作ってから1回で書く。失敗のとき標準出力は空)"
+    },
+    {
+      "id": "NFR4.5",
+      "status": "OK",
+      "target": "security-design の 5(ネットワークなし。読み書きするファイルは定義・ステート・convert の入力だけ)"
+    },
+    {
+      "id": "NFR4.6",
+      "status": "OK",
+      "target": "security-design の 5(パスは OsString のまま渡す)と 1 の 3(UTF-8 でないパスも使える)"
+    },
+    {
+      "id": "NFR4.7",
+      "status": "OK",
+      "target": "security-design の 4(パニックのフック。終了の呼び出しを差し替えられる)と D3"
+    },
+    {
+      "id": "NFR4.8",
+      "status": "OK",
+      "target": "security-design の「リリースの完全性(NFR4.8)」(この Unit の設計の範囲は、--locked でのビルド、実行ファイル名、補助の実行ファイルを含めないこと。チェックサムの公開は CI Pipeline・Deployment Pipeline のステージ)"
+    }
   ],
   "reverse": []
 }
