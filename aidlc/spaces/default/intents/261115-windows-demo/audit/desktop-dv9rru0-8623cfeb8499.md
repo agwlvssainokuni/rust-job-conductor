@@ -903,3 +903,80 @@
 **Details**: cd <project-dir> && git add -A && git commit -q -m "AI-DLC: windows-demo の code-generation の初稿(Windows 向けデモ)\n\nCo-Authored-By: Clau
 
 ---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-15T05:53:29Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: code-generation
+**Next Stage**: build-and-test
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/code-generation-plan.md=not-run; required-sections@aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/unit-test-instructions.md=not-run; required-sections@aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/code-summary.md=not-run; required-sections@aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/traceability.json=not-run; traceability@aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/traceability.json=not-run
+**Open Decisions**: 0
+**Question Id**: 05ab8c96
+**Question Type**: gate
+**Question Chat**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Question Shows**: sha256:e26458a908db8c1e1888ea87efde89df7713981f0a9f084971d0331f9673b976
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T07:10:52Z
+**Event**: HUMAN_TURN
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 92323d6d
+**Open Questions**: 05ab8c96
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261115-windows-demo/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"398edfd2a4c2a86c"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T07:10:52Z
+**Event**: QUESTION_REPLIED
+**Session**: 80f6ffcc-e35f-440b-b91d-a94097d374d6
+**Question**: コード生成が完了しました。このまま進めてよいですか?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-15T07:10:58Z
+**Event**: GATE_APPROVED
+**Stage**: code-generation
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 92323d6d
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-15T07:10:58Z
+**Event**: STAGE_COMPLETED
+**Stage**: code-generation
+**Validation Basis**: {"graphContract":"sha256:ac0ef7ae03ae2fcfab9e2a94500d84c4fe00d00384d1f8dcff92c96b2e1f50de","inputs":[{"artifact":"requirements","contentHash":"sha256:34e2f5cd1827008c4bea680f263b0d7aea2e4d24ddfa25c8da95b8f7d4d3898e","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:d04cc3d40a93ef0b7dda8f70eebc3731a2386b3e5b9e826d149dbf2aff955355"},{"artifact":"unit-of-work","contentHash":"sha256:1d3e1161044216eb58f535d539762485d396ac7e177b6a717f2bfc957ce2abe9","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:3665338f4508d3f0b59584d54ca3b00c2a3cd658bae1ebff406499cc060caec7"}],"outputs":[{"artifact":"code-generation-plan","contentHash":"sha256:95f380f7c4870eb43a461dfcc3bb4a954bdae9364b49108e3eb26ac4c0dc188a","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:bcd052ee0e85895b13d1b6e559ffca8f62d723f61659bfa97b976fb7c0d5776d"},{"artifact":"code-summary","contentHash":"sha256:1139de49e1af31d3afb1395ed210a5387be9bc1c12ccec0d704e7640258d78d9","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:f2bdbd6eaeed29e70c8fa50faba5b0603f2564dab9e0e11c9e567499f7dfa776"},{"artifact":"traceability","contentHash":"sha256:b5208e1a6670c148cc7138e2440c847607c41b8b43540a82b21eee858adfbe57","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:9a883c690a3e065cbe5c50ec636ee219bfdf9cf5bb3e72f7bc14cfa05caf951b"},{"artifact":"unit-test-instructions","contentHash":"sha256:5f67aef195f5dda57f20a3af911403c566910344fa501cfdb05377a34987d597","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:1f92dfd8d26272e3ee22f5dbd26229d1cba4653c588982c5cb28c26d0fdab718"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Code Generation approved by gate
+**Tokens In**: 68
+**Tokens Out**: 28999
+**Cache Read**: 5329017
+**Cache Write**: 149781
+**Cost USD**: 1.29
+**By Model**: sonnet-5-5=1.29
+**By Agent**: main=0.81; aidlc-developer-agent=0.48
+**Tokens By Model**: sonnet-5-5=68/29k/5.3M/149.8k
+**Tokens By Agent**: main=38/14.9k/4.2M/59.2k; aidlc-developer-agent=30/14.1k/1.1M/90.6k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T07:10:58Z
+**Event**: STAGE_STARTED
+**Stage**: build-and-test
+**Agent**: aidlc-quality-agent
+**Answer Mode**: guide (reused from requirements-analysis)
+
+---
