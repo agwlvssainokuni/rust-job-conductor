@@ -104,11 +104,8 @@
 
 
 
-- **Active Unit**: u3-cli
 
-- **Unit Stage**: infrastructure-design
 
-- **Unit State**: in-progress
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -170,7 +167,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-15T00:17:43Z
+- **Last Updated**: 2026-11-15T00:25:40Z
 
 - **Construction Autonomy Mode**: autonomous
 

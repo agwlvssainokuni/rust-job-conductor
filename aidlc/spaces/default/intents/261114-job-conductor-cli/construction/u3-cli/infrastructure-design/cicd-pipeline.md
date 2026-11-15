@@ -15,7 +15,7 @@
 | `lint` | Linux | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings` | マージをブロック |
 | `build-check` | Linux、Windows | `cargo build --workspace --locked`、最小の Rust のバージョン(1.85)でのビルド(各パッケージ、開発用の依存を除く)、`cargo tree -e normal,build` に、`cc`・`cmake`・`pkg-config`・`bindgen` が現れないこと。検索の検査(Linux): この Unit の `src/` に、`unsafe` と `low_level`、`std::net`、ネットワークのライブラリがないこと。他の Unit の検索の検査も、同じジョブで行う | マージをブロック |
 | `test` | Linux、macOS、Windows(OS のマトリクス) | `cargo test --workspace --locked`(1回の実行。OS 固有のテストも同じ実行の中。**Windows の Ctrl+C の経路のテスト**: Windows のランナーで、`conductor run` を起動し、`GenerateConsoleCtrlEvent` で Ctrl+C を送り、終了コード 130 と、ステートの再開位置を確かめる(開発用の依存に `windows-sys` を足す)。CI のコンソールの制約で自動化できない場合は、**リリース前の手動確認のチェックリスト**に置き換え、結果を記録する(u2-runtime の cicd-pipeline が、この経路の確認を、この Unit に委ねている))。プロセスを起動するテストは、各 30 秒の時間の上限。`timeout-minutes: 15`。バイナリを起動する少数のテスト(`conductor --version`、`run` の終了コード、`convert` の標準出力の分け方)を含む | マージをブロック |
-| `startup-bench` | Linux、macOS、Windows | `conductor` 自身のオーバーヘッド(起動前 + ジョブのあと)を、20 回測って p95 を出す(リリースのビルド)。`pipeline` のジョブ1つあたりと、ジョブ 1,000 個の定義の時間も記録する。u1-core・u2-runtime の、起動前の処理の測定(各 Unit の cicd-pipeline の段階)も、このジョブにまとめる。**合計 100ms は、AC2.5.3 の受け入れ基準で、確定している**(仮なのは、内訳の配分だけ)。**強制の切り替え:** ワークフローの設定値 `STARTUP_BENCH_ENFORCE`(既定 `false`)。**u3-cli の Code Generation で、3つの OS の実測を終え、配分を確定したとき、担当者(開発者)が、`true` にし、必須のチェックに加える**(それまでは、警告)。共有ランナーの揺れ(ノイズ)に備え、基準超えは、**同じジョブの再実行(最大 2 回)でも再現したときだけ**、失敗にする | 切り替え前は、警告(ジョブの要約欄)。切り替え後は、`run` の合計が 100ms を超え、再実行でも再現したら失敗(マージとリリースをブロック) |
+| `startup-bench` | Linux、macOS、Windows | `conductor` 自身のオーバーヘッド(起動前 + ジョブのあと)を、20 回測って p95 を出す(リリースのビルド)。`pipeline` のジョブ1つあたりと、ジョブ 1,000 個の定義の時間も記録する。u1-core・u2-runtime の、起動前の処理の測定(各 Unit の cicd-pipeline の段階)も、このジョブにまとめる。**合計 100ms は、AC2.5.3 の受け入れ基準で、確定している**(仮なのは、内訳の配分だけ)。**強制の切り替え:** ワークフローの設定値 `STARTUP_BENCH_ENFORCE`(既定 `false`)。**u3-cli の Code Generation で、3つの OS の実測を終え、配分を確定したとき、担当者(開発者)が、`true` にし、必須のチェックに加える**(それまでは、警告)。共有ランナーの揺れ(ノイズ)に備え、基準超えは、**ジョブの中で、最大 3 回まで測り直して(自動)、3 回とも基準を超えたときだけ**、失敗にする | 切り替え前は、警告(ジョブの要約欄)。切り替え後は、`run` の合計が 100ms を超え、再実行でも再現したら失敗(マージとリリースをブロック) |
 | `coverage` | Linux | `cargo llvm-cov` で、各 Unit のパッケージの行カバレッジ(Unit ごと)を測り、80% 未満なら失敗。補助の実行ファイルのソースは除外。`cfg(windows)` のコードは、Windows の `test` の成功で確かめる。`timeout-minutes: 20`(仮) | マージをブロック |
 | `docs-check` | Linux | 利用者向けの文書(README)に、保証の範囲(ジョブの終了と記録のあいだに落ちると、ジョブが再実行されうること)、終了コードの表、macOS での警告の回避の手順、SHA-256 の確認の手順が含まれていること(見出しとキーワードの検索)。**README の作成(u3-cli の Code Generation のステップ)が済むまでは、必須のチェックに加えない(作成と同じ変更で、必須にする)** | README ができたあとは、マージをブロック |
 | `deps`(候補) | Linux | `cargo-deny`(ライセンス)と `cargo-audit`(脆弱性)。導入は CI Pipeline のステージで決める | — |
@@ -31,8 +31,8 @@
 | 0. 起動の条件の確認 | (a) タグのコミットが、`main` の履歴に含まれること(`git merge-base --is-ancestor`)。(b) タグの版が、`conductor-cli` の `version` と一致すること。(c) タグが `v*-rc*` などの接尾辞を持つなら、「先行版(prerelease)」として公開する。どれかが満たされなければ、失敗にする。リポジトリの設定で、`v*` のタグの作成・更新を、管理者だけに制限する(タグの保護。手動の設定として、記録する) |
 | 1. 検査 | `ci.yml` を、再利用できるワークフローとして呼び出し(`workflow_call`)、**必須のチェックのすべて**(`lint`、`build-check`、`test`(3つの OS)、`coverage`、有効なら `docs-check`・`startup-bench`)を、タグのコミットで実行する(1つでも失敗したら、リリースしない) |
 | 2. ビルド(マトリクス: 4つの対象。ランナーの版を固定: `ubuntu-24.04`、`macos-14`、`windows-2022`。キャッシュは使わない) | `cargo build --release --locked -p conductor-cli --target <対象>`。対象: `x86_64-unknown-linux-musl`(Linux。静的リンク。`cc` を要する依存がないため、`musl-tools` は、通常は不要。要る場合だけ導入する)、`aarch64-apple-darwin`、`x86_64-apple-darwin`(Apple シリコンのランナーで、ターゲットを追加してビルド)、`x86_64-pc-windows-msvc`。補助の実行ファイル(テスト用の bin)は、`-p conductor-cli` のビルドに含まれない |
-| 3. 動作の確認(スモークテスト) | **まとめたファイルを展開して**、`conductor --version`、`conductor convert`(小さな定義)を実行し、終了コード 0 と、期待する出力を確かめる(実行できるランナー上の対象のみ)。Linux の musl では、`file`(または `ldd`)で、**静的にリンクされていること**も確かめる。クロスビルドの `x86_64-apple-darwin` は、Rosetta がある場合に実行する。ない場合は、確認を省き、**リリースの本文に、「Intel macOS: 動作の確認なし」と書く** |
-| 4. まとめ | UNIX 系は `.tar.gz`、Windows は `.zip`。中に `conductor`(`conductor.exe`)と `LICENSE`。名前は `conductor-<版>-<対象>.<拡張子>` |
+| 3. まとめ | UNIX 系は `.tar.gz`、Windows は `.zip`。中に `conductor`(`conductor.exe`)と `LICENSE`。名前は `conductor-<版>-<対象>.<拡張子>` |
+| 4. 動作の確認(スモークテスト) | **まとめたファイルを展開して**、`conductor --version`、`conductor convert`(小さな定義)を実行し、終了コード 0 と、期待する出力を確かめる(実行できるランナー上の対象のみ)。Linux の musl では、`file`(または `ldd`)で、**静的にリンクされていること**も確かめる。クロスビルドの `x86_64-apple-darwin` は、Rosetta がある場合に実行する。ない場合は、確認を省き、**リリースの本文に、「Intel macOS: 動作の確認なし」と書く** |
 | 5. チェックサム | まとめたファイルごとに SHA-256 を求め、1つのファイル `SHA256SUMS` に書く |
 | 6. 公開 | **ジョブの流れ:** ビルド(マトリクス)→ まとめ・チェックサム(1つのジョブ。全部の成果物を集める)→ 公開(`contents: write` のジョブ)。公開は、まず**下書き(draft)のリリース**を作り、4つのまとめたファイルと `SHA256SUMS` を、すべて添付し終えてから、公開に切り替える(途中で失敗したら、下書きのまま残り、利用者には見えない。全部が揃うか、何も公開されないかの、どちらか)。リリースの本文は、タグの注釈と、変更の一覧(`git log` から)と、動作の確認を省いた対象 |
 
@@ -40,6 +40,8 @@
 - **署名:** この版では、コードサイニングと公証を行わない。チェックサムは、転送の破損の検知まで(配布元の改ざんは防げない)。
 
 ## 起動の条件
+
+- `ci.yml` の起動の条件は、`push`、`pull_request`、`workflow_call`(`release.yml` から呼ぶ)の3つ。`workflow_call` の入力(`docs_check`、`startup_bench_enforce`。既定は、それぞれ、`ci.yml` の設定値)で、`docs-check` と `startup-bench` の強制を、呼び出し側から切り替えられる。
 
 - `ci.yml`: `main` への push と、`main` に向けたプルリクエスト。
 - `release.yml`: タグ `v*` の push だけ。
