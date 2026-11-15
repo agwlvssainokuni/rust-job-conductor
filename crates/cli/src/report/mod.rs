@@ -40,8 +40,8 @@ use crate::platform;
 use crate::types::{Language, Level, UsageError};
 use escape::{escape_name, escape_path};
 use messages::{
-    ERROR_PREFIX, VERBOSE_PREFIX, command_kind, conversion_kind, definition_kind, mismatch_kind,
-    reject_reason, skip_reason, state_kind, state_kind_suggests_reset, usage_kind,
+    ERROR_PREFIX, VERBOSE_PREFIX, WARNING_PREFIX, command_kind, conversion_kind, definition_kind,
+    mismatch_kind, reject_reason, skip_reason, state_kind, state_kind_suggests_reset, usage_kind,
 };
 
 /// ステートの誤りを表示するときの文脈(原因に添える補足を決める)。
@@ -49,6 +49,8 @@ use messages::{
 pub enum StateContext {
     /// ステートを読んだ(`reset` を案内する)。
     Read,
+    /// run ID つきのステートを読んだ(`reset --run-id <ID>` を案内する)。
+    ReadRunId,
     /// ジョブを起動する前の失敗(ジョブは起動していない)。
     JobNotStarted,
     /// ジョブのあとの失敗(ジョブは実行済み)。
@@ -87,6 +89,12 @@ pub enum DisplayEvent<'a> {
     ConsistencyMismatch {
         state_path: &'a Path,
         kind: MismatchKind,
+        /// run ID つきのステートか(案内の文が変わる)。
+        with_run_id: bool,
+    },
+    /// `reset --all` が、読めなくて残したファイル(警告。終了コードは変わらない)。
+    ResetAllKept {
+        names: &'a [String],
     },
     Rejected {
         job_id: &'a str,
@@ -152,6 +160,7 @@ impl DisplayEvent<'_> {
             | Self::Usage(_)
             | Self::State { .. }
             | Self::ConsistencyMismatch { .. }
+            | Self::ResetAllKept { .. }
             | Self::Rejected { .. }
             | Self::StartFailure { .. }
             | Self::SuccessCodeNotListed { .. }
@@ -254,9 +263,24 @@ impl<'a> Reporter<'a> {
             }
             DisplayEvent::Usage(error) => usage_text(lang, error),
             DisplayEvent::State { error, context } => state_line(lang, error, *context),
-            DisplayEvent::ConsistencyMismatch { state_path, kind } => {
+            DisplayEvent::ResetAllKept { names } => {
+                let mut out = format!("{WARNING_PREFIX}{}\n", messages::RESET_ALL_KEPT.get(lang));
+                for name in names.iter() {
+                    out.push_str(&format!("  {}\n", escape_path(name)));
+                }
+                out
+            }
+            DisplayEvent::ConsistencyMismatch {
+                state_path,
+                kind,
+                with_run_id,
+            } => {
                 let place = escape_path(&state_path.display().to_string());
-                let hint = messages::RESET_HINT.get(lang);
+                let hint = if *with_run_id {
+                    messages::RESET_HINT_RUN_ID.get(lang)
+                } else {
+                    messages::RESET_HINT.get(lang)
+                };
                 let what = mismatch_kind(*kind).get(lang);
                 error_line(
                     &place,
@@ -403,6 +427,11 @@ fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
         StateContext::Read => {
             if state_kind_suggests_reset(e.kind) {
                 cause.push_str(&format!("; {}", messages::RESET_HINT.get(lang)));
+            }
+        }
+        StateContext::ReadRunId => {
+            if state_kind_suggests_reset(e.kind) {
+                cause.push_str(&format!("; {}", messages::RESET_HINT_RUN_ID.get(lang)));
             }
         }
         StateContext::JobNotStarted => {

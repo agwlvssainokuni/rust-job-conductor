@@ -29,7 +29,11 @@
 //! | [`write_state`] | ステートを、原子的に書く(W3。BR2.4)。耐久性の指定つき | 定義ファイルのパス、ステート、[`Durability`] | [`StateError`](`writeFailed`) |
 //! | [`check_consistency`] | ステートと定義の食い違いを検知する(W4。BR2.5) | ステート、定義 → [`ConsistencyResult`] | なし(純粋) |
 //! | [`reset_state`] | ステートを、検査を迂回して消す(W5。BR2.6) | 定義ファイルのパス | [`StateError`](`removeFailed`) |
-//! | [`initial_state`] | 空のステートを、定義から作る(BR2.8) | 定義、パス → `PipelineState` | なし(純粋) |
+//! | [`reset_all_states`] | その定義のステートを、run ID の有無によらず、すべて消す(FR5) | 定義ファイルのパス → [`ResetAllReport`] | [`StateError`] |
+//! | [`initial_state`] | 空のステートを、定義から作る(BR2.8) | 定義、パス、run ID → `PipelineState` | なし(純粋) |
+//!
+//! `read_state`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
+//! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
 //! | [`apply_outcome`] | ジョブの結果を記録する(BR2.8) | ステート、結果、次の動き → ステート | なし(純粋) |
 //! | [`apply_skip`] | スキップを記録し、完了を判定する(BR2.8) | ステート、理由、定義 → ステート | なし(純粋) |
 //! | [`apply_interrupt`] | 中断を記録する(BR2.8) | ステート、`ResumePoint` → ステート | なし(純粋) |
@@ -108,5 +112,6 @@ pub use split::check_command;
 pub use state::consistency::check_consistency;
 pub use state::reader::read_state;
 pub use state::record::{apply_interrupt, apply_outcome, apply_skip, initial_state};
+pub use state::reset_all::{ResetAllReport, reset_all_states};
 pub use state::writer::{reset_state, write_state};
 pub use types::*;

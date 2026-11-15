@@ -83,7 +83,7 @@ fn 警告は_0_スキップは_0_エラーはジョブの値() {
     let output = project.run(&["run", "fail"]);
     assert_eq!(output.status.code(), Some(7));
     assert!(output.stdout.is_empty() && output.stderr.is_empty());
-    let state = conductor_runtime::read_state(&project.def_path())
+    let state = conductor_runtime::read_state(&project.def_path(), None)
         .expect("読める")
         .expect("ステートがある");
     assert_eq!(state.resume_job_id.as_deref(), Some("fail"));

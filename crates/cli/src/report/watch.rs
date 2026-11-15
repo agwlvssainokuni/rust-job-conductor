@@ -22,7 +22,7 @@ use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 use super::escape::escape_name;
 use super::messages::{
     EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, NOTE_BY_END, NOTE_BY_TRANSITION,
-    WATCH_PIPELINE,
+    WATCH_PIPELINE, WATCH_RUN_ID,
 };
 use crate::types::Language;
 
@@ -106,6 +106,10 @@ pub fn render_table(lang: Language, state: &PipelineState, color: bool) -> Strin
         WATCH_PIPELINE.get(lang),
         escape_name(&state.pipeline_name)
     );
+    // run ID があるときだけ、パイプライン名の次の行に足す(run ID なしの表示は変えない)。
+    if let Some(run_id) = &state.run_id {
+        out.push_str(&format!("{WATCH_RUN_ID}: {}\n", escape_name(run_id)));
+    }
     out.push_str(&format!(
         "{}  {}  {}\n",
         pad(job_header, job_width),

@@ -28,6 +28,8 @@ pub struct PipelineDefinition {
     pub name: String,
     /// 説明(省略可)。
     pub description: Option<String>,
+    /// run ID を読む環境変数の名前(省略可。形は検査済み。省略時は `CONDUCTOR_RUN_ID`)。
+    pub run_id_env: Option<String>,
     /// 書式の版(初版は 1)。
     pub format_version: u32,
     /// ジョブ。定義ファイルに書いた順を保つ(BR1.11)。1 つ以上。
@@ -199,6 +201,8 @@ pub struct PipelineState {
     pub resume_job_id: Option<String>,
     pub end_reached: bool,
     pub completed: bool,
+    /// run ID(run ID なしのステートでは `None`。ファイル名の run ID と一致する)。
+    pub run_id: Option<String>,
 }
 
 /// 起動前の判断の理由。
@@ -325,6 +329,7 @@ mod tests {
         let def = PipelineDefinition {
             name: "p".into(),
             description: None,
+            run_id_env: None,
             format_version: 1,
             job: vec![job("a"), job("b")],
         };

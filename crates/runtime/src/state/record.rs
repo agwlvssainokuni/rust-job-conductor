@@ -21,14 +21,20 @@ use std::path::Path;
 
 use conductor_core::{
     Classification, DecisionReason, JobExecution, JobOutcome, JobState, JobStatus, NextStep,
-    PipelineDefinition, PipelineState, ResumePoint, SkipReason,
+    PipelineDefinition, PipelineState, ResumePoint, RunId, SkipReason,
 };
 
 /// 空のステートを、定義から作る(`initial_state`)。
 ///
 /// すべてのジョブが `pending`、`resume_job_id` は無し、`end_reached` と `completed` は `false`。
 /// `definition_key` と `definition_path` は、同じ文字列(定義ファイルのパス)。
-pub fn initial_state(definition: &PipelineDefinition, definition_path: &Path) -> PipelineState {
+///
+/// `run_id` があれば、`run_id` に入れる(ファイル名の run ID と同じ値)。
+pub fn initial_state(
+    definition: &PipelineDefinition,
+    definition_path: &Path,
+    run_id: Option<&RunId>,
+) -> PipelineState {
     let path = definition_path.to_string_lossy().into_owned();
     PipelineState {
         definition_key: path.clone(),
@@ -43,6 +49,7 @@ pub fn initial_state(definition: &PipelineDefinition, definition_path: &Path) ->
         resume_job_id: None,
         end_reached: false,
         completed: false,
+        run_id: run_id.map(|r| r.as_str().to_string()),
     }
 }
 
@@ -176,10 +183,25 @@ mod tests {
     use super::*;
     use conductor_core::JobDefinition;
 
+    /// run ID なしの初期ステート(既存のテストの書き方を保つ)。
+    fn initial_state(definition: &PipelineDefinition, path: &Path) -> PipelineState {
+        super::initial_state(definition, path, None)
+    }
+
+    #[test]
+    fn 初期ステートは_run_id_を持つ() {
+        let d = definition(&["a"]);
+        let id = RunId::parse("r1").unwrap();
+        let s = super::initial_state(&d, Path::new("c.toml"), Some(&id));
+        assert_eq!(s.run_id.as_deref(), Some("r1"));
+        assert_eq!(initial_state(&d, Path::new("c.toml")).run_id, None);
+    }
+
     fn definition(ids: &[&str]) -> PipelineDefinition {
         PipelineDefinition {
             name: "p".into(),
             description: None,
+            run_id_env: None,
             format_version: 1,
             job: ids
                 .iter()

@@ -54,6 +54,7 @@ mod tests {
         PipelineDefinition {
             name: name.into(),
             description: None,
+            run_id_env: None,
             format_version: 1,
             job: ids
                 .iter()
@@ -78,6 +79,7 @@ mod tests {
             resume_job_id: None,
             end_reached: false,
             completed: false,
+            run_id: None,
         }
     }
 

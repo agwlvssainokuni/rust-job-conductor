@@ -20,8 +20,8 @@
 //! ジョブのあいだで合図が立っていれば、再開位置を記録して、128 + 番号で終わる。
 
 use conductor_core::{
-    Classification, Decision, PipelineState, RunMode, classify_and_decide, decide_before_run,
-    resume_point_on_interrupt,
+    Classification, Decision, PipelineState, RunId, RunMode, classify_and_decide,
+    decide_before_run, resume_point_on_interrupt,
 };
 use conductor_runtime::{
     Durability, StateLocation, apply_interrupt, apply_outcome, apply_skip, initial_state,
@@ -47,6 +47,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     };
     let definition = &session.definition;
     let path = &session.definition_path;
+    let run_id = session.run_id.as_ref();
 
     // ステートが空のあいだは `None`。最初のジョブが `Run` と決まったあとに、初期ステートを書く。
     let mut current: Option<PipelineState> = session.state.clone();
@@ -75,11 +76,12 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             Decision::Skip(reason) => {
                 let base = current
                     .clone()
-                    .unwrap_or_else(|| initial_state(definition, path));
+                    .unwrap_or_else(|| initial_state(definition, path, run_id));
                 let recorded = apply_skip(&base, &job.id, reason, definition);
                 if recorded != base {
                     if let Err(code) = ctx.write(
                         path,
+                        run_id,
                         &recorded,
                         Durability::Durable,
                         StateContext::JobNotStarted,
@@ -94,16 +96,17 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 let completed = recorded.completed;
                 current = Some(recorded);
                 if completed {
-                    return finish(ctx, path, StateContext::JobNotStarted);
+                    return finish(ctx, path, run_id, StateContext::JobNotStarted);
                 }
             }
             Decision::Run => {
                 let base = match current.take() {
                     Some(state) => state,
                     None => {
-                        let initial = initial_state(definition, path);
+                        let initial = initial_state(definition, path, run_id);
                         if let Err(code) = ctx.write(
                             path,
+                            run_id,
                             &initial,
                             Durability::Fast,
                             StateContext::JobNotStarted,
@@ -131,7 +134,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 } else {
                     StateContext::JobNotStarted
                 };
-                if let Err(code) = ctx.write(path, &recorded, Durability::Durable, after) {
+                if let Err(code) = ctx.write(path, run_id, &recorded, Durability::Durable, after) {
                     return code;
                 }
                 let is_error = outcome.classification == Some(Classification::Error);
@@ -140,7 +143,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     return exit_code_for(outcome.reported_exit_code, is_error);
                 }
                 if next.completed {
-                    return finish(ctx, path, after);
+                    return finish(ctx, path, run_id, after);
                 }
 
                 // ジョブのあいだの中断(BR4.2)。次のジョブを起動せず、再開位置を記録する。
@@ -149,6 +152,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     let interrupted = apply_interrupt(&recorded, &point);
                     if let Err(code) = ctx.write(
                         path,
+                        run_id,
                         &interrupted,
                         Durability::Durable,
                         StateContext::JobNotStarted,
@@ -164,7 +168,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     }
 
     // 記述順のジョブがなくなったのに、完了していない(起こらない想定)。初期化せずに終わる。
-    let state_path = StateLocation::of(path).path().to_path_buf();
+    let state_path = StateLocation::of(path, run_id).path().to_path_buf();
     ctx.show(&DisplayEvent::CompletionUndetermined {
         state_path: &state_path,
     });
@@ -172,8 +176,13 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
 }
 
 /// 完了のあとの初期化(BR3.3)。失敗は 65。
-fn finish(ctx: &mut Ctx<'_>, path: &std::path::Path, context: StateContext) -> i32 {
-    match ctx.reset(path, context) {
+fn finish(
+    ctx: &mut Ctx<'_>,
+    path: &std::path::Path,
+    run_id: Option<&RunId>,
+    context: StateContext,
+) -> i32 {
+    match ctx.reset(path, run_id, context) {
         Ok(()) => EXIT_OK,
         Err(code) => code,
     }

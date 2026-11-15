@@ -18,17 +18,31 @@
 
 use conductor_converter::TargetFormat;
 
-use crate::ctx::{Ctx, definition_path};
+use crate::ctx::{Ctx, aux_run_id, definition_path};
 use crate::exit::{EXIT_CONVERSION, EXIT_OK, EXIT_STATE, EXIT_USAGE};
 use crate::report::{DisplayEvent, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
-/// `conductor watch`: ステートを 1 回だけ一覧にして終わる(BR7.1)。定義ファイルは読まない。
+/// `conductor watch`: ステートを 1 回だけ一覧にして終わる(BR7.1)。
+///
+/// 定義ファイルは検証しない。環境変数の名前だけは、`--run-id` がないとき、定義から、ゆるく読む(FR4.3)。
 pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     let path = definition_path(cmd);
-    let state = match ctx.runtime.read_state(&path) {
+    let run_id = match aux_run_id(ctx, cmd, &path) {
+        Ok(run_id) => run_id,
+        Err(error) => {
+            ctx.show(&DisplayEvent::Usage(&error));
+            return EXIT_USAGE;
+        }
+    };
+    let context = if run_id.is_some() {
+        StateContext::ReadRunId
+    } else {
+        StateContext::Read
+    };
+    let state = match ctx.runtime.read_state(&path, run_id.as_ref()) {
         Ok(state) => state,
-        Err(error) => return ctx.state_error(&error, StateContext::Read),
+        Err(error) => return ctx.state_error(&error, context),
     };
     let written = match &state {
         Some(state) => ctx.show(&DisplayEvent::WatchTable(state)),
@@ -44,9 +58,32 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
 }
 
 /// `conductor reset`: ステートを消す(BR7.2)。読み込みも検査も迂回する。ステートがなくても成功。
+///
+/// `--all` のときは、その定義のステートを、run ID の有無によらず、すべて消す(FR5)。
+/// 環境変数は見ない。読めなくて残したファイルは、標準エラーに警告する(終了コードは 0)。
 pub(crate) fn run_reset(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     let path = definition_path(cmd);
-    match ctx.runtime.reset_state(&path) {
+    if cmd.all {
+        return match ctx.runtime.reset_all_states(&path) {
+            Ok(report) => {
+                if !report.kept.is_empty() {
+                    ctx.show(&DisplayEvent::ResetAllKept {
+                        names: &report.kept,
+                    });
+                }
+                EXIT_OK
+            }
+            Err(error) => ctx.state_error(&error, StateContext::Plain),
+        };
+    }
+    let run_id = match aux_run_id(ctx, cmd, &path) {
+        Ok(run_id) => run_id,
+        Err(error) => {
+            ctx.show(&DisplayEvent::Usage(&error));
+            return EXIT_USAGE;
+        }
+    };
+    match ctx.runtime.reset_state(&path, run_id.as_ref()) {
         Ok(()) => EXIT_OK,
         Err(error) => ctx.state_error(&error, StateContext::Plain),
     }

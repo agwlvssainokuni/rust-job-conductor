@@ -25,10 +25,11 @@ use std::sync::Arc;
 use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState,
+    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
-    CommandError, CommandLine, Durability, InterruptSignal, StateError, StateErrorKind,
+    CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError,
+    StateErrorKind,
 };
 
 // ---- Env ----
@@ -39,9 +40,19 @@ pub struct FakeEnv {
     pub terminal: bool,
     pub var_calls: Cell<usize>,
     pub terminal_calls: Cell<usize>,
+    /// 読まれた環境変数の名前(読んだ順)。
+    pub names: RefCell<Vec<String>>,
 }
 
 impl FakeEnv {
+    /// ロケールの環境変数(`LC_ALL`・`LC_MESSAGES`・`LANG`)が読まれたか(言語の判定の遅延を確かめる)。
+    pub fn locale_read(&self) -> bool {
+        self.names
+            .borrow()
+            .iter()
+            .any(|n| matches!(n.as_str(), "LC_ALL" | "LC_MESSAGES" | "LANG"))
+    }
+
     pub fn with(vars: &[(&str, &str)]) -> Self {
         Self {
             vars: vars
@@ -56,6 +67,7 @@ impl FakeEnv {
 impl Env for FakeEnv {
     fn var(&self, name: &str) -> Option<String> {
         self.var_calls.set(self.var_calls.get() + 1);
+        self.names.borrow_mut().push(name.to_string());
         self.vars.get(name).cloned()
     }
 
@@ -183,6 +195,10 @@ pub struct ScriptedRuntime {
     /// ジョブの終了を観測したあとに呼ぶ(ジョブのあいだの合図を起こす)。引数は、ジョブID。
     pub after_job: RefCell<Option<JobHook>>,
     pub run_calls: Cell<usize>,
+    /// `reset --all` の結果を、実際の削除の代わりに返す(`kept` の表示を確かめる)。
+    pub reset_all_override: RefCell<Option<ResetAllReport>>,
+    /// `run_id_env`(定義のゆるい読み取り)の呼び出しの回数。
+    pub run_id_env_calls: Cell<usize>,
 }
 
 impl Default for ScriptedRuntime {
@@ -199,6 +215,8 @@ impl Default for ScriptedRuntime {
             during_job: RefCell::new(None),
             after_job: RefCell::new(None),
             run_calls: Cell::new(0),
+            reset_all_override: RefCell::new(None),
+            run_id_env_calls: Cell::new(0),
         }
     }
 }
@@ -292,17 +310,22 @@ impl Runtime for ScriptedRuntime {
         execution
     }
 
-    fn read_state(&self, path: &Path) -> Result<Option<PipelineState>, StateError> {
+    fn read_state(
+        &self,
+        path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError> {
         self.push("read");
         if let Some(error) = self.read_failure.borrow().clone() {
             return Err(error);
         }
-        self.inner.read_state(path)
+        self.inner.read_state(path, run_id)
     }
 
     fn write_state(
         &self,
         path: &Path,
+        run_id: Option<&RunId>,
         state: &PipelineState,
         durability: Durability,
     ) -> Result<(), StateError> {
@@ -321,15 +344,32 @@ impl Runtime for ScriptedRuntime {
         if fail {
             return Err(state_error(path, StateErrorKind::WriteFailed));
         }
-        self.inner.write_state(path, state, durability)
+        self.inner.write_state(path, run_id, state, durability)
     }
 
-    fn reset_state(&self, path: &Path) -> Result<(), StateError> {
+    fn reset_state(&self, path: &Path, run_id: Option<&RunId>) -> Result<(), StateError> {
         self.push("reset");
         if self.fail_reset.get() {
             return Err(state_error(path, StateErrorKind::RemoveFailed));
         }
-        self.inner.reset_state(path)
+        self.inner.reset_state(path, run_id)
+    }
+
+    fn reset_all_states(&self, path: &Path) -> Result<ResetAllReport, StateError> {
+        self.push("reset-all");
+        if self.fail_reset.get() {
+            return Err(state_error(path, StateErrorKind::RemoveFailed));
+        }
+        match self.reset_all_override.borrow().clone() {
+            Some(report) => Ok(report),
+            None => self.inner.reset_all_states(path),
+        }
+    }
+
+    fn run_id_env(&self, path: &Path) -> Option<String> {
+        // ログには残さない(`reset` の呼び出しの記録を、変えないため)。
+        self.run_id_env_calls.set(self.run_id_env_calls.get() + 1);
+        self.inner.run_id_env(path)
     }
 
     fn convert(&self, input: &Path, target: TargetFormat) -> Result<String, ConversionError> {
@@ -451,9 +491,22 @@ impl Harness {
         std::fs::write(self.def_path(), text).expect("書ける");
     }
 
+    /// run ID つきのステートのファイルのパス(`conductor.toml.<run-id>.state`)。
+    pub fn state_path_for(&self, run_id: &str) -> PathBuf {
+        self.dir
+            .path()
+            .join(format!("conductor.toml.{run_id}.state"))
+    }
+
     /// 読み込めるステート(空・完了は `None`)。
     pub fn state(&self) -> Option<PipelineState> {
-        conductor_runtime::read_state(&self.def_path()).expect("読める")
+        conductor_runtime::read_state(&self.def_path(), None).expect("読める")
+    }
+
+    /// run ID つきの、読み込めるステート(空・完了は `None`)。
+    pub fn state_of(&self, run_id: &str) -> Option<PipelineState> {
+        let id = RunId::parse(run_id).expect("有効な run ID");
+        conductor_runtime::read_state(&self.def_path(), Some(&id)).expect("読める")
     }
 
     /// `--config <定義>` を足して、実行する。
@@ -496,6 +549,8 @@ impl Harness {
 pub struct MemRuntime {
     pub definition: PipelineDefinition,
     pub state: RefCell<Option<PipelineState>>,
+    /// run ID ごとのステート(`state` は、run ID なしの分)。
+    pub run_states: RefCell<HashMap<String, PipelineState>>,
     /// ジョブの終了コード(先頭から使い、尽きたら 0)。
     pub exit_codes: RefCell<VecDeque<i32>>,
     pub write_ok: Cell<bool>,
@@ -509,6 +564,7 @@ impl MemRuntime {
         Self {
             definition,
             state: RefCell::new(None),
+            run_states: RefCell::new(HashMap::new()),
             exit_codes: RefCell::new(VecDeque::new()),
             write_ok: Cell::new(true),
             writes: Cell::new(0),
@@ -557,13 +613,21 @@ impl Runtime for MemRuntime {
         execution
     }
 
-    fn read_state(&self, _path: &Path) -> Result<Option<PipelineState>, StateError> {
-        Ok(self.state.borrow().clone())
+    fn read_state(
+        &self,
+        _path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError> {
+        match run_id {
+            None => Ok(self.state.borrow().clone()),
+            Some(id) => Ok(self.run_states.borrow().get(id.as_str()).cloned()),
+        }
     }
 
     fn write_state(
         &self,
         path: &Path,
+        run_id: Option<&RunId>,
         state: &PipelineState,
         _durability: Durability,
     ) -> Result<(), StateError> {
@@ -571,13 +635,39 @@ impl Runtime for MemRuntime {
         if !self.write_ok.get() {
             return Err(state_error(path, StateErrorKind::WriteFailed));
         }
-        *self.state.borrow_mut() = Some(state.clone());
+        match run_id {
+            None => *self.state.borrow_mut() = Some(state.clone()),
+            Some(id) => {
+                self.run_states
+                    .borrow_mut()
+                    .insert(id.as_str().to_string(), state.clone());
+            }
+        }
         Ok(())
     }
 
-    fn reset_state(&self, _path: &Path) -> Result<(), StateError> {
-        *self.state.borrow_mut() = None;
+    fn reset_state(&self, _path: &Path, run_id: Option<&RunId>) -> Result<(), StateError> {
+        match run_id {
+            None => *self.state.borrow_mut() = None,
+            Some(id) => {
+                self.run_states.borrow_mut().remove(id.as_str());
+            }
+        }
         Ok(())
+    }
+
+    fn reset_all_states(&self, _path: &Path) -> Result<ResetAllReport, StateError> {
+        let removed =
+            usize::from(self.state.borrow_mut().take().is_some()) + self.run_states.borrow().len();
+        self.run_states.borrow_mut().clear();
+        Ok(ResetAllReport {
+            removed,
+            kept: Vec::new(),
+        })
+    }
+
+    fn run_id_env(&self, _path: &Path) -> Option<String> {
+        self.definition.run_id_env.clone()
     }
 
     fn convert(&self, _input: &Path, _target: TargetFormat) -> Result<String, ConversionError> {

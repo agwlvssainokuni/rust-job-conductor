@@ -182,6 +182,7 @@ fn random_state(rng: &mut Rng) -> PipelineState {
         },
         end_reached: rng.below(2) == 0,
         completed: rng.below(4) == 0,
+        run_id: None,
     }
 }
 

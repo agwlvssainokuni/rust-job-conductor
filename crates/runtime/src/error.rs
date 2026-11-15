@@ -117,6 +117,7 @@ pub(crate) mod reason {
     pub const ORDER_MISMATCH: &str = "job の並びが job_order と一致しません";
     pub const RESUME_NOT_IN_ORDER: &str = "resume_job_id が job_order にありません";
     pub const COMPLETED_WITH_RESUME: &str = "completed と resume_job_id が両立しません";
+    pub const RUN_ID_MISMATCH: &str = "run_id がファイル名の run ID と一致しません";
 
     pub const WRITE_FAILED: &str = "書き込みに失敗しました";
     pub const SERIALIZE_FAILED: &str = "内容を TOML にできません";

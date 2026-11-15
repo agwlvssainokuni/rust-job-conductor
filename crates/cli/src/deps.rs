@@ -27,9 +27,11 @@ use std::sync::Arc;
 
 use conductor_converter::{ConversionError, ConversionRequest, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState,
+    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState, RunId,
 };
-use conductor_runtime::{CommandError, CommandLine, Durability, InterruptSignal, StateError};
+use conductor_runtime::{
+    CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError,
+};
 
 use crate::platform;
 
@@ -82,17 +84,28 @@ pub trait Runtime {
     fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError>;
     /// ジョブを起動し、終了を待つ(`run_job`)。
     fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution;
-    /// ステートを読む(`read_state`。`None` は空)。
-    fn read_state(&self, definition_path: &Path) -> Result<Option<PipelineState>, StateError>;
+    /// ステートを読む(`read_state`。`None` は空)。`run_id` は、ファイル名の run ID。
+    fn read_state(
+        &self,
+        definition_path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError>;
     /// ステートを書く(`write_state`)。
     fn write_state(
         &self,
         definition_path: &Path,
+        run_id: Option<&RunId>,
         state: &PipelineState,
         durability: Durability,
     ) -> Result<(), StateError>;
     /// ステートを消す(`reset_state`)。
-    fn reset_state(&self, definition_path: &Path) -> Result<(), StateError>;
+    fn reset_state(&self, definition_path: &Path, run_id: Option<&RunId>)
+    -> Result<(), StateError>;
+    /// その定義のステートを、run ID の有無によらず、すべて消す(`reset_all_states`)。
+    fn reset_all_states(&self, definition_path: &Path) -> Result<ResetAllReport, StateError>;
+    /// 定義ファイルの `[pipeline].run_id_env` を、ゆるく読む(ほかの誤りは無視。読めない、
+    /// キーがない、文字列でない、名前の形が違う、のどれでも `None`)。
+    fn run_id_env(&self, definition_path: &Path) -> Option<String>;
     /// 入力ファイルを、`target` の形式の文字列にする(`convert`)。
     fn convert(&self, input: &Path, target: TargetFormat) -> Result<String, ConversionError>;
 }
@@ -126,21 +139,40 @@ impl Runtime for SystemRuntime {
         conductor_runtime::run_job(job, signal)
     }
 
-    fn read_state(&self, definition_path: &Path) -> Result<Option<PipelineState>, StateError> {
-        conductor_runtime::read_state(definition_path)
+    fn read_state(
+        &self,
+        definition_path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError> {
+        conductor_runtime::read_state(definition_path, run_id)
     }
 
     fn write_state(
         &self,
         definition_path: &Path,
+        run_id: Option<&RunId>,
         state: &PipelineState,
         durability: Durability,
     ) -> Result<(), StateError> {
-        conductor_runtime::write_state(definition_path, state, durability)
+        conductor_runtime::write_state(definition_path, run_id, state, durability)
     }
 
-    fn reset_state(&self, definition_path: &Path) -> Result<(), StateError> {
-        conductor_runtime::reset_state(definition_path)
+    fn reset_state(
+        &self,
+        definition_path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<(), StateError> {
+        conductor_runtime::reset_state(definition_path, run_id)
+    }
+
+    fn reset_all_states(&self, definition_path: &Path) -> Result<ResetAllReport, StateError> {
+        conductor_runtime::reset_all_states(definition_path)
+    }
+
+    fn run_id_env(&self, definition_path: &Path) -> Option<String> {
+        // 取り込みと同じ大きさの上限で読む。読めなければ、既定の名前に任せる(`None`)。
+        let text = conductor_core::definition::intake::read_definition(definition_path).ok()?;
+        conductor_core::peek_run_id_env(&text)
     }
 
     fn convert(&self, input: &Path, target: TargetFormat) -> Result<String, ConversionError> {

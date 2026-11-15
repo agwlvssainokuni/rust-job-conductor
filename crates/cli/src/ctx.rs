@@ -20,16 +20,18 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
     Classification, DefinitionError, JobDefinition, JobExecution, JobOutcome, NextStep,
-    PipelineDefinition, PipelineState, TransitionOn, TransitionTarget,
+    PipelineDefinition, PipelineState, RunId, TransitionOn, TransitionTarget,
 };
 use conductor_runtime::ConsistencyResult;
 use conductor_runtime::{
     Durability, InterruptSignal, StateError, StateLocation, check_consistency,
 };
 
-use crate::deps::{Runtime, SignalError, Signals, Sink};
+use crate::args::resolve_run_id;
+use crate::deps::{Env, Runtime, SignalError, Signals, Sink};
 use crate::exit::{EXIT_DEFINITION, EXIT_INTERNAL, EXIT_STATE, EXIT_USAGE, exit_code_for};
 use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
@@ -42,6 +44,8 @@ pub(crate) struct Ctx<'a> {
     pub runtime: &'a dyn Runtime,
     pub signals: &'a dyn Signals,
     pub sink: &'a mut dyn Sink,
+    /// 環境変数の読み取り(run ID。`Reporter` が使う `Env` と同じもの)。
+    pub env: &'a dyn Env,
     pub reporter: Reporter<'a>,
 }
 
@@ -49,6 +53,8 @@ pub(crate) struct Ctx<'a> {
 pub(crate) struct Session {
     pub definition_path: PathBuf,
     pub definition: PipelineDefinition,
+    /// この実行の run ID(`None` は、run ID なし)。ステートのパスと、`run_id` の照合に使う。
+    pub run_id: Option<RunId>,
     /// ステート(`None` は空。完了のまま残ったものも空として返る)。
     pub state: Option<PipelineState>,
     /// 中断の合図(シグナルの監視が書き、`run_job` が読む)。
@@ -71,7 +77,7 @@ impl Ctx<'_> {
     /// 実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを `Err` で返す。
     ///
     /// 順序: シグナルの準備(定義の検査より前。BR4.1)→ 定義(64)→ command(64)→ ジョブID(68)→
-    /// ステートの読み込み(65)→ 照合(65)。`expected_pipeline` は、`pipeline` の名前の照合に渡す。
+    /// run ID の決定(68)→ ステートの読み込み(65)→ 照合(65)。`expected_pipeline` は、`pipeline` の名前の照合に渡す。
     pub(crate) fn prepare(
         &mut self,
         cmd: &CliCommand,
@@ -97,16 +103,33 @@ impl Ctx<'_> {
             }
         }
 
-        let state = match self.runtime.read_state(&path) {
+        // run ID の決定(FR1.2〜FR1.4)。環境変数の名前は、定義の `run_id_env`(なければ既定)。
+        let env_name = definition
+            .run_id_env
+            .as_deref()
+            .unwrap_or(DEFAULT_RUN_ID_ENV);
+        let run_id = match resolve_run_id(cmd.run_id.as_deref(), env_name, self.env) {
+            Ok(run_id) => run_id,
+            Err(error) => {
+                self.show(&DisplayEvent::Usage(&error));
+                return Err(EXIT_USAGE);
+            }
+        };
+
+        let read_context = read_context(run_id.is_some());
+        let state = match self.runtime.read_state(&path, run_id.as_ref()) {
             Ok(state) => state,
-            Err(error) => return Err(self.state_error(&error, StateContext::Read)),
+            Err(error) => return Err(self.state_error(&error, read_context)),
         };
         if let Some(state) = &state {
             if let ConsistencyResult::Mismatch(kind) = check_consistency(state, &definition) {
-                let state_path = StateLocation::of(&path).path().to_path_buf();
+                let state_path = StateLocation::of(&path, run_id.as_ref())
+                    .path()
+                    .to_path_buf();
                 self.show(&DisplayEvent::ConsistencyMismatch {
                     state_path: &state_path,
                     kind,
+                    with_run_id: run_id.is_some(),
                 });
                 return Err(EXIT_STATE);
             }
@@ -115,6 +138,7 @@ impl Ctx<'_> {
         Ok(Session {
             definition_path: path,
             definition,
+            run_id,
             state,
             signal,
         })
@@ -169,19 +193,25 @@ impl Ctx<'_> {
     pub(crate) fn write(
         &mut self,
         path: &Path,
+        run_id: Option<&RunId>,
         state: &PipelineState,
         durability: Durability,
         context: StateContext,
     ) -> Result<(), i32> {
-        match self.runtime.write_state(path, state, durability) {
+        match self.runtime.write_state(path, run_id, state, durability) {
             Ok(()) => Ok(()),
             Err(error) => Err(self.state_error(&error, context)),
         }
     }
 
     /// ステートを初期化する。失敗は、表示して、65 を `Err` で返す。
-    pub(crate) fn reset(&mut self, path: &Path, context: StateContext) -> Result<(), i32> {
-        match self.runtime.reset_state(path) {
+    pub(crate) fn reset(
+        &mut self,
+        path: &Path,
+        run_id: Option<&RunId>,
+        context: StateContext,
+    ) -> Result<(), i32> {
+        match self.runtime.reset_state(path, run_id) {
             Ok(()) => Ok(()),
             Err(error) => Err(self.state_error(&error, context)),
         }
@@ -255,6 +285,35 @@ impl Ctx<'_> {
             });
         }
     }
+}
+
+/// ステートを読んだときの表示の文脈。run ID があるときは、案内を `reset --run-id` にする。
+fn read_context(with_run_id: bool) -> StateContext {
+    if with_run_id {
+        StateContext::ReadRunId
+    } else {
+        StateContext::Read
+    }
+}
+
+/// `watch`・`reset` が使う run ID を決める(FR4.3)。
+///
+/// `--run-id` があれば、定義を読まない。なければ、定義の `[pipeline].run_id_env` だけをゆるく読み
+/// (読めない・キーがない・型や形が違う、のときは既定の名前)、その環境変数を見る。
+pub(crate) fn aux_run_id(
+    ctx: &Ctx<'_>,
+    cmd: &CliCommand,
+    path: &Path,
+) -> Result<Option<RunId>, UsageError> {
+    if cmd.run_id.is_some() {
+        return resolve_run_id(cmd.run_id.as_deref(), DEFAULT_RUN_ID_ENV, ctx.env);
+    }
+    let env_name = ctx.runtime.run_id_env(path);
+    resolve_run_id(
+        None,
+        env_name.as_deref().unwrap_or(DEFAULT_RUN_ID_ENV),
+        ctx.env,
+    )
 }
 
 /// 実行の結果の補足(`classify` の判定の順序と同じ)。

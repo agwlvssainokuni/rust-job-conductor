@@ -67,6 +67,8 @@ pub enum DefinitionErrorKind {
     EmptyField,
     #[error("同じ結果の遷移が重複しています")]
     DuplicateTransition,
+    #[error("環境変数の名前が正しくありません")]
+    InvalidEnvName,
 }
 
 impl DefinitionErrorKind {
@@ -92,11 +94,12 @@ impl DefinitionErrorKind {
             Self::NoJobs => "noJobs",
             Self::EmptyField => "emptyField",
             Self::DuplicateTransition => "duplicateTransition",
+            Self::InvalidEnvName => "invalidEnvName",
         }
     }
 
     /// すべての種類(網羅のテストと、表示の確認に使う)。
-    pub const ALL: [DefinitionErrorKind; 19] = [
+    pub const ALL: [DefinitionErrorKind; 20] = [
         Self::FileMissing,
         Self::Unreadable,
         Self::TooLarge,
@@ -116,6 +119,7 @@ impl DefinitionErrorKind {
         Self::NoJobs,
         Self::EmptyField,
         Self::DuplicateTransition,
+        Self::InvalidEnvName,
     ];
 }
 
@@ -323,7 +327,7 @@ mod tests {
         let mut codes: Vec<_> = DefinitionErrorKind::ALL.iter().map(|k| k.code()).collect();
         codes.sort_unstable();
         codes.dedup();
-        assert_eq!(codes.len(), 19);
+        assert_eq!(codes.len(), 20);
         for k in DefinitionErrorKind::ALL {
             assert!(!k.to_string().is_empty());
         }

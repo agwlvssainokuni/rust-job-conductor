@@ -59,7 +59,7 @@ fn read_bytes(bytes: &[u8]) -> bool {
     let def = dir.path().join("c.toml");
     std::fs::write(dir.path().join("c.toml.state"), bytes).expect("書ける");
     // パニックしなければよい。結果は、読めても、エラーでもよい。
-    read_state(&def).is_ok()
+    read_state(&def, None).is_ok()
 }
 
 #[test]

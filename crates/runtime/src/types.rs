@@ -19,6 +19,8 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI32, Ordering};
 
+use conductor_core::RunId;
+
 /// command の文字列を、コマンド名と引数に分けたもの(BR1.1)。シェルを介さずに起動する。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandLine {
@@ -105,12 +107,19 @@ pub struct StateLocation {
 }
 
 impl StateLocation {
-    /// 定義ファイルのパスから、ステートファイルの場所を決める。
-    pub fn of(definition_path: &Path) -> Self {
+    /// 定義ファイルのパスと run ID から、ステートファイルの場所を決める。
+    ///
+    /// run ID があれば `<定義ファイル名>.<run-id>.state`、なければ `<定義ファイル名>.state`。
+    /// 検査済みの `RunId` だけを受け取るので、パス区切りや `..` は入らない(NFR2)。
+    pub fn of(definition_path: &Path, run_id: Option<&RunId>) -> Self {
         let mut name = definition_path
             .file_name()
             .map(|n| n.to_os_string())
             .unwrap_or_default();
+        if let Some(id) = run_id {
+            name.push(".");
+            name.push(id.as_str());
+        }
         name.push(".state");
         let path = match definition_path.parent() {
             Some(dir) => dir.join(name),
@@ -200,20 +209,32 @@ mod tests {
 
     #[test]
     fn ステートの場所は定義ファイルと同じディレクトリ() {
-        let loc = StateLocation::of(Path::new("dir/conductor.toml"));
+        let loc = StateLocation::of(Path::new("dir/conductor.toml"), None);
         assert_eq!(loc.path(), Path::new("dir/conductor.toml.state"));
-        let rel = StateLocation::of(Path::new("conductor.toml"));
+        let rel = StateLocation::of(Path::new("conductor.toml"), None);
         assert_eq!(rel.path(), Path::new("conductor.toml.state"));
     }
 
     #[test]
+    fn run_id_があるとステートの名前に入る() {
+        let id = RunId::parse("run-1.2_x").unwrap();
+        let loc = StateLocation::of(Path::new("dir/conductor.toml"), Some(&id));
+        assert_eq!(loc.path(), Path::new("dir/conductor.toml.run-1.2_x.state"));
+        let rel = StateLocation::of(Path::new("c.toml"), Some(&RunId::parse("a").unwrap()));
+        assert_eq!(rel.path(), Path::new("c.toml.a.state"));
+        // 大文字小文字は、そのまま名前に残る
+        let upper = StateLocation::of(Path::new("c.toml"), Some(&RunId::parse("A").unwrap()));
+        assert_eq!(upper.path(), Path::new("c.toml.A.state"));
+    }
+
+    #[test]
     fn ファイル名の無いパスでもパニックしない() {
-        let loc = StateLocation::of(Path::new("/"));
+        let loc = StateLocation::of(Path::new("/"), None);
         assert_eq!(
             loc.path().file_name().and_then(|n| n.to_str()),
             Some(".state")
         );
-        let empty = StateLocation::of(Path::new(""));
+        let empty = StateLocation::of(Path::new(""), None);
         assert_eq!(empty.path(), Path::new(".state"));
     }
 

@@ -40,6 +40,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     };
     let definition = &session.definition;
     let path = &session.definition_path;
+    let run_id = session.run_id.as_ref();
 
     let (states, resume, end_reached) = match &session.state {
         Some(state) => (
@@ -60,11 +61,12 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             let base = session
                 .state
                 .clone()
-                .unwrap_or_else(|| initial_state(definition, path));
+                .unwrap_or_else(|| initial_state(definition, path, run_id));
             let recorded = apply_skip(&base, job_id, reason, definition);
             if recorded != base {
                 if let Err(code) = ctx.write(
                     path,
+                    run_id,
                     &recorded,
                     Durability::Durable,
                     StateContext::JobNotStarted,
@@ -72,7 +74,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     return code;
                 }
                 if recorded.completed {
-                    if let Err(code) = ctx.reset(path, StateContext::JobNotStarted) {
+                    if let Err(code) = ctx.reset(path, run_id, StateContext::JobNotStarted) {
                         return code;
                     }
                 }
@@ -84,9 +86,10 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             let base = match session.state.clone() {
                 Some(state) => state,
                 None => {
-                    let initial = initial_state(definition, path);
+                    let initial = initial_state(definition, path, run_id);
                     if let Err(code) = ctx.write(
                         path,
+                        run_id,
                         &initial,
                         Durability::Fast,
                         StateContext::JobNotStarted,
@@ -119,11 +122,11 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             } else {
                 StateContext::JobNotStarted
             };
-            if let Err(code) = ctx.write(path, &recorded, Durability::Durable, after) {
+            if let Err(code) = ctx.write(path, run_id, &recorded, Durability::Durable, after) {
                 return code;
             }
             if next.completed {
-                if let Err(code) = ctx.reset(path, after) {
+                if let Err(code) = ctx.reset(path, run_id, after) {
                     return code;
                 }
             }

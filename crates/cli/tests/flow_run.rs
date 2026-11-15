@@ -68,7 +68,7 @@ fn 成功は何も表示せず_ロケールも判定しない() {
     assert_eq!(out.code, 0);
     assert_eq!(out.out, "");
     assert_eq!(out.err, "");
-    assert_eq!(h.env.var_calls.get(), 0, "ロケールの判定が行われない");
+    assert!(!h.env.locale_read(), "ロケールの判定が行われない");
     assert_eq!(h.env.terminal_calls.get(), 0);
     assert_eq!(status_of(&h, "a"), JobStatus::Success);
 }

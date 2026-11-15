@@ -59,6 +59,7 @@ mod tests {
         PipelineDefinition {
             name: "p".into(),
             description: None,
+            run_id_env: None,
             format_version: 1,
             job: (0..n)
                 .map(|i| JobDefinition {

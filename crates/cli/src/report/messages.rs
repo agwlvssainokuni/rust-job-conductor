@@ -46,6 +46,8 @@ impl Text {
 
 /// エラーの行の先頭(言語に関わらず同じ)。
 pub const ERROR_PREFIX: &str = "conductor: error: ";
+/// 警告の行の先頭(言語に関わらず同じ)。
+pub const WARNING_PREFIX: &str = "conductor: warning: ";
 /// `-v` の行の先頭。
 pub const VERBOSE_PREFIX: &str = "[conductor] ";
 /// パニックのフックと、シグナルの準備の失敗の、固定の英語の文(ロケールを判定しない)。
@@ -57,10 +59,10 @@ pub const SIGNAL_SETUP_FAILED: &str = "conductor: error: failed to set up signal
 pub const USAGE: Text = Text::new(
     "\
 Usage:
-  conductor run [-v] [--config <path>] <job-id>
-  conductor pipeline [-v] [--config <path>] <pipeline-name>
-  conductor watch [--config <path>]
-  conductor reset [--config <path>]
+  conductor run [-v] [--config <path>] [--run-id <id>] <job-id>
+  conductor pipeline [-v] [--config <path>] [--run-id <id>] <pipeline-name>
+  conductor watch [--config <path>] [--run-id <id>]
+  conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
@@ -68,16 +70,19 @@ Usage:
 Options:
   -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line)
   --config <path>     definition file (default: conductor.toml in the current directory)
+  --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset; default: the environment variable
+                      named by run_id_env in the definition, or CONDUCTOR_RUN_ID; an empty value means no run ID)
+  --all               remove every state file of the definition, with or without a run ID (reset only)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
   -V, --version       print the version
 ",
     "\
 使い方:
-  conductor run [-v] [--config <パス>] <ジョブID>
-  conductor pipeline [-v] [--config <パス>] <パイプライン名>
-  conductor watch [--config <パス>]
-  conductor reset [--config <パス>]
+  conductor run [-v] [--config <パス>] [--run-id <ID>] <ジョブID>
+  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] <パイプライン名>
+  conductor watch [--config <パス>] [--run-id <ID>]
+  conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
@@ -85,6 +90,9 @@ Options:
 オプション:
   -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)
   --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml)
+  --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset。省略時: 定義の run_id_env の環境変数、
+                      なければ CONDUCTOR_RUN_ID。空の値は run ID なし)
+  --all               定義のステートファイルを、run ID の有無によらず、すべて消す(reset のみ)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
   -V, --version       版を表示する
@@ -153,6 +161,7 @@ pub fn definition_kind(lang: Language, kind: DefinitionErrorKind) -> String {
         K::NoJobs => "no jobs are defined",
         K::EmptyField => "required value is empty",
         K::DuplicateTransition => "duplicate transition for the same result",
+        K::InvalidEnvName => "invalid environment variable name",
     };
     text.to_string()
 }
@@ -208,6 +217,18 @@ pub fn state_kind_suggests_reset(kind: StateErrorKind) -> bool {
 pub const RESET_HINT: Text = Text::new(
     "run `conductor reset` to discard the state",
     "`conductor reset` でステートを初期化できます",
+);
+
+/// run ID つきのステートを読んだ誤りの案内(値は含めない)。
+pub const RESET_HINT_RUN_ID: Text = Text::new(
+    "run `conductor reset --run-id <ID>` to discard the state",
+    "`conductor reset --run-id <ID>` でステートを初期化できます",
+);
+
+/// `reset --all` が、読めなくて残したファイルの警告(続けて、ファイル名を 1 行ずつ)。
+pub const RESET_ALL_KEPT: Text = Text::new(
+    "kept state files that could not be read (remove one with `conductor reset --run-id <ID>`):",
+    "読めなかったため、次のステートファイルは残しました(`conductor reset --run-id <ID>` で個別に消せます):",
 );
 
 pub const JOB_NOT_STARTED: Text = Text::new("the job was not started", "ジョブは起動していません");
@@ -306,6 +327,8 @@ pub fn skip_reason(reason: DecisionReason) -> Text {
 // ---- watch ----
 
 pub const WATCH_PIPELINE: Text = Text::new("Pipeline", "パイプライン");
+/// run ID の行の見出し(run ID があるときだけ。英語・日本語とも同じ)。
+pub const WATCH_RUN_ID: &str = "Run ID";
 pub const WATCH_EMPTY: Text = Text::new(
     "no state (nothing has run yet)",
     "ステートはありません(まだ実行されていません)",

@@ -25,12 +25,13 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
+use crate::run_id::is_valid_env_name;
 use crate::types::{
     Command, JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget,
 };
 
 const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "job"];
-const PIPELINE_KEYS: &[&str] = &["name", "description"];
+const PIPELINE_KEYS: &[&str] = &["name", "description", "run_id_env"];
 const JOB_KEYS: &[&str] = &[
     "id",
     "command",
@@ -42,6 +43,13 @@ const TRANSITION_KEYS: &[&str] = &["on", "next"];
 
 /// 遷移先に書く、終了を表す値。
 const END_TARGET: &str = "@end";
+
+/// `[pipeline]` から取り出した値。
+struct PipelineHead {
+    name: String,
+    description: Option<String>,
+    run_id_env: Option<String>,
+}
 
 struct RawTransition {
     on: Option<TransitionOn>,
@@ -203,7 +211,7 @@ impl<'a> Walker<'a> {
         &mut self,
         root: &DeTable<'_>,
         expected_name: Option<&str>,
-    ) -> Option<(String, Option<String>)> {
+    ) -> Option<PipelineHead> {
         let Some(value) = root.get("pipeline") else {
             self.type_error(0, "必須の値 `pipeline` がありません");
             return None;
@@ -226,6 +234,16 @@ impl<'a> Walker<'a> {
         self.check_keys(table, PIPELINE_KEYS);
         let name = self.string(table, "name", start, true);
         let description = self.string(table, "description", start, false);
+        let run_id_env = self.string(table, "run_id_env", start, false);
+        if let Some((env_name, offset)) = &run_id_env {
+            if !is_valid_env_name(env_name) {
+                self.push(
+                    *offset,
+                    Kind::InvalidEnvName,
+                    "`run_id_env` は、英字または `_` で始まり、英数字と `_` だけの名前で書きます",
+                );
+            }
+        }
         let (name, name_offset) = name?;
         if name.trim().is_empty() {
             self.push(name_offset, Kind::EmptyField, "`name` が空です");
@@ -238,7 +256,11 @@ impl<'a> Walker<'a> {
                 "指定されたパイプライン名が、定義の `name` と一致しません",
             );
         }
-        Some((name, description.map(|(d, _)| d)))
+        Some(PipelineHead {
+            name,
+            description: description.map(|(d, _)| d),
+            run_id_env: run_id_env.map(|(e, _)| e),
+        })
     }
 
     fn transitions(&mut self, job: &DeTable<'_>) -> Vec<RawTransition> {
@@ -452,11 +474,12 @@ pub fn walk(
     w.cross_check(&raw_jobs);
 
     if w.errors.is_empty() {
-        if let Some((name, description)) = pipeline {
+        if let Some(head) = pipeline {
             if let Some(jobs) = build_jobs(&raw_jobs) {
                 return Ok(PipelineDefinition {
-                    name,
-                    description,
+                    name: head.name,
+                    description: head.description,
+                    run_id_env: head.run_id_env,
                     format_version,
                     job: jobs,
                 });

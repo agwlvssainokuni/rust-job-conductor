@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
+use conductor_core::{JobState, JobStatus, PipelineState, RunId, SkipReason};
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
@@ -52,10 +52,15 @@ static SEQUENCE: AtomicU32 = AtomicU32::new(0);
 /// - 失敗したら、自分が作った一時ファイルを消し、`writeFailed`。ステートファイルは変わらない。
 pub fn write_state(
     definition_path: &Path,
+    run_id: Option<&RunId>,
     state: &PipelineState,
     durability: Durability,
 ) -> Result<(), StateError> {
-    write_state_file(StateLocation::of(definition_path).path(), state, durability)
+    write_state_file(
+        StateLocation::of(definition_path, run_id).path(),
+        state,
+        durability,
+    )
 }
 
 pub(crate) fn write_state_file(
@@ -107,8 +112,8 @@ pub(crate) fn write_state_file(
 ///
 /// 読まずに(破損、食い違い、版の不一致の検査をせず)削除する。存在しなければ、何もせず成功。
 /// 削除に失敗したら `removeFailed`。
-pub fn reset_state(definition_path: &Path) -> Result<(), StateError> {
-    let location = StateLocation::of(definition_path);
+pub fn reset_state(definition_path: &Path, run_id: Option<&RunId>) -> Result<(), StateError> {
+    let location = StateLocation::of(definition_path, run_id);
     match fs::remove_file(location.path()) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
@@ -269,6 +274,10 @@ pub(crate) fn serialize(state: &PipelineState) -> Option<String> {
     if let Some(id) = &state.resume_job_id {
         t.insert("resume_job_id".into(), toml::Value::String(id.clone()));
     }
+    // run ID なしのステートには、キーを書かない(形を変えない。NFR1)。
+    if let Some(id) = &state.run_id {
+        t.insert("run_id".into(), toml::Value::String(id.clone()));
+    }
     t.insert(
         "end_reached".into(),
         toml::Value::Boolean(state.end_reached),
@@ -300,7 +309,18 @@ mod tests {
             resume_job_id: Some("a".into()),
             end_reached: false,
             completed: false,
+            run_id: None,
         }
+    }
+
+    #[test]
+    fn run_id_はあるときだけ直列化される() {
+        let without = serialize(&state()).expect("直列化できる");
+        assert!(!without.contains("run_id"));
+        let mut s = state();
+        s.run_id = Some("r-1".into());
+        let with = serialize(&s).expect("直列化できる");
+        assert!(with.contains("run_id = \"r-1\""));
     }
 
     #[test]

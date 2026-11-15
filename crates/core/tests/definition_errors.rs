@@ -426,3 +426,44 @@ fn nfr2_command_の誤りのメッセージに入力の値が出ない() {
         }
     }
 }
+
+/// `[pipeline]` に `run_id_env` を足した定義。`value` は TOML の右辺をそのまま書く。
+fn with_run_id_env(value: &str) -> String {
+    format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nrun_id_env = {value}\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+    )
+}
+
+#[test]
+fn fr2_run_id_env_は正しい名前なら受理される() {
+    let def = parse_definition(&with_run_id_env("\"GITHUB_RUN_ID\""), "t.toml", None).unwrap();
+    assert_eq!(def.run_id_env.as_deref(), Some("GITHUB_RUN_ID"));
+    assert_eq!(def.format_version, 1);
+    let none = parse_definition(
+        &with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\n"),
+        "t",
+        None,
+    )
+    .unwrap();
+    assert_eq!(none.run_id_env, None);
+}
+
+#[test]
+fn fr2_run_id_env_の型と形の誤りは定義の誤り() {
+    assert_eq!(run(&with_run_id_env("5")), vec![(K::TypeMismatch, Some(4))]);
+    for bad in ["\"1A\"", "\"\"", "\"A-B\"", "\"A B\"", "\"é\"", "\"A=B\""] {
+        assert_eq!(
+            run(&with_run_id_env(bad)),
+            vec![(K::InvalidEnvName, Some(4))],
+            "{bad}"
+        );
+    }
+}
+
+#[test]
+fn fr2_誤りの文に_run_id_env_の値を含めない() {
+    let errs = parse_definition(&with_run_id_env("\"9secret_value\""), "t.toml", None).unwrap_err();
+    for e in errs {
+        assert!(!e.to_string().contains("secret_value"), "{e}");
+    }
+}

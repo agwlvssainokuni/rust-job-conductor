@@ -108,6 +108,12 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
         ),
         (K::NoJobs, head.to_string()),
         (
+            K::InvalidEnvName,
+            format!(
+                "format_version = 1\n[pipeline]\nname = \"p\"\nrun_id_env = \"1{SENTINEL}\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+            ),
+        ),
+        (
             K::EmptyField,
             format!("{head}[[job]]\nid = \"{SENTINEL}\"\ncommand = \"\"\n"),
         ),

@@ -172,6 +172,7 @@ mod tests {
         PipelineDefinition {
             name: "p".into(),
             description: None,
+            run_id_env: None,
             format_version: 1,
             job: vec![
                 job("j0", j0_transitions),

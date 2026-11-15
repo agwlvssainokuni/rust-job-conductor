@@ -74,6 +74,7 @@ fn pipeline_state() -> PipelineState {
         resume_job_id: Some("x".into()),
         end_reached: false,
         completed: false,
+        run_id: None,
     }
 }
 
@@ -149,6 +150,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         f(&DisplayEvent::ConsistencyMismatch {
             state_path: Path::new("c.toml.state"),
             kind,
+            with_run_id: false,
         });
     }
     for reason in [

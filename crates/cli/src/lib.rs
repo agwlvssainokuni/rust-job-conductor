@@ -154,6 +154,7 @@ where
         runtime: deps.runtime,
         signals: deps.signals,
         sink: &mut *deps.sink,
+        env: deps.env,
         reporter: Reporter::new(deps.env, cmd.verbose),
     };
     match cmd.kind {

@@ -16,11 +16,30 @@
 
 mod common;
 
-use conductor_core::{Classification, JobExecution, JobOutcome, NextStep, PipelineDefinition};
-use conductor_runtime::{
-    CommandErrorKind, Durability, StateErrorKind, apply_outcome, check_command, initial_state,
-    read_state, reset_state, write_state,
+use std::path::Path;
+
+use conductor_core::{
+    Classification, JobExecution, JobOutcome, NextStep, PipelineDefinition, PipelineState,
 };
+use conductor_runtime::{
+    CommandErrorKind, Durability, StateError, StateErrorKind, apply_outcome, check_command,
+    initial_state as initial_state_with, read_state as read_state_with,
+    reset_state as reset_state_with, write_state as write_state_with,
+};
+
+// run ID なしの呼び出し。
+fn read_state(def: &Path) -> Result<Option<PipelineState>, StateError> {
+    read_state_with(def, None)
+}
+fn reset_state(def: &Path) -> Result<(), StateError> {
+    reset_state_with(def, None)
+}
+fn initial_state(d: &PipelineDefinition, def: &Path) -> PipelineState {
+    initial_state_with(d, def, None)
+}
+fn write_state(def: &Path, s: &PipelineState, dur: Durability) -> Result<(), StateError> {
+    write_state_with(def, None, s, dur)
+}
 
 const SECRET: &str = "S3CR3T-VALUE-123";
 
@@ -98,6 +117,7 @@ fn definition() -> PipelineDefinition {
     PipelineDefinition {
         name: "p".into(),
         description: None,
+        run_id_env: None,
         format_version: 1,
         job: vec![common::job(
             "a",

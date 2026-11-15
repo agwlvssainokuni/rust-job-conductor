@@ -94,7 +94,7 @@ fn ジョブの実行中の_sigterm_は_143_で_再開位置が残る() {
     );
     assert!(output.stdout.is_empty());
 
-    let state = conductor_runtime::read_state(&def_path)
+    let state = conductor_runtime::read_state(&def_path, None)
         .expect("読める")
         .expect("ステートが残る");
     assert_eq!(state.resume_job_id.as_deref(), Some("sleeper"));
@@ -169,7 +169,7 @@ fn 続けて_2_つのシグナルを送っても_終了の処理は_1_回() {
 }
 
 fn read_state_error_job(def_path: &std::path::Path) -> bool {
-    conductor_runtime::read_state(def_path)
+    conductor_runtime::read_state(def_path, None)
         .ok()
         .flatten()
         .map(|s| s.job_states[0].status == JobStatus::Error)

@@ -18,4 +18,5 @@
 pub(crate) mod consistency;
 pub(crate) mod reader;
 pub(crate) mod record;
+pub(crate) mod reset_all;
 pub(crate) mod writer;

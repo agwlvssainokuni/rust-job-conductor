@@ -328,6 +328,6 @@ fn 同じ定義への_2_つの_run_は_どちらも実行され_ステートは�
         }
     }
     // ステートは、読み戻せる(壊れた内容になっていない)
-    let state = conductor_runtime::read_state(&def_path).expect("読み戻せる");
+    let state = conductor_runtime::read_state(&def_path, None).expect("読み戻せる");
     assert!(state.is_some());
 }

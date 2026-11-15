@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 
-use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
+use conductor_core::{JobState, JobStatus, PipelineState, RunId, SkipReason};
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::types::StateLocation;
@@ -36,8 +36,9 @@ pub(crate) const FORMAT_VERSION: i64 = 1;
 
 /// ステートを読む(契約 C3 の `read_state`。W2)。
 ///
-/// 入力は、定義ファイルのパス。ステートファイルの場所は、同じディレクトリの
-/// `<定義ファイル名>.state`(BR2.1)。
+/// 入力は、定義ファイルのパスと run ID。ステートファイルの場所は、同じディレクトリの
+/// `<定義ファイル名>.state`(run ID があれば `<定義ファイル名>.<run-id>.state`。BR2.1、FR3.1)。
+/// 中身の `run_id` が、ファイル名の run ID と食い違えば `corrupt`(FR3.2)。
 ///
 /// - ファイルが存在しない、長さが 0、または `completed` が `true`(完了の初期化が、失敗または
 ///   中断されて残ったもの)のとき、`Ok(None)`(空のステート)。
@@ -46,12 +47,18 @@ pub(crate) const FORMAT_VERSION: i64 = 1;
 ///   ほかの検査より先)。
 ///
 /// ファイルは、読み取りでは消さない。
-pub fn read_state(definition_path: &Path) -> Result<Option<PipelineState>, StateError> {
-    read_state_file(StateLocation::of(definition_path).path())
+pub fn read_state(
+    definition_path: &Path,
+    run_id: Option<&RunId>,
+) -> Result<Option<PipelineState>, StateError> {
+    read_state_file(StateLocation::of(definition_path, run_id).path(), run_id)
 }
 
-/// ステートファイルのパスを、直接指定して読む。
-pub(crate) fn read_state_file(path: &Path) -> Result<Option<PipelineState>, StateError> {
+/// ステートファイルのパスを、直接指定して読む。`run_id` は、ファイル名の run ID。
+pub(crate) fn read_state_file(
+    path: &Path,
+    run_id: Option<&RunId>,
+) -> Result<Option<PipelineState>, StateError> {
     let fail = |kind, reason| StateError::new(path, kind, reason);
 
     let file = match File::open(path) {
@@ -71,7 +78,42 @@ pub(crate) fn read_state_file(path: &Path) -> Result<Option<PipelineState>, Stat
     if bytes.len() as u64 > MAX_STATE_BYTES {
         return Err(fail(StateErrorKind::TooLarge, reason::TOO_LARGE));
     }
-    parse_state(&bytes).map_err(|e| StateError::new(path, e.kind, e.reason))
+    parse_state_for(&bytes, run_id).map_err(|e| StateError::new(path, e.kind, e.reason))
+}
+
+/// `reset --all` の候補のファイルを、中身で見分けた結果。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Inspected {
+    /// 中身の `run_id` が、名前の run ID と一致する(読める。完了のまま残ったものを含む)。
+    Ours,
+    /// 読めるが、中身の `run_id` がない、または値が違う(別の定義のステートの可能性)。
+    NotOurs,
+    /// 読めない、または壊れている。
+    Broken,
+}
+
+/// 名前が `<定義>.<run-id>.state` の形のファイルを、中身で見分ける。
+pub(crate) fn inspect_run_state(path: &Path, run_id: &RunId) -> Inspected {
+    let Ok(file) = File::open(path) else {
+        return Inspected::Broken;
+    };
+    match file.metadata() {
+        Ok(m) if m.len() <= MAX_STATE_BYTES => {}
+        _ => return Inspected::Broken,
+    }
+    let Ok(bytes) = read_limited(file, MAX_STATE_BYTES) else {
+        return Inspected::Broken;
+    };
+    if bytes.len() as u64 > MAX_STATE_BYTES {
+        return Inspected::Broken;
+    }
+    match parse_state_for(&bytes, Some(run_id)) {
+        // 空のファイルは、中身の run_id がなく、だれのものか分からない。
+        Ok(None) if bytes.is_empty() => Inspected::NotOurs,
+        Ok(_) => Inspected::Ours,
+        Err(e) if e.reason == reason::RUN_ID_MISMATCH => Inspected::NotOurs,
+        Err(_) => Inspected::Broken,
+    }
 }
 
 /// 読み取りを、上限 + 1 バイトまでに制限する(終わりのない入力でも、そこで止まる)。
@@ -97,7 +139,13 @@ fn corrupt(reason: &'static str) -> ParseFailure {
 }
 
 /// 読み取ったバイト列を、ステートにする。空のステートは `Ok(None)`。
-fn parse_state(bytes: &[u8]) -> Result<Option<PipelineState>, ParseFailure> {
+///
+/// `expected_run_id` は、ファイル名の run ID。中身の `run_id` と一致しなければ `corrupt`
+/// (`completed` の判定より前に検査する。FR3.2)。
+fn parse_state_for(
+    bytes: &[u8],
+    expected_run_id: Option<&RunId>,
+) -> Result<Option<PipelineState>, ParseFailure> {
     if bytes.is_empty() {
         return Ok(None);
     }
@@ -117,7 +165,7 @@ fn parse_state(bytes: &[u8]) -> Result<Option<PipelineState>, ParseFailure> {
         Some(_) => return Err(corrupt(reason::BAD_VERSION_TYPE)),
     }
 
-    let state = walk(&table)?;
+    let state = walk(&table, expected_run_id)?;
     if state.completed {
         // 完了のまま残ったステートは、空として扱う(BR2.3)。
         return Ok(None);
@@ -125,8 +173,15 @@ fn parse_state(bytes: &[u8]) -> Result<Option<PipelineState>, ParseFailure> {
     Ok(Some(state))
 }
 
-const TOP_KEYS: [&str; 9] = [
+/// 引数なしの検査(run ID なしの期待)。単体テストが使う。
+#[cfg(test)]
+fn parse_state(bytes: &[u8]) -> Result<Option<PipelineState>, ParseFailure> {
+    parse_state_for(bytes, None)
+}
+
+const TOP_KEYS: [&str; 10] = [
     "format_version",
+    "run_id",
     "definition_key",
     "definition_path",
     "pipeline_name",
@@ -173,9 +228,21 @@ fn parse_skip_reason(text: &str) -> Result<SkipReason, ParseFailure> {
     }
 }
 
-fn walk(table: &toml::Table) -> Result<PipelineState, ParseFailure> {
+fn walk(
+    table: &toml::Table,
+    expected_run_id: Option<&RunId>,
+) -> Result<PipelineState, ParseFailure> {
     if table.keys().any(|k| !TOP_KEYS.contains(&k.as_str())) {
         return Err(corrupt(reason::UNKNOWN_KEY));
+    }
+
+    // ファイル名の run ID と中身の `run_id` の照合(FR3.2)。ほかのキーの検査より先に行う。
+    let run_id = match table.get("run_id") {
+        None => None,
+        Some(v) => Some(as_string(v)?),
+    };
+    if run_id.as_deref() != expected_run_id.map(RunId::as_str) {
+        return Err(corrupt(reason::RUN_ID_MISMATCH));
     }
 
     let definition_key = as_string(required(table, "definition_key")?)?;
@@ -236,6 +303,7 @@ fn walk(table: &toml::Table) -> Result<PipelineState, ParseFailure> {
         resume_job_id,
         end_reached,
         completed,
+        run_id,
     })
 }
 

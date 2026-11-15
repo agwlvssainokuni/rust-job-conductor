@@ -28,9 +28,28 @@ use conductor_core::{
 };
 use conductor_runtime::{
     ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateError, StateErrorKind,
-    apply_outcome, apply_skip, check_consistency, initial_state, read_state, reset_state, run_job,
-    write_state,
+    apply_outcome, apply_skip, check_consistency, initial_state as initial_state_with,
+    read_state as read_state_with, reset_state as reset_state_with, run_job,
+    write_state as write_state_with,
 };
+
+// run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)。
+fn read_state(def: &std::path::Path) -> Result<Option<conductor_core::PipelineState>, StateError> {
+    read_state_with(def, None)
+}
+fn reset_state(def: &std::path::Path) -> Result<(), StateError> {
+    reset_state_with(def, None)
+}
+fn initial_state(d: &PipelineDefinition, def: &std::path::Path) -> conductor_core::PipelineState {
+    initial_state_with(d, def, None)
+}
+fn write_state(
+    def: &std::path::Path,
+    s: &conductor_core::PipelineState,
+    dur: Durability,
+) -> Result<(), StateError> {
+    write_state_with(def, None, s, dur)
+}
 
 /// 試験用の場面: 一時ディレクトリ、定義ファイルのパス、ジョブの起動の記録のファイル。
 struct Scene {
@@ -67,6 +86,7 @@ impl Scene {
         PipelineDefinition {
             name: "nightly".into(),
             description: None,
+            run_id_env: None,
             format_version: 1,
             job: jobs,
         }

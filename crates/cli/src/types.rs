@@ -64,6 +64,11 @@ pub struct CliCommand {
     pub config_path: Option<OsString>,
     /// `-v` / `--verbose`。run・pipeline・validate のときのみ指定できる。
     pub verbose: bool,
+    /// `--run-id <値>`。run・pipeline・watch・reset のときのみ。検査済み(空は「run ID なしに固定」)。
+    /// 指定がなければ `None`(環境変数を見る)。
+    pub run_id: Option<String>,
+    /// `--all`。reset のときのみ。
+    pub all: bool,
 }
 
 impl CliCommand {
@@ -77,6 +82,8 @@ impl CliCommand {
             convert_target: None,
             config_path: None,
             verbose: false,
+            run_id: None,
+            all: false,
         }
     }
 }

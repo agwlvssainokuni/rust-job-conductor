@@ -20,16 +20,18 @@
 //!
 //! # 文法
 //!
-//! | コマンド | 位置引数 | `-v` | `--config` | `--to` |
-//! |----------|----------|------|------------|--------|
-//! | `run` | ジョブID(1) | 可 | 可 | 不可 |
-//! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 |
-//! | `watch` | なし | 不可 | 可 | 不可 |
-//! | `reset` | なし | 不可 | 可 | 不可 |
-//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 |
-//! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) |
+//! | コマンド | 位置引数 | `-v` | `--config` | `--to` | `--run-id` | `--all` |
+//! |----------|----------|------|------------|--------|------------|---------|
+//! | `run` | ジョブID(1) | 可 | 可 | 不可 | 可 | 不可 |
+//! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 | 可 | 不可 |
+//! | `watch` | なし | 不可 | 可 | 不可 | 可 | 不可 |
+//! | `reset` | なし | 不可 | 可 | 不可 | 可 | 可(`--run-id` とは併用不可) |
+//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 |
+//! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 |
 //!
-//! - `--config path` と `--config=path`(`--to` も同じ)の両方を受け付ける。
+//! - `--config path` と `--config=path`(`--to`、`--run-id` も同じ)の両方を受け付ける。
+//! - `--run-id` の値は、空(run ID なしに固定)か、`RunId` の規則(`A-Za-z0-9._-`、64 文字まで、
+//!   先頭が `.` でない)を満たすこと。違反は `invalidValue`(値は、誤りの文に含めない)。
 //! - `--` は、オプションの終わりで、以降は、すべて位置引数。
 //! - `-v` は、ちょうど1回。2回以上(`-vv` を含む)は `invalidValue`。`--config`、`--to` の重複も同じ。
 //! - `--help`・`-h`・`--version`・`-V` は、`--` より前に現れたとき、ほかの誤りより先に処理する。
@@ -37,8 +39,10 @@
 use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
+use conductor_core::RunId;
 use lexopt::prelude::*;
 
+use crate::deps::Env;
 use crate::types::{CliCommand, CommandKind, ParsedArgs, UsageError, UsageErrorKind as Kind};
 
 /// 字句に分けた 1 つの引数。
@@ -46,6 +50,10 @@ enum Token {
     Verbose,
     Config(OsString),
     To(OsString),
+    /// `--run-id <値>`(値は、字句の段階では、検査しない)。
+    RunId(OsString),
+    /// `--all`。
+    All,
     /// 文法にないオプション(表示用の綴り)。
     Unknown(String),
     Positional(OsString),
@@ -103,6 +111,15 @@ where
                     break;
                 }
             },
+            Long("run-id") => match parser.value() {
+                Ok(v) => tokens.push(Token::RunId(v)),
+                Err(_) => {
+                    lex_error
+                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--run-id"));
+                    break;
+                }
+            },
+            Long("all") => tokens.push(Token::All),
             Long("to") => match parser.value() {
                 Ok(v) => tokens.push(Token::To(v)),
                 Err(_) => {
@@ -133,7 +150,7 @@ fn map_lex_error(e: &lexopt::Error) -> UsageError {
         lexopt::Error::MissingValue { .. } => UsageError::new(Kind::MissingValue),
         lexopt::Error::UnexpectedValue { option, .. } => {
             // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
-            let known = matches!(option.as_str(), "--verbose" | "-v");
+            let known = matches!(option.as_str(), "--verbose" | "-v" | "--all");
             if known {
                 UsageError::with_subject(Kind::InvalidValue, option.clone())
             } else {
@@ -155,6 +172,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let mut verbose_count = 0usize;
     let mut config: Vec<OsString> = Vec::new();
     let mut to: Vec<OsString> = Vec::new();
+    let mut run_ids: Vec<OsString> = Vec::new();
+    let mut all_count = 0usize;
     let mut unknown: Option<String> = None;
     let mut positionals: Vec<OsString> = Vec::new();
     for token in tokens {
@@ -162,6 +181,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             Token::Verbose => verbose_count += 1,
             Token::Config(v) => config.push(v),
             Token::To(v) => to.push(v),
+            Token::RunId(v) => run_ids.push(v),
+            Token::All => all_count += 1,
             Token::Unknown(name) => {
                 unknown.get_or_insert(name);
             }
@@ -205,6 +226,16 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if !to.is_empty() && !takes_to {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--to"));
     }
+    let takes_run_id = matches!(
+        kind,
+        CommandKind::Run | CommandKind::Pipeline | CommandKind::Watch | CommandKind::Reset
+    );
+    if !run_ids.is_empty() && !takes_run_id {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--run-id"));
+    }
+    if all_count > 0 && kind != CommandKind::Reset {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--all"));
+    }
     // 重複。
     if verbose_count > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "-v"));
@@ -215,10 +246,27 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if to.len() > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "--to"));
     }
+    if run_ids.len() > 1 {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--run-id"));
+    }
+    if all_count > 1 {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
+    }
+    // `--all` と `--run-id` は、一緒に使えない。
+    if all_count == 1 && !run_ids.is_empty() {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
+    }
 
     let mut command = CliCommand::new(kind);
     command.verbose = verbose_count == 1;
     command.config_path = config.into_iter().next();
+    command.all = all_count == 1;
+    // 値の検査は、ここで行う。誤りの文に、値は含めない(対象は、オプションの名前だけ)。
+    command.run_id = run_ids
+        .into_iter()
+        .next()
+        .map(parse_run_id_option)
+        .transpose()?;
 
     // `validate` の位置引数(パイプライン名)は、省略できる。
     let wants_positional = !matches!(
@@ -256,6 +304,41 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         CommandKind::Watch | CommandKind::Reset => {}
     }
     Ok(ParsedArgs::Command(command))
+}
+
+/// `--run-id` の値の検査。空は有効(run ID なしに固定する)。UTF-8 でない値、規則に反する値は、
+/// `invalidValue`(対象は `--run-id` で、値は含めない)。
+fn parse_run_id_option(value: OsString) -> Result<String, UsageError> {
+    let invalid = || UsageError::with_subject(Kind::InvalidValue, "--run-id");
+    let text = value.into_string().map_err(|_| invalid())?;
+    if !text.is_empty() {
+        RunId::parse(&text).map_err(|_| invalid())?;
+    }
+    Ok(text)
+}
+
+/// run ID を決める(FR1.2〜FR1.4)。
+///
+/// - `option` が `Some`(`--run-id` あり): 環境変数は見ない。空なら run ID なし(固定)。
+/// - `option` が `None`: 環境変数 `env_name` を読み、未定義と空は run ID なし。
+///
+/// `--run-id` の値は、引数の段階で検査済みだが、ここでも検査する(環境変数の値と同じ関数)。
+/// 規則に反する値は、`invalidValue`(対象は、どこから来たか=オプションか環境変数かだけ。値は含めない)。
+pub fn resolve_run_id(
+    option: Option<&str>,
+    env_name: &str,
+    env: &dyn Env,
+) -> Result<Option<RunId>, UsageError> {
+    let (value, subject) = match option {
+        Some(v) => (Some(v.to_string()), "--run-id"),
+        None => (env.var(env_name), "run ID (environment variable)"),
+    };
+    match value.as_deref() {
+        None | Some("") => Ok(None),
+        Some(v) => RunId::parse(v)
+            .map(Some)
+            .map_err(|_| UsageError::with_subject(Kind::InvalidValue, subject)),
+    }
 }
 
 fn unexpected_argument(value: &OsString) -> UsageError {

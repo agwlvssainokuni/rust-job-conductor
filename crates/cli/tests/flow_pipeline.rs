@@ -39,7 +39,7 @@ fn 全部成功なら_記述順に実行し_完了で初期化して_0() {
     assert_eq!(out.err, "");
     assert_eq!(h.runtime.ran(), ["a", "b", "c"]);
     assert!(!h.state_path().exists(), "完了したので初期化される");
-    assert_eq!(h.env.var_calls.get(), 0, "ロケールの判定が行われない");
+    assert!(!h.env.locale_read(), "ロケールの判定が行われない");
     assert_eq!(
         h.runtime.log(),
         [
@@ -329,8 +329,9 @@ fn 完了の判定ができないときは_65_で_初期化しない() {
         resume_job_id: None,
         end_reached: false,
         completed: false,
+        run_id: None,
     };
-    write_state(&h.def_path(), &state, Durability::Durable).expect("書ける");
+    write_state(&h.def_path(), None, &state, Durability::Durable).expect("書ける");
     let out = h.run(&["pipeline", "p"]);
     assert_eq!(out.code, 65);
     assert!(
