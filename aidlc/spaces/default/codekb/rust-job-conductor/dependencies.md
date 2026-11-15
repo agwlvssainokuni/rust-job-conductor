@@ -13,7 +13,7 @@
 | tempfile | 3.27.0 | 全クレート(dev) | テストのみ |
 
 ## 内部の依存
-cli → core、runtime、converter / runtime → core / converter は core に依存しない。
+cli → core、runtime、converter / runtime → core / converter は core に依存しない。`PipelineDefinition`(core)のフィールドを使うのは、core 自身、runtime(`state/consistency`・`state/record`)、cli(`ctx`・`run`・`pipeline`)。converter は、定義の型を使わない。
 
 ## 制約
-CI が、C のビルドを要する依存(cc、cmake、pkg-config、bindgen)と、`windows-sys`・`linux-raw-sys` 以外の `-sys` クレートを禁止している(`ci.yml` の build-check)。`cargo audit` を毎週月曜と PR で実行(警告のみ)。
+CI が、C のビルドを要する依存(cc、cmake、pkg-config、bindgen)と、`windows-sys`・`linux-raw-sys` 以外の `-sys` クレートを禁止している(`ci.yml` の build-check。前回の記録)。`cargo audit` を毎週月曜と PR で実行(警告のみ)。
