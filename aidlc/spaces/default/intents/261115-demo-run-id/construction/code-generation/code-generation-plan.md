@@ -30,7 +30,7 @@
 - [x] **Step 4. Windows 版デモを実装する(FR2、FR3):** `demo/windows/conductor.toml` の `run_id_env`。`demo/windows/run-demo.cmd` の冒頭(`DEMO_RUN_ID` を消す)と、場面 7〜9。`.cmd` は UTF-8・CRLF のまま(ファイルの書き込みは LF だけを出すので、書いた後に、CRLF になっていることを、`file` や `grep -c $'\r'` などの読み取りで確かめる。LF のままの行があれば直す)。この環境(macOS)では実行できないので、既存の場面の書き方(`call :runcmd`、`setlocal`/`endlocal`、`set "X=1"`、`%errorlevel%` の扱い、`ping` の待ち、`dir /b`)を、そのまま写し、書いた内容を、読み直して確かめる。
 - [x] **Step 5. Windows 版のテスト(FR6.1):** `windows_demo.rs` に、`env_remove` と場面 7〜9 の検証を足す。`cargo check --workspace --tests --target x86_64-pc-windows-msvc --locked` で、型検査を通す(実行は CI の `windows-2022`)。macOS では、`windows_demo` は 0 件として動くことを確かめる。
 - [x] **Step 6. 案内(FR5):** `demo/README.md` を更新する。
-- [ ] **Step 7. 全体の確認:** `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`、`cargo +1.85 build --workspace --locked --all-targets`、`cargo check --workspace --tests --target x86_64-pc-windows-msvc --locked`、`cargo llvm-cov` で行カバレッジ 80% 以上。ルートの README の語句検索(CI の `docs-check` と同じ)が、変わらず通る。`git status` で、`crates/*/src`、ルートの `README.md`、`Cargo.toml`、`Cargo.lock`、`.github/` に変更がないことを確かめる。
+- [x] **Step 7. 全体の確認:** `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`、`cargo +1.85 build --workspace --locked --all-targets`、`cargo check --workspace --tests --target x86_64-pc-windows-msvc --locked`、`cargo llvm-cov` で行カバレッジ 80% 以上。ルートの README の語句検索(CI の `docs-check` と同じ)が、変わらず通る。`git status` で、`crates/*/src`、ルートの `README.md`、`Cargo.toml`、`Cargo.lock`、`.github/` に変更がないことを確かめる。
 
 ## テストの方針(Minimal)
 
