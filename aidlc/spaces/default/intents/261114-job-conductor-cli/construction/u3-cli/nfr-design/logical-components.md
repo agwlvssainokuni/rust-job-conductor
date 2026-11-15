@@ -52,5 +52,7 @@
 
 ## Assumptions & Open Questions
 
+- 入口の関数は、`run_cli(args, env, io)`(本番の依存を組み立てる)と、`run_cli_with(args, deps)`(`Runtime`・`Sink`・`Env`・`Signals` を、引数で受け取る。テストが使う)の2つに分ける。本番の `Signals` は、プロセスで2回目の呼び出しのとき、すでに登録済みであることを、成功とは別の値(`AlreadyRegistered`)で返し、流れは、それを、成功と同様に続けるが、合図が配線されていないことを、テストで見分けられるようにする。 [assumption]
+
 - 部品の名前(ArgParser など)は、設計上の呼び名であり、Rust のモジュールやファイルの分け方は、Code Generation で決める。 [assumption]
 - `Runtime` trait は、u2-runtime・u1-core の関数の薄い包みで、関数の数が多い(約 10)。分け方(複数の小さな trait にするか)は、Code Generation で決める。 [assumption]

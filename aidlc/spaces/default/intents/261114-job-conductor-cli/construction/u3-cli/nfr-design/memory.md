@@ -12,3 +12,4 @@
 
 ## Open questions
 <!-- example: 2026-05-29T10:14:32Z — confirm the retention window with compliance before the next stage hardens the schema -->
+- 2026-11-15T00:30:00Z — 2 回目のレビュー(READY)で残った Major(R-01)は、traceability.json の upstream_ids に、NFR6.1〜6.4、NFR2.1、NFR3.1、NFR5.1 が無いこと(上流の一覧は、検査の道具が作るため、手では足していない)。これらの設計は、security-design の「他の NFR の設計」と observability-design にある。Code Generation と Build and Test で、これらの要件を、抜けなく確かめること。NFR4.8(リリース)は、CI Pipeline・Deployment Pipeline のステージに委ねる(取り決め 3 点: --locked でのビルド、実行ファイル名 conductor、補助の実行ファイルを含めない)。
