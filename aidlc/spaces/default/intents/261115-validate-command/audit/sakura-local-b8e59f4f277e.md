@@ -902,3 +902,119 @@
 **Context**: construction > build-and-test > cross-unit-traceability.md
 
 ---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-15T10:38:15Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: build-and-test
+**Next Stage**: deployment-pipeline
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261115-validate-command/construction/build-and-test/build-instructions.md=not-run; required-sections@aidlc/spaces/default/intents/261115-validate-command/construction/build-and-test/build-and-test-summary.md=not-run; required-sections@aidlc/spaces/default/intents/261115-validate-command/construction/build-and-test/test-results.md=not-run; required-sections@aidlc/spaces/default/intents/261115-validate-command/construction/build-and-test/cross-unit-traceability.md=not-run; upstream-coverage@aidlc/spaces/default/intents/261115-validate-command/construction/build-and-test/build-instructions.md=not-run
+**Open Decisions**: 0
+**Question Id**: fb3115cd
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:cd76834909036744408b03ccc420e262a245baa2b14490d3d6342d0388189e55
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T11:19:31Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: d47b8637
+**Open Questions**: fb3115cd
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T11:19:32Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Build and Test is ready for your review. It produced build-instructions.md, build-and-test-summary.md, test-results.md and cross-unit-traceability.md, in aidlc/spaces/default/intents/261115-validate-command/construction/build-and-test/.\n\n結果: テスト 597 件成功(安定版と Rust 1.85 の両方)、行カバレッジ 97.79%、fmt・clippy・Windows 向けの型検査・デモ・README の文書チェックも成功、要件の未対応 0 件。Linux・Windows での実行は既存の CI に委ねています(この計画に CI Pipeline がないため N/A)。次は Deployment Pipeline です(前回と同じ理由でスキップする想定)。\n\nApprove Build and Test?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-15T11:19:35Z
+**Event**: GATE_APPROVED
+**Stage**: build-and-test
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: d47b8637
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-15T11:19:35Z
+**Event**: STAGE_COMPLETED
+**Stage**: build-and-test
+**Validation Basis**: {"graphContract":"sha256:1aed809bd5f1f235d6ab1b1495c41997dd8cc201478d4991c474c4f1638a2b55","inputs":[{"artifact":"code-generation-plan","contentHash":"sha256:db308127166c885c0a770a1b0c5083ce1f7628b04e85b2362dcb199cadf1a25f","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:e64dac045e806913cee7e348d35debae45e4b4afdbf593fdd9bcb9e832449f87"},{"artifact":"code-summary","contentHash":"sha256:28887bf7d827ab9e2771edab68b698c9d0f511e515bb918aa67a05f4b4b2d3fc","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:382a71980aab3b7eb0a853ca6fbef1b1323a344a56aea7199006e07c86b8fa7d"},{"artifact":"unit-test-instructions","contentHash":"sha256:ec7ee7b53e67238e91e179f3269b75b70d0bddc590d3871be5e1b15cfef6d085","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:d9c8566c2e14823b1cf3f092e8da9d48315a3a1b1316e791cc6088ae4889410b"}],"outputs":[{"artifact":"build-and-test-summary","contentHash":"sha256:d3013db6f1a435c9f05c979af926107d1c8487a4ccbcbe579b151e392ec9cbd1","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:94fa4a31d481f1d07caa0fe11e276fb9c52aee9f567e09fe69ff41e1af67035a"},{"artifact":"build-instructions","contentHash":"sha256:30016e43c5b6414b259a2def6ce744308c6a1f833a97c7ec7cb0d606276b2989","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:2d614b1504c79523cd416d0909497cb30b8f0014ea1df176db81f995f6141083"},{"artifact":"build-test-results","contentHash":"sha256:82cd12991df121da48972340d78d864e28a8ca9af745e6703c5ecd3be7f70a91","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:9e9045eb96c7c693147ed3b18e74e967a2b3239fc23957e8b1d974d5300bd7d3"},{"artifact":"cross-unit-traceability","contentHash":"sha256:094bf62f9a754e6c7ded5b6ed3ff9495ae52628804bce059fa3b82390ed8e27c","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:985c84d645c7599dce2be43e75a30f91b746f287b2100f7252fc4c64ab9e4782"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Build and Test approved by gate
+**Tokens In**: 10
+**Tokens Out**: 6796
+**Cache Read**: 2708764
+**Cache Write**: 8718
+**Cost USD**: 0.37
+**By Model**: sonnet-5-5=0.37
+**By Agent**: main=0.37
+**Tokens By Model**: sonnet-5-5=10/6.8k/2.7M/8.7k
+**Tokens By Agent**: main=10/6.8k/2.7M/8.7k
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-15T11:19:35Z
+**Event**: PHASE_COMPLETED
+**From phase**: construction
+**To phase**: operation
+**Stages completed**: 7
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-15T11:19:35Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: construction → operation
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-15T11:19:35Z
+**Event**: PHASE_STARTED
+**Phase**: operation
+**Scope**: express
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T11:19:35Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-pipeline
+**Agent**: aidlc-pipeline-deploy-agent
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-15T11:19:54Z
+**Event**: STAGE_SKIPPED
+**Stage**: deployment-pipeline
+**Reason**: release.yml already exists and was verified end to end with v0.1.0 to v0.3.0; this change (validate subcommand, field rename, README title) needs no CD change
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T11:19:54Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-execution
+**Agent**: aidlc-pipeline-deploy-agent
+
+---
