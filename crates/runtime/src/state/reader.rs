@@ -131,7 +131,7 @@ const TOP_KEYS: [&str; 9] = [
     "definition_path",
     "pipeline_name",
     "job_order",
-    "jobs",
+    "job",
     "resume_job_id",
     "end_reached",
     "completed",
@@ -191,7 +191,7 @@ fn walk(table: &toml::Table) -> Result<PipelineState, ParseFailure> {
         .map(as_string)
         .collect::<Result<Vec<_>, _>>()?;
 
-    let jobs = required(table, "jobs")?
+    let jobs = required(table, "job")?
         .as_array()
         .ok_or_else(|| corrupt(reason::WRONG_TYPE))?;
     let mut job_states = Vec::with_capacity(jobs.len());
@@ -289,12 +289,12 @@ end_reached = false
 completed = false
 resume_job_id = "b"
 
-[[jobs]]
+[[job]]
 id = "a"
 status = "success"
 exit_code = 0
 
-[[jobs]]
+[[job]]
 id = "b"
 status = "pending"
 "#;
@@ -321,6 +321,26 @@ status = "pending"
     }
 
     #[test]
+    fn job_のテーブルを読み_format_version_は_1() {
+        assert!(VALID.contains("format_version = 1"));
+        assert!(VALID.contains("[[job]]"));
+        let state = parse_state(VALID.as_bytes())
+            .ok()
+            .flatten()
+            .expect("読める");
+        assert_eq!(state.job_states.len(), 2);
+    }
+
+    #[test]
+    fn 旧キー_jobs_のステートは壊れたステートとして拒否される() {
+        let old = VALID.replace("[[job]]", "[[jobs]]");
+        assert_eq!(
+            kind_of(&old),
+            (StateErrorKind::Corrupt, reason::UNKNOWN_KEY)
+        );
+    }
+
+    #[test]
     fn 長さ_0_は空() {
         assert!(matches!(parse_state(b""), Ok(None)));
     }
@@ -336,7 +356,7 @@ status = "pending"
 
     #[test]
     fn 版を先に確認する() {
-        let future = "format_version = 2\nunknown_key = 1\njobs = 5\n";
+        let future = "format_version = 2\nunknown_key = 1\njob = 5\n";
         assert_eq!(kind_of(future).0, StateErrorKind::VersionMismatch);
         assert_eq!(
             kind_of("format_version = 0\n").0,
@@ -393,11 +413,11 @@ status = "pending"
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::MISSING_KEY));
         let t = VALID.replace("resume_job_id = \"b\"", "resume_job_id = 3");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
-        let t = VALID.replace("[[jobs]]\nid = \"a\"", "[[jobs]]\nid = 1");
+        let t = VALID.replace("[[job]]\nid = \"a\"", "[[job]]\nid = 1");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
-        let t = VALID.replace("\n[[jobs]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[jobs]]\nid = \"b\"\nstatus = \"pending\"\n", "jobs = [1]\n");
+        let t = VALID.replace("\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job]]\nid = \"b\"\nstatus = \"pending\"\n", "job = [1]\n");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
-        let t = VALID.replace("\n[[jobs]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[jobs]]\nid = \"b\"\nstatus = \"pending\"\n", "jobs = \"x\"\n");
+        let t = VALID.replace("\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job]]\nid = \"b\"\nstatus = \"pending\"\n", "job = \"x\"\n");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
     }
 

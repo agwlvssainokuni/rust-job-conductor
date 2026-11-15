@@ -106,16 +106,19 @@ fn ステートファイルの内容は版つきで_e3_のキーを持つ() {
     for key in [
         "pipeline_name",
         "job_order",
-        "jobs",
+        "job",
         "resume_job_id",
         "end_reached",
         "completed",
     ] {
         assert!(table.contains_key(key), "{key}");
     }
-    let jobs = table["jobs"].as_array().expect("配列");
+    assert!(!table.contains_key("jobs"), "旧キーは書かない");
+    let jobs = table["job"].as_array().expect("配列");
     assert_eq!(jobs[2]["skip_reason"].as_str(), Some("byEnd"));
     assert_eq!(jobs[3]["exit_code"].as_integer(), Some(-1));
+    assert!(text.contains("[[job]]"));
+    assert!(!text.contains("[[jobs]]"));
 }
 
 #[test]

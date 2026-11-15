@@ -30,12 +30,12 @@ end_reached = false
 completed = false
 resume_job_id = "b"
 
-[[jobs]]
+[[job]]
 id = "a"
 status = "success"
 exit_code = 0
 
-[[jobs]]
+[[job]]
 id = "b"
 status = "pending"
 "#;
@@ -186,6 +186,27 @@ fn 内容の矛盾は_corrupt() {
         let e = read_state(&def).expect_err("拒否される");
         assert_eq!(e.kind, StateErrorKind::Corrupt, "case {i}");
     }
+}
+
+#[test]
+fn job_のテーブルを持つ版_1_のステートを読める() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state) = paths(dir.path());
+    assert!(VALID.contains("format_version = 1") && VALID.contains("[[job]]"));
+    std::fs::write(&state, VALID).expect("書ける");
+    let s = read_state(&def).expect("読める").expect("空ではない");
+    assert_eq!(s.job_states.len(), 2);
+}
+
+#[test]
+fn 旧キー_jobs_のステートは_corrupt_で拒否され内容を表示に出さない() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state) = paths(dir.path());
+    std::fs::write(&state, VALID.replace("[[job]]", "[[jobs]]")).expect("書ける");
+    let e = read_state(&def).expect_err("拒否される");
+    assert_eq!(e.kind, StateErrorKind::Corrupt);
+    let text = e.to_string();
+    assert!(!text.contains("jobs"), "{text}");
 }
 
 #[test]

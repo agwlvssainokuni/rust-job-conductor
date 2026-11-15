@@ -114,7 +114,7 @@ pub(crate) mod reason {
     pub const SKIP_REASON_MISMATCH: &str = "skip_reason が status と合いません";
     pub const EXIT_CODE_MISMATCH: &str = "exit_code が status と合いません";
     pub const DUPLICATE_JOB: &str = "ジョブIDが重複しています";
-    pub const ORDER_MISMATCH: &str = "jobs の並びが job_order と一致しません";
+    pub const ORDER_MISMATCH: &str = "job の並びが job_order と一致しません";
     pub const RESUME_NOT_IN_ORDER: &str = "resume_job_id が job_order にありません";
     pub const COMPLETED_WITH_RESUME: &str = "completed と resume_job_id が両立しません";
 
@@ -126,6 +126,20 @@ pub(crate) mod reason {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn 理由の文にステートのキーとしての_jobs_が残らない() {
+        for text in [
+            reason::UNKNOWN_KEY,
+            reason::MISSING_KEY,
+            reason::WRONG_TYPE,
+            reason::DUPLICATE_JOB,
+            reason::ORDER_MISMATCH,
+            reason::RESUME_NOT_IN_ORDER,
+        ] {
+            assert!(!text.contains("jobs"), "{text}");
+        }
+    }
 
     #[test]
     fn コマンドエラーの表示は固定の文() {

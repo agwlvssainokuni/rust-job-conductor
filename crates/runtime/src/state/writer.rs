@@ -257,7 +257,7 @@ pub(crate) fn serialize(state: &PipelineState) -> Option<String> {
         ),
     );
     t.insert(
-        "jobs".into(),
+        "job".into(),
         toml::Value::Array(
             state
                 .job_states

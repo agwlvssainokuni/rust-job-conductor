@@ -44,12 +44,12 @@ end_reached = false
 completed = false
 resume_job_id = "b"
 
-[[jobs]]
+[[job]]
 id = "a"
 status = "success"
 exit_code = 0
 
-[[jobs]]
+[[job]]
 id = "b"
 status = "pending"
 "#;
@@ -71,8 +71,8 @@ fn 壊れた_toml_やランダムな入力でパニックしない() {
         let _ = read_bytes(&bytes);
     }
     for broken in [
-        "format_version = 1\n[[jobs]\n",
-        "format_version = 1\njobs = [[[[",
+        "format_version = 1\n[[job]\n",
+        "format_version = 1\njob = [[[[",
         "= = =",
         "format_version = 1\njob_order = [1, [2], {a = 1}]\n",
         "\u{feff}format_version = 1\n",
@@ -127,8 +127,8 @@ fn 巨大な値のステートでパニックしない() {
             &format!("job_order = [{}]", "\"z\",".repeat(100_000)),
         ),
         VALID.replace(
-            "[[jobs]]\nid = \"b\"",
-            &"[[jobs]]\nid = \"b\"\nstatus = \"pending\"\n".repeat(5_000),
+            "[[job]]\nid = \"b\"",
+            &"[[job]]\nid = \"b\"\nstatus = \"pending\"\n".repeat(5_000),
         ),
     ];
     for (i, text) in cases.iter().enumerate() {

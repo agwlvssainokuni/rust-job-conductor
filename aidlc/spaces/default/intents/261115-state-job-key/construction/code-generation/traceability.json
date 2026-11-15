@@ -1,0 +1,19 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["FR1", "FR2", "FR3", "FR4", "FR5", "NFR1", "NFR2", "NFR3"],
+  "coverage": [
+    { "id": "FR1", "status": "OK", "target": "crates/runtime/src/state/writer.rs" },
+    { "id": "FR2", "status": "OK", "target": "crates/runtime/src/state/reader.rs" },
+    { "id": "FR3", "status": "OK", "target": "crates/runtime/tests/state_read.rs" },
+    { "id": "FR4", "status": "OK", "target": "crates/runtime/src/error.rs" },
+    {
+      "id": "FR5",
+      "status": "N/A",
+      "target": "README.md",
+      "reason": "README とデモに、ステートのキーとしての [[jobs]] の記述がなかった(README の [[jobs]] は定義ファイルの旧書式の注記)。要件どおり変更なし。"
+    },
+    { "id": "NFR1", "status": "OK", "target": "crates/runtime/tests/state_write.rs" },
+    { "id": "NFR2", "status": "OK", "target": "crates/runtime/tests/nfr_robust.rs" },
+    { "id": "NFR3", "status": "OK", "target": "crates/runtime/Cargo.toml" }
+  ]
+}
