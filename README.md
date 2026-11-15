@@ -9,6 +9,22 @@
 - ネットワークには接続せず、利用状況の収集もしません。
 - 表示は、環境のロケールに従って、英語と日本語を切り替えます。
 
+## 目次
+
+- [インストール](#インストール)
+  - [ソースからのビルド](#ソースからのビルド)
+- [クイックスタート](#クイックスタート)
+- [使い方](#使い方)
+- [定義ファイルの書き方](#定義ファイルの書き方)
+- [ステートファイルの場所](#ステートファイルの場所)
+  - [run ID でステートを分ける(v0.5.0 以降)](#run-id-でステートを分けるv050-以降)
+- [終了コードの表](#終了コードの表)
+- [保証の範囲(at-least-once)](#保証の範囲at-least-once)
+- [シグナルの扱い](#シグナルの扱い)
+- [convert の使い方](#convert-の使い方)
+- [ロケールと言語](#ロケールと言語)
+- [ライセンス](#ライセンス)
+
 ## インストール
 
 ### 1. ダウンロード
@@ -19,8 +35,10 @@
 |----|----------|
 | Linux(x86_64) | `conductor-<版>-x86_64-unknown-linux-musl.tar.gz` |
 | macOS(Apple シリコン) | `conductor-<版>-aarch64-apple-darwin.tar.gz` |
-| macOS(Intel) | `conductor-<版>-x86_64-apple-darwin.tar.gz` |
+| macOS(Intel) | `conductor-<版>-x86_64-apple-darwin.tar.gz`(クロスビルドで作ったもので、動作の確認はしていません) |
 | Windows(x86_64) | `conductor-<版>-x86_64-pc-windows-msvc.zip` |
+
+ファイル名の `<版>` は、`v` を付けない版の数字(例: `0.6.0`)です。`<版>` のあとの部分(例: `x86_64-unknown-linux-musl`)を、この README では `<対象>` と書きます。
 
 ### 2. SHA-256 の確認
 
@@ -42,11 +60,11 @@ Get-FileHash .\conductor-<版>-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 
 ### 3. 展開と PATH
 
-ファイルを展開すると、`conductor`(Windows は `conductor.exe`)と `LICENSE` があります。`conductor` を、`PATH` の通ったディレクトリ(たとえば `/usr/local/bin`)に置きます。
+ファイルを展開すると、最上位に `conductor-<版>-<対象>/` のディレクトリができ(zip も同じです)、その中に `conductor`(Windows は `conductor.exe`)と `LICENSE` があります。ディレクトリの中の `conductor` を、`PATH` の通ったディレクトリ(たとえば `/usr/local/bin`)に置きます。
 
 ```sh
 tar xzf conductor-<版>-<対象>.tar.gz
-install -m 755 conductor /usr/local/bin/conductor
+install -m 755 conductor-<版>-<対象>/conductor /usr/local/bin/conductor
 conductor --version
 ```
 
@@ -63,12 +81,114 @@ conductor --version
 
 ### ソースからのビルド
 
-Rust(1.85 以降)があれば、次でビルドできます。
+必要なものは、Rust(1.85 以降)と `git` です。
 
 ```sh
+git clone https://github.com/agwlvssainokuni/rust-job-conductor.git
+cd rust-job-conductor
 cargo build --release --locked --bin conductor
-# 実行ファイル: target/release/conductor
 ```
+
+できた実行ファイルは、`target/release/conductor`(Windows は `target\release\conductor.exe`)です。ビルドしたあとの確認には、テストが使えます。
+
+```sh
+cargo test --workspace --locked
+```
+
+`PATH` の通ったディレクトリに置くには、次のどちらかを使います。
+
+```sh
+# ビルドした実行ファイルを置く
+install -m 755 target/release/conductor /usr/local/bin/conductor
+# または、cargo で入れる(~/.cargo/bin/conductor ができる)
+cargo install --path crates/cli --locked --bin conductor
+```
+
+## クイックスタート
+
+3 つのジョブを順に動かし、途中で失敗させて、失敗したジョブから再開するまでを、確かめます。`conductor` は、インストールして `PATH` に置いたものとします。
+
+作業用のディレクトリを作り、次の内容の `conductor.toml` を保存します。`step2` は、環境変数 `FAIL` の値の終了コードで終わります(未設定なら 0 です)。
+
+```sh
+mkdir hello-conductor && cd hello-conductor
+```
+
+```toml
+format_version = 1
+
+[pipeline]
+name = "hello"
+
+[[job]]
+id = "step1"
+command = ["sh", "-c", "echo step1"]
+
+[[job]]
+id = "step2"
+command = ["sh", "-c", "echo step2; exit ${FAIL:-0}"]
+
+[[job]]
+id = "step3"
+command = ["sh", "-c", "echo step3"]
+```
+
+Windows では、`command` を `cmd /c` で動く形に書き換えてください(例: `["cmd", "/c", "echo step1"]`)。環境変数は、`set FAIL=3` で渡します。
+
+以下は、`LANG=C` で実行したときの出力です(`[conductor]` で始まる行は標準エラー、それ以外はジョブの出力と、`watch` の表です)。日本語のロケールでは、`conductor` 自身の表示が日本語になります(「ロケールと言語」を参照)。
+
+1. 定義を検査します(ジョブは実行しません)。何も表示せず、終了コードは 0 です。
+
+   ```text
+   $ conductor validate
+   $ echo $?
+   0
+   ```
+
+2. `step2` を失敗させて、パイプラインを実行します。`step2` の終了コード 3 が、そのまま `conductor` の終了コードになり、`step3` は実行されません。
+
+   ```text
+   $ FAIL=3 conductor pipeline -v hello
+   step1
+   [conductor] job=step1 result=success (exit code 0)
+   step2
+   [conductor] job=step2 result=error (exit code 3)
+   $ echo $?
+   3
+   ```
+
+3. ステートを見ます。止まった位置(`step2` の `error`)が残っています。
+
+   ```text
+   $ conductor watch
+   Pipeline: hello
+   JOB    STATUS   NOTE
+   step1  success  exit code 0
+   step2  error    exit code 3
+   step3  pending
+   ```
+
+4. 同じコマンドを、`FAIL` なしで、もう一度実行します。成功済みの `step1` は飛ばし、`step2` から再開して、最後まで進みます。
+
+   ```text
+   $ conductor pipeline -v hello
+   [conductor] job=step1 skipped (already executed)
+   step2
+   [conductor] job=step2 result=success (exit code 0)
+   step3
+   [conductor] job=step3 result=success (exit code 0)
+   $ echo $?
+   0
+   ```
+
+5. 最後まで終わったので、ステートは消えています。
+
+   ```text
+   $ conductor watch
+   no state (nothing has run yet)
+   ```
+
+次は、「使い方」と「定義ファイルの書き方」へ進んでください。
 
 ## 使い方
 
@@ -86,23 +206,29 @@ conductor --help | --version
 |----------|------|
 | `run <ジョブID>` | ジョブ 1 つを実行する(個別実行)。起動前の判断(実行・スキップ・拒否)に従う |
 | `pipeline <パイプライン名>` | 定義の記述順に、ジョブを 1 つずつ実行する(一括実行)。エラーで止まる |
-| `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する。run ID があるときは、パイプライン名の次の行に `Run ID: <ID>` を表示する |
-| `reset` | ステートを消す(最初からやり直す。壊れたステートの回復にも使う)。`--run-id` で、その run ID のステートだけを消す。`--all` で、その定義のステートを、run ID の有無によらず、すべて消す |
-| `validate [<パイプライン名>]` | 定義ファイルを検証し、全ジョブの `command` を検査する。ジョブは実行せず、ステートを読まず、書かず、消さない。パイプライン名を書くと、定義の名前と照合する(省略すると照合しない)。成功は何も表示しない |
+| `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する |
+| `reset` | ステートを消して、最初からやり直す(壊れたステートの回復にも使う) |
+| `validate [<パイプライン名>]` | 定義ファイルを検証し、全ジョブの `command` を検査する(v0.4.0 以降) |
 | `convert <ファイル> --to <形式>` | 定義ファイルを、YAML と TOML のあいだで変換し、結果を標準出力に書く |
 
 | オプション | 意味 |
 |------------|------|
 | `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`) |
-| `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階)。`validate` では、検査が通ったときに 1 行(ジョブの数)だけ、標準エラーに表示する |
-| `--run-id <ID>`(`--run-id=<ID>`) | ステートを分ける run ID(`run`・`pipeline`・`watch`・`reset` だけ。`validate`・`convert` では使えない)。省略時は、環境変数から読む(「run ID でステートを分ける」を参照)。空の値(`--run-id ""`)は、環境変数があっても、run ID なしに固定する |
-| `--all` | `reset` だけ。その定義のステートを、run ID の有無によらず、すべて消す。`--run-id` とは、一緒に使えない(68) |
+| `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階) |
+| `--run-id <ID>`(`--run-id=<ID>`) | ステートを分ける run ID(`run`・`pipeline`・`watch`・`reset` だけ)。規則は「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照 |
+| `--all` | `reset` だけ(v0.5.0 以降)。その定義のステートを、run ID の有無によらず、すべて消す |
 | `--to <yaml\|toml>` | `convert` の変換後の形式(必須) |
 | `-h`、`--help` | 使い方を表示する |
 | `-V`、`--version` | 版を表示する |
 
 - `--` は、オプションの終わりを表します(先頭が `-` のジョブIDは、`--` のあとに書きます)。
 - 既定では、`conductor` 自身の出力は、ありません(ジョブ本体の出力が、そのまま流れます)。エラーのときだけ、標準エラーに原因を表示します。
+
+### コマンドの詳しい動き
+
+- **`watch`**: ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示します。run ID があるときは、パイプライン名の次の行に `Run ID: <ID>` を表示します。
+- **`reset`**: ステートを消します。`--run-id` で、その run ID のステートだけを消します。`--all` で、その定義のステートを、run ID の有無によらず、すべて消します(`--run-id` との併用は、使い方の誤り(68)です)。run ID と `--all` の規則は、「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」にあります。
+- **`validate`(v0.4.0 以降)**: 定義ファイルを検証し、全ジョブの `command` を検査します。ジョブは実行せず、ステートを読まず、書かず、消しません。パイプライン名を書くと、定義の名前と照合します(省略すると照合しません)。成功は何も表示しません。`-v` を付けると、検査が通ったときに 1 行(ジョブの数)だけ、標準エラーに表示します。`--run-id` は使えません(使い方の誤り(68))。
 
 ### 例
 
@@ -119,7 +245,7 @@ conductor validate -v nightly --config /etc/batch/conductor.toml   # 名前も�
 conductor convert conductor.yaml --to toml > conductor.toml
 ```
 
-動きを一通り見るには、[デモ](demo/README.md)(`demo/run-demo.sh`)が使えます。
+動きを一通り見るには、[デモ](demo/README.md)(UNIX 系は `demo/run-demo.sh`、Windows は `demo\windows\run-demo.cmd`)が使えます。
 
 ## 定義ファイルの書き方
 
@@ -164,7 +290,7 @@ command = "python scripts/notify.py --msg='Warning in extraction'"
 |------|------|
 | `format_version` | 書式の版。`1` だけ(必須) |
 | `[pipeline]` の `name` | パイプラインの名前(必須。`conductor pipeline <名前>` で照合する)。`description` は省略可 |
-| `[pipeline]` の `run_id_env` | 省略可。run ID を読む環境変数の名前(文字列)。`A-Za-z_` で始まり、`A-Za-z0-9_` が続く 1 文字以上。省略すると `CONDUCTOR_RUN_ID`。文字列でない、または形が違うと、定義の誤り(64。`validate` も同じ) |
+| `[pipeline]` の `run_id_env` | 省略可(v0.5.0 以降)。run ID を読む環境変数の名前で、形の規則は「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照 |
 | `[[job]]` | ジョブ。**書いた順**に実行する。1 つ以上 |
 | `id` | ジョブID(必須。空でなく、定義の中で重複せず、`@` で始めない) |
 | `command` | 実行するコマンド(必須)。文字列、または文字列の配列(下の「command の書き方」) |
@@ -195,26 +321,6 @@ command = ["python", "scripts/notify.py", "--msg=Warning in extraction", ""]
 - `format_version` は、`1` のままです。配列の `command` を書いた定義は、v0.1.x では読めません(`command` の型の誤りとして拒否されます)。v0.1.x でも使う定義は、文字列で書いてください。
 - `convert` は、配列をそのまま TOML と YAML のあいだで変換します。
 
-## 終了コードの表
-
-| 終了コード | 意味 |
-|------------|------|
-| 0 | 成功、警告、スキップ(実行済み・遷移・`@end` によるスキップ)、`watch`・`reset`・`validate`・`convert` の成功 |
-| ジョブの値 | エラーになったジョブの終了コードを、そのまま(0〜255) |
-| 1 | 成功コードに含まれない `0` で終わったジョブ(`success_exit_codes` に `0` がない)。原因を標準エラーに表示する |
-| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り・`run_id_env` の型や名前の形の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
-| 65 | ステートの誤り(読めない・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みや初期化の失敗)、`watch` の標準出力に書けない |
-| 66 | 拒否(順序外。前のジョブが終わっていない) |
-| 67 | 変換の誤り、`convert` の標準出力に書けない |
-| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む)。run ID の値の誤り(`--run-id` の値、または環境変数の値が、規則に合わない)、`validate`・`convert` への `--run-id`、`reset` 以外への `--all`、`--all` と `--run-id` の併用も、この値 |
-| 70 | 内部の誤り(パニック、シグナルの準備の失敗) |
-| 127 | ジョブを起動できなかった |
-| 128 + 番号 | ジョブがシグナルで終了した、または、`conductor` が中断された(例: SIGTERM = 143、Ctrl+C = 130) |
-
-- 終了コードは、どの OS でも、0〜255 の範囲に合わせます。範囲外の値(255 を超える、または負)は、下位 8 ビットです。エラーのジョブで、下位 8 ビットが 0 になる場合は、1 にします(エラーを成功に見せないため)。元の値は、`-v` の表示に、そのまま示します。
-- 64〜68 と 70 は、ジョブ自身の終了コードと重なりえます。区別は、標準エラーの `conductor: error: ...` の行で行います。
-- ジョブの結果の書き込みに失敗したときは、ジョブの終了コードではなく 65 で終わり、「ジョブは実行されました」と表示します(次の「保証の範囲」を参照)。
-
 ## ステートファイルの場所
 
 ステート(どのジョブが、どう終わったか)は、**定義ファイルと同じディレクトリ**の `<定義ファイル名>.state` に保存されます(例: `conductor.toml` なら `conductor.toml.state`)。
@@ -228,13 +334,38 @@ command = ["python", "scripts/notify.py", "--msg=Warning in extraction", ""]
 
 run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state`(例: `conductor.toml.12345.state`)に分かれ、run ID ごとに独立します。run ID を与えないときは、これまでどおり `<定義ファイル名>.state` で、形式もメッセージも変わりません。同じ run ID で呼び直すと、止まったジョブから再開します(完了した run のステートは、これまでどおり消えます)。
 
-- **与え方**: `--run-id <ID>`、または環境変数。環境変数の名前は、定義ファイルの `[pipeline]` の `run_id_env` で決めます(省略すると `CONDUCTOR_RUN_ID`)。`--run-id` があれば、環境変数は見ません。環境変数が未定義または空なら、run ID なしです。`--run-id ""` は、環境変数があっても、run ID なしに固定します。
-- **値の規則**: 文字は `A-Za-z0-9._-`、1〜64 文字、先頭が `.` でないこと(`..` も不可)。規則に合わない値は、オプションでも環境変数でも、使い方の誤り(68)です。誤りの文に、値は含めません。
+- **与え方**: `--run-id <ID>`、または環境変数。環境変数の名前は、定義ファイルの `[pipeline]` の `run_id_env` で決めます(省略すると `CONDUCTOR_RUN_ID`)。`run_id_env` は、`A-Za-z_` で始まり、`A-Za-z0-9_` が続く 1 文字以上の文字列です。文字列でない、または形が違うと、定義の誤り(64。`validate` も同じ)です。`--run-id` があれば、環境変数は見ません。環境変数が未定義または空なら、run ID なしです。`--run-id ""` は、環境変数があっても、run ID なしに固定します。
+- **値の規則**: 文字は `A-Za-z0-9._-`、1〜64 文字、先頭が `.` でないこと(`..` も不可)。規則に合わない値は、オプションでも環境変数でも、使い方の誤り(68)です。誤りの文に、値は含めません。`validate`・`convert` への `--run-id`、`reset` 以外への `--all` も、使い方の誤り(68)です。
 - **中身の `run_id`**: run ID つきのステートには、キー `run_id` を書きます(run ID なしのステートには書きません)。ファイル名の run ID と中身の `run_id` が食い違うと(たとえば、別の run ID のファイルをコピーしたとき)、壊れたステート(65)として扱います。`conductor reset --run-id <ID>` で消してください。
 - **`watch`・`reset`**: `--run-id` があれば、定義ファイルを読みません。なければ、定義から `run_id_env` だけを、ゆるく読みます(定義が壊れている、キーがない、型や形が違う、のときは `CONDUCTOR_RUN_ID`。ほかの誤りは無視するので、壊れた定義でも `reset` は動きます)。
-- **`reset --all`**: 定義ファイルと同じディレクトリの、`<定義ファイル名>.state` と、`<定義ファイル名>.<run-id>.state` のうち、名前の `<run-id>` が規則に合い、中身の `run_id` がその値と一致するものを、すべて消します。一時ファイル(`.<ステート名>.tmp.*`)、別の定義のステート(中身に `run_id` がない、または値が違うもの)、ディレクトリ、シンボリックリンクは、消しません。読めない・壊れているファイルは、消さずに、ファイル名を標準エラーに警告します(`conductor reset --run-id <ID>` で個別に消せます。終了コードは 0)。消すものがなければ、何も出力せず 0 で終わります。ステートは、自動では消えません(古い run のステートは、`reset --all` で片づけてください)。
+- **`reset --all`**: 定義ファイルと同じディレクトリの、次のものを、すべて消します。
+  - `<定義ファイル名>.state`(run ID なし): 中身は読まずに、通常のファイルなら消します。シンボリックリンクは消しません。
+  - `<定義ファイル名>.<run-id>.state`: 名前の `<run-id>` が規則に合い、中身の `run_id` がその値と一致するものだけを消します。
+
+  次のものは、消しません。一時ファイル(`.<ステート名>.tmp.*`)、別の定義のステート(run ID つきで、中身に `run_id` がない、または値が違うもの)、ディレクトリ、シンボリックリンクです。run ID つきで、読めない・壊れているファイルは、消さずに、ファイル名を標準エラーに警告します(`conductor reset --run-id <ID>` で個別に消せます。終了コードは 0)。消すのに失敗したときは、65 で終わります。消すものがなければ、何も出力せず 0 で終わります。ステートは、自動では消えません(古い run のステートは、`reset --all` で片づけてください)。
 - **大文字小文字を区別しないファイルシステム**(macOS の既定、Windows)では、`A` と `a` は同じファイルになります。run ID は、大文字小文字だけで区別しないでください(食い違いは、中身の `run_id` との照合で、壊れたステート(65)として検出されます)。
 - 同じ run ID で、`conductor` を同時に動かすことは、避けてください(排他制御はしません)。
+
+## 終了コードの表
+
+| 終了コード | 意味 |
+|------------|------|
+| 0 | 成功、警告、スキップ(実行済み・遷移・`@end` によるスキップ)、`watch`・`reset`・`validate`・`convert` の成功 |
+| ジョブの値 | エラーになったジョブの終了コードを、そのまま(0〜255) |
+| 1 | 成功コードに含まれない `0` で終わったジョブ(`success_exit_codes` に `0` がない)。原因を標準エラーに表示する |
+| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り・`run_id_env` の型や名前の形の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
+| 65 | ステートの誤り(読めない・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みや初期化の失敗、`reset --all` で消すのに失敗したとき)、`watch` の標準出力に書けない |
+| 66 | 拒否(順序外。前のジョブが終わっていない) |
+| 67 | 変換の誤り、`convert` の標準出力に書けない |
+| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む)。run ID の値の誤り(`--run-id` の値、または環境変数の値が、規則に合わない)、`validate`・`convert` への `--run-id`、`reset` 以外への `--all`、`--all` と `--run-id` の併用も、この値 |
+| 70 | 内部の誤り(パニック、シグナルの準備の失敗) |
+| 127 | ジョブを起動できなかった |
+| 128 + 番号 | ジョブがシグナルで終了した、または、`conductor` が中断された(例: SIGTERM = 143、Ctrl+C = 130) |
+
+- 終了コードは、どの OS でも、0〜255 の範囲に合わせます。範囲外の値(255 を超える、または負)は、下位 8 ビットです。エラーのジョブで、下位 8 ビットが 0 になる場合は、1 にします(エラーを成功に見せないため)。元の値は、`-v` の表示に、そのまま示します。
+- 64〜68 と 70 は、ジョブ自身の終了コードと重なりえます。区別は、標準エラーの `conductor: error: ...` の行で行います。
+- ジョブの結果の書き込みに失敗したときは、ジョブの終了コードではなく 65 で終わり、「ジョブは実行されました」と表示します(次の「保証の範囲」を参照)。
+- run ID に関する 65・68 の詳細は、「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照してください。
 
 ## 保証の範囲(at-least-once)
 
@@ -248,7 +379,7 @@ run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state
 
 ## シグナルの扱い
 
-`run` と `pipeline` は、定義の検査より前に、シグナルを受け取る準備をします(`watch`・`reset`・`convert` は、既定の動作で終わります)。
+`run` と `pipeline` は、定義の検査より前に、シグナルを受け取る準備をします(`watch`・`reset`・`validate`・`convert` は、既定の動作で終わります)。
 
 - **UNIX 系**: `SIGHUP`・`SIGINT`・`SIGQUIT`・`SIGTERM` を受け取ると、実行中のジョブ(の子プロセス)に、同じシグナルを**1 回だけ**転送し、ジョブの終了を待ちます。ジョブの結果を、エラーとしてステートに記録し、**128 + シグナル番号**で終わります。2 回目以降のシグナルは、追加の動作をしません(強制終了しません)。終了コードに使う「最初の番号」は、**受け取った順**の最初です。ただし、ほぼ同時に複数のシグナルが届いたときは、シグナルの監視(`signal-hook`)が、番号の小さい順に返すため、小さい方の番号(たとえば、INT(2)と HUP(1)なら HUP)が「最初」になりえます。時間を空けて届いたときは、先に届いた方です。
 - **Windows**: Ctrl+C(番号 2)を受け取ります(終了コード 130)。Ctrl+Break とコンソールを閉じたときの通知は、この版の対象外(既定の動作)です。
