@@ -37,7 +37,7 @@ checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
 name = "conductor-cli"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "conductor-converter",
  "conductor-core",
@@ -50,7 +50,7 @@ dependencies = [
 
 [[package]]
 name = "conductor-converter"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "saphyr-parser",
  "tempfile",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "conductor-core"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "tempfile",
  "thiserror",
@@ -69,7 +69,7 @@ dependencies = [
 
 [[package]]
 name = "conductor-runtime"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "conductor-core",
  "libc",
