@@ -1,0 +1,109 @@
+# AI-DLC State Tracking
+
+## Project Information
+- **Project**: README.md を整理する(構成の整理)。run ID の説明が、オプションの表・定義ファイルの表・ステートファイルの節・終了コードの表の 4 か所に散らばっているのを、1 か所にまとめる。表の長いセル(watch・reset・validate・--run-id の行)を短くして、詳細を節へ移す。節の順番を見直す。先頭に目次を置く。最小の定義で validate から pipeline までを動かすクイックスタートを足す。ソースからのビルドの手順(いまは 3 行)を、どこまで書くかは、要件の整理で確認する。版の注記(v0.2.0 以降など)は、本文に残して、読みやすい位置に直す。内容の意味は変えない。CI の docs-check が検索する語句(SHA-256、Gatekeeper、終了コードの表、ステートファイルの場所、at-least-once、シグナル、convert)は残す。conductor 本体、デモ、版は変えない。リリースはしない。英語版 README と、互換性と変更点の節は、今回の範囲外。
+- **Project Description Source**: project-description.json
+- **Project Type**: Brownfield
+- **Project Type Source**: workspace scan
+- **Scope**: express
+- **Start Date**: 2026-11-15T15:02:31Z
+- **Question Id**: 19835078
+- **State Version**: 8
+- **Active Agent**: aidlc-developer-agent
+- **Worktree Path**:
+- **Bolt Refs**:
+- **Practices Affirmed Timestamp**:
+
+## Scope Configuration
+- **Stages to Execute**: 0.1 (workspace-scaffold), 0.2 (workspace-detection), 0.3 (state-init), 2.1 (reverse-engineering), 2.3 (requirements-analysis), 3.5 (code-generation), 3.6 (build-and-test), 4.1 (deployment-pipeline), 4.3 (deployment-execution), 4.4 (observability-setup)
+- **Stages to Skip**: 1.1 (intent-capture), 1.2 (market-research), 1.3 (feasibility), 1.4 (scope-definition), 1.5 (team-formation), 1.6 (rough-mockups), 1.7 (approval-handoff), 2.2 (practices-discovery), 2.4 (user-stories), 2.5 (refined-mockups), 2.6 (domain-design), 2.7 (units-generation), 2.8 (contract-design), 2.9 (delivery-planning), 3.1 (functional-design), 3.2 (nfr-requirements), 3.3 (nfr-design), 3.4 (infrastructure-design), 3.7 (ci-pipeline), 4.2 (environment-provisioning), 4.5 (incident-response), 4.6 (performance-validation), 4.7 (feedback-optimization)
+- **Depth**: Minimal
+- **Test Strategy**: Minimal
+- **Review Override**: 
+- **Guard Policy**: off (from scope express)
+- **Sensors**: off (from scope express)
+- **Learnings**: off (from scope express)
+- **Summary Confirmation**: off (from scope express)
+- **Plan Approval**: off (from scope express)
+- **Collaborators**: off (from scope express)
+
+## Workspace State
+- **Project Root**: .
+- **Languages**: Unknown
+- **Frameworks**: Unknown
+- **Build System**: cargo (Cargo.toml)
+
+## Execution Plan Summary
+- **Total Stages**: 10
+- **Completed**: 3
+- **In Progress**: reverse-engineering
+
+## Runtime State
+- **Revision Count**: 0
+
+## Phase Progress
+<!-- Status values: Pending, Active, Verified, Skipped -->
+
+- **Initialization**: Verified
+- **Ideation**: Skipped
+- **Inception**: Active
+- **Construction**: Pending
+- **Operation**: Pending
+
+## Stage Progress
+<!-- Checkbox states: [ ] not started, [-] in progress, [?] awaiting approval (gate open), [R] revising (user rejected gate), [x] completed, [S] skipped via --stage/--phase jump -->
+
+### INITIALIZATION PHASE
+- [x] workspace-scaffold — EXECUTE
+- [x] workspace-detection — EXECUTE
+- [x] state-init — EXECUTE
+
+### IDEATION PHASE
+- [ ] intent-capture — SKIP
+- [ ] market-research — SKIP
+- [ ] feasibility — SKIP
+- [ ] scope-definition — SKIP
+- [ ] team-formation — SKIP
+- [ ] rough-mockups — SKIP
+- [ ] approval-handoff — SKIP
+
+### INCEPTION PHASE
+- [-] reverse-engineering — EXECUTE
+- [ ] practices-discovery — SKIP
+- [ ] requirements-analysis — EXECUTE
+- [ ] user-stories — SKIP
+- [ ] refined-mockups — SKIP
+- [ ] domain-design — SKIP
+- [ ] units-generation — SKIP
+- [ ] contract-design — SKIP
+- [ ] delivery-planning — SKIP
+
+### CONSTRUCTION PHASE
+- [ ] functional-design — SKIP
+- [ ] nfr-requirements — SKIP
+- [ ] nfr-design — SKIP
+- [ ] infrastructure-design — SKIP
+- [ ] code-generation — EXECUTE
+- [ ] build-and-test — EXECUTE
+- [ ] ci-pipeline — SKIP
+
+### OPERATION PHASE
+- [ ] deployment-pipeline — EXECUTE
+- [ ] environment-provisioning — SKIP
+- [ ] deployment-execution — EXECUTE
+- [ ] observability-setup — EXECUTE
+- [ ] incident-response — SKIP
+- [ ] performance-validation — SKIP
+- [ ] feedback-optimization — SKIP
+
+## Current Status
+- **Lifecycle Phase**: INCEPTION
+- **Current Stage**: reverse-engineering
+- **Next Stage**: requirements-analysis
+- **Status**: Running
+- **Last Updated**: 2026-11-15T15:02:31Z
+
+## Session Resume Point
+- **Last Completed Stage**: state-init
+- **Next Action**: Execute reverse-engineering
+- **Pending Artifacts**: none

@@ -1,16 +1,50 @@
-# Component Inventory
+# コンポーネント一覧
 
-### conductor-cli
-実行ファイル `conductor` とライブラリ。引数の解釈(lexopt。`args.rs`。`--run-id`・`--all` を含む)、流れの組み立て(run・pipeline・watch・reset・validate・convert。`ctx.rs` が実行前の検査 `prepare` と、定義だけの検査 `check_definition`、run ID の決定を持つ)、シグナルの監視(UNIX: signal-hook、Windows: ctrlc)、表示(英語・日本語。`watch` の `Run ID:` の行、`reset --all` の警告)、終了コードの決定、パニックのフック(70)。環境変数は `Env` を通して、`Reporter`(言語・色)と、`Ctx`(run ID)が読む。依存: conductor-core、conductor-runtime、conductor-converter。補助バイナリ `conductor-cli-test-helper`(配布しない)。
+見出しの名前は、`reverse-engineering-timestamp.md` の `analyzed.components` と同じ。
 
-### conductor-core
-定義の読み込み・検証(Intake → Parse → Depth → VersionCheck → Walk)と、フローの判断(起動前の判断、分類、次の動き、再開位置)。純粋。共有する型(`PipelineDefinition`、`PipelineState`、`JobDefinition`、`Command`、`Transition`、`RunId`)を持つ。`[pipeline]` の許可キーの表(`name`、`description`、`run_id_env`)と、run ID・環境変数名の検査(`run_id.rs`)を持つ。依存: toml、thiserror。
+## conductor-core
 
-### conductor-runtime
-ジョブの直接起動と待ち(try_wait のくり返し)、シグナルの 1 回転送、ステートの場所の導出(`StateLocation`。run ID 対応)・読み・書き・照合・消去(原子的な置き換え、古い一時ファイルの掃除)、`reset --all`(`state/reset_all.rs`)、command の分割と検査(`check_command`)。`platform` に OS 固有の処理。依存: conductor-core、toml、thiserror、libc(unix)。補助バイナリ `conductor-test-helper`(配布しない)。
+- 種類・場所: lib、`crates/core/`(版 0.6.0)
+- 責務: 定義ファイル(TOML)の読み込みと検証、ジョブの結果の分類・起動前の判断・完了・再開位置、run ID の検査。純粋(ファイルに触れるのは `definition/intake.rs` だけ)。
+- 主な公開: `load_definition`、`parse_definition`、`decide_before_run`、`classify_and_decide`、`resume_point_on_interrupt`、`RunId`、`peek_run_id_env`、型(`PipelineDefinition` ほか)。
+- 依存: `toml`、`thiserror`。内部の依存なし。
+- テスト: `tests/` 6 ファイル。
 
-### conductor-converter
-YAML と TOML の相互変換。アンカー等の展開に上限(ノード 100,000、16 MiB、深さ 32)。依存: toml、saphyr-parser、thiserror。conductor-core に依存しない。`[pipeline]` のキーを知らない(今回は概観のみ)。
+## conductor-runtime
 
-### demo
-デモ一式。UNIX 版(`run-demo.sh`、`conductor.toml`、`scripts/*.sh`)と、Windows 版(`windows/run-demo.cmd`、`windows/conductor.toml`、`windows/scripts/*.cmd`)、説明の `README.md`。Rust のコンポーネントではない。依存: UNIX 版は `sh`、`mktemp`、`sleep`。Windows 版は cmd(OS 標準。`ping`、`chcp`、`xcopy`)。どちらもビルド済みの `conductor`(または `cargo`)を使う。場面は 0〜6(run ID の場面はまだない)。Windows 版だけ、自動テスト `crates/cli/tests/windows_demo.rs`(`cfg(windows)`。`run-demo.cmd` ではなく、定義とスクリプトを写して `conductor` を直接呼ぶ)が付く。構造は code-structure.md を参照。
+- 種類・場所: lib + テスト用 bin `conductor-test-helper`、`crates/runtime/`
+- 責務: ジョブの直接起動(シェルなし)と終了の待ち(`try_wait` のくり返し)、シグナルの転送、command の分割、ステートの読み込み・原子的な書き込み・初期化・`reset --all`、照合、記録。
+- 主な公開: `run_job`、`check_command`、`read_state`、`write_state`、`reset_state`、`reset_all_states`、`check_consistency`、`initial_state`、`apply_*`。
+- 依存: `conductor-core`、`toml`、`thiserror`、`libc`(UNIX)。`unsafe` は UNIX の `kill` 1 か所。
+- テスト: `tests/` 11 ファイル。
+
+## conductor-converter
+
+- 種類・場所: lib、`crates/converter/`
+- 責務: 定義ファイルの YAML と TOML の変換。展開(アンカー・エイリアス・マージキー)の上限つき。
+- 主な公開: `convert`、`convert_text`、`TargetFormat`、`ConversionError`。
+- 依存: `toml`、`thiserror`、`saphyr-parser`。`conductor-core` には依存しない。
+- テスト: `tests/` 4 ファイル(フィクスチャあり)。
+
+## conductor-cli
+
+- 種類・場所: lib `conductor_cli` + bin `conductor`(配布)+ テスト用 bin `conductor-cli-test-helper`、`crates/cli/`
+- 責務: 引数の解釈、`run`/`pipeline`/`watch`/`reset`/`validate`/`convert` の流れ、シグナルの受け取り、表示(英語・日本語・色・エスケープ)、終了コード、パニックのフック。
+- 主な公開: `run_cli`、`run_cli_with`、`parse_args`、`Deps` と trait(`Runtime`・`Sink`・`Env`・`Signals`)、`exit` の定数。
+- 依存: core・runtime・converter、`lexopt`、`signal-hook`(UNIX)、`ctrlc`(Windows)。
+- テスト: `tests/` 20 ファイル(バイナリ実行、シグナル、デモ、文言、性能の測定)。
+
+## CI とリリースのワークフロー
+
+- 場所: `.github/workflows/{ci,release,audit}.yml`
+- 責務: lint、ビルド(Linux・Windows。MSRV 1.85)、テスト(Linux・macOS・Windows)、MSRV のテスト、カバレッジ 80%、`docs-check`(README の 7 語)、起動の測定、`cargo audit`、タグ `v*` での 4 ターゲットのビルドと下書きのリリース。
+
+## デモ
+
+- 場所: `demo/`(UNIX: `run-demo.sh`、`conductor.toml`、`scripts/*.sh`)、`demo/windows/`(`run-demo.cmd`、`conductor.toml`、`scripts/*.cmd`)、`demo/README.md`
+- 責務: 9 場面(+ 場面 0 の定義の表示)で、conductor の主な動きを見せる。一時ディレクトリで動く。`crates/cli/tests/unix_demo.rs`・`windows_demo.rs` が動作を固定する。
+
+## ドキュメント(README.md)
+
+- 場所: `README.md`(283 行)
+- 責務: 利用者向けの唯一の文書(インストール、使い方、定義、終了コード、ステート、保証、シグナル、convert、ロケール)。CI の `docs-check` が 7 語を要求する。構成は developer-scan.md の Handoff Summary (1) を参照。
