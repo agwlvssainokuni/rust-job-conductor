@@ -21195,3 +21195,204 @@
 **Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
 
 ---
+
+## Unit Started
+**Timestamp**: 2026-11-15T00:03:02Z
+**Event**: UNIT_STARTED
+**Stage**: nfr-design
+**Unit**: u3-cli
+**Run floor**: WORKFLOW_STARTED:2026-11-14T13:29:19Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:03:04Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/nfr-design-questions.md
+**Context**: construction > u3-cli > nfr-design > nfr-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-15T00:03:04Z
+**Event**: DECISION_RECORDED
+**Stage**: nfr-design
+**Decision**: Q1-Q2 presented
+**Options**: Q1: A/B/C/X,Q2: A/B/C/X
+**Unit**: u3-cli
+**Question Id**: 3bbce4d2
+**Question Type**: stage-question
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:c2bb41f610b36598006aeed2da85834ba4b35ecf78bf333dbe9f0b4e0074ec46
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T00:08:30Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A"]
+**Message Id**: fc693798
+**Open Questions**: 4284b255, 6ca95be8, ac2cdf79, 71c1b9b6, 7f3d26dc, 1cdd1e14, f0de9996, be6951b8, 3fe332dd, 857ede9c, 166d254e, e0c84983, 8111c6c3, c9353913, d9cc3d47, 3bbce4d2
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/nfr-design-questions.md","entries":{"Q1":"c78e9fc2566a0185","Q2":"c12e1d4bb0fe6f10"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T00:08:30Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q1. u3-cli のクレートの作りは?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T00:08:30Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: [設計] Q2. 流れの組み立ての、テストの差し替え口は?
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-15T00:08:39Z
+**Event**: QUESTION_ANSWERED
+**Stage**: nfr-design
+**Details**: Q1: A; Q2: A
+**Unit**: u3-cli
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-15T00:08:39Z
+**Event**: DECISION_RECORDED
+**Stage**: nfr-design
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/nfr-design-questions.md
+**Unit**: u3-cli
+**Question Id**: 9ce822c8
+**Question Type**: summary-confirmation
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T00:10:42Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 533667b5
+**Open Questions**: 4284b255, 6ca95be8, ac2cdf79, 71c1b9b6, 7f3d26dc, 1cdd1e14, f0de9996, be6951b8, 3fe332dd, 857ede9c, 166d254e, e0c84983, 8111c6c3, c9353913, d9cc3d47, 3bbce4d2, 9ce822c8
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/nfr-design-questions.md","entries":{"Q1":"c78e9fc2566a0185","Q2":"c12e1d4bb0fe6f10","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T00:10:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: 上の回答(Q1: lib.rs に処理、main.rs は薄い入口、Q2: 流れに trait で差し替え口を設ける)のまとめで、成果物(performance、security、scalability、reliability、observability、logical-components)を作ってよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-15T00:11:38Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: nfr-design
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/nfr-design-questions.md
+**Questions SHA-256**: 1ab4d1fba70988cffc33cf8ed285c8ef38044f434a13ca33d514db7d66aad2fe
+**Hash Scope**: confirmed-content-v2
+**Unit**: u3-cli
+**Message Id**: 533667b5
+**Message Ids**: fc693798,533667b5
+**Person Reply**: A\nA\nLooks correct
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:11:38Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/performance-design.md
+**Context**: construction > u3-cli > nfr-design > performance-design.md
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:11:39Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/security-design.md
+**Context**: construction > u3-cli > nfr-design > security-design.md
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:11:53Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/scalability-design.md
+**Context**: construction > u3-cli > nfr-design > scalability-design.md
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:12:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/reliability-design.md
+**Context**: construction > u3-cli > nfr-design > reliability-design.md
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:12:26Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/observability-design.md
+**Context**: construction > u3-cli > nfr-design > observability-design.md
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:12:42Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/logical-components.md
+**Context**: construction > u3-cli > nfr-design > logical-components.md
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T00:12:51Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u3-cli/nfr-design/traceability.json
+**Context**: construction > u3-cli > nfr-design > traceability.json
+**Summary Authorization Id**: 142c7c3d7829d3844bf395c77c7309c5c309e61eaaddd97c15cd518f4edeb9f2
+
+---
