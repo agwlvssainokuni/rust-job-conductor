@@ -58,3 +58,9 @@
 - **行カバレッジ:** `cargo llvm-cov` が未導入のため、測っていない。80% の判定は Build and Test が、全体のテストで行う。
 - **Linux と Windows:** macOS でだけ実行した。他の OS は、CI(CI Pipeline のステージで作成)で確かめる。Windows の主スレッドのスタック(深さ 1000 の入力)は、CI で確認が要る。
 - CI のワークフローは、まだない(CI Pipeline のステージで作成)。
+
+## 修復(Build and Test からの loop-back 1、2026-11-15)
+
+- **原因:** 最小の Rust 1.85 でビルドできなかった。`crates/u1-core/src/definition/walk.rs` の 2 か所が let チェーン(1.88 で安定化)を使っていた。
+- **修復:** その 2 か所を `Option::is_some_and` に書き換えた(動作は変えない。2 行追加、6 行削除)。ほかのファイルは変えていない。
+- **確認:** `cargo +1.85 build --workspace --locked --all-targets` が成功。`cargo test -p conductor-core --locked` 115 件成功。`cargo test --workspace --locked` 564 件成功(失敗 0)。`cargo fmt --all -- --check` と `cargo clippy --workspace --all-targets --locked -- -D warnings` が問題なし。

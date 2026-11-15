@@ -14,8 +14,8 @@ Approve the code plan for u1-core?
 Full plan: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/code-generation/code-generation-plan.md
 Test instructions: aidlc/spaces/default/intents/261114-job-conductor-cli/construction/u1-core/code-generation/unit-test-instructions.md
 
-[Approval Fingerprint]: sha256:v3:e0e278eb27f8fc69aa8c7ab13c47a3af2b671e74369914e383c5cb6fffa512cc
-[Planned Source]: 861aea58d42c5484f8fa4295ed81138cd5a3cbc548e2d1524423ce2670701b37
+[Approval Fingerprint]: sha256:v3:69a964518302862d1036a77769513a1d79032d39d15826972437387c7ba3f56f
+[Planned Source]: 1be8c87b0ff602739f1106b388592e8d809b66fc28bdabbe8ec56417110c2a5f
 
 - A. Approve Plan
 - B. Request Changes

@@ -157,9 +157,7 @@ impl<'a> Walker<'a> {
             self.push(name_offset, Kind::EmptyField, "`name` が空です");
             return None;
         }
-        if let Some(expected) = expected_name
-            && expected != name
-        {
+        if expected_name.is_some_and(|expected| expected != name) {
             self.push(
                 name_offset,
                 Kind::PipelineNameMismatch,
@@ -190,9 +188,7 @@ impl<'a> Walker<'a> {
             self.check_keys(t, TRANSITION_KEYS);
             let on = self.transition_on(t, offset);
             let next = self.string(t, "next", offset, true);
-            if let Some(on) = on
-                && out.iter().any(|r| r.on == Some(on))
-            {
+            if on.is_some_and(|on| out.iter().any(|r| r.on == Some(on))) {
                 self.push(
                     offset,
                     Kind::DuplicateTransition,
