@@ -362,3 +362,191 @@ fn コマンドの名前() {
 fn 使い方の誤りの全種類が網羅されている() {
     assert_eq!(UsageErrorKind::ALL.len(), 8);
 }
+
+// ---- --run-id と --all(FR1.1、FR1.4、FR5.3) ----
+
+#[test]
+fn run_id_は_4_つのコマンドで解釈される() {
+    for (args, kind) in [
+        (&["run", "a", "--run-id", "r1"][..], CommandKind::Run),
+        (&["pipeline", "p", "--run-id=r1"][..], CommandKind::Pipeline),
+        (&["watch", "--run-id", "r1"][..], CommandKind::Watch),
+        (&["reset", "--run-id", "r1"][..], CommandKind::Reset),
+    ] {
+        let cmd = command(args);
+        assert_eq!(cmd.kind, kind, "{args:?}");
+        assert_eq!(cmd.run_id.as_deref(), Some("r1"), "{args:?}");
+        assert!(!cmd.all);
+    }
+    // 指定なし、空(固定)の区別
+    assert_eq!(command(&["run", "a"]).run_id, None);
+    assert_eq!(
+        command(&["run", "a", "--run-id", ""]).run_id.as_deref(),
+        Some("")
+    );
+    assert_eq!(
+        command(&["run", "a", "--run-id="]).run_id.as_deref(),
+        Some("")
+    );
+}
+
+#[test]
+fn run_id_は_validate_と_convert_で使えない() {
+    for args in [
+        &["validate", "--run-id", "x"][..],
+        &["validate", "p", "--run-id=x"][..],
+        &["convert", "f.yaml", "--to", "toml", "--run-id", "x"][..],
+    ] {
+        let e = parse(args).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::OptionNotAllowed, "{args:?}");
+        assert_eq!(e.subject.as_deref(), Some("--run-id"));
+    }
+}
+
+#[test]
+fn all_は_reset_だけが受け付ける() {
+    let cmd = command(&["reset", "--all"]);
+    assert!(cmd.all);
+    assert_eq!(cmd.run_id, None);
+    for args in [
+        &["run", "a", "--all"][..],
+        &["pipeline", "p", "--all"][..],
+        &["watch", "--all"][..],
+        &["validate", "--all"][..],
+        &["convert", "f.yaml", "--to", "toml", "--all"][..],
+    ] {
+        assert_eq!(kind_of(args), UsageErrorKind::OptionNotAllowed, "{args:?}");
+    }
+}
+
+#[test]
+fn all_と_run_id_の併用と重複と値の欠落は誤り() {
+    assert_eq!(
+        kind_of(&["reset", "--all", "--run-id", "x"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["reset", "--run-id", "", "--all"]),
+        UsageErrorKind::InvalidValue,
+        "空の値でも併用はできない"
+    );
+    assert_eq!(
+        kind_of(&["reset", "--all", "--all"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["run", "a", "--run-id", "x", "--run-id", "y"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["run", "a", "--run-id"]),
+        UsageErrorKind::MissingValue
+    );
+    assert_eq!(
+        kind_of(&["reset", "--all=x"]),
+        UsageErrorKind::InvalidValue,
+        "--all は値を取らない"
+    );
+}
+
+#[test]
+fn run_id_の無効な値は_68_で誤りの文に値を含めない() {
+    let long = "a".repeat(65);
+    for bad in [
+        "a/b",
+        "..",
+        ".a",
+        ".",
+        "a b",
+        "é",
+        "a\\b",
+        "a:b",
+        long.as_str(),
+    ] {
+        let e = parse(&["run", "a", "--run-id", bad]).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad}");
+        assert_eq!(
+            e.subject.as_deref(),
+            Some("--run-id"),
+            "値を subject にしない: {bad}"
+        );
+    }
+    // 境界の有効な値
+    for ok in ["a", "run-1.2_x", "A", &"a".repeat(64), "CON", "a..b"] {
+        assert!(parse(&["run", "a", "--run-id", ok]).is_ok(), "{ok}");
+    }
+    // UTF-8 でない値
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStringExt;
+        let args = vec![
+            OsString::from("run"),
+            OsString::from("a"),
+            OsString::from("--run-id"),
+            OsString::from_vec(vec![0x66, 0xff]),
+        ];
+        let e = parse_args(args).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue);
+        assert_eq!(e.subject.as_deref(), Some("--run-id"));
+    }
+}
+
+// ---- resolve_run_id(FR1.2〜FR1.4) ----
+
+struct MapEnv(std::collections::HashMap<String, String>);
+
+impl conductor_cli::Env for MapEnv {
+    fn var(&self, name: &str) -> Option<String> {
+        self.0.get(name).cloned()
+    }
+    fn stdout_is_terminal(&self) -> bool {
+        false
+    }
+}
+
+fn env_of(pairs: &[(&str, &str)]) -> MapEnv {
+    MapEnv(
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+    )
+}
+
+fn resolved(option: Option<&str>, env: &[(&str, &str)]) -> Result<Option<String>, UsageError> {
+    conductor_cli::args::resolve_run_id(option, "RID", &env_of(env))
+        .map(|r| r.map(|id| id.as_str().to_string()))
+}
+
+#[test]
+fn resolve_run_id_のオプション_環境変数_空_固定() {
+    // オプションが環境変数に優先する(環境変数が不正でも見ない)
+    assert_eq!(resolved(Some("a"), &[("RID", "b")]), Ok(Some("a".into())));
+    assert_eq!(
+        resolved(Some("a"), &[("RID", "../bad")]),
+        Ok(Some("a".into()))
+    );
+    // オプションがなければ環境変数
+    assert_eq!(resolved(None, &[("RID", "b")]), Ok(Some("b".into())));
+    // 未定義と空は run ID なし
+    assert_eq!(resolved(None, &[]), Ok(None));
+    assert_eq!(resolved(None, &[("RID", "")]), Ok(None));
+    // 名前が違う環境変数は見ない
+    assert_eq!(resolved(None, &[("OTHER", "x")]), Ok(None));
+    // 空のオプションは、環境変数があっても、run ID なしに固定する
+    assert_eq!(resolved(Some(""), &[("RID", "b")]), Ok(None));
+}
+
+#[test]
+fn resolve_run_id_の環境変数の値の違反は_invalid_value_で値を含めない() {
+    let long = "z".repeat(65);
+    for bad in ["a/b", "..", ".a", "a b", "é", long.as_str()] {
+        let e = resolved(None, &[("RID", bad)]).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad}");
+        let subject = e.subject.expect("対象がある");
+        assert!(!subject.contains(bad) || bad.len() < 2, "{subject}");
+        assert!(subject.contains("environment variable"), "{subject}");
+    }
+    let e = resolved(Some("a/b"), &[]).unwrap_err();
+    assert_eq!(e.subject.as_deref(), Some("--run-id"));
+}
