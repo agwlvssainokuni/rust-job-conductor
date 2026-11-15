@@ -770,3 +770,117 @@
 **Agent ID**: a4701f1e1e39e35e6
 
 ---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-15T14:34:39Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: code-generation
+**Next Stage**: build-and-test
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/code-generation-plan.md=not-run; required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/unit-test-instructions.md=not-run; required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/code-summary.md=not-run; required-sections@aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/traceability.json=not-run; traceability@aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/traceability.json=not-run
+**Open Decisions**: 0
+**Source Work**: found in a source change since the stage started
+**Question Id**: 4e82c376
+**Question Type**: gate
+**Question Chat**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question Shows**: sha256:b7947ceeb5fe5eee75686687f094eb0cadf7f4177fda8863d27872506e97af8a
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-15T14:36:15Z
+**Event**: HUMAN_TURN
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 0e33c1d9
+**Open Questions**: 4e82c376
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"14b13f1d23e6d234"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-15T14:36:16Z
+**Event**: QUESTION_REPLIED
+**Session**: e595098b-aed2-4f03-be82-cd4c63240f40
+**Question**: Code Generation is ready for your review. It produced code-generation-plan.md, unit-test-instructions.md, code-summary.md and traceability.json, in aidlc/spaces/default/intents/261115-demo-run-id/construction/code-generation/.\n\n結果: UNIX 版と Windows 版のデモに、場面 7(validate)、8(run ID でステートを分ける)、9(環境変数と後始末)を足しました(7 つのコミットに分けています)。定義に run_id_env = "DEMO_RUN_ID"、利用者の環境(DEMO_RUN_ID・CONDUCTOR_RUN_ID・LC_ALL)の影響を受けないようにし、demo/README.md を更新。テストは 666 件成功(+3、UNIX 版のデモのテストを新設)、Windows 版のテストは 6 件追加(CI の Windows で実行)、行カバレッジ 97.74%、clippy・fmt・Rust 1.85・Windows 向けの型検査も通っています。UNIX 版デモは実際に実行して、日本語・英語・環境変数を設定した状態の 3 通りとも完走し、場面 7〓9 の終了コードと表示を確かめました(場面 7 の誤りの定義が TOML 自体の誤りになっていたのを、command の引用符の誤りに直しました)。\n\n確認できていない点: demo\windows\run-demo.cmd 自体は、macOS では実行できず、CI でも実行されません。既存の場面の書き方に合わせて読み直しただけです。Windows 実機での実行(bad.toml を echo で作るところ、--run-id "" が空の引数として渡ること、dir /b が一致なしで errorlevel 1 を返すことへの依存)は、あなたの確認の項目になります。次は Build and Test です。\n\nApprove Code Generation?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-15T14:36:29Z
+**Event**: GATE_APPROVED
+**Stage**: code-generation
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 0e33c1d9
+**Brief Digest**: none
+**Source Work**: found in a source change since the stage started
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-15T14:36:29Z
+**Event**: STAGE_COMPLETED
+**Stage**: code-generation
+**Validation Basis**: {"graphContract":"sha256:ac0ef7ae03ae2fcfab9e2a94500d84c4fe00d00384d1f8dcff92c96b2e1f50de","inputs":[{"artifact":"requirements","contentHash":"sha256:56276d7d7ebc3f00dc06009aadede941d10388f958b0513873b491e50793ae06","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:97cfbec8bd0777ef42ff1a186366505947ad4c7a38e2a9a22880d521a8bbd504"},{"artifact":"unit-of-work","contentHash":"sha256:9a229f989f0f4faab230823d05b27076993a80deb3467de2ac4494c5a9444e41","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:4bee6b4c0b86a5c8bda882dfbe7c8b5d6a3279f37c7e5529cf3ba910461dd5d8"}],"outputs":[{"artifact":"code-generation-plan","contentHash":"sha256:89ac020b0126440e5f8edef1491896e40da9af86374feb1ce8425685b6009c80","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:59c0d1dd33aa2fd742988172b562842c77f115e90fad7a1a44f5680d320784f8"},{"artifact":"code-summary","contentHash":"sha256:562f7685499e43dfc1f23da82dc736057830ebc6a2f9e1663cedf93142f4ac9e","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:bfdf9ad8f4aeb2161c40017c4cc24ebfe1436526a7c11fff6ce9ef6a4c2d9f06"},{"artifact":"traceability","contentHash":"sha256:02a9b0c5dadf1d2391777fa83423c797351ce320e37d7270b6fa33be304e2635","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:cb03d374e582186787423cdbefa0ddc22eb792b6f82e0510d06ace3618d8a98c"},{"artifact":"unit-test-instructions","contentHash":"sha256:8262fdfd2e4da3b438b191c6ee2b28d281ef15d926d8717ecda5836195762fe5","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:d136deb5422e680cefdf6f6be86cca40ba75c23939f84cfa458255fed8f86c25"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Code Generation approved by gate
+**Tokens In**: 110
+**Tokens Out**: 52815
+**Cache Read**: 12289897
+**Cache Write**: 159939
+**Cost USD**: 2.19
+**By Model**: sonnet-5-5=2.19
+**By Agent**: main=1.05; aidlc-developer-agent=1.14
+**Tokens By Model**: sonnet-5-5=110/52.8k/12.3M/159.9k
+**Tokens By Agent**: main=26/16.1k/7.9M/24.2k; aidlc-developer-agent=84/36.7k/4.3M/135.7k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-15T14:36:29Z
+**Event**: STAGE_STARTED
+**Stage**: build-and-test
+**Agent**: aidlc-quality-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T14:38:39Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/build-instructions.md
+**Context**: construction > build-and-test > build-instructions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T14:38:51Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T14:39:01Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/build-and-test-summary.md
+**Context**: construction > build-and-test > build-and-test-summary.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-15T14:39:04Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261115-demo-run-id/construction/build-and-test/cross-unit-traceability.md
+**Context**: construction > build-and-test > cross-unit-traceability.md
+
+---
