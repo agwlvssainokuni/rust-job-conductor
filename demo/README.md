@@ -19,13 +19,19 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 | 4 | 同じコマンドをもう一度 → 失敗した `load` から再開(済んだジョブは、再実行しない) |
 | 5 | ジョブを 1 つだけ実行する(`run`)と、`reset` |
 | 6 | 定義ファイルを YAML に変換する(`convert`) |
+| 7 | 定義を検査する(`validate`)。正しい定義は 0、引用符が閉じていない定義は 64。ジョブは実行されず、ステートも作られない |
+| 8 | run ID でステートを分ける(`--run-id build-1` は `load` で止まり、環境変数 `DEMO_RUN_ID` の `build-2` は最後まで進む。同じ run ID で再実行すると `load` から再開) |
+| 9 | 環境変数と後始末(`--run-id` は環境変数に勝つ。`--run-id ""` は run ID なしに固定。`reset --run-id` で 1 つ、`reset --all` で全部を消す) |
 
 - 定義は `conductor.toml`、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(例 `DEMO_LOAD_EXIT=2`)で決まります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒)を変えられます。
 - `notify` の `command` は、文字列の配列(`["sh", "scripts/notify.sh"]`)で書いています。ほかのジョブは、文字列です。
+- 定義の `[pipeline]` に、`run_id_env = "DEMO_RUN_ID"` を書いています。run ID は、`--run-id` か、この環境変数で指定します(`--run-id` が優先。`--run-id ""` は、環境変数があっても、run ID なしに固定)。run ID ごとに、ステートファイルが別になります(`conductor.toml.<run ID>.state`)。
+- 場面 8 と 9 では、`DEMO_RUN_ID` を、デモが自分で設定します。デモの最初に、`DEMO_RUN_ID` と `CONDUCTOR_RUN_ID` は消すので、利用者の環境の値は影響しません。`LC_ALL` と `LC_MESSAGES` も消すので、`DEMO_LANG` の言語で表示されます。
+- 場面 7 の誤りの定義(`bad.toml`)は、デモが一時ディレクトリの中に作ります。
 
 ## Windows 版
 
-Windows では、`sh` のスクリプトは動きません。代わりに、`demo\windows\` の cmd 版を使います(PowerShell でも、コマンドプロンプトでも動きます)。見せる場面は、UNIX 版と同じ(場面 0〜6)です。
+Windows では、`sh` のスクリプトは動きません。代わりに、`demo\windows\` の cmd 版を使います(PowerShell でも、コマンドプロンプトでも動きます)。見せる場面は、UNIX 版と同じ(場面 0〜9)です。run ID の環境変数 `DEMO_RUN_ID` は、定義(`demo\windows\conductor.toml`)の `run_id_env` で受け取ります。
 
 ```bat
 rem リポジトリの根から。実行ファイルが無ければ、リリースビルドを作る
