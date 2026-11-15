@@ -8,7 +8,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
-conductor-core = { path = "../u1-core" }
+conductor-core = { path = "../core" }
 toml = { version = "1.2.1", default-features = false, features = ["parse", "std", "display", "serde"] }
 thiserror = "2.0.21"
 
@@ -18,7 +18,7 @@ libc = "0.2"
 [dev-dependencies]
 tempfile = "3.27.0"
 
-# テスト専用の補助の実行ファイル。配布には含めない(u3-cli は `-p` で自分のパッケージだけをビルドする)。
+# テスト専用の補助の実行ファイル。配布には含めない(conductor-cli は `-p` で自分のパッケージだけをビルドする)。
 [[bin]]
 name = "conductor-test-helper"
 path = "src/bin/conductor-test-helper.rs"

@@ -25,9 +25,9 @@ test = false
 doc = false
 
 [dependencies]
-conductor-core = { path = "../u1-core" }
-conductor-runtime = { path = "../u2-runtime" }
-conductor-converter = { path = "../u4-converter" }
+conductor-core = { path = "../core" }
+conductor-runtime = { path = "../runtime" }
+conductor-converter = { path = "../converter" }
 lexopt = "0.3.2"
 
 [target.'cfg(unix)'.dependencies]

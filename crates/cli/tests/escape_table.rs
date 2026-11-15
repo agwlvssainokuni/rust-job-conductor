@@ -1,11 +1,11 @@
-//! `escape_display` の、同じ入力と期待値の表(u1-core・u2-runtime・u4-converter と揃える。NFR4.2)。
+//! `escape_display` の、同じ入力と期待値の表(conductor-core・conductor-runtime・conductor-converter と揃える。NFR4.2)。
 //!
-//! u1-core の `sanitize` は公開されているため、同じ入力に同じ結果を返すことを直接確かめる。
-//! u2-runtime・u4-converter の同じ規則の関数は、非公開のため、各 Unit のテストにある、同じ期待値の表で揃える。
+//! conductor-core の `sanitize` は公開されているため、同じ入力に同じ結果を返すことを直接確かめる。
+//! conductor-runtime・conductor-converter の同じ規則の関数は、非公開のため、各 Unit のテストにある、同じ期待値の表で揃える。
 
 use conductor_cli::report::escape::{escape_display, escape_name, escape_path};
 
-/// (入力, 上限, 期待値)。u1-core・u4-converter の単体テストの期待値と同じ規則。
+/// (入力, 上限, 期待値)。conductor-core・conductor-converter の単体テストの期待値と同じ規則。
 fn table() -> Vec<(String, usize, String)> {
     vec![
         ("a\nb\x1b[0m".into(), 64, "a\\nb\\u{1b}[0m".into()),

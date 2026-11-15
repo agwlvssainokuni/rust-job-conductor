@@ -1,8 +1,8 @@
-//! conductor-runtime: conductor の実行ライブラリ(Unit u2-runtime)。
+//! conductor-runtime: conductor の実行ライブラリ(Unit conductor-runtime)。
 //!
 //! ジョブの直接起動とシグナルの転送(JobRunner)と、ステートの保持・照合・初期化・記録
-//! (StateStore)を受け持つ。判断(分類、次の動き、起動前の判断)は、`conductor-core`(u1-core)が
-//! 行い、コマンドと表示、シグナルの受け取りは、u3-cli が行う。共有する型(`JobExecution`、
+//! (StateStore)を受け持つ。判断(分類、次の動き、起動前の判断)は、`conductor-core`(conductor-core)が
+//! 行い、コマンドと表示、シグナルの受け取りは、conductor-cli が行う。共有する型(`JobExecution`、
 //! `PipelineState` など)は、`conductor-core` が定める。
 //!
 //! # 公開する関数(契約 C3)
@@ -43,12 +43,12 @@
 //!
 //! 1. [`read_state`] でステートを読む(失敗なら、ジョブを実行せず終わる)。ステートがあれば、
 //!    [`check_consistency`] で定義と照合する。空なら [`initial_state`] で作る。
-//! 2. ジョブごとに、`decide_before_run`(u1-core)の判断に従う。
+//! 2. ジョブごとに、`decide_before_run`(conductor-core)の判断に従う。
 //!    - `Reject`: ジョブを実行せず、ステートも変えない。
 //!    - `Skip`: [`apply_skip`] → [`write_state`]([`Durability::Durable`])。
 //!    - `Run`: ステートが空だったときは、最初のジョブの**前**に、初期ステートを
 //!      [`write_state`]([`Durability::Fast`])で書く(書けないディレクトリを、ジョブの前に検知する)。
-//!      そのあと、[`run_job`] → `classify_and_decide`(u1-core)→ [`apply_outcome`] →
+//!      そのあと、[`run_job`] → `classify_and_decide`(conductor-core)→ [`apply_outcome`] →
 //!      [`write_state`]([`Durability::Durable`])。
 //! 3. 完了(`completed`)のとき、記録のあとに [`reset_state`] を呼ぶ。この Unit は、完了を判断せず、
 //!    初期化の手段だけを提供する(`apply_skip` と `apply_outcome` が、`completed` を書く)。

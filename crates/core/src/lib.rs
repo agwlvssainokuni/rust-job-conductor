@@ -1,8 +1,8 @@
-//! conductor-core: conductor の中核ライブラリ(Unit u1-core)。
+//! conductor-core: conductor の中核ライブラリ(Unit conductor-core)。
 //!
 //! 定義ファイル(`conductor.toml`)の読み込みと検証(DefinitionLoader)と、
 //! ジョブの結果の分類・次の動き・完了・再開位置の判断(Flow)を受け持つ。
-//! ジョブの起動(u2-runtime)、ステートの読み書き(u2-runtime)、コマンドと表示(u3-cli)は、
+//! ジョブの起動(conductor-runtime)、ステートの読み書き(conductor-runtime)、コマンドと表示(conductor-cli)は、
 //! このクレートの外にある。
 //!
 //! # 公開する関数(契約 C2)

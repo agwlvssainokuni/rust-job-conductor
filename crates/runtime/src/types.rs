@@ -1,5 +1,5 @@
 //! この Unit が足す型(Types)。共有する型(`JobExecution`、`PipelineState` など)は、
-//! u1-core(`conductor-core`)が定める。ここには、入出力と OS に依存しない値の形だけを置く。
+//! conductor-core(`conductor-core`)が定める。ここには、入出力と OS に依存しない値の形だけを置く。
 
 use std::fmt;
 use std::path::{Path, PathBuf};

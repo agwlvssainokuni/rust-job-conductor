@@ -1,9 +1,9 @@
-//! conductor-cli: `conductor` の実行ファイル(Unit u3-cli)のライブラリ部分。
+//! conductor-cli: `conductor` の実行ファイル(Unit conductor-cli)のライブラリ部分。
 //!
 //! コマンド(`run`・`pipeline`・`watch`・`reset`・`convert`)の受け付け、1 回の実行の流れの組み立て
 //! (Orchestrator)、シグナル、表示(英語・日本語)、終了コードを受け持つ。ジョブの起動と
-//! ステートは `conductor-runtime`(u2-runtime)、定義の検証と判断は `conductor-core`(u1-core)、
-//! 定義ファイルの変換は `conductor-converter`(u4-converter)が行い、この Unit は、それらを、
+//! ステートは `conductor-runtime`(conductor-runtime)、定義の検証と判断は `conductor-core`(conductor-core)、
+//! 定義ファイルの変換は `conductor-converter`(conductor-converter)が行い、この Unit は、それらを、
 //! 決まった順に呼ぶ(ADR-002。唯一の調整役)。`main.rs`(実行ファイル `conductor`)は、
 //! パニックのフックを設定して、[`run_cli`] を呼び、返った終了コードで 1 回だけ終了する薄い入口である。
 //!
@@ -56,7 +56,7 @@
 //! 終わっているのに、ステートに記録されない。次の呼び出しでは、そのジョブは未実行として扱われ、
 //! 再実行される(冪等でないジョブは、2 回動きうる)。結果の書き込みが失敗したときは、ジョブの
 //! 終了コードではなく 65 で終わり、「ジョブは実行されました」と表示する。ステートが壊れた
-//! 内容になることはない(u2-runtime の原子的な置き換え)。排他制御はしない。自動の再試行もしない。
+//! 内容になることはない(conductor-runtime の原子的な置き換え)。排他制御はしない。自動の再試行もしない。
 //!
 //! # 守る性質
 //!

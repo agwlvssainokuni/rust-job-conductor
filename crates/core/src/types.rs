@@ -2,7 +2,7 @@
 //!
 //! 型の定義は、`entities.md` に従う。値の生成を受け持つのは、このクレートでは
 //! 定義(`PipelineDefinition` など)と判断(`Decision`、`JobOutcome`、`NextStep`)で、
-//! `JobExecution`、`JobState`、`PipelineState` は u2-runtime が生成・保持する。
+//! `JobExecution`、`JobState`、`PipelineState` は conductor-runtime が生成・保持する。
 //!
 //! 終了コードは、プロセスの終了コードに合わせて `i32` で持つ。定義ファイルに書かれた
 //! `i32` の範囲を超える整数は、読み込み時に `typeMismatch` になる。
@@ -80,7 +80,7 @@ pub struct Transition {
     pub next: TransitionTarget,
 }
 
-/// 1 回のジョブの起動の結果(契約 C1。生成は u2-runtime)。
+/// 1 回のジョブの起動の結果(契約 C1。生成は conductor-runtime)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobExecution {
     pub job_id: String,
@@ -119,7 +119,7 @@ pub enum SkipReason {
     ByEnd,
 }
 
-/// パイプラインの中の 1 つのジョブの、これまでの状態(契約 C1。保持は u2-runtime)。
+/// パイプラインの中の 1 つのジョブの、これまでの状態(契約 C1。保持は conductor-runtime)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobState {
     pub job_id: String,
@@ -140,10 +140,10 @@ impl JobState {
     }
 }
 
-/// 定義ファイル 1 つに対する、実行状態の全体(契約 C1。保持は u2-runtime)。
+/// 定義ファイル 1 つに対する、実行状態の全体(契約 C1。保持は conductor-runtime)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PipelineState {
-    /// 仮。確定は u2-runtime の Functional Design。
+    /// 仮。確定は conductor-runtime の Functional Design。
     pub definition_key: String,
     pub pipeline_name: String,
     pub definition_path: String,

@@ -83,10 +83,10 @@ fn 起動前の処理の_p95_を測る() {
     let fast_p95 = p95(&mut fast);
     let durable_p95 = p95(&mut durable);
     report(&format!(
-        "NFR1.1 u2-runtime: 起動前の処理(ジョブ 10 個、{RUNS} 回、同期なし)p95 = {fast_p95:?}(基準 {TARGET:?}、仮)"
+        "NFR1.1 conductor-runtime: 起動前の処理(ジョブ 10 個、{RUNS} 回、同期なし)p95 = {fast_p95:?}(基準 {TARGET:?}、仮)"
     ));
     report(&format!(
-        "NFR1.1 u2-runtime: 結果の書き込み(Durable、{RUNS} 回)p95 = {durable_p95:?}(基準なし。記録のみ)"
+        "NFR1.1 conductor-runtime: 結果の書き込み(Durable、{RUNS} 回)p95 = {durable_p95:?}(基準なし。記録のみ)"
     ));
     if fast_p95 > TARGET {
         report(&format!(

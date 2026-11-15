@@ -1,5 +1,5 @@
 //! Step 1 の確認(c): `toml` が、深く入れ子になった入力で、異常終了せず失敗を返すこと。
-//! u1-core と同じ確認(NFR4.7)。テストのスレッドの標準のスタック(約 2 MiB)で行う。
+//! conductor-core と同じ確認(NFR4.7)。テストのスレッドの標準のスタック(約 2 MiB)で行う。
 
 fn nested_arrays(depth: usize) -> String {
     format!("a = {}{}\n", "[".repeat(depth), "]".repeat(depth))

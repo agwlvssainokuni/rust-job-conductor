@@ -140,7 +140,7 @@ pub fn run_job(job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
             }
         }
         Waited::WaitFailed => {
-            // 終了の状態を取得できない。起動失敗として返し、u1-core がエラー(127)として扱う(安全側)。
+            // 終了の状態を取得できない。起動失敗として返し、conductor-core がエラー(127)として扱う(安全側)。
             execution.start_failure = true;
         }
     }

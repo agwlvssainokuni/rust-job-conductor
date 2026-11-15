@@ -1,7 +1,7 @@
 //! 差し替え口(Deps)と、本番の実装(Q2: A)。
 //!
 //! 流れ(Orchestrator)は、小さな trait(`Runtime`、`Sink`、`Env`、`Signals`)を受け取る。
-//! 本番は u1-core・u2-runtime・u4-converter の実際の関数と、標準出力・標準エラー、実際の環境、
+//! 本番は conductor-core・conductor-runtime・conductor-converter の実際の関数と、標準出力・標準エラー、実際の環境、
 //! 実際のシグナルの監視。テストは、失敗を起こす偽の実装を渡す。
 //!
 //! 純粋な関数(`decide_before_run`、`classify_and_decide`、`apply_*` など)は、trait を通さず、
@@ -56,7 +56,7 @@ pub trait Signals {
     fn start(&self, signal: &Arc<InterruptSignal>) -> Result<(), SignalError>;
 }
 
-/// u1-core・u2-runtime・u4-converter の、入出力に触れる関数の薄い包み。
+/// conductor-core・conductor-runtime・conductor-converter の、入出力に触れる関数の薄い包み。
 pub trait Runtime {
     /// 定義ファイルを読み、検証する(`load_definition`)。
     fn load_definition(

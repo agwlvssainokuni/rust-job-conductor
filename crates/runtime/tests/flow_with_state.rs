@@ -1,4 +1,4 @@
-//! ジョブの一連の流れのテスト。u1-core の判断(`decide_before_run`、`classify_and_decide`)と、
+//! ジョブの一連の流れのテスト。conductor-core の判断(`decide_before_run`、`classify_and_decide`)と、
 //! この Unit の `run_job`(補助の実行ファイル)・`apply_*`・`write_state`・`read_state`・
 //! `reset_state` を組み合わせて、Cli の流れを、小さな試験用の関数で再現する(契約 C2 の順序の続き)。
 

@@ -100,7 +100,7 @@ pub fn usage_kind(kind: UsageErrorKind) -> Text {
 
 // ---- 定義・command・ステート・変換の種類の文 ----
 
-/// 定義の誤りの種類の文。日本語は、u1-core の表示(`Display`)と同じ。
+/// 定義の誤りの種類の文。日本語は、conductor-core の表示(`Display`)と同じ。
 pub fn definition_kind(lang: Language, kind: DefinitionErrorKind) -> String {
     if lang == Language::Ja {
         return kind.to_string();
@@ -140,7 +140,7 @@ pub fn command_kind(kind: CommandErrorKind) -> Text {
     }
 }
 
-/// ステートの誤りの種類の文。日本語は、u2-runtime の表示と同じ。
+/// ステートの誤りの種類の文。日本語は、conductor-runtime の表示と同じ。
 pub fn state_kind(kind: StateErrorKind) -> Text {
     match kind {
         StateErrorKind::Unreadable => {
@@ -189,7 +189,7 @@ pub const JOB_EXECUTED: Text = Text::new(
     "ジョブは実行されました",
 );
 
-/// 変換の誤りの種類の文。日本語は、u4-converter の表示と同じ。
+/// 変換の誤りの種類の文。日本語は、conductor-converter の表示と同じ。
 pub fn conversion_kind(lang: Language, kind: ConversionErrorKind) -> String {
     if lang == Language::Ja {
         return kind.to_string();

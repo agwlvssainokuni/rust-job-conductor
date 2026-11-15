@@ -1,7 +1,7 @@
 //! 型(Types)。この Unit が足す値の形だけを持つ(entities.md)。入出力と OS に依存しない。
 //!
 //! 共有する型(`PipelineDefinition`、`JobExecution`、`PipelineState` など)は、
-//! u1-core(`conductor-core`)が定める。
+//! conductor-core(`conductor-core`)が定める。
 
 use std::ffi::OsString;
 

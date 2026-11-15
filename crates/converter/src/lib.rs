@@ -1,9 +1,9 @@
-//! conductor-converter: conductor の定義ファイルの変換ライブラリ(Unit u4-converter)。
+//! conductor-converter: conductor の定義ファイルの変換ライブラリ(Unit conductor-converter)。
 //!
 //! 定義ファイルを、YAML と TOML のあいだで変換する(Converter。FR7、US7.1、契約 C4)。
-//! コマンドの受け付け、結果の書き出し、エラーの表示(u3-cli)と、変換した結果の定義としての
-//! 検証(u1-core。`conductor run` などでの読み込み時)は、このクレートの外にある。
-//! このクレートは、u1-core に依存しない。
+//! コマンドの受け付け、結果の書き出し、エラーの表示(conductor-cli)と、変換した結果の定義としての
+//! 検証(conductor-core。`conductor run` などでの読み込み時)は、このクレートの外にある。
+//! このクレートは、conductor-core に依存しない。
 //!
 //! # 公開する関数(契約 C4)
 //!
@@ -18,7 +18,7 @@
 //!
 //! # 公開する API の範囲
 //!
-//! 契約 C4 で u3-cli が使うものだけを公開する。ほかは、クレートの内部(`pub(crate)`)か、
+//! 契約 C4 で conductor-cli が使うものだけを公開する。ほかは、クレートの内部(`pub(crate)`)か、
 //! テストのための `#[doc(hidden)]` である。
 //!
 //! - 関数: [`convert`]、[`convert_text`]

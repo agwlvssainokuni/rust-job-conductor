@@ -469,7 +469,7 @@ mod tests {
 
     #[test]
     fn end_のあとの個別実行() {
-        // A → @end。B と C は pending のまま(u1-core の個別実行は、skipped_job_ids が空)。
+        // A → @end。B と C は pending のまま(conductor-core の個別実行は、skipped_job_ids が空)。
         let d = definition(&["a", "b", "c"]);
         let mut next = step("a");
         next.skip_reason_kind = Some(SkipReason::ByEnd);
