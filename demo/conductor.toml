@@ -3,6 +3,8 @@ format_version = 1
 [pipeline]
 name = "nightly"
 description = "デモ用の夜間バッチ"
+# run ID を、環境変数 DEMO_RUN_ID から受け取る(--run-id が、あれば優先される)。
+run_id_env = "DEMO_RUN_ID"
 
 # 抽出: 終了コード 1 は「警告」。警告のときは、変換と読み込みをスキップして、通知へ進む。
 [[job]]
