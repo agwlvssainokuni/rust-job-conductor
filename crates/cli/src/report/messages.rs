@@ -59,8 +59,8 @@ pub const SIGNAL_SETUP_FAILED: &str = "conductor: error: failed to set up signal
 pub const USAGE: Text = Text::new(
     "\
 Usage:
-  conductor run [-v] [--config <path>] [--run-id <id>] <job-id>
-  conductor pipeline [-v] [--config <path>] [--run-id <id>] <pipeline-name>
+  conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] <job-id>
+  conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] <pipeline-name>
   conductor watch [--config <path>] [--run-id <id>]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
@@ -72,6 +72,9 @@ Options:
   --config <path>     definition file (default: conductor.toml in the current directory)
   --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset; default: the environment variable
                       named by run_id_env in the definition, or CONDUCTOR_RUN_ID; an empty value means no run ID)
+  --remove-on-complete
+                      remove the state file when the run completes (run, pipeline; default: keep it, or the
+                      remove_on_complete setting of the definition)
   --all               remove every state file of the definition, with or without a run ID (reset only)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
@@ -79,8 +82,8 @@ Options:
 ",
     "\
 使い方:
-  conductor run [-v] [--config <パス>] [--run-id <ID>] <ジョブID>
-  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] <パイプライン名>
+  conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <ジョブID>
+  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <パイプライン名>
   conductor watch [--config <パス>] [--run-id <ID>]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
@@ -92,6 +95,8 @@ Options:
   --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml)
   --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset。省略時: 定義の run_id_env の環境変数、
                       なければ CONDUCTOR_RUN_ID。空の値は run ID なし)
+  --remove-on-complete
+                      完了のときにステートファイルを消す(run、pipeline。省略時: 残す。定義の remove_on_complete に従う)
   --all               定義のステートファイルを、run ID の有無によらず、すべて消す(reset のみ)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
@@ -333,6 +338,8 @@ pub const WATCH_EMPTY: Text = Text::new(
     "no state (nothing has run yet)",
     "ステートはありません(まだ実行されていません)",
 );
+/// 完了のステートの表の下に足す 1 行(FR3.1)。
+pub const WATCH_COMPLETED: Text = Text::new("completed", "完了");
 pub const HEADER_JOB: Text = Text::new("JOB", "ジョブ");
 pub const HEADER_STATUS: Text = Text::new("STATUS", "状態");
 pub const HEADER_NOTE: Text = Text::new("NOTE", "補足");

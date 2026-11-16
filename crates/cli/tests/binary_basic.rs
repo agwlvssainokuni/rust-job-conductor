@@ -52,9 +52,13 @@ fn 成功は_0_で_標準出力も標準エラーも空() {
     assert!(output.stdout.is_empty(), "{}", text(&output.stdout));
     assert!(output.stderr.is_empty(), "{}", text(&output.stderr));
     assert!(
-        !project.state_path().exists(),
-        "最後のジョブなので、完了して初期化される"
+        project.state_path().exists(),
+        "最後のジョブなので完了するが、完了のステートは残る"
     );
+    let state = conductor_runtime::read_state_raw(&project.def_path(), None)
+        .expect("読める")
+        .expect("完了のステートがある");
+    assert!(state.completed);
 }
 
 #[test]
@@ -170,7 +174,7 @@ fn v_は標準エラーだけに出し_標準出力はジョブのまま() {
 }
 
 #[test]
-fn pipeline_は最後まで実行して_初期化する() {
+fn pipeline_は最後まで実行して_完了のステートを残し_watch_が完了を示す() {
     let project = Project::new(&definition(
         "p",
         &[
@@ -181,7 +185,65 @@ fn pipeline_は最後まで実行して_初期化する() {
     let output = project.run(&["pipeline", "p"]);
     assert_eq!(output.status.code(), Some(0));
     assert!(output.stdout.is_empty() && output.stderr.is_empty());
+    assert!(project.state_path().exists(), "完了のステートが残る");
+
+    let output = project.run(&["watch"]);
+    assert_eq!(output.status.code(), Some(0));
+    let shown = text(&output.stdout);
+    assert!(shown.starts_with("Pipeline: p\n"), "{shown}");
+    assert!(shown.ends_with("completed\n"), "{shown}");
+    assert!(!shown.contains("no state"), "{shown}");
+
+    // 再実行は先頭から始まる
+    let output = project.run(&["pipeline", "p"]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(project.state_path().exists());
+}
+
+#[test]
+fn fr2_1_pipeline_の_remove_on_complete_は完了でファイルを消す() {
+    let project = Project::new(&definition(
+        "p",
+        &[
+            job_block("a", &helper_command("exit 0"), ""),
+            job_block("b", &helper_command("exit 0"), ""),
+        ],
+    ));
+    let output = project.run(&["pipeline", "p", "--remove-on-complete"]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(output.stdout.is_empty() && output.stderr.is_empty());
     assert!(!project.state_path().exists());
+    let output = project.run(&["watch"]);
+    assert!(text(&output.stdout).contains("no state"));
+}
+
+#[test]
+fn fr2_1_run_の_remove_on_complete_も完了でファイルを消す() {
+    let project = Project::new(&definition(
+        "p",
+        &[job_block("a", &helper_command("exit 0"), "")],
+    ));
+    let output = project.run(&["run", "a", "--remove-on-complete"]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(!project.state_path().exists());
+}
+
+#[test]
+fn fr2_5_remove_on_complete_は_watch_で_68() {
+    let output = run_limited(conductor(&["watch", "--remove-on-complete"]), || {});
+    assert_eq!(output.status.code(), Some(68));
+    assert!(output.stdout.is_empty());
+    assert!(
+        text(&output.stderr).contains("--remove-on-complete"),
+        "{}",
+        text(&output.stderr)
+    );
+}
+
+#[test]
+fn fr6_1_version_は_0_7_0() {
+    let output = run_limited(conductor(&["--version"]), || {});
+    assert_eq!(text(&output.stdout), "conductor 0.7.0\n");
 }
 
 /// 補助の実行ファイルを、`command` の配列で呼ぶジョブ(`run <label> <code>`)。

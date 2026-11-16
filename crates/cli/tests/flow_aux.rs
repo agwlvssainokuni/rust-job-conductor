@@ -56,13 +56,77 @@ fn watch_はステートが空なら空であることを表示して_0() {
 }
 
 #[test]
-fn watch_は完了のまま残ったステートを空として扱う() {
+fn fr3_1_watch_は完了のステートの表の下に完了の行を出して_0() {
     let mut h = Harness::new(THREE_JOBS);
-    h.runtime.fail_reset.set(true);
-    h.run(&["pipeline", "p"]);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
     let out = h.run(&["watch"]);
     assert_eq!(out.code, 0);
-    assert!(out.out.contains("no state"), "{}", out.out);
+    assert_eq!(out.err, "");
+    assert_eq!(
+        out.out,
+        "Pipeline: p\nJOB  STATUS   NOTE\na    success  exit code 0\nb    success  exit code 0\nc    success  exit code 0\ncompleted\n"
+    );
+    assert!(!out.out.contains("no state"), "{}", out.out);
+}
+
+#[test]
+fn fr3_1_watch_の完了の行は日本語では完了() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    h.env = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 0);
+    assert!(
+        out.out.ends_with("c       success  終了コード 0\n完了\n"),
+        "{}",
+        out.out
+    );
+    assert!(out.out.contains("success"), "状態の列の語は英語のまま");
+}
+
+#[test]
+fn fr3_2_watch_は_run_id_ありの完了のステートにも完了の行を出す() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p", "--run-id", "r1"]).code, 0);
+    let out = h.run(&["watch", "--run-id", "r1"]);
+    assert_eq!(out.code, 0);
+    assert!(out.out.contains("Run ID: r1\n"), "{}", out.out);
+    assert!(out.out.ends_with("completed\n"), "{}", out.out);
+    // 別の run ID には、ステートがない
+    let other = h.run(&["watch", "--run-id", "r2"]);
+    assert_eq!(other.out, "no state (nothing has run yet)\n");
+}
+
+#[test]
+fn fr3_3_no_state_はファイルなしと長さ_0_のときだけ() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["watch"]).out, "no state (nothing has run yet)\n");
+    std::fs::write(h.state_path(), "").expect("書ける");
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.out, "no state (nothing has run yet)\n");
+}
+
+#[test]
+fn fr3_4_watch_は壊れた完了のステートを_65_にする() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    let body = std::fs::read_to_string(h.state_path()).expect("読める");
+    std::fs::write(h.state_path(), body.replace("job_order", "job_ordr")).expect("書ける");
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("state file is corrupt"), "{}", out.err);
+    assert_eq!(out.out, "");
+}
+
+#[test]
+fn fr3_1_完了の削除に失敗して残ったステートも_watch_は完了として表示する() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.runtime.fail_reset.set(true);
+    assert_eq!(h.run(&["pipeline", "p", "--remove-on-complete"]).code, 65);
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 0);
+    assert!(out.out.ends_with("completed\n"), "{}", out.out);
 }
 
 #[test]
@@ -74,7 +138,7 @@ fn watch_は定義ファイルを読まず_検証しない() {
     let out = h.run(&["watch"]);
     assert_eq!(out.code, 0);
     assert!(out.out.contains("Pipeline: p"));
-    assert_eq!(h.runtime.log(), ["read"], "定義は読まない");
+    assert_eq!(h.runtime.log(), ["read-raw"], "定義は読まない");
 }
 
 #[test]
@@ -144,6 +208,50 @@ fn reset_はステートを消す_何も表示しない() {
     assert_eq!(out.out, "");
     assert_eq!(out.err, "");
     assert!(!h.state_path().exists());
+}
+
+#[test]
+fn fr4_1_reset_は完了のステートも消す_run_id_ありなしの両方() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert_eq!(h.run(&["pipeline", "p", "--run-id", "r1"]).code, 0);
+    assert!(h.state_path().exists() && h.state_path_for("r1").exists());
+    assert_eq!(h.run(&["reset"]).code, 0);
+    assert!(!h.state_path().exists());
+    assert!(h.state_path_for("r1").exists(), "run ID ありは別");
+    assert_eq!(h.run(&["reset", "--run-id", "r1"]).code, 0);
+    assert!(!h.state_path_for("r1").exists());
+}
+
+#[test]
+fn fr4_1_reset_all_は完了のステートもすべて消す() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert_eq!(h.run(&["pipeline", "p", "--run-id", "r1"]).code, 0);
+    assert_eq!(h.run(&["reset", "--all"]).code, 0);
+    assert!(!h.state_path().exists());
+    assert!(!h.state_path_for("r1").exists());
+}
+
+#[test]
+fn fr2_5_remove_on_complete_は_watch_reset_validate_convert_で_68() {
+    for args in [
+        &["watch", "--remove-on-complete"][..],
+        &["reset", "--remove-on-complete"],
+        &["reset", "--all", "--remove-on-complete"],
+        &["validate", "--remove-on-complete"],
+        &["convert", "x.yaml", "--to", "toml", "--remove-on-complete"],
+    ] {
+        let mut h = Harness::new(THREE_JOBS);
+        let out = h.run(args);
+        assert_eq!(out.code, 68, "{args:?}: {}", out.err);
+        assert!(
+            out.err.contains("--remove-on-complete"),
+            "{args:?}: {}",
+            out.err
+        );
+        assert_eq!(h.runtime.run_calls.get(), 0);
+    }
 }
 
 #[test]

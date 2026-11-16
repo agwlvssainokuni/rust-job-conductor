@@ -65,6 +65,9 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("definition is valid"), "{out}");
     assert!(out.contains("command has an unclosed quote"), "{out}");
     assert!(out.contains("→ 終了コード 64"), "{out}");
+    // 場面 4: 完了してもステートは残り、watch が完了を示す。--remove-on-complete で消える
+    assert!(out.contains("\ncompleted\n"), "{out}");
+    assert!(out.contains("--remove-on-complete nightly"), "{out}");
     // 場面 8: run ID ごとにステートが分かれる
     assert!(out.contains("Run ID: build-1"), "{out}");
     assert!(out.contains("conductor.toml.build-1.state"), "{out}");

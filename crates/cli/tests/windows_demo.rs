@@ -122,6 +122,21 @@ fn 場面_3_と_4_load_の失敗は_2_で_再実行すると_load_から再開�
     assert!(!out.contains("[transform] 実行中"), "{out}");
     assert!(out.contains("[load] 実行中"), "{out}");
     assert!(out.contains("[notify] 実行中"), "{out}");
+
+    // 完了してもステートは残り、watch は完了を示す
+    assert_eq!(state_files(&demo), ["conductor.toml.state"]);
+    let watch = demo.run(&["watch"], &[]);
+    assert_eq!(watch.status.code(), Some(0), "{}", text(&watch.stderr));
+    assert!(
+        text(&watch.stdout).trim_end().ends_with("completed"),
+        "{}",
+        text(&watch.stdout)
+    );
+
+    // --remove-on-complete を付けると、完了でステートファイルを消す
+    let removed = demo.run(&["pipeline", "-v", "--remove-on-complete", "nightly"], &[]);
+    assert_eq!(removed.status.code(), Some(0), "{}", text(&removed.stderr));
+    assert!(state_files(&demo).is_empty());
 }
 
 #[test]
@@ -206,7 +221,14 @@ fn 場面_8_run_id_ごとにステートが分かれる() {
     );
     assert_eq!(other.status.code(), Some(0), "{}", text(&other.stderr));
     assert!(text(&other.stdout).contains("[notify] 実行中"));
-    assert_eq!(state_files(&demo), ["conductor.toml.build-1.state"]);
+    // build-2 は完了したが、完了のステートは残る
+    assert_eq!(
+        state_files(&demo),
+        [
+            "conductor.toml.build-1.state",
+            "conductor.toml.build-2.state"
+        ]
+    );
 }
 
 #[test]
@@ -233,6 +255,18 @@ fn 場面_8_watch_は_run_id_を示し_同じ_run_id_で_load_から再開する
     assert!(!all.contains("[extract] 実行中"), "{all}");
     assert!(!all.contains("[transform] 実行中"), "{all}");
     assert!(all.contains("[load] 実行中"), "{all}");
+    // 完了してもステートファイルは残り、watch は完了を示す
+    assert_eq!(state_files(&demo), ["conductor.toml.build-1.state"]);
+    let done = demo.run(&["watch", "--run-id", "build-1"], &[]);
+    assert_eq!(done.status.code(), Some(0), "{}", text(&done.stderr));
+    assert!(
+        text(&done.stdout).trim_end().ends_with("completed"),
+        "{}",
+        text(&done.stdout)
+    );
+    // 片づけは reset
+    let reset = demo.run(&["reset", "--run-id", "build-1"], &[]);
+    assert_eq!(reset.status.code(), Some(0), "{}", text(&reset.stderr));
     assert!(state_files(&demo).is_empty());
 }
 

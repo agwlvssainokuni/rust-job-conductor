@@ -199,30 +199,65 @@ fn スキップの記録は_書き込む() {
 }
 
 #[test]
-fn スキップで完了したら_初期化する() {
+fn fr1_1_スキップで完了したら_完了のステートを残す() {
     let mut h = Harness::new(END_AFTER_A);
     assert_eq!(h.run(&["run", "a"]).code, 0);
     let state = h.state().expect("ステート");
     assert!(state.end_reached && !state.completed);
     assert_eq!(h.run(&["run", "b"]).code, 0, "@end の後ろは、スキップ");
-    assert!(h.state_path().exists(), "まだ完了しない");
+    assert!(h.state().is_some(), "まだ完了しない");
     assert_eq!(h.run(&["run", "c"]).code, 0);
     assert!(
-        !h.state_path().exists(),
-        "最後のスキップで完了し、初期化される"
+        h.state_raw().expect("残る").completed,
+        "最後のスキップで完了し、完了のステートが残る"
     );
     assert_eq!(h.runtime.ran(), ["a"]);
+    assert_eq!(h.runtime.log().iter().filter(|l| *l == "reset").count(), 0);
+}
+
+#[test]
+fn fr2_1_スキップで完了して_remove_on_complete_なら消す() {
+    let mut h = Harness::new(END_AFTER_A);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(h.run(&["run", "b"]).code, 0);
+    assert_eq!(h.run(&["run", "c", "--remove-on-complete"]).code, 0);
+    assert!(!h.state_path().exists(), "最後のスキップで完了し、消える");
     assert_eq!(h.runtime.log().iter().filter(|l| *l == "reset").count(), 1);
 }
 
 #[test]
-fn 最後のジョブの完了で_初期化する() {
+fn fr1_1_最後のジョブの完了で_完了のステートを残す() {
     let mut h = Harness::new(ONE_JOB);
     let out = h.run(&["run", "only"]);
+    assert_eq!(out.code, 0);
+    assert!(h.state_raw().expect("残る").completed);
+    let log = h.runtime.log();
+    assert_eq!(log[log.len() - 1], "write:durable", "削除を呼ばない");
+}
+
+#[test]
+fn fr2_1_最後のジョブの完了で_remove_on_complete_なら消す() {
+    let mut h = Harness::new(ONE_JOB);
+    let out = h.run(&["run", "only", "--remove-on-complete"]);
     assert_eq!(out.code, 0);
     assert!(!h.state_path().exists());
     let log = h.runtime.log();
     assert_eq!(log[log.len() - 2..], ["write:durable", "reset"]);
+}
+
+#[test]
+fn fr2_2_定義の_remove_on_complete_が_true_なら_run_でも消える() {
+    let mut h = Harness::new(&with_remove_on_complete(ONE_JOB, "true"));
+    assert_eq!(h.run(&["run", "only"]).code, 0);
+    assert!(!h.state_path().exists());
+}
+
+#[test]
+fn fr1_3_run_の完了のステートが残っていても_再実行は先頭から始まる() {
+    let mut h = Harness::new(ONE_JOB);
+    assert_eq!(h.run(&["run", "only"]).code, 0);
+    assert_eq!(h.run(&["run", "only"]).code, 0);
+    assert_eq!(h.runtime.ran(), ["only", "only"]);
 }
 
 // ---- 検査の失敗 ----
@@ -397,10 +432,10 @@ fn ジョブがエラーでも_書き込みの失敗は_65() {
 }
 
 #[test]
-fn 完了後の初期化の失敗は_65_で_completed_のまま残る() {
+fn 完了後の削除の失敗は_65_で_completed_のまま残る() {
     let mut h = Harness::new(ONE_JOB);
     h.runtime.fail_reset.set(true);
-    let out = h.run(&["run", "only"]);
+    let out = h.run(&["run", "only", "--remove-on-complete"]);
     assert_eq!(out.code, 65);
     assert!(out.err.contains("cannot remove state file"), "{}", out.err);
     assert!(h.state_path().exists());
@@ -441,12 +476,12 @@ fn スキップの記録の書き込みの失敗は_65_でジョブは起動し�
 }
 
 #[test]
-fn スキップで完了したときの初期化の失敗は_65() {
+fn スキップで完了したときの削除の失敗は_65() {
     let mut h = Harness::new(END_AFTER_A);
     h.run(&["run", "a"]);
     h.run(&["run", "b"]);
     h.runtime.fail_reset.set(true);
-    let out = h.run(&["run", "c"]);
+    let out = h.run(&["run", "c", "--remove-on-complete"]);
     assert_eq!(out.code, 65);
     assert_eq!(h.runtime.ran(), ["a"]);
 }

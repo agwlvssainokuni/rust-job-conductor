@@ -322,6 +322,18 @@ impl Runtime for ScriptedRuntime {
         self.inner.read_state(path, run_id)
     }
 
+    fn read_state_raw(
+        &self,
+        path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError> {
+        self.push("read-raw");
+        if let Some(error) = self.read_failure.borrow().clone() {
+            return Err(error);
+        }
+        self.inner.read_state_raw(path, run_id)
+    }
+
     fn write_state(
         &self,
         path: &Path,
@@ -449,6 +461,15 @@ id = "c"
 command = "echo c"
 "#;
 
+/// 定義の `[pipeline]` に、`remove_on_complete = <値>` を足した文字列にする。
+pub fn with_remove_on_complete(definition: &str, value: &str) -> String {
+    definition.replacen(
+        "name = \"p\"\n",
+        &format!("name = \"p\"\nremove_on_complete = {value}\n"),
+        1,
+    )
+}
+
 // ---- 実行の枠 ----
 
 pub struct Outcome {
@@ -507,6 +528,17 @@ impl Harness {
     pub fn state_of(&self, run_id: &str) -> Option<PipelineState> {
         let id = RunId::parse(run_id).expect("有効な run ID");
         conductor_runtime::read_state(&self.def_path(), Some(&id)).expect("読める")
+    }
+
+    /// 完了のステートも含めて読む(ファイルなし・長さ 0 は `None`)。
+    pub fn state_raw(&self) -> Option<PipelineState> {
+        conductor_runtime::read_state_raw(&self.def_path(), None).expect("読める")
+    }
+
+    /// run ID つきの、完了のステートも含めて読む。
+    pub fn state_raw_of(&self, run_id: &str) -> Option<PipelineState> {
+        let id = RunId::parse(run_id).expect("有効な run ID");
+        conductor_runtime::read_state_raw(&self.def_path(), Some(&id)).expect("読める")
     }
 
     /// `--config <定義>` を足して、実行する。
@@ -614,6 +646,17 @@ impl Runtime for MemRuntime {
     }
 
     fn read_state(
+        &self,
+        path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError> {
+        // 本物と同じく、完了のステートは空として返す。
+        Ok(self
+            .read_state_raw(path, run_id)?
+            .filter(|state| !state.completed))
+    }
+
+    fn read_state_raw(
         &self,
         _path: &Path,
         run_id: Option<&RunId>,

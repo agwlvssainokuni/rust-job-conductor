@@ -22,7 +22,7 @@ use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 use super::escape::escape_name;
 use super::messages::{
     EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, NOTE_BY_END, NOTE_BY_TRANSITION,
-    WATCH_PIPELINE, WATCH_RUN_ID,
+    WATCH_COMPLETED, WATCH_PIPELINE, WATCH_RUN_ID,
 };
 use crate::types::Language;
 
@@ -125,6 +125,11 @@ pub fn render_table(lang: Language, state: &PipelineState, color: bool) -> Strin
         };
         let line = format!("{}  {}  {}", pad(&job, job_width), status_cell, note);
         out.push_str(line.trim_end());
+        out.push('\n');
+    }
+    // 完了のステートは、表の下に、完了を示す行を足す(FR3.1)。
+    if state.completed {
+        out.push_str(WATCH_COMPLETED.get(lang));
         out.push('\n');
     }
     out

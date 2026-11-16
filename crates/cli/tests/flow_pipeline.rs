@@ -31,14 +31,16 @@ fn status_of(h: &Harness, id: &str) -> JobStatus {
 }
 
 #[test]
-fn 全部成功なら_記述順に実行し_完了で初期化して_0() {
+fn fr1_1_全部成功なら_記述順に実行し_完了のステートを残して_0() {
     let mut h = Harness::new(THREE_JOBS);
     let out = h.run(&["pipeline", "p"]);
     assert_eq!(out.code, 0);
     assert_eq!(out.out, "");
     assert_eq!(out.err, "");
     assert_eq!(h.runtime.ran(), ["a", "b", "c"]);
-    assert!(!h.state_path().exists(), "完了したので初期化される");
+    assert!(h.state_path().exists(), "完了のステートが残る");
+    assert!(h.state_raw().expect("残っている").completed);
+    assert!(h.state().is_none(), "read_state は完了を空として返す");
     assert!(!h.env.locale_read(), "ロケールの判定が行われない");
     assert_eq!(
         h.runtime.log(),
@@ -52,8 +54,96 @@ fn 全部成功なら_記述順に実行し_完了で初期化して_0() {
             "write:durable",
             "run:c",
             "write:durable",
-            "reset"
-        ]
+        ],
+        "削除(reset)を呼ばない"
+    );
+}
+
+#[test]
+fn fr1_2_完了のステートの形式は今までどおり() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    let text = std::fs::read_to_string(h.state_path()).expect("読める");
+    assert!(text.contains("format_version = 1"), "{text}");
+    assert!(text.contains("completed = true"), "{text}");
+    assert!(text.contains("pipeline_name = \"p\""), "{text}");
+}
+
+#[test]
+fn fr2_1_remove_on_complete_を付けると_完了でステートを消して_0() {
+    let mut h = Harness::new(THREE_JOBS);
+    let out = h.run(&["pipeline", "p", "--remove-on-complete"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(h.runtime.ran(), ["a", "b", "c"]);
+    assert!(!h.state_path().exists(), "完了したので消える");
+    assert_eq!(h.runtime.log().iter().filter(|l| *l == "reset").count(), 1);
+}
+
+#[test]
+fn fr2_2_定義の_remove_on_complete_が_true_なら_オプションなしでも消える() {
+    let mut h = Harness::new(&with_remove_on_complete(THREE_JOBS, "true"));
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert!(!h.state_path().exists());
+}
+
+#[test]
+fn fr2_3_オプションと定義の組み合わせで_オプションが優先して消す() {
+    // オプションあり・定義 false → 消える
+    let mut h = Harness::new(&with_remove_on_complete(THREE_JOBS, "false"));
+    assert_eq!(h.run(&["pipeline", "p", "--remove-on-complete"]).code, 0);
+    assert!(!h.state_path().exists());
+    // オプションなし・定義 false → 残る
+    let mut h = Harness::new(&with_remove_on_complete(THREE_JOBS, "false"));
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert!(h.state_path().exists());
+    // オプションあり・定義 true → 消える
+    let mut h = Harness::new(&with_remove_on_complete(THREE_JOBS, "true"));
+    assert_eq!(h.run(&["pipeline", "p", "--remove-on-complete"]).code, 0);
+    assert!(!h.state_path().exists());
+}
+
+#[test]
+fn fr2_6_環境変数では削除を切り替えない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.env = FakeEnv::with(&[
+        ("CONDUCTOR_REMOVE_ON_COMPLETE", "1"),
+        ("REMOVE_ON_COMPLETE", "true"),
+    ]);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert!(h.state_path().exists(), "環境変数は見ないので残る");
+}
+
+#[test]
+fn fr1_3_完了のステートが残っていても_pipeline_の再実行は先頭から始まる() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    h.runtime.log.borrow_mut().clear();
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert_eq!(h.runtime.ran(), ["a", "b", "c"], "先頭から全部を実行する");
+    assert!(h.state_raw().expect("残る").completed);
+}
+
+#[test]
+fn fr1_3_完了のステートが残っていても_先頭以外のジョブの_run_は_66() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    h.runtime.log.borrow_mut().clear();
+    let out = h.run(&["run", "b"]);
+    assert_eq!(out.code, 66, "{}", out.err);
+    assert_eq!(h.runtime.ran(), Vec::<String>::new());
+}
+
+#[test]
+fn fr1_4_完了のステートの書き込みの失敗は_65() {
+    let mut h = Harness::new(THREE_JOBS);
+    // 0: 初期(Fast)、1: a、2: b、3: c の記録(完了)
+    h.runtime.write_failure.set(WriteFailure::OnCall(3));
+    let out = h.run(&["pipeline", "p"]);
+    assert_eq!(out.code, 65);
+    assert_eq!(h.runtime.ran(), ["a", "b", "c"]);
+    assert!(
+        !h.state_raw().is_some_and(|s| s.completed),
+        "完了のステートは書けていない"
     );
 }
 
@@ -64,7 +154,7 @@ fn 警告の遷移で間のジョブをスキップする() {
     let out = h.run(&["pipeline", "p", "-v"]);
     assert_eq!(out.code, 0);
     assert_eq!(h.runtime.ran(), ["a", "c"]);
-    assert!(!h.state_path().exists());
+    assert!(h.state_raw().expect("残る").completed);
     assert!(
         out.err
             .contains("[conductor] transition: warning -> c (skipped: b)"),
@@ -75,13 +165,13 @@ fn 警告の遷移で間のジョブをスキップする() {
 }
 
 #[test]
-fn end_で完了して初期化する() {
+fn fr1_1_end_で完了して_完了のステートを残す() {
     let mut h = Harness::new(END_AFTER_A);
     let out = h.run(&["pipeline", "p"]);
     assert_eq!(out.code, 0);
     assert_eq!(h.runtime.ran(), ["a"]);
-    assert!(!h.state_path().exists());
-    assert_eq!(h.runtime.log().iter().filter(|l| *l == "reset").count(), 1);
+    assert!(h.state_raw().expect("残る").completed);
+    assert_eq!(h.runtime.log().iter().filter(|l| *l == "reset").count(), 0);
 }
 
 #[test]
@@ -112,7 +202,7 @@ fn エラーからの再開は_成功済みを飛ばして_エラーのジョブ
     let out = h.run(&["pipeline", "p"]);
     assert_eq!(out.code, 0);
     assert_eq!(h.runtime.ran(), ["b", "c"], "a は再実行しない");
-    assert!(!h.state_path().exists());
+    assert!(h.state_raw().expect("残る").completed);
     assert_eq!(
         h.runtime
             .log()
@@ -134,7 +224,7 @@ fn 個別実行の続きから一括実行できる() {
 }
 
 #[test]
-fn スキップで完了した場合も初期化する() {
+fn fr1_1_スキップで完了した場合も_完了のステートを残す() {
     // a(@end)を個別に実行し、b・c は、一括実行のなかで、スキップとして記録される。
     let mut h = Harness::new(END_AFTER_A);
     assert_eq!(h.run(&["run", "a"]).code, 0);
@@ -142,8 +232,8 @@ fn スキップで完了した場合も初期化する() {
     assert_eq!(out.code, 0);
     assert_eq!(h.runtime.ran(), ["a"]);
     assert!(
-        !h.state_path().exists(),
-        "最後のスキップで完了し、初期化された"
+        h.state_raw().expect("残る").completed,
+        "最後のスキップで完了し、完了のステートが残った"
     );
 }
 
@@ -154,7 +244,7 @@ fn 遷移で飛ばされた最後のジョブより前でも_スキップの記�
     assert_eq!(h.run(&["run", "a"]).code, 0);
     assert_eq!(h.run(&["pipeline", "p"]).code, 0);
     assert_eq!(h.runtime.ran(), ["a", "c"]);
-    assert!(!h.state_path().exists());
+    assert!(h.state_raw().expect("残る").completed);
 }
 
 #[test]
@@ -184,16 +274,23 @@ fn 初期ステートが書けないときは_65_でジョブを起動しない(
 }
 
 #[test]
-fn 完了後の初期化の失敗は_65() {
+fn fr2_1_remove_on_complete_のとき_完了後の削除の失敗は_65() {
     let mut h = Harness::new(THREE_JOBS);
     h.runtime.fail_reset.set(true);
-    let out = h.run(&["pipeline", "p"]);
+    let out = h.run(&["pipeline", "p", "--remove-on-complete"]);
     assert_eq!(out.code, 65);
     assert_eq!(h.runtime.ran(), ["a", "b", "c"]);
     assert!(
-        h.state().is_none(),
+        h.state().is_none() && h.state_raw().is_some_and(|s| s.completed),
         "completed のまま残り、空として読まれる"
     );
+}
+
+#[test]
+fn fr1_1_削除しないときは_削除の失敗の設定があっても_0() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.runtime.fail_reset.set(true);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0, "reset を呼ばない");
 }
 
 #[test]

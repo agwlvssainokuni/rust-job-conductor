@@ -20,15 +20,17 @@
 //!
 //! # 文法
 //!
-//! | コマンド | 位置引数 | `-v` | `--config` | `--to` | `--run-id` | `--all` |
-//! |----------|----------|------|------------|--------|------------|---------|
-//! | `run` | ジョブID(1) | 可 | 可 | 不可 | 可 | 不可 |
-//! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 | 可 | 不可 |
-//! | `watch` | なし | 不可 | 可 | 不可 | 可 | 不可 |
-//! | `reset` | なし | 不可 | 可 | 不可 | 可 | 可(`--run-id` とは併用不可) |
-//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 |
-//! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 |
+//! | コマンド | 位置引数 | `-v` | `--config` | `--to` | `--run-id` | `--all` | `--remove-on-complete` |
+//! |----------|----------|------|------------|--------|------------|---------|------------------------|
+//! | `run` | ジョブID(1) | 可 | 可 | 不可 | 可 | 不可 | 可 |
+//! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 | 可 | 不可 | 可 |
+//! | `watch` | なし | 不可 | 可 | 不可 | 可 | 不可 | 不可 |
+//! | `reset` | なし | 不可 | 可 | 不可 | 可 | 可(`--run-id` とは併用不可) | 不可 |
+//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 | 不可 |
+//! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 | 不可 |
 //!
+//! - `--remove-on-complete` は、値を取らない。指定すると、完了のときにステートファイルを削除する(FR2.1)。
+//!   2 回以上の指定は、`-v` と同じく `invalidValue`。
 //! - `--config path` と `--config=path`(`--to`、`--run-id` も同じ)の両方を受け付ける。
 //! - `--run-id` の値は、空(run ID なしに固定)か、`RunId` の規則(`A-Za-z0-9._-`、64 文字まで、
 //!   先頭が `.` でない)を満たすこと。違反は `invalidValue`(値は、誤りの文に含めない)。
@@ -54,6 +56,8 @@ enum Token {
     RunId(OsString),
     /// `--all`。
     All,
+    /// `--remove-on-complete`(値なし)。
+    RemoveOnComplete,
     /// 文法にないオプション(表示用の綴り)。
     Unknown(String),
     Positional(OsString),
@@ -120,6 +124,7 @@ where
                 }
             },
             Long("all") => tokens.push(Token::All),
+            Long("remove-on-complete") => tokens.push(Token::RemoveOnComplete),
             Long("to") => match parser.value() {
                 Ok(v) => tokens.push(Token::To(v)),
                 Err(_) => {
@@ -150,7 +155,10 @@ fn map_lex_error(e: &lexopt::Error) -> UsageError {
         lexopt::Error::MissingValue { .. } => UsageError::new(Kind::MissingValue),
         lexopt::Error::UnexpectedValue { option, .. } => {
             // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
-            let known = matches!(option.as_str(), "--verbose" | "-v" | "--all");
+            let known = matches!(
+                option.as_str(),
+                "--verbose" | "-v" | "--all" | "--remove-on-complete"
+            );
             if known {
                 UsageError::with_subject(Kind::InvalidValue, option.clone())
             } else {
@@ -174,6 +182,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let mut to: Vec<OsString> = Vec::new();
     let mut run_ids: Vec<OsString> = Vec::new();
     let mut all_count = 0usize;
+    let mut remove_count = 0usize;
     let mut unknown: Option<String> = None;
     let mut positionals: Vec<OsString> = Vec::new();
     for token in tokens {
@@ -183,6 +192,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             Token::To(v) => to.push(v),
             Token::RunId(v) => run_ids.push(v),
             Token::All => all_count += 1,
+            Token::RemoveOnComplete => remove_count += 1,
             Token::Unknown(name) => {
                 unknown.get_or_insert(name);
             }
@@ -236,6 +246,13 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if all_count > 0 && kind != CommandKind::Reset {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--all"));
     }
+    let takes_remove = matches!(kind, CommandKind::Run | CommandKind::Pipeline);
+    if remove_count > 0 && !takes_remove {
+        return Err(UsageError::with_subject(
+            Kind::OptionNotAllowed,
+            "--remove-on-complete",
+        ));
+    }
     // 重複。
     if verbose_count > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "-v"));
@@ -252,6 +269,12 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if all_count > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
     }
+    if remove_count > 1 {
+        return Err(UsageError::with_subject(
+            Kind::InvalidValue,
+            "--remove-on-complete",
+        ));
+    }
     // `--all` と `--run-id` は、一緒に使えない。
     if all_count == 1 && !run_ids.is_empty() {
         return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
@@ -261,6 +284,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     command.verbose = verbose_count == 1;
     command.config_path = config.into_iter().next();
     command.all = all_count == 1;
+    command.remove_on_complete = remove_count == 1;
     // 値の検査は、ここで行う。誤りの文に、値は含めない(対象は、オプションの名前だけ)。
     command.run_id = run_ids
         .into_iter()

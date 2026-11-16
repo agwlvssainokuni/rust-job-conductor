@@ -40,7 +40,8 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     } else {
         StateContext::Read
     };
-    let state = match ctx.runtime.read_state(&path, run_id.as_ref()) {
+    // 完了のステートも読む(FR3.1)。`WatchEmpty` は、ファイルなし・長さ 0 のときだけ。
+    let state = match ctx.runtime.read_state_raw(&path, run_id.as_ref()) {
         Ok(state) => state,
         Err(error) => return ctx.state_error(&error, context),
     };

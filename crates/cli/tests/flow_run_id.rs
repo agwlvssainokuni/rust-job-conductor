@@ -68,6 +68,24 @@ fn 同じ_run_id_で呼び直すと止まったジョブから再開する() {
         ["b", "c"],
         "a は実行済みなので、b から再開する"
     );
+    assert!(
+        h.state_raw_of("r1").expect("残る").completed,
+        "完了のステートが残る"
+    );
+    assert!(
+        h.state_of("r1").is_none(),
+        "read_state は完了を空として返す"
+    );
+}
+
+#[test]
+fn fr2_1_run_id_ありでも_remove_on_complete_なら完了で消える() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(
+        h.run(&["pipeline", "p", "--run-id", "r1", "--remove-on-complete"])
+            .code,
+        0
+    );
     assert!(!h.state_path_for("r1").exists(), "完了で消える");
 }
 

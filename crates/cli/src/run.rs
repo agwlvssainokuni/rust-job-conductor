@@ -16,7 +16,8 @@
 //!
 //! 順序は固定(NFR2.4): 検査 → ステートの読み込みと照合 → `decide_before_run` →
 //! (Run のとき、ステートが空なら)初期ステート(`Fast`)→ `run_job` → `classify_and_decide` →
-//! `apply_outcome` → `write_state`(`Durable`)→ 完了なら `reset_state`。
+//! `apply_outcome` → `write_state`(`Durable`)→ 完了で、削除を求められていれば `reset_state`
+//! (求められていなければ、完了のステートを残す)。
 //! 初期ステートは、`Run` が決まったあとにだけ書く(Reject・Skip の前には書かない)。
 
 use conductor_core::{Classification, Decision, RunMode, classify_and_decide, decide_before_run};
@@ -73,7 +74,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 ) {
                     return code;
                 }
-                if recorded.completed {
+                if recorded.completed && session.remove_on_complete {
                     if let Err(code) = ctx.reset(path, run_id, StateContext::JobNotStarted) {
                         return code;
                     }
@@ -125,7 +126,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             if let Err(code) = ctx.write(path, run_id, &recorded, Durability::Durable, after) {
                 return code;
             }
-            if next.completed {
+            if next.completed && session.remove_on_complete {
                 if let Err(code) = ctx.reset(path, run_id, after) {
                     return code;
                 }

@@ -96,8 +96,18 @@ fn 並行する_2_つの_run_id_は別のステートで_互いの再開位置�
     assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
     assert_eq!(
         names(&project),
-        ["conductor.toml", "conductor.toml.r2.state"],
-        "r1 だけ完了して消える"
+        [
+            "conductor.toml",
+            "conductor.toml.r1.state",
+            "conductor.toml.r2.state"
+        ],
+        "r1 は完了のステートが残る"
+    );
+    assert!(
+        conductor_runtime::read_state_raw(&def, Some(&id("r1")))
+            .expect("読める")
+            .expect("残っている")
+            .completed
     );
     let r2_after =
         std::fs::read(project.dir.path().join("conductor.toml.r2.state")).expect("読める");

@@ -164,7 +164,10 @@ fn ジョブ_1000_個の定義の時間() {
     let (code, _) = common::run_mem(&runtime, &["pipeline", "big"]);
     let elapsed = started.elapsed().as_secs_f64() * 1000.0;
     assert_eq!(code, 0);
-    assert!(runtime.state.borrow().is_none(), "完了して、初期化された");
+    assert!(
+        runtime.state.borrow().as_ref().is_some_and(|s| s.completed),
+        "完了して、完了のステートが残った"
+    );
     report(&format!(
         "pipeline(ジョブ 1,000 個、メモリの Runtime、debug ビルド): 流れの全体 = {elapsed:.1} ms"
     ));

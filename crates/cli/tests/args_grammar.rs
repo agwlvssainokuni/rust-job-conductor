@@ -538,6 +538,33 @@ fn resolve_run_id_のオプション_環境変数_空_固定() {
 }
 
 #[test]
+fn fr2_5_remove_on_complete_は_run_と_pipeline_だけが受け付ける() {
+    assert!(command(&["run", "a", "--remove-on-complete"]).remove_on_complete);
+    assert!(command(&["pipeline", "--remove-on-complete", "p"]).remove_on_complete);
+    assert!(!command(&["pipeline", "p"]).remove_on_complete);
+    for args in [
+        &["watch", "--remove-on-complete"][..],
+        &["reset", "--remove-on-complete"],
+        &["validate", "--remove-on-complete"],
+        &["convert", "x", "--to", "toml", "--remove-on-complete"],
+    ] {
+        assert_eq!(kind_of(args), UsageErrorKind::OptionNotAllowed, "{args:?}");
+    }
+}
+
+#[test]
+fn fr2_5_remove_on_complete_は値を取らず_2_回の指定は誤り() {
+    assert_eq!(
+        kind_of(&["run", "a", "--remove-on-complete", "--remove-on-complete"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["run", "a", "--remove-on-complete=1"]),
+        UsageErrorKind::InvalidValue
+    );
+}
+
+#[test]
 fn resolve_run_id_の環境変数の値の違反は_invalid_value_で値を含めない() {
     let long = "z".repeat(65);
     for bad in ["a/b", "..", ".a", "a b", "é", long.as_str()] {

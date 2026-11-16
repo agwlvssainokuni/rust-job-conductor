@@ -90,6 +90,12 @@ pub trait Runtime {
         definition_path: &Path,
         run_id: Option<&RunId>,
     ) -> Result<Option<PipelineState>, StateError>;
+    /// ステートを、完了のものも含めて読む(`read_state_raw`。`watch` が使う。`None` はファイルなし・長さ 0)。
+    fn read_state_raw(
+        &self,
+        definition_path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError>;
     /// ステートを書く(`write_state`)。
     fn write_state(
         &self,
@@ -145,6 +151,14 @@ impl Runtime for SystemRuntime {
         run_id: Option<&RunId>,
     ) -> Result<Option<PipelineState>, StateError> {
         conductor_runtime::read_state(definition_path, run_id)
+    }
+
+    fn read_state_raw(
+        &self,
+        definition_path: &Path,
+        run_id: Option<&RunId>,
+    ) -> Result<Option<PipelineState>, StateError> {
+        conductor_runtime::read_state_raw(definition_path, run_id)
     }
 
     fn write_state(

@@ -16,7 +16,8 @@
 //!
 //! 定義の記述順に、1 つずつ、`decide_before_run` で決める(次のジョブを `NextStep` で決めない。
 //! 遷移先とスキップは、ステートが運ぶ)。結果、またはスキップを記録するたびに、`completed` を
-//! 確かめ、true なら `reset_state` して 0 で終わる。エラーで停止し、再試行しない。
+//! 確かめ、true なら、完了のステートを残して 0 で終わる。削除を求められている(`--remove-on-complete`
+//! または定義の `remove_on_complete`)ときだけ、`reset_state` する。エラーで停止し、再試行しない。
 //! ジョブのあいだで合図が立っていれば、再開位置を記録して、128 + 番号で終わる。
 
 use conductor_core::{
@@ -96,7 +97,13 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 let completed = recorded.completed;
                 current = Some(recorded);
                 if completed {
-                    return finish(ctx, path, run_id, StateContext::JobNotStarted);
+                    return finish(
+                        ctx,
+                        path,
+                        run_id,
+                        session.remove_on_complete,
+                        StateContext::JobNotStarted,
+                    );
                 }
             }
             Decision::Run => {
@@ -143,7 +150,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     return exit_code_for(outcome.reported_exit_code, is_error);
                 }
                 if next.completed {
-                    return finish(ctx, path, run_id, after);
+                    return finish(ctx, path, run_id, session.remove_on_complete, after);
                 }
 
                 // ジョブのあいだの中断(BR4.2)。次のジョブを起動せず、再開位置を記録する。
@@ -175,13 +182,18 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     EXIT_STATE
 }
 
-/// 完了のあとの初期化(BR3.3)。失敗は 65。
+/// 完了のあとの処理(BR3.3、FR1.1、FR2.1)。完了のステートは、すでに書いてある。
+/// `remove_on_complete` が真のときだけ、ステートを削除する(失敗は 65)。偽なら、残して 0 で終える。
 fn finish(
     ctx: &mut Ctx<'_>,
     path: &std::path::Path,
     run_id: Option<&RunId>,
+    remove_on_complete: bool,
     context: StateContext,
 ) -> i32 {
+    if !remove_on_complete {
+        return EXIT_OK;
+    }
     match ctx.reset(path, run_id, context) {
         Ok(()) => EXIT_OK,
         Err(code) => code,

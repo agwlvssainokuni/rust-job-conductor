@@ -69,6 +69,8 @@ pub struct CliCommand {
     pub run_id: Option<String>,
     /// `--all`。reset のときのみ。
     pub all: bool,
+    /// `--remove-on-complete`。run・pipeline のときのみ。指定があれば、完了でステートを削除する。
+    pub remove_on_complete: bool,
 }
 
 impl CliCommand {
@@ -84,6 +86,7 @@ impl CliCommand {
             verbose: false,
             run_id: None,
             all: false,
+            remove_on_complete: false,
         }
     }
 }

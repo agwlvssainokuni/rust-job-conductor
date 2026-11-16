@@ -57,6 +57,9 @@ pub(crate) struct Session {
     pub run_id: Option<RunId>,
     /// ステート(`None` は空。完了のまま残ったものも空として返る)。
     pub state: Option<PipelineState>,
+    /// 実効の `remove_on_complete`(FR2.3): `--remove-on-complete` があれば `true`、なければ
+    /// 定義の `[pipeline].remove_on_complete`。環境変数は見ない(FR2.6)。
+    pub remove_on_complete: bool,
     /// 中断の合図(シグナルの監視が書き、`run_job` が読む)。
     pub signal: Arc<InterruptSignal>,
 }
@@ -135,11 +138,13 @@ impl Ctx<'_> {
             }
         }
 
+        let remove_on_complete = cmd.remove_on_complete || definition.remove_on_complete;
         Ok(Session {
             definition_path: path,
             definition,
             run_id,
             state,
+            remove_on_complete,
             signal,
         })
     }
