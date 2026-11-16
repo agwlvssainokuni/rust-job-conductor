@@ -51,11 +51,23 @@ pub fn read_state(
     definition_path: &Path,
     run_id: Option<&RunId>,
 ) -> Result<Option<PipelineState>, StateError> {
-    read_state_file(StateLocation::of(definition_path, run_id).path(), run_id)
+    Ok(read_state_raw(definition_path, run_id)?.filter(|state| !state.completed))
 }
 
-/// ステートファイルのパスを、直接指定して読む。`run_id` は、ファイル名の run ID。
-pub(crate) fn read_state_file(
+/// ステートを、完了のものも含めて、そのまま読む(`watch` が使う。FR3.1、FR3.4)。
+///
+/// 場所・読み取り・検査(版、破損、run ID の食い違い、大きさの上限)は、[`read_state`] と同じ。
+/// 違いは、`completed` が `true` のステートを、空にせず、返すことだけ。ファイルがない、
+/// または長さが 0 のときは `Ok(None)`。ファイルは、読み取りでは消さない。
+pub fn read_state_raw(
+    definition_path: &Path,
+    run_id: Option<&RunId>,
+) -> Result<Option<PipelineState>, StateError> {
+    read_state_file_raw(StateLocation::of(definition_path, run_id).path(), run_id)
+}
+
+/// ステートファイルのパスを、直接指定して、完了のものも含めて読む。`run_id` は、ファイル名の run ID。
+fn read_state_file_raw(
     path: &Path,
     run_id: Option<&RunId>,
 ) -> Result<Option<PipelineState>, StateError> {
@@ -78,7 +90,7 @@ pub(crate) fn read_state_file(
     if bytes.len() as u64 > MAX_STATE_BYTES {
         return Err(fail(StateErrorKind::TooLarge, reason::TOO_LARGE));
     }
-    parse_state_for(&bytes, run_id).map_err(|e| StateError::new(path, e.kind, e.reason))
+    parse_state_raw_for(&bytes, run_id).map_err(|e| StateError::new(path, e.kind, e.reason))
 }
 
 /// `reset --all` の候補のファイルを、中身で見分けた結果。
@@ -146,6 +158,15 @@ fn parse_state_for(
     bytes: &[u8],
     expected_run_id: Option<&RunId>,
 ) -> Result<Option<PipelineState>, ParseFailure> {
+    // 完了のまま残ったステートは、空として扱う(BR2.3)。
+    Ok(parse_state_raw_for(bytes, expected_run_id)?.filter(|state| !state.completed))
+}
+
+/// `parse_state_for` と同じ検査で、完了のステートも、そのまま返す(FR3.1、FR3.4)。
+fn parse_state_raw_for(
+    bytes: &[u8],
+    expected_run_id: Option<&RunId>,
+) -> Result<Option<PipelineState>, ParseFailure> {
     if bytes.is_empty() {
         return Ok(None);
     }
@@ -165,12 +186,7 @@ fn parse_state_for(
         Some(_) => return Err(corrupt(reason::BAD_VERSION_TYPE)),
     }
 
-    let state = walk(&table, expected_run_id)?;
-    if state.completed {
-        // 完了のまま残ったステートは、空として扱う(BR2.3)。
-        return Ok(None);
-    }
-    Ok(Some(state))
+    Ok(Some(walk(&table, expected_run_id)?))
 }
 
 /// 引数なしの検査(run ID なしの期待)。単体テストが使う。

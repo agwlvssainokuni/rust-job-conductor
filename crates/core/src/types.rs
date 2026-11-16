@@ -30,6 +30,8 @@ pub struct PipelineDefinition {
     pub description: Option<String>,
     /// run ID を読む環境変数の名前(省略可。形は検査済み。省略時は `CONDUCTOR_RUN_ID`)。
     pub run_id_env: Option<String>,
+    /// 完了のときにステートファイルを削除するか(省略時は `false`。FR2.2)。
+    pub remove_on_complete: bool,
     /// 書式の版(初版は 1)。
     pub format_version: u32,
     /// ジョブ。定義ファイルに書いた順を保つ(BR1.11)。1 つ以上。
@@ -330,6 +332,7 @@ mod tests {
             name: "p".into(),
             description: None,
             run_id_env: None,
+            remove_on_complete: false,
             format_version: 1,
             job: vec![job("a"), job("b")],
         };

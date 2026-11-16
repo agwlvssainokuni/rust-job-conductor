@@ -48,6 +48,7 @@ fn definition() -> PipelineDefinition {
         name: "bench".into(),
         description: None,
         run_id_env: None,
+        remove_on_complete: false,
         format_version: 1,
         job: (0..10)
             .map(|i| {

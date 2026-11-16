@@ -31,7 +31,7 @@ use crate::types::{
 };
 
 const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "job"];
-const PIPELINE_KEYS: &[&str] = &["name", "description", "run_id_env"];
+const PIPELINE_KEYS: &[&str] = &["name", "description", "run_id_env", "remove_on_complete"];
 const JOB_KEYS: &[&str] = &[
     "id",
     "command",
@@ -49,6 +49,7 @@ struct PipelineHead {
     name: String,
     description: Option<String>,
     run_id_env: Option<String>,
+    remove_on_complete: bool,
 }
 
 struct RawTransition {
@@ -117,6 +118,23 @@ impl<'a> Walker<'a> {
             _ => {
                 self.type_error(value.span().start, format!("`{key}` は文字列で書きます"));
                 None
+            }
+        }
+    }
+
+    /// 真偽値の値を取り出す。無ければ `false`。型が違えば `typeMismatch`(値は `false` とみなす)。
+    fn boolean(&mut self, table: &DeTable<'_>, key: &'static str) -> bool {
+        let Some(value) = table.get(key) else {
+            return false;
+        };
+        match value.get_ref() {
+            DeValue::Boolean(b) => *b,
+            _ => {
+                self.type_error(
+                    value.span().start,
+                    format!("`{key}` は真偽値(`true` または `false`)で書きます"),
+                );
+                false
             }
         }
     }
@@ -244,6 +262,7 @@ impl<'a> Walker<'a> {
                 );
             }
         }
+        let remove_on_complete = self.boolean(table, "remove_on_complete");
         let (name, name_offset) = name?;
         if name.trim().is_empty() {
             self.push(name_offset, Kind::EmptyField, "`name` が空です");
@@ -260,6 +279,7 @@ impl<'a> Walker<'a> {
             name,
             description: description.map(|(d, _)| d),
             run_id_env: run_id_env.map(|(e, _)| e),
+            remove_on_complete,
         })
     }
 
@@ -480,6 +500,7 @@ pub fn walk(
                     name: head.name,
                     description: head.description,
                     run_id_env: head.run_id_env,
+                    remove_on_complete: head.remove_on_complete,
                     format_version,
                     job: jobs,
                 });

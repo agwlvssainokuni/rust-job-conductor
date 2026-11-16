@@ -467,3 +467,46 @@ fn fr2_誤りの文に_run_id_env_の値を含めない() {
         assert!(!e.to_string().contains("secret_value"), "{e}");
     }
 }
+
+/// `[pipeline]` に `remove_on_complete` を足した定義。`value` は TOML の右辺をそのまま書く。
+fn with_remove_on_complete(value: &str) -> String {
+    format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nremove_on_complete = {value}\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+    )
+}
+
+#[test]
+fn fr2_2_remove_on_complete_は省略で_false_true_false_が読める() {
+    let none = parse_definition(
+        &with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\n"),
+        "t",
+        None,
+    )
+    .unwrap();
+    assert!(!none.remove_on_complete);
+    let on = parse_definition(&with_remove_on_complete("true"), "t.toml", None).unwrap();
+    assert!(on.remove_on_complete);
+    let off = parse_definition(&with_remove_on_complete("false"), "t.toml", None).unwrap();
+    assert!(!off.remove_on_complete);
+}
+
+#[test]
+fn fr2_4_remove_on_complete_の型の誤りは定義の誤り() {
+    for bad in ["\"true\"", "1", "[true]"] {
+        assert_eq!(
+            run(&with_remove_on_complete(bad)),
+            vec![(K::TypeMismatch, Some(4))],
+            "{bad}"
+        );
+    }
+}
+
+#[test]
+fn fr2_2_remove_on_complete_は他のキーと共存し_未知のキーは今までどおり拒否() {
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\ndescription = \"d\"\nrun_id_env = \"X_ID\"\nremove_on_complete = true\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
+    let def = parse_definition(text, "t.toml", None).unwrap();
+    assert!(def.remove_on_complete);
+    assert_eq!(def.run_id_env.as_deref(), Some("X_ID"));
+    let unknown = "format_version = 1\n[pipeline]\nname = \"p\"\nremove_on_complet = true\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
+    assert_eq!(run(unknown), vec![(K::UnknownKey, Some(4))]);
+}

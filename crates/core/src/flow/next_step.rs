@@ -173,6 +173,7 @@ mod tests {
             name: "p".into(),
             description: None,
             run_id_env: None,
+            remove_on_complete: false,
             format_version: 1,
             job: vec![
                 job("j0", j0_transitions),

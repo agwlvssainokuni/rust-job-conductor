@@ -26,6 +26,7 @@
 //! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `start_failure` の値) |
 //! | [`check_command`] | command を、起動せずに検査する(BR1.1) | [`Command`](文字列または配列) → [`CommandLine`] | [`CommandError`] |
 //! | [`read_state`] | ステートを読む(W2。BR2.1〜BR2.3) | 定義ファイルのパス → `Option<PipelineState>`(`None` が空) | [`StateError`] |
+//! | [`read_state_raw`] | ステートを、完了のものも含めて読む(`watch` 用。FR3.1) | 定義ファイルのパス → `Option<PipelineState>`(`None` はファイルなし・長さ 0) | [`StateError`] |
 //! | [`write_state`] | ステートを、原子的に書く(W3。BR2.4)。耐久性の指定つき | 定義ファイルのパス、ステート、[`Durability`] | [`StateError`](`writeFailed`) |
 //! | [`check_consistency`] | ステートと定義の食い違いを検知する(W4。BR2.5) | ステート、定義 → [`ConsistencyResult`] | なし(純粋) |
 //! | [`reset_state`] | ステートを、検査を迂回して消す(W5。BR2.6) | 定義ファイルのパス | [`StateError`](`removeFailed`) |
@@ -68,9 +69,10 @@
 //!      [`write_state`]([`Durability::Fast`])で書く(書けないディレクトリを、ジョブの前に検知する)。
 //!      そのあと、[`run_job`] → `classify_and_decide`(conductor-core)→ [`apply_outcome`] →
 //!      [`write_state`]([`Durability::Durable`])。
-//! 3. 完了(`completed`)のとき、記録のあとに [`reset_state`] を呼ぶ。この Unit は、完了を判断せず、
-//!    初期化の手段だけを提供する(`apply_skip` と `apply_outcome` が、`completed` を書く)。
-//!    完了のまま残ったステートは、[`read_state`] が空として返すため、次の実行は先頭から始まる。
+//! 3. 完了(`completed`)のとき、記録のあとに、呼び出し側が、削除を求められていれば [`reset_state`] を
+//!    呼ぶ。この Unit は、完了を判断せず、初期化の手段だけを提供する(`apply_skip` と
+//!    `apply_outcome` が、`completed` を書く)。完了のまま残ったステートは、[`read_state`] が空として
+//!    返すため、次の実行は先頭から始まる(`watch` だけは、[`read_state_raw`] で完了のステートを読む)。
 //!
 //! # 保証の範囲(at-least-once)
 //!
@@ -110,7 +112,7 @@ pub use error::*;
 pub use runner::run_job;
 pub use split::check_command;
 pub use state::consistency::check_consistency;
-pub use state::reader::read_state;
+pub use state::reader::{read_state, read_state_raw};
 pub use state::record::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub use state::reset_all::{ResetAllReport, reset_all_states};
 pub use state::writer::{reset_state, write_state};
