@@ -17,11 +17,11 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 | 1 | 全部が成功する(書いた順に、1 つずつ実行) |
 | 2 | 警告で分岐する(`extract` が警告 → `transform` と `load` をスキップして `notify` へ) |
 | 3 | エラーで止まる(`load` が失敗。終了コードがそのまま返り、`watch` で止まった位置が見える) |
-| 4 | 同じコマンドをもう一度 → 失敗した `load` から再開(済んだジョブは、再実行しない) |
+| 4 | 同じコマンドをもう一度 → 失敗した `load` から再開(済んだジョブは、再実行しない)。完了してもステートは残り、`watch` は表の下に完了を示す行(`completed`。日本語では `完了`)を出す。`--remove-on-complete` を付けると、完了でステートファイルを消す |
 | 5 | ジョブを 1 つだけ実行する(`run`)と、`reset` |
 | 6 | 定義ファイルを YAML に変換する(`convert`) |
 | 7 | 定義を検査する(`validate`)。正しい定義は 0、`command` の中の引用符が閉じていない定義は 64。ジョブは実行されず、ステートも作られない |
-| 8 | run ID でステートを分ける(`--run-id build-1` は `load` で止まり、環境変数 `DEMO_RUN_ID` の `build-2` は最後まで進む。同じ run ID で再実行すると `load` から再開) |
+| 8 | run ID でステートを分ける(`--run-id build-1` は `load` で止まり、環境変数 `DEMO_RUN_ID` の `build-2` は最後まで進む。同じ run ID で再実行すると `load` から再開。完了してもステートファイルは残り、`reset --run-id` で片づける) |
 | 9 | 環境変数と後始末(`--run-id` は環境変数に勝つ。`--run-id ""` は run ID なしに固定。`reset --run-id` で 1 つ、`reset --all` で全部を消す) |
 
 - 定義は `conductor.toml`、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。

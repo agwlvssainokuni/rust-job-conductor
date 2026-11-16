@@ -88,7 +88,13 @@ call :pause
 call :scene "4. 原因を直して、同じコマンドをもう一度: 失敗した load から再開する(transform は再実行しない)"
 call :runcmd pipeline -v nightly
 echo.
-echo 完了したので、ステートは空になる:
+echo 完了しても、ステートは残る。watch は、表の下に「完了」を示す行を出す:
+call :runcmd watch
+call :states
+echo.
+echo --remove-on-complete を付けると、完了でステートファイルを消す^(次に watch すると、ステートはない^):
+call :runcmd pipeline -v --remove-on-complete nightly
+call :states
 call :runcmd watch
 call :pause
 
@@ -145,7 +151,13 @@ echo.
 echo 同じ run ID で同じコマンドをもう一度: load から再開する:
 call :runcmd pipeline -v --run-id build-1 nightly
 echo.
-echo 完了したので、ステートファイルは無くなる:
+echo 完了しても、ステートファイルは残る^(watch は完了を示す^):
+call :states
+call :runcmd watch --run-id build-1
+echo.
+echo 片づけは reset^(run ID を指定して、1 つずつ消す^):
+call :runcmd reset --run-id build-1
+call :runcmd reset --run-id build-2
 call :states
 call :pause
 

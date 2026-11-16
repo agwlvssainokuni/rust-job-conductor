@@ -86,7 +86,13 @@ pause
 scene "4. 原因を直して、同じコマンドをもう一度: 失敗した load から再開する(transform は再実行しない)"
 cmd "$CONDUCTOR" pipeline -v nightly
 echo
-echo "完了したので、ステートは空になる:"
+echo "完了しても、ステートは残る。watch は、表の下に「完了」を示す行を出す:"
+cmd "$CONDUCTOR" watch
+states
+echo
+echo "--remove-on-complete を付けると、完了でステートファイルを消す(次に watch すると、ステートはない):"
+cmd "$CONDUCTOR" pipeline -v --remove-on-complete nightly
+states
 cmd "$CONDUCTOR" watch
 pause
 
@@ -130,7 +136,13 @@ echo
 echo "同じ run ID で同じコマンドをもう一度: load から再開する:"
 cmd "$CONDUCTOR" pipeline -v --run-id build-1 nightly
 echo
-echo "完了したので、ステートファイルは無くなる:"
+echo "完了しても、ステートファイルは残る(watch は完了を示す):"
+states
+cmd "$CONDUCTOR" watch --run-id build-1
+echo
+echo "片づけは reset(run ID を指定して、1 つずつ消す):"
+cmd "$CONDUCTOR" reset --run-id build-1
+cmd "$CONDUCTOR" reset --run-id build-2
 states
 pause
 

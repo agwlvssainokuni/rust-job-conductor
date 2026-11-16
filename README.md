@@ -38,7 +38,7 @@
 | macOS(Intel) | `conductor-<版>-x86_64-apple-darwin.tar.gz`(クロスビルドで作ったもので、動作の確認はしていません) |
 | Windows(x86_64) | `conductor-<版>-x86_64-pc-windows-msvc.zip` |
 
-ファイル名の `<版>` は、`v` を付けない版の数字(例: `0.6.0`)です。`<版>` のあとの部分(例: `x86_64-unknown-linux-musl`)を、この README では `<対象>` と書きます。
+ファイル名の `<版>` は、`v` を付けない版の数字(例: `0.7.0`)です。`<版>` のあとの部分(例: `x86_64-unknown-linux-musl`)を、この README では `<対象>` と書きます。
 
 ### 2. SHA-256 の確認
 
@@ -181,20 +181,41 @@ Windows では、`command` を `cmd /c` で動く形に書き換えてくださ�
    0
    ```
 
-5. 最後まで終わったので、ステートは消えています。
+5. 最後まで終わりました。ステートは残っていて、`watch` は、表の下に、完了を示す行(`completed`)を出します(v0.7.0 以降)。
 
    ```text
    $ conductor watch
-   no state (nothing has run yet)
+   Pipeline: hello
+   JOB    STATUS   NOTE
+   step1  success  exit code 0
+   step2  success  exit code 0
+   step3  success  exit code 0
+   completed
    ```
+
+6. 完了したステートが残っていても、同じコマンドをもう一度実行すると、先頭の `step1` から実行します。
+
+   ```text
+   $ conductor pipeline -v hello
+   step1
+   [conductor] job=step1 result=success (exit code 0)
+   step2
+   [conductor] job=step2 result=success (exit code 0)
+   step3
+   [conductor] job=step3 result=success (exit code 0)
+   $ echo $?
+   0
+   ```
+
+完了のときにステートを消したいときは、`--remove-on-complete` を付けます(「[ステートファイルの場所](#ステートファイルの場所)」を参照)。
 
 次は、「使い方」と「定義ファイルの書き方」へ進んでください。
 
 ## 使い方
 
 ```text
-conductor run [-v] [--config <パス>] [--run-id <ID>] <ジョブID>
-conductor pipeline [-v] [--config <パス>] [--run-id <ID>] <パイプライン名>
+conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <ジョブID>
+conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <パイプライン名>
 conductor watch [--config <パス>] [--run-id <ID>]
 conductor reset [--config <パス>] [--run-id <ID> | --all]
 conductor validate [-v] [--config <パス>] [<パイプライン名>]
@@ -205,9 +226,9 @@ conductor --help | --version
 | コマンド | 動き |
 |----------|------|
 | `run <ジョブID>` | ジョブ 1 つを実行する(個別実行)。起動前の判断(実行・スキップ・拒否)に従う |
-| `pipeline <パイプライン名>` | 定義の記述順に、ジョブを 1 つずつ実行する(一括実行)。エラーで止まる |
-| `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する |
-| `reset` | ステートを消して、最初からやり直す(壊れたステートの回復にも使う) |
+| `pipeline <パイプライン名>` | 定義の記述順に、ジョブを 1 つずつ実行する(一括実行)。エラーで止まる。完了しても、ステートは残る(v0.7.0 以降) |
+| `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する。完了したステートには、表の下に完了を示す行を足す(v0.7.0 以降) |
+| `reset` | ステートを消して、最初からやり直す(壊れたステートの回復と、完了したステートの片づけにも使う) |
 | `validate [<パイプライン名>]` | 定義ファイルを検証し、全ジョブの `command` を検査する(v0.4.0 以降) |
 | `convert <ファイル> --to <形式>` | 定義ファイルを、YAML と TOML のあいだで変換し、結果を標準出力に書く |
 
@@ -216,6 +237,7 @@ conductor --help | --version
 | `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`) |
 | `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階) |
 | `--run-id <ID>`(`--run-id=<ID>`) | ステートを分ける run ID(`run`・`pipeline`・`watch`・`reset` だけ)。規則は「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照 |
+| `--remove-on-complete` | `run`・`pipeline` だけ(v0.7.0 以降)。値は取りません。完了のときに、ステートファイルを消す。指定しなければ、定義の `[pipeline]` の `remove_on_complete`(既定は `false`)に従う。`watch`・`reset`・`validate`・`convert` に付けると、使い方の誤り(68) |
 | `--all` | `reset` だけ(v0.5.0 以降)。その定義のステートを、run ID の有無によらず、すべて消す |
 | `--to <yaml\|toml>` | `convert` の変換後の形式(必須) |
 | `-h`、`--help` | 使い方を表示する |
@@ -226,8 +248,8 @@ conductor --help | --version
 
 ### コマンドの詳しい動き
 
-- **`watch`**: ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示します。run ID があるときは、パイプライン名の次の行に `Run ID: <ID>` を表示します。
-- **`reset`**: ステートを消します。`--run-id` で、その run ID のステートだけを消します。`--all` で、その定義のステートを、run ID の有無によらず、すべて消します(`--run-id` との併用は、使い方の誤り(68)です)。run ID と `--all` の規則は、「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」にあります。
+- **`watch`**: ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示します。run ID があるときは、パイプライン名の次の行に `Run ID: <ID>` を表示します。完了したステートには(v0.7.0 以降)、表の下に、完了を示す 1 行を足します(英語は `completed`、日本語は `完了`。状態の列の語は、英語のままです)。`no state` を表示するのは、ステートファイルがないとき、または長さが 0 のときだけです。終了コードは 0 です。
+- **`reset`**: ステートを(完了したものも)消します。`--run-id` で、その run ID のステートだけを消します。`--all` で、その定義のステートを、run ID の有無によらず、すべて消します(`--run-id` との併用は、使い方の誤り(68)です)。run ID と `--all` の規則は、「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」にあります。
 - **`validate`(v0.4.0 以降)**: 定義ファイルを検証し、全ジョブの `command` を検査します。ジョブは実行せず、ステートを読まず、書かず、消しません。パイプライン名を書くと、定義の名前と照合します(省略すると照合しません)。成功は何も表示しません。`-v` を付けると、検査が通ったときに 1 行(ジョブの数)だけ、標準エラーに表示します。`--run-id` は使えません(使い方の誤り(68))。
 
 ### 例
@@ -240,6 +262,7 @@ conductor watch                        # 実行の状況を見る
 conductor reset                        # 最初からやり直す
 conductor pipeline nightly --run-id "$GITHUB_RUN_ID"   # 実行単位(run ID)ごとに、ステートを分ける
 conductor reset --all                  # その定義のステートを、すべて消す
+conductor pipeline nightly --remove-on-complete   # 完了したら、ステートファイルを消す
 conductor validate                     # 定義を実行せずに検査する(成功は何も出さない)
 conductor validate -v nightly --config /etc/batch/conductor.toml   # 名前も照合し、結果を 1 行表示
 conductor convert conductor.yaml --to toml > conductor.toml
@@ -258,6 +281,7 @@ format_version = 1
 name = "nightly"
 description = "夜間バッチ"
 run_id_env = "GITHUB_RUN_ID"   # 省略可。run ID を読む環境変数の名前(省略すると CONDUCTOR_RUN_ID)
+remove_on_complete = false     # 省略可。true にすると、完了のときにステートファイルを消す(省略すると false)
 
 [[job]]
 id = "extract"
@@ -291,6 +315,7 @@ command = "python scripts/notify.py --msg='Warning in extraction'"
 | `format_version` | 書式の版。`1` だけ(必須) |
 | `[pipeline]` の `name` | パイプラインの名前(必須。`conductor pipeline <名前>` で照合する)。`description` は省略可 |
 | `[pipeline]` の `run_id_env` | 省略可(v0.5.0 以降)。run ID を読む環境変数の名前で、形の規則は「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照 |
+| `[pipeline]` の `remove_on_complete` | 省略可(v0.7.0 以降)。真偽値(`true` または `false`)で、省略すると `false`。`true` のとき、完了でステートファイルを消す(`--remove-on-complete` を付けた実行も同じ)。真偽値でないと、定義の誤り(64。`validate` も同じ)です |
 | `[[job]]` | ジョブ。**書いた順**に実行する。1 つ以上 |
 | `id` | ジョブID(必須。空でなく、定義の中で重複せず、`@` で始めない) |
 | `command` | 実行するコマンド(必須)。文字列、または文字列の配列(下の「command の書き方」) |
@@ -325,14 +350,15 @@ command = ["python", "scripts/notify.py", "--msg=Warning in extraction", ""]
 
 ステート(どのジョブが、どう終わったか)は、**定義ファイルと同じディレクトリ**の `<定義ファイル名>.state` に保存されます(例: `conductor.toml` なら `conductor.toml.state`)。
 
-- 最後のジョブの完了、`@end`、スキップでの完了で、ステートは消されます(次の実行は、先頭から始まります)。
+- 最後のジョブの完了、`@end`、スキップでの完了のあとも、ステートは**残ります**(v0.7.0 以降。v0.6.x までは、完了で消されました)。完了したステートは、`completed = true` のまま残り、書式(`format_version = 1`)は変わりません。`watch` は、これに完了を示す行を足して表示します。次の実行は、先頭から始まります(完了したステートは、空として扱います。先頭以外のジョブを `run` で単独に呼ぶと、順序外(66)です)。
+- 完了のときにステートを消すには、`--remove-on-complete`(`run`・`pipeline`)を付けるか、定義の `[pipeline]` に `remove_on_complete = true` を書きます。オプションを付けたら消し、付けなければ定義の値に従います(環境変数は見ません)。消すのに失敗したときは、65 で終わります。残ったステートの片づけは、`conductor reset`(`reset --all`)で行います。
 - エラーで止まったときは、エラーのジョブが、再開位置として残ります。同じコマンドを、もう一度実行すると、成功済みのジョブを飛ばして、エラーのジョブから再開します。**自動の再試行はしません**。
 - ステートが読めない・壊れている・定義と食い違っているときは、65 で終わります。`conductor reset` で消してください(`reset` は、ステートを読まず、検査もしないため、どんな状態でも動きます)。
 - 同じ定義に、複数の `conductor` を同時に動かしても、排他制御はしません(後に書いた方が、勝ちます)。同時の実行は、避けてください。同じ定義を別々の実行単位で並行して使うときは、次の run ID で、ステートを分けてください。
 
 ### run ID でステートを分ける(v0.5.0 以降)
 
-run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state`(例: `conductor.toml.12345.state`)に分かれ、run ID ごとに独立します。run ID を与えないときは、これまでどおり `<定義ファイル名>.state` で、形式もメッセージも変わりません。同じ run ID で呼び直すと、止まったジョブから再開します(完了した run のステートは、これまでどおり消えます)。
+run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state`(例: `conductor.toml.12345.state`)に分かれ、run ID ごとに独立します。run ID を与えないときは、これまでどおり `<定義ファイル名>.state` で、形式もメッセージも変わりません。同じ run ID で呼び直すと、止まったジョブから再開します(完了した run のステートは、run ID なしと同じく、v0.7.0 以降は残ります。`--remove-on-complete` か、定義の `remove_on_complete = true` で、消せます)。
 
 - **与え方**: `--run-id <ID>`、または環境変数。環境変数の名前は、定義ファイルの `[pipeline]` の `run_id_env` で決めます(省略すると `CONDUCTOR_RUN_ID`)。`run_id_env` は、`A-Za-z_` で始まり、`A-Za-z0-9_` が続く 1 文字以上の文字列です。文字列でない、または形が違うと、定義の誤り(64。`validate` も同じ)です。`--run-id` があれば、環境変数は見ません。環境変数が未定義または空なら、run ID なしです。`--run-id ""` は、環境変数があっても、run ID なしに固定します。
 - **値の規則**: 文字は `A-Za-z0-9._-`、1〜64 文字、先頭が `.` でないこと(`..` も不可)。規則に合わない値は、オプションでも環境変数でも、使い方の誤り(68)です。誤りの文に、値は含めません。`validate`・`convert` への `--run-id`、`reset` 以外への `--all` も、使い方の誤り(68)です。
@@ -353,11 +379,11 @@ run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state
 | 0 | 成功、警告、スキップ(実行済み・遷移・`@end` によるスキップ)、`watch`・`reset`・`validate`・`convert` の成功 |
 | ジョブの値 | エラーになったジョブの終了コードを、そのまま(0〜255) |
 | 1 | 成功コードに含まれない `0` で終わったジョブ(`success_exit_codes` に `0` がない)。原因を標準エラーに表示する |
-| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り・`run_id_env` の型や名前の形の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
+| 64 | 定義の誤り(ファイルがない・読めない・検証の誤り・パイプライン名の不一致・`command` の誤り・`run_id_env` の型や名前の形の誤り・`remove_on_complete` の型の誤り)。ジョブは実行しない。`validate` の検査の失敗も、この値 |
 | 65 | ステートの誤り(読めない・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みや初期化の失敗、`reset --all` で消すのに失敗したとき)、`watch` の標準出力に書けない |
 | 66 | 拒否(順序外。前のジョブが終わっていない) |
 | 67 | 変換の誤り、`convert` の標準出力に書けない |
-| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む)。run ID の値の誤り(`--run-id` の値、または環境変数の値が、規則に合わない)、`validate`・`convert` への `--run-id`、`reset` 以外への `--all`、`--all` と `--run-id` の併用も、この値 |
+| 68 | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないジョブIDなど。`validate` に名前を 2 個以上渡した場合を含む)。run ID の値の誤り(`--run-id` の値、または環境変数の値が、規則に合わない)、`validate`・`convert` への `--run-id`、`reset` 以外への `--all`、`--all` と `--run-id` の併用、`run`・`pipeline` 以外への `--remove-on-complete` も、この値 |
 | 70 | 内部の誤り(パニック、シグナルの準備の失敗) |
 | 127 | ジョブを起動できなかった |
 | 128 + 番号 | ジョブがシグナルで終了した、または、`conductor` が中断された(例: SIGTERM = 143、Ctrl+C = 130) |
@@ -371,7 +397,7 @@ run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state
 
 **ジョブの終了と、その結果のステートへの記録のあいだに、`conductor` が落ちる(kill される・電源が切れるなど)と、ジョブは終わっているのに、ステートに記録されません。** 次の呼び出しでは、そのジョブは未実行として扱われ、**再実行されうる**(ジョブが 2 回動きうる)ことになります。冪等でないジョブは、2 回動きうるため、ジョブを、再実行されても困らない作りにしてください。
 
-- ステートが壊れた内容になることはありません(一時ファイルに書いてから、置き換えます)。
+- ステートが壊れた内容になることはありません(一時ファイルに書いてから、置き換えます)。完了のステートも、同じ手順で書きます。書くのに失敗したときは、65 で終わります。
 - 結果の書き込みに失敗したときは、65 で終わり、「ジョブは実行されました」と表示します。ジョブは、次の呼び出しで、再実行されえます。
 - `conductor` が SIGKILL などで強制終了されると、実行中のジョブは、残って動き続けうります(`conductor` は、検知も停止もしません)。
 - ジョブの実行中に、`conductor` が内部の誤り(パニック)で終わると、ジョブが孤児として残りうります(終了コード 70)。
