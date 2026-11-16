@@ -18,46 +18,46 @@
 
 ### 層 0: 準備
 
-- [ ] **Step 1**: 既存のテストの実行環境を確かめ、層ごとの実行コマンドを `unit-test-instructions.md` に記録する(新しい依存や設定ファイルは足さない)。ベースラインとして、`cargo test --workspace --locked` が成功することを、変更の前に確かめる。
+- [x] **Step 1**: 既存のテストの実行環境を確かめ、層ごとの実行コマンドを `unit-test-instructions.md` に記録する(新しい依存や設定ファイルは足さない)。ベースラインとして、`cargo test --workspace --locked` が成功することを、変更の前に確かめる。
 
 ### 層 1: 定義(`crates/core`)— FR2.2、FR2.4
 
-- [ ] **Step 2**: `PipelineDefinition`(`crates/core/src/types.rs`)に、`remove_on_complete: bool`(省略時は `false`)を足す。`Default`・既存のコンストラクターの初期値を合わせる。
-- [ ] **Step 3**: `crates/core/src/definition/walk.rs` の `[pipeline]` の読み取り(`PIPELINE_KEYS`、`PipelineHead`)に、`remove_on_complete` を足す。真偽値でなければ、既存の「型が違う」の誤りの経路で、定義ファイルの誤り(64)にする。`validate` も、同じ検査を通る(`Ctx::check_definition` が共通)。
-- [ ] **Step 4**: 層 1 のテスト(単体): 省略時は `false`、`true`・`false` が読める、文字列・数値は誤り、他のキーとの共存、未知のキーの拒否が今までどおり(FR2.2、FR2.4)。
+- [x] **Step 2**: `PipelineDefinition`(`crates/core/src/types.rs`)に、`remove_on_complete: bool`(省略時は `false`)を足す。`Default`・既存のコンストラクターの初期値を合わせる。
+- [x] **Step 3**: `crates/core/src/definition/walk.rs` の `[pipeline]` の読み取り(`PIPELINE_KEYS`、`PipelineHead`)に、`remove_on_complete` を足す。真偽値でなければ、既存の「型が違う」の誤りの経路で、定義ファイルの誤り(64)にする。`validate` も、同じ検査を通る(`Ctx::check_definition` が共通)。
+- [x] **Step 4**: 層 1 のテスト(単体): 省略時は `false`、`true`・`false` が読める、文字列・数値は誤り、他のキーとの共存、未知のキーの拒否が今までどおり(FR2.2、FR2.4)。
 
 ### 層 2: ステートの読み取り(`crates/runtime`)— FR3.1、FR3.2、FR3.4
 
-- [ ] **Step 5**: `crates/runtime/src/state/reader.rs` に、`read_state_raw(definition_path, run_id) -> Result<Option<PipelineState>, StateError>` を足す。完了のステートも、そのまま返す。ファイルがない・長さ 0 は `Ok(None)`。版・破損・run ID の食い違いの検査は、`read_state` と同じ(FR3.4)。`read_state` は、`read_state_raw` を呼び、`completed` なら `None` にする形に直す(挙動は変えない)。`lib.rs` の表と再公開を合わせる。
-- [ ] **Step 6**: 層 2 のテスト(単体): `read_state_raw` が完了のステートを返す、`read_state` は同じファイルを空として返す、ファイルなし・長さ 0 は両方 `None`、版違い・壊れたファイル・run ID の食い違いは両方とも同じ誤り。
+- [x] **Step 5**: `crates/runtime/src/state/reader.rs` に、`read_state_raw(definition_path, run_id) -> Result<Option<PipelineState>, StateError>` を足す。完了のステートも、そのまま返す。ファイルがない・長さ 0 は `Ok(None)`。版・破損・run ID の食い違いの検査は、`read_state` と同じ(FR3.4)。`read_state` は、`read_state_raw` を呼び、`completed` なら `None` にする形に直す(挙動は変えない)。`lib.rs` の表と再公開を合わせる。
+- [x] **Step 6**: 層 2 のテスト(単体): `read_state_raw` が完了のステートを返す、`read_state` は同じファイルを空として返す、ファイルなし・長さ 0 は両方 `None`、版違い・壊れたファイル・run ID の食い違いは両方とも同じ誤り。
 
 ### 層 3: CLI(`crates/cli`)— FR1、FR2.1、FR2.3、FR2.5、FR3、FR4
 
-- [ ] **Step 7**: `args.rs`: `--remove-on-complete`(値なし)を、字句の段階と表に足す。`pipeline` と `run` だけが受け付ける。`watch`・`reset`・`validate`・`convert` に付けたら、`OptionNotAllowed`(68)。2 回以上の指定は、既存の重複の扱い(`-v` の 2 回以上と同じ規則)に合わせる。`CliCommand` に `remove_on_complete: bool` を足す。冒頭の表のコメントを直す。
-- [ ] **Step 8**: `report/messages.rs`: 使い方(`--help` と使い方の誤りの表示、英語・日本語の両方)に、`--remove-on-complete` を足す。`watch` の完了の行の文言(`WATCH_COMPLETED`: 英語 `completed`、日本語 `完了`)を足す。
-- [ ] **Step 9**: `ctx.rs`: `Session` に、実効の `remove_on_complete`(オプションが指定されたら `true`、なければ定義の値)を持たせ、`prepare` で決める(FR2.3)。
-- [ ] **Step 10**: `pipeline.rs` の `finish`(完了後の初期化。2 か所から呼ばれる)と、`run.rs` の完了の 2 か所の `ctx.reset` を、実効の `remove_on_complete` が `true` のときだけ呼ぶ形にする。`false` なら、削除せず、そのまま 0 で終える(完了のステートは、すでに書いてある)。モジュールの説明コメントと、`StateContext` の記述も合わせる(FR1.1、FR2.1)。
-- [ ] **Step 11**: `deps.rs` の `Runtime` trait に `read_state_raw` を足し、`SystemRuntime` は runtime の `read_state_raw` を呼ぶ。テスト用のフェイクの実装(`tests/` の共通部)も合わせる。
-- [ ] **Step 12**: `aux_commands.rs` の `watch`: `read_state_raw` で読み、状態があれば、今までの表を出し、`state.completed` のときだけ、表の下に完了の行を 1 行足す(`report/watch.rs` の組み立てに、完了の行を足すか、`WatchView` で組み立てる)。ファイルなし・長さ 0 のときだけ `no state`。run ID あり・なしの両方で同じ(FR3.1〜FR3.3)。終了コードは 0。
-- [ ] **Step 13**: 層 3 のテスト(単体・統合): 下の「テスト」の表のとおり。
+- [x] **Step 7**: `args.rs`: `--remove-on-complete`(値なし)を、字句の段階と表に足す。`pipeline` と `run` だけが受け付ける。`watch`・`reset`・`validate`・`convert` に付けたら、`OptionNotAllowed`(68)。2 回以上の指定は、既存の重複の扱い(`-v` の 2 回以上と同じ規則)に合わせる。`CliCommand` に `remove_on_complete: bool` を足す。冒頭の表のコメントを直す。
+- [x] **Step 8**: `report/messages.rs`: 使い方(`--help` と使い方の誤りの表示、英語・日本語の両方)に、`--remove-on-complete` を足す。`watch` の完了の行の文言(`WATCH_COMPLETED`: 英語 `completed`、日本語 `完了`)を足す。
+- [x] **Step 9**: `ctx.rs`: `Session` に、実効の `remove_on_complete`(オプションが指定されたら `true`、なければ定義の値)を持たせ、`prepare` で決める(FR2.3)。
+- [x] **Step 10**: `pipeline.rs` の `finish`(完了後の初期化。2 か所から呼ばれる)と、`run.rs` の完了の 2 か所の `ctx.reset` を、実効の `remove_on_complete` が `true` のときだけ呼ぶ形にする。`false` なら、削除せず、そのまま 0 で終える(完了のステートは、すでに書いてある)。モジュールの説明コメントと、`StateContext` の記述も合わせる(FR1.1、FR2.1)。
+- [x] **Step 11**: `deps.rs` の `Runtime` trait に `read_state_raw` を足し、`SystemRuntime` は runtime の `read_state_raw` を呼ぶ。テスト用のフェイクの実装(`tests/` の共通部)も合わせる。
+- [x] **Step 12**: `aux_commands.rs` の `watch`: `read_state_raw` で読み、状態があれば、今までの表を出し、`state.completed` のときだけ、表の下に完了の行を 1 行足す(`report/watch.rs` の組み立てに、完了の行を足すか、`WatchView` で組み立てる)。ファイルなし・長さ 0 のときだけ `no state`。run ID あり・なしの両方で同じ(FR3.1〜FR3.3)。終了コードは 0。
+- [x] **Step 13**: 層 3 のテスト(単体・統合): 下の「テスト」の表のとおり。
 
 ### 層 4: 既存テストの前提の修正
 
-- [ ] **Step 14**: 完了後にステートがなくなる前提のテストを、新しい挙動に直す(FR5.3): `flow_pipeline.rs`(完了後の初期化の失敗が 65 になるテストは、`--remove-on-complete` を付けた場合のテストに直し、付けない場合は、完了のステートが残ることを確かめるテストを足す)、`flow_run_id.rs`、`flow_aux.rs`(`watch_は完了のまま残ったステートを空として扱う` は、完了を示す行を確かめるテストに直す)、`binary_basic.rs`、`binary_run_id.rs`、`unix_demo.rs`(`no state` の期待)、`windows_demo.rs`。
+- [x] **Step 14**: 完了後にステートがなくなる前提のテストを、新しい挙動に直す(FR5.3): `flow_pipeline.rs`(完了後の初期化の失敗が 65 になるテストは、`--remove-on-complete` を付けた場合のテストに直し、付けない場合は、完了のステートが残ることを確かめるテストを足す)、`flow_run_id.rs`、`flow_aux.rs`(`watch_は完了のまま残ったステートを空として扱う` は、完了を示す行を確かめるテストに直す)、`binary_basic.rs`、`binary_run_id.rs`、`unix_demo.rs`(`no state` の期待)、`windows_demo.rs`。
 
 ### 層 5: 文書とデモ
 
-- [ ] **Step 15**: `README.md`: クイックスタートの 5(完了後もステートが残り、`watch` が完了を示す)、`pipeline` の説明、`ステートファイルの場所` の節(完了で消える、という記述を、残る、に直し、`--remove-on-complete` で消す、を書く)、run ID の小節(完了した run は消える、という記述、「ステートは、自動では消えません」との整合)、`watch` の説明と出力例、オプションの表(`--remove-on-complete`)、定義ファイルの書き方(`[pipeline].remove_on_complete`)、終了コードの表(68 の例)、保証の範囲、版の注記(0.7.0 以降)。`docs-check` の 7 語句と、それを含む見出しは変えない。
-- [ ] **Step 16**: デモ: `demo/run-demo.sh` と `demo/windows/run-demo.cmd` の場面 4・8・9(完了後に `watch` が完了を示す、ステートが残る、`--remove-on-complete` で消える、片づけは `reset`)と、2 つの `conductor.toml`(必要なら)と、`demo/README.md` を合わせる。
+- [x] **Step 15**: `README.md`: クイックスタートの 5(完了後もステートが残り、`watch` が完了を示す)、`pipeline` の説明、`ステートファイルの場所` の節(完了で消える、という記述を、残る、に直し、`--remove-on-complete` で消す、を書く)、run ID の小節(完了した run は消える、という記述、「ステートは、自動では消えません」との整合)、`watch` の説明と出力例、オプションの表(`--remove-on-complete`)、定義ファイルの書き方(`[pipeline].remove_on_complete`)、終了コードの表(68 の例)、保証の範囲、版の注記(0.7.0 以降)。`docs-check` の 7 語句と、それを含む見出しは変えない。
+- [x] **Step 16**: デモ: `demo/run-demo.sh` と `demo/windows/run-demo.cmd` の場面 4・8・9(完了後に `watch` が完了を示す、ステートが残る、`--remove-on-complete` で消える、片づけは `reset`)と、2 つの `conductor.toml`(必要なら)と、`demo/README.md` を合わせる。
 
 ### 層 6: 版
 
-- [ ] **Step 17**: 4 クレートの `Cargo.toml` の版と `Cargo.lock` を 0.7.0 にする(`cargo build --locked` が通ること)。タグは付けない。
+- [x] **Step 17**: 4 クレートの `Cargo.toml` の版と `Cargo.lock` を 0.7.0 にする(`cargo build --locked` が通ること)。タグは付けない。
 
 ### 層 7: 確認
 
-- [ ] **Step 18**: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`、`cargo +1.85 build --workspace --locked --all-targets` が成功すること。README の `docs-check` の 7 語句が残ること。
-- [ ] **Step 19**: `code-summary.md` と `traceability.json` を書く。
+- [x] **Step 18**: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`、`cargo +1.85 build --workspace --locked --all-targets` が成功すること。README の `docs-check` の 7 語句が残ること。
+- [x] **Step 19**: `code-summary.md` と `traceability.json` を書く。
 
 ## テスト(要件との対応)
 
