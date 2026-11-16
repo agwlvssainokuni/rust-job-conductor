@@ -1,6 +1,6 @@
 [package]
 name = "conductor-cli"
-version = "0.6.0"
+version = "0.7.0"
 description = "conductor の実行ファイル(コマンドの受け付け、流れの組み立て、シグナル、表示、終了コード)"
 edition.workspace = true
 rust-version.workspace = true
