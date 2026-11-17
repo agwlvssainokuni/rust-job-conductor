@@ -73,11 +73,9 @@ pub(crate) fn wait_loop<C: Waitable>(
             Ok(None) => {}
             Err(_) => return Waited::WaitFailed,
         }
-        if !forwarded {
-            if let Some(number) = signal.signal_number() {
-                forward(child.id(), number);
-                forwarded = true;
-            }
+        if !forwarded && let Some(number) = signal.signal_number() {
+            forward(child.id(), number);
+            forwarded = true;
         }
         sleep(Duration::from_millis(interval));
         interval = (interval * 2).min(MAX_INTERVAL_MS);

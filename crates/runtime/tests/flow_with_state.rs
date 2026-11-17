@@ -137,10 +137,10 @@ fn invoke_inner(
 ) -> Result<Done, Failure> {
     let loaded = read_state(def_path)?;
     let is_empty = loaded.is_none();
-    if let Some(state) = &loaded {
-        if let ConsistencyResult::Mismatch(kind) = check_consistency(state, definition) {
-            return Err(Failure::Mismatch(kind));
-        }
+    if let Some(state) = &loaded
+        && let ConsistencyResult::Mismatch(kind) = check_consistency(state, definition)
+    {
+        return Err(Failure::Mismatch(kind));
     }
     let state = loaded.unwrap_or_else(|| initial_state(definition, def_path));
 

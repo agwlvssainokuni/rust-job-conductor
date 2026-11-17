@@ -70,14 +70,13 @@ fn p95(samples: &mut [Duration]) -> Duration {
 
 fn report(line: &str) {
     eprintln!("{line}");
-    if let Ok(path) = std::env::var("GITHUB_STEP_SUMMARY") {
-        if let Ok(mut f) = std::fs::OpenOptions::new()
+    if let Ok(path) = std::env::var("GITHUB_STEP_SUMMARY")
+        && let Ok(mut f) = std::fs::OpenOptions::new()
             .append(true)
             .create(true)
             .open(path)
-        {
-            let _ = writeln!(f, "{line}");
-        }
+    {
+        let _ = writeln!(f, "{line}");
     }
 }
 
