@@ -70,5 +70,13 @@
     "scope": "express",
     "status": "complete",
     "request": "03e82413"
+  },
+  {
+    "uuid": "01a1e9aa-8a3b-7b36-a492-e3d3db015999",
+    "slug": "align-latest-lts",
+    "dirName": "261117-align-latest-lts",
+    "scope": "refactor",
+    "status": "in-flight",
+    "request": "5d44e495"
   }
 ]
