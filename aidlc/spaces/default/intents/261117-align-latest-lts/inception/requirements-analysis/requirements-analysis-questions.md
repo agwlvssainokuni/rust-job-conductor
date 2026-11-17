@@ -14,7 +14,7 @@
 - D. 依存クレートも含め、版に関わるものすべて(A、B と、`Cargo.toml` の依存の更新)
 - X. Other (please specify)
 
-[Answer]:
+[Answer]: A
 
 ## Q2. [開発者] コードはどこまで直しますか?
 
@@ -25,7 +25,7 @@
 - C. 版の更新だけで、コードは変えない(警告が出たら別の作業にする)
 - X. Other (please specify)
 
-[Answer]:
+[Answer]: B
 
 ## Q3. [開発者] MSRV(最小の Rust の版、現状 1.85)はどうしますか?
 
@@ -36,7 +36,7 @@ README.md、`Cargo.toml`、`ci.yml` の 2 か所の計 4 か所に書かれて�
 - C. 1.85 のまま変えない
 - X. Other (please specify)
 
-[Answer]:
+[Answer]: A
 
 ## Q4. [プロダクト担当] 利用者から見える動作は変えてよいですか?
 
@@ -46,4 +46,11 @@ README.md、`Cargo.toml`、`ci.yml` の 2 か所の計 4 か所に書かれて�
 - B. 必要なら変えてよい(変える場合は事前に確認する)
 - X. Other (please specify)
 
-[Answer]:
+[Answer]: A
+
+## Consolidated Summary Confirmation
+
+- Looks correct
+- Request changes
+
+[Answer]: Looks correct
