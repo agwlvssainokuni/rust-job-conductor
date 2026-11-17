@@ -512,10 +512,10 @@ impl<'a> Walker<'a> {
         let mut enter = Some(self.tree.root);
         let mut ret: Option<Value> = None;
         loop {
-            if let Some(node) = enter.take() {
-                if let Entered::Leaf(v) = self.enter(node)? {
-                    ret = Some(v);
-                }
+            if let Some(node) = enter.take()
+                && let Entered::Leaf(v) = self.enter(node)?
+            {
+                ret = Some(v);
             }
             if let Some(v) = ret.take() {
                 if self.stack.is_empty() {

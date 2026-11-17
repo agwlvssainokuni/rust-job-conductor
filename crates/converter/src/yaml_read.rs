@@ -127,10 +127,10 @@ impl Doc {
                 let id = self.scalar_key_id(child);
                 if let Some(top) = self.stack.last_mut() {
                     top.pending_key = Some(child);
-                    if let Some(id) = id {
-                        if !top.seen.insert(id) {
-                            return Err(syntax(file, line, reason::DUPLICATE_KEY));
-                        }
+                    if let Some(id) = id
+                        && !top.seen.insert(id)
+                    {
+                        return Err(syntax(file, line, reason::DUPLICATE_KEY));
                     }
                 }
             }
@@ -223,13 +223,13 @@ pub(crate) fn read(text: &str, file: &str) -> Result<YamlRead, ConversionError> 
                 doc = Doc::default();
             }
             Event::DocumentEnd => {
-                if documents == 1 {
-                    if let Some(root) = doc.root {
-                        first = Some(RawTree {
-                            nodes: std::mem::take(&mut doc.nodes),
-                            root,
-                        });
-                    }
+                if documents == 1
+                    && let Some(root) = doc.root
+                {
+                    first = Some(RawTree {
+                        nodes: std::mem::take(&mut doc.nodes),
+                        root,
+                    });
                 }
                 doc = Doc::default();
             }
@@ -264,10 +264,10 @@ pub(crate) fn read(text: &str, file: &str) -> Result<YamlRead, ConversionError> 
                 open_collection(&mut doc, true, anchor, tag_of(&tag), file, line)?;
             }
             Event::SequenceEnd | Event::MappingEnd => {
-                if let Some(open) = doc.stack.pop() {
-                    if open.anchor > 0 {
-                        doc.open_anchors.remove(&open.anchor);
-                    }
+                if let Some(open) = doc.stack.pop()
+                    && open.anchor > 0
+                {
+                    doc.open_anchors.remove(&open.anchor);
                 }
             }
         }
