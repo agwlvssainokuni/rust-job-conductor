@@ -98,12 +98,12 @@ impl Ctx<'_> {
 
         let (path, definition) = self.check_definition(cmd, expected_pipeline)?;
 
-        if let Some(job_id) = require_job {
-            if definition.job_index(job_id).is_none() {
-                let error = UsageError::with_subject(UsageErrorKind::UnknownJob, job_id);
-                self.show(&DisplayEvent::Usage(&error));
-                return Err(EXIT_USAGE);
-            }
+        if let Some(job_id) = require_job
+            && definition.job_index(job_id).is_none()
+        {
+            let error = UsageError::with_subject(UsageErrorKind::UnknownJob, job_id);
+            self.show(&DisplayEvent::Usage(&error));
+            return Err(EXIT_USAGE);
         }
 
         // run ID の決定(FR1.2〜FR1.4)。環境変数の名前は、定義の `run_id_env`(なければ既定)。
@@ -124,18 +124,18 @@ impl Ctx<'_> {
             Ok(state) => state,
             Err(error) => return Err(self.state_error(&error, read_context)),
         };
-        if let Some(state) = &state {
-            if let ConsistencyResult::Mismatch(kind) = check_consistency(state, &definition) {
-                let state_path = StateLocation::of(&path, run_id.as_ref())
-                    .path()
-                    .to_path_buf();
-                self.show(&DisplayEvent::ConsistencyMismatch {
-                    state_path: &state_path,
-                    kind,
-                    with_run_id: run_id.is_some(),
-                });
-                return Err(EXIT_STATE);
-            }
+        if let Some(state) = &state
+            && let ConsistencyResult::Mismatch(kind) = check_consistency(state, &definition)
+        {
+            let state_path = StateLocation::of(&path, run_id.as_ref())
+                .path()
+                .to_path_buf();
+            self.show(&DisplayEvent::ConsistencyMismatch {
+                state_path: &state_path,
+                kind,
+                with_run_id: run_id.is_some(),
+            });
+            return Err(EXIT_STATE);
         }
 
         let remove_on_complete = cmd.remove_on_complete || definition.remove_on_complete;
@@ -267,22 +267,22 @@ impl Ctx<'_> {
             Some(Classification::Warning) => Some(TransitionOn::Warning),
             _ => None,
         };
-        if let Some(on) = on {
-            if let Some(transition) = job.transition_for(on) {
-                let target = match &transition.next {
-                    TransitionTarget::Job(id) => id.clone(),
-                    TransitionTarget::End => "@end".to_string(),
-                };
-                let on_word = match on {
-                    TransitionOn::Success => "success",
-                    TransitionOn::Warning => "warning",
-                };
-                self.show(&DisplayEvent::Transition {
-                    on: on_word,
-                    target: &target,
-                    skipped: &next.skipped_job_ids,
-                });
-            }
+        if let Some(on) = on
+            && let Some(transition) = job.transition_for(on)
+        {
+            let target = match &transition.next {
+                TransitionTarget::Job(id) => id.clone(),
+                TransitionTarget::End => "@end".to_string(),
+            };
+            let on_word = match on {
+                TransitionOn::Success => "success",
+                TransitionOn::Warning => "warning",
+            };
+            self.show(&DisplayEvent::Transition {
+                on: on_word,
+                target: &target,
+                skipped: &next.skipped_job_ids,
+            });
         }
         if execution.interrupted {
             self.show(&DisplayEvent::Interrupted {

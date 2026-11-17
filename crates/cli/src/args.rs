@@ -304,10 +304,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         if operand.is_none() {
             return Err(UsageError::new(Kind::MissingArgument));
         }
-    } else if !allows_operand {
-        if let Some(unexpected) = &operand {
-            return Err(unexpected_argument(unexpected));
-        }
+    } else if !allows_operand && let Some(unexpected) = &operand {
+        return Err(unexpected_argument(unexpected));
     }
     if let Some(unexpected) = &extra {
         return Err(unexpected_argument(unexpected));

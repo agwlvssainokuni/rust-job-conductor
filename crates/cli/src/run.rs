@@ -74,10 +74,11 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 ) {
                     return code;
                 }
-                if recorded.completed && session.remove_on_complete {
-                    if let Err(code) = ctx.reset(path, run_id, StateContext::JobNotStarted) {
-                        return code;
-                    }
+                if recorded.completed
+                    && session.remove_on_complete
+                    && let Err(code) = ctx.reset(path, run_id, StateContext::JobNotStarted)
+                {
+                    return code;
                 }
             }
             ctx.show(&DisplayEvent::JobSkipped { job_id, reason });
@@ -126,10 +127,11 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             if let Err(code) = ctx.write(path, run_id, &recorded, Durability::Durable, after) {
                 return code;
             }
-            if next.completed && session.remove_on_complete {
-                if let Err(code) = ctx.reset(path, run_id, after) {
-                    return code;
-                }
+            if next.completed
+                && session.remove_on_complete
+                && let Err(code) = ctx.reset(path, run_id, after)
+            {
+                return code;
             }
             let is_error = outcome.classification == Some(Classification::Error);
             exit_code_for(outcome.reported_exit_code, is_error)

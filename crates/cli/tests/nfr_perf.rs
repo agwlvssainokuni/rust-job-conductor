@@ -55,14 +55,13 @@ fn p95(values: &mut [f64]) -> f64 {
 
 fn report(line: &str) {
     eprintln!("[bench] {line}");
-    if let Ok(path) = std::env::var("GITHUB_STEP_SUMMARY") {
-        if let Ok(mut file) = std::fs::OpenOptions::new()
+    if let Ok(path) = std::env::var("GITHUB_STEP_SUMMARY")
+        && let Ok(mut file) = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(path)
-        {
-            let _ = writeln!(file, "- {line}");
-        }
+    {
+        let _ = writeln!(file, "- {line}");
     }
 }
 

@@ -79,16 +79,16 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     .clone()
                     .unwrap_or_else(|| initial_state(definition, path, run_id));
                 let recorded = apply_skip(&base, &job.id, reason, definition);
-                if recorded != base {
-                    if let Err(code) = ctx.write(
+                if recorded != base
+                    && let Err(code) = ctx.write(
                         path,
                         run_id,
                         &recorded,
                         Durability::Durable,
                         StateContext::JobNotStarted,
-                    ) {
-                        return code;
-                    }
+                    )
+                {
+                    return code;
                 }
                 ctx.show(&DisplayEvent::JobSkipped {
                     job_id: &job.id,
