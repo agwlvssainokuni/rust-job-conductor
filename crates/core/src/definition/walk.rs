@@ -253,14 +253,14 @@ impl<'a> Walker<'a> {
         let name = self.string(table, "name", start, true);
         let description = self.string(table, "description", start, false);
         let run_id_env = self.string(table, "run_id_env", start, false);
-        if let Some((env_name, offset)) = &run_id_env {
-            if !is_valid_env_name(env_name) {
-                self.push(
-                    *offset,
-                    Kind::InvalidEnvName,
-                    "`run_id_env` は、英字または `_` で始まり、英数字と `_` だけの名前で書きます",
-                );
-            }
+        if let Some((env_name, offset)) = &run_id_env
+            && !is_valid_env_name(env_name)
+        {
+            self.push(
+                *offset,
+                Kind::InvalidEnvName,
+                "`run_id_env` は、英字または `_` で始まり、英数字と `_` だけの名前で書きます",
+            );
         }
         let remove_on_complete = self.boolean(table, "remove_on_complete");
         let (name, name_offset) = name?;
@@ -493,19 +493,18 @@ pub fn walk(
     };
     w.cross_check(&raw_jobs);
 
-    if w.errors.is_empty() {
-        if let Some(head) = pipeline {
-            if let Some(jobs) = build_jobs(&raw_jobs) {
-                return Ok(PipelineDefinition {
-                    name: head.name,
-                    description: head.description,
-                    run_id_env: head.run_id_env,
-                    remove_on_complete: head.remove_on_complete,
-                    format_version,
-                    job: jobs,
-                });
-            }
-        }
+    if w.errors.is_empty()
+        && let Some(head) = pipeline
+        && let Some(jobs) = build_jobs(&raw_jobs)
+    {
+        return Ok(PipelineDefinition {
+            name: head.name,
+            description: head.description,
+            run_id_env: head.run_id_env,
+            remove_on_complete: head.remove_on_complete,
+            format_version,
+            job: jobs,
+        });
     }
 
     let mut errors = w.errors;

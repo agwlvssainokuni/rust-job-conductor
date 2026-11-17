@@ -72,13 +72,12 @@ fn nfr1_1_ジョブ_10_個の定義の読み込みの_p95() {
     );
     eprintln!("{line}");
 
-    if let Some(summary) = std::env::var_os("GITHUB_STEP_SUMMARY") {
-        if let Ok(mut f) = std::fs::OpenOptions::new()
+    if let Some(summary) = std::env::var_os("GITHUB_STEP_SUMMARY")
+        && let Ok(mut f) = std::fs::OpenOptions::new()
             .append(true)
             .create(true)
             .open(summary)
-        {
-            let _ = writeln!(f, "{line}");
-        }
+    {
+        let _ = writeln!(f, "{line}");
     }
 }
