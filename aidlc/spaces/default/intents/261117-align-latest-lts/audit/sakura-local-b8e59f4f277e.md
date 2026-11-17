@@ -1774,3 +1774,195 @@
 **Testing Contract**: sha256:af4c0e3cdf95a14f6563a4adc13e41addbf92e80bf61c33c217e0245d725ffa0
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-17T13:39:41Z
+**Event**: SENSOR_FIRED
+**Fire id**: b958e167
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-generation-plan.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-17T13:39:41Z
+**Event**: SENSOR_PASSED
+**Fire id**: b958e167
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-generation-plan.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-17T13:39:41Z
+**Event**: SENSOR_FIRED
+**Fire id**: 8760b206
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/unit-test-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-17T13:39:41Z
+**Event**: SENSOR_PASSED
+**Fire id**: 8760b206
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/unit-test-instructions.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-17T13:39:41Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7fbf91b9
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-17T13:39:42Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7fbf91b9
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-summary.md
+**Duration ms**: 85
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-17T13:39:42Z
+**Event**: SENSOR_FIRED
+**Fire id**: 3c5ee015
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-17T13:39:42Z
+**Event**: SENSOR_PASSED
+**Fire id**: 3c5ee015
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-17T13:39:42Z
+**Event**: SENSOR_FIRED
+**Fire id**: 006a1b38
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-17T13:39:42Z
+**Event**: SENSOR_PASSED
+**Fire id**: 006a1b38
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Output path**: aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/traceability.json
+**Duration ms**: 79
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-17T13:39:44Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: code-generation
+**Next Stage**: build-and-test
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-generation-plan.md=passed; required-sections@aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/unit-test-instructions.md=passed; required-sections@aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-summary.md=passed; required-sections@aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/traceability.json=passed; traceability@aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/traceability.json=passed
+**Open Decisions**: 0
+**Source Work**: found in a source change since the stage started
+**Question Id**: 35c27189
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:3eb03ed484f70a60e2782bf8538e912cdf68b732a82047f0e40957dee5eb1802
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-17T13:40:05Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 1ad0d566
+**Open Questions**: 35c27189
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"f0c8ccd2e150160c"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-17T13:40:05Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Code Generation が完了しました。どう進めますか?
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-17T13:40:14Z
+**Event**: GATE_APPROVED
+**Stage**: code-generation
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 1ad0d566
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:b76366b9c3a64f897749278e9a2e25baed3692b6e5ba42e05969fa5a7c30575b","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/stage/dd0d1781394964e7/1.json","digest":"sha256:8064581cc7a402911badb89b4796382aad1c01f994b172b4c1f674d6866af8d1"}},{"artifact":"aidlc/spaces/default/intents/261117-align-latest-lts/construction/code-generation/code-generation-plan.md","id":"R-02","fingerprint":"sha256:e54fa469d485db8b86d5b285f584ee69de0a42fe7661080f2a9c0b8f22f9dd8b","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/stage/dd0d1781394964e7/1.json","digest":"sha256:8064581cc7a402911badb89b4796382aad1c01f994b172b4c1f674d6866af8d1"}}]}
+**Brief Digest**: sha256:72748e7f3a0d2cfd22bdbbf8b596b977e29fb5fecf16be69e4e0dc9f182a8114
+**Source Work**: found in a source change since the stage started
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-17T13:40:14Z
+**Event**: STAGE_COMPLETED
+**Stage**: code-generation
+**Validation Basis**: {"graphContract":"sha256:ac0ef7ae03ae2fcfab9e2a94500d84c4fe00d00384d1f8dcff92c96b2e1f50de","inputs":[{"artifact":"requirements","contentHash":"sha256:117df01c8fb3e8142ea2b86b5ddcde08788f80db1ecdf183d7bc6b23bd8be4bd","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:43edaf154f1f7a6c6c8b384da3d7ef3b85c3717338f10c8648f0456152008f34"},{"artifact":"unit-of-work","contentHash":"sha256:f133568f3eeda4bb36132025311b607f08d93f443649f005f2c4f419332fbf00","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:1f2753c7f5fd787c84ee70d2c1934a41b238a711314d55559c60fd5d8476742a"}],"outputs":[{"artifact":"code-generation-plan","contentHash":"sha256:af5300e012dfb59a45dc645bcd29b04df08fedb616d6175f4dd2fdedcfd5af3c","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:0da2f605248be74ac78c41f8a632fffe01c7c243f38fa2a20174c3ded4393456"},{"artifact":"code-summary","contentHash":"sha256:1f780ada17d97b0dc8b87ccdbd852e1d43532f7990b65030e728bf6d6aacb06f","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:3724c2bdcea327d06209f666b31b8e1a54e8f24d7883cac0405d5091f4520584"},{"artifact":"traceability","contentHash":"sha256:d2dfcf01ea2b1700d9fb68782c0f52b86dca8cda8649b6af508fa26d8af6b6ae","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:f50dafe38c9a743ce7883ef01834799c735a746ba71bbabd24ecc403c51ef2f5"},{"artifact":"unit-test-instructions","contentHash":"sha256:15e52a983d4a1d256930baf3c1c164cc6b1507edbd0a5a7d2fceef677c19bcb2","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:ed9e7f27bb923b171edca4015c9be15e623477b353ed076d328fb1efc2831c8f"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Code Generation approved by gate
+**Tokens In**: 158
+**Tokens Out**: 49924
+**Cache Read**: 12366981
+**Cache Write**: 219674
+**Cost USD**: 2.40
+**By Model**: sonnet-5-5=2.40
+**By Agent**: main=1.46; aidlc-developer-agent=0.73; aidlc-architecture-reviewer-agent=0.21
+**Tokens By Model**: sonnet-5-5=158/49.9k/12.4M/219.7k
+**Tokens By Agent**: main=66/25.2k/8.9M/78.5k; aidlc-developer-agent=82/20.8k/3.2M/83.2k; aidlc-architecture-reviewer-agent=10/3.9k/274.8k/58k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-17T13:40:14Z
+**Event**: STAGE_STARTED
+**Stage**: build-and-test
+**Agent**: aidlc-quality-agent
+**Answer Mode**: guide (reused from requirements-analysis)
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-17T13:40:14Z
+**Event**: MEMORY_EMPTY
+**Stage**: code-generation
+
+---
