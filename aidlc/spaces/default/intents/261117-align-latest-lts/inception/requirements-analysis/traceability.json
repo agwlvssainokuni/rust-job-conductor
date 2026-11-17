@@ -14,6 +14,7 @@
     { "id": "FR3", "kind": "functional" },
     { "id": "FR3.1", "kind": "functional", "of": "FR3" },
     { "id": "FR3.2", "kind": "functional", "of": "FR3" },
+    { "id": "FR3.3", "kind": "functional", "of": "FR3" },
     { "id": "NFR1", "kind": "non-functional" },
     { "id": "NFR2", "kind": "non-functional" },
     { "id": "NFR3", "kind": "non-functional" },
