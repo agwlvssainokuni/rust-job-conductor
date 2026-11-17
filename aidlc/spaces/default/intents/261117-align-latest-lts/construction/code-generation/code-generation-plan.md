@@ -45,36 +45,36 @@
 
 ### 設定と文書の層
 
-- [ ] Step 1: 現状の土台を確かめる。テスト実行環境を確認し、変更前のツリーで `cargo test --workspace --locked` を実行して、すべて通ることを記録する(基準)。実行コマンドは `unit-test-instructions.md` に記載する。(NFR1、FR3.3)
-- [ ] Step 2: MSRV の記載を 1.100 に揃える。(FR1.1、FR1.2、FR1.3)
+- [x] Step 1: 現状の土台を確かめる。テスト実行環境を確認し、変更前のツリーで `cargo test --workspace --locked` を実行して、すべて通ることを記録する(基準)。実行コマンドは `unit-test-instructions.md` に記載する。(NFR1、FR3.3)
+- [x] Step 2: MSRV の記載を 1.100 に揃える。(FR1.1、FR1.2、FR1.3)
   - `Cargo.toml:7` の `rust-version = "1.85"` → `"1.100"`
   - `README.md:84` の「Rust(1.85 以降)」→「Rust(1.100 以降)」
   - `.github/workflows/ci.yml:57` と `:84` のコメントの 1.85 → 1.100
   - `.github/workflows/ci.yml:58` と `:91` の `dtolnay/rust-toolchain@1.85.0` → `@1.100.0`
   - `@stable` を使うジョブ、runner、アクションの版は変えない。`Cargo.lock` は変えない(FR1.4: 変更が必要になった場合だけ、最小限に更新する)。
-- [ ] Step 3: Step 2 のテストを書いて実行する。MSRV の記載が `Cargo.toml`、`README.md`、`ci.yml`(`@x.y.z` とコメント)で一致することを確かめる統合テスト `crates/cli/tests/msrv_consistency.rs` を追加し、`cargo test -p conductor-cli --test msrv_consistency --locked` を実行する。README の必須語(`docs-check`)は Step 2 で変えないため、影響しないことも確認する。(FR1.2、要件 R-01 の再発防止)
+- [x] Step 3: Step 2 のテストを書いて実行する。MSRV の記載が `Cargo.toml`、`README.md`、`ci.yml`(`@x.y.z` とコメント)で一致することを確かめる統合テスト `crates/cli/tests/msrv_consistency.rs` を追加し、`cargo test -p conductor-cli --test msrv_consistency --locked` を実行する。README の必須語(`docs-check`)は Step 2 で変えないため、影響しないことも確認する。(FR1.2、要件 R-01 の再発防止)
 
 ### コードの層(crate ごとに小さな単位で進める)
 
-- [ ] Step 4: `cargo clippy --workspace --all-targets --locked -- -D warnings` を 1.100 で実行し、MSRV を上げたことで新たに出る指摘の一覧を記録する。(FR2.1)
-- [ ] Step 5: conductor-core の書き換え。上の表の `definition/walk.rs` の 2 か所を、規則に従って let チェーンにする。(FR2.1、FR2.3)
-- [ ] Step 6: Step 5 のテストを書いて実行する。既存のテストを `cargo test -p conductor-core --locked` で実行する。書き換えた箇所を通るテストの名前を `code-summary.md` に記録する。(FR3.1、FR3.2)
-- [ ] Step 7: conductor-runtime の書き換え。`state/record.rs` と `state/reader.rs` の 2 か所を同じ規則で書き換える。(FR2.1、FR2.3)
-- [ ] Step 8: Step 7 のテストを書いて実行する。`cargo test -p conductor-runtime --locked`。(FR3.1、FR3.2)
-- [ ] Step 9: conductor-converter の書き換え。`resolve.rs`(3 か所)、`scalar.rs`(2 か所)、`yaml_read.rs`(2 か所)を同じ規則で書き換える。(FR2.1、FR2.3)
-- [ ] Step 10: Step 9 のテストを書いて実行する。`cargo test -p conductor-converter --locked`(fixtures を使う往復変換のテストを含む)。(FR3.2)
-- [ ] Step 11: conductor-cli の書き換え。`ctx.rs` の 3 か所を同じ規則で書き換える。(FR2.1、FR2.3)
-- [ ] Step 12: Step 11 のテストを書いて実行する。`cargo test -p conductor-cli --locked`(バイナリを実行する統合テストを含む)。(FR3.1)
+- [x] Step 4: `cargo clippy --workspace --all-targets --locked -- -D warnings` を 1.100 で実行し、MSRV を上げたことで新たに出る指摘の一覧を記録する。(FR2.1)
+- [x] Step 5: conductor-core の書き換え。上の表の `definition/walk.rs` の 2 か所を、規則に従って let チェーンにする。(FR2.1、FR2.3)
+- [x] Step 6: Step 5 のテストを書いて実行する。既存のテストを `cargo test -p conductor-core --locked` で実行する。書き換えた箇所を通るテストの名前を `code-summary.md` に記録する。(FR3.1、FR3.2)
+- [x] Step 7: conductor-runtime の書き換え。`state/record.rs` と `state/reader.rs` の 2 か所を同じ規則で書き換える。(FR2.1、FR2.3)
+- [x] Step 8: Step 7 のテストを書いて実行する。`cargo test -p conductor-runtime --locked`。(FR3.1、FR3.2)
+- [x] Step 9: conductor-converter の書き換え。`resolve.rs`(3 か所)、`scalar.rs`(2 か所)、`yaml_read.rs`(2 か所)を同じ規則で書き換える。(FR2.1、FR2.3)
+- [x] Step 10: Step 9 のテストを書いて実行する。`cargo test -p conductor-converter --locked`(fixtures を使う往復変換のテストを含む)。(FR3.2)
+- [x] Step 11: conductor-cli の書き換え。`ctx.rs` の 3 か所を同じ規則で書き換える。(FR2.1、FR2.3)
+- [x] Step 12: Step 11 のテストを書いて実行する。`cargo test -p conductor-cli --locked`(バイナリを実行する統合テストを含む)。(FR3.1)
 
 ### 仕上げ
 
-- [ ] Step 13: 全体の検証。次をすべて実行して通ることを確かめる。(NFR1、NFR3、NFR4)
+- [x] Step 13: 全体の検証。次をすべて実行して通ることを確かめる。(NFR1、NFR3、NFR4)
   - `cargo fmt --all -- --check`
   - `cargo clippy --workspace --all-targets --locked -- -D warnings`(CI の `lint` と同じコマンド)
   - `cargo build --workspace --all-targets --locked`
   - `cargo test --workspace --locked`
   - `-sys` クレートと C のビルド依存が増えていないこと(`cargo tree` で `-sys` と `cc`、`cmake`、`pkg-config`、`bindgen` を確認)
-- [ ] Step 14: テストコードの差分を確認する。`git diff` で、`crates/*/tests/` のアサーションが変わっていないことを確かめる。変わっていた場合は理由を記録する。(FR3.3)
+- [x] Step 14: テストコードの差分を確認する。`git diff` で、`crates/*/tests/` のアサーションが変わっていないことを確かめる。変わっていた場合は理由を記録する。(FR3.3)
 - [ ] Step 15: 文書とトレーサビリティ。`code-summary.md` に、確定した MSRV(1.100.0)とその日付、書き換えた箇所と除外した箇所(理由つき)、実行しなかった検査(下記)を記録し、`traceability.json` を作る。
 
 ## 実行できない・ローカルでは実行しない検査

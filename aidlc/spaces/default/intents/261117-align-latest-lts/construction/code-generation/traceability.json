@@ -1,0 +1,37 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": [
+    "FR1.1",
+    "FR1.2",
+    "FR1.3",
+    "FR1.4",
+    "FR2.1",
+    "FR2.2",
+    "FR2.3",
+    "FR2.4",
+    "FR3.1",
+    "FR3.2",
+    "FR3.3",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4"
+  ],
+  "coverage": [
+    { "id": "FR1.1", "status": "OK", "target": "Cargo.toml" },
+    { "id": "FR1.2", "status": "OK", "target": "crates/cli/tests/msrv_consistency.rs" },
+    { "id": "FR1.3", "status": "OK", "target": ".github/workflows/ci.yml" },
+    { "id": "FR1.4", "status": "N/A", "target": "Cargo.lock は変更不要だった(--locked のビルドが通る)" },
+    { "id": "FR2.1", "status": "OK", "target": "crates/cli/src/ctx.rs" },
+    { "id": "FR2.2", "status": "N/A", "target": "非推奨 API の警告は 0 件で、置き換えるものがなかった" },
+    { "id": "FR2.3", "status": "OK", "target": "crates/core/src/definition/walk.rs" },
+    { "id": "FR2.4", "status": "N/A", "target": "crate ごとの 5 件の小さなコミット(f724dec から c6f82aa)で進めた" },
+    { "id": "FR3.1", "status": "OK", "target": "crates/cli/tests/exit_codes.rs" },
+    { "id": "FR3.2", "status": "OK", "target": "crates/converter/tests/convert_roundtrip.rs" },
+    { "id": "FR3.3", "status": "N/A", "target": "git diff で、基準のコミットからアサーションの増減がないことを確かめた" },
+    { "id": "NFR1", "status": "OK", "target": ".github/workflows/ci.yml" },
+    { "id": "NFR2", "status": "Deferred", "target": "build-and-test(CI の coverage ジョブで測る)" },
+    { "id": "NFR3", "status": "OK", "target": ".github/workflows/ci.yml" },
+    { "id": "NFR4", "status": "OK", "target": ".github/workflows/ci.yml" }
+  ]
+}
