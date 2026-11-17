@@ -81,7 +81,7 @@ conductor --version
 
 ### ソースからのビルド
 
-必要なものは、Rust(1.85 以降)と `git` です。
+必要なものは、Rust(1.100 以降)と `git` です。
 
 ```sh
 git clone https://github.com/agwlvssainokuni/rust-job-conductor.git
