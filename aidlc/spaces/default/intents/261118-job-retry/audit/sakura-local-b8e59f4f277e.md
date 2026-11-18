@@ -5803,3 +5803,162 @@
 **Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:7b0174d1fee017a68766a4cf0408badadcc312e421786032f2a81d4e511b0bcc","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.json","digest":"sha256:e0b2d00ae4f3f3dc0ca9b1eba904244e0117c31d42a0e69372df9ac74239cf4e"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:5f9cc42bde72e93c79a3355c434acadc5a06c2dc94902e8111239571e11c7f5a","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.json","digest":"sha256:e0b2d00ae4f3f3dc0ca9b1eba904244e0117c31d42a0e69372df9ac74239cf4e"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:ce3b97ad2d9facc9aaf6b4815c4e7d55d46bfc9880595f6d11acc1c26039462b","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.json","digest":"sha256:e0b2d00ae4f3f3dc0ca9b1eba904244e0117c31d42a0e69372df9ac74239cf4e"}}]}
 
 ---
+
+## Unit Started
+**Timestamp**: 2026-11-18T22:11:34Z
+**Event**: UNIT_STARTED
+**Stage**: functional-design
+**Unit**: u2-retry-execution
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:12:04Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-design-questions.md
+**Context**: construction > u2-retry-execution > functional-design > functional-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T22:12:06Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Q1-Q3
+**Options**: Q1: A/B/C/X; Q2: A/B/C/X; Q3: A/B/C/D/X
+**Unit**: u2-retry-execution
+**Question Id**: 58399e0e
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:0d018d61f47e9ef6c13c54bad3fb038129571d9e1bdc7afd74d7cd7f8c14c540
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T22:13:20Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. 既存の Runtime に「待つ」を足す (Recommended)","A. 最初は間隔、以降は直前×倍率 (Recommended)","A. 常に標準エラーに (Recommended)"]
+**Message Id**: 0f41ed6b
+**Open Questions**: 9ee4b4e3, 6d36fffc, 58399e0e
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-design-questions.md","entries":{"Q1":"8f54291506afd516","Q2":"5c4de7011d65b139","Q3":"37430cda3d61ed39"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T22:13:21Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q1. 間隔の待機を、テストで実際に待たずに済ませる差し込み口は、どこに置きますか?
+**Reply**: A. 既存の Runtime に「待つ」を足す (Recommended)
+**Options**: ["A. 既存の Runtime に「待つ」を足す (Recommended)","B. 新しい差し込み口 Clock を作る","C. Not yet defined"]
+**Recommended**: ["A. 既存の Runtime に「待つ」を足す"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T22:13:21Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q2. 回ごとに間隔を伸ばす方式の待ち時間の式は、どれにしますか?(例: 間隔 10s、倍率 2、上限 60s)
+**Reply**: A. 最初は間隔、以降は直前×倍率 (Recommended)
+**Options**: ["A. 最初は間隔、以降は直前×倍率 (Recommended)","B. 最初から倍率を掛ける","C. Not yet defined"]
+**Recommended**: ["A. 最初は間隔、以降は直前×倍率"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T22:13:21Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q3. リトライの前の知らせ(何回目か、次まで何秒か)は、どこに、どの条件で出しますか?
+**Reply**: A. 常に標準エラーに (Recommended)
+**Options**: ["A. 常に標準エラーに (Recommended)","B. -v のときだけ標準エラーに","C. 標準出力に","D. Not yet defined"]
+**Recommended**: ["A. 常に標準エラーに"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T22:13:23Z
+**Event**: QUESTION_ANSWERED
+**Stage**: functional-design
+**Details**: Q1: A; Q2: A; Q3: A
+**Unit**: u2-retry-execution
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:13:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-design-questions.md
+**Context**: construction > u2-retry-execution > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:13:29Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-design-questions.md
+**Context**: construction > u2-retry-execution > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:13:30Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-design-questions.md
+**Context**: construction > u2-retry-execution > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:13:56Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/entities.md
+**Context**: construction > u2-retry-execution > functional-design > entities.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:14:21Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/rules.md
+**Context**: construction > u2-retry-execution > functional-design > rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:14:47Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md
+**Context**: construction > u2-retry-execution > functional-design > functional-spec.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:14:55Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/traceability.json
+**Context**: construction > u2-retry-execution > functional-design > traceability.json
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-18T22:14:56Z
+**Event**: UNIT_COMPLETED
+**Stage**: functional-design
+**Unit**: u2-retry-execution
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
