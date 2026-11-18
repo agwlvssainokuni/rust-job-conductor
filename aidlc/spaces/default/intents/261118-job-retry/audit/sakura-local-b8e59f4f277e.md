@@ -3366,3 +3366,227 @@
 **Review Record Digest**: sha256:876a1c484609f191663be930a7e28e6b8e3cf27276444a2e4432b69daf516c2c
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:30:17Z
+**Event**: SENSOR_FIRED
+**Fire id**: 63905956
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:30:17Z
+**Event**: SENSOR_PASSED
+**Fire id**: 63905956
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+**Duration ms**: 86
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:30:17Z
+**Event**: SENSOR_FIRED
+**Fire id**: 73f65ad3
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 73f65ad3
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4dd6151b
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4dd6151b
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: e0c72b3a
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: e0c72b3a
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: a3459a74
+**Sensor ID**: upstream-coverage
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: a3459a74
+**Sensor ID**: upstream-coverage
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+**Duration ms**: 72
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4fbae7aa
+**Sensor ID**: traceability
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4fbae7aa
+**Sensor ID**: traceability
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+**Duration ms**: 75
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-18T21:30:18Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: units-generation
+**Next Stage**: contract-design
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json=passed; upstream-coverage@aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md=passed; traceability@aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json=passed
+**Open Decisions**: 0
+**Question Id**: 569d73b6
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:df2f1de05f84d39f5bb67cda69cb7a9d04c61dab9c38f33d6502b252fa8e5034
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:34:52Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["全部直す(表示の種類を U2 に移す) (Recommended)"]
+**Message Id**: 629d489f
+**Open Questions**: 388bf7b2, 569d73b6
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md","entries":{"Q1":"96547c4dc1b68c63","Q2":"7df47bf7a5aad0cd","Q3":"6aab92aaa046e236","Consolidated Summary Confirmation":"27083e0822ed678b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:34:53Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Units Generation をどう進めますか?(R-01 は、U2 と U3 の依存の向きの誤りです)
+**Reply**: 全部直す(表示の種類を U2 に移す) (Recommended)
+**Options**: ["全部直す(表示の種類を U2 に移す) (Recommended)","全部直す(表示を U2 に統合)","そのまま承認"]
+**Recommended**: ["全部直す(表示の種類を U2 に移す)"]
+
+---
+
+## Gate Rejected
+**Timestamp**: 2026-11-18T21:34:55Z
+**Event**: GATE_REJECTED
+**Stage**: units-generation
+**Feedback**: 全部直す(表示の種類を U2 に移す) (Recommended)
+**Message Id**: 629d489f
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Revising
+**Timestamp**: 2026-11-18T21:34:55Z
+**Event**: STAGE_REVISING
+**Stage**: units-generation
+**Revision count**: 2
+**Feedback**: 全部直す(表示の種類を U2 に移す) (Recommended)
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:35:19Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+**Context**: inception > units-generation > unit-of-work.md
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:35:24Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md
+**Context**: inception > units-generation > unit-of-work-dependency.md
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:35:32Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md
+**Context**: inception > units-generation > unit-of-work-story-map.md
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:35:34Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+**Context**: inception > units-generation > traceability.json
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---

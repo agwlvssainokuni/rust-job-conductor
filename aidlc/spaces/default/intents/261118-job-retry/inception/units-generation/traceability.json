@@ -32,7 +32,7 @@
     { "id": "FR4.2", "status": "OK", "target": "U2" },
     { "id": "FR5.1", "status": "OK", "target": "U2" },
     { "id": "FR5.2", "status": "OK", "target": "U2" },
-    { "id": "FR6.1", "status": "OK", "target": "U3" },
+    { "id": "FR6.1", "status": "OK", "target": "U2" },
     { "id": "FR6.2", "status": "OK", "target": "U3" },
     { "id": "FR7.1", "status": "OK", "target": "U1" },
     { "id": "FR7.2", "status": "OK", "target": "U1" },
