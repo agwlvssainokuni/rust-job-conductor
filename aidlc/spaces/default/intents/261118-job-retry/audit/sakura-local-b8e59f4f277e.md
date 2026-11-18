@@ -2915,3 +2915,256 @@
 **Summary Authorization Id**: ad9c82628e5e9ead85a639e84e36386bcd393594f4a6a4b008b57b4719feb60e
 
 ---
+
+## Stage Output Amended
+**Timestamp**: 2026-11-18T21:26:16Z
+**Event**: STAGE_OUTPUT_AMENDED
+**Stage**: requirements-analysis
+**Validation Basis**: {"graphContract":"sha256:c4154af90e3deb2f1925e8045adcb8169a200644fd7a00c088cf7736290a667f","inputs":[{"artifact":"architecture","contentHash":"sha256:b0c3280fec642b08d090d39fb6dc028ca6f936c7ab5bfc3f024cb8826c7369f4","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:798b2ef2f76cd3c1b6494a9a63fedde5a0c235da161e40d77afd746d7defdc92"},{"artifact":"business-overview","contentHash":"sha256:faa0e32a4673cdaf7dba04cee1c8ca9ef73af9579c9887b18891c91aa2f9f625","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:4cc0678f8c1b21a4220634432a94f3c09e47490c6172038242f4af94224fff71"},{"artifact":"code-structure","contentHash":"sha256:621a696f0f3da1265462913483dab29edd39fd02b6daef0384a3fcee2be2a6bb","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:b626c7dc297e330ec346c8396f30a877c113bd22ca2699ecf8e28b0cfee8d7f5"},{"artifact":"intent-statement","contentHash":"sha256:0753880548e5b458ab286f298238a7bbd15f67af903d56c6a31fd96af20169f1","instanceCount":1,"presentCount":1,"producer":"intent-capture","required":false,"structureHash":"sha256:89e1a50dc96afa28bd50c2d833de6bf067d01bf71562b55e12721187243c9368"},{"artifact":"scope-document","contentHash":"sha256:882032b41b30e9702a1c5921ba00324eda66a39e7ca251506224ca7d7de1761b","instanceCount":1,"presentCount":1,"producer":"scope-definition","required":false,"structureHash":"sha256:592898ace7953576e959f2fe1ff06f9c49bca5fc839c9f3439778ef7df4c0974"}],"outputs":[{"artifact":"requirements-analysis-questions","contentHash":"sha256:85b8b7f0ba7678d3b1502f4252d21a6a7cb8b7ad6b98bcb71dc394cdd87bbbbd","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:3235f54a24da25874522d63240dda0760e97ccf806a3956fbcdc0cd01cb341d2"},{"artifact":"requirements","contentHash":"sha256:976f0e56330a159515ba690659793205dd65fe6546fe1802110f7040f1983d7b","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:82f4bf93807c3530261c14bc941cbd6a05e93cbccd311fab948f177a0a43db79"},{"artifact":"traceability","contentHash":"sha256:49d9f9b41e030ca7200bd43ae14f3b02ad202013107cb1a9bd269a65993aa958","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":false,"structureHash":"sha256:14fe169b816af02177804290e96044a0e7df75032f231b869f3b30d027168499"}],"projectType":"brownfield","schema":3}
+**Message Id**: 5e0e798d
+**Details**: changed before the person's next message after 5e0e798d; receipt renewed
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-18T21:26:25Z
+**Event**: STAGE_SKIPPED
+**Stage**: user-stories
+**Reason**: Single persona (operator writing the definition file) on developer/ops tooling; every FR already carries a testable pass criterion, so stories would only restate the requirements.
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-18T21:26:25Z
+**Event**: STAGE_STARTED
+**Stage**: domain-design
+**Agent**: aidlc-architect-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Stage Skip
+**Timestamp**: 2026-11-18T21:26:38Z
+**Event**: STAGE_SKIPPED
+**Stage**: domain-design
+**Reason**: The feature modifies existing components only (core definition, runtime/cli run flow, report); no new component or logical building block is introduced.
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-18T21:26:38Z
+**Event**: STAGE_STARTED
+**Stage**: units-generation
+**Agent**: aidlc-architect-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:26:58Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:26:59Z
+**Event**: DECISION_RECORDED
+**Stage**: units-generation
+**Decision**: Q1-Q3
+**Options**: Q1: A/B/C/D/X; Q2: A/B/C/X; Q3: A/B/C/X
+**Question Id**: 388bf7b2
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:365bff983ba964a238ad715d5f31784d9bb6cf4a3a07c55e017d10fd7a89a7d5
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:28:02Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. 機能の段階で 3 つ (Recommended)","A. 小さめ","A. 1 つずつ順に"]
+**Message Id**: e9aeb64f
+**Open Questions**: 388bf7b2
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md","entries":{"Q1":"96547c4dc1b68c63","Q2":"7df47bf7a5aad0cd","Q3":"6aab92aaa046e236"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:28:02Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q1. 作業の分け方(境界の取り方)は、どれにしますか?
+**Reply**: A. 機能の段階で 3 つ (Recommended)
+**Options**: ["A. 機能の段階で 3 つ (Recommended)","B. crate ごと","C. 分けない","D. Not yet defined"]
+**Recommended**: ["A. 機能の段階で 3 つ"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:28:02Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q2. 1 つの Unit の大きさは、どのくらいにしますか?(チームの方針は「変更を小さく保ち、小さな単位でレビューする」)
+**Reply**: A. 小さめ
+**Options**: ["A. 小さめ","B. 大きめ","C. Not yet defined"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:28:02Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q3. 独立した Unit は、同時に進めますか?(この案は、依存の順に 1 つずつ進める形です)
+**Reply**: A. 1 つずつ順に
+**Options**: ["A. 1 つずつ順に","B. 同時に進めてよい","C. Not yet defined"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T21:28:06Z
+**Event**: QUESTION_ANSWERED
+**Stage**: units-generation
+**Details**: Q1: A; Q2: A; Q3: A
+**Person Reply**: A. 機能の段階で 3 つ (Recommended)\nA. 小さめ\nA. 1 つずつ順に
+**Message Id**: e9aeb64f
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:28:10Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:28:12Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:28:13Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:28:15Z
+**Event**: DECISION_RECORDED
+**Stage**: units-generation
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Question Id**: 3483acd2
+**Question Type**: summary-confirmation
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:1af3253e9dbc67379599fab6c72665a7132d1311aa24606f1e7e17c6bf7cc43c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:28:23Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: a5426cb8
+**Open Questions**: 388bf7b2, 3483acd2
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md","entries":{"Q1":"96547c4dc1b68c63","Q2":"7df47bf7a5aad0cd","Q3":"6aab92aaa046e236","Consolidated Summary Confirmation":"27083e0822ed678b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:28:24Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Does this all look correct before I generate the artifact?
+**Question Id**: 3483acd2
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:28:26Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Context**: inception > units-generation > units-generation-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-18T21:28:27Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: units-generation
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/units-generation-questions.md
+**Questions SHA-256**: c4b367890a777882cdd35b09db86f37507138b9d83b3d31152132d78c9d905a8
+**Hash Scope**: confirmed-content-v2
+**Message Id**: a5426cb8
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:28:47Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+**Context**: inception > units-generation > unit-of-work.md
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:28:52Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md
+**Context**: inception > units-generation > unit-of-work-dependency.md
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:29:00Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md
+**Context**: inception > units-generation > unit-of-work-story-map.md
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:29:09Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+**Context**: inception > units-generation > traceability.json
+**Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
+
+---
