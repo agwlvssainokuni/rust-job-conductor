@@ -33,6 +33,7 @@ use crate::exit::{
     EXIT_OK, EXIT_REJECTED, EXIT_STATE, EXIT_USAGE, exit_code_for, signal_exit_code,
 };
 use crate::report::{DisplayEvent, StateContext};
+use crate::retry::run_job_with_retry;
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// `conductor pipeline <pipeline-name>` を実行し、終了コードを返す。
@@ -124,7 +125,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     }
                 };
 
-                let execution = ctx.runtime.run_job(job, &session.signal);
+                let execution = run_job_with_retry(ctx, job, &session.signal);
                 let (outcome, next) = classify_and_decide(
                     job,
                     &execution,

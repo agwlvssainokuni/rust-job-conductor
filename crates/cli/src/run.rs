@@ -17,7 +17,8 @@
 //! 順序は固定(NFR2.4): 検査 → ステートの読み込みと照合 → `decide_before_run` →
 //! (Run のとき、ステートが空なら)初期ステート(`Fast`)→ `run_job` → `classify_and_decide` →
 //! `apply_outcome` → `write_state`(`Durable`)→ 完了で、削除を求められていれば `reset_state`
-//! (求められていなければ、完了のステートを残す)。
+//! (求められていなければ、完了のステートを残す)。`run_job` の呼び出しは、リトライを含む共通の処理
+//! (`retry::run_job_with_retry`)に置き換わっている。ステートは、最終の結果について 1 回だけ書く。
 //! 初期ステートは、`Run` が決まったあとにだけ書く(Reject・Skip の前には書かない)。
 
 use conductor_core::{Classification, Decision, RunMode, classify_and_decide, decide_before_run};
@@ -26,6 +27,7 @@ use conductor_runtime::{Durability, apply_outcome, apply_skip, initial_state};
 use crate::ctx::Ctx;
 use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_USAGE, exit_code_for};
 use crate::report::{DisplayEvent, StateContext};
+use crate::retry::run_job_with_retry;
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// `conductor run <job-id>` を実行し、終了コードを返す。
@@ -107,7 +109,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             };
             let job = &definition.job[index];
 
-            let execution = ctx.runtime.run_job(job, &session.signal);
+            let execution = run_job_with_retry(ctx, job, &session.signal);
             let (outcome, next) = classify_and_decide(
                 job,
                 &execution,

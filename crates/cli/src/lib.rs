@@ -90,6 +90,7 @@ pub mod panic_hook;
 mod pipeline;
 pub mod platform;
 pub mod report;
+mod retry;
 mod run;
 pub mod types;
 
