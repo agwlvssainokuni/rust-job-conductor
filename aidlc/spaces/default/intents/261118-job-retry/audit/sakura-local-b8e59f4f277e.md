@@ -6690,3 +6690,39 @@
 **Review Record Digest**: sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480
 
 ---
+
+## Checkpoint Verification Recorded
+**Timestamp**: 2026-11-18T22:29:06Z
+**Event**: CHECKPOINT_VERIFICATION_RECORDED
+**Unit**: u2-retry-execution
+**Kind**: unit
+**Stage**: code-generation
+**Stages**: functional-design, code-generation
+**Verification Id**: e7c0c983-e5fe-4d76-aee0-38be9869edaa
+**Fingerprint**: sha256:4cb7d8cda244413a2f43e021c67a5b1861245bfba9e6018b384d5e7695847fb9
+**Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Exit Code**: 0
+**Verified**: true
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-18T22:29:09Z
+**Event**: GATE_APPROVED
+**Unit**: u2-retry-execution
+**Stage**: code-generation
+**Stages**: functional-design, code-generation
+**Gate Stages**: functional-design, code-generation
+**Gate Scope**: unit-end
+**Checkpoint**: construction-unit
+**Fingerprint**: sha256:4cb7d8cda244413a2f43e021c67a5b1861245bfba9e6018b384d5e7695847fb9
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+**Run floors**: {"functional-design":"WORKFLOW_STARTED:2026-11-18T15:44:24Z#1","code-generation":"WORKFLOW_STARTED:2026-11-18T15:44:24Z#1"}
+**Verification Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Verification Id**: e7c0c983-e5fe-4d76-aee0-38be9869edaa
+**Approved Evidence**: {"functional-design":["sha256:1255015053c14f3bf6f09727e377eba5716e24fded840d9034640aca03b596f0",null],"code-generation":["sha256:968cba5d91d76aa47cc29aa014a5f052afae774f69aa47251f8a4ed3fc622a3e","sha256:733dd0a2af5b2bd5e71978ec24f90f926c206e61830f8bb4b84bb7ad8602f6c5",{"\u0000crates/cli/src/deps.rs":"100644 4b0fc76385637c8675a038caf1fabecea96d89c9034cab45989af0c6f90c026c","\u0000crates/cli/src/lib.rs":"100644 75f1f5d84023674bc0bd4c6339f00f18e68ba0159597b1085da24c8fe587525f","\u0000crates/cli/src/pipeline.rs":"100644 6a9f40a6dfe84ea010a6c0d5086e44e12d8e31bde73d0e7e78ebeb38cba4ef28","\u0000crates/cli/src/report/messages.rs":"100644 1b3f6f56fab87b4296d2b65d80a00c680c965ed7b5b5858ac6f97193866d2ce4","\u0000crates/cli/src/report/mod.rs":"100644 039eec401afeffb77c7c49e8592b62de1ec62a75cc0e5446e2e235b97fd384c4","\u0000crates/cli/src/retry.rs":"100644 fe6401d0fe1dba64ab0eae4ecd06078a1144c07aa8a7b13daaca79cb059e757d","\u0000crates/cli/src/run.rs":"100644 1f5ce2e810deaf69b2e9c277071d029d9b42b5b904d5ae1d2eb3140176282dd5","\u0000crates/cli/src/types.rs":"100644 66f162c06fb003ac19e0f719d2a63060219e3830c45a054ef154b72ea5bb5ab9","\u0000crates/cli/tests/common/mod.rs":"100644 6d84f1f414b51548f4c0144f0edbcf87dde1f15d47afd2df3b751e9fbf3f0def","\u0000crates/cli/tests/flow_retry.rs":"100644 36d8822e5bc7021a989d3ae263444b568efdfc3ba039ee14b2e82fc2daeae2c9","\u0000crates/cli/tests/report_messages.rs":"100644 4f57b355c65b667584bc45c2518a3ac0351a2fedc0afc63e2d067bbed9041901","\u0000crates/core/src/flow/mod.rs":"100644 9cf3e757804ee91fc93a1ee010360556d9e7db9dc0f6ed281583deee94cc48ea","\u0000crates/core/src/flow/retry.rs":"100644 e7f0006366ff6db7a8db69d2a424a1a6a1615a279be6c608ce40dd5ab1e3e0f7","\u0000crates/core/src/lib.rs":"100644 c047a56b2691621c50fee8e190767d1fb99955e864ba5007a1dc320b23a67e8a","\u0000crates/core/tests/retry_flow.rs":"100644 8ba04e6d7258bd0baa89056c552ca0e0e4e6408db3796b17f8786031e0ea3520","\u0000crates/runtime/src/lib.rs":"100644 82bf8a74e4ad2617c84060af6b09bfb4c46ffe730f365e121b5be0ac45174d7e","\u0000crates/runtime/src/wait.rs":"100644 8b8edef2f3ffba7438a5bf0ceb647d449d9815ebd99cdd0362c6b6de149327fb","\u0000crates/runtime/tests/wait_interruptible.rs":"100644 3264a1e01b03b86247f29ac2adf8a975435590b9ce036684820a9b143fd4cc2b"}]}
+**Autonomous**: true
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:394f830c3edb95b1788b32032fe3ee6569be55fd2ed09185bf937367c29a35fa","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:f9aaf466aa7ea67e0c2266638eaf5ae3f2a717984ee0c988ab2cdb11f9a35501"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:fa83f4250110794891be4b4de322653e9938957c5a083ec6fdc9fa25f456534c","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:4b647df5fa320aaa9c180bf2a47701074c53230139c0d339266be39c6826766c","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:bf981422b9dd260ad86ab9ee828193b9280a18345e9aff4c34f911a9ade91363","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480"}}]}
+
+---
