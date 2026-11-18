@@ -30,7 +30,7 @@ use conductor_core::{
     Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
-    CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError,
+    CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError, WaitOutcome,
 };
 
 use crate::platform;
@@ -84,6 +84,8 @@ pub trait Runtime {
     fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError>;
     /// ジョブを起動し、終了を待つ(`run_job`)。
     fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution;
+    /// リトライの前に `secs` 秒待つ(`wait_for`。BR2.13)。合図が立てば、すぐ `Interrupted` を返す。
+    fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome;
     /// ステートを読む(`read_state`。`None` は空)。`run_id` は、ファイル名の run ID。
     fn read_state(
         &self,
@@ -143,6 +145,10 @@ impl Runtime for SystemRuntime {
 
     fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
         conductor_runtime::run_job(job, signal)
+    }
+
+    fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
+        conductor_runtime::wait_for(secs, signal)
     }
 
     fn read_state(

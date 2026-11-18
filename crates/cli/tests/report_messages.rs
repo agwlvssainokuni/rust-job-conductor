@@ -230,6 +230,13 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         skipped: &[],
     });
     f(&DisplayEvent::Interrupted { signal: 15 });
+    f(&DisplayEvent::RetryScheduled {
+        job_id: "a",
+        last_exit_code: 75,
+        retry_number: 1,
+        max: 3,
+        wait_secs: 30,
+    });
     let state = pipeline_state();
     f(&DisplayEvent::WatchTable(&state));
     f(&DisplayEvent::WatchEmpty);
@@ -765,4 +772,61 @@ fn 使い方は種類ごとの固定の文と使い方の一覧() {
     for command in ["run", "pipeline", "watch", "reset", "validate", "convert"] {
         assert!(text.contains(&format!("conductor {command}")), "{command}");
     }
+}
+
+// ---- リトライの知らせ(U2。BR2.4、BR2.15。FR6.1、FR6.2) ----
+
+fn retry_event(job_id: &str) -> DisplayEvent<'_> {
+    DisplayEvent::RetryScheduled {
+        job_id,
+        last_exit_code: 75,
+        retry_number: 2,
+        max: 3,
+        wait_secs: 40,
+    }
+}
+
+#[test]
+fn リトライの知らせの英語の文は_要素をすべて含み_エラーの形ではない() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&retry_event("a"));
+    assert_eq!(
+        text,
+        "conductor: retry: job 'a' exited with code 75; retry 2 of 3 in 40 seconds\n"
+    );
+    assert!(!text.contains("error"), "{text}");
+}
+
+#[test]
+fn リトライの知らせの日本語の文は_要素をすべて含む() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&retry_event("a"));
+    assert_eq!(
+        text,
+        "conductor: retry: ジョブ 'a' が終了コード 75 で終わりました。40 秒後にリトライします(2/3 回目)\n"
+    );
+}
+
+#[test]
+fn リトライの知らせは_v_なしでも標準エラーに出て_標準出力には出ない() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let mut sink = FakeSink::default();
+    assert_eq!(retry_event("a").level(), Level::Notice);
+    assert!(reporter.show(&mut sink, &retry_event("a")));
+    assert!(sink.out.is_empty());
+    assert!(sink.err_text().starts_with("conductor: retry: "));
+}
+
+#[test]
+fn リトライの知らせの_job_id_はエスケープされ_64_文字で切られる() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let id = format!("x\u{1b}[31m\n{}", "y".repeat(100));
+    let text = reporter.render(&retry_event(&id));
+    assert!(!has_control(text.trim_end_matches('\n')), "{text:?}");
+    assert_eq!(text.matches('\n').count(), 1, "{text:?}");
+    assert!(!text.contains(&"y".repeat(65)), "{text:?}");
 }

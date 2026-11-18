@@ -48,6 +48,8 @@ impl Text {
 pub const ERROR_PREFIX: &str = "conductor: error: ";
 /// 警告の行の先頭(言語に関わらず同じ)。
 pub const WARNING_PREFIX: &str = "conductor: warning: ";
+/// リトライの知らせの行の先頭(言語に関わらず同じ。エラーではない。BR2.4)。
+pub const RETRY_PREFIX: &str = "conductor: retry: ";
 /// `-v` の行の先頭。
 pub const VERBOSE_PREFIX: &str = "[conductor] ";
 /// パニックのフックと、シグナルの準備の失敗の、固定の英語の文(ロケールを判定しない)。
@@ -112,6 +114,30 @@ pub fn definition_valid(lang: Language, job_count: usize) -> String {
             format!("definition is valid ({job_count} {unit})")
         }
         Language::Ja => format!("定義は正しいです(ジョブ {job_count} 個)"),
+    }
+}
+
+/// リトライの前の知らせの本文(先頭の `conductor: retry: ` と改行は含まない。BR2.4、BR2.15)。
+///
+/// 固定の文と整数と、エスケープ済みのジョブIDだけで組み立てる(入力の値は入れない)。
+/// 最初の文言(最終の確定は U3)。
+pub fn retry_scheduled(
+    lang: Language,
+    escaped_job_id: &str,
+    last_exit_code: i32,
+    retry_number: u32,
+    max: u32,
+    wait_secs: u64,
+) -> String {
+    match lang {
+        Language::En => format!(
+            "job '{escaped_job_id}' exited with code {last_exit_code}; \
+             retry {retry_number} of {max} in {wait_secs} seconds"
+        ),
+        Language::Ja => format!(
+            "ジョブ '{escaped_job_id}' が終了コード {last_exit_code} で終わりました。\
+             {wait_secs} 秒後にリトライします({retry_number}/{max} 回目)"
+        ),
     }
 }
 

@@ -40,8 +40,9 @@ use crate::platform;
 use crate::types::{Language, Level, UsageError};
 use escape::{escape_name, escape_path};
 use messages::{
-    ERROR_PREFIX, VERBOSE_PREFIX, WARNING_PREFIX, command_kind, conversion_kind, definition_kind,
-    mismatch_kind, reject_reason, skip_reason, state_kind, state_kind_suggests_reset, usage_kind,
+    ERROR_PREFIX, RETRY_PREFIX, VERBOSE_PREFIX, WARNING_PREFIX, command_kind, conversion_kind,
+    definition_kind, mismatch_kind, reject_reason, skip_reason, state_kind,
+    state_kind_suggests_reset, usage_kind,
 };
 
 /// ステートの誤りを表示するときの文脈(原因に添える補足を決める)。
@@ -115,6 +116,19 @@ pub enum DisplayEvent<'a> {
     },
     /// シグナルの準備に失敗した(固定の英語の文。終了コード 70)。
     SignalSetupFailed,
+    // ---- notice(標準エラー。常に。エラーではない知らせ) ----
+    /// リトライの前の知らせ(BR2.4、BR2.15)。待機の前に出す。
+    RetryScheduled {
+        job_id: &'a str,
+        /// 直前の実行の終了コード。
+        last_exit_code: i32,
+        /// 何回目のリトライか(1 から)。
+        retry_number: u32,
+        /// リトライの最大回数。
+        max: u32,
+        /// 待ち時間(秒)。
+        wait_secs: u64,
+    },
     // ---- verbose(標準エラー。`-v` のとき) ----
     JobResult {
         job_id: &'a str,
@@ -168,6 +182,7 @@ impl DisplayEvent<'_> {
             | Self::OutputFailed
             | Self::SignalSetupFailed
             | Self::CompletionUndetermined { .. } => Level::Error,
+            Self::RetryScheduled { .. } => Level::Notice,
             Self::JobResult { .. }
             | Self::JobSkipped { .. }
             | Self::Transition { .. }
@@ -225,7 +240,7 @@ impl<'a> Reporter<'a> {
     /// 無視)。`output` は標準出力へ。戻り値は、`output` の書き込みの結果(失敗は `false`)。
     pub fn show(&self, sink: &mut dyn Sink, event: &DisplayEvent<'_>) -> bool {
         match event.level() {
-            Level::Error => {
+            Level::Error | Level::Notice => {
                 let _ = sink.write_err(self.render(event).as_bytes());
                 true
             }
@@ -317,6 +332,23 @@ impl<'a> Reporter<'a> {
                 let place = escape_path(&state_path.display().to_string());
                 error_line(&place, messages::COMPLETION_UNDETERMINED.get(lang), None)
             }
+            DisplayEvent::RetryScheduled {
+                job_id,
+                last_exit_code,
+                retry_number,
+                max,
+                wait_secs,
+            } => format!(
+                "{RETRY_PREFIX}{}\n",
+                messages::retry_scheduled(
+                    lang,
+                    &escape_name(job_id),
+                    *last_exit_code,
+                    *retry_number,
+                    *max,
+                    *wait_secs
+                )
+            ),
             DisplayEvent::JobResult {
                 job_id,
                 result,

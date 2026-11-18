@@ -29,7 +29,7 @@ use conductor_core::{
 };
 use conductor_runtime::{
     CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError,
-    StateErrorKind,
+    StateErrorKind, WaitOutcome,
 };
 
 // ---- Env ----
@@ -199,6 +199,10 @@ pub struct ScriptedRuntime {
     pub reset_all_override: RefCell<Option<ResetAllReport>>,
     /// `run_id_env`(定義のゆるい読み取り)の呼び出しの回数。
     pub run_id_env_calls: Cell<usize>,
+    /// `wait` が呼ばれた待ち時間(秒)。待たずに記録するだけ。
+    pub waits: RefCell<Vec<u64>>,
+    /// `wait` の N 回目(0 始まり)で、合図(番号)を立てて `Interrupted` を返す。
+    pub interrupt_wait: Cell<Option<(usize, i32)>>,
 }
 
 impl Default for ScriptedRuntime {
@@ -217,6 +221,8 @@ impl Default for ScriptedRuntime {
             run_calls: Cell::new(0),
             reset_all_override: RefCell::new(None),
             run_id_env_calls: Cell::new(0),
+            waits: RefCell::new(Vec::new()),
+            interrupt_wait: Cell::new(None),
         }
     }
 }
@@ -308,6 +314,22 @@ impl Runtime for ScriptedRuntime {
             hook(&job.id, signal);
         }
         execution
+    }
+
+    fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
+        let n = self.waits.borrow().len();
+        self.waits.borrow_mut().push(secs);
+        self.push(format!("wait:{secs}"));
+        if let Some(number) = signal.signal_number() {
+            return WaitOutcome::Interrupted(number);
+        }
+        match self.interrupt_wait.get() {
+            Some((at, number)) if at == n => {
+                signal.raise(number);
+                WaitOutcome::Interrupted(number)
+            }
+            _ => WaitOutcome::Elapsed,
+        }
     }
 
     fn read_state(
@@ -587,6 +609,10 @@ pub struct MemRuntime {
     pub exit_codes: RefCell<VecDeque<i32>>,
     pub write_ok: Cell<bool>,
     pub writes: Cell<usize>,
+    /// `wait` が呼ばれた待ち時間(秒)。待たずに記録するだけ。
+    pub waits: RefCell<Vec<u64>>,
+    /// `wait` の N 回目(0 始まり)で、合図(番号)を立てて `Interrupted` を返す。
+    pub interrupt_wait: Cell<Option<(usize, i32)>>,
 }
 
 impl MemRuntime {
@@ -600,6 +626,8 @@ impl MemRuntime {
             exit_codes: RefCell::new(VecDeque::new()),
             write_ok: Cell::new(true),
             writes: Cell::new(0),
+            waits: RefCell::new(Vec::new()),
+            interrupt_wait: Cell::new(None),
         }
     }
 }
@@ -643,6 +671,21 @@ impl Runtime for MemRuntime {
             execution.signal_number = Some(n);
         }
         execution
+    }
+
+    fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
+        let n = self.waits.borrow().len();
+        self.waits.borrow_mut().push(secs);
+        if let Some(number) = signal.signal_number() {
+            return WaitOutcome::Interrupted(number);
+        }
+        match self.interrupt_wait.get() {
+            Some((at, number)) if at == n => {
+                signal.raise(number);
+                WaitOutcome::Interrupted(number)
+            }
+            _ => WaitOutcome::Elapsed,
+        }
     }
 
     fn read_state(
