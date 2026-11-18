@@ -4000,3 +4000,311 @@
 **Stage**: units-generation
 
 ---
+
+## Stage Skip
+**Timestamp**: 2026-11-18T21:39:06Z
+**Event**: STAGE_SKIPPED
+**Stage**: contract-design
+**Reason**: Inter-unit boundaries are in-process Rust types inside one binary (no REST/event/shared-schema mechanism); the externally consumed definition-file keys are pinned in Functional Design (entities and rules of u1-retry-config).
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-18T21:39:06Z
+**Event**: STAGE_STARTED
+**Stage**: delivery-planning
+**Agent**: aidlc-delivery-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:39:27Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Context**: inception > delivery-planning > delivery-planning-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:39:28Z
+**Event**: DECISION_RECORDED
+**Stage**: delivery-planning
+**Decision**: Q1-Q3
+**Options**: Q1: A/B/C/D/X; Q2: A/B/C/D/X; Q3: A/B/C/X
+**Question Id**: 776feccf
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:136e0efeccd3cea74000f14bbd334048ea36a61e04720dbc3d3fc135c6f31eb1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:40:48Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. Unit 1 つを Bolt 1 つ (Recommended)","A. 待機中のシグナルと時間","A. ない"]
+**Message Id**: bf4642a9
+**Open Questions**: 776feccf
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md","entries":{"Q1":"8083c163fd7c3bc4","Q2":"0f7651ec781d699e","Q3":"87c4249e700b2895"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:40:49Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q1. 1 つの Bolt(作業の一部を 1 回通して作り、動くものとして終える単位)の大きさはどうしますか?
+**Reply**: A. Unit 1 つを Bolt 1 つ (Recommended)
+**Options**: ["A. Unit 1 つを Bolt 1 つ (Recommended)","B. u1 と u2 をまとめる","C. 全部を 1 つ","D. Not yet defined"]
+**Recommended**: ["A. Unit 1 つを Bolt 1 つ"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:40:49Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q2. この作業で、いちばん心配なことは何ですか?
+**Reply**: A. 待機中のシグナルと時間
+**Options**: ["A. 待機中のシグナルと時間","B. 定義の検証の取りこぼし","C. 後方互換","D. 特にない"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:40:49Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q3. この作業を止めうる、チームの外の待ちはありますか?(外部の API、データ、承認、ほかのチームの手渡し)
+**Reply**: A. ない
+**Options**: ["A. ない","B. ある","C. Not yet defined"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T21:40:52Z
+**Event**: QUESTION_ANSWERED
+**Stage**: delivery-planning
+**Details**: Q1: A; Q2: A; Q3: A
+**Person Reply**: A. Unit 1 つを Bolt 1 つ (Recommended)\nA. 待機中のシグナルと時間\nA. ない
+**Message Id**: bf4642a9
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:40:56Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Context**: inception > delivery-planning > delivery-planning-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:40:57Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Context**: inception > delivery-planning > delivery-planning-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:40:58Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Context**: inception > delivery-planning > delivery-planning-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:41:00Z
+**Event**: DECISION_RECORDED
+**Stage**: delivery-planning
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Question Id**: 83c2724f
+**Question Type**: summary-confirmation
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:1af3253e9dbc67379599fab6c72665a7132d1311aa24606f1e7e17c6bf7cc43c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:41:22Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: fbb82489
+**Open Questions**: 776feccf, 83c2724f
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md","entries":{"Q1":"8083c163fd7c3bc4","Q2":"0f7651ec781d699e","Q3":"87c4249e700b2895","Consolidated Summary Confirmation":"27083e0822ed678b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:41:22Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Does this all look correct before I generate the artifact?
+**Question Id**: 83c2724f
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:41:25Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Context**: inception > delivery-planning > delivery-planning-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-18T21:41:26Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: delivery-planning
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md
+**Questions SHA-256**: 6735da47e56e4b5eb8feb50e467d01839190b6d3305d073c4da9e0ace22d5c43
+**Hash Scope**: confirmed-content-v2
+**Message Id**: fbb82489
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 8693affa477db9a3326f70a5c336b63653d3278fb5eb3e4d19df89aa468a842c
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:41:45Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/bolt-plan.md
+**Context**: inception > delivery-planning > bolt-plan.md
+**Summary Authorization Id**: 8693affa477db9a3326f70a5c336b63653d3278fb5eb3e4d19df89aa468a842c
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:41:49Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/team-allocation.md
+**Context**: inception > delivery-planning > team-allocation.md
+**Summary Authorization Id**: 8693affa477db9a3326f70a5c336b63653d3278fb5eb3e4d19df89aa468a842c
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:41:56Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/risk-and-sequencing-rationale.md
+**Context**: inception > delivery-planning > risk-and-sequencing-rationale.md
+**Summary Authorization Id**: 8693affa477db9a3326f70a5c336b63653d3278fb5eb3e4d19df89aa468a842c
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:41:59Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/external-dependency-map.md
+**Context**: inception > delivery-planning > external-dependency-map.md
+**Summary Authorization Id**: 8693affa477db9a3326f70a5c336b63653d3278fb5eb3e4d19df89aa468a842c
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:42:07Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/verification/phase-check-inception.md
+**Context**: verification > phase-check-inception.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:42:11Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/verification/phase-check-inception.md
+**Context**: verification > phase-check-inception.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:42:14Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/verification-command.txt
+**Context**: verification-command.txt
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:42:15Z
+**Event**: DECISION_RECORDED
+**Stage**: delivery-planning
+**Decision**: Use this command to verify each completed Unit?
+**Options**: Approve,Request Changes
+**Checkpoint**: Construction Verification Command
+**Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Command Label**: cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Id**: 0835bd9a
+**Question Type**: verification-command
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:64f59586c7b3e005893d490c8facdfdfcd09d73ebc3b3fd52d175adea942435a
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:43:09Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: a737e226
+**Open Questions**: 776feccf, 0835bd9a
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md","entries":{"Q1":"8083c163fd7c3bc4","Q2":"0f7651ec781d699e","Q3":"87c4249e700b2895","Consolidated Summary Confirmation":"27083e0822ed678b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:43:09Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Use this command to verify each completed Unit? `cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only`
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Verification Command Recorded
+**Timestamp**: 2026-11-18T21:43:11Z
+**Event**: VERIFICATION_COMMAND_RECORDED
+**Stage**: delivery-planning
+**Details**: Approve
+**Checkpoint**: Construction Verification Command
+**Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Command Label**: cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only
+**User Input**: Approve
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Person Reply**: Approve
+**Message Id**: a737e226
+**Git Name**: agwlvssainokuni
+
+---

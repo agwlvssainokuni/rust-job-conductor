@@ -1,0 +1,1 @@
+cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only
