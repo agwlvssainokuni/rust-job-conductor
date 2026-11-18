@@ -39,6 +39,7 @@ LANG="${DEMO_LANG:-ja_JP.UTF-8}"; export LANG
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 cp "$here/conductor.toml" "$work/"
+cp "$here/retry.toml" "$work/"
 cp -R "$here/scripts" "$work/"
 cd "$work" || exit 1
 
@@ -173,5 +174,15 @@ echo "reset --all で、残りをすべて消す:"
 cmd "$CONDUCTOR" reset --all
 states
 cmd "$CONDUCTOR" watch
+pause
+
+scene "10. リトライ: 一時的な失敗(終了コード 75)なら、間隔を空けて、実行し直す"
+echo "定義(retry.toml)。[job.retry] に、リトライする終了コードと、最大の回数、間隔を書く:"
+cat retry.toml
 echo
+echo "flaky は、2 回失敗してから成功する。実行し直す前に、conductor が知らせを出す(標準エラー):"
+rm -f flaky.count
+cmd "$CONDUCTOR" pipeline -v --config retry.toml retry-demo
+echo
+echo "(回数を使い切っても失敗するときは、通常のエラーと同じ: 最後の終了コードで止まり、同じコマンドで、そのジョブから再開できる)"
 echo "デモは以上です。"

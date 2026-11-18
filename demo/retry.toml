@@ -1,0 +1,16 @@
+format_version = 1
+
+[pipeline]
+name = "retry-demo"
+description = "リトライのデモ"
+
+# flaky: 終了コード 75 は「一時的な失敗」。1 秒待って、最大 3 回、実行し直す。
+# 待ち時間を伸ばすには、multiplier と max_interval を、一緒に書く(例: multiplier = 2、max_interval = "1m")。
+[[job]]
+id = "flaky"
+command = "sh scripts/flaky.sh"
+
+[job.retry]
+exit_codes = [75]
+max = 3
+interval = "1s"

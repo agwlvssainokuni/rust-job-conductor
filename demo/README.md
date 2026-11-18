@@ -23,8 +23,10 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 | 7 | 定義を検査する(`validate`)。正しい定義は 0、`command` の中の引用符が閉じていない定義は 64。ジョブは実行されず、ステートも作られない |
 | 8 | run ID でステートを分ける(`--run-id build-1` は `load` で止まり、環境変数 `DEMO_RUN_ID` の `build-2` は最後まで進む。同じ run ID で再実行すると `load` から再開。完了してもステートファイルは残り、`reset --run-id` で片づける) |
 | 9 | 環境変数と後始末(`--run-id` は環境変数に勝つ。`--run-id ""` は run ID なしに固定。`reset --run-id` で 1 つ、`reset --all` で全部を消す) |
+| 10 | リトライ(`[job.retry]`、v0.8.0 以降)。別の定義 `retry.toml` で、`flaky` が 2 回、終了コード 75 で失敗する。`conductor` は、1 秒待つたびに、標準エラーへ知らせを出して実行し直し、3 回目で成功する |
 
-- 定義は `conductor.toml`、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。
+- 定義は `conductor.toml`(場面 10 だけ `retry.toml`)、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。
+- 場面 10 の `flaky` は、実行した回数を、一時ディレクトリの `flaky.count` に覚えます。環境変数 `DEMO_FLAKY_FAILS`(既定 2)の回数までは、終了コード 75 で失敗します。`DEMO_FLAKY_FAILS` を 4 以上にすると、回数(最大 3 回のリトライ)を使い切って、終了コード 75 で止まります。リトライの待ち時間(1 秒)は、`DEMO_SLEEP` では変わりません(定義の `interval` で決まります)。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。
 - `DEMO_PAUSE` は、値が `1` のときだけ、各場面のあとで Enter を待ちます(既定は待ちません)。
 - `notify` の `command` は、文字列の配列(`["sh", "scripts/notify.sh"]`)で書いています。ほかのジョブは、文字列です。
 - 定義の `[pipeline]` に、`run_id_env = "DEMO_RUN_ID"` を書いています。run ID は、`--run-id` か、この環境変数で指定します(`--run-id` が優先。`--run-id ""` は、環境変数があっても、run ID なしに固定)。run ID ごとに、ステートファイルが別になります(`conductor.toml.<run ID>.state`)。規則の詳細は、ルートの [README](../README.md) の「[run ID でステートを分ける](../README.md#run-id-でステートを分けるv050-以降)」にあります。
@@ -33,7 +35,7 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 
 ## Windows 版
 
-Windows では、`sh` のスクリプトは動きません。代わりに、`demo\windows\` の cmd 版を使います(PowerShell でも、コマンドプロンプトでも動きます)。見せる場面は、UNIX 版と同じ(場面 0〜9)です。run ID の環境変数 `DEMO_RUN_ID` は、定義(`demo\windows\conductor.toml`)の `run_id_env` で受け取ります。
+Windows では、`sh` のスクリプトは動きません。代わりに、`demo\windows\` の cmd 版を使います(PowerShell でも、コマンドプロンプトでも動きます)。見せる場面は、UNIX 版と同じ(場面 0〜10)です。run ID の環境変数 `DEMO_RUN_ID` は、定義(`demo\windows\conductor.toml`)の `run_id_env` で受け取ります。
 
 ```bat
 rem リポジトリの根から。実行ファイルが無ければ、リリースビルドを作る
@@ -54,7 +56,7 @@ demo\windows\run-demo.cmd
 
 PowerShell では、`set` の代わりに `$env:DEMO_PAUSE = "1"` のように書きます。
 
-- 定義は `demo\windows\conductor.toml`、ジョブは `demo\windows\scripts\*.cmd` です。ジョブの終了コードは、UNIX 版と同じく `DEMO_<ジョブ名>_EXIT`(既定 0)で決まります。
+- 定義は `demo\windows\conductor.toml`(場面 10 だけ `demo\windows\retry.toml`)、ジョブは `demo\windows\scripts\*.cmd` です。ジョブの終了コードは、UNIX 版と同じく `DEMO_<ジョブ名>_EXIT`(既定 0)で決まります。
 - `DEMO_SLEEP`(各ジョブの待ち時間)は、整数の秒です(既定 1 秒。`0` で待たない)。小数は使えません。UNIX 版の既定(0.5 秒)とは違います。
 - `DEMO_PAUSE` は、UNIX 版と同じく、値が `1` のときだけ Enter を待ちます。
 - 画面に色は付きません(`watch` の出力も、色なしです)。

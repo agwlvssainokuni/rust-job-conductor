@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! Windows 向けデモ(`demo/windows`)のテスト(FR1.3、FR2.1、FR2.2、FR6.1)。
-//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜9 の終了コードと結果を確かめる。
+//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜10 の終了コードと結果を確かめる。
 #![cfg(windows)]
 
 mod bin_support;
@@ -40,8 +40,10 @@ impl Demo {
             dir.path().join("conductor.toml"),
         )
         .expect("定義を写せる");
+        std::fs::copy(src.join("retry.toml"), dir.path().join("retry.toml"))
+            .expect("リトライの定義を写せる");
         std::fs::create_dir(dir.path().join("scripts")).expect("scripts を作れる");
-        for name in ["extract", "transform", "load", "notify"] {
+        for name in ["extract", "transform", "load", "notify", "flaky"] {
             let file = format!("{name}.cmd");
             std::fs::copy(
                 src.join("scripts").join(&file),
@@ -62,6 +64,7 @@ impl Demo {
             .env_remove("DEMO_TRANSFORM_EXIT")
             .env_remove("DEMO_LOAD_EXIT")
             .env_remove("DEMO_NOTIFY_EXIT")
+            .env_remove("DEMO_FLAKY_FAILS")
             .env_remove("CONDUCTOR_RUN_ID")
             .env_remove("DEMO_RUN_ID");
         for (key, value) in envs {
@@ -329,6 +332,21 @@ fn 場面_9_reset_run_id_は_1_つだけ_reset_all_は残りをすべて消す()
         "{}",
         text(&watch.stdout)
     );
+}
+
+#[test]
+fn 場面_10_リトライで_2_回失敗してから成功する() {
+    let demo = Demo::new();
+    let output = demo.run(
+        &["pipeline", "-v", "--config", "retry.toml", "retry-demo"],
+        &[],
+    );
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    let all = all_text(&output);
+    // 知らせは、ロケールによらず、先頭が同じ(`conductor: retry: `)。2 回出る。
+    assert_eq!(all.matches("conductor: retry: ").count(), 2, "{all}");
+    assert!(all.contains("[flaky] 3 回目の実行"), "{all}");
+    assert!(all.contains("job=flaky result=success"), "{all}");
 }
 
 #[test]

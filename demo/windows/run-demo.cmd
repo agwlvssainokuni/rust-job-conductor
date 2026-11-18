@@ -57,6 +57,7 @@ chcp 65001 >nul
 set "work=%TEMP%\conductor-demo-%RANDOM%%RANDOM%"
 mkdir "%work%"
 copy /y "%here%conductor.toml" "%work%\" >nul
+copy /y "%here%retry.toml" "%work%\" >nul
 xcopy /e /i /q /y "%here%scripts" "%work%\scripts" >nul
 cd /d "%work%"
 
@@ -203,6 +204,17 @@ echo reset --all で、残りをすべて消す:
 call :runcmd reset --all
 call :states
 call :runcmd watch
+call :pause
+
+call :scene "10. リトライ: 一時的な失敗(終了コード 75)なら、間隔を空けて、実行し直す"
+echo 定義^(retry.toml^)。[job.retry] に、リトライする終了コードと、最大の回数、間隔を書く:
+type retry.toml
+echo.
+echo flaky は、2 回失敗してから成功する。実行し直す前に、conductor が知らせを出す^(標準エラー^):
+if exist flaky.count del flaky.count
+call :runcmd pipeline -v --config retry.toml retry-demo
+echo.
+echo ^(回数を使い切っても失敗するときは、通常のエラーと同じ: 最後の終了コードで止まり、同じコマンドで、そのジョブから再開できる^)
 echo.
 echo デモは以上です。
 

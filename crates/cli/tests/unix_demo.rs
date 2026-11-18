@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! UNIX 向けデモ(`demo/run-demo.sh`)のテスト(FR6.2)。
-//! スクリプトを `sh` で実行し、場面 0〜9 の見出しと要点の行が出て、0 で終わることを確かめる。
+//! スクリプトを `sh` で実行し、場面 0〜10 の見出しと要点の行が出て、0 で終わることを確かめる。
 #![cfg(unix)]
 
 mod bin_support;
@@ -58,7 +58,7 @@ fn assert_demo_output(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{err}");
     // `-v` の行やエラーは標準エラーに出るので、標準出力と合わせて見る。
     let out = format!("{}{err}", text(&output.stdout));
-    for n in 0..=9 {
+    for n in 0..=10 {
         assert!(out.contains(&format!("=== {n}. ")), "場面 {n}\n{out}");
     }
     // 場面 7: validate
@@ -76,10 +76,25 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("conductor.toml.opt-1.state"), "{out}");
     assert!(out.contains("(なし)"), "{out}");
     assert!(out.contains("no state"), "{out}");
+    // 場面 10: 2 回失敗(終了コード 75)してから、リトライで成功する
+    assert!(
+        out.contains(
+            "conductor: retry: job 'flaky' exited with code 75; retry 1 of 3 in 1 seconds"
+        ),
+        "{out}"
+    );
+    assert!(
+        out.contains(
+            "conductor: retry: job 'flaky' exited with code 75; retry 2 of 3 in 1 seconds"
+        ),
+        "{out}"
+    );
+    assert!(out.contains("[flaky] 3 回目の実行"), "{out}");
+    assert!(out.contains("job=flaky result=success"), "{out}");
 }
 
 #[test]
-fn デモは_0_で完走し_場面_0_から_9_の要点の行が出る() {
+fn デモは_0_で完走し_場面_0_から_10_の要点の行が出る() {
     let tmp = tempfile::tempdir().expect("一時ディレクトリ");
     let output = run_demo(tmp.path(), &[]);
     assert_demo_output(&output);
