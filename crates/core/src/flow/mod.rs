@@ -22,11 +22,13 @@ pub mod classify;
 pub mod decide;
 pub mod next_step;
 pub mod resume;
+pub mod retry;
 
 pub use classify::classify;
 pub use decide::decide_before_run;
 pub use next_step::classify_and_decide;
 pub use resume::resume_point_on_interrupt;
+pub use retry::{RetryDecision, retry_decision};
 
 use crate::types::{JobState, JobStatus, SkipReason};
 

@@ -71,7 +71,10 @@ pub mod types;
 
 pub use definition::{load_definition, parse_definition};
 pub use error::*;
-pub use flow::{classify_and_decide, decide_before_run, resume_point_on_interrupt};
+pub use flow::{
+    RetryDecision, classify_and_decide, decide_before_run, resume_point_on_interrupt,
+    retry_decision,
+};
 pub use run_id::{
     DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env,
 };
