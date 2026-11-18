@@ -4668,3 +4668,343 @@
 **Stage**: delivery-planning
 
 ---
+
+## Question Asked
+**Timestamp**: 2026-11-18T21:44:22Z
+**Event**: QUESTION_ASKED
+**Question Id**: 3c9f658c
+**Question Type**: construction-staffing
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:709e6001de1e0d2201c65b8cdfb5ce2f470abec2042d6448e9d9a09ec1fd8f49
+**Stage**: functional-design
+**Options**: ["Just me","Several teams"]
+**State Digest**: 22673e6f570117db3c8dbc86fcc4cb0d0e944018f2039dbea9afe4811eb106cc
+**Question Text SHA-256**: cb0f441e0b73246763a1e7a509500b877565006a32f63e9b6dd7cb170f088d1e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:44:45Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Open Question**: construction-staffing
+**Picked**: ["Just me"]
+**Message Id**: 159db29a
+**Open Questions**: 3c9f658c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/inception/delivery-planning/delivery-planning-questions.md","entries":{"Q1":"8083c163fd7c3bc4","Q2":"0f7651ec781d699e","Q3":"87c4249e700b2895","Consolidated Summary Confirmation":"27083e0822ed678b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:44:45Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Inception is done, and the plan has 3 Units. Who builds them?
+**Question Id**: 3c9f658c
+**Reply**: Just me
+**Options**: ["Just me","Several teams"]
+
+---
+
+## Unit Ownership Set
+**Timestamp**: 2026-11-18T21:44:47Z
+**Event**: UNIT_OWNERSHIP_SET
+**Mode**: solo
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:45:13Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Continue automatically"]
+**Message Id**: 32e07fa2
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:45:13Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: How should I continue building the remaining work?
+**Reply**: Continue automatically
+**Options**: ["Continue automatically","Review each checkpoint"]
+
+---
+
+## Autonomy Mode Set
+**Timestamp**: 2026-11-18T21:45:15Z
+**Event**: AUTONOMY_MODE_SET
+**Mode**: autonomous
+**Message Id**: 32e07fa2
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:45:27Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: typed
+**Message Id**: a01e442c
+
+---
+
+## Unit Started
+**Timestamp**: 2026-11-18T21:45:35Z
+**Event**: UNIT_STARTED
+**Stage**: functional-design
+**Unit**: u1-retry-config
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:45:45Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:45:46Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Q1-Q4
+**Options**: Q1: A/B/C/X; Q2: A/B/C/X; Q3: A/B/C/X; Q4: A/B/C/X
+**Unit**: u1-retry-config
+**Question Id**: 9ee4b4e3
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:f0bfd236c91016f0ee3d1cc86cc2128fa78daff2884dba3d5b652b78631eed5d
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:47:48Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. 専用の表 [job.retry] (Recommended)","A. 定義の誤り (Recommended)","A. 定義の誤り (Recommended)","A. 上限を決めて、超えたら誤り (Recommended)"]
+**Message Id**: c3a0d7e8
+**Open Questions**: 9ee4b4e3
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md","entries":{"Q1":"6b6e24b1ed5afe3f","Q2":"22b68f78456f1cdb","Q3":"811c0c7a675fd45e","Q4":"54c238169a40710d","Q5":"ae7af93d995b9146","Q6":"7e5b950911b66cc6"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:47:48Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q1. リトライの設定は、どんな書き方にしますか?
+**Reply**: A. 専用の表 [job.retry] (Recommended)
+**Options**: ["A. 専用の表 [job.retry] (Recommended)","B. 平らなキー","C. Not yet defined"]
+**Recommended**: ["A. 専用の表 [job.retry]"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:47:48Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q2. リトライの終了コードの一覧が空([])の定義は、どうしますか?
+**Reply**: A. 定義の誤り (Recommended)
+**Options**: ["A. 定義の誤り (Recommended)","B. 「リトライしない」と同じ","C. Not yet defined"]
+**Recommended**: ["A. 定義の誤り"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:47:48Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q3. 間隔の上限が、最初の間隔より小さい定義(例: interval="30s"、max_interval="10s")は、どうしますか?
+**Reply**: A. 定義の誤り (Recommended)
+**Options**: ["A. 定義の誤り (Recommended)","B. 上限を優先","C. Not yet defined"]
+**Recommended**: ["A. 定義の誤り"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:47:48Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q4. 「上側」の最大値は、どうしますか?(極端に大きい値や、倍率を掛けたときの桁あふれを防ぐため)
+**Reply**: A. 上限を決めて、超えたら誤り (Recommended)
+**Options**: ["A. 上限を決めて、超えたら誤り (Recommended)","B. 上限は決めず、頭打ち","C. Not yet defined"]
+**Recommended**: ["A. 上限を決めて、超えたら誤り"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T21:47:51Z
+**Event**: QUESTION_ANSWERED
+**Stage**: functional-design
+**Details**: Q1: A; Q2: A; Q3: A; Q4: A
+**Unit**: u1-retry-config
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T21:47:52Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Q5-Q6
+**Options**: Q5: A/B/C/X; Q6: A/B/C/X
+**Unit**: u1-retry-config
+**Question Id**: 6d36fffc
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:861a2cee021b7a793a41e714b0ca0607a784c6fa557a43772a3cce7b364f13f5
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T21:48:42Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. 1〜255 の整数だけ (Recommended)","A. 起動失敗は対象外 (Recommended)"]
+**Message Id**: 3d49434b
+**Open Questions**: 9ee4b4e3, 6d36fffc
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md","entries":{"Q1":"6b6e24b1ed5afe3f","Q2":"22b68f78456f1cdb","Q3":"811c0c7a675fd45e","Q4":"54c238169a40710d","Q5":"ae7af93d995b9146","Q6":"7e5b950911b66cc6"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:48:43Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q5. リトライの終了コードに書ける値は、どうしますか?
+**Reply**: A. 1〜255 の整数だけ (Recommended)
+**Options**: ["A. 1〜255 の整数だけ (Recommended)","B. 0〜255 の整数","C. Not yet defined"]
+**Recommended**: ["A. 1〜255 の整数だけ"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T21:48:43Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q6. 起動できなかった場合(終了コード 127、conductor が付ける)と、ジョブ自身が 127 で終わる場合は、どう扱いますか?
+**Reply**: A. 起動失敗は対象外 (Recommended)
+**Options**: ["A. 起動失敗は対象外 (Recommended)","B. 127 を一覧に書いたら両方","C. Not yet defined"]
+**Recommended**: ["A. 起動失敗は対象外"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T21:48:58Z
+**Event**: QUESTION_ANSWERED
+**Stage**: functional-design
+**Details**: Q5: A; Q6: A
+**Unit**: u1-retry-config
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:49:03Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:49:04Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:49:06Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:49:07Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:49:09Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T21:49:10Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-design-questions.md
+**Context**: construction > u1-retry-config > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:49:22Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md
+**Context**: construction > u1-retry-config > functional-design > entities.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:49:41Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/rules.md
+**Context**: construction > u1-retry-config > functional-design > rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:50:01Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md
+**Context**: construction > u1-retry-config > functional-design > functional-spec.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:50:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json
+**Context**: construction > u1-retry-config > functional-design > traceability.json
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-18T21:50:11Z
+**Event**: UNIT_COMPLETED
+**Stage**: functional-design
+**Unit**: u1-retry-config
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---

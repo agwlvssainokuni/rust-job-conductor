@@ -1,0 +1,22 @@
+{
+  "stage": "functional-design",
+  "unit": "u1-retry-config",
+  "upstream_ids": ["FR1.1", "FR1.2", "FR1.3", "FR1.4", "FR1.5", "FR1.6", "FR1.7", "FR1.8", "FR1.9", "FR7.1", "FR7.2"],
+  "coverage": [
+    { "id": "FR1.1", "status": "OK", "target": "BR1.2, BR1.3, BR1.4, BR1.5, BR1.9" },
+    { "id": "FR1.2", "status": "OK", "target": "BR1.1" },
+    { "id": "FR1.3", "status": "OK", "target": "BR1.7" },
+    { "id": "FR1.4", "status": "OK", "target": "BR1.10" },
+    { "id": "FR1.5", "status": "OK", "target": "BR1.11, BR1.12, BR1.13" },
+    { "id": "FR1.6", "status": "OK", "target": "BR1.1, BR1.16" },
+    { "id": "FR1.7", "status": "OK", "target": "BR1.3" },
+    { "id": "FR1.8", "status": "OK", "target": "BR1.5, BR1.9, BR1.10, BR1.12" },
+    { "id": "FR1.9", "status": "OK", "target": "BR1.11" },
+    { "id": "FR7.1", "status": "OK", "target": "BR1.14" },
+    { "id": "FR7.2", "status": "OK", "target": "BR1.15" }
+  ],
+  "reverse": [
+    { "id": "BR1.6", "status": "N/A", "target": "design decision: duplicate exit codes are treated as a set" },
+    { "id": "BR1.8", "status": "N/A", "target": "FR3.6 is delivered by u2-retry-execution; this rule only keeps 127 valid in the list" }
+  ]
+}
