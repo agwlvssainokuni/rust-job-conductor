@@ -52,6 +52,70 @@ id = "a"
 command = "/no/such/program-for-conductor-test --flag"
 "#;
 
+/// リトライの設定を持つ定義。`retry` に、ジョブ a の `[job.retry]` の本体を書く(8 行目から)。
+fn with_retry(retry_body: &str) -> String {
+    format!(
+        "format_version = 1\n\n[pipeline]\nname = \"p\"\n\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\n\n[job.retry]\n{retry_body}"
+    )
+}
+
+#[test]
+fn 正しい_retry_を持つ定義は_0_で_何も表示しない() {
+    let mut h = Harness::new(&with_retry(
+        "exit_codes = [75]\nmax = 3\ninterval = \"30s\"\nmultiplier = 2\nmax_interval = \"10m\"\n",
+    ));
+    let out = h.run(&["validate"]);
+    assert_eq!(out.code, 0, "{}", out.err);
+    assert_eq!(out.out, "");
+    assert_eq!(out.err, "");
+    assert_eq!(h.runtime.run_calls.get(), 0);
+    assert!(!h.state_path().exists());
+}
+
+#[test]
+fn retry_の誤りは_64_で_run_と同じ誤りの文() {
+    let mut h = Harness::new(&with_retry(
+        "exit_codes = [75]\nmax = 0\ninterval = \"30s\"\n",
+    ));
+    let validate = h.run(&["validate"]);
+    assert_eq!(validate.code, 64);
+    assert_eq!(validate.out, "");
+    assert!(
+        validate.err.starts_with("conductor: error: "),
+        "{}",
+        validate.err
+    );
+    assert!(validate.err.contains(":12:"), "行番号: {}", validate.err);
+    let run = h.run(&["run", "a"]);
+    assert_eq!(run.code, 64);
+    assert_eq!(validate.err, run.err, "run と同じ文");
+    assert_eq!(h.runtime.run_calls.get(), 0, "ジョブは実行しない");
+}
+
+#[test]
+fn retry_の誤りは複数あれば_1_行ずつ_位置の順() {
+    let mut h = Harness::new(&with_retry(
+        "exit_codes = [0]\nmax = 101\ninterval = \"25h\"\n",
+    ));
+    let out = h.run(&["validate"]);
+    assert_eq!(out.code, 64);
+    let lines: Vec<&str> = out.err.lines().collect();
+    assert_eq!(lines.len(), 3, "{}", out.err);
+    assert!(lines[0].contains(":11:"), "{}", out.err);
+    assert!(lines[1].contains(":12:"), "{}", out.err);
+    assert!(lines[2].contains(":13:"), "{}", out.err);
+}
+
+#[test]
+fn retry_の許可されていないキーは_64() {
+    let mut h = Harness::new(&with_retry(
+        "exit_codes = [75]\nmax = 3\ninterval = \"30s\"\nwait = 1\n",
+    ));
+    let out = h.run(&["validate"]);
+    assert_eq!(out.code, 64);
+    assert!(out.err.contains("unknown key"), "{}", out.err);
+}
+
 #[test]
 fn 正しい定義は_0_で_何も表示せず_ステートにもジョブにもシグナルにも触れない() {
     let mut h = Harness::new(THREE_JOBS);

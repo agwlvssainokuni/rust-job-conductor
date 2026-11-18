@@ -308,6 +308,57 @@ n = 2
     assert_roundtrip(toml_text, TargetFormat::Toml);
 }
 
+/// `[job.retry]` を含む定義(FR7.2、BR1.15)。整数・文字列・整数の配列を持つ。
+const RETRY_TOML: &str = "format_version = 1
+
+[pipeline]
+name = \"p\"
+
+[[job]]
+id = \"a\"
+command = \"echo a\"
+
+[job.retry]
+exit_codes = [75, 127]
+max = 3
+interval = \"30s\"
+multiplier = 2
+max_interval = \"10m\"
+";
+
+#[test]
+fn retry_table_roundtrips_through_yaml_and_back_to_toml() {
+    let yaml_text = assert_roundtrip(RETRY_TOML, TargetFormat::Toml);
+    // 値(整数と文字列)が、型を保って YAML に出る
+    let tree = read(&yaml_text, TargetFormat::Yaml);
+    let Value::Map(top) = tree else { panic!("map") };
+    let Value::Array(jobs) = &top.iter().find(|(k, _)| k == "job").expect("job").1 else {
+        panic!("array")
+    };
+    let Value::Map(job) = &jobs[0] else {
+        panic!("map")
+    };
+    let Value::Map(retry) = &job.iter().find(|(k, _)| k == "retry").expect("retry").1 else {
+        panic!("map")
+    };
+    assert_eq!(
+        retry.iter().find(|(k, _)| k == "max").map(|(_, v)| v),
+        Some(&i(3))
+    );
+    assert_eq!(
+        retry.iter().find(|(k, _)| k == "interval").map(|(_, v)| v),
+        Some(&s("30s"))
+    );
+}
+
+#[test]
+fn retry_table_roundtrips_from_yaml() {
+    let yaml_text = convert_text(RETRY_TOML, TargetFormat::Yaml, "t")
+        .unwrap()
+        .text;
+    assert_roundtrip(&yaml_text, TargetFormat::Yaml);
+}
+
 #[test]
 fn deepest_allowed_structure_roundtrips() {
     // 32 段(根のマップ 1 + 配列 31)
