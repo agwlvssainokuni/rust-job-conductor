@@ -7033,3 +7033,244 @@
 **Context**: construction > u3-retry-display-docs > code-generation > traceability.json
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 71287c14
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 71287c14
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9f3f7e4b
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/unit-test-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 9f3f7e4b
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/unit-test-instructions.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 91da5167
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 91da5167
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-summary.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:36:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 21fe73b3
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:36:19Z
+**Event**: SENSOR_PASSED
+**Fire id**: 21fe73b3
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/traceability.json
+**Duration ms**: 82
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:36:19Z
+**Event**: SENSOR_FIRED
+**Fire id**: b2000bf8
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:36:19Z
+**Event**: SENSOR_PASSED
+**Fire id**: b2000bf8
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Unit**: u3-retry-display-docs
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/traceability.json
+**Duration ms**: 83
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-18T22:36:19Z
+**Event**: REVIEW_REQUESTED
+**Stage**: code-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-retry-display-docs
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:ba49250c381f3c659452ae95847d9e010e5d1d3cc9094f8f257b4a65cfaf3cf5
+**Request Id**: review:552e5141ff43681929e23473e2962a44
+**Source Fingerprint**: 141121d92ccadbed3344628bd3b540eaf2fa03cf528edbc5151f42c5516c9b1c
+**Unit Source Fingerprint**: sha256:0c0dda608fa4cad67706249f5c0c7fdf79b92100c005d1503adbafdf2637231a
+**Review File**: .aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.552e5141ff43681929e23473e2962a44.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-18T22:36:35Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-18T22:36:38Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: ad7df83dfd6777af0
+**Message**: コミットして
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:37:38Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/.aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.552e5141ff43681929e23473e2962a44.review.md
+**Context**: .aidlc-engine > reviews > code-generation > units > u3-retry-display-docs > c1f4c343f6e0f8d1 > 1.552e5141ff43681929e23473e2962a44.review.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-18T22:37:49Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-18T22:37:49Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a117ec4689f2756d5
+**Review File Digest**: .aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.552e5141ff43681929e23473e2962a44.review.md=a0c428f02ce3acdfdf6b4eb7f4e99af27c69ac350d971b27082f9baca14a25d5
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-18T22:37:51Z
+**Event**: REVIEW_COMPLETED
+**Stage**: code-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-retry-display-docs
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:ba49250c381f3c659452ae95847d9e010e5d1d3cc9094f8f257b4a65cfaf3cf5
+**Artifact Fingerprint**: sha256:ba49250c381f3c659452ae95847d9e010e5d1d3cc9094f8f257b4a65cfaf3cf5
+**Request Id**: review:552e5141ff43681929e23473e2962a44
+**Request Source Fingerprint**: 141121d92ccadbed3344628bd3b540eaf2fa03cf528edbc5151f42c5516c9b1c
+**Source Fingerprint**: 141121d92ccadbed3344628bd3b540eaf2fa03cf528edbc5151f42c5516c9b1c
+**Source Listing**: sha256:0f6d62d4e5dd0482f0ef5d01bf74f324aa7f3f72f5c6b79ba75f91496d5b2be8
+**Unit Source Fingerprint**: sha256:0c0dda608fa4cad67706249f5c0c7fdf79b92100c005d1503adbafdf2637231a
+**Review Record**: .aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.json
+**Review Record Digest**: sha256:a855f1fcc7f5a213488d0ea8db674c7ac3d032025d204d32a879ff733cae4317
+**Testing Contract**: sha256:d612e34b5f9d41c4f21a42502a2a8d564d0dfa60fd65fe4f577e5714d8511806
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-18T22:37:56Z
+**Event**: UNIT_COMPLETED
+**Stage**: code-generation
+**Unit**: u3-retry-display-docs
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Checkpoint Verification Recorded
+**Timestamp**: 2026-11-18T22:38:47Z
+**Event**: CHECKPOINT_VERIFICATION_RECORDED
+**Unit**: u3-retry-display-docs
+**Kind**: unit
+**Stage**: code-generation
+**Stages**: functional-design, code-generation
+**Verification Id**: e2b078c1-0e72-45ec-829f-005626f9974a
+**Fingerprint**: sha256:68f525202dcccd94982ff66e6f98cbc32f77e99e2084cd0fd0a7a7755125a317
+**Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Exit Code**: 0
+**Verified**: true
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-18T22:38:54Z
+**Event**: GATE_APPROVED
+**Unit**: u3-retry-display-docs
+**Stage**: code-generation
+**Stages**: functional-design, code-generation
+**Gate Stages**: functional-design, code-generation
+**Gate Scope**: unit-end
+**Checkpoint**: construction-unit
+**Fingerprint**: sha256:68f525202dcccd94982ff66e6f98cbc32f77e99e2084cd0fd0a7a7755125a317
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+**Run floors**: {"functional-design":"WORKFLOW_STARTED:2026-11-18T15:44:24Z#1","code-generation":"WORKFLOW_STARTED:2026-11-18T15:44:24Z#1"}
+**Verification Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Verification Id**: e2b078c1-0e72-45ec-829f-005626f9974a
+**Approved Evidence**: {"code-generation":["sha256:ba49250c381f3c659452ae95847d9e010e5d1d3cc9094f8f257b4a65cfaf3cf5","sha256:0c0dda608fa4cad67706249f5c0c7fdf79b92100c005d1503adbafdf2637231a",{"\u0000README.md":"100644 8d7398f975e257f9219d3dd0a736e9a7328cf6d8578f4455196fa7bbd8356bce","\u0000crates/cli/tests/docs_retry.rs":"100644 0aad1a35f69c01c1fdbd0cf246392c62524ce1de014da7e46a4e167737bdb6dc"}]}
+**Autonomous**: true
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:ee69e22cefbcef5d58838cef88260382083429ed254457a08de06f0499cf04a2","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.json","digest":"sha256:a855f1fcc7f5a213488d0ea8db674c7ac3d032025d204d32a879ff733cae4317"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md","id":"R-02","fingerprint":"sha256:6061a50af5e2ac9ba236ba33b4960ecfb5e6204a3d707f80fbf5201f73247640","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.json","digest":"sha256:a855f1fcc7f5a213488d0ea8db674c7ac3d032025d204d32a879ff733cae4317"}}]}
+
+---
