@@ -123,6 +123,52 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
                 "[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"\n",
             ),
         ),
+        (K::RetryNotTable, job(&format!("retry = \"{SENTINEL}\"\n"))),
+        (K::RetryMissingKey, job("[job.retry]\n")),
+        (
+            K::RetryExitCodesEmpty,
+            job("[job.retry]\nexit_codes = []\nmax = 1\ninterval = \"1s\"\n"),
+        ),
+        (
+            K::RetryExitCodeInvalid,
+            job(&format!(
+                "[job.retry]\nexit_codes = [\"{SENTINEL}\"]\nmax = 1\ninterval = \"1s\"\n"
+            )),
+        ),
+        (
+            K::RetryExitCodesOverlap,
+            job(
+                "success_exit_codes = [7]\n[job.retry]\nexit_codes = [7]\nmax = 1\ninterval = \"1s\"\n",
+            ),
+        ),
+        (
+            K::RetryMaxInvalid,
+            job(&format!(
+                "[job.retry]\nexit_codes = [7]\nmax = \"{SENTINEL}\"\ninterval = \"1s\"\n"
+            )),
+        ),
+        (
+            K::RetryDurationInvalid,
+            job(&format!(
+                "[job.retry]\nexit_codes = [7]\nmax = 1\ninterval = \"{SENTINEL}\"\n"
+            )),
+        ),
+        (
+            K::RetryBackoffIncomplete,
+            job("[job.retry]\nexit_codes = [7]\nmax = 1\ninterval = \"1s\"\nmultiplier = 2\n"),
+        ),
+        (
+            K::RetryMultiplierInvalid,
+            job(&format!(
+                "[job.retry]\nexit_codes = [7]\nmax = 1\ninterval = \"1s\"\nmultiplier = \"{SENTINEL}\"\nmax_interval = \"1s\"\n"
+            )),
+        ),
+        (
+            K::RetryMaxIntervalTooSmall,
+            job(
+                "[job.retry]\nexit_codes = [7]\nmax = 1\ninterval = \"10s\"\nmultiplier = 2\nmax_interval = \"5s\"\n",
+            ),
+        ),
     ]
 }
 

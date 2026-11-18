@@ -18,6 +18,7 @@
 //! 入出力に触れるのは Intake だけで、それ以外は、文字列だけを受け取る純粋な処理である。
 
 pub mod depth;
+pub(crate) mod duration;
 pub mod intake;
 pub mod parse;
 pub mod version;
