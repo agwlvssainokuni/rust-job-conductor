@@ -93,6 +93,24 @@
 
 [Answer]: A
 
+## Q10. [プロダクト] リトライの終了コードの一覧を書いたのに、最大回数 N や間隔を省略した定義は、どうしますか?(レビューの指摘 R-01 の追加の質問)
+
+- A. 定義の誤りにする(一覧を書いたら、最大回数と間隔も必ず書く)
+- B. 省略したら既定値を使う
+- C. Not yet defined
+- X. Other (please specify)
+
+[Answer]: A
+
+## Q11. [プロダクト] 最大回数 N=0、間隔 "0s"、倍率 1 以下の定義は、どうしますか?(レビューの指摘 R-01 の追加の質問)
+
+- A. 定義の誤りにする(N は 1 以上、間隔は 1 秒以上、倍率は 2 以上)
+- B. ゆるく受け付ける(0 は「リトライしない」、倍率 1 は「伸ばさない」とする)
+- C. Not yet defined
+- X. Other (please specify)
+
+[Answer]: A
+
 ## Consolidated Summary Confirmation
 
 - Looks correct
