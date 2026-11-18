@@ -78,5 +78,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "5d44e495"
+  },
+  {
+    "uuid": "01a1ef54-a254-7542-b7f8-a18769d8ee35",
+    "slug": "job-retry",
+    "dirName": "261118-job-retry",
+    "scope": "feature",
+    "status": "in-flight",
+    "request": "6247f279"
   }
 ]
