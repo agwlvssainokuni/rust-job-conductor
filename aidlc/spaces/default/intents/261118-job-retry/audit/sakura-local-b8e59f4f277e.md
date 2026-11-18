@@ -7274,3 +7274,194 @@
 **Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:ee69e22cefbcef5d58838cef88260382083429ed254457a08de06f0499cf04a2","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.json","digest":"sha256:a855f1fcc7f5a213488d0ea8db674c7ac3d032025d204d32a879ff733cae4317"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md","id":"R-02","fingerprint":"sha256:6061a50af5e2ac9ba236ba33b4960ecfb5e6204a3d707f80fbf5201f73247640","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-retry-display-docs/c1f4c343f6e0f8d1/1.json","digest":"sha256:a855f1fcc7f5a213488d0ea8db674c7ac3d032025d204d32a879ff733cae4317"}}]}
 
 ---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-18T22:39:30Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: functional-design
+**Next Stage**: code-generation
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/entities.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/rules.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/traceability.json=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/rules.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json=passed; upstream-coverage@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/entities.md=passed; upstream-coverage@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md=passed; traceability@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/traceability.json=passed; traceability@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json=passed
+**Open Decisions**: 0
+**Question Id**: 11d0cb2a
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:aeea431736424d016ea0f3d0bac8076fe8c2121ac7e6ee2780f6cf09cfc17f71
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-18T22:39:35Z
+**Event**: GATE_APPROVED
+**Stage**: functional-design
+**Brief Digest**: none
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-18T22:39:36Z
+**Event**: STAGE_COMPLETED
+**Stage**: functional-design
+**Validation Basis**: {"graphContract":"sha256:9bcda5bd8a06c0847db3e05cd9c841a992450b498f36fead53d3737b78517a4e","inputs":[{"artifact":"components","contentHash":"sha256:d6c7a9f0f9961692321405cc95ab4a864915b1404c9207af5bf0c933c2d8551a","instanceCount":1,"presentCount":0,"producer":"domain-design","required":true,"structureHash":"sha256:1267fe497e5fde4f351f9405df9a1e0a18366ddfb50f219fa7b8280e74847cd7"},{"artifact":"requirements","contentHash":"sha256:976f0e56330a159515ba690659793205dd65fe6546fe1802110f7040f1983d7b","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:82f4bf93807c3530261c14bc941cbd6a05e93cbccd311fab948f177a0a43db79"},{"artifact":"unit-of-work-story-map","contentHash":"sha256:84621ffaba424daacac6567a9e4d300aef560f9439e84a65971e85ee48af2205","instanceCount":1,"presentCount":1,"producer":"units-generation","required":false,"structureHash":"sha256:2816c70cccd5e5f19adf47df0510ca4ec538f9e76fb8837a89800e2bc7ae8099"},{"artifact":"unit-of-work","contentHash":"sha256:92f5fdd2ebaaef087b7068b9961eaf6624be90ee7ef97a24a79bbbb68a501a7a","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:1685498349729f0f33248cdc0e160f2271409c0c2cd3d99d7d9c75599785396a"}],"outputs":[{"artifact":"entities","contentHash":"sha256:a2de52ede99c57572444680986fd9646e00be7d0328829ba67679cb3fee65a2b","instanceCount":3,"presentCount":2,"producer":"functional-design","required":true,"structureHash":"sha256:c55144d41d4e435224fe44cb0c8fb97248162416db537e3fa18d110d5864b043"},{"artifact":"functional-spec","contentHash":"sha256:4699fb63a862d25d1d24bb99269535f8002e1adf94cb928f8cd3a7a3364af5d9","instanceCount":3,"presentCount":2,"producer":"functional-design","required":true,"structureHash":"sha256:0f6a9a43715229124a50b219122e62d303e158488a00a51f9abad9a0b08c3057"},{"artifact":"rules","contentHash":"sha256:391a2e22a26662fa6a1dfda9eeb0cdbe0dda50438338d84ac7531c0829606ef5","instanceCount":3,"presentCount":2,"producer":"functional-design","required":true,"structureHash":"sha256:f32d9cb68dffd94e8189daa2af7176243a2248178176cf9bbd82f7183ec15d87"},{"artifact":"traceability","contentHash":"sha256:55219d7578e5142e2ed06e4edda07a6d707ecdc1f30d17e049251b886dd62412","instanceCount":3,"presentCount":2,"producer":"functional-design","required":true,"structureHash":"sha256:cbce1e437612df2a0dcb4e1c2ce5f2ca3c905bc6dcc9006d8d2b910a87b49869"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Functional Design approved by gate
+**Tokens In**: 68
+**Tokens Out**: 44909
+**Cache Read**: 24348613
+**Cache Write**: 93945
+**Cost USD**: 3.26
+**By Model**: sonnet-5-5=3.26
+**By Agent**: main=3.26
+**Tokens By Model**: sonnet-5-5=68/44.9k/24.3M/93.9k
+**Tokens By Agent**: main=68/44.9k/24.3M/93.9k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-18T22:39:36Z
+**Event**: STAGE_STARTED
+**Stage**: code-generation
+**Agent**: aidlc-developer-agent
+**Answer Mode**: guide (reused from intent-capture)
+**Source Baseline**: sha256:0f6d62d4e5dd0482f0ef5d01bf74f324aa7f3f72f5c6b79ba75f91496d5b2be8
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-18T22:39:36Z
+**Event**: MEMORY_EMPTY
+**Stage**: functional-design
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-18T22:39:55Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: code-generation
+**Next Stage**: build-and-test
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/code-generation-plan.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/unit-test-instructions.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/code-summary.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/traceability.json=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/unit-test-instructions.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-summary.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/traceability.json=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/code-generation/code-generation-plan.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/code-generation/unit-test-instructions.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/code-generation/code-summary.md=passed; required-sections@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/code-generation/traceability.json=passed; traceability@aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/traceability.json=passed; traceability@aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/traceability.json=passed; traceability@aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/code-generation/traceability.json=passed
+**Open Decisions**: 0
+**Source Work**: found in a source change since the stage started
+**Question Id**: b2a218cf
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:b27e98598fd021601f70618fd6f5986508ccdb4e7b09cedeb261735e3c7566e7
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-18T22:40:05Z
+**Event**: GATE_APPROVED
+**Stage**: code-generation
+**Brief Digest**: none
+**Source Work**: found in a source change since the stage started
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-18T22:40:05Z
+**Event**: STAGE_COMPLETED
+**Stage**: code-generation
+**Validation Basis**: {"graphContract":"sha256:ac0ef7ae03ae2fcfab9e2a94500d84c4fe00d00384d1f8dcff92c96b2e1f50de","inputs":[{"artifact":"entities","contentHash":"sha256:32afe3a30bcee605e9a5c2b5d7fb1fbefed94f1c2c4c8b455a6a40e4ecdd28ca","instanceCount":2,"presentCount":2,"producer":"functional-design","required":false,"structureHash":"sha256:6f337ca8ba4d045212bd68a203a4a59e041fa8c8cf9ae5ee595a72b5540ea1cd"},{"artifact":"functional-spec","contentHash":"sha256:1e7ce2b4206daa6de37d298919fe96cc16270e0249531b6ca494c3715911921e","instanceCount":2,"presentCount":2,"producer":"functional-design","required":false,"structureHash":"sha256:472f74518e594b65e447090b2a539c9b562feaf10dd6da92e7e1dffe73e2886b"},{"artifact":"requirements","contentHash":"sha256:976f0e56330a159515ba690659793205dd65fe6546fe1802110f7040f1983d7b","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:82f4bf93807c3530261c14bc941cbd6a05e93cbccd311fab948f177a0a43db79"},{"artifact":"rules","contentHash":"sha256:bb30d61a53dec604d63a08abaf348e750c9fbe7641222575a2fafce82b8a9371","instanceCount":2,"presentCount":2,"producer":"functional-design","required":false,"structureHash":"sha256:9f8d4b50a030a7f89ddfdb03dd147268d38e1f76e38ffba98de4bc384771f8f8"},{"artifact":"unit-of-work","contentHash":"sha256:92f5fdd2ebaaef087b7068b9961eaf6624be90ee7ef97a24a79bbbb68a501a7a","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:1685498349729f0f33248cdc0e160f2271409c0c2cd3d99d7d9c75599785396a"}],"outputs":[{"artifact":"code-generation-plan","contentHash":"sha256:e10868934f6e1fe506ef9b1bf9a1cd991987bc079c80d532de9dcd7340a128f5","instanceCount":3,"presentCount":3,"producer":"code-generation","required":true,"structureHash":"sha256:79707afabcad40b09dd587882d70b4f4629a0f3e8ab69eead96d58681daf02f5"},{"artifact":"code-summary","contentHash":"sha256:0fb34ee8a684136a0d4e3f69e5465e089e38059c830de76f4fd3cdb7983514a5","instanceCount":3,"presentCount":3,"producer":"code-generation","required":true,"structureHash":"sha256:976db4bef7c04d1866186463ebc90b7299f5eab0390112be69965dee5e06f195"},{"artifact":"traceability","contentHash":"sha256:142df81ca5b7c2fa871409f6eed1ff6590c9f825a39b028fa6ba5caebeb004a7","instanceCount":3,"presentCount":3,"producer":"code-generation","required":true,"structureHash":"sha256:af86503cdf1b66ccbd2808444a16d26db59d034b1141a7805c450a68f6b1e5ae"},{"artifact":"unit-test-instructions","contentHash":"sha256:c140d82454bb60999fb3dfd1ac10eeffe3bad3caf0685aeb73e9a120e5334f73","instanceCount":3,"presentCount":3,"producer":"code-generation","required":true,"structureHash":"sha256:bdc5c70eeee69756f25ebd2e0c9f368c46dff2bc4dd697f630c4b7c73f718971"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Code Generation approved by gate
+**Tokens In**: 582
+**Tokens Out**: 201492
+**Cache Read**: 105316235
+**Cache Write**: 1035185
+**Cost USD**: 15.61
+**By Model**: sonnet-5-5=15.61
+**By Agent**: main=11.04; aidlc-developer-agent=3.41; aidlc-architecture-reviewer-agent=1.17
+**Tokens By Model**: sonnet-5-5=582/201.5k/105.3M/1M
+**Tokens By Agent**: main=296/75.2k/90.1M/319.4k; aidlc-developer-agent=224/102.5k/13.3M/419.4k; aidlc-architecture-reviewer-agent=62/23.8k/1.9M/296.4k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-18T22:40:06Z
+**Event**: STAGE_STARTED
+**Stage**: build-and-test
+**Agent**: aidlc-quality-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:45:57Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/build-instructions.md
+**Context**: construction > build-and-test > build-instructions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:46:07Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/integration-test-instructions.md
+**Context**: construction > build-and-test > integration-test-instructions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:46:13Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/integration-test-instructions.md
+**Context**: construction > build-and-test > integration-test-instructions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:46:27Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:46:34Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:46:36Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:46:56Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/build-and-test-summary.md
+**Context**: construction > build-and-test > build-and-test-summary.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:47:05Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/cross-unit-traceability.md
+**Context**: construction > build-and-test > cross-unit-traceability.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T22:47:11Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/build-and-test/test-results.md
+**Context**: construction > build-and-test > test-results.md
+
+---
