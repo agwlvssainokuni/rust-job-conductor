@@ -3168,3 +3168,201 @@
 **Summary Authorization Id**: 1a6254aacfa448aeb1fc09dfe81e25a0007d5f6b26e53c043934f1197dcd5390
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:29:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: 74152594
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_PASSED
+**Fire id**: 74152594
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+**Duration ms**: 79
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_FIRED
+**Fire id**: e9811360
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_PASSED
+**Fire id**: e9811360
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-dependency.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_FIRED
+**Fire id**: b07dbb98
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_PASSED
+**Fire id**: b07dbb98
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work-story-map.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4e047d95
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4e047d95
+**Sensor ID**: required-sections
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6c6a7556
+**Sensor ID**: upstream-coverage
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6c6a7556
+**Sensor ID**: upstream-coverage
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/unit-of-work.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T21:29:15Z
+**Event**: SENSOR_FIRED
+**Fire id**: 2bed2fe4
+**Sensor ID**: traceability
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T21:29:16Z
+**Event**: SENSOR_PASSED
+**Fire id**: 2bed2fe4
+**Sensor ID**: traceability
+**Stage slug**: units-generation
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/inception/units-generation/traceability.json
+**Duration ms**: 77
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-18T21:29:16Z
+**Event**: REVIEW_REQUESTED
+**Stage**: units-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:067af86b3cc867b2024046611bdc488d37872bc31d6b34b112c919e574db5d92
+**Request Id**: review:77d7f0df81910ee1d1d0133a113d3296
+**Review File**: .aidlc-engine/reviews/units-generation/stage/0dde07e160196f26/1.77d7f0df81910ee1d1d0133a113d3296.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-18T21:29:26Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-18T21:29:28Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: af9f9d7af51c78ef9
+**Message**: 続けて
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T21:29:56Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/.aidlc-engine/reviews/units-generation/stage/0dde07e160196f26/1.77d7f0df81910ee1d1d0133a113d3296.review.md
+**Context**: .aidlc-engine > reviews > units-generation > stage > 0dde07e160196f26 > 1.77d7f0df81910ee1d1d0133a113d3296.review.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-18T21:30:01Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-18T21:30:01Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a263bbb0108550a43
+**Review File Digest**: .aidlc-engine/reviews/units-generation/stage/0dde07e160196f26/1.77d7f0df81910ee1d1d0133a113d3296.review.md=2a78aa0360c2194ec6303d1a2e621d7fa4ae1d5a16e9b07de543c58a8de7f27a
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-18T21:30:11Z
+**Event**: REVIEW_COMPLETED
+**Stage**: units-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:067af86b3cc867b2024046611bdc488d37872bc31d6b34b112c919e574db5d92
+**Artifact Fingerprint**: sha256:067af86b3cc867b2024046611bdc488d37872bc31d6b34b112c919e574db5d92
+**Request Id**: review:77d7f0df81910ee1d1d0133a113d3296
+**Review Record**: .aidlc-engine/reviews/units-generation/stage/0dde07e160196f26/1.json
+**Review Record Digest**: sha256:876a1c484609f191663be930a7e28e6b8e3cf27276444a2e4432b69daf516c2c
+
+---
