@@ -6726,3 +6726,110 @@
 **Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:394f830c3edb95b1788b32032fe3ee6569be55fd2ed09185bf937367c29a35fa","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:f9aaf466aa7ea67e0c2266638eaf5ae3f2a717984ee0c988ab2cdb11f9a35501"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:fa83f4250110794891be4b4de322653e9938957c5a083ec6fdc9fa25f456534c","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:4b647df5fa320aaa9c180bf2a47701074c53230139c0d339266be39c6826766c","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480"}},{"artifact":"aidlc/spaces/default/intents/261118-job-retry/construction/u2-retry-execution/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:bf981422b9dd260ad86ab9ee828193b9280a18345e9aff4c34f911a9ade91363","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-retry-execution/c1f4c343f6e0f8d1/1.json","digest":"sha256:30a44826a97f2a8621c679e23619996683331e022c72432c54cab091fd1f3480"}}]}
 
 ---
+
+## Unit Skipped
+**Timestamp**: 2026-11-18T22:29:24Z
+**Event**: UNIT_SKIPPED
+**Stage**: functional-design
+**Unit**: u3-retry-display-docs
+**Reason**: u3 only finalizes the already-implemented retry notice wording and writes the README: no new entities, business rules or workflows to design.
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Unit Started
+**Timestamp**: 2026-11-18T22:29:49Z
+**Event**: UNIT_STARTED
+**Stage**: code-generation
+**Unit**: u3-retry-display-docs
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:30:17Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-plan.md
+**Context**: construction > u3-retry-display-docs > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:30:23Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/unit-test-instructions.md
+**Context**: construction > u3-retry-display-docs > code-generation > unit-test-instructions.md
+
+---
+
+## Session Compacted
+**Timestamp**: 2026-11-18T22:30:23Z
+**Event**: SESSION_COMPACTED
+**Current Stage**: functional-design
+**State Validity**: valid
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-18T22:30:26Z
+**Event**: QUESTION_ASKED
+**Question Id**: 8c34bab9
+**Question Type**: plan-approval
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:f8b461d34add77d27bbd410526469928d2ddb57497417ef834533b8f8fd04093
+**Stage**: code-generation
+**Unit**: u3-retry-display-docs
+**Ask Id**: 9c71534263046ae8e7758ad12c634a2c
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: 0b1abc2f6c50a5200f1cb8ba63cfc6e54c67924858d09bc17384578a46bf2d71
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-questions.md
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T22:30:53Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve Plan"]
+**Message Id**: 8867b80b
+**Open Questions**: 9ee4b4e3, 6d36fffc, 58399e0e, 8c34bab9
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-questions.md","entries":{"Plan Approval":"533a7db035a4ee65"}}
+
+---
+
+## Plan Approval Recorded
+**Timestamp**: 2026-11-18T22:30:53Z
+**Event**: PLAN_APPROVAL_RECORDED
+**Stage**: code-generation
+**Details**: Approve Plan
+**Checkpoint**: plan-approval
+**Plan Target**: unit:u3-retry-display-docs
+**Intent**: 01a1ef54-a254-7542-b7f8-a18769d8ee35
+**Directive Epoch**: sha256:e754061ee0d1072065446042ed859e77bc58ac51226bc33e1b0159dec3feaa87
+**Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
+**Approval Fingerprint**: sha256:v3:6a2c750b20579accbd56e3450f489f1def7c508102565f9e0726960104b54b11
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/construction/u3-retry-display-docs/code-generation/code-generation-questions.md
+**Questions SHA-256**: 5d66cbc5ddf2c97fbb6550e2f0e6752a7a101e9424ccb54f8f1d6f285a1662a6
+**Prompt SHA-256**: 08835b1accc462ef1d3f1d5d421e712b5fcd009deb8b32b7ff96c25c2fc6ccf9
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Asked By**: engine
+**Person Reply**: Approve Plan
+**Message Id**: 8867b80b
+**Unit**: u3-retry-display-docs
+**Git Name**: agwlvssainokuni
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T22:30:54Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Approve the code plan for u3-retry-display-docs?
+**Reply**: Approve Plan
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+
+---
