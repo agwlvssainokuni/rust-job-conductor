@@ -52,12 +52,24 @@
 
 ## 実行できなかったもの
 
-- Linux と Windows でのテストの実行: ローカルは macOS のため。CI(GitHub Actions)で実行する。この変更は、まだ push していない
+- Linux と Windows でのテストの、ローカルでの実行: ローカルは macOS のため。CI で実行し、成功した(上の「CI の結果」)
 - 本物のシグナルで、リトライの待機を打ち切る自動のテスト: 自動のテストは、偽の実行環境と、`wait_for` の単体のテストで確かめている。本物のバイナリでの確認は、上の手動の 2 のみ
 
-## 失敗の判定
+## CI の結果(3 つの OS)
 
-このステージは、失敗の条件に当たる: 目標 NFR5(3 つの OS)が `Unverified`(`build-and-test-summary.md`)。ビルドとテストのコマンドは、すべて成功している。原因は、ローカルが macOS のみで、Linux と Windows のテストを実行できないこと。コード、テスト、設定の側に、直せる欠陥は見つかっていない(直せる方法が、ない)。解消するには、push して、CI(GitHub Actions)の 3 つの OS の結果を確認するしかない。
+最初の実行では、目標 NFR5(3 つの OS)が、ローカルが macOS のみのため `Unverified` だった(ビルドとテストのコマンドは、すべて成功。コード側の欠陥はなし)。あなたが `main` を push し、CI(GitHub Actions、実行 44415057031、コミット `47bc6b7`)で確認した:
+
+| ジョブ | 結果 |
+|---|---|
+| `test`(ubuntu-24.04、macos-latest、windows-2022) | すべて成功 |
+| `msrv-test`(Rust 1.100.0) | 成功 |
+| `build-check`(ubuntu-24.04、windows-2022) | 成功 |
+| `startup-bench`(3 つの OS) | すべて成功 |
+| `lint`(`cargo fmt`、`clippy -D warnings`) | 成功 |
+| `coverage`(行 80% 以上) | 成功 |
+| `docs-check`(README の必須の語) | 成功 |
+
+結果: NFR5 は `Met` になった。このステージは、失敗の条件に当たらない。
 
 ## Loop-Back Log
 

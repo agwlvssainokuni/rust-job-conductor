@@ -2,15 +2,16 @@
 
 出典: `aidlc engine sensor-traceability --stage build-and-test` の出力(要件ごとに、作った Unit とファイル)。
 
-**判定: FAIL**(各 Unit の記録で、作った・対象外としていない要件が 2 つ: NFR4、NFR5)
+**判定: PASS(横断の目標 2 つは、このステージで確認済み)**
+
+ツールの出力は、`pass: false`(各 Unit の記録で、作った・対象外としていない要件が 2 つ: NFR4、NFR5)。この 2 つは、各 Unit が「Build and Test に任せる」とした横断の目標で、Unit のコードの対象ではない。このステージで確認した結果は、次のとおり。
 
 - 33 のうち、31 の ID が、Unit の記録で、作った、または対象外と示されている
-- 記録がない 2 つの ID は、各 Unit が「Build and Test に任せる」とした横断の目標である。このステージで確認した結果は、次のとおり
 
 | ID | 判定 | このステージでの確認 |
 |---|---|---|
-| NFR4(行カバレッジ 80%) | 記録なし → このステージで確認済み | 全体の行カバレッジ 97.80%(`test-results.md`)。`build-and-test-summary.md` の行は Met |
-| NFR5(3 つの OS) | 記録なし → **未確認** | ローカル(macOS)のみ。Windows はコンパイルと静的解析のみ。Linux は未実行。`build-and-test-summary.md` の行は Unverified |
+| NFR4(行カバレッジ 80%) | 確認済み | 全体の行カバレッジ 97.80%(`test-results.md`)。CI の `coverage` ジョブも成功。`build-and-test-summary.md` の行は Met |
+| NFR5(3 つの OS) | 確認済み | CI の 3 つの OS のテストが成功(実行 44415057031)。`build-and-test-summary.md` の行は Met |
 
 ## 要件ごとの対応
 
@@ -46,6 +47,6 @@
 | NFR2 | u1、u2 | `crates/cli/tests/nfr_source.rs` |
 | NFR3 | u2 | `crates/cli/tests/common/mod.rs` |
 | NFR4 | (横断) | `build-and-test-summary.md` |
-| NFR5 | (横断) | **未確認** |
+| NFR5 | (横断) | CI の 3 つの OS のテスト(確認済み) |
 | NFR6 | u1、u2、u3(対象外: 新しい外部クレートなし) | `Cargo.toml`、`Cargo.lock` に変更なし |
 | NFR7 | u2 | `crates/runtime/tests/wait_interruptible.rs` |
