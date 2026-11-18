@@ -5555,3 +5555,215 @@
 **Run floor**: WORKFLOW_STARTED:2026-11-18T15:44:24Z#1
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:09:30Z
+**Event**: SENSOR_FIRED
+**Fire id**: 5851a2b1
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:09:30Z
+**Event**: SENSOR_PASSED
+**Fire id**: 5851a2b1
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:09:30Z
+**Event**: SENSOR_FIRED
+**Fire id**: 040bf7a5
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:09:30Z
+**Event**: SENSOR_PASSED
+**Fire id**: 040bf7a5
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/rules.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:09:30Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4777c82e
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:09:30Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4777c82e
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/functional-spec.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4344f44d
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4344f44d
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: d0126518
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: d0126518
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/entities.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6e21284c
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6e21284c
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u1-retry-config
+**Output path**: aidlc/spaces/default/intents/261118-job-retry/construction/u1-retry-config/functional-design/traceability.json
+**Duration ms**: 81
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-18T22:09:31Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u1-retry-config
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:138e6daf28d1a936d9df49003e77e9a766c288d9771d7d83157dafc0c445c667
+**Request Id**: review:14ded9a0d3f7df0d4ee9e327ac0c46a6
+**Review File**: .aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.14ded9a0d3f7df0d4ee9e327ac0c46a6.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-18T22:09:42Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-18T22:09:45Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a33b224cbf087f2e9
+**Message**: こまめにコミット
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T22:10:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/.aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.14ded9a0d3f7df0d4ee9e327ac0c46a6.review.md
+**Context**: .aidlc-engine > reviews > functional-design > units > u1-retry-config > c1f4c343f6e0f8d1 > 1.14ded9a0d3f7df0d4ee9e327ac0c46a6.review.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-18T22:10:15Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-18T22:10:15Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a0126a643a816091e
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.14ded9a0d3f7df0d4ee9e327ac0c46a6.review.md=52fce21f862a8c5869bd7955fb2a29f8aecd8949faf3c0e744d1df660bdfbf22
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-18T22:10:18Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u1-retry-config
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:138e6daf28d1a936d9df49003e77e9a766c288d9771d7d83157dafc0c445c667
+**Artifact Fingerprint**: sha256:138e6daf28d1a936d9df49003e77e9a766c288d9771d7d83157dafc0c445c667
+**Request Id**: review:14ded9a0d3f7df0d4ee9e327ac0c46a6
+**Review Record**: .aidlc-engine/reviews/functional-design/units/u1-retry-config/c1f4c343f6e0f8d1/1.json
+**Review Record Digest**: sha256:e0b2d00ae4f3f3dc0ca9b1eba904244e0117c31d42a0e69372df9ac74239cf4e
+
+---
