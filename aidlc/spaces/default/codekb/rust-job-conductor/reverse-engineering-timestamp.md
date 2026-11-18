@@ -2,24 +2,44 @@
 
 ## Run Record
 
-- Date: 2026-11-17
-- Commit: c3de6f0953bf8f4436840c1a6805034f29b2746a
+- Date: 2026-11-19
+- Commit: db631cd088bd66b846b1f5b0fcb33ccaa5c0d2d0
 
 ## Scope of Analysis
 
 ```yaml
 scope_version: 1
 kind: full
-intent: 261117-align-latest-lts
-fingerprint: 22d0d9c51691c782b9643bf63aef1c53b64fbadd
+intent: 261118-job-retry
+fingerprint: d34268005e41cad032f757ebe3e4a46ffa9bad2b
 analyzed:
   paths:
     - ./
   components:
-    - conductor-core
-    - conductor-runtime
-    - conductor-converter
-    - conductor-cli
+    - core::Types
+    - core::DefinitionLoader
+    - core::Flow
+    - core::RunId
+    - core::Describe
+    - runtime::JobRunner
+    - runtime::CommandSplit
+    - runtime::Platform
+    - runtime::Types
+    - runtime::StateStore
+    - runtime::Recorder
+    - runtime::Consistency
+    - cli::ArgParser
+    - cli::Orchestrator
+    - cli::AuxCommands
+    - cli::Deps
+    - cli::Reporter
+    - cli::WatchView
+    - cli::Escape
+    - cli::SignalWatcher
+    - cli::ExitMapper
+    - cli::PanicHook
+    - converter::Converter
+    - TestHelpers
 shallow:
   paths: []
 ```
