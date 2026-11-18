@@ -331,6 +331,52 @@ fn 定義の誤りの日本語は_u1_の種類の文を使う() {
     );
 }
 
+/// リトライの設定の誤りの種類(U1。BR1.14、FR7.1)。
+fn retry_kinds() -> [DefinitionErrorKind; 10] {
+    use DefinitionErrorKind as K;
+    [
+        K::RetryNotTable,
+        K::RetryMissingKey,
+        K::RetryExitCodesEmpty,
+        K::RetryExitCodeInvalid,
+        K::RetryExitCodesOverlap,
+        K::RetryMaxInvalid,
+        K::RetryDurationInvalid,
+        K::RetryBackoffIncomplete,
+        K::RetryMultiplierInvalid,
+        K::RetryMaxIntervalTooSmall,
+    ]
+}
+
+#[test]
+fn リトライの設定の誤りは英語の固定の文を持つ() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let mut seen = std::collections::HashSet::new();
+    for kind in retry_kinds() {
+        let errors = vec![DefinitionError::new("c.toml", Some(5), kind, "R")];
+        let text = reporter.render(&DisplayEvent::DefinitionErrors(&errors));
+        assert!(text.is_ascii(), "{kind:?}: {text}");
+        assert!(text.starts_with("conductor: error: c.toml:5: "), "{text}");
+        assert!(text.contains("retry"), "{text}");
+        assert!(seen.insert(text), "{kind:?} の文が重複している");
+    }
+}
+
+#[test]
+fn リトライの設定の誤りは日本語の固定の文を持つ() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    let mut seen = std::collections::HashSet::new();
+    for kind in retry_kinds() {
+        let errors = vec![DefinitionError::new("c.toml", Some(5), kind, "R")];
+        let text = reporter.render(&DisplayEvent::DefinitionErrors(&errors));
+        assert!(!text.is_ascii(), "{kind:?}: {text}");
+        assert!(text.contains("retry"), "{text}");
+        assert!(seen.insert(text), "{kind:?} の文が重複している");
+    }
+}
+
 #[test]
 fn 入力に由来する文字列は_エスケープされる() {
     let env = env_for(Language::En);

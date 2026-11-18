@@ -69,6 +69,36 @@ pub enum DefinitionErrorKind {
     DuplicateTransition,
     #[error("環境変数の名前が正しくありません")]
     InvalidEnvName,
+    /// `[job.retry]` が表でない(BR1.2)。
+    #[error("retry は表で書きます")]
+    RetryNotTable,
+    /// `[job.retry]` の必須のキーがない(BR1.3)。
+    #[error("retry の必須のキーがありません")]
+    RetryMissingKey,
+    /// `retry.exit_codes` が空(BR1.5)。
+    #[error("retry の終了コードの一覧が空です")]
+    RetryExitCodesEmpty,
+    /// `retry.exit_codes` に、整数でない値、または 1〜255 の範囲外の値がある(BR1.5)。
+    #[error("retry の終了コードが正しくありません")]
+    RetryExitCodeInvalid,
+    /// `retry.exit_codes` が、成功または警告の終了コードと重なっている(BR1.7)。
+    #[error("retry の終了コードが、成功または警告の終了コードと重なっています")]
+    RetryExitCodesOverlap,
+    /// `retry.max` が 1〜100 の整数でない(BR1.9)。
+    #[error("retry の最大回数が正しくありません")]
+    RetryMaxInvalid,
+    /// `retry.interval` または `retry.max_interval` の書式や範囲が正しくない(BR1.10)。
+    #[error("retry の間隔が正しくありません")]
+    RetryDurationInvalid,
+    /// `retry.multiplier` と `retry.max_interval` の片方だけがある(BR1.11)。
+    #[error("retry の倍率と間隔の上限は、両方を書くか、両方とも書きません")]
+    RetryBackoffIncomplete,
+    /// `retry.multiplier` が 2〜10 の整数でない(BR1.12)。
+    #[error("retry の倍率が正しくありません")]
+    RetryMultiplierInvalid,
+    /// `retry.max_interval` が `retry.interval` より小さい(BR1.13)。
+    #[error("retry の間隔の上限が、間隔より小さくなっています")]
+    RetryMaxIntervalTooSmall,
 }
 
 impl DefinitionErrorKind {
@@ -95,11 +125,21 @@ impl DefinitionErrorKind {
             Self::EmptyField => "emptyField",
             Self::DuplicateTransition => "duplicateTransition",
             Self::InvalidEnvName => "invalidEnvName",
+            Self::RetryNotTable => "retryNotTable",
+            Self::RetryMissingKey => "retryMissingKey",
+            Self::RetryExitCodesEmpty => "retryExitCodesEmpty",
+            Self::RetryExitCodeInvalid => "retryExitCodeInvalid",
+            Self::RetryExitCodesOverlap => "retryExitCodesOverlap",
+            Self::RetryMaxInvalid => "retryMaxInvalid",
+            Self::RetryDurationInvalid => "retryDurationInvalid",
+            Self::RetryBackoffIncomplete => "retryBackoffIncomplete",
+            Self::RetryMultiplierInvalid => "retryMultiplierInvalid",
+            Self::RetryMaxIntervalTooSmall => "retryMaxIntervalTooSmall",
         }
     }
 
     /// すべての種類(網羅のテストと、表示の確認に使う)。
-    pub const ALL: [DefinitionErrorKind; 20] = [
+    pub const ALL: [DefinitionErrorKind; 30] = [
         Self::FileMissing,
         Self::Unreadable,
         Self::TooLarge,
@@ -120,6 +160,16 @@ impl DefinitionErrorKind {
         Self::EmptyField,
         Self::DuplicateTransition,
         Self::InvalidEnvName,
+        Self::RetryNotTable,
+        Self::RetryMissingKey,
+        Self::RetryExitCodesEmpty,
+        Self::RetryExitCodeInvalid,
+        Self::RetryExitCodesOverlap,
+        Self::RetryMaxInvalid,
+        Self::RetryDurationInvalid,
+        Self::RetryBackoffIncomplete,
+        Self::RetryMultiplierInvalid,
+        Self::RetryMaxIntervalTooSmall,
     ];
 }
 
@@ -327,7 +377,7 @@ mod tests {
         let mut codes: Vec<_> = DefinitionErrorKind::ALL.iter().map(|k| k.code()).collect();
         codes.sort_unstable();
         codes.dedup();
-        assert_eq!(codes.len(), 20);
+        assert_eq!(codes.len(), 30);
         for k in DefinitionErrorKind::ALL {
             assert!(!k.to_string().is_empty());
         }

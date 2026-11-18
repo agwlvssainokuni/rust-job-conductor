@@ -167,6 +167,18 @@ pub fn definition_kind(lang: Language, kind: DefinitionErrorKind) -> String {
         K::EmptyField => "required value is empty",
         K::DuplicateTransition => "duplicate transition for the same result",
         K::InvalidEnvName => "invalid environment variable name",
+        K::RetryNotTable => "retry must be a table",
+        K::RetryMissingKey => "a required key of retry is missing",
+        K::RetryExitCodesEmpty => "retry exit_codes is empty",
+        K::RetryExitCodeInvalid => "retry exit_codes has an invalid exit code",
+        K::RetryExitCodesOverlap => "retry exit_codes overlap the success or warning exit codes",
+        K::RetryMaxInvalid => "retry max is invalid",
+        K::RetryDurationInvalid => "retry interval is invalid",
+        K::RetryBackoffIncomplete => {
+            "retry multiplier and max_interval must be given together or not at all"
+        }
+        K::RetryMultiplierInvalid => "retry multiplier is invalid",
+        K::RetryMaxIntervalTooSmall => "retry max_interval is smaller than interval",
     };
     text.to_string()
 }
