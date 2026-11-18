@@ -19,9 +19,9 @@
 
 ## 実装ステップ(test-after: 各層を実装してから、その層のテストを書いて実行する)
 
-- [ ] Step 1: 変更前の基準を取る。`cargo test --workspace --locked` が全件通ることを記録する。CI の `docs-check` と同じ検査(README に、`SHA-256`、`Gatekeeper`、`終了コードの表`、`ステートファイルの場所`、`at-least-once`、`シグナル`、`convert` の 7 語があること)を、ローカルで実行して通ることを確かめる
-- [ ] Step 2: 文言の確定。u2 が書いた最初の文言(英語: `conductor: retry: job 'a' exited with code 75; retry 2 of 3 in 40 seconds`、日本語: `conductor: retry: ジョブ 'a' が終了コード 75 で終わりました。40 秒後にリトライします(2/3 回目)`)を、既存の文言(`messages.rs` の他の文、README の用語)と照らして確認する。直す必要があれば、`messages.rs` の文言と、u2 が足した `report_messages.rs` のテストを直す(既存のアサーションは変えない)。直さない場合は、その確認の結果を `code-summary.md` に記録する。表示のレベル(`-v` なしで、常に標準エラー)は、設計(Q3: A)のとおりで、変更しない。(FR6.2)
-- [ ] Step 3: README の実装(文書の層)。次を書く。(FR8.1)
+- [x] Step 1: 変更前の基準を取る。`cargo test --workspace --locked` が全件通ることを記録する。CI の `docs-check` と同じ検査(README に、`SHA-256`、`Gatekeeper`、`終了コードの表`、`ステートファイルの場所`、`at-least-once`、`シグナル`、`convert` の 7 語があること)を、ローカルで実行して通ることを確かめる
+- [x] Step 2: 文言の確定。u2 が書いた最初の文言(英語: `conductor: retry: job 'a' exited with code 75; retry 2 of 3 in 40 seconds`、日本語: `conductor: retry: ジョブ 'a' が終了コード 75 で終わりました。40 秒後にリトライします(2/3 回目)`)を、既存の文言(`messages.rs` の他の文、README の用語)と照らして確認する。直す必要があれば、`messages.rs` の文言と、u2 が足した `report_messages.rs` のテストを直す(既存のアサーションは変えない)。直さない場合は、その確認の結果を `code-summary.md` に記録する。表示のレベル(`-v` なしで、常に標準エラー)は、設計(Q3: A)のとおりで、変更しない。(FR6.2)
+- [x] Step 3: README の実装(文書の層)。次を書く。(FR8.1)
   - 目次に、リトライの小節を足す
   - 「定義ファイルの書き方」の表に `[job.retry]` の行を足し、直後に小節「リトライの設定(`[job.retry]`)」を作る。例の定義、5 つのキー(`exit_codes`、`max`、`interval`、`multiplier`、`max_interval`)の意味と範囲(終了コードは 1〜255 の整数の一覧、`max` は 1〜100、間隔は `"30s"`・`"2m"`・`"1h"` の形で 1 秒〜24 時間、倍率は 2〜10、`max_interval` は `interval` 以上)、省略の規則(`exit_codes`、`max`、`interval` は必須、`multiplier` と `max_interval` は両方か両方なし)、重なりの禁止(成功・警告の終了コードと重ならない)、定義の誤り(64)になる場合
   - 動き: どんな結果のときにリトライするか(ジョブ自身の終了コードが一覧にあるとき。起動できなかった場合、シグナルで終了した場合、中断は対象外)、回数(最初の実行に加えて最大 `max` 回、合計で `max + 1` 回)、待ち時間(固定と、倍率と上限の式と例)、使い切ったときの扱い(通常のエラーと同じ)、リトライの前の知らせ(標準エラー、`-v` なし、英語と日本語の例)
@@ -31,9 +31,9 @@
   - 「シグナルの扱い」に、リトライの待機中にシグナルを受けたときの動き(すぐ待機をやめ、再開位置をそのジョブとして記録し、128 + 番号で終わる。エラーとしては記録しない)を足す
   - 版の表記は、既存の書き方(`(v0.7.0 以降)` など)に合わせて、`(v0.8.0 以降)` とする(次の版が 0.8.0 になるという前提。リリースの版は、あなたが決める)
   - 既存の 7 つの必須の語を、消さない
-- [ ] Step 4: 文書のテストを書いて実行する。`crates/cli/tests/docs_retry.rs`(新規)。(a) README に、`[job.retry]` と 5 つのキーの名前が書かれていること、(b) 「自動の再試行はしません」という古い一文が、そのままの形では残っていないこと、(c) README の「リトライの設定」の例の定義(TOML)を取り出して、実際の読み取り(`conductor-core` の `load_definition`)に通すと、誤りなく読めて、リトライの設定が入っていること、(d) CI の `docs-check` と同じ 7 つの必須の語が、README にあること。`cargo test -p conductor-cli --test docs_retry --locked`
-- [ ] Step 5: `demo/` は、この Unit では変更しない(デモのスクリプトは、`unix_demo`・`windows_demo` のテストが動きを確かめており、リトライの追加の必要がないため)。変更が必要と分かったら、計画に追記して承認を取る
-- [ ] Step 6: 全体の確認。`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`、検査コマンド(`cargo llvm-cov ... --fail-under-lines 80`)、`docs-check` の 7 語、`msrv_consistency`(README の MSRV の記載が変わっていないこと)が通ること。新しい外部クレートが増えていないこと。既存のアサーションが変わっていないこと
+- [x] Step 4: 文書のテストを書いて実行する。`crates/cli/tests/docs_retry.rs`(新規)。(a) README に、`[job.retry]` と 5 つのキーの名前が書かれていること、(b) 「自動の再試行はしません」という古い一文が、そのままの形では残っていないこと、(c) README の「リトライの設定」の例の定義(TOML)を取り出して、実際の読み取り(`conductor-core` の `load_definition`)に通すと、誤りなく読めて、リトライの設定が入っていること、(d) CI の `docs-check` と同じ 7 つの必須の語が、README にあること。`cargo test -p conductor-cli --test docs_retry --locked`
+- [x] Step 5: `demo/` は、この Unit では変更しない(デモのスクリプトは、`unix_demo`・`windows_demo` のテストが動きを確かめており、リトライの追加の必要がないため)。変更が必要と分かったら、計画に追記して承認を取る
+- [x] Step 6: 全体の確認。`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked`、検査コマンド(`cargo llvm-cov ... --fail-under-lines 80`)、`docs-check` の 7 語、`msrv_consistency`(README の MSRV の記載が変わっていないこと)が通ること。新しい外部クレートが増えていないこと。既存のアサーションが変わっていないこと
 - [ ] Step 7: 記録。`code-summary.md`、`source-manifest.json`、`traceability.json` を作る
 
 ## 触れないもの(この Unit の外)

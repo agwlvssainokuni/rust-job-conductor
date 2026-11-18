@@ -1,0 +1,9 @@
+{
+  "stage": "code-generation",
+  "unit": "u3-retry-display-docs",
+  "version": 1,
+  "writes": [
+    { "path": "README.md" },
+    { "path": "crates/cli/tests/docs_retry.rs" }
+  ]
+}

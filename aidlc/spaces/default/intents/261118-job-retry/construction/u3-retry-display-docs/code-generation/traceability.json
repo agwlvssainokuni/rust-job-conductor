@@ -1,0 +1,14 @@
+{
+  "stage": "code-generation",
+  "unit": "u3-retry-display-docs",
+  "upstream_ids": ["FR6.2", "FR8.1", "NFR1", "NFR2", "NFR4", "NFR5", "NFR6"],
+  "coverage": [
+    { "id": "FR6.2", "status": "OK", "target": "crates/cli/src/report/messages.rs" },
+    { "id": "FR8.1", "status": "OK", "target": "README.md" },
+    { "id": "NFR1", "status": "OK", "target": "crates/cli/tests/docs_retry.rs" },
+    { "id": "NFR2", "status": "N/A", "target": "no source code was changed in this Unit (README and one test file only); the nfr_source tests still pass" },
+    { "id": "NFR4", "status": "Deferred", "target": "build-and-test (the full-suite coverage run measures the 80% floor)" },
+    { "id": "NFR5", "status": "Deferred", "target": "build-and-test (Linux and Windows run in CI after the push)" },
+    { "id": "NFR6", "status": "N/A", "target": "no new external crate was added; Cargo.toml and Cargo.lock are unchanged" }
+  ]
+}
