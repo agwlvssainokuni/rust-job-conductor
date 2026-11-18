@@ -59,6 +59,12 @@
 
 
 
+- **Active Unit**: u2-retry-execution
+
+- **Unit Stage**: code-generation
+
+- **Unit State**: in-progress
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -119,7 +125,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: code-generation
 - **Status**: Running
-- **Last Updated**: 2026-11-18T22:14:56Z
+- **Last Updated**: 2026-11-18T22:16:41Z
 
 - **Construction Autonomy Mode**: autonomous
 
