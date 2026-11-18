@@ -858,3 +858,228 @@
 **Git Name**: agwlvssainokuni
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T15:51:51Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md
+**Context**: ideation > scope-definition > scope-definition-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T15:51:52Z
+**Event**: DECISION_RECORDED
+**Stage**: scope-definition
+**Decision**: Q1-Q3
+**Options**: Q1: A/B/C/D/X (multi); Q2: A/B/C/D/X; Q3: A/B/C/D/X
+**Question Id**: c5128951
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:2b9395b18d4ea9445e69fa2a66de9ad57e96508e364ddedcb8d5bdad886d9739
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T15:52:51Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. 終了コードの指定, B. 最大の回数 N, C. 固定の間隔","A. ジョブごと","A. 必須"]
+**Message Id**: 090eddee
+**Open Questions**: c5128951
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"4346064b70260980","Q2":"46d6988c6fd71197","Q3":"6135114a8f319eb6","Q4":"00bc90aa34cfad3b","Q5":"3ce88492a67f35d3"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T15:52:51Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q1. 最初の版に、必ず入れる設定項目はどれですか?(複数選択可)
+**Reply**: A. 終了コードの指定, B. 最大の回数 N, C. 固定の間隔
+**Options**: ["A. 終了コードの指定","B. 最大の回数 N","C. 固定の間隔","D. None"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T15:52:51Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q2. リトライの設定は、どの単位で書けるようにしますか?
+**Reply**: A. ジョブごと
+**Options**: ["A. ジョブごと","B. ジョブごとと、共通の既定","C. パイプライン全体だけ","D. Not yet defined"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T15:52:51Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q3. リトライの途中の様子(何回目か、次まで何秒か)の表示は、どの扱いにしますか?
+**Reply**: A. 必須
+**Options**: ["A. 必須","B. あると良い","C. 不要","D. Not yet defined"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T15:52:54Z
+**Event**: QUESTION_ANSWERED
+**Stage**: scope-definition
+**Details**: Q1: A, B, C; Q2: A; Q3: A
+**Person Reply**: まとめて省く (Recommended)\nA. 終了コードの指定, B. 最大の回数 N, C. 固定の間隔\nA. ジョブごと\nA. 必須
+**Message Id**: 090eddee
+**Message Ids**: 6d6e6b2f,090eddee
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T15:52:54Z
+**Event**: DECISION_RECORDED
+**Stage**: scope-definition
+**Decision**: Q4-Q5
+**Options**: Q4: A/B/C/X; Q5: A/B/C/X
+**Question Id**: 24ebcafd
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:97f70c573195a2f8b84e826f7c06b25b4da70f5cc20ac3d041b277114f7a193c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T15:53:35Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["B. 両方入れる","A. 期限はない"]
+**Message Id**: 171dd007
+**Open Questions**: c5128951, 24ebcafd
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"4346064b70260980","Q2":"46d6988c6fd71197","Q3":"6135114a8f319eb6","Q4":"00bc90aa34cfad3b","Q5":"3ce88492a67f35d3"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T15:53:36Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q4. リトライの間隔の方式は、最初の版でどうしますか?(意図の整理で、指数バックオフは「やらない」と決めておらず、未定でした)
+**Reply**: B. 両方入れる
+**Options**: ["A. 固定の間隔だけ","B. 両方入れる","C. Not yet defined"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T15:53:36Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [プロダクト] Q5. 期限や、進め方の優先はありますか?
+**Reply**: A. 期限はない
+**Options**: ["A. 期限はない","B. 期限がある","C. Not yet defined"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-18T15:53:38Z
+**Event**: QUESTION_ANSWERED
+**Stage**: scope-definition
+**Details**: Q4: B; Q5: A
+**Person Reply**: B. 両方入れる\nA. 期限はない
+**Message Id**: 171dd007
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T15:53:43Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md
+**Context**: ideation > scope-definition > scope-definition-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-18T15:53:45Z
+**Event**: DECISION_RECORDED
+**Stage**: scope-definition
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md
+**Question Id**: 369ad1a4
+**Question Type**: summary-confirmation
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:1af3253e9dbc67379599fab6c72665a7132d1311aa24606f1e7e17c6bf7cc43c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-18T15:53:54Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: c048c5e4
+**Open Questions**: c5128951, 24ebcafd, 369ad1a4
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md","entries":{"Q1":"4346064b70260980","Q2":"46d6988c6fd71197","Q3":"6135114a8f319eb6","Q4":"00bc90aa34cfad3b","Q5":"3ce88492a67f35d3","Consolidated Summary Confirmation":"27083e0822ed678b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-18T15:53:54Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Does this all look correct before I generate the artifact?
+**Question Id**: 369ad1a4
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-18T15:53:56Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md
+**Context**: ideation > scope-definition > scope-definition-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-18T15:53:57Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: scope-definition
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-definition-questions.md
+**Questions SHA-256**: be54ca85b6d6e11b0cd95a69bd0931a710609e1c028d932d600dacb659eb44f6
+**Hash Scope**: confirmed-content-v2
+**Message Id**: c048c5e4
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 499cef4b8ee40918548de2d800b2e89b243fa3ed99c03be99c814da75397d7aa
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T15:54:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/scope-document.md
+**Context**: ideation > scope-definition > scope-document.md
+**Summary Authorization Id**: 499cef4b8ee40918548de2d800b2e89b243fa3ed99c03be99c814da75397d7aa
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-18T15:54:14Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261118-job-retry/ideation/scope-definition/intent-backlog.md
+**Context**: ideation > scope-definition > intent-backlog.md
+**Summary Authorization Id**: 499cef4b8ee40918548de2d800b2e89b243fa3ed99c03be99c814da75397d7aa
+
+---
