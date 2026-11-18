@@ -15,8 +15,8 @@
 - **Practices Affirmed Timestamp**:
 
 ## Scope Configuration
-- **Stages to Execute**: 0.1 (workspace-scaffold), 0.2 (workspace-detection), 0.3 (state-init), 1.1 (intent-capture), 1.2 (market-research), 1.3 (feasibility), 1.4 (scope-definition), 2.1 (reverse-engineering), 2.2 (practices-discovery), 2.3 (requirements-analysis), 2.4 (user-stories), 2.6 (domain-design), 2.7 (units-generation), 2.8 (contract-design), 2.9 (delivery-planning), 3.1 (functional-design), 3.2 (nfr-requirements), 3.3 (nfr-design), 3.5 (code-generation), 3.6 (build-and-test)
-- **Stages to Skip**: 1.5 (team-formation), 1.6 (rough-mockups), 1.7 (approval-handoff), 2.5 (refined-mockups), 3.4 (infrastructure-design), 3.7 (ci-pipeline), 4.1 (deployment-pipeline), 4.2 (environment-provisioning), 4.3 (deployment-execution), 4.4 (observability-setup), 4.5 (incident-response), 4.6 (performance-validation), 4.7 (feedback-optimization)
+- **Stages to Execute**: 0.1 (workspace-scaffold), 0.2 (workspace-detection), 0.3 (state-init), 1.1 (intent-capture), 1.2 (market-research), 1.3 (feasibility), 1.4 (scope-definition), 2.1 (reverse-engineering), 2.2 (practices-discovery), 2.3 (requirements-analysis), 2.4 (user-stories), 2.6 (domain-design), 2.7 (units-generation), 2.8 (contract-design), 2.9 (delivery-planning), 3.1 (functional-design), 3.5 (code-generation), 3.6 (build-and-test)
+- **Stages to Skip**: 1.5 (team-formation), 1.6 (rough-mockups), 1.7 (approval-handoff), 2.5 (refined-mockups), 3.4 (infrastructure-design), 3.7 (ci-pipeline), 4.1 (deployment-pipeline), 4.2 (environment-provisioning), 4.3 (deployment-execution), 4.4 (observability-setup), 4.5 (incident-response), 4.6 (performance-validation), 4.7 (feedback-optimization), 3.2 (nfr-requirements), 3.3 (nfr-design)
 - **Depth**: Standard
 - **Test Strategy**: Standard
 - **Review Override**: 
@@ -34,7 +34,7 @@
 - **Build System**: cargo (Cargo.toml)
 
 ## Execution Plan Summary
-- **Total Stages**: 20
+- **Total Stages**: 18
 - **Completed**: 9
 - **In Progress**: functional-design
 
@@ -52,6 +52,12 @@
 
 
 
+
+- **Active Unit**: u1-retry-config
+
+- **Unit Stage**: code-generation
+
+- **Unit State**: in-progress
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -92,8 +98,8 @@
 
 ### CONSTRUCTION PHASE
 - [-] functional-design — EXECUTE
-- [ ] nfr-requirements — EXECUTE
-- [ ] nfr-design — EXECUTE
+- [ ] nfr-requirements — SKIP
+- [ ] nfr-design — SKIP
 - [ ] infrastructure-design — SKIP
 - [ ] code-generation — EXECUTE
 - [ ] build-and-test — EXECUTE
@@ -111,9 +117,9 @@
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
 - **Current Stage**: functional-design
-- **Next Stage**: nfr-requirements
+- **Next Stage**: code-generation
 - **Status**: Running
-- **Last Updated**: 2026-11-18T21:50:11Z
+- **Last Updated**: 2026-11-18T21:51:30Z
 
 - **Construction Autonomy Mode**: autonomous
 
