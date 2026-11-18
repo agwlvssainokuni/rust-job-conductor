@@ -65,6 +65,7 @@ mod tests {
                     warning_exit_codes: vec![],
                     success_exit_codes: None,
                     transitions: vec![],
+                    retry: None,
                 })
                 .collect(),
         }

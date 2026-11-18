@@ -111,6 +111,7 @@ mod tests {
             warning_exit_codes: warning,
             success_exit_codes: success,
             transitions: vec![],
+            retry: None,
         }
     }
 

@@ -89,6 +89,25 @@ pub struct JobDefinition {
     pub success_exit_codes: Option<Vec<i32>>,
     /// 結果ごとの遷移(`on` ごとに高々 1 つ)。
     pub transitions: Vec<Transition>,
+    /// リトライの設定。`[job.retry]` を書かなければ `None`(リトライしない。BR1.1、FR1.2)。
+    pub retry: Option<RetryPolicy>,
+}
+
+/// ジョブのリトライの設定(`[job.retry]`。BR1.1〜BR1.13、FR1.1〜FR1.9)。
+///
+/// 値はすべて整数で持つ(浮動小数点は使わない。要件 C1)。検証は、定義の読み取りで済んでいる。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RetryPolicy {
+    /// リトライの対象にする終了コード。昇順で重複がなく、各値は 1〜255、空でない(BR1.5、BR1.6)。
+    pub exit_codes: Vec<i32>,
+    /// リトライの最大回数(1〜100。BR1.9)。
+    pub max: u32,
+    /// 最初の待ち時間(秒。1 秒〜24 時間。BR1.10)。
+    pub interval_secs: u64,
+    /// 待ち時間にかける倍率(2〜10)。`max_interval_secs` と同時に指定する(BR1.11、BR1.12)。
+    pub multiplier: Option<u32>,
+    /// 待ち時間の上限(秒)。`interval_secs` 以上(BR1.10、BR1.13)。
+    pub max_interval_secs: Option<u64>,
 }
 
 impl JobDefinition {
@@ -297,7 +316,41 @@ mod tests {
             warning_exit_codes: vec![],
             success_exit_codes: None,
             transitions: vec![],
+            retry: None,
         }
+    }
+
+    fn policy() -> RetryPolicy {
+        RetryPolicy {
+            exit_codes: vec![75],
+            max: 3,
+            interval_secs: 30,
+            multiplier: None,
+            max_interval_secs: None,
+        }
+    }
+
+    #[test]
+    fn リトライを持たない定義は_retry_が_none() {
+        assert_eq!(job("a").retry, None);
+    }
+
+    #[test]
+    fn リトライを持つ定義を作れて比較できる() {
+        let mut j = job("a");
+        j.retry = Some(policy());
+        assert_eq!(j.retry.as_ref().map(|r| r.max), Some(3));
+        assert_eq!(j, j.clone());
+        assert_ne!(j, job("a"));
+    }
+
+    #[test]
+    fn 倍率と上限つきの設定は値で比較される() {
+        let mut p = policy();
+        p.multiplier = Some(2);
+        p.max_interval_secs = Some(600);
+        assert_ne!(p, policy());
+        assert_eq!(p, p.clone());
     }
 
     #[test]

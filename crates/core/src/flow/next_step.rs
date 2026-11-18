@@ -164,6 +164,7 @@ mod tests {
             warning_exit_codes: vec![3],
             success_exit_codes: None,
             transitions,
+            retry: None,
         }
     }
 

@@ -51,6 +51,7 @@ pub fn job(id: &str, command: impl Into<Command>) -> JobDefinition {
         warning_exit_codes: vec![],
         success_exit_codes: None,
         transitions: vec![],
+        retry: None,
     }
 }
 

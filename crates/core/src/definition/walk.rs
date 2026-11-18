@@ -548,6 +548,7 @@ fn build_jobs(raw: &[RawJob]) -> Option<Vec<JobDefinition>> {
                     .unwrap_or_default(),
                 success_exit_codes: job.success.as_ref().map(|(c, _)| c.clone()),
                 transitions,
+                retry: None,
             })
         })
         .collect()
