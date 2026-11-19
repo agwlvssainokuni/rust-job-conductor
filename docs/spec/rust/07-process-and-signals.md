@@ -184,7 +184,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 4. `std::process::Command::new(program)` に `args` を渡して作り、`platform::configure_spawn` を適用する
    (UNIX: 新しいプロセスグループ。Windows: 何もしない)。
 5. `spawn()`。失敗なら `start_failure = true` で返す(`started` は `true` のまま)。
-6. WaitLoop で終了を待つ(5 章)。時間切れ(タイムアウト)はない。自動の再試行もしない(リトライは cli の層で行う。07 の範囲外)。
+6. WaitLoop で終了を待つ(5 章)。時間切れ(タイムアウト)はない。自動のリトライもしない(リトライは cli の層で行う。07 の範囲外)。
 7. 終了を観測したら:
    - `exit_code = status.code()`。
    - `terminated_by_signal = platform::termination_signal(status)`(UNIX: シグナルで終了したときのシグナル番号。Windows: 常に `None`)。

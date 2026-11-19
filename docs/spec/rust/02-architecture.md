@@ -1,0 +1,327 @@
+# 02. アーキテクチャ(クレート・公開 API・実行の流れ・差し替え点・モジュール)
+
+対象: `conductor` v0.8.0(Rust 実装)。根拠は `crates/*/src/{lib,types,deps,...}.rs`。この文書は「どのクレートが何を受け持ち、何を公開し、どう組み合わさるか」を定める。各挙動の細部は 03〜10 章にある。
+
+## 1. 4 クレートの責務と依存方向
+
+```text
+            ┌──────────────────┐
+            │  conductor-cli   │  実行ファイル `conductor`(lib `conductor_cli` + bin)
+            └───┬─────┬─────┬──┘
+                │     │     │
+      ┌─────────┘     │     └───────────┐
+      ▼               ▼                 ▼
+┌────────────┐  ┌──────────────┐  ┌───────────────────┐
+│ conductor- │  │ conductor-   │  │ conductor-        │
+│ runtime    │  │ core         │  │ converter         │
+└─────┬──────┘  └──────────────┘  └───────────────────┘
+      │ 依存            ▲                (core にも runtime にも依存しない)
+      └─────────────────┘
+```
+
+| クレート | 種別 | 内部の依存 | 責務 | 入出力 |
+|----------|------|------------|------|--------|
+| `conductor-core` | lib | なし | 定義ファイルの読み込みと検証(`load_definition`、`parse_definition`)。共有する型。run ID の検査。フローの判断(分類、起動前の判断、次の動きと完了、リトライの判断、中断時の再開位置)。エラー型 `DefinitionError` | ファイルに触れるのは定義の取り込み(`definition/intake.rs`)だけ。判断の関数は純粋(ファイル・プロセス・環境変数に触れず、失敗せず、必ず結果を返す) |
+| `conductor-runtime` | lib(+ テスト補助 bin) | core | `command` の分割と検査。ジョブの起動・待ち・シグナルの転送(`run_job`)。リトライの待機(`wait_for`)。ステートの読み込み・書き込み・初期化・照合・記録(`state`)。`reset --all` | プロセス、ステートファイル、OS(`platform`) |
+| `conductor-converter` | lib | なし | 定義ファイルの TOML と YAML の相互変換(`convert`、`convert_text`)。定義の検証はしない | 入力ファイルの読み取りだけ(`intake.rs`) |
+| `conductor-cli` | lib `conductor_cli` + bin `conductor`(+ テスト補助 bin) | core、runtime、converter | 引数の解釈、流れの組み立て(`run`・`pipeline`・`watch`・`reset`・`validate`・`convert`)、シグナルの監視、表示(英語・日本語)、終了コードの決定、パニックのフック | 標準入出力、環境変数、シグナル。ファイルとプロセスの操作は `Runtime` trait を介して runtime・core・converter に任せる |
+
+依存方向の規則:
+
+- `core` と `converter` は、他の内部クレートに依存しない。`runtime` は `core` だけに依存する。`cli` は 3 つすべてに依存する。逆向きの依存はない。
+- 共有する型(`PipelineDefinition`、`JobExecution`、`PipelineState`、`JobOutcome`、`NextStep` など)は `core` が定める。`runtime` は、それを作る(`JobExecution`、`PipelineState`)・受け取る側で、型を追加定義しない(`InterruptSignal`、`CommandLine`、`StateLocation` などの実行側の型だけを足す)。
+- 判断(core)・入出力(runtime)・流れと表示(cli)を、クレートの境界で分ける。純粋な判断は、ファイルシステムやプロセスを使わずにテストできる。
+- OS 固有のコード(`cfg(unix)`/`cfg(windows)`)は、`runtime` と `cli` のそれぞれの `src/platform/` の中だけに置く(ソース検索のテストが強制)。
+
+## 2. 公開 API
+
+以下は、クレート直下から公開される主要な型・トレイト・関数。シグネチャは実装のとおり。
+
+### 2.1 `conductor-core`
+
+再公開(`lib.rs`): `definition::{load_definition, parse_definition}`、`error::*`、`flow::{RetryDecision, classify_and_decide, decide_before_run, resume_point_on_interrupt, retry_decision}`、`run_id::{DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env}`、`types::*`。公開モジュール: `definition`、`error`、`flow`(`classify` を含む。定数 `EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1` と関数 `classify` は `flow::classify` にある)、`run_id`、`types`。
+
+#### 関数
+
+| 関数 | シグネチャ | 意味 |
+|------|-----------|------|
+| `load_definition` | `(path: Option<&Path>, expected_pipeline_name: Option<&str>) -> Result<PipelineDefinition, Vec<DefinitionError>>` | パス(なければ `conductor.toml`)を読み、Intake → Parse → Depth → VersionCheck → Walk で検証する。03 章 |
+| `parse_definition` | `(text: &str, file_label: &str, expected_pipeline_name: Option<&str>) -> Result<PipelineDefinition, Vec<DefinitionError>>` | 文字列に対して同じ検証(ファイルに触れない) |
+| `peek_run_id_env` | `(text: &str) -> Option<String>` | 定義の `[pipeline].run_id_env` だけをゆるく取り出す(`watch`・`reset` 用)。03 の 12 章 |
+| `is_valid_env_name` | `(name: &str) -> bool` | 環境変数名の形(`A-Za-z_` で始まり `A-Za-z0-9_` が続く) |
+| `RunId::parse` | `(value: &str) -> Result<RunId, RunIdError>` | run ID の規則の検査(空・64 バイト超・不正な文字・先頭 `.`)。`as_str()` で文字列を返す |
+| `flow::classify` | `(job: &JobDefinition, execution: &JobExecution) -> JobOutcome` | 実行結果の分類と、返す終了コード。05 の 2.3 |
+| `classify_and_decide` | `(job, execution, job_states: &[JobState], definition: &PipelineDefinition, run_mode: RunMode) -> (JobOutcome, NextStep)` | 分類して、次の動きと完了を決める。05 の 3 章 |
+| `decide_before_run` | `(job_id: &str, definition: &PipelineDefinition, job_states: &[JobState], resume_job_id: Option<&str>, end_reached: bool) -> Decision` | 起動前の判断(Run / Skip / Reject)。05 の 4 章 |
+| `resume_point_on_interrupt` | `(definition: &PipelineDefinition, job_states: &[JobState]) -> ResumePoint` | ジョブのあいだの中断の再開位置。05 の 9 章 |
+| `retry_decision` | `(job: &JobDefinition, execution: &JobExecution, retries_done: u32, last_wait_secs: u64) -> RetryDecision` | リトライするか(`Stop` または `Retry { wait_secs }`)。05 の 7 章 |
+
+#### 主要な型(`types`)
+
+| 型 | 内容 |
+|----|------|
+| `PipelineDefinition` | `name`、`description: Option<String>`、`run_id_env: Option<String>`、`remove_on_complete: bool`、`format_version: u32`、`job: Vec<JobDefinition>`。`job_index(&str) -> Option<usize>` |
+| `JobDefinition` | `id`、`command: Command`、`warning_exit_codes: Vec<i32>`、`success_exit_codes: Option<Vec<i32>>`、`transitions: Vec<Transition>`、`retry: Option<RetryPolicy>`。`effective_success_codes() -> &[i32]`、`transition_for(TransitionOn) -> Option<&Transition>` |
+| `Command` | `Line(String)` / `Argv(Vec<String>)`。`program_name() -> Option<&str>` |
+| `Transition` / `TransitionOn` / `TransitionTarget` | `{ on, next }` / `Success`・`Warning` / `Job(String)`・`End` |
+| `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`multiplier: Option<u32>`、`max_interval_secs: Option<u64>` |
+| `JobExecution` | `job_id`、`command`、`started`、`exit_code: Option<i32>`、`terminated_by_signal: Option<i32>`、`start_failure`、`interrupted`、`signal_number: Option<i32>`。05 の 1.2 |
+| `JobStatus` / `SkipReason` | `Pending`・`Success`・`Warning`・`Error`・`Skipped` / `ByTransition`・`ByEnd` |
+| `JobState` | `job_id`、`status`、`exit_code: Option<i32>`、`skip_reason: Option<SkipReason>`。`JobState::pending(id)` |
+| `PipelineState` | `definition_key`、`pipeline_name`、`definition_path`、`job_order: Vec<String>`、`job_states: Vec<JobState>`、`resume_job_id: Option<String>`、`end_reached`、`completed`、`run_id: Option<String>`。06 章 |
+| `Decision` / `DecisionReason` | `Run` / `Skip(reason)` / `Reject(reason)`。理由は `SkipTarget`・`AfterEnd`・`AlreadyExecuted`・`OutOfOrder` |
+| `Classification` / `JobOutcome` | `Success`・`Warning`・`Error` / `{ job_id, classification: Option<Classification>, reported_exit_code: i32, conductor_error: bool }` |
+| `NextStep` | `{ job_id, next_job_id, skipped_job_ids, skip_reason_kind, end_reached, completed, resume_job_id }` |
+| `RunMode` | `Individual` / `Pipeline` |
+| `ResumePoint` | `{ resume_job_id, end_reached, completed }` |
+| `RetryDecision` | `Stop` / `Retry { wait_secs: u64 }` |
+
+#### エラー(`error`)
+
+| 型 | 内容 |
+|----|------|
+| `DefinitionErrorKind` | 30 種(`ALL: [DefinitionErrorKind; 30]`)。`code() -> &'static str` が識別子(`fileMissing` など)。03 の 9.3、10 の 7.1 |
+| `DefinitionError` | `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>` |
+| `RunIdError` | `Empty`・`TooLong`・`InvalidChar`・`LeadingDot` |
+| 補助 | `sanitize(input, max_chars)`(制御文字・書式文字のエスケープと切り詰め)、`quote_key`、`Locate`(位置→行番号。`line_of(offset)`)、`MAX_KEY_DISPLAY_CHARS = 64` |
+
+### 2.2 `conductor-runtime`
+
+再公開(`lib.rs`): `error::*`、`run_job`、`check_command`、`check_consistency`、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::*`、`WaitOutcome`、`wait_for`。`platform`、`runner`、`split`、`state` は非公開(`#![deny(unsafe_code)]`)。
+
+| 関数 | シグネチャ | 意味 |
+|------|-----------|------|
+| `run_job` | `(job: &JobDefinition, signal: &InterruptSignal) -> JobExecution` | シェルを介さず直接起動し、終了を待つ。パニックしない。シグナルを子へ 1 回転送。07 の 4 章 |
+| `check_command` | `(command: &Command) -> Result<CommandLine, CommandError>` | 起動せずに `command` を検査(分割)する。07 の 3 章 |
+| `wait_for` | `(secs: u64, signal: &InterruptSignal) -> WaitOutcome` | リトライ前の待機。合図を 50 ms 以下の間隔で確かめる。`WaitOutcome::{Elapsed, Interrupted(i32)}` |
+| `read_state` | `(definition_path: &Path, run_id: Option<&RunId>) -> Result<Option<PipelineState>, StateError>` | ステートを読む。ファイルなし・長さ 0・**完了のもの**は `None`(空) |
+| `read_state_raw` | 同上 | 完了のものも返す(`watch` 用)。ファイルなし・長さ 0 のときだけ `None` |
+| `write_state` | `(definition_path, run_id: Option<&RunId>, state: &PipelineState, durability: Durability) -> Result<(), StateError>` | 一時ファイル → (Durable なら同期)→ rename。06 の 4 章 |
+| `reset_state` | `(definition_path: &Path, run_id: Option<&RunId>) -> Result<(), StateError>` | ステートファイルを消す(なくても成功) |
+| `reset_all_states` | `(definition_path: &Path) -> Result<ResetAllReport, StateError>` | 定義の全ステートを消す。`ResetAllReport { removed: usize, kept: Vec<String> }` |
+| `check_consistency` | `(state: &PipelineState, definition: &PipelineDefinition) -> ConsistencyResult` | 定義との照合。`Ok` / `Mismatch(PipelineName \| JobIds \| JobOrder)` |
+| `initial_state` | `(definition: &PipelineDefinition, definition_path: &Path, run_id: Option<&RunId>) -> PipelineState` | 全ジョブ `pending` の初期ステート |
+| `apply_outcome` | `(state, job_id: &str, execution: &JobExecution, outcome: &JobOutcome, next: &NextStep) -> PipelineState` | 結果の記録(メモリ上。純粋) |
+| `apply_skip` | `(state, job_id, reason: DecisionReason, definition) -> PipelineState` | スキップの記録(純粋) |
+| `apply_interrupt` | `(state, resume_point: &ResumePoint) -> PipelineState` | 中断の記録(純粋) |
+
+型(`types`): `CommandLine { program: String, args: Vec<String> }`、`InterruptSignal`(`AtomicI32` 1 つ。`new`、`raise(n)`、`is_raised`、`signal_number`。最初の番号が残る)、`StateLocation::of(definition_path, run_id)`(`path()`)、`MismatchKind`、`ConsistencyResult`、`Durability { Durable(既定), Fast }`。エラー: `CommandError`/`CommandErrorKind`、`StateError`/`StateErrorKind`(10 の 7.2)。
+
+### 2.3 `conductor-converter`
+
+| 項目 | 内容 |
+|------|------|
+| `convert(request: &ConversionRequest) -> Result<ConvertedText, ConversionError>` | 入力ファイルを読み、変換する |
+| `convert_text(text: &str, target: TargetFormat, file_label: &str) -> Result<ConvertedText, ConversionError>` | 文字列を変換する(ファイルに触れない) |
+| `ConversionRequest { input_path: PathBuf, target_format: TargetFormat }` | 要求 |
+| `TargetFormat { Yaml, Toml }` | 変換**後**の形式。入力の形式は、その反対とみなす |
+| `ConvertedText { text: String }` | 結果 |
+| `ConversionError { file, line, key_path, kind, reason }` / `ConversionErrorKind`(6 種) | 10 の 7.3 |
+| `testing::{Value, read_tree}`(`#[doc(hidden)]`) | 往復テスト用に、途中の表現 `Value` へ読む |
+
+内部の途中の表現 `Value`: `Str` / `Int(i64)` / `Float(f64)` / `Bool` / `Array` / `Map(Vec<(String, Value)>)`(`null`・日時などは持たない)。
+
+### 2.4 `conductor-cli`
+
+再公開(`lib.rs`): `parse_args`、`Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`、`install_panic_hook_with`、`on_panic`、`CliCommand`、`CommandKind`、`Language`、`Level`、`ParsedArgs`、`UsageError`、`UsageErrorKind`。公開モジュール: `args`、`deps`、`exit`、`panic_hook`、`platform`、`report`、`types`。
+
+| 関数 | シグネチャ | 意味 |
+|------|-----------|------|
+| `run_cli` | `<I: IntoIterator<Item = OsString>>(args: I, env: &dyn Env, sink: &mut dyn Sink) -> i32` | 本番の `Runtime`・`Signals` で `run_cli_with` を呼ぶ |
+| `run_cli_with` | `<I>(args: I, deps: &mut Deps<'_>) -> i32` | 引数の解釈 → コマンドごとの処理 → 終了コード。`-h`/`-V` と使い方の誤りはここで処理 |
+| `parse_args` | `<I>(args: I) -> Result<ParsedArgs, UsageError>` | 引数の解釈。04 章 |
+| `exit_code_for` | `(reported: i32, is_error: bool) -> i32` | 0〜255 への整形。05 の 2.2 |
+| `signal_exit_code` | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
+| `resolve_run_id`(`args`) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
+| `render_table`(`report::watch`) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
+| `escape_display`(`report::escape`) | `(input: &str, limit: Option<usize>) -> String` | 入力由来の文字列のエスケープ。08 の 9 章 |
+
+終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_INTERNAL = 70`。
+
+型(`types`): `CommandKind { Run, Pipeline, Watch, Reset, Validate, Convert }`(`name()`)、`CliCommand { kind, job_id, pipeline_name, convert_input: Option<OsString>, convert_target: Option<TargetFormat>, config_path: Option<OsString>, verbose, run_id: Option<String>, all, remove_on_complete }`、`ParsedArgs { Help, Version, Command(CliCommand) }`、`UsageErrorKind`(8 種)、`UsageError { kind, subject: Option<String> }`、`Language { En(既定), Ja }`、`Level { Error, Notice, Verbose, Output }`。
+
+## 3. 実行時の全体の流れ
+
+### 3.1 入口
+
+```text
+main():
+    install_panic_hook()                       # パニック → 英語 1 行 + 終了コード 70
+    code = run_cli(args_os().skip(1), &SystemEnv, &mut StdSink)
+    std::process::exit(code)                   # exit は 1 回だけ
+```
+
+`run_cli_with`:
+
+```text
+parsed = parse_args(args)
+  Err(e)            → 使い方の誤りを標準エラーに表示、return 68
+  Ok(Help)          → 使い方全文を標準出力へ、return 0
+  Ok(Version)       → `conductor <版>` を標準出力へ、return 0
+  Ok(Command(cmd))  → ctx = Ctx { runtime, signals, sink, env, reporter(verbose) }
+                      match cmd.kind: run / pipeline / watch / reset / validate / convert
+```
+
+### 3.2 `pipeline` 実行のシーケンス
+
+```text
+cli::pipeline::run_pipeline
+ ├─ Ctx::prepare
+ │    ├─ Signals::start(signal)                       → 失敗 70(登録済みは続行)
+ │    ├─ Ctx::check_definition
+ │    │    ├─ Runtime::load_definition(path, name)    → core::load_definition   → 失敗 64
+ │    │    └─ Runtime::check_command(各ジョブ)         → runtime::check_command  → 失敗 64
+ │    ├─ resolve_run_id(--run-id | 環境変数)           → 失敗 68
+ │    ├─ Runtime::read_state(path, run_id)            → runtime::read_state     → 失敗 65(完了のものは None)
+ │    └─ check_consistency(state, definition)         → 食い違い 65
+ └─ for job in definition.job (記述順):
+      ├─ core::decide_before_run(...)                 → Run / Skip / Reject
+      │    ├─ Reject → 表示、return 66
+      │    ├─ Skip   → runtime::apply_skip → 変化があれば Runtime::write_state(Durable)、続行(完了なら finish)
+      │    └─ Run:
+      │         ├─ 状態が空なら runtime::initial_state → Runtime::write_state(Fast)
+      │         ├─ retry::run_job_with_retry
+      │         │    loop { Runtime::run_job → core::retry_decision
+      │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
+      │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
+      │         ├─ 表示(-v のときの結果行・遷移行。常時のエラー行)
+      │         ├─ runtime::apply_outcome → Runtime::write_state(Durable)
+      │         ├─ error または分類なし → return exit_code_for(...)
+      │         ├─ completed → finish(remove_on_complete なら Runtime::reset_state)、return 0
+      │         └─ 中断の合図が立っている → core::resume_point_on_interrupt → runtime::apply_interrupt
+      │                                      → Runtime::write_state(Durable)、return 128 + n
+ └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
+```
+
+`run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて同じ「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`/`convert` を呼ぶ(04 の 7 章)。
+
+### 3.3 責務の流れ(データ)
+
+```text
+定義ファイル ──load_definition──▶ PipelineDefinition ─┐
+ステートファイル ──read_state──▶ PipelineState ───────┤
+                                                       ▼
+                    decide_before_run ──▶ Decision(Run/Skip/Reject)
+Runtime::run_job ──▶ JobExecution ──classify_and_decide──▶ (JobOutcome, NextStep)
+                                          │
+        apply_outcome / apply_skip / apply_interrupt ──▶ PipelineState(新) ──write_state──▶ ステートファイル
+JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了コード
+```
+
+## 4. テスト用の差し替え点
+
+`conductor-cli` の流れは、OS・ファイル・プロセスに直接触れず、`Deps` を介す。`run_cli_with(args, &mut Deps { runtime, sink, env, signals })` に、偽の実装を渡せる。
+
+| trait | 本番の実装 | 責務(メソッド) |
+|-------|-----------|----------------|
+| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`run_job(job, signal)`、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)` |
+| `Sink` | `StdSink` | `write_out(bytes)`、`write_err(bytes)`(書くたびに flush) |
+| `Env` | `SystemEnv` | `var(name) -> Option<String>`(UTF-8 でない値・未設定は `None`)、`stdout_is_terminal() -> bool` |
+| `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`AlreadyRegistered` / `Failed`) |
+
+`SystemRuntime` は、`conductor_core`・`conductor_runtime`・`conductor_converter` の関数への薄い委譲である(`run_id_env` だけは、定義ファイルを取り込みと同じ大きさの上限で読み、`peek_run_id_env` を呼ぶ。読めなければ `None`)。
+
+テストの偽の実装(`crates/cli/tests/common/mod.rs`):
+
+| 名前 | 内容 |
+|------|------|
+| `FakeEnv` | 環境変数の表(`with(&[(名前, 値)])`)。ロケールを読んだかを記録する |
+| `FakeSink` | 標準出力・標準エラーを文字列に溜める(`out_text()`、`err_text()`) |
+| `FakeSignals` | `SignalMode`(`Noop`・`Fail`・`Already`・`RaiseOnStart(番号)`)に応じて、登録の成功・失敗・登録済み・開始時の合図を再現する |
+| `ScriptedRuntime` | ジョブごとの結果(`Exec`)を台本で返す `Runtime`。呼び出しの記録(`log()`、`ran()`) |
+| `MemRuntime` | ステートをメモリに持つ `Runtime`(ファイルなし。大きなジョブ数の流れの測定にも使う) |
+| `Harness` | 実ファイルの一時ディレクトリで、定義の書き換え・実行・ステートの読み取りをする補助 |
+
+`conductor-runtime` の差し替え点: 待ちの核 `wait_loop` は、`Waitable` trait(`id`、`try_wait`)、シグナルの転送の関数、sleep の関数を引数に取るので、偽の子プロセスで単体テストできる(待ちの間隔 1・2・4・8・10・10… ms、転送が 1 回だけ、`try_wait` の失敗)。`core` の判断は純粋な関数で、差し替え不要。
+
+テスト補助の実行ファイル(配布しない): `conductor-test-helper`(runtime)と `conductor-cli-test-helper`(cli)。`<mode>` を渡して、終了コード・出力・待ち・シグナルへの反応などを再現する子プロセスになる(11 の 4.3)。
+
+## 5. モジュール構成(ファイル単位の責務)
+
+### 5.1 `crates/core/src`
+
+| ファイル | 責務 |
+|----------|------|
+| `lib.rs` | 公開の再公開 |
+| `types.rs` | 共有する型(2.1) |
+| `error.rs` | `DefinitionErrorKind`(30 種)、`DefinitionError`、`sanitize`、`quote_key`、`Locate`(位置→行番号) |
+| `run_id.rs` | `RunId`、`RunIdError`、`is_valid_env_name`、`peek_run_id_env`、`DEFAULT_RUN_ID_ENV`、`MAX_RUN_ID_LEN` |
+| `definition/mod.rs` | `load_definition`、`parse_definition`(5 段階の流れ) |
+| `definition/intake.rs` | 定義の場所の決定、メタデータの確認、1 MiB 上限の読み取り、UTF-8 の確認 |
+| `definition/parse.rs` | `toml` で、位置(バイト範囲)を保つ木に読む。文法の誤りの固定の文 |
+| `definition/depth.rs` | 入れ子の深さ(32 段)の検査 |
+| `definition/version.rs` | `format_version` の確認 |
+| `definition/walk.rs` | 構造・型・遷移・終了コード・リトライ・ジョブ間の検査と、`PipelineDefinition` の組み立て |
+| `definition/duration.rs` | リトライの間隔の文字列(`<整数><s\|m\|h>`)→ 秒 |
+| `flow/mod.rs` | 判断の再公開 |
+| `flow/classify.rs` | 分類と報告する終了コード |
+| `flow/decide.rs` | 起動前の判断 |
+| `flow/next_step.rs` | 遷移・完了・スキップ対象・再開位置(`classify_and_decide`) |
+| `flow/resume.rs` | ジョブのあいだの中断の再開位置 |
+| `flow/retry.rs` | リトライの判断と待ち時間の計算 |
+
+### 5.2 `crates/runtime/src`
+
+| ファイル | 責務 |
+|----------|------|
+| `lib.rs` | 公開の再公開 |
+| `types.rs` | `CommandLine`、`InterruptSignal`、`StateLocation`、`MismatchKind`、`ConsistencyResult`、`Durability` |
+| `error.rs` | `CommandError`、`StateError`(種類の文、理由の固定の日本語の文) |
+| `split.rs` | `command` の分割(状態機械)、`check_command` |
+| `runner.rs` | `run_job`(起動・待ち・シグナルの転送)、`wait_loop` |
+| `wait.rs` | `wait_for`(リトライの待機) |
+| `platform/mod.rs`、`unix.rs`、`windows.rs` | プロセスグループ(`configure_spawn`)、シグナルの送信(`forward_signal`)、シグナル終了の読み取り(`termination_signal`)、ディレクトリの同期(`sync_dir`)。`unsafe` は `unix.rs` の `libc::kill` だけ |
+| `state/mod.rs` | 下位モジュールの束ね |
+| `state/reader.rs` | ステートの読み込み、検査、`read_state`/`read_state_raw`、`inspect_run_state`(`reset --all` 用) |
+| `state/writer.rs` | 原子的な書き込み(一時ファイル、同期、rename、古い一時ファイルの掃除)、`reset_state`、TOML への書き出し |
+| `state/record.rs` | `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`(純粋) |
+| `state/consistency.rs` | 定義との照合(純粋) |
+| `state/reset_all.rs` | `reset --all` の対象の判定と削除 |
+| `bin/conductor-test-helper.rs` | テスト補助の実行ファイル |
+
+### 5.3 `crates/converter/src`
+
+| ファイル | 責務 |
+|----------|------|
+| `lib.rs` | `convert`、`convert_text`、読み取りの切り替え、`testing` |
+| `types.rs` | `ConversionRequest`、`TargetFormat`、`ConvertedText`、途中の表現 `Value` |
+| `error.rs` | `ConversionError`、`ConversionErrorKind`、表示の組み立て |
+| `intake.rs` | 入力ファイルを開いて読む(1 MiB 上限、UTF-8) |
+| `raw.rs` | 素の木(アリーナ。展開前の構造。再帰なし) |
+| `toml_read.rs` | TOML → 素の木 |
+| `yaml_read.rs` | YAML のイベント列 → 素の木(明示のスタック。アンカー・エイリアス・重複キーの検出) |
+| `scalar.rs` | YAML 1.2 コアスキーマによるスカラーの解決 |
+| `resolve.rs` | 文書の確認(RootCheck)、アンカー・マージキーの展開、展開の上限、表せない値の検出 |
+| `toml_write.rs` | `Value` → TOML(辞書順) |
+| `yaml_write.rs` | `Value` → ブロック形式の YAML(辞書順) |
+
+### 5.4 `crates/cli/src`
+
+| ファイル | 責務 |
+|----------|------|
+| `main.rs` | 入口(パニックのフック、`run_cli`、`process::exit` 1 回) |
+| `lib.rs` | 公開の再公開、`run_cli`、`run_cli_with` |
+| `args.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査)、`resolve_run_id` |
+| `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level` |
+| `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
+| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare`)、`check_definition`、表示・書き込み・削除の補助、`aux_run_id` |
+| `run.rs` | `run_individual`(個別実行) |
+| `pipeline.rs` | `run_pipeline`(一括実行)、`finish` |
+| `retry.rs` | `run_job_with_retry`(リトライを含む実行) |
+| `aux_commands.rs` | `watch`・`reset`・`validate`・`convert` |
+| `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
+| `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
+| `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |
+| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`) |
+| `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
+| `report/watch.rs` | `watch` の表(列の幅、色) |
+| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display`、`escape_name`、`escape_path`) |
+| `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
+
+## 6. 設計上の要点(実装から読み取れること)
+
+- `Ctx` は `runtime`・`signals`・`sink`・`env`・`reporter` を持つ。`Reporter` は、表示が最初に必要になったときだけ言語・色を判定し、結果を保つ(成功・スキップで `-v` なしなら、判定しない)。
+- ステートの更新は、`apply_*`(複製して更新する純粋な関数)で作り、`write_state` で保存する。更新が元と等しいとき(`AlreadyExecuted` など)は書かない。
+- `pipeline` は、次のジョブを `NextStep.next_job_id` で決めない。記述順に全ジョブを見て、起動前の判断で決める(スキップ・再開は、ステートが運ぶ)。
+- 中断は、`InterruptSignal`(`AtomicI32`)の共有で伝える。監視のスレッドが `raise`、メインのスレッドが読む。
+- 外部の入力による失敗は、すべて戻り値(`Result`)で返し、製品のコードに `unwrap`・`expect`・`panic!` を置かない(runtime と converter はテストが検査)。
