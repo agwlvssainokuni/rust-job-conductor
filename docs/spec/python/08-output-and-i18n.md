@@ -523,7 +523,7 @@ Run ID: <ID>                       ← run ID があるときだけ。見出し�
 
 ### 6.3 色
 
-- 色を使う条件(最初に必要になったとき一度だけ判定): 環境変数 `NO_COLOR` が未設定または空、かつ標準出力が端末(`Deps` の `stdout_is_terminal()` が真)、かつ `sys.platform` が `"win32"` で始まらない。Windows は常に色なし(挙動をほかの OS の実装と揃えるための決定。Windows の端末の ANSI 対応の可否は、この規定のために確認していない)。`report` は `sys.platform` を参照せず、`Deps` の `stdout_is_terminal()` の本番の実装が、Windows で常に `False` を返す(OS 差を `conductor/runner/` の 1 か所にまとめる規則のため、この判定も `sys.platform` による分岐を `Deps` の実装の 1 か所に置く)。
+- 色を使う条件(最初に必要になったとき一度だけ判定): 環境変数 `NO_COLOR` が未設定または空、かつ標準出力が端末(`Deps` の `stdout_is_terminal()` が真)、かつ `ReportEnv.platform()`(`Deps.env.platform()`。`runner/platform.py` の `detect_platform()` が決める `PlatformKind`)が `"windows"` でない。Windows は常に色なし(挙動をほかの OS の実装と揃えるための決定。Windows の端末の ANSI 対応の可否は、この規定のために確認していない)。`report` は `sys.platform` を参照しない(OS 差を `runner/platform.py` の 1 か所にまとめる規則のため。11 章 AC-420)。`stdout_is_terminal()` は、OS を見ずに、下の端末の判定だけを返す。
 - 端末の判定: `Deps` の端末判定の口(`stdout_is_terminal() -> bool`)の本番の実装は、`sys.stdout` が `None` でなく、かつ `sys.stdout.isatty()` が真(`ValueError`(閉じたファイル)が出たら偽)。`isatty()` は、標準出力が端末のときだけ真で、パイプ・ファイルでは偽(確認済み: Python 3.15.2・3.9.6、パイプとファイル)。端末(疑似端末を含む)で真になることは、この環境(疑似端末を作れない実行環境)では確認できなかった(未確認。実装時に、実際の端末で確かめる)。`os.isatty(1)` と `sys.stdout.isatty()` は、標準出力が差し替えられたとき(テスト)に結果が分かれうるので、`sys.stdout.isatty()` に統一する。`curses`、`colorama` などの外部のライブラリは使わない。
 - 色は、状態語だけに、ANSI の SGR で付ける: `ESC[<番号>m<語>ESC[0m`(ESC は U+001B)のあとに埋めの空白。`success` = 32(緑)、`warning` = 33(黄)、`error` = 31(赤)、`skipped` = 36(シアン)、`pending` = 色なし(制御列を付けない)。
 - 列の幅は、色の制御文字を除いた文字で決める(状態語の埋めの空白は、制御列の外側に置く)。ファイルやパイプへの出力には制御文字を含めない。状態は色によらず文字でも表す。
@@ -713,8 +713,8 @@ Level = Literal["error", "notice", "verbose", "output"]
 class OutputError(Exception):
     """標準出力への書き込みの失敗(Output 水準)。呼び出し元が 65(watch)/ 67(convert)にする。"""
 
-class TextSink(Protocol):
-    # 失敗は OSError / ValueError の例外で伝える(1.3.2)。write のあとに flush まで行う。
+class Sink(Protocol):                       # Deps.out(標準出力)と Deps.err(標準エラー)の型(02 章 4.2 節)
+    # 失敗は OSError / ValueError / UnicodeError の例外で伝える(1.3.2)。write のあとに flush まで行う。
     def write(self, text: str) -> None: ...
 
 class Reporter(Protocol):
@@ -723,7 +723,7 @@ class Reporter(Protocol):
     def flush(self) -> None: ...               # 終了前の完了(1.4)
 ```
 
-`Reporter` は、ロケールと色の判定を、最初に必要になったときに行い、結果を保持する。判定に使う環境変数と端末判定は `Deps` から受け取る。`error()` は、`flush()` まで終えてから戻る(1.3.2 の 3)。呼び出し側は、例外の捕捉を要しない(内部で握りつぶす)。
+`Reporter` は、`Deps.out` と `Deps.err` の `Sink` を包む(`create_reporter(env, out, err)`。02 章)。ロケールと色の判定を、最初に必要になったときに行い、結果を保持する。判定に使う環境変数(`lookup_env`)と端末判定(`stdout_is_terminal`)は `Deps` の `Env` から受け取る。`error()` は、`flush()` まで終えてから戻る(1.3.2 の 3)。呼び出し側は、例外の捕捉を要しない(内部で握りつぶす)。
 
 ## 11. 文字列の単位(コードポイント)
 

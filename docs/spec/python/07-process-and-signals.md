@@ -401,7 +401,7 @@ Windows の `cmd.exe` は、`.cmd` / `.bat` を実行するときに、引数を
 "  %  ^  &  |  <  >  !  (  )  改行(\n)  復帰(\r)  NUL
 ```
 
-3. 検査を通ったら、`Popen` の第 1 引数に、**`list` ではなく 1 本の文字列**(コマンドライン)を渡す(Windows の `Popen` は、文字列を `CreateProcess` にそのまま渡し、再び引用しない。公式の文書による。未確認)。文字列は、`"<cmd.exe のパス>" /d /s /c "<全体>"` の形にする。`<cmd.exe のパス>` は、環境変数 `ComSpec` が絶対パスならその値、そうでなければ `cmd.exe`(環境変数は `Env.getenv` から受け取る。8 章)。`<全体>` は、`program` と各 `args` を、それぞれ `"` で囲み、空白 1 つで連結した文字列(空の引数は `""`)。
+3. 検査を通ったら、`Popen` の第 1 引数に、**`list` ではなく 1 本の文字列**(コマンドライン)を渡す(Windows の `Popen` は、文字列を `CreateProcess` にそのまま渡し、再び引用しない。公式の文書による。未確認)。文字列は、`"<cmd.exe のパス>" /d /s /c "<全体>"` の形にする。`<cmd.exe のパス>` は、環境変数 `ComSpec` が絶対パスならその値、そうでなければ `cmd.exe`(環境変数は `Env.lookup_env` から受け取る。8 章)。`<全体>` は、`program` と各 `args` を、それぞれ `"` で囲み、空白 1 つで連結した文字列(空の引数は `""`)。
 4. 配列形式の `command` も、同じ検査を通る。
 5. 検査の関数と、コマンドラインの組み立ては、どの OS でも動く純粋な関数にする(Linux の 1 台から、Windows の分岐を単体テストできる。8 章)。
 
@@ -694,7 +694,7 @@ PlatformKind = Literal["posix", "windows"]
 class Platform(Protocol):
     kind: PlatformKind
     # Popen に渡す第 1 引数とオプションを決める。拒否は PrepareErr(起動失敗として扱う)。
-    def prepare_spawn(self, line: CommandLine, getenv: Callable[[str], str | None]) -> PrepareResult: ...
+    def prepare_spawn(self, line: CommandLine, lookup_env: Callable[[str], str | None]) -> PrepareResult: ...
     # returncode から、終了コードとシグナル番号を取り出す(4.4 節)。
     def read_exit(self, returncode: int) -> ExitReading: ...
     # 転送(UNIX 系は許可集合の検査のあと send_signal。Windows は何もしない)。
@@ -771,7 +771,7 @@ def exit_by_interrupt() -> int: ...            # KeyboardInterrupt の後始末(
 - 両方とも、同じ関数(`fail_internal()`)を呼ぶ。内部の誤りが起きると、標準エラーに固定の英語の 1 行 `conductor: error: internal error`(ロケールを判定しない)を書き、終了コード **70** で終わる。標準エラーへの書き込みが失敗しても 70 で終わる。【規定】
   - 書き込みは、`os.write(2, b"conductor: error: internal error\n")` を、`try/except OSError` で囲んで行う【Python の設計】(`sys.stderr` が `None` や閉じている場合、エンコードの誤り、バッファの残りに左右されないため。`EAGAIN` などの失敗は無視する。書き込みが一部だけ成功した場合の再試行は、しない)。
   - `fail_internal()` は、繰り返し呼ばれても 1 行だけ出す(印を持つ)。
-  - `main()` の内側では、`70` を返す(終了は、入口の `sys.exit` の 1 か所)。`sys.excepthook` の中では、`os._exit(70)` で終わる(インタープリターの通常の終了処理に戻ると、終了コードが 1 になるため。`excepthook` の経路は、実機で確かめていない。未確認)。
+  - `main()` の内側では、`70` を返す(終了は、入口の `sys.exit` の 1 か所)。`sys.excepthook` の中では、`os._exit(70)` で終わる(インタープリターの通常の終了処理に戻ると、終了コードが 1 になるため。確認: 10 章 6.4 節。`sys.excepthook` に、標準エラーへ 1 行を書いて `os._exit(70)` を呼ぶ関数を設定すると、未捕捉の例外で終了コード 70 になった。Python 3.15.2・3.9.6、macOS)。
   - 例外の内容(メッセージ、スタックトレース)を、標準エラーにも標準出力にも出さない(`traceback.print_exc()` を呼ばない)。
 - 入口は、流れの結果の終了コードで、プロセスを 1 回だけ終了させる(`sys.exit(main())`)。入口に、わざと例外を起こすコマンドを持たない。内部の誤りの検査は、`run` に差し替えた(例外を送出する)`Deps` を渡す単体テスト、または別のテスト用の起動(`tests/` の小さな手順書で、入口を差し替えて起動する)で行う([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。
 - ジョブの実行中に内部の誤りが起きると、子プロセスの終了を待たずに終わり、ジョブが孤児として残りうる(`Popen` の後始末は、子を終了させない。インタープリターの終了時に、`ResourceWarning` が出ることがあるが、既定では表示されない)。ステートは直前の完全な内容のままで、
@@ -845,7 +845,7 @@ def exit_by_interrupt() -> int: ...            # KeyboardInterrupt の後始末(
 - 端末から Ctrl+C を押した場合に、ジョブが SIGINT を 1 回だけ受けること(擬似端末の下での確認をしていない。親への `kill -INT` では確かめた)。
 - 制御端末を持たない(`start_new_session=True`)ジョブが、`/dev/tty` を使えないことの影響範囲(`ssh`、`sudo` など。実際の道具での確認はしていない)。Linux での、標準入力の読み込みへの影響(macOS の擬似端末の下では、読めた)。
 - ほぼ同時に届いた複数のシグナルの処理順序、ネストしたハンドラの動き。
-- `sys.excepthook` の経路で 70 になること(`os._exit(70)`)の実機での確認。
+- `sys.excepthook` の経路で 70 になること(`os._exit(70)`)の、Linux・Windows と、最小の Python の版での確認(macOS の 3.15.2・3.9.6 では確認した。10 章 6.4 節)。
 - `time.monotonic_ns()` が、システムの休止中に進むかどうか(OS により異なる)。
 - 長い C の呼び出し(`os.fsync` など)の途中での、Python のハンドラの実行の遅れ。
 - この文書の、公式の文書や実装についての記述のうち、【実測】の印のないものは、Python の公式の文書(`subprocess`、`signal`、`time`、PEP 475)と、一般に知られた挙動による。コードを実行して確かめていない。

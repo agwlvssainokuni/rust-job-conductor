@@ -27,7 +27,7 @@
 | 起動の方法 | コンソールスクリプト `conductor`(`[project.scripts]` の `conductor = "conductor.__main__:main"`)と、`python -m conductor`。どちらも `main() -> int` を呼び、`sys.exit` に渡す(2 章の `__main__.py`) |
 | データ型 | `dataclasses`(`frozen=True`、`slots=True`)、`enum`(文字列の値を持つもの)、`typing.Protocol`、`Literal`。判別共用体は、`Literal` の属性(`ok`、`kind` など)を持つ `dataclass` の `\|` の和で書き、`match` 文と `assert_never` で網羅を検査する |
 | 実行時の依存 | YAML の読み取りだけ(1 つのライブラリ。選定は [03-definition-format.md](03-definition-format.md) と [09-converter.md](09-converter.md))。JSON は自前の字句・構文解析で読む。引数の解析は自前(`argparse` は使わない。理由は [04-cli.md](04-cli.md))。ほかは標準ライブラリだけ(`subprocess`、`os`、`pathlib`、`signal`、`sys`、`json`(書き出しだけ)、`dataclasses`、`enum`、`typing`、`tempfile`、`time`、`datetime`、`errno` など) |
-| 開発時の依存 | `pytest`、`pytest-cov`、`mypy`、`ruff`、`build`、`pip-audit`(選定と版は実装時に確認。[11-quality-and-build.md](11-quality-and-build.md)) |
+| 開発時の依存 | `pytest`、`pytest-cov`、`mypy`、`ruff`、`build`、`pip-audit`、`types-PyYAML`(YAML ライブラリの型の情報。選定と版は実装時に確認。[11-quality-and-build.md](11-quality-and-build.md)) |
 | 公開の範囲 | ライブラリとして公開しない。import できる名前は、各パッケージの `__init__.py` の `__all__` に出すものだけ(内部の取り決め)。`py.typed` を置かない |
 | 配布物 | sdist と wheel。wheel には `conductor` パッケージだけを含め、`tests/` を含めない |
 
@@ -38,13 +38,13 @@
 | パス | 責務 | 入出力 |
 |------|------|--------|
 | `src/conductor/__main__.py` | 薄い入口。`main() -> int` を持つ。最初に、内部の誤りの捕捉(`sys.excepthook` の置き換えと、`main` の `try/except`)を設定する。想定外の例外を捕まえ、`conductor: error: internal error` を標準エラーに 1 行出して終了コード 70 にする。本番の `Deps` を作って `cli` の `run` を呼び、終了コードを返す。`if __name__ == "__main__": sys.exit(main())`。終了(`sys.exit`)は、ここだけ(と、07 章 10 章の内部の誤りの経路、07 章 7.6 節の `KeyboardInterrupt` の経路) | プロセスの引数・環境・標準入出力 |
-| `src/conductor/definition/` | 定義ファイルの読み込み(場所の決定と読み取り、YAML/JSON の構文解析、入れ子の深さ、`format_version`、構造・型・遷移・終了コード・名前の検査)。誤りを位置(行)つきで返す。**定義の型**(`Definition`、`Job`、`Command`、`RetryPolicy`、`Backoff`、`Transition`)と、誤りの種類(`ErrorKind`。03 章)を持つ。`run_id_env` だけのゆるい読み取りも持つ。木の読み取り(`read_tree`)と JSON の読み取り(`read_json`)は、`convert` と `state` が共有する | ファイルを読む(`load` だけ)。ほかは文字列に対する純粋な処理 |
+| `src/conductor/definition/` | 定義ファイルの読み込み(場所の決定と読み取り、YAML/JSON の構文解析、入れ子の深さ、`format_version`、構造・型・遷移・終了コード・名前の検査)。誤りを位置(行)つきで返す。**定義の型**(`Definition`、`Job`、`Command`、`RetryPolicy`、`Backoff`、`Transition`)と、誤りの種類(`ErrorKind`。03 章)を持つ。`run_id_env` だけのゆるい読み取りも持つ。木の読み取り(`read_tree`)は `convert` が、JSON の読み取り(`read_json`)は `convert` と `state` が共有する | ファイルを読む(`load` だけ)。ほかは文字列に対する純粋な処理 |
 | `src/conductor/convert/` | YAML ⇔ JSON の変換(`convert --to yaml\|json`)。定義の検証はしない。木の読み取りは `definition` と共有する | 入力ファイル 1 つを読む(`convert_file`)。`convert_text` は文字列に対して純粋 |
 | `src/conductor/runid.py` | run ID の値の検査と、決定(`--run-id` と環境変数のどちらを使うか)に使う純粋な関数。**`RunIdError` の型**を持つ | なし |
 | `src/conductor/flow/` | 純粋な判断。実行結果の分類(成功・警告・エラー・分類なし)と報告する終了コード、遷移と次の動き、起動前の判断(実行・スキップ・拒否)、中断時の再開位置、リトライの判断と待ち時間(`int` の飽和演算)、終了コードの範囲合わせ。**実行時の値の型**(`JobExecution`、`JobState`、`PipelineState`、`JobOutcome`、`NextStep` など)と、終了コードの定数を持つ | なし(引数だけから結果を決める。ファイル・プロセス・環境変数・時刻に触れない) |
 | `src/conductor/state/` | ステートの読み書き。JSON の表現(ファイル用の型と、固定の順序の書き出し)、記録関数(結果・スキップ・中断を、新しい `PipelineState` として作る純粋な関数)、読み込み(14 段階の検査と異常系)、書き込み(一時ファイル + `fsync` + `os.replace` + ディレクトリの同期)、定義との整合性の検査、`reset` と `reset --all`、ステートファイルの場所と名前。**ステートの誤りの型**(`StateError`)を持つ | ステートのファイル(とそのディレクトリ)。記録関数と整合性の検査は純粋 |
 | `src/conductor/runner/` | `command` の分割と検査、`subprocess.Popen` によるジョブの起動と待ち、シグナルの転送、リトライの待機、中断の合図(`Interrupt`)、シグナル監視、プラットフォーム層(`platform.py`。`sys.platform` を読む唯一の場所。OS 差は、ここ 1 か所に集める)。**`CommandLine` と `CommandError` の型**を持つ | 子プロセス、時刻(待ち)、OS のシグナル。分割と検査は純粋 |
-| `src/conductor/report/` | 出力。メッセージカタログ(英語・日本語)、ロケールと色の判定、`-v` の行、誤りの行、`watch` の表、使い方(`--help`)、入力由来の文字列のエスケープと切り詰め。**文を作るだけ**で、書き込みは `cli` が `Sink` へ行う | 環境変数・端末かどうか・OS の種別は、引数(`ReportEnv`)で受け取る(自分では読まない) |
+| `src/conductor/report/` | 出力。メッセージカタログ(英語・日本語)、ロケールと色の判定、`-v` の行、誤りの行、`watch` の表、使い方(`--help`)、入力由来の文字列のエスケープと切り詰め。文を作る純粋な関数と、書き込みの窓口 `Reporter`(`Deps` の `Sink` を包む。書き込みの失敗の扱いは、ここの 1 か所)を持つ | 環境変数・端末かどうか・OS の種別は、引数(`ReportEnv`)で受け取る(自分では読まない) |
 | `src/conductor/cli/` | 引数解析(誤りの優先順位)、各サブコマンド(`run`・`pipeline`・`watch`・`reset`・`validate`・`convert`)の組み立て、`Deps`(差し替え口の `Protocol`)とその本番の実装、終了コードの決定。上記のすべてを呼ぶ | `Deps` を通した、すべての入出力 |
 | `src/conductor/version.py` | 版の定数(`VERSION = "0.8.0"`)。`conductor --version` の表示と、リリースの検査([11-quality-and-build.md](11-quality-and-build.md))が使う。`pyproject.toml` の `version` と一致することを、テストで検査する。実行時に `importlib.metadata` で版を引かない(ソースから動かすときに使えず、起動も遅くなるため) | なし |
 | `tests/` | 単体テスト(`src/conductor/` と同じ構成)と受け入れテスト(`tests/acceptance/`。実際に `python -m conductor` またはコンソールスクリプトを起動する)。配布物に含めない | テストだけが使う |
@@ -93,17 +93,27 @@ class Job:
 @dataclass(frozen=True, slots=True)
 class LineCommand:                             # 文字列形式
     line: str
+    form: Literal["line"] = "line"
 
 @dataclass(frozen=True, slots=True)
 class ArgvCommand:                             # 配列形式。1 要素以上
     argv: tuple[str, ...]
+    form: Literal["argv"] = "argv"
 
-Command = LineCommand | ArgvCommand
+Command: TypeAlias = LineCommand | ArgvCommand
 
 @dataclass(frozen=True, slots=True)
-class Transition:
+class ToJob:                                   # 次のジョブへ
     on: Literal["success", "warning"]
-    next: str | None                           # 次のジョブID。None は end(定義の "end")
+    job_id: str
+    next: Literal["job"] = "job"
+
+@dataclass(frozen=True, slots=True)
+class ToEnd:                                   # 残りをスキップして終える(@end)
+    on: Literal["success", "warning"]
+    next: Literal["end"] = "end"
+
+Transition: TypeAlias = ToJob | ToEnd
 
 @dataclass(frozen=True, slots=True)
 class RetryPolicy:
@@ -118,7 +128,8 @@ class Backoff:
     max_interval_secs: int
 
 # 03 章が正本。誤りは、Exception を継承しない普通の値(dataclass)。種類は 31 種(ERROR_KINDS)。
-ErrorKind = Literal["unsupportedFormat", "syntax", ...]   # 03 章の 31 種(文字列リテラルの和)
+ErrorKind: TypeAlias = Literal["unsupportedFormat", "syntax", ...]   # 03 章の 31 種(文字列リテラルの和)
+ERROR_KINDS: Final[tuple[str, ...]] = get_args(ErrorKind)
 
 @dataclass(frozen=True, slots=True)
 class DefinitionError:
@@ -134,29 +145,32 @@ class LoadOk:
     ok: Literal[True] = True
 
 @dataclass(frozen=True, slots=True)
-class LoadErr:
-    errors: tuple[DefinitionError, ...]
+class LoadFailed:
+    errors: tuple[DefinitionError, ...]        # 1 件以上
     ok: Literal[False] = False
 
-LoadResult = LoadOk | LoadErr
+LoadResult: TypeAlias = LoadOk | LoadFailed
+
+Format: TypeAlias = Literal["yaml", "json"]
 
 # 署名の正本は 03 章。誤りは、見つけたものをまとめて返す(早い段階の誤りは 1 件で打ち切る。03 章)。例外を送出しない。
+def format_from_path(path: str) -> Format | None: ...
 def load(path: str, expected_pipeline_name: str | None) -> LoadResult: ...
 # ファイルに触れず、文字列に対して 03 章の段階 2〜5 を行う(純粋)。
-def parse(text: str, fmt: Literal["yaml", "json"], file_label: str, expected_pipeline_name: str | None) -> LoadResult: ...
-# run_id_env だけをゆるく読む(どの失敗でも "" を返し、既定の名前を使う)。
-def loose_run_id_env(path: str) -> str: ...
+def parse(text: str, fmt: Format, file_label: str, expected_pipeline_name: str | None) -> LoadResult: ...
+# run_id_env だけをゆるく読む(どの失敗でも None を返し、実行時は既定の環境変数名を使う)。
+def loose_run_id_env(path: str) -> str | None: ...
 # YAML/JSON を 03 章の規定で木に読む(段階 2〜3)。convert が共有する。
-def read_tree(text: str, fmt: Literal["yaml", "json"], file_label: str) -> TreeResult: ...
-# 自前の JSON の読み取り(03 章)。state も、ステートの読み込みに使う(06 章)。
-def read_json(text: str, options: ReadJsonOptions | None = None) -> ReadJsonResult: ...
-# 段階 3 の上限の確認(深さ・要素数・文字の大きさ)。state は深さだけを使う。
-def check_limits(root: TreeNode, which: Literal["all", "depthOnly"]) -> DefinitionError | None: ...
+def read_tree(text: str, fmt: Format, file_label: str, *, convert_to: Format | None = None) -> TreeResult: ...
+# 自前の JSON の読み取り(03 章)。定義・変換・ステートの 3 つが共用する(決定。06 章 6.5 節)。標準の json.loads は使わない。
+def read_json(text: str, *, defer_duplicate_key: bool = False) -> ReadJsonOk | ReadJsonFailed: ...
+# 段階 3 の上限の確認(深さ・要素数・文字の大きさ)。state は "depth_only" だけを使う。
+def check_limits(root: TreeNode, which: Literal["all", "depth_only"]) -> DefinitionError | None: ...
 # 木の型(TreeNode、MapNode、MapEntry、Pos ほか。03 章)も公開する。
 ```
 
 - 定義の書式は、拡張子で決める(`.yaml`/`.yml`/`.json`、大文字小文字を区別しない。それ以外は `unsupportedFormat`)。[03-definition-format.md](03-definition-format.md)。
-- 終了コードの配列(`warning_exit_codes` など)は、整数の字句から `int` で範囲を検査する(32 ビット符号つきの範囲。`bool`、`float`、`nan`/`inf`、`1.0` は整数でない。03 章)。
+- 終了コードの配列(`warning_exit_codes` など)は、木の `IntNode` の値(`int`)で範囲を検査する(32 ビット符号つきの範囲。`BoolNode`、`FloatNode`(`nan`/`inf`、`1.0` を含む)は整数でない。03 章)。
 - YAML のライブラリの import は、YAML を読む関数の内側に遅らせる【目安】(`--help`・`--version`・使い方の誤りで、ライブラリを読み込まない。起動時間の計測は 11 章)。この 1 か所に限り、関数の内側の import を許す(ruff の `PLC0415` を、このファイルだけ無効にする)。
 
 #### `conductor.runid`
@@ -200,7 +214,7 @@ ResolveRunIdResult = ResolveOk | ResolveErr
 def resolve_run_id(
     flag_value: str | None,                    # --run-id が指定されなければ None(空文字列は「指定された」)
     env_name: str,                             # 定義の run_id_env、なければ "CONDUCTOR_RUN_ID"
-    getenv: Callable[[str], str | None],
+    lookup_env: Callable[[str], str | None],
 ) -> ResolveRunIdResult: ...
 ```
 
@@ -210,7 +224,7 @@ def resolve_run_id(
 # 型と関数の骨格の全体は 05 章が正。次の名前を公開する(snake_case)。
 #   型: JobStatus、SkipReason、JobState、PipelineState、JobExecution、Classification、JobOutcome、
 #       DecisionReason、Decision、RetryDecision、ResumePoint、RunMode、NextStep、
-#       TransitionTarget、FlowJob、FlowDefinition
+#       EndTarget、JobTarget、TransitionTarget、FlowJob、FlowDefinition
 #   関数: to_flow_definition、classify、classify_and_decide、next_step、decide_before_run、
 #         retry_decision、is_retry_target、next_wait_secs、sat_mul_u64、resume_point_on_interrupt、
 #         exit_code_for、signal_exit_code、sat_add_i32
@@ -218,11 +232,10 @@ def resolve_run_id(
 # 05 章と名前が異なる場合は、05 章に合わせる。
 # 「無し」は None で表す。コレクションは tuple。ここには、runner、state、report が使う型だけを示す。
 
-# ジョブの実行結果(07 章 4.5 節)
+# ジョブの実行結果(05 章 1.2 節が正。07 章 4.5 節)
 @dataclass(frozen=True, slots=True)
 class JobExecution:
     job_id: str
-    command: Command                           # 表示とステートには使わない(job_id だけ)
     started: bool                              # False は、起動の前に合図が立っていたときだけ
     exit_code: int | None
     terminated_by_signal: int | None
@@ -269,7 +282,7 @@ class StateError(Exception):
 
 # 記録関数(純粋。元を変更せず、新しい値を返す。署名の正本は 05 章)
 def initial_state(definition_path: str, definition: FlowDefinition, run_id: str | None) -> PipelineState: ...
-def apply_outcome(s: PipelineState, job_id: str, execution: JobExecution, outcome: JobOutcome, nxt: NextStep) -> PipelineState: ...
+def apply_outcome(s: PipelineState, job_id: str, execution: JobExecution, outcome: JobOutcome, next_: NextStep) -> PipelineState: ...
 def apply_skip(s: PipelineState, job_id: str, reason: DecisionReason, definition: FlowDefinition) -> PipelineState: ...
 def apply_interrupt(s: PipelineState, point: ResumePoint) -> PipelineState: ...
 
@@ -289,7 +302,7 @@ def check_consistency(state: PipelineState, definition: FlowDefinition) -> Consi
 # 入出力の関数(06 章。投げる形): 失敗は StateError を送出する。
 #   read_state(path, run_id) -> PipelineState | None            # None は「空」。完了のものも「空」
 #   read_state_raw(path, run_id) -> PipelineState | None        # 完了のものも返す(watch)
-#   write_state(path, run_id, s, d) -> None                     # writeFailed
+#   write_state(path, run_id, s, durability) -> None            # writeFailed
 #   reset_state(path, run_id) -> None                           # removeFailed
 #   reset_all_states(path) -> ResetAllOutcome                   # 06 章
 # StateStore は、これらを包んで、StateError を値に変える(Deps の「例外を送出しない」の規則に合わせるため)。
@@ -320,14 +333,14 @@ class StateStoreOptions:
 class StateStore(Protocol):
     def read(self, definition_path: str, run_id: str | None) -> StateReadResult: ...
     def read_raw(self, definition_path: str, run_id: str | None) -> StateReadResult: ...
-    def write(self, definition_path: str, run_id: str | None, s: PipelineState, d: Durability) -> StateResult: ...
+    def write(self, definition_path: str, run_id: str | None, s: PipelineState, durability: Durability) -> StateResult: ...
     def reset(self, definition_path: str, run_id: str | None) -> StateResult: ...
     def reset_all(self, definition_path: str) -> ResetAllResult: ...
 
 def create_state_store(opts: StateStoreOptions) -> StateStore: ...
 ```
 
-- ステートの JSON の表現(ファイル用の型、キーの順、整数の幅の検査、深さの制限)は [06-state-file.md](06-state-file.md)。`PipelineState` を直接 `json.dumps` しない。`state` の内側の、ファイル用の型(`__init__.py` に出さない)を通し、キーの順を固定して書き出す。読み込みは、`json.loads` ではなく、`definition.read_json` を使う(位置・重複キー・整数の字句・深さの上限のため。06 章)。
+- ステートの JSON の表現(ファイル用の型、キーの順、整数の幅の検査、深さの制限)は [06-state-file.md](06-state-file.md)。`PipelineState` を直接 `json.dumps` しない。`state` の内側の、ファイル用の型(`__init__.py` に出さない)を通し、キーの順を固定して書き出す。読み込みは、`json.loads` ではなく、`definition.read_json`(`defer_duplicate_key=True`)と `check_limits(root, "depth_only")` を使う(読み取りを 1 つにして、重複キー・整数の字句・`NaN`・サロゲート・深さの挙動を、定義と揃えるため。06 章 6.5 節の検査表)。
 - 入出力は、同期の標準ライブラリ(`open`、`os.replace`、`os.fsync`)で行う(7 章)。
 
 #### `conductor.runner`
@@ -375,25 +388,28 @@ def detect_platform() -> PlatformKind: ...     # sys.platform を読む唯一の
 Locale = Literal["en", "ja"]
 
 class ReportEnv(Protocol):
-    def getenv(self, name: str) -> str | None: ...
+    def lookup_env(self, name: str) -> str | None: ...
     def stdout_is_terminal(self) -> bool: ...
     def platform(self) -> PlatformKind: ...    # 色を使えるかの判定に使う(Windows は色なし)
 
+# 標準出力への書き込みの失敗(Output 水準)。呼び出し元が 65(watch)/ 67(convert)にする(08 章 10.1 節)。
+class OutputError(Exception): ...
+
 class Reporter(Protocol):
-    # 文を作る関数群。戻り値は文字列(改行を含む)。書き込みはしない。
-    def verbose_result(self, o: JobOutcome, er: JobExecution) -> str: ...
-    def definition_errors(self, errs: Sequence[DefinitionError]) -> str: ...
-    def command_error(self, path: str, job_id: str, e: CommandError) -> str: ...
-    def state_error(self, e: StateError) -> str: ...
-    def watch(self, s: PipelineState) -> str: ...      # ほか、必要な引数は 08 章
-    def usage(self) -> str: ...
-    # ほか、08 章のメッセージの全件
+    # 書き込みの窓口(08 章 10.1 節)。Deps.out / Deps.err の Sink を包む。
+    def output(self, text: str) -> None: ...   # 標準出力。失敗は OutputError を送出
+    def error(self, text: str) -> None: ...    # 標準エラー(誤り・知らせ・-v)。失敗は握りつぶす
+    def flush(self) -> None: ...               # 終了前の完了(08 章 1.4)
 
 # ロケールと色は、最初に必要になったとき 1 回だけ判定する(遅延評価)。
-def create_reporter(env: ReportEnv) -> Reporter: ...
+def create_reporter(env: ReportEnv, out: Sink, err: Sink) -> Reporter: ...
+
+# 文を作る関数群(純粋。戻り値は文字列。改行を含む。書き込みはしない。全件は 08 章)。例:
+#   format_verbose_result(loc, o, er)、format_definition_errors(loc, errs)、format_command_error(loc, ...)、
+#   format_state_error(loc, e)、format_watch(loc, color, s)、usage_text(loc) など。
 ```
 
-- `report` は、`definition`・`flow`・`state`・`runner` の型を読むだけで、それらを変更しない。環境変数と端末の判定は、`ReportEnv` を通して受け取る(`os.environ` と `sys.stdout.isatty()` を直接読まない)。
+- `report` は、`definition`・`flow`・`state`・`runner` の型を読むだけで、それらを変更しない。環境変数と端末の判定は、`ReportEnv` を通して受け取る(`os.environ` と `sys.stdout.isatty()` を直接読まない)。`Sink` の `Protocol` は、`report` の側にも同じ形で宣言し(構造的に同じ)、`cli` を import しない。
 
 #### `conductor.cli`
 
@@ -471,7 +487,7 @@ tests/support ─▶ cli(型だけ), flow, definition, runner, state, runid, con
 7. **型の置き場所は、依存の最下層**(2.1 節)。型だけを使うために、上の層や横の層を import しない。上の層の型が要るときは、型を下の層へ移す。`report` が `runner` の `PlatformKind` を型として読むのは、この規則の範囲内(`report` は `runner` の下位でも上位でもなく、`runner` は `report` を import しないため、循環しない)。
 8. **import は、相手のパッケージの `__init__.py` を通す**。パッケージの内側のモジュールを、外から直接 import しない(`from conductor.flow.classify import classify` と書かない)。ただし、テストは、同じパッケージの内部のモジュールを直接 import してよい。
 9. **`tests/support/` は `conductor.cli` の型を import してよい**。`src/conductor/` は `tests/` を import しないので、循環しない。`Deps` の各 `Protocol` のメソッドのシグネチャは、`cli` の型ではなく、下層のパッケージの型だけで書く(4 章)。偽実装が、`cli` の型を import しなくても、構造的な型付け(メソッドの形が合うこと)で、`Protocol` を満たせるようにするため。
-10. 強制の方法(2 段): (a)(依存の向きの検査)`tests/test_architecture.py` が、`ast` で `src/conductor/` のすべてのモジュールの import 文を走査し、上の表の許可されない組み合わせ(例: `conductor/definition/**` から `conductor.flow` への import)と、パッケージの内側のモジュールへの外からの直接の import、循環(パッケージ間のグラフ)を、失敗にする。標準ライブラリだけで書ける。(b)(補助)ruff の `flake8-tidy-imports`(`banned-api`)で、製品のコードの禁止の import(`asyncio`、`argparse`、`threading`、`multiprocessing`、`concurrent`、`socket`、`urllib`、`http`、`shlex`、`pickle`)を失敗にする(8 章)。専用の道具(`import-linter` など)を使う場合は、実装時に確認(未確認。この文書は、依存を増やさない `ast` の検査を基本とする)。
+10. 強制の方法(2 段): (a)(依存の向きの検査)`tests/inspect/test_imports.py`(11 章 AC-514)が、`ast` で `src/conductor/` のすべてのモジュールの import 文を走査し、上の表の許可されない組み合わせ(例: `conductor/definition/**` から `conductor.flow` への import)と、パッケージの内側のモジュールへの外からの直接の import、循環(パッケージ間のグラフ)を、失敗にする。標準ライブラリだけで書ける。(b)(補助)ruff の `flake8-tidy-imports`(`banned-api`)で、製品のコードの禁止の import(`asyncio`、`argparse`、`threading`、`multiprocessing`、`concurrent`、`socket`、`urllib`、`http`、`shlex`、`pickle`)を失敗にする(8 章)。専用の道具(`import-linter` など)を使う場合は、実装時に確認(未確認。この文書は、依存を増やさない `ast` の検査を基本とする)。
 
 ---
 
@@ -487,7 +503,7 @@ tests/support ─▶ cli(型だけ), flow, definition, runner, state, runid, con
 ```python
 # 環境(環境変数、標準出力が端末か、OS の種別)。
 class Env(Protocol):
-    def getenv(self, name: str) -> str | None: ...      # 未設定は None
+    def lookup_env(self, name: str) -> str | None: ...  # 未設定は None。os.environ を読むのは、本番の実装だけ(04 章 6 章)
     def stdout_is_terminal(self) -> bool: ...
     def platform(self) -> PlatformKind: ...
     def cwd(self) -> str: ...                           # 必要なとき(定義ファイルの相対パスの扱いなど。04・05 章)
@@ -496,10 +512,11 @@ class Env(Protocol):
 class Clock(Protocol):
     def now(self) -> datetime: ...
 
-# 標準出力・標準エラーへの書き込み。書くたびに flush する。失敗は値で返す(例外を送出しない)。True は成功。
+# 標準出力・標準エラーへの書き込み(口は 2 つ: Deps.out、Deps.err)。1 回の write のあとに flush まで行う(08 章 1.3.2)。
+# 失敗は、OSError(BrokenPipeError を含む)・ValueError・UnicodeError の例外で伝える。
+# 呼び出し側(report の Reporter)が、水準ごとに扱う: 標準出力は OutputError にして呼び出し元へ、標準エラーは握りつぶす。
 class Sink(Protocol):
-    def write_out(self, text: str) -> bool: ...
-    def write_err(self, text: str) -> bool: ...
+    def write(self, text: str) -> None: ...
 
 # 定義ファイルの読み込み。
 class Definitions(Protocol):
@@ -510,13 +527,13 @@ class Definitions(Protocol):
 class States(Protocol):
     def read(self, definition_path: str, run_id: str | None) -> StateReadResult: ...
     def read_raw(self, definition_path: str, run_id: str | None) -> StateReadResult: ...
-    def write(self, definition_path: str, run_id: str | None, s: PipelineState, d: Durability) -> StateResult: ...
+    def write(self, definition_path: str, run_id: str | None, s: PipelineState, durability: Durability) -> StateResult: ...
     def reset(self, definition_path: str, run_id: str | None) -> StateResult: ...
     def reset_all(self, definition_path: str) -> ResetAllResult: ...
 
 # 変換。
 class Converter(Protocol):
-    def convert(self, input_path: str, to: Literal["yaml", "json"]) -> ConvertResult: ...   # ConvertOk(text) | ConvertErr(error)
+    def convert(self, input_path: str, to: Literal["yaml", "json"]) -> ConvertResult: ...   # ConvertOk(text) | ConvertFailed(error)(09 章)
 
 # プロセス(ジョブの起動と待ち)。
 class Process(Protocol):
@@ -534,7 +551,8 @@ class Signals(Protocol):
 class Deps:
     env: Env
     clock: Clock
-    out: Sink
+    out: Sink                   # 標準出力
+    err: Sink                   # 標準エラー
     defs: Definitions
     states: States
     converter: Converter
@@ -544,17 +562,17 @@ class Deps:
 
 - 引数 `args` は、`run` の引数で受け取る(`Env` に入れない)。
 - **ファイルシステムの差し替え**は、`Definitions`・`States`・`Converter` の 3 つの `Protocol` が担う。本番の実装は、実ファイルを読み書きする。偽の実装は、メモリに持つ(ファイルなし)。ステートの書き込みの原子的な置換の失敗や、ディスクの異常の検査は、`state` の内側のテスト(一時ディレクトリの実ファイル)で行う。
-- `Sink` は、書き込みの失敗を値(`False`)で返す(例外を送出しない。`BrokenPipeError` を含む `OSError` を、`Sink` の内側で捕まえる。08 章)。標準出力と標準エラーを混ぜない。**書き込みは `cli` の 1 か所の補助関数を通す**(順序を保つ。書くたびに `flush()` する。[07-process-and-signals.md](07-process-and-signals.md) の 9 章)。
+- `Sink.write` は、失敗を例外(`OSError`・`ValueError`・`UnicodeError`。08 章 1.3.2)で伝える。**例外の扱いは、`report` の `Reporter` の 1 か所**(標準出力は `OutputError` に変えて送出、標準エラーは握りつぶす)。ほかの箇所では、この例外を捕まえない。標準出力と標準エラーを混ぜない。**書き込みは `Reporter` の 1 か所を通す**(順序を保つ。書くたびに `flush()` する。[07-process-and-signals.md](07-process-and-signals.md) の 9 章)。
 - `Process.wait` は `wait_retry` を包む。偽の実装は、待ち時間を記録するだけで実際には待たない。
-- すべてのメソッドは、同期の関数である(`async def` を使わない)。`Process.run_job`、`Process.wait`、`Definitions`、`States`、`Converter`、`Sink` のメソッドは、例外を送出しない(失敗は値で返す。9 章)。
+- すべてのメソッドは、同期の関数である(`async def` を使わない)。`Process.run_job`、`Process.wait`、`Definitions`、`States`、`Converter` のメソッドは、例外を送出しない(失敗は値で返す。9 章)。`Sink.write` だけは、上のとおり例外で伝える。
 
 ### 4.3 本番の実装(`cli/system.py`)【目安】
 
 | 名前 | `Protocol` | 中身 |
 |------|-----------|------|
-| `SystemEnv` | `Env` | `os.environ.get(name)`、`sys.stdout.isatty()`(`sys.stdout` が `None` や閉じているときは `False`)、`detect_platform()`、`os.getcwd()`。端末の判定の挙動(UNIX 系と Windows の違い)は、実装時に 3 OS で確かめる(未確認) |
+| `SystemEnv` | `Env` | `lookup_env` は `os.environ.get(name)`、`sys.stdout.isatty()`(`sys.stdout` が `None` や閉じているときは `False`)、`detect_platform()`、`os.getcwd()`。端末の判定の挙動(UNIX 系と Windows の違い)は、実装時に 3 OS で確かめる(未確認) |
 | `SystemClock` | `Clock` | `datetime.now(timezone.utc)` |
-| `StdSink` | `Sink` | `sys.stdout.write(text)` と `sys.stdout.flush()`(標準エラーも同じ)を、`try/except OSError`(`BrokenPipeError` を含む)で包み、失敗なら `False`。文字コードと `errors` の設定は 08 章 |
+| `StdSink` | `Sink` | `sys.stdout`(標準エラー用は `sys.stderr`)に `write(text)` のあと `flush()`。`None` なら `OSError` を送出。失敗した記述子の `/dev/null` への差し替えは 08 章 1.3.2 の 5。文字コードと `errors` の設定は 08 章 |
 | `SystemDefs` | `Definitions` | `definition.load`、`definition.loose_run_id_env` |
 | `SystemStates` | `States` | `state.create_state_store(StateStoreOptions(now=..., sync_directory=detect_platform() != "windows"))` を持ち、メソッドを委譲 |
 | `SystemConverter` | `Converter` | `convert.convert_file` |
@@ -567,9 +585,9 @@ class Deps:
 
 | 偽の実装 | 振る舞い | 主な検査 |
 |-----------|----------|----------|
-| `FakeEnv` | 環境変数を表(`dict`)で与える。`getenv` を呼んだ回数と名前を記録する。`stdout_is_terminal`、`platform`、`cwd` の値を設定する | ロケール(`LC_ALL`・`LC_MESSAGES`・`LANG`)・`NO_COLOR`・run ID の環境変数。ロケールの判定を**遅延**して、最初に必要になったとき 1 回だけであること(成功・スキップで `-v` なしなら、読まない) |
+| `FakeEnv` | 環境変数を表(`dict`)で与える。`lookup_env` を呼んだ回数と名前を記録する。`stdout_is_terminal`、`platform`、`cwd` の値を設定する | ロケール(`LC_ALL`・`LC_MESSAGES`・`LANG`)・`NO_COLOR`・run ID の環境変数。ロケールの判定を**遅延**して、最初に必要になったとき 1 回だけであること(成功・スキップで `-v` なしなら、読まない) |
 | `FakeClock` | 固定の時刻を返す。進める操作を持つ | 一時ファイル名の時刻 |
-| `BufSink` | `write_out`・`write_err` を、別々の文字列に溜める。呼び出しの順序の記録も持つ。「n 回目の書き込みで失敗する(`False` を返す)」設定を持つ | 出力の中身、`cannot write to standard output`(`watch` の 65、`convert` の 67) |
+| `BufSink` | `write` で文字列に溜める(標準出力用と標準エラー用の 2 つを作る)。呼び出しの順序の記録も持つ。「n 回目の書き込みで失敗する(`OSError` を送出する)」設定を持つ | 出力の中身、`cannot write to standard output`(`watch` の 65、`convert` の 67) |
 | `FakeDefs` | パスごとに、決めた `Definition` や誤りの並びを返す。または、実ファイル(一時ディレクトリ)を `definition.load` で読む版 | 定義の誤り(64)の経路 |
 | `MemStates` | ステートをメモリに持つ(ファイルなし)。読み込み・書き込み・削除の呼び出しを記録する。「読み込みで `StateError` を返す」「書き込みで失敗する」設定を持つ | 大きなジョブ数(1,000 個)の流れの測定、ステートの異常系(65) |
 | `FakeConverter` | 入力パスごとに、決めた文字列かエラーを返す | `convert` の 67 |
@@ -623,9 +641,9 @@ cli: pipeline
       │         ├─ リトライ込みの実行
       │         │    loop { r = d.proc.run_job(job, sig)
       │         │           dec = flow.retry_decision(job, r, retries_done, last_wait)
-      │         │           リトライなら report: 知らせ(d.out.write_err。常に標準エラー) → w = d.proc.wait(secs, sig)
+      │         │           リトライなら report: 知らせ(reporter.error。常に標準エラー。`d.err` への書き込み) → w = d.proc.wait(secs, sig)
       │         │                    w が中断なら「起動しなかった中断」の JobExecution(started=False, interrupted=True, signal_number)を作って抜ける }
-      │         ├─ flow.classify_and_decide(..., RunMode=Pipeline)
+      │         ├─ flow.classify_and_decide(..., mode="pipeline")
       │         ├─ report: 表示(-v のときの結果行・遷移行。常時のエラー行)
       │         ├─ state.apply_outcome → d.states.write(durable)
       │         ├─ エラーまたは分類なし → return flow.exit_code_for(...)
@@ -634,7 +652,7 @@ cli: pipeline
  └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
 ```
 
-- `run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて同じ「判断 → 実行 → 分類 → 記録」を行う。分類と次の動きは `RunMode = Individual` で求める。
+- `run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて同じ「判断 → 実行 → 分類 → 記録」を行う。分類と次の動きは `RunMode = "individual"`(`pipeline` は `"pipeline"`。05 章)で求める。
 - `watch`・`reset`・`validate`・`convert` は、シグナルを準備しない。それぞれ、ステートの読み込み(`read_raw`)・ステートの削除(`reset`、`reset_all`)・定義の検査(`defs.load` と `proc.check_command`)・変換(`converter.convert`)を呼ぶ。
 - `pipeline` は、次のジョブを「次の動き」の戻り値で決めない。記述順に全ジョブを見て、起動前の判断で決める(スキップ・再開は、ステートが運ぶ)。
 - 合図の確認は、`cli` が `sig.number()` で行う(立っているか `is not None` で判定する。番号 0 を偽にしない。07 章 6.2 節)。`runner.run_job` と `runner.wait_retry` が、待機中の合図を扱う([07-process-and-signals.md](07-process-and-signals.md))。
@@ -672,7 +690,7 @@ JobOutcome の報告する終了コード ──flow.exit_code_for──▶ cond
 | `src/conductor/definition/errors.py` | 誤りの種類(`ErrorKind`、`ERROR_KINDS`)と `DefinitionError` |
 | `src/conductor/definition/load.py` | `load`(場所の決定、読み取り、書式の判定、段階の組み立て) |
 | `src/conductor/definition/intake.py` | ファイルの読み取り、大きさの上限、拡張子の判定 |
-| `src/conductor/definition/tree.py`、`read_yaml.py`、`read_json.py` | 木の型、YAML/JSON の読み取り(位置つき。展開と上限を含む。`convert` と `state` が共有。03 章) |
+| `src/conductor/definition/tree.py`、`read_yaml.py`、`read_json.py`、`limits.py` | 木の型、YAML/JSON の読み取り(位置つき。展開と上限を含む。`convert` が共有し、`state` は `read_json` と `check_limits` を使う。03 章) |
 | `src/conductor/definition/depth.py` | 入れ子の深さの検査 |
 | `src/conductor/definition/walk.py` | 構造・型・遷移・終了コード・名前の検査 |
 | `src/conductor/definition/loose.py` | `run_id_env` のゆるい読み取り |
@@ -713,7 +731,7 @@ JobOutcome の報告する終了コード ──flow.exit_code_for──▶ cond
 | `src/conductor/cli/exec_job.py` | リトライ込みの 1 ジョブの実行、記録、表示 |
 | `src/conductor/cli/aux_cmd.py` | `watch`・`reset`・`validate`・`convert` |
 | `tests/support/*.py` | 4.4 節の偽の実装と補助 |
-| `tests/test_architecture.py` | 依存の向き・循環・OS 分岐の置き場所・禁止の import の点検(3 章、07 章 8 章) |
+| `tests/inspect/test_imports.py` | 依存の向き・循環・OS 分岐の置き場所・禁止の import の点検(3 章、07 章 8 章) |
 | `tests/acceptance/test_*.py` | 実際に `python -m conductor` を起動する受け入れテスト |
 | `tests/jobs/*` | テストジョブ |
 
@@ -736,7 +754,7 @@ JobOutcome の報告する終了コード ──flow.exit_code_for──▶ cond
 | PEP 475(EINTR の自動の再試行) | `time.sleep`、`os.read`、`os.write`、`os.replace`、`os.fsync` などは、シグナルで中断されたとき、ハンドラが例外を送出しなければ、自動で再試行される。自前の再試行を書かない。ハンドラが例外を送出しない規則が前提 |
 | 共有する可変の値 | `runner.Interrupt` と、シグナル登録の印(`watcher.py` のモジュール内の変数)だけ |
 | キャンセル | 例外による中断(`KeyboardInterrupt` をハンドラから送出する、など)を使わない。中断は `Interrupt` で伝える |
-| 出力 | 標準出力・標準エラーへの書き込みは、`Sink` を通し、書くたびに `flush()` する(07 章 9.2 節) |
+| 出力 | 標準出力・標準エラーへの書き込みは、`Reporter`(`Deps` の `Sink` を包む)を通し、書くたびに `flush()` する(07 章 9.2 節、08 章 1.3.2) |
 | 排他制御 | 同じ定義への 2 つの `conductor` の同時の実行を、排他しない(両方が動き、ステートは、どちらも壊れた形では読めない。原子的な置換による) |
 | 再帰 | 深い入れ子の入力(定義・ステート・変換)に対して、再帰で読まない(`sys.getrecursionlimit()` の既定は 1000 で、深さの上限(32)より大きいが、解析器の内部の再帰を含めると足りない場合がある)。深さの上限の検査を、解析より前に効かせる、または明示のスタックで読む(03 章)。`sys.setrecursionlimit` を呼ばない |
 
@@ -795,7 +813,7 @@ classifiers = [ ... ]                     # 任意
 conductor = "conductor.__main__:main"
 
 [dependency-groups]                       # PEP 735。使えない環境では [project.optional-dependencies] の dev に置く(実装時に確認)
-dev = ["pytest>=<版>", "pytest-cov>=<版>", "mypy>=<版>", "ruff>=<版>", "build>=<版>", "pip-audit>=<版>"]
+dev = ["pytest>=<版>", "pytest-cov>=<版>", "mypy>=<版>", "ruff>=<版>", "build>=<版>", "pip-audit>=<版>", "types-PyYAML>=<版>"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/conductor"]
@@ -861,7 +879,7 @@ skip_empty = true
 | `[project]` の `name`、`version` | `name` は `conductor`。`version` は `0.8.0`。`src/conductor/version.py` の `VERSION` と一致する(テストで検査する)【規定】。`version` を動的(`dynamic`)にしない(2 か所の一致を、テストで検査するため) |
 | `requires-python` | 最小版を `>=X.Y` で書く(実装時に確認)。CI の Python の版(最小版と最新版)と一致することを、検査する(11 章)。`mypy` の `python_version` と、ruff の `target-version` も、最小版に合わせる |
 | `dependencies` | YAML のライブラリ 1 つだけ。それ以外を足さない【規定】。版の範囲は、下限と、次の大きな版の未満(実装時に確認) |
-| 開発時の依存 | 1 章の開発時の依存。実行時の依存を増やさない。版の固定(ロックファイル)の方針は、実装時に確認([11-quality-and-build.md](11-quality-and-build.md)) |
+| 開発時の依存 | `pytest`・`pytest-cov`・`mypy`・`ruff`・`build`・`pip-audit` と、YAML ライブラリの型の情報 `types-PyYAML`(`mypy --strict` が `import yaml` を型つきで通すため。11 章 8.3 節)の 7 つ。実行時の依存(YAML ライブラリ 1 つ)を増やさない。版の固定(ロックファイル)の方針は、実装時に確認([11-quality-and-build.md](11-quality-and-build.md)) |
 | `[project.scripts]` | `conductor = "conductor.__main__:main"`。`main` は、終了コード(`int`)を返す関数。コンソールスクリプトの起動用のコードが、その戻り値で `sys.exit` を呼ぶ(Windows では、`pip` が `conductor.exe` のラッパーを作る。動作は、実装時に 3 OS で確かめる。未確認) |
 | `python -m conductor` | `src/conductor/__main__.py` の `if __name__ == "__main__": sys.exit(main())` で動く |
 | wheel の中身 | `src/conductor/` だけ(`tests/`、設定ファイルを含めない)。`python -m build` のあと、wheel と sdist の内容を点検する(11 章) |
@@ -884,11 +902,11 @@ skip_empty = true
 | 例外を許す場所 | (1) 実装の不具合(論理の矛盾。起こるはずのない状態)。入口(`__main__`)の捕捉が、固定の 1 行を標準エラーに出して終了コード 70 にする(07 章 10 章)。`cli` の流れの内側で `except Exception` して握りつぶさない。(2) `state` の内側(`StateError` を送出し、`StateStore` が値に変える)。(3) 標準ライブラリが例外を送出する場合は、その場で `try/except` して、値にする(例: `Popen` の `OSError`・`ValueError`、ファイル入出力の `OSError`、`UnicodeDecodeError`) |
 | 捕まえる例外の範囲 | 想定する型だけを、狭く捕まえる(`except OSError`、`except (OSError, ValueError)`)。裸の `except:` と、`except Exception:` / `except BaseException:` を、入口の 1 か所以外に書かない。`try` の中身は、失敗しうる 1 つの呼び出しに絞る |
 | 終了 | `sys.exit` は `__main__.py` の 1 か所だけ(と、07 章の内部の誤りの経路 `os._exit(70)`、`KeyboardInterrupt` の経路 `exit_by_interrupt`)。`cli.run` は、終了コードを返す。`SystemExit` を、流れの内側で送出しない |
-| 種類 | パッケージごとに、**種類(`Literal` の文字列)を持つエラー型**を公開する: `DefinitionError`(値)、`CommandError`(`Exception`)、`StateError`(`Exception`)、変換の誤り(`ConvertError`。`Exception`)、`RunIdError`(値)。例外型は、`Exception` を継承し、`kind` と、固定の文(メッセージ)を持つ。呼び出し側は、`kind` で `match` し、網羅性を型で検査する(`assert_never`)。文字列を比べて分岐しない |
+| 種類 | パッケージごとに、**種類(`Literal` の文字列)を持つエラー型**を公開する: `DefinitionError`(値)、`CommandError`(`Exception` を継承するが、送出せず `CommandErr` に入れて返す。07 章)、`StateError`(`Exception`。送出する)、変換の誤り(`ConvertError`。値。09 章)、`RunIdError`(値)、`OutputError`(`Exception`。`Reporter.output` が送出)、`UsageError`(10 章 8.3 節)。例外型は、`Exception` を継承し、`kind` と、固定の文(メッセージ)を持つ。呼び出し側は、`kind` で `match` し、網羅性を型で検査する(`assert_never`)。文字列を比べて分岐しない |
 | 表示 | 利用者への表示の文は、`report` が、種類と引数(ジョブID、パスなど)から組み立てる(メッセージカタログ)。**`str(e)` や `e.args` の文字列、ライブラリ(YAML、標準ライブラリ)のエラー文、`errno` の名前を、そのまま表示しない**(入力の値や、内部の情報が出るため。[10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。スタックトレースを出さない(`traceback` を使わない) |
 | 原因 | `raise X(...) from e` で原因をつなげてよい。ただし、表示に使わない。デバッグ用に残してもよいが、利用者への出力に出さない |
 | 複数の誤り | 定義の検査・`command` の検査は、誤りを**すべて集めて**返す(`tuple`)。1 件で止めない |
-| 値で返す失敗 | ジョブの起動の失敗(`JobExecution.start_failure`)、出力の書き込みの失敗(`Sink` の `False`)は、値として扱い、終了コードに結びつける |
+| 値で返す失敗 | ジョブの起動の失敗(`JobExecution.start_failure`)、出力の書き込みの失敗(`Sink.write` の例外。標準出力は `Reporter.output` が `OutputError` にして `watch` は 65、`convert` は 67、`--help`・`--version` は無視して 0。標準エラーは握りつぶす。08 章 1.3.2)は、終了コードに結びつける |
 | 終了コードの決定 | 「失敗の種類 → 終了コード」の対応は `cli` の 1 か所で行う([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md)) |
 | 想定外 | 入口で捕まえ、固定の英語 1 行 `conductor: error: internal error` と終了コード 70(`SystemExit` を除く。`KeyboardInterrupt` は 07 章 7.6 節)。07 章 10 章 |
 | `assert` | 外部の入力の検査に使わない(`python -O` で消える)。起こらないはずの状態の表明に限り、使ってよい(`assert_never` を含む)。その失敗は、実装の不具合として、入口の捕捉で 70 になる |
@@ -913,10 +931,10 @@ skip_empty = true
 | 8 | エラー | 種類を持つエラー型、`kind` の `match`、`report` が文を作る |
 | 9 | 終了 | `sys.exit` は入口の 1 か所 |
 | 10 | 想定外の失敗 | `sys.excepthook` と `main` の `try/except` で 70 |
-| 11 | 整数 | 任意精度の `int`。64 ビット符号なしの飽和は `min(x, 2**64 - 1)`。終了コードの範囲検査は字句から。`bool` を整数にしない |
+| 11 | 整数 | 任意精度の `int`。64 ビット符号なしの飽和は `min(x, 2**64 - 1)`。終了コードの範囲検査は木の `IntNode` の値から(巨大な字句を `int()` に渡さない)。`bool` を整数にしない |
 | 12 | ファイル入出力 | 同期の標準ライブラリ(`open`、`os.replace`、`os.fsync`) |
 | 13 | import | 相手のパッケージの `__init__.py` を通す。`from __future__ import annotations` |
-| 14 | 依存の検査 | `tests/test_architecture.py`(`ast`)と、ruff の `banned-api` |
+| 14 | 依存の検査 | `tests/inspect/test_imports.py`(`ast`)と、ruff の `banned-api` |
 | 15 | ビルド | `hatchling`(採用案)、`python -m build` |
 
 ### 10.2 未確認の事項
@@ -929,5 +947,5 @@ skip_empty = true
 - `python -X importtime` による、`conductor --version` と `--help` の起動時間(YAML のライブラリを読み込まないこと。11 章の計測)。
 - 端末の判定(`sys.stdout.isatty()`)が、UNIX 系と Windows の両方で、利用者が期待する結果になるか。実装時に 3 OS で確かめる。
 - `tests/support/` の偽実装が、`cli/deps.py` の `Protocol` を満たすことを、`mypy --strict` が問題なく通せること(`Protocol` のメソッドの引数の名前と、構造的な型付けの食い違いが出ないか)。実装時に確かめる。
-- `ast` による依存の検査(`tests/test_architecture.py`)が、`if TYPE_CHECKING:` の内側の import を、正しく扱えること。実装時に確かめる。
-- 07 章の【実測】は、macOS の Python 3.14.10、3.15.2、3.9.6 で得た。Linux と Windows の挙動は未確認(07 章 13 章)。
+- `ast` による依存の検査(`tests/inspect/test_imports.py`)が、`if TYPE_CHECKING:` の内側の import を、正しく扱えること。実装時に確かめる。
+- 07 章の【実測】は、macOS の Python 3.14.10、3.15.2、3.9.6 で得た(03・09 章の確認は 3.10.7、3.14.10、3.15.2)。Linux と Windows の挙動は未確認(07 章 13 章)。

@@ -749,12 +749,12 @@ return min(a * b, U64_MAX)                # int は桁あふれしないので�
 ```text
 retries_done = 0; last_wait_secs = 0
 loop:
-    exec = run_job(job, flag)
+    exec = run_job(job, sig)
     match retry_decision(job, exec, retries_done, last_wait_secs):
         Stop: return exec                          # 最後の結果
         Retry(wait_secs):
             表示: 常に 1 行(§7.9)。retry_number = retries_done + 1
-            match wait_retry(wait_secs, flag):      # Deps の待機の差し替え点。本番は §7.8
+            match wait_retry(wait_secs, sig):       # Deps の待機の差し替え点。本番は §7.8
                 Elapsed:          retries_done += 1; last_wait_secs = wait_secs; continue
                 Interrupted(n):   return JobExecution(job_id=job.id, started=False, interrupted=True, signal_number=n,
                                                        exit_code=None, start_failure=False, terminated_by_signal=None)
@@ -770,38 +770,37 @@ loop:
 
 **決定: 待機は同期の `time.sleep` を 50 ミリ秒以下の刻みに区切り、刻みごとにシグナルのフラグと単調な時計の期限を確かめる。** スレッドを作らず、`threading.Event.wait(timeout)` も使わない。
 
-手順(`wait_retry(secs, flag)`。`runner` に置く。時計と sleep は引数で差し替えられるようにしてよい):
+手順(`wait_retry(secs, sig)`。`runner` に置く。時計と sleep は引数で差し替えられるようにしてよい):
 
 ```text
 start_ns    = time.monotonic_ns()
 deadline_ns = start_ns + secs * 1_000_000_000
 loop:
-    if flag.number is not None: return Interrupted(flag.number)    # 待機の開始時にも確かめる(最初の番号)
+    n = sig.number()
+    if n is not None: return Interrupted(n)                        # 待機の開始時にも確かめる(最初の番号)
     now_ns = time.monotonic_ns()
     if now_ns >= deadline_ns: return Elapsed
     time.sleep(min(deadline_ns - now_ns, 50_000_000) / 1e9)
 ```
 
 ```python
-class InterruptFlag(Protocol):        # 型の正本は 07 章。この章が必要とする最小の形
-    @property
-    def number(self) -> int | None: ...   # 最初に受け取ったシグナルの番号。無ければ None
-
+# 型の正本は 07 章(6.2 節の Interrupt、7.5 節の Elapsed・Interrupted)。この章が必要とする形:
+#   Interrupt.number() -> int | None     # 最初に受け取ったシグナルの番号。無ければ None(番号 0 と区別する)
 @dataclass(frozen=True, slots=True)
 class Elapsed:
-    kind: Literal["elapsed"] = "elapsed"
+    interrupted: Literal[False] = False
 
 @dataclass(frozen=True, slots=True)
 class Interrupted:
     number: int
-    kind: Literal["interrupted"] = "interrupted"
+    interrupted: Literal[True] = True
 
 WaitOutcome: TypeAlias = Elapsed | Interrupted
 ```
 
 守るべきことは 2 つ: (a) 合図から 1 秒以内に打ち切る(この方式では、合図から最大でも約 50 ミリ秒)。(b) 待ち時間が `secs` 秒以上になるまで `Elapsed` を返さない(経過は単調な時計 `time.monotonic_ns()` で毎回確かめる。`time.time()` は使わない)。
 
-**この方式を選んだ理由と、確認した挙動**(CPython 3.9.6・3.14.10・3.15.2、macOS。子プロセスから `SIGTERM` を 0.3 秒後に送り、ハンドラはフラグを立てて時刻を記録するだけ。3 つの版で同じ結果):
+**この方式を選んだ理由と、確認した挙動**(CPython 3.9.6・3.14.10・3.15.2、macOS。子プロセスから `SIGTERM` を 0.3 秒後に送り、ハンドラは `Interrupt` を立てて時刻を記録するだけ。3 つの版で同じ結果):
 
 | 待ち方 | ハンドラが走った時刻 | 待ちから戻った時刻 | 意味 |
 |---|---|---|---|

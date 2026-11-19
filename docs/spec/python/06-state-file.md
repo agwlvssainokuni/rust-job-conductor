@@ -497,7 +497,7 @@ def serialize_state(state: PipelineState) -> str: ...   # §4.3 の規則で文�
 8. 3〜7 のどこかで失敗(OSError)したら: fd が開いたままなら close(失敗は無視)、自分が作った一時ファイルを os.unlink(失敗は無視)し、
      WriteFailed(理由=「書き込みに失敗しました」)。下位の例外は `raise ... from e` で cause に入れ、表示しない
 9. 成功し、かつ Durable のとき:
-     UNIX 系では、ディレクトリを os.open(dir, os.O_RDONLY) で開いて os.fsync、close(失敗は無視。sys.platform == "win32" では何もしない)
+     UNIX 系では、ディレクトリを os.open(dir, os.O_RDONLY) で開いて os.fsync、close(失敗は無視。sync_directory が偽(Windows)では何もしない)
      同じ名前の型の一時ファイルのうち、更新から 24 時間以上たった通常のファイルを消す(失敗は無視)
 ```
 
@@ -509,7 +509,7 @@ API の選定と注意:
 - `os.open` が返す記述子は、子プロセスに引き継がれない(確認済み: `os.get_inheritable(fd)` は `False`。PEP 446)。
 - 一時ファイルへの書き込みは `os.write` の戻り値で進める(1 回で書き切れないことがありうるため)。バッファを持つ `open()` / `os.fdopen()` を使う場合は、`flush()` してから `os.fsync(f.fileno())` する(`flush` を忘れると、同期の前にバッファの内容が書かれていない)。
 - 時刻は `time.time_ns()`(実時計)でよい。クロックが戻っても、名前の衝突は連番の再試行(最大 16 回)で避ける。
-- `os.fsync` は Windows でも使える(ファイルの記述子に対して)。ディレクトリの `os.open(dir, os.O_RDONLY)` は Windows では `PermissionError` になる、と理解している(未確認)ので、`sys.platform == "win32"` で分岐して何もしない。
+- `os.fsync` は Windows でも使える(ファイルの記述子に対して)。ディレクトリの `os.open(dir, os.O_RDONLY)` は Windows では `PermissionError` になる、と理解している(未確認)ので、`StateStoreOptions.sync_directory`(`cli` が `PlatformKind` から決めて渡す。Windows は偽。02 章)が偽のとき何もしない。`state` は `sys.platform` を読まない。
 
 性質:
 
@@ -577,7 +577,7 @@ text = data.decode("utf-8")   # 厳密(errors="strict")。不正なバイト列�
 ```
 
 - **`"utf-8"` を指定する(`"utf-8-sig"` にしない)**: `utf-8-sig` は先頭の BOM(`EF BB BF`)を**黙って取り除く**(確認済み: `b"\xef\xbb\xbf{}".decode("utf-8-sig")` は `'{}'`、`"utf-8"` なら `'﻿{}'`)。BOM を取り除くと、BOM 付きのファイルが正しい JSON として受理されてしまい、仕様(BOM は壊れたステート。§6.1 の 6a)と食い違う。`"utf-8"` なら先頭に U+FEFF が残り、6a で拒否される。
-- **`json.loads` にバイト列を渡さない**: `json.loads(bytes)` は、先頭の BOM を受け付け、UTF-16・UTF-32 を自動で判定して読む(確認済み(3.9・3.14): `json.loads(b'\xef\xbb\xbf{}')` は `{}`、UTF-16 の JSON のバイト列も読める)。この仕様のステートは UTF-8(BOM なし)だけなので、必ず上の厳密な復号で `str` にしてから渡す。
+- **読み取りに、バイト列を渡さない**: 標準の `json.loads(bytes)` は、先頭の BOM を受け付け、UTF-16・UTF-32 を自動で判定して読む(確認済み(3.9・3.14))。この仕様のステートは UTF-8(BOM なし)だけなので、必ず上の厳密な復号で `str` にしてから `read_json` に渡す。
 - 厳密な復号は、不正な UTF-8 を拒否する。**確認済み**: `ED A0 80`(サロゲートの符号化)、`C0 80`(最短でない符号化)、`F4 90 80 80`(U+10FFFF 超)、途中で切れた `E3 81` は、すべて `UnicodeDecodeError`。例外は握りつぶさず、`corrupt`(`UTF-8 の文字列ではありません`)に変換する。
 - NUL は UTF-8 としては有効で、JSON の構文の検査(6a)で拒否される(文字列の外に現れれば構文の誤り(`Extra data` など)、文字列の中に現れれば制御文字の誤り。確認済み)。
 
@@ -585,13 +585,13 @@ text = data.decode("utf-8")   # 厳密(errors="strict")。不正なバイト列�
 
 | 細目 | 処理 | 失敗の理由 |
 |---|---|---|
-| 6a | §6.5 の読み取り(`json.loads` + フック + 事後の検査)で、全体を構文解析する。失敗するもの: 構文の誤り、BOM(先頭の U+FEFF)、値の後ろの余分な文字(2 つ目の値を含む)、空白だけの内容、制御文字(U+0000〜U+001F)の文字列内への直接の混入、`\u` エスケープの誤り、**対にならないサロゲートのエスケープ**(`"\ud800"`)、`NaN`・`Infinity`・`-Infinity`、入れ子が深すぎるもの(§6.5 の深さの上限 32 を超える)、再帰の限界(`RecursionError`) | `JSON として読めません` |
-| 6b | 最上位の値がオブジェクト(`dict`)か(`null`、配列、数値、文字列、真偽の最上位を拒否する) | `JSON として読めません` |
+| 6a | §6.5 の読み取り(自前の `read_json` と、深さの検査)で、全体を構文解析する。失敗するもの: 構文の誤り、BOM(先頭の U+FEFF)、値の後ろの余分な文字(2 つ目の値を含む)、空白だけの内容、制御文字(U+0000〜U+001F)の文字列内への直接の混入、`\u` エスケープの誤り、**対にならないサロゲートのエスケープ**(`"\ud800"`)、`NaN`・`Infinity`・`-Infinity`、入れ子が深すぎるもの(§6.5 の深さの上限 32 を超える) | `JSON として読めません` |
+| 6b | 最上位の値がオブジェクト(`MapNode`)か(`null`、配列、数値、文字列、真偽の最上位を拒否する) | `JSON として読めません` |
 | 6c | どのオブジェクトにも、同じキーが 2 回以上現れないか(最上位と `job` の各要素を含む全オブジェクト。エスケープを展開した後の文字列で比べる。`"id"` と `"id"` は同じキー) | `キーが重複しています` |
 
 6a が 6c より先であることは、仕様として固定する(重複キーが先にあっても、後ろに構文の誤りがあれば、`JSON として読めません` になる)。空白の定義は JSON の空白(スペース、`\t`、`\n`、`\r`)。BOM・NBSP・垂直タブ・改ページは空白でないので、6a で拒否される(確認済み: `json.loads` は、先頭の ` `・`\x0b`・`\x0c` を拒否する)。書き出しは BOM を付けない。他のツールが BOM 付きで保存した場合は壊れたステートとして 65 になり、`reset` で回復する。
 
-順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定と比較は**字句**に対して行い、`int` への変換を経由しない(§6.5)。受理は「字句が文字列として `"1"` に等しい」ことで判定する。
+順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定は、木の型(`IntNode`・`HugeIntNode`。§6.5)で行い、受理は `IntNode` で値が 1 のときだけとする(`HugeIntNode` は 64 ビット符号つきを超える整数で、`int()` を経由しない)。
 
 順 11 の `corrupt` の理由文(個別。いずれも種類は `corrupt`。1 つの要素の中の検査の順に上から):
 
@@ -698,61 +698,61 @@ conductor: error: c2.yaml.r3.state: state file is corrupt: run_id がファイ�
 - キー名は大文字小文字を区別する(`Format_Version`、`ID` は未知のキー、または必須のキーが無い、として扱う)。
 - 理由文の言語は、ロケールに関わらず日本語の固定文である(`conductor: error: ...` の行の中で、種類の文と案内だけがロケールに従う)。
 
-### 6.5 JSON の読み込み: 標準の `json` + フック + 事後の検査(選定)
+### 6.5 JSON の読み込み: 定義と共用する自前の読み取り `read_json`(選定)
 
 目的: 順序が固定の 14 段階の検査と、理由文の区別を、確実に満たす。
 
-**決定: ステートの JSON は、標準ライブラリの `json.loads` を、3 つのフック(`object_pairs_hook`・`parse_int`・`parse_float`)と `parse_constant` で縛って使い、解析後に、明示のスタックで深さと孤立サロゲートを検査する。定義の JSON の読み取り([03-definition-format.md](03-definition-format.md))とは共用しない。**
+**決定: ステートの JSON は、定義・変換と同じ自前の読み取り `conductor.definition.read_json(text, defer_duplicate_key=True)` で読み([03-definition-format.md](03-definition-format.md) 第 5.3 節、第 14.2 節)、続けて `check_limits(root, "depth_only")` で深さだけを確かめる。標準ライブラリの `json.loads` は、製品のコードのどこでも(定義、ステート、変換とも)使わない。**
 
-共用しない理由: 定義の誤りには、値ごとの行・列の位置が要る。標準の `json` は、構文の誤りにだけ位置(`JSONDecodeError` の `pos`・`lineno`・`colno`。確認済み)を持ち、解析できた値の位置は返さない。一方、ステートは位置を使わない(表示は固定の理由文だけ)。ステートに要るのは、検査の順序と理由文の区別と、整数の字句の判定で、これは次のフックで満たせる。`json.loads` はバイト列でなく `str` を受け取る(§6.1.2)。
+決めた理由:
 
-標準の `json` の限界と、それぞれの対処(CPython 3.9.6・3.14.10・3.15.2 で確認。特記のない限り 3 つで同じ):
+- JSON の読み取りが 1 つなので、重複キー・整数の字句・`NaN`・サロゲート・深さ・空白・BOM などの挙動が、定義・ステート・変換で食い違わない(検査表は下)。同じ入力の受理・拒否を、2 つの実装で保つ負担と、版による差(下の「採らなかった案」)がなくなる。
+- 03 章の読み取りは、重複キーを見つけても止めずに続ける指定(`defer_duplicate_key=True`)を持つ。これが、「構文の誤り(6a)が、重複キー(6c)より先」という規定の順序に、そのまま合う。
+- ステートは位置を使わない(表示は固定の理由文だけ)ので、読み取りが返す位置は捨てる。木の型(`MapNode`、`SeqNode`、`StringNode`、`IntNode`、`HugeIntNode`、`FloatNode`、`BoolNode`、`NullNode`。03 章)で、型の判定が、`isinstance`(または `kind`)だけでできる。`bool` と `int` を取り違える余地がない(`BoolNode` と `IntNode` は別の型)。
 
-| # | 標準の `json.loads` の挙動(確認済み) | この仕様への影響 | 対処 |
-|---|---|---|---|
-| 1 | 重複キーを検出せず、**後のものが勝つ**(`{"a":1,"a":2}` → `{'a': 2}`) | 6c を実現できない | `object_pairs_hook` に渡される `(キー, 値)` の対の列で、キーの数と `dict` にしたときの数を比べて、重複を検出する(エスケープの展開後のキーで比べられる)。重複したら**フラグを立てて**、`dict` を作って返し、解析を続ける(6a が先のため) |
-| 2 | `NaN`・`Infinity`・`-Infinity` を受理する(`[Infinity,-Infinity]` → `[inf, -inf]`) | JSON の文法に無い | `parse_constant` に、常に `ValueError` を送出する関数を渡す。6a にする |
-| 3 | 整数は任意精度の `int`、`1.0`・`1e0` は `float`、`-0` は `int` の `0`、`1e400` は `inf` | 字句の区別(`1.0` は整数でない)が `int` への変換で失われる。`true` / `false` は `bool`(`int` のサブクラス) | `parse_int` に、字句の文字列を持つ値(`JsonInt(text)`)を返す関数を、`parse_float` に、同様の `JsonFloat(text)` を返す関数を渡す。**字句のまま持ち、`int()` に渡さない**。整数かどうかは `type(v) is JsonInt` で判定する。`bool` は `type(v) is bool` で別に判定する |
-| 4 | 3.11 以降(確認済み: 3.14)、4300 桁を超える整数の字句は、`int()` への変換で `ValueError`(`Exceeds the limit (4300 digits)`)。3.9.6 には無い | 巨大な整数の字句を入れた入力で、版によって結果が変わる | 3 のフックは `int()` を呼ばないので、桁数の制限に当たらない(確認済み: 3.14 で 5001 桁の字句が `parse_int` のフックに渡された)。`format_version` は字句 `"1"` との文字列の比較、`exit_code` は字句が 11 文字以下のときだけ `int()` に渡して範囲を比べる(§下) |
-| 5 | 入れ子の深さ: 3.9 は深さ約 1000 で `RecursionError`(確認済み: 600 段は通り、1000 段は `RecursionError`)。3.14・3.15 は、再帰の上限と別に、C のスタックの保護で止まる(確認済み: 1 MiB の入力で、配列の入れ子 524,288 段は `RecursionError`、オブジェクトの入れ子 104,857 段は**解析できた**)。どの版でも、1 MiB の入力でプロセスが異常終了しなかった(Windows は未確認) | 深さの上限 32 を標準の解析では適用できない。版ごとに結果が違う | `RecursionError` は 6a として扱う。解析できたものは、解析後に**明示のスタック**で深さを数え(`sys.setrecursionlimit` を上げない。再帰で数えない)、深さが 32 を超えたら 6a にする。深さが上限を超える入力は、どの経路でも 6a なので、利用者に見える結果は版によらず同じ |
-| 6 | `"\ud800"`(孤立サロゲートのエスケープ)を、そのまま孤立サロゲートを含む `str` にする(`"\udc80"` も) | UTF-8 に符号化できない値が入る。再書き出しで値が変わりうる | 解析後の検査で、すべての文字列(キーと値)に孤立サロゲート(U+D800〜U+DFFF)が無いことを確かめる(`re.compile("[\ud800-\udfff]")` の `search`)。あれば 6a。正しい対(`"😀"`)は 1 つの文字になるので通る(確認済み) |
-| 7 | 先頭の U+FEFF(`str` の BOM)は `JSONDecodeError`(`Unexpected UTF-8 BOM (decode using utf-8-sig)`)で拒否する。ただし `bytes` を渡すと BOM を受け付け、UTF-16・UTF-32 も自動で判定する | 復号を誤ると BOM 付きが受理される | §6.1.2 の厳密な復号(`"utf-8"`)で `str` にしてから渡す |
-| 8 | 文字列内の制御文字(タブ、NUL)は拒否(`strict=True` が既定)。空白は `' '`・`\t`・`\n`・`\r` だけ(NBSP・垂直タブ・改ページは拒否)。`01`・`+1`・`1.`・`.5`・末尾のカンマ・単引用符・数値のキーは拒否 | 仕様どおり | 既定のまま使う(`strict=False` にしない) |
-| 9 | エラーの文言は版で変わる(例: 末尾のカンマが、3.9 では `Expecting property name enclosed in double quotes`、3.14 では `Illegal trailing comma before end of object`)。`JSONDecodeError` は `ValueError` のサブクラス | 文言に依存できない | 例外の文言を表示も判定にも使わない。`ValueError`(`JSONDecodeError` を含む)と `RecursionError` を捕まえて 6a にする |
-| 10 | 最上位は、オブジェクトに限らず、どの値でもよい(`1`、`"x"`、`null`、`[]`) | 6b が要る | 解析後に `type(root) is dict` を確かめる |
-| 11 | `dict` は挿入順を保つ。キー `"__proto__"` は普通のキー | 影響なし(特別な扱い不要) | `"__proto__"` は未知のキーとして、順 8・11b で拒否される |
+**採らなかった案(標準の `json.loads` に、`object_pairs_hook`・`parse_int`・`parse_float`・`parse_constant` を渡して縛り、解析後に深さと孤立サロゲートを検査する)**: 次の限界を、フックと事後の検査で埋めれば、同じ結果にはできる。しかし、経路が 2 つになり、版による差を抱える。確認(CPython 3.9.6・3.14.10・3.15.2。特記のない限り 3 つで同じ):
 
-`parse_int` / `parse_float` / `parse_constant` / `object_pairs_hook` は、`json.loads` の引数として渡す(確認済み: 3 つの版で、`parse_int` が字句の文字列を受け取り、`object_pairs_hook` が重複を含む対の列を受け取る)。
+| # | 標準の `json.loads` の挙動(確認済み) | 縛る方法(採らない) |
+|---|---|---|
+| 1 | 重複キーを検出せず、後のものが勝つ | `object_pairs_hook` で、キーの数を比べる |
+| 2 | `NaN`・`Infinity`・`-Infinity` を受理する | `parse_constant` に例外を送出させる |
+| 3 | `1.0` は `float`、`-0` は `int` の `0`。`true` は `bool`(`int` のサブクラス) | `parse_int`・`parse_float` に字句を持つ値を返させる |
+| 4 | 3.11 以降は、4300 桁を超える整数の字句で、`int()` への変換が `ValueError`(3.9.6 には無い) | `parse_int` が `int()` を呼ばないようにする |
+| 5 | 深い入れ子は、版で結果が違う(3.9 は約 1000 段で `RecursionError`。3.14・3.15 は 1 MiB の入力で、配列の入れ子 524,288 段は `RecursionError`、オブジェクトの入れ子 104,857 段は解析できた) | `RecursionError` を捕まえ、解析後に明示のスタックで深さを数える |
+| 6 | `"\ud800"`(孤立サロゲートのエスケープ)を、孤立サロゲートを含む `str` にする | 解析後に、全文字列を検査する |
+| 7 | `str` の先頭の U+FEFF を拒否する。`bytes` を渡すと BOM を受け付け、UTF-16・UTF-32 も自動で判定する | 厳密な UTF-8 の復号で `str` にしてから渡す |
+| 8 | エラーの文言が版で変わる | 例外の文言を使わない |
 
-読み取りの骨格(読み取り専用の型。実装は書かない。mypy 2.4.1 の `--strict` を通った):
+**検査表(定義の読み取りと、ステートの読み込みで、挙動が同じであること)**: 次の入力は、どちらの経路でも同じ結果になる。ステートの欄は、§6.1 の順 6 の細目と、順 7〜12 の結果である。
 
-```python
-@dataclass(frozen=True, slots=True)
-class JsonInt:
-    text: str          # 字句のまま(例 "1"、"-0"、"99999999999999999999")。int() に渡さない
+| 入力 | 03 章の規定(定義・変換) | ステート(この章) |
+|---|---|---|
+| 重複キー(エスケープを展開した後の完全一致) | 構文の誤り(`キーが重複しています`)。ただし、後ろに文法の誤りがあれば、それが先 | 6c(`キーが重複しています`)。後ろに文法の誤りがあれば 6a が先 |
+| 整数の字句 `-?(0\|[1-9][0-9]*)`、`1.0`・`1e0` は整数でない、`-0` は整数 0 | `IntNode`・`HugeIntNode`(64 ビット符号つきを超える)・`FloatNode`。整数だけの項目に `FloatNode` は型の誤り | `format_version` は `IntNode` で値が 1 のときだけ受理、ほかの `IntNode` と `HugeIntNode` は `versionMismatch`、`FloatNode`・`BoolNode`・文字列・`null` は「整数ではありません」。`exit_code` は `IntNode` で、-2147483648〜2147483647 だけ受理(`HugeIntNode` は型の誤り) |
+| 桁数の多い整数(5000 桁など) | `int()` の桁数の上限に当たらない(19 桁を超えれば `int()` を呼ばない) | 同じ読み取りなので、3.9 でも 3.11 以降でも同じ結果 |
+| `NaN`・`Infinity`・`-Infinity` | 構文の誤り | 6a |
+| `true`・`false` | `BoolNode`(整数でない) | 整数でない。`exit_code`・`format_version` に受理しない |
+| 孤立サロゲート(`\ud800` など) | 構文の誤り | 6a |
+| 入れ子の深さ | 深さ 32 まで受理、33 段目を拒否(根を数えない)。文法の誤りが先 | 同じ(`check_limits(root, "depth_only")`)。拒否は 6a(`JSON として読めません`) |
+| 1 MiB の `[` の列 | 明示のスタックで読み、文法の誤り(末尾)を返す。再帰で落ちない | 6a。プロセスが異常終了しない |
+| BOM | 先頭の U+FEFF は無視して読む(定義・変換) | **拒否する**(6a)。唯一の意図した差で、読み取りの前の前処理による(下の注) |
+| 空白 | スペース・タブ・LF・CR だけ | 同じ |
+| 最上位が、オブジェクトでない | 型の誤り(第 6.7 節) | 6b |
 
-@dataclass(frozen=True, slots=True)
-class JsonFloat:
-    text: str          # 小数点または指数を持つ数値の字句(例 "1.0"、"1e0")
-
-class JsonReadError(Exception): ...     # 6a(構文・深さ・サロゲート・NaN など)。メッセージを表示しない
-
-def read_state_json(text: str) -> tuple[dict[str, Any], bool]:
-    """返り値: (最上位の dict, 重複キーがあったか)。6a の失敗は JsonReadError。
-    最上位が dict でないとき(6b)は、呼び出し側が `type(root) is dict` で確かめるか、ここで JsonReadError にする。"""
-```
+- 注(BOM): 03 章は、定義と変換の入力の先頭の BOM(U+FEFF)を、取り除いて(無視して)読む。ステートは、BOM を壊れたものとして拒否しなければならない。したがって、ステートの読み込みは、`read_json` を呼ぶ**前に**、`text.startswith("\ufeff")` なら 6a にする(`read_json` が BOM を無視する実装でも、この前処理が先に働くので、結果は変わらない)。
+- 木は、読み取り専用で、`dict` に入れて重複を落とさない。ステートの検査は、`MapNode` の `entries`(キーと値の並び)を、キー名で引く補助(最初の一致)で行う。重複は 6c で先に拒否されているので、引いた結果は一意である。
 
 読み込みの手順(順 6〜13 を、この木に対して行う):
 
-1. `json.loads(text, object_pairs_hook=..., parse_int=JsonInt, parse_float=JsonFloat, parse_constant=<常に ValueError>)` を呼ぶ。`ValueError`・`RecursionError` → 6a。
-2. 解析後、明示のスタック(深さを添えた `(値, 深さ)` の対の列)で全体を 1 回なでる: 最上位のコンテナの深さを 0 とし、子のコンテナは親 + 1。**コンテナ(`dict` / `list`)の深さが 32 を超えたら 6a**(深さ 32 まで受理、33 段目を拒否。根を数えない)。文字列(キーと値)に孤立サロゲートがあれば 6a。要素数・文字の大きさの上限は、ステートには適用しない(ファイルの大きさの上限 1 MiB が、別にある)。ステートの正しい内容の深さは 2(最上位のオブジェクト → `job` の配列 → 要素のオブジェクト)で、余裕がある。
-3. `type(root) is not dict` → 6b。
-4. 重複のフラグが立っていれば → 6c。
+1. 先頭が U+FEFF なら 6a。そうでなければ `read_json(text, defer_duplicate_key=True)` を呼ぶ。失敗(`ReadJsonFailed`)→ 6a。
+2. `check_limits(root, "depth_only")` が誤りを返したら 6a(深さ 32 まで受理、33 段目を拒否。根を数えない)。要素数・文字の大きさの上限は、ステートには適用しない(ファイルの大きさの上限 1 MiB が、別にある)。ステートの正しい内容の深さは 2(最上位のオブジェクト → `job` の配列 → 要素のオブジェクト)で、余裕がある。
+3. `root` が `MapNode` でなければ 6b。
+4. `duplicate_key` が `None` でなければ 6c。
 5. 順 7〜12 は、仕様の順に、`root` から取り出す。未知のキーの検査(順 8)は、キーの全部が §2.1 の 10 個のどれかか、を見る。
-6. 値の型の判定は `type(x) is ...` で行う(`str` / `bool` / `list` / `dict` / `JsonInt` / `JsonFloat` / `NoneType`)。整数の判定は `type(x) is JsonInt`(`1.0`・`1e0` は `JsonFloat` なので整数以外。`true`・`false` は `bool` なので整数以外。`null` は型の誤り)。
-7. `format_version`: `type(v) is JsonInt` で `v.text == "1"` のときだけ受理。ほかの `JsonInt`(`"0"`、`"-0"`、`"2"`、巨大な字句)は `versionMismatch`。`int` への変換は要らない。
-8. `exit_code`: `type(v) is JsonInt` で、字句が 11 文字以下(`-2147483648` が 11 文字)のときだけ `int(v.text)` に変換し、-2147483648 以上 2147483647 以下なら受理して `int` にする。字句がそれより長い(範囲外。`int()` に渡さない)、範囲外の値、`JsonFloat`、`bool`、`null`、文字列は、型の誤り。`-0` は `int("-0")` が 0 なので `0` になる。
-9. `job_order` と `job` の要素も同様に取り出す(`job` の各要素が `dict` でなければ、順 11 の a)。
+6. 値の型の判定は、木の型(`isinstance`)で行う(`StringNode`・`BoolNode`・`SeqNode`・`MapNode`・`IntNode`・`HugeIntNode`・`FloatNode`・`NullNode`)。整数の判定は `IntNode` か `HugeIntNode`(`1.0`・`1e0` は `FloatNode`、`true`・`false` は `BoolNode`、`null` は `NullNode`)。
+7. `format_version`: `IntNode` で `value == 1` のときだけ受理。ほかの `IntNode`(`0`、`-0`、`2` など)と `HugeIntNode` は `versionMismatch`。
+8. `exit_code`: `IntNode` で、`-2147483648 <= value <= 2147483647` のときだけ受理。`HugeIntNode`、範囲外の `IntNode`、`FloatNode`、`BoolNode`、`NullNode`、文字列は、型の誤り。`-0` は値 0。
+9. `job_order` と `job` の要素も同様に取り出す(`job` の各要素が `MapNode` でなければ、順 11 の a)。
 
 ### 6.6 読み込みの単体テストで固定する入力(最低限)
 
@@ -761,7 +761,7 @@ def read_state_json(text: str) -> tuple[dict[str, Any], bool]:
 | 入力(要点) | 期待 |
 |---|---|
 | 正常(§4.4 の例 1〜9) | 受理。往復(読んで書く)で元と一致(例 8 の U+2028・U+2029 のエスケープを含む) |
-| 先頭に BOM(`EF BB BF`)+ 正常な内容 | `corrupt`(`JSON として読めません`)。`"utf-8-sig"` で復号するか、`json.loads` にバイト列を渡すと、受理されてしまう(このテストで検出する) |
+| 先頭に BOM(`EF BB BF`)+ 正常な内容 | `corrupt`(`JSON として読めません`)。`"utf-8-sig"` で復号するか、`read_json` の前に BOM の前処理を省くと、受理されてしまう(このテストで検出する) |
 | 正常な内容の後ろに `{}` や `x` | `corrupt`(`JSON として読めません`) |
 | `null`、`[]`、`1`、`"x"`、`true` | `corrupt`(`JSON として読めません`) |
 | 空白だけ(`"\n"`) | `corrupt`(`JSON として読めません`) |
@@ -952,11 +952,11 @@ conductor: warning: kept state files that could not be read (remove one with `co
 | 5 | 版の先行検査 | `format_version` は、未知の項目の検査より先に調べる |
 | 6 | キーの大文字小文字 | 区別する。`Format_Version` や `ID` は未知のキー(または必須のキーが無い)として扱う |
 | 7 | `null` | どの項目の `null` も型の誤り。「無い」とは扱わない |
-| 8 | BOM | 拒否する(`"utf-8"` で復号し、`json.loads` に `str` を渡す。§6.1.2) |
-| 9 | 巨大な整数 | `format_version` と `exit_code` は、字句で判定し、`int` へ変換しない(3.11 以降の 4300 桁の上限にも当たらない) |
+| 8 | BOM | 拒否する(`"utf-8"` で復号し、`read_json` に `str` を渡す。§6.1.2、§6.5) |
+| 9 | 巨大な整数 | `format_version` と `exit_code` は、木の型(`IntNode`・`HugeIntNode`)で判定する。巨大な字句で `int()` を呼ばない(3.11 以降の 4300 桁の上限にも当たらない) |
 | 10 | ディレクトリを指すステートのパス | `reset` は消さず `removeFailed`(`os.unlink` を使う。§8.1) |
 | 11 | `bool` | `true` / `false` は整数でない。`exit_code` や `format_version` に受理しない。書き出しでも `exit_code` に `bool` を出さない |
-| 12 | `NaN` / `Infinity` | 拒否する(標準の `json` の既定は受理) |
+| 12 | `NaN` / `Infinity` | 拒否する(自前の読み取りが拒否する。標準の `json` の既定は受理) |
 | 13 | 孤立サロゲート | 読み込みでは拒否する(6a)。書き出しでは、`definition_path` / `definition_key` の孤立サロゲートを U+FFFD に置き換える |
 | 14 | `exit_code` の `0` | 「ある」。`is not None` で判定する(§4.2) |
 
@@ -993,7 +993,11 @@ class StateError(Exception):
 ```python
 def read_state(definition_path: str, run_id: str | None) -> PipelineState | None: ...       # 空は None。完了は None(14)
 def read_state_raw(definition_path: str, run_id: str | None) -> PipelineState | None: ...   # 14 を行わない
-def write_state(definition_path: str, run_id: str | None, state: PipelineState, durable: bool) -> None: ...
+Durability: TypeAlias = Literal["durable", "fast"]      # 本文の Durable / Fast。durable は内容の同期まで行う
+
+def write_state(
+    definition_path: str, run_id: str | None, state: PipelineState, durability: Durability,
+) -> None: ...
 def reset_state(definition_path: str, run_id: str | None) -> None: ...                        # 無くても成功
 ```
 
@@ -1005,7 +1009,7 @@ def reset_state(definition_path: str, run_id: str | None) -> None: ...          
 
 ### 13.3 確認済み(CPython 3.9.6・3.14.10・3.15.2、macOS。特記のない限り 3 つで同じ)
 
-- `json`: 重複キーの後のものが勝つこと、`NaN`・`Infinity` の受理、整数・`float`・`bool` の区別(`parse_int` / `parse_float` のフックに字句の文字列が渡ること)、3.14 での 4300 桁の上限(3.9.6 には無い)、孤立サロゲートのエスケープの受理、BOM(`str`)の拒否と `bytes` での受理・UTF-16 の自動判定、空白・制御文字・数値の字句の拒否、深い入れ子の挙動(上の表 5)、`JSONDecodeError` の `pos`・`lineno`・`colno`、`dumps` の `ensure_ascii=False`(U+2028・U+0085・DEL・`<&>` が生のまま)、`indent=2` の形(空配列 `[]`、行末に空白なし)、挿入順のままのキー、`True` が `true` になること、`allow_nan=False` の `ValueError`、孤立サロゲートの生出力と `encode` の失敗。
+- `json`(書き出しの `dumps` に使う分と、採らなかった案の根拠): 重複キーの後のものが勝つこと、`NaN`・`Infinity` の受理、整数・`float`・`bool` の区別(`parse_int` / `parse_float` のフックに字句の文字列が渡ること)、3.14 での 4300 桁の上限(3.9.6 には無い)、孤立サロゲートのエスケープの受理、BOM(`str`)の拒否と `bytes` での受理・UTF-16 の自動判定、空白・制御文字・数値の字句の拒否、深い入れ子の挙動(上の表 5)、`JSONDecodeError` の `pos`・`lineno`・`colno`、`dumps` の `ensure_ascii=False`(U+2028・U+0085・DEL・`<&>` が生のまま)、`indent=2` の形(空配列 `[]`、行末に空白なし)、挿入順のままのキー、`True` が `true` になること、`allow_nan=False` の `ValueError`、孤立サロゲートの生出力と `encode` の失敗。
 - 文字列・復号: `surrogateescape` での復号と、`surrogateescape` + `decode("utf-8", "replace")` による U+FFFD への置き換え、`"utf-8"` の厳密な復号が `ED A0 80`・`C0 80`・`F4 90 80 80`・`E3 81` を拒否し BOM を残すこと(`"utf-8-sig"` は取り除く)、`str` の比較がコードポイントの順(UTF-8 の順と同じ)であること。
 - ファイル: `os.open` の `O_EXCL`(`FileExistsError`)、権限 `0o666` から `0o644`(umask 022)、`tempfile.mkstemp` の `0o600`、置き換えで権限を引き継がないこと、`os.replace` のディレクトリへの `IsADirectoryError`、`os.unlink` のディレクトリへの `PermissionError`(macOS)、存在しないパスの `FileNotFoundError`、親がファイルのときの `NotADirectoryError`、ディレクトリを `open` したときの `IsADirectoryError`、ディレクトリの `os.fsync`、`os.get_inheritable` が `False`、`os.scandir` の `is_file(follow_symlinks=False)` でシンボリックリンクを除けること、シンボリックリンクの `os.unlink` がリンク先を残すこと、`/dev/zero` から `read(上限 + 1)` で止まること、書き込み失敗時に一時ファイルが残らないこと、24 時間以上古い一時ファイルが `Durable` の書き込みで消え `Fast` では残ること。
 

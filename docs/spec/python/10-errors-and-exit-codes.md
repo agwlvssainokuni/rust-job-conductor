@@ -11,7 +11,7 @@
 | 1〜255 | (ジョブの値) | エラーになったジョブの終了コードを、そのまま。範囲外は下位 8 ビット(0 になるなら 1)。4 章 | 範囲合わせ |
 | 64 | DEFINITION | 定義の誤り: ファイルがない・読めない・大きすぎる・文法・検証の誤り(パイプライン名の不一致、`run_id_env` や `remove_on_complete` の型・形の誤り、`retry` の誤りを含む)、拡張子が `.yaml`・`.yml`・`.json` のどれでもない、`command` の誤り(引用符が閉じていない・空)。`validate` の失敗も 64 | `run`, `pipeline`, `validate` |
 | 65 | STATE | ステートの誤り: 読めない・大きすぎる・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みの失敗・削除(初期化)の失敗。`reset`・`reset --all` で消すのに失敗。`watch` が標準出力に書けない。`pipeline` が完了を判定できない | `run`, `pipeline`, `watch`, `reset` |
-| 66 | REJECTED | 拒否(順序外など。`run` で前のジョブが終わっていない、スキップ対象、`@end` より後ろ、実行済み) | `run`, `pipeline` |
+| 66 | REJECTED | 拒否(順序外。`run` で、前のジョブがまだ済んでいない、など。05 章の `Reject(OutOfOrder)`)。スキップ対象・`@end` より後ろ・実行済みのジョブは、拒否ではなくスキップで、終了コード 0 | `run`, `pipeline` |
 | 67 | CONVERSION | 変換の誤り。`convert` が標準出力に書けない | `convert` |
 | 68 | USAGE | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないオプション、使えないオプション、値の欠落・誤り、知らないジョブID、run ID の値の誤り〔引数・環境変数とも〕、重複、`--all` と `--run-id` の併用、非 UTF-8 の引数) | 引数の解釈、run ID の決定、`watch`/`reset` |
 | 70 | INTERNAL | 内部の誤り: 想定外の内部失敗(6 章)、シグナルの準備の失敗 | 全般、`run`/`pipeline` の準備 |
@@ -145,7 +145,7 @@ Python の `int` は任意精度で、`&` は負の値も、無限の長さの 2
        try:
            code = run(sys.argv[1:], production_deps())
        except KeyboardInterrupt:
-           code = 130                         # 6.2
+           code = exit_by_interrupt()         # 6.2(07 章 7.6 節)
        except SystemExit:
            raise                              # 6.3
        except BaseException:
@@ -153,7 +153,7 @@ Python の `int` は任意精度で、`&` は負の値も、無限の長さの 2
        sys.exit(_finish(code))                # 08 章 1.4(出力の完了)
    ```
 
-   (骨格。実装コードは規定しない。`_finish` は、出力を完了させ、終了コードを 0〜255 の `int` で返す。`_finish` の中の例外も、同じ `except` の規則(`KeyboardInterrupt` → 130、`SystemExit` は通す、そのほかの `BaseException` → 70)で扱う。`try` を、`_finish` を含めて 1 つにまとめるか、二重にするかは、実装に任せる。)
+   (骨格。実装コードは規定しない。`_finish` は、出力を完了させ、終了コードを 0〜255 の `int` で返す。`_finish` の中の例外も、同じ `except` の規則(`KeyboardInterrupt` → `exit_by_interrupt()`、`SystemExit` は通す、そのほかの `BaseException` → 70)で扱う。`try` を、`_finish` を含めて 1 つにまとめるか、二重にするかは、実装に任せる。)
 
 2. `_report_internal_error()` と `_excepthook` は、同じ 1 つの関数(または、後者が前者を呼ぶ)に集める。この関数は、標準エラーに、固定の英語の文を 1 行書く(ロケールを判定しない)。
 
@@ -161,7 +161,7 @@ Python の `int` は任意精度で、`&` は負の値も、無限の長さの 2
    conductor: error: internal error
    ```
 
-   末尾は改行。書き込みに失敗しても無視して続ける(08 章 1.3.2 の `write_all`、`flush` まで行い、失敗したストリームは記述子を `os.devnull` に差し替える)。この関数は、1 回だけ動く(2 回目以降の呼び出しは、何もしない。例外の連鎖で行が重複して出ないように、モジュールの変数のフラグで止める)。
+   末尾は改行。書き込みは、`os.write(2, b"conductor: error: internal error\n")` を `try/except OSError` で囲んで行う(07 章 10 章の決定。`sys.stderr` が `None` や閉じている場合・エンコードの誤り・バッファの残りに左右されないため。失敗は無視して続ける)。この関数は、1 回だけ動く(2 回目以降の呼び出しは、何もしない。例外の連鎖で行が重複して出ないように、モジュールの変数のフラグで止める)。
 3. `sys.excepthook` は、捕捉されなかった例外(`SystemExit` を除く)が、インタプリタの最上位に届いたときに呼ばれる。ハンドラが戻ると、インタプリタは終了コード 1 で終わる(確認済み: 下の表)ので、`_excepthook` は、**自分で 70 で終わる処理を行う**: 1 行を書き、`flush` し、`os._exit(70)`(または `sys.exit(70)`。どちらも 70 になることを確認した)を呼ぶ。`_excepthook` 自身が例外を送出すると、インタプリタは `Error in sys.excepthook:` と元の例外のトレースバックを標準エラーに出し、終了コード 1 で終わる(確認済み)ので、`_excepthook` の中は、例外を送出しない書き方にする(内部で `try`/`except BaseException` を使って握りつぶす)。
 4. スタックトレースや失敗の詳細を、標準出力へ出してはならない(標準出力はジョブの出力と `watch`・`convert` の結果のためにある)。詳細(例外のトレースバック)を標準エラーへ出すかは、実装に任せてよい(出す場合も上の 1 行を、必ず含める。1 行目に出す。Python 既定のトレースバック表示 `traceback.print_exception` を、その 1 行のあとに足してよい)。
 5. 外部の入力(引数、環境変数、ファイル、シグナル、ジョブの出力)に対して、想定外の失敗が起きない作りにする。これらは、すべて、規定された誤り(64〜68 など)として扱う。たとえば、リストの範囲外の参照(`IndexError`)、`None` の属性参照(`AttributeError`)、辞書の欠けたキー(`KeyError`)、型の誤り(`TypeError`)、ファイルの文字コードの誤り(`UnicodeDecodeError`)、整数への変換の誤り(`ValueError`)、深い入れ子の再帰(`RecursionError`)が、入力から起きないようにする。入力の検査に `assert` を使わない(`python -O` では `assert` 文が取り除かれ、検査が消える)。
@@ -172,9 +172,11 @@ Python の `int` は任意精度で、`&` は負の値も、無限の長さの 2
 
 - `run`・`pipeline` では、シグナルの準備のあとは、`SIGINT` のハンドラが自前になるので、`KeyboardInterrupt` は送出されない。準備の前(引数の解釈、定義の読み込みなど)と、ハンドラを元へ戻したあとに届いた `SIGINT` は、`KeyboardInterrupt` になりうる。
 - `watch`・`reset`・`validate`・`convert` でも、実行中の Ctrl+C は `KeyboardInterrupt` になる(5 章)。
-- 決定: `main()` は、`KeyboardInterrupt` を捕捉したら、メッセージを出さず、終了コード 130(128 + 2)で終わる(`internal error` にしない。70 にしない)。`_finish`(出力の完了)の中で届いた場合も同じ。ステートファイルは、一時ファイルへ書いて置き換える方式(06 章)なので、途中の内容が残らない。
-- 確認した挙動(Python 3.15.2・3.9.6、macOS): 捕捉されない `KeyboardInterrupt` は、インタプリタが、トレースバックを標準エラーに出したあと、自身に `SIGINT` を送って終わる(終了状態は「信号 2 で死亡」。`subprocess` の `returncode` は `-2`、シェルの `$?` は 130)。`sys.excepthook` を登録していても、`KeyboardInterrupt` ではそれが呼ばれたあとに、同じく `-2` で終わった。`except KeyboardInterrupt: sys.exit(130)` で捕捉すると、終了コード 130 の通常の終了になった(`returncode` は 130。トレースバックなし)。
-- したがって、この版は、`except KeyboardInterrupt` で捕捉して `sys.exit(130)` に相当する終了にする(信号で死亡する形ではなく、終了コード 130 の通常の終了)。シェルから見た終了コードは同じ 130。`signal.signal(signal.SIGINT, signal.SIG_DFL)` で、OS の既定の動作(信号で死亡)に戻す方式は、この版では採らない(確認した範囲では、`SIG_DFL` に戻して自分に `SIGINT` を送ると `-2` で終わった。それでも、決定は上のとおり)。
+- 決定(07 章 7.6 節が正本): `main()` は、`KeyboardInterrupt` を捕捉したら、メッセージを出さず、`exit_by_interrupt()`(`runner/platform.py`)で終わる(`internal error` にしない。70 にしない)。`_finish`(出力の完了)の中で届いた場合も同じ。
+  - UNIX 系: `signal.signal(SIGINT, SIG_DFL)` に戻してから、`os.kill(os.getpid(), SIGINT)` を自分に送り、シグナルで終了する。シェルから見た終了コードは 130(128 + 2)。親が `wait` で状態を読む場合は、シグナル終了として見える(OS の既定の動作と同じ)。送信が戻ってきた場合(通常は起きない)は 130 を返す。
+  - Windows: 130 を返す(OS の既定の動作の終了コード `0xC000013A` とは違う。利用者から見て差が小さいので、130 に揃える。未確認)。
+  - ステートファイルは、一時ファイルへ書いて置き換える方式(06 章)なので、途中の内容が残らない。
+- 確認した挙動(Python 3.15.2・3.9.6、macOS): 捕捉されない `KeyboardInterrupt` は、インタプリタが、トレースバックを標準エラーに出したあと、自身に `SIGINT` を送って終わる(終了状態は「信号 2 で死亡」。`subprocess` の `returncode` は `-2`、シェルの `$?` は 130)。`except KeyboardInterrupt: sys.exit(130)` で捕捉すると、終了コード 130 の通常の終了になる(`returncode` は 130。トレースバックなし)。この版は、UNIX 系では前者の「シグナルによる死亡」(トレースバックは出さない)を採る。受け入れテストは、`returncode` が `-2` か 130 のどちらでも、シェルから見て 130 になる形で書く(11 章 AC-532)。
 
 ### 6.3 `SystemExit` の扱い
 
@@ -193,7 +195,7 @@ Python の `int` は任意精度で、`&` は負の値も、無限の長さの 2
 | ハンドラ自身が例外を送出する | `Error in sys.excepthook:` と元の例外のトレースバックが標準エラーに出て、終了コード 1 |
 | `sys.exit(5)`(`SystemExit`)で、ハンドラを登録 | ハンドラは呼ばれず、終了コード 5 |
 | `main()` 相当の `try`/`except BaseException` で、`GeneratorExit`、`RecursionError`(無限再帰)、`MemoryError`(明示的に `raise`)を捕捉して `sys.exit(70)` | 捕捉でき、70 |
-| `except KeyboardInterrupt: sys.exit(130)` | 130 |
+| `except KeyboardInterrupt: sys.exit(130)`(この版は採らない。6.2) | 130 |
 | `__del__` の中の例外(送出されても伝わらない、`unraisable`) | 標準エラーに `Exception ignored ...` が出て、終了コードは 0(失敗にならない)。`sys.unraisablehook` を登録すると、そのフックが呼ばれ、終了コードは 0 のまま |
 
 - 「`unraisable`」(`__del__`、ガベージコレクタ中の例外など、送出先がない例外)は、プロセスの終了コードに影響しない。この版は、`sys.unraisablehook` を登録しない(Python の既定の表示に任せる)。`conductor` は、`__del__` を持つ型を、設計上、作らない(リソースの解放は `with` と `try`/`finally` で行う)ので、通常の流れでは起こらない。
@@ -337,12 +339,12 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 ### 8.1 方針
 
 - 規定された誤りの伝え方は、モジュールごとに次のとおり決まっている(8.3 節の表の「伝え方」の列)。**値で返す**ものは、結果の型(`Ok` と `Err` の判別共用体)で返し、例外を送出しない(`definition`、`convert`、`runner`、`flow`、`runid`)。**送出する**ものは、`Exception` を継承したクラスの値を `raise` する(`state` の読み書きの関数。06 章。`cli` の引数の解析の `UsageError` は、値として持ち回る)。`state` の入口 `StateStore`(02 章)は、送出された `StateError` を値に包んで `Deps` に返す。規定された誤りと、想定外の内部失敗(6 章)を、**型で区別する**。規定された誤りは、このあとの型の集合に属し、それ以外は想定外とする。
-- 各誤りの型は、「種別(`enum.Enum`)」と「利用者に見える情報」を持つ。文言への変換(ロケール、エスケープ)は `conductor/report/` の責務で、例外の `str(e)`(`Exception.args` の文字列)は、ロケールを判定せず、デバッグ用の固定の英語の 1 行にする(利用者向けの出力には使わない)。
+- 各誤りの型は、「種別(`Literal` の和。`UsageKind` だけ `enum.Enum`)」と「利用者に見える情報」を持つ。文言への変換(ロケール、エスケープ)は `conductor/report/` の責務で、例外の `str(e)`(`Exception.args` の文字列)は、ロケールを判定せず、デバッグ用の固定の英語の 1 行にする(利用者向けの出力には使わない)。
 - 終了コードは、エラー型の値から、`conductor/cli/` の 1 つの関数で決める(クラス変数 `exit_code`、または型の振り分け)。終了コードの数値の定義は 1 か所(`ExitCode`)に集める。
 - 呼び出し側は、`isinstance`(または `except XxxError`)で型を判定する。**`except Exception` と、裸の `except:` を、規定された誤りの処理に使わない**(想定外の失敗を握りつぶさないため)。想定外の失敗を捕捉してよいのは、`main()` の最上位(6 章)と、08 章 1.3.2 の書き込みの失敗の処理(`OSError`・`ValueError` に限る)だけ。`except OSError` は、ファイル・子プロセス・標準出力の境界で、`OSError` の子クラス(`FileNotFoundError`、`PermissionError`、`IsADirectoryError`、`NotADirectoryError`、`BrokenPipeError`)を、その境界の規定された種類に対応づけるために使う(例: 定義ファイルの `FileNotFoundError` は `fileMissing`、`PermissionError` は `unreadable`)。
 - 誤りを包む場合は、`raise XxxError(...) from err` で、元の例外を `__cause__` に入れる。包んでも、利用者向けの出力は、包んだ誤りの型の情報だけから作る(`__cause__` や `str(e)` は、利用者に出さない)。
 - `Exception` を継承したクラスは、コンストラクタの引数と `args` が一致しないと、`copy`・`pickle` で復元できなくなる。`conductor` は誤りを複製・直列化しないので、問題にならないが、`super().__init__(message)` を必ず呼び、`args` を空にしない(`Exception` のメッセージとして、固定の英語の 1 行を渡す)。
-- 種別の値(`enum.Enum` の値。7.1 の `fileMissing` など)は、永続化も外部への公開もしない(利用者に見えるのは文言だけ)。並びの追加・並べ替えで、互換性の問題は起きない。
+- 種別の値(`Literal` の文字列、または `enum.Enum` の値。7.1 の `fileMissing` など)は、永続化も外部への公開もしない(利用者に見えるのは文言だけ)。並びの追加・並べ替えで、互換性の問題は起きない。
 
 ### 8.2 定数と共通の基底クラス
 
@@ -370,7 +372,7 @@ class ConductorError(Exception):
 ```
 
 - `ExitCode` は `IntEnum` だが、`sys.exit` と `exit_code_for` には、`int(ExitCode.X)` で、純粋な `int` にして渡す(`IntEnum` は `int` の子クラスなので動くが、`type(code) is int` の検査を通すため、境界で `int()` を通す)。
-- 判別共用体: 値で返す誤り(`DefinitionError`、`ConvertError`、`CommandError`、`RunIdError`)は、`Exception` を継承しない `@dataclass(frozen=True, slots=True)` にする。理由: これらは `raise` されず、結果の型に入って返るだけで、`raise` を前提とする例外クラスにするとスタックの情報・`__traceback__` の保持など不要な状態を持つため。`slots=True` の `dataclass` を `Exception` と多重継承すると、レイアウトの衝突の恐れがある(確認していない。未確認)ので、例外クラスは通常のクラス(`dataclass` にしない)で書く。
+- 判別共用体: 値で返す誤り(`DefinitionError`、`ConvertError`、`RunIdError`)は、`Exception` を継承しない `@dataclass(frozen=True, slots=True)` にする。理由: これらは `raise` されず、結果の型に入って返るだけで、`raise` を前提とする例外クラスにするとスタックの情報・`__traceback__` の保持など不要な状態を持つため。`slots=True` の `dataclass` を `Exception` と多重継承すると、レイアウトの衝突の恐れがある(確認していない。未確認)ので、例外クラスは通常のクラス(`dataclass` にしない)で書く。`CommandError` は、07 章の骨格のとおり `Exception` を継承した通常のクラスだが、送出せず、結果の型(`CommandErr`)に入れて返す(`raise` を前提にしない)。
 
 ### 8.3 型の一覧(骨格)
 
@@ -378,18 +380,18 @@ class ConductorError(Exception):
 
 | モジュール | 型 | 種別の型 | 終了コード | 持つ情報(伝え方) |
 |------------|-----|----------|------------|----------|
-| `conductor/definition/` | `DefinitionError` | `ErrorKind`(`enum.Enum`。7.1 の 31 種。値は識別子の文字列。03 章) | 64 | ファイル、行・列(`None` は「なし」)、種類、原因(日本語の固定の文)。例外にせず、`@dataclass(frozen=True, slots=True)` の値として `LoadResult` に入れて返す(03 章) |
-| `conductor/runner/` | `CommandError` | `CommandErrorKind`(`enum.Enum`。`UNCLOSED_QUOTE`・`EMPTY`。02 章) | 64 | 種類(ジョブIDは、呼び出し側が持つ)。結果の型で返す(07 章) |
-| `conductor/runid.py` | `RunIdError` | `RunIdErrorKind`(`enum.Enum`。`EMPTY`・`TOO_LONG`・`INVALID_CHAR`・`LEADING_DOT`) | 68(利用者には `invalid value`) | 種類のみ(値は持たない)。結果の型で返す(05 章) |
-| `conductor/state/` | `StateError` | `StateErrorKind`(`enum.Enum`。`unreadable`・`tooLarge`・`corrupt`・`versionMismatch`・`writeFailed`・`removeFailed`) | 65 | パス、種類、原因(固定の日本語の文)、`detail`(任意)。`state` の読み書きの関数は送出する(06 章) |
-| `conductor/state/` | `ConsistencyResult` の `mismatch` | `what`(`Literal["pipelineName", "jobIds", "jobOrder"]`、または `enum.Enum`) | 65 | 種類。値で返す(06 章) |
-| `conductor/convert/` | `ConvertError` | `ConvertErrorKind`(`enum.Enum`。7.3 の 6 種) | 67 | ファイル、行、キーの位置、種類、原因。値で返す(09 章) |
+| `conductor/definition/` | `DefinitionError` | `ErrorKind`(`Literal` の和。7.1 の 31 種。03 章 12.1 節) | 64 | ファイル、行・列(`None` は「なし」)、種類、原因(日本語の固定の文)。例外にせず、`@dataclass(frozen=True, slots=True)` の値として `LoadResult` に入れて返す(03 章) |
+| `conductor/runner/` | `CommandError` | `CommandErrorKind`(`Literal["unclosedQuote", "empty"]`。07 章) | 64 | 種類(ジョブIDは、呼び出し側が持つ)。`Exception` を継承した通常のクラスだが、送出せず、結果の型(`CommandErr`)に入れて返す(07 章) |
+| `conductor/runid.py` | `RunIdError` | `RunIdErrorKind`(`Literal["Empty", "TooLong", "InvalidChar", "LeadingDot"]`。05 章 6.1 節) | 68(利用者には `invalid value`) | 種類のみ(値は持たない)。結果の型で返す(05 章) |
+| `conductor/state/` | `StateError` | `StateErrorKind`(`Literal`。`unreadable`・`tooLarge`・`corrupt`・`versionMismatch`・`writeFailed`・`removeFailed`。06 章) | 65 | パス、種類、原因(固定の日本語の文)、`detail`(任意)。`state` の読み書きの関数は送出する(06 章) |
+| `conductor/state/` | `ConsistencyResult` の `mismatch` | `what`(`Literal["pipelineName", "jobIds", "jobOrder"]`。06 章) | 65 | 種類。値で返す(06 章) |
+| `conductor/convert/` | `ConvertError` | `ConvertErrorKind`(`Literal`。7.3 の 6 種。09 章 10 節) | 67 | ファイル、行、キーの位置、種類、原因。値で返す(09 章) |
 | `conductor/cli/` | `UsageError` | `UsageKind`(`enum.Enum`。7.4 の 8 種) | 68 | 種類、対象(あれば) |
-| `conductor/cli/` | `RejectedError` | `RejectReason`(`enum.Enum`。`OutOfOrder`・`SkipTarget`・`AfterEnd`・`AlreadyExecuted`) | 66 | ジョブID、理由 |
+| `conductor/flow/` の `Reject` | `DecisionReason` の `OutOfOrder` | (1 種) | 66 | ジョブID。`flow.decide_before_run` が `Reject("OutOfOrder")` の値で返し、`cli` が 66 にする(送出しない) |
 | `conductor/report/` | `OutputError` | (なし) | 呼び出し元による(`watch` は 65、`convert` は 67) | なし。標準出力への書き込みの失敗(08 章 1.3.2)。`ConductorError` を継承しない(終了コードが文脈で決まるため) |
 | `conductor/flow/` | (クラスにしない。`JobOutcome` の値) | (なし。分類の結果として扱う) | 3 章から決まる | 報告する終了コード、エラーか |
 
-- 種別は、`enum.Enum`(各メンバの値は 7.1 などの識別子の文字列)にする。メンバの名前は UPPER_SNAKE_CASE。`match` 文と `typing.assert_never`(Python 3.11 以降。最小の版に応じて、自前の同等の関数を持つ)で、網羅性を `mypy --strict` が検査できる。種別を `Literal` の共用体にする代替案も許すが、同じ型の設計(種別の値の集合が型で閉じていること)を守る。
+- 種別の型は、骨格を定めた章に従う。`definition`・`runner`・`runid`・`state`・`convert` の種別は `Literal` の和(03・07・05・06・09 章)で、`cli` の `UsageKind` だけが `enum.Enum`(下)。どちらも、値の集合が型で閉じている。`match` 文と `typing.assert_never`(Python 3.11 以降。最小の版に応じて、自前の同等の関数を持つ)で、網羅性を `mypy --strict` が検査できる。種別を `Literal` の共用体にする代替案も許すが、同じ型の設計(種別の値の集合が型で閉じていること)を守る。
 - 「対象なし」と「対象が空文字」を区別する(`unknown command: ''` のように、対象があれば `'...'` で囲んで出す)。`target: str | None = None` として、`None` を「対象なし」、`""` を「対象が空文字」とする(判定は `target is None`。`if e.target:` の真偽判定は、空文字を「なし」と誤るので使わない)。
 - 送出する誤りは、必ず `Exception` を継承したクラスにする(`raise` できるのは `BaseException` の子クラスだけで、プレーンな値は送出できない)。値で返す誤りと、送出する誤りを、同じ型で兼ねない。
 
@@ -432,6 +434,8 @@ class Err(Generic[E]):
     error: E
 
 # 例: LoadResult = Ok[Definition] | Err[tuple[DefinitionError, ...]]
+# 実際の名前は、各章の骨格に従う(`LoadOk`・`LoadFailed`(03)、`ConvertOk`・`ConvertFailed`(09)、`CommandOk`・`CommandErr`(07)、
+# `RunIdOk`・`RunIdErr`(02)など)。ここの `Ok`・`Err` は、考え方の例である。
 ```
 
 (型パラメータの書き方は、サポートする最小の Python の版に合わせる(`TypeVar` と `Generic`、または 3.12 以降の `class Ok[T]`)。骨格は目安であり、`isinstance` または `match` で分岐できる判別共用体であればよい。)
@@ -445,7 +449,7 @@ class Err(Generic[E]):
 `conductor/cli/` の `run` は、各処理が返した結果の型(値で返す誤り)と、送出された値を受け取り、次の順で終了コードと表示を決める(終了コードを決める関数は 1 つ)。
 
 1. `UsageError` → 使い方の誤りの表示(誤りの行、空行、使い方全文)と 68。
-2. `DefinitionError` / `CommandError` → 64。`StateError`、整合性の `mismatch` → 65。`RejectedError` → 66。`ConvertError` → 67。それぞれの表示は 08 章。
+2. `DefinitionError` / `CommandError` → 64。`StateError`、整合性の `mismatch` → 65。`Reject`(`OutOfOrder`)→ 66。`ConvertError` → 67。それぞれの表示は 08 章。
 3. 上のどれでもない値(`ConductorError` のほかのクラス、`Exception` のほかのクラス、`BaseException` を含む。想定していない失敗)は、`run` の中では握らず、`main()` の最上位まで伝わらせて、6 章の `conductor: error: internal error` を標準エラーに 1 行出して 70 で終わる。想定外の値を握りつぶして成功にしてはならない。
 4. 型の判定の順序は、同じ値が複数のクラスに当てはまらないように作る(`ConductorError` の直下のクラスは互いに独立で、継承関係を作らない)ので、実際には順序に依存しない。
 
@@ -492,10 +496,10 @@ $ (ジョブが SIGKILL で終了)
 必須:
 
 - 1 章の終了コードの全件と意味、2 章の決定順序、3 章の分類、4 章の範囲合わせ(終了コードは、0〜255 の `int` にしてから `sys.exit` に渡す)。
-- 6 章の 70(固定の 1 行と終了コード)と、`sys.excepthook`・`main()` の `try/except BaseException` の捕捉、`KeyboardInterrupt` → 130、`SystemExit` は再送出。
+- 6 章の 70(固定の 1 行と終了コード)と、`sys.excepthook`・`main()` の `try/except BaseException` の捕捉、`KeyboardInterrupt` → 07 章 7.6 節の `exit_by_interrupt()`(UNIX 系はシグナル終了。シェルから見て 130。Windows は 130)、`SystemExit` は再送出。
 - 標準エラーの `conductor: error: ...` の行の形式と文言(08 章)。
 - 少なくとも 1 回の方針: ステートの書き込みに失敗したとき、ジョブの終了コードより 65 を優先する。
-- 8 章の、`Exception` を継承した型(送出する誤り)、値で返す誤りの型、`isinstance` での判定、`enum.Enum` の種別という方針(型の名前と分け方は目安)。
+- 8 章の、`Exception` を継承した型(送出する誤り)、値で返す誤りの型、`isinstance` での判定、種別を型で閉じるという方針(型の名前と分け方は目安)。
 - 終了コードが 120(標準出力のフラッシュの失敗)・1(捕捉されない例外)・2(`argparse` の使い方の誤り)で外に出ないこと。
 
 実装に任せてよい点:
@@ -515,10 +519,10 @@ $ (ジョブが SIGKILL で終了)
 | `retryNotTable` の文言 | 08 章 4.3(`retry must be a map` / `retry はマップで書きます`) |
 | 変換の誤り | YAML と JSON の相互変換。6 種の種類と 22 件の原因(7.3) |
 | 想定外の内部失敗 | `sys.excepthook` と、入口の `try/except BaseException` で 70(6 章)。`SystemExit` は再送出(6.3) |
-| `KeyboardInterrupt` | 捕捉して終了コード 130。メッセージなし(6.2) |
+| `KeyboardInterrupt` | 捕捉して、メッセージなしで終わる。UNIX 系は自分に SIGINT を送ってシグナル終了(シェルから見て 130)、Windows は 130(07 章 7.6 節。6.2) |
 | 終了コードの型 | `int`(任意精度)。`bool` でない 0〜255 の値を `sys.exit` に渡す(4 章) |
 | 終了コードの整形 | `reported & 0xFF`、エラーで 0 になれば 1(4 章) |
-| エラー型 | `Exception` を継承したクラス(送出する誤り)+ 値で返す誤り(`dataclass`)+ `enum.Enum` の種別。`isinstance` で判定(8 章) |
+| エラー型 | `Exception` を継承したクラス(送出する誤り)+ 値で返す誤り(`dataclass`)+ 種別(`Literal` の和、`cli` の `UsageKind` だけ `enum.Enum`)。`isinstance` で判定(8 章) |
 | 起動の失敗 | `Popen` が送出する `OSError` の子クラスを捕捉して 127(3 章) |
 
 ## 12. 未確認

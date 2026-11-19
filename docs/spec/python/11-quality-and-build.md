@@ -25,9 +25,9 @@
 
 - 受け入れテストは、**`python -m conductor`(または、配布物のコンソールスクリプト `conductor`)を、外から実行して**確かめる(終了コード、標準出力、標準エラー、作られるファイル)。外からは確かめにくい項目は、区分を「単体」「注入」「点検」「手動」「計測」として示す(3.6 節)。
 - 定義ファイルは YAML(`.yaml` / `.yml`)か JSON(`.json`)。既定のファイル名は `conductor.yaml`。ステートファイルは JSON で、名前は `<定義ファイル名>.state`(run ID があれば `<定義ファイル名>.<run ID>.state`)。`convert` は YAML と JSON の相互変換(`--to yaml|json`)。
-- 受け入れテストの ID は `AC-xxx`。001〜449 は、`conductor` が満たすべき基本の項目。450 以降は、YAML と JSON の扱いに固有の項目(450〜475)、品質・CI・版の項目(476〜487)、Python(CPython の実行モデル、標準入出力、`signal`、`subprocess`、配布物)に固有の項目(488 以降)。番号は、この文書の中で一意。
+- 受け入れテストの ID は `AC-xxx`。001〜449 は、`conductor` が満たすべき基本の項目。450 以降は、YAML と JSON の扱いに固有の項目(450〜475)、品質・CI・版の項目(476〜487)、Python(CPython の実行モデル、標準入出力、`signal`、`subprocess`、配布物)に固有の項目(488 以降。末尾は 536)。番号は、この文書の中で一意。
 - 期待の標準エラーの文言は、特に記さない限り `LANG=C`(英語)。理由の文(日本語の固定の文)は、英語の表示でも日本語のまま([08](08-output-and-i18n.md)、[10](10-errors-and-exit-codes.md))。理由の文の正確な字句は、08・10 章が正本で、この文書の例は、それと同じ字句を使う。
-- 実行環境は CPython。サポートする版は「実装時点で、公式にセキュリティ修正が続いている版のうち、最小と最新」(以下 `PY_MIN` と `PY_MAX`。具体的な版は**実装時に確認する**。この文書の例では、`PY_MIN` を 3.11、`PY_MAX` を 3.14 としたが、確認した値ではない)。`pyproject.toml` の `requires-python` に `PY_MIN` を書く(8 章)。
+- 実行環境は CPython。サポートする版は「実装時点で、公式にセキュリティ修正が続いている版のうち、最小と最新」(以下 `PY_MIN` と `PY_MAX`。具体的な版は**実装時に確認する**。この文書の例では、`PY_MIN` を 3.11、`PY_MAX` を 3.15 としたが、確認した値ではない)。`pyproject.toml` の `requires-python` に `PY_MIN` を書く(8 章)。
 - 確認できなかった点は「未確認」と書き、10 章にまとめる。**この文書の作成時に実機で確かめられたのは、次の範囲だけである**(macOS、CPython 3.9.6 の標準ライブラリ。`ruff`、`mypy`、`pytest`、`build`、`pip-audit`、GitHub Actions は、動かして確かめていない)。
   - `json.loads` が `NaN`・`Infinity` を受理する(`json.loads('NaN')` が `nan` を返す)。
   - `bool` が `int` のサブクラスで、`isinstance(True, int)` が真。`min(2**70, 2**64 - 1)` が `18446744073709551615`。
@@ -66,7 +66,7 @@ Python は、起動のたびにインタプリタを立ち上げ、`site` と標
 | ジョブ 1,000 個の `pipeline` の流れの判断(偽の `Deps` を使い、プロセスとファイルなし) | 10,000 ms | 目安。ただし、完了のステートが残ることは常に検査する | AC-402 |
 | ジョブの実行中の `conductor` の CPU 時間の増分(Linux。待機の 1 秒後から 2.5 秒後までの増分) | 50 ms 以下 | **強制**(`/proc` を読めない環境ではスキップ) | AC-403 |
 | 同じ定義への 2 つの `run` を同時に | 両方が実行され、どちらもジョブの終了コードで終わり、ステートは読み戻せる(排他制御はしない) | **強制** | AC-404 |
-| リトライの待機の中断 | 合図から 1 秒以内に返る。待ちは短い区間に分けて合図の旗を見る(区間の長さは 07 章の決定。この文書の基準は、1 秒以内の中断と、CPU 時間の上限だけ) | **強制**(1 秒) | AC-275 |
+| リトライの待機の中断 | 合図から 1 秒以内に返る。待ちは短い区間に分けて合図の旗を見る(区間の長さは、07 章の決定で 50 ms 以下。この文書の基準は、1 秒以内の中断と、CPU 時間の上限) | **強制**(1 秒) | AC-275 |
 | ジョブの終了の待ち | `Popen.wait(timeout=…)` の短い区間(07 章)で待つ。合図から転送までの遅れは、区間の長さ以下 | 目安 | [07](07-process-and-signals.md) |
 | ジョブが大量の出力(16 MiB)を標準出力に書いても、`conductor` がそれを溜め込まない | 子の標準入出力は引き継ぐ(`stdout=None`)ので、出力は `conductor` を通らない。出力の全体がそのまま読み手に届く | **強制** | AC-494 |
 
@@ -114,7 +114,7 @@ Python では、捕まえそこねた例外は、トレースバックを標準�
 | 引数にメタ文字が入っても注入にならない | `a;b`、`&&`、`\|`、`$HOME`、`*`、`>x` などが、そのまま引数として渡る。Windows の `.cmd` への危険な引数で、続くコマンドが実行されない | 4.2 節 |
 | 検証は副作用を持たない | 定義の検証は、コマンドを解釈・展開・起動しない。定義ファイルのディレクトリは変わらない | AC-415 |
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示。**YAML ライブラリが返すエラー文(`yaml.YAMLError` の `str()` は、入力の断片と位置を含みうる)と、例外のトレースバックを、そのまま表示に出さない**(行・列の位置だけを使う) | AC-416 |
-| YAML から Python のオブジェクトを作らない | YAML の読み取りは、構文木(ノード)の段階まで(`compose` 系)で、**`yaml.load`・`yaml.unsafe_load`・`yaml.full_load` を呼ばない**(Python のオブジェクトの生成で任意のコードが実行されうる)。`!!python/object/apply:…` などのタグは、タグとして拒否する | AC-531 |
+| YAML から Python のオブジェクトを作らない | YAML の読み取りは、構文要素(イベント)の段階まで(`yaml.parse(…, Loader=yaml.BaseLoader)`。03 章 7.3 節)で、**`yaml.load`・`yaml.unsafe_load`・`yaml.full_load`・`yaml.safe_load`・`yaml.compose` を呼ばない**(Python のオブジェクトの生成で任意のコードが実行されうる)。`!!python/object/apply:…` などのタグは、タグとして拒否する | AC-531 |
 | ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | AC-417 |
 | 表示のエスケープ | 制御文字・方向制御文字・孤立サロゲートを無効化する(4.14 節の表)。定義・ステート・変換の各部が、同じ入力に同じ結果を返す | 4.14 節、AC-519 |
 | ネットワークに接続しない | 実行中に外向きの通信をしない。製品のコードが `socket`・`ssl`・`urllib`・`http`・`ftplib`・`smtplib`・`xmlrpc`・`asyncio`・`selectors` などを import しない。実行時の依存(YAML ライブラリ)も、実行中に通信しない | AC-419(点検) |
@@ -538,7 +538,7 @@ CONDUCTOR_PYTHON=<配布物を入れた仮想環境の python> pytest tests/acce
 ## 4. 受け入れテスト一覧
 
 ID は、`AC-` と通し番号。表は、ID・機能・前提・実行・期待の順。期待の標準エラーの文言は、特に記さない限り `LANG=C`(英語)。理由の文(日本語の固定の文)は、英語の表示でも日本語のまま。
-YAML と JSON に固有の項目は 4.19 節(AC-450〜487)、Python に固有の項目は 4.20 節(AC-488〜531)にまとめた。この節の定義は、特に記さない限り YAML の `conductor.yaml`。
+YAML と JSON に固有の項目は 4.19 節(AC-450〜487)、Python に固有の項目は 4.20 節(AC-488〜536)にまとめた。この節の定義は、特に記さない限り YAML の `conductor.yaml`。
 
 ### 4.1 定義の検査(`validate`、`run`、`pipeline` 共通)
 
@@ -711,7 +711,7 @@ JSON で同じ構造を書いた `ME`(`conductor.json`)では、誤りの行は�
 | AC-113 | `.cmd` への危険な引数(文字列形式。Windows) | `T/echo-args.cmd`(内容 `@echo off` と `exit /b 0`)。`cmd` = そのパス + ` 'x" & echo injected > T\injected.txt'` | `run a` | 127(禁止文字を含む引数なので、起動を拒否する。[07](07-process-and-signals.md))。`T/injected.txt` ができない |
 | AC-114 | `.cmd` への危険な引数(配列形式。Windows) | 同じスクリプト。`argv=[パス, "x\" & echo injected > T\injected.txt"]` | `run a` | 同上 |
 | AC-115 | `.cmd` への安全な引数(Windows) | `T/ok.cmd`(`exit /b 7`)。`cmd` = そのパス + ` plain` | `run a` | 7 |
-| AC-116 | シェルを使わないことの点検 | ソース | (`ast` の走査) | `subprocess` の import が `src/conductor/runner/` にだけあり、使う名前が `Popen`(と、定数・例外の型)だけ(`run`・`call`・`check_call`・`check_output`・`getoutput`・`getstatusoutput` を使わない)。`os.system`・`os.popen`・`os.exec*`・`os.spawn*`・`pty.spawn`・`commands` がどこにもない。`Popen` の呼び出しが `runner/` に 1 か所だけで、キーワード `shell` が、ないか `False`(リテラル)。`shell=True` がどこにもない。シェルの名前(`sh`・`bash`・`powershell`・`-c`)を `Popen` の引数列の先頭・次に渡す経路がない。**例外は、Windows の `.cmd` / `.bat` を起動する経路が、07 章で決められている場合の、その 1 か所だけである。この経路は、禁止文字(`"`、`%`、`^`、`&`、`\|`、`<`、`>`、`!`、`(`、`)`、改行、復帰、NUL)を含む引数を拒否したあとでだけ使い、`runner/platform.py` の 1 か所に集める(AC-486、AC-510、AC-513)**。区分: 点検 |
+| AC-116 | シェルを使わないことの点検 | ソース | (`ast` の走査) | `subprocess` の import が `src/conductor/runner/` にだけあり、使う名前が `Popen`(と、定数・例外の型)だけ(`run`・`call`・`check_call`・`check_output`・`getoutput`・`getstatusoutput` を使わない)。`os.system`・`os.popen`・`os.exec*`・`os.spawn*`・`pty.spawn`・`commands` がどこにもない。`Popen` の呼び出しが `runner/` に 1 か所だけで、キーワード `shell` が、ないか `False`(リテラル)。`shell=True` がどこにもない。シェルの名前(`sh`・`bash`・`powershell`・`-c`)を `Popen` の引数列の先頭・次に渡す経路がない。**例外は、Windows の `.cmd` / `.bat` を起動する経路(07 章 4.8 節の決定: `cmd.exe` の直接起動)の、その 1 か所だけである。この経路は、禁止文字(`"`、`%`、`^`、`&`、`\|`、`<`、`>`、`!`、`(`、`)`、改行、復帰、NUL)を含む引数を拒否したあとでだけ使い、`runner/platform.py` の 1 か所に集める(AC-486、AC-510、AC-513)**。区分: 点検 |
 
 ### 4.3 `run`(個別実行)
 
@@ -985,7 +985,7 @@ job:
 | AC-272 | 起動の失敗はリトライしない | 存在しないプログラム、`exit_codes: [127]` | `run a` | 127。retry の行なし |
 | AC-273 | シグナルで終了したジョブはリトライしない(UNIX 系) | `argv=["sh","-c","kill -9 $$"]`、`exit_codes: [137]` | `run a` | 137。retry の行なし |
 | AC-274 | 待機中のシグナル(UNIX 系) | `retry=(exit_codes=[75], max=3, interval="60s")`、`fails=99` | `run a` を起動し、ERR に最初の retry の行が出てから SIGTERM を送る(`Popen.send_signal(signal.SIGTERM)`) | 143。ステート: `a=pending`(エラーとして記録しない)、`resume=a`。2 つ目の retry の行は出ない。ジョブは再び起動されない(`F` = 1) |
-| AC-275 | 待機中の中断は 1 秒以内 | `interval="1h"`、`fails=99` | 最初の retry の行のあと SIGTERM | SIGTERM を送ってから 1 秒以内に、143 で終わる(待ちは、短い区間に分けて旗を見る。PEP 475 により、シグナルのハンドラが戻ったあとに `time.sleep` は残りの時間を眠り直すので、**長い 1 回の `time.sleep` で待ってはならない**。区間の長さは 07 章に従う)。単体では、3600 秒の待機に 200 ms 後の合図(別スレッドから `os.kill(os.getpid(), signal.SIGTERM)` か、`signal.raise_signal`)で、全体が 1.2 秒未満 |
+| AC-275 | 待機中の中断は 1 秒以内 | `interval="1h"`、`fails=99` | 最初の retry の行のあと SIGTERM | SIGTERM を送ってから 1 秒以内に、143 で終わる(待ちは、短い区間に分けて旗を見る。PEP 475 により、シグナルのハンドラが戻ったあとに `time.sleep` は残りの時間を眠り直すので、**長い 1 回の `time.sleep` で待ってはならない**。区間の長さは、07 章の決定で 50 ms 以下)。単体では、3600 秒の待機に 200 ms 後の合図(別スレッドから `os.kill(os.getpid(), signal.SIGTERM)` か、`signal.raise_signal`)で、全体が 1.2 秒未満 |
 | AC-276 | 再開は最初の実行から数え直す | 上のあと(`resume=a`) | 再度 `run a`(`interval="1s"`、`fails=1`) | `retry 1 of 3` の行から始まる。0 で完了 |
 | AC-277 | 待機中のシグナル(pipeline) | 同様(pipeline) | `pipeline p`、待機中に SIGTERM | 143。以降のジョブを実行しない。`resume=a` |
 | AC-278 | ステートは最終の結果で 1 回だけ | `RT`(`fails=2`) | `run a` | 実行の途中に、ステートファイルのジョブ `a` の状態が `success`/`error` にならない(最終の結果のときだけ変わる。途中の失敗はステートに書かれない)。リトライの回数はステートに書かれない。観測: 待機中にステートファイルを読む |
@@ -1007,7 +1007,7 @@ UNIX 系の「実行」は、被試験体を起動し(`start_conductor`)、`TJ s
 | AC-285 | 最初の番号・登録は 1 回 | シグナル監視の単体 | 監視を登録し、HUP を受ける。再度の登録 | 最初の番号 1 が残る。2 回目の登録は「すでに登録済み」(失敗ではない)で、`signal.getsignal(SIGHUP)` が、1 回目の登録のハンドラのまま変わらない(ハンドラが入れ子にならず、2 回目の登録が、元のハンドラとして 1 回目のハンドラを保存して、復元時に自分自身へ戻す、ということがない)。区分: 単体(UNIX 系) |
 | AC-286 | 転送は同じシグナルを 1 回だけ | 起動の部品(`runner/`)の単体 | ジョブの実行中に合図を立てる(SIGTERM と SIGINT で別々に) | ジョブは、そのシグナルで終了する(`Popen.returncode` が `-15` / `-2`、番号 15 / 2)。送信は 1 回(続けて合図を立てても追加で送らない)。区分: 単体(UNIX 系) |
 | AC-287 | 許可外の番号は送らない | 起動の部品の単体 | 合図の番号が SIGKILL(9)、SIGSTOP、SIGCONT、SIGUSR1、0、-1、9999 | 送信しない。ジョブは自分で終わる。終わりの観測の直後に `interrupted = True`、`signal_number` がその番号。区分: 単体(UNIX 系) |
-| AC-288 | ジョブのセッションとプロセスグループ | 起動の部品の単体。07 章の決定(新しいセッションにするか。`Popen(start_new_session=True)` は、UNIX 系で `setsid()` を呼び、子のプロセスグループ ID が子の pid になる。Windows の `creationflags` は別) | ジョブを起動して、プロセスグループ ID を調べる(`os.getpgid(pid)`) | 07 章が新しいセッションにする決定の場合: ジョブのプロセスグループ ID が、ジョブの pid に等しく、`conductor`(呼び出し側)のものと異なる。しない決定の場合: ジョブのプロセスグループ ID が、`conductor` のものと等しい(端末の Ctrl+C が、`conductor` とジョブの両方に届く。その場合の二重の転送の扱いは 07 章に従う)。どちらの場合も、`conductor` は、シグナルを子の pid にだけ送る(プロセスグループには送らない)。Windows では行わない。区分: 単体(UNIX 系) |
+| AC-288 | ジョブのセッションとプロセスグループ | 起動の部品の単体。07 章の決定: UNIX 系は `Popen(start_new_session=True)`(`setsid()` が呼ばれ、子のプロセスグループ ID が子の pid になる)。Windows は `start_new_session`・`creationflags` を指定しない | ジョブを起動して、プロセスグループ ID を調べる(`os.getpgid(pid)`) | ジョブのプロセスグループ ID が、ジョブの pid に等しく、`conductor`(呼び出し側)のものと異なる。`conductor` は、シグナルを子の pid にだけ送る(プロセスグループには送らない)。`process_group=0`(3.11 以降)は使わない(07 章 4.7 節)。Windows では行わない。区分: 単体(UNIX 系) |
 | AC-289 | 先に終わったジョブには転送しない | 起動の部品の単体(偽の子で、`poll()` が終了済みを返す) | ジョブが終わった後に合図が立つ | 送信しない(終了済みの pid に `send_signal` しない。`Popen.send_signal` は、先に `poll()` を呼んで、pid の再利用を避ける作りになっている(標準ライブラリのソースのコメント。確認した版は 1 章)が、版により異なりうるので、`conductor` も、送る直前に `poll()` で確かめる)。区分: 単体(UNIX 系) |
 | AC-290 | 起動前の合図 | 起動の部品の単体 | 合図が立った状態で起動を呼ぶ | ジョブは起動されない(`started=False`、`interrupted=True`、`signal_number` = 番号)。分類は「分類なし」、終了コード `128 + 番号`。区分: 単体 |
 | AC-291 | 終了の観測の直後の合図 | 起動の部品の単体 | ジョブの実行中に、転送されない番号の合図を立てる(ジョブは自分で終わる) | ジョブの終了コードを保ったまま `interrupted = True`、`signal_number` = その番号。分類は「エラー、`128 + 番号`」。区分: 単体 |
@@ -1198,7 +1198,7 @@ UNIX 系の「実行」は、被試験体を起動し(`start_conductor`)、`TJ s
 | AC-400 | `pipeline` のジョブあたり | 同上 | 10 個と 1 個の `pipeline` を各 5 回 | ジョブ 1 つあたりの増分(2.1 節の式)が p95 50 ms 以下(目安)。区分: 計測 |
 | AC-401 | 大きな定義 | ジョブ 1,000 個の定義 | `run job0` | 1,500 ms 以内(仮。目安)。区分: 計測 |
 | AC-402 | 大きな流れ | ジョブ 1,000 個の `pipeline`(偽の部品で、プロセスもファイルも使わない) | (内部の流れ) | 10,000 ms 以内(目安)。完了のステートが残ることは常に検査。区分: 計測・単体 |
-| AC-403 | 待機中の CPU 時間(Linux) | `TJ sleep 4`(約 4 秒)のジョブ | `run a` を起動し、`conductor` の pid の `/proc/<pid>/stat` の `utime + stime`(14・15 番目の値。単位は時計の刻み。`os.sysconf("SC_CLK_TCK")` で秒に直す)を、起動の 1 秒後と 2.5 秒後に読む | 増分が 50 ms 以下(待機中に、短い間隔の確認で CPU を使いすぎない)。強制(`/proc` が読めなければスキップ)。区分: Linux |
+| AC-403 | 待機中の CPU 時間(Linux) | `TJ sleep 4`(約 4 秒)のジョブ | `run a` を起動し、`conductor` の pid の `/proc/<pid>/stat` の `utime + stime`(14・15 番目の値。単位は時計の刻み。`os.sysconf("SC_CLK_TCK")` で秒に直す)を、起動の 1 秒後と 2.5 秒後に読む | 増分が 50 ms 以下(待機中に、子の終了の確認(10 ms 以下の間隔。07 章 5.1 節)で CPU を使いすぎない)。強制(`/proc` が読めなければスキップ)。区分: Linux |
 | AC-404 | 同時の 2 つの `run` | `P(p; a:0{cmd="TJ sleep 1"})`(終了コード 99) | 同じ定義に `run a` を 2 つ同時に | 両方が実行され(ジョブが 2 回始まる)、どちらも終了コード 99。ステートは正しい形で読み戻せる。強制 |
 | AC-405 | ランダムな引数 | 固定の種(`Xorshift32(1)`) | 語の表から 0〜6 個を選んだ引数列で 500 回(`cli/` を偽の部品で、入口の関数を通して呼ぶ) | 終了コードが 0〜255。標準エラーに、制御文字(改行を除く)と U+202E がない。例外が漏れない |
 | AC-406 | UTF-8 でない引数(UNIX 系) | `0xff 0xfe` を含むバイト列。`subprocess.Popen` は、UNIX 系で、引数列に `bytes` を受け付けるので、`Popen([*conductor_cmd, b"run", b"\xff\xfe"])` のように直接渡す(シェルを使わない) | ジョブID・`--config`・オプション・`convert` の引数に渡す | 異常終了しない(終了コードが 0〜255。70 にならない)。標準エラーが、有効な UTF-8 で読める。区分: UNIX 系 |
@@ -1216,7 +1216,7 @@ UNIX 系の「実行」は、被試験体を起動し(`start_conductor`)、`TJ s
 | AC-418 | 変換に副作用がない | 4.7 節の項目 | — | AC-235。加えて、`src/conductor/convert/` が `subprocess`・ネットワークのモジュールを import せず、ファイルを開くのが入力ファイルの読み取りの入口だけであること(点検) |
 | AC-419 | ネットワークに接続しない | 実装と依存 | 点検(`ast` で `import` と `from … import` を走査。インストールされた実行時の依存のパッケージの `.py` の文字列検索) | 製品のコードが `socket`・`ssl`・`urllib`・`http`・`ftplib`・`smtplib`・`poplib`・`imaplib`・`telnetlib`・`xmlrpc`・`socketserver`・`asyncio`・`selectors` を import せず、`requests`・`httpx` なども import しない。実行時の依存のソースにも、実行中に通信するコードがない(YAML ライブラリは未確認)。区分: 点検 |
 | AC-420 | OS 固有コードの隔離と、動的実行・ネイティブの不使用 | ソース | 点検(`ast` の走査) | `sys.platform`、`os.name`、`platform.system()`、`platform.platform()` の参照が、`src/conductor/runner/platform.py` の外にない。`eval`、`exec`、`compile`、`__import__`、`importlib` の動的な読み込み、`pickle`・`marshal`・`shelve`、`ctypes`・`cffi`、`multiprocessing`、`runpy`、`threading` の import が、どこにもない(0 か所。`threading` を使う場合は、使う理由・所有者・終了条件を 02・07 章に表で示し、この項目の許可の一覧に加える)。区分: 点検 |
-| AC-421 | 異常終了を起こす書き方がない | ソース、`ruff` の設定 | 点検(`ast` の走査と、`ruff` の規則) | 製品のコード(`src/`)に、(1) `sys.exit(`・`os._exit(`・`raise SystemExit`(`__main__.py` の 1 か所以下を除く。AC-500)、(2) `assert` 文(`ruff` の `S101`。`python -O` で消えるため、検証に使わない)、(3) `typing.cast`、(4) `Any` の型注釈(`ANN401`)と `# type: ignore`・`# noqa`・`# pyright: ignore` による無効化、(5) `json.loads`・`json.load`(自前の読み取りを使う。03 章が使ってよい範囲を定めた場合は、その範囲を除く)、(6) `yaml.load`・`yaml.unsafe_load`・`yaml.full_load`(AC-531)、(7) 裸の `except:`、`except Exception` / `except BaseException` で黙って捨てる書き方(`BLE001`、`S110`)、(8) `print(`(`T201`。出力は `report/` を通す)がない。`BaseException` の捕捉は `__main__.py` だけ。配列・辞書の添字は、`IndexError`・`KeyError` を起こしうる箇所で、先に検査する。区分: 点検 |
+| AC-421 | 異常終了を起こす書き方がない | ソース、`ruff` の設定 | 点検(`ast` の走査と、`ruff` の規則) | 製品のコード(`src/`)に、(1) `sys.exit(`・`os._exit(`・`raise SystemExit`(`__main__.py` の 1 か所以下を除く。AC-500)、(2) `assert` 文(`ruff` の `S101`。`python -O` で消えるため、検証に使わない)、(3) `typing.cast`、(4) `Any` の型注釈(`ANN401`)と `# type: ignore`・`# noqa`・`# pyright: ignore` による無効化、(5) `json.loads`・`json.load`(自前の読み取り `read_json` を使う。決定は 06 章 6.5 節。`json.dumps` は、ステートの書き出し(06 章 4.3 節)だけで使う)、(6) `yaml.load`・`yaml.unsafe_load`・`yaml.full_load`・`yaml.safe_load`・`yaml.compose`(AC-531)、(7) 裸の `except:`、`except Exception` / `except BaseException` で黙って捨てる書き方(`BLE001`、`S110`)、(8) `print(`(`T201`。出力は `report/` を通す)がない。`BaseException` の捕捉は `__main__.py` だけ。配列・辞書の添字は、`IndexError`・`KeyError` を起こしうる箇所で、先に検査する。区分: 点検 |
 | AC-422 | テスト専用の経路を持たない | ソース、配布物 | 点検 | 入口に、異常終了を起こす経路や、テスト用の環境変数・隠しオプションがない。`tests` を、`src/` が import しない。wheel のファイル一覧に、`tests/`・`scripts/`・`demo/`・設定ファイルが含まれない(含まれるのは `conductor/` のパッケージと `*.dist-info/`。AC-526)。テスト用ジョブ `tj.py` が入っていない |
 | AC-423 | 著作権表示 | ソース | 点検 | 各 `.py` ファイルの先頭(`#!` の行や、符号化の宣言があればその次)に Apache License 2.0 のヘッダ(`Copyright 2026 agwlvssainokuni`)がある。`.yml`・`.sh`・`.cmd` も同じ(コメントの書式は各言語に合わせる)。`.venv/`・`build/`・`dist/`・`*.egg-info/`・`tests/fixtures/` は対象外。区分: 点検 |
 
@@ -1284,7 +1284,7 @@ UNIX 系の「実行」は、被試験体を起動し(`start_conductor`)、`TJ s
 | AC-467 | JSON の文字列のエスケープ | `"command": "TJ --out O echo \"a b\" c A 😀"`(`TJ` は 2 つの語)、不正なエスケープ `"\x"`、閉じていない文字列、制御文字(生の LF)を含む文字列 | `run a --config conductor.json`(正しいもの)、`validate`(誤り) | 正しいもの: `O` の引数 = `a b`、`c`、`A`、`😀`(サロゲートペアのエスケープが 1 つのコードポイントになる)。誤りは 64(`syntax error`)。孤立したサロゲートのエスケープ(`"\ud800"`)の扱いは 03 章に従う(未確認)。Python の `json.loads` は、これを孤立サロゲートの `str` として受理するので、受理する場合でも、出力で `UnicodeEncodeError` にならない(AC-519) |
 | AC-468 | JSON の数値の型 | `"format_version": 1.0`、`1e0`、`"warning_exit_codes": [3.0]`、`[1e1]`、`[99999999999999999999]`、`[true]`、`[NaN]` | `validate --config conductor.json` | `format_version` は 64(`unsupported format_version`)。終了コードは 64(`wrong value type`)。整数のリテラルだけを整数と読む(`float` を経由して丸めた値を見ない。`True` を `1` と見なさない。AC-502) |
 | AC-469 | 変換の JSON の出力の文字 | YAML: `a: "<&>"⏎b: 夜間⏎c: " x"` | `convert in.yaml --to json` | 0。OUT に `"<&>"` がそのまま(`&` にならない)と `夜間`(非 ASCII はそのまま。`ensure_ascii=False` 相当)がある。OUT を JSON として読んだ木が入力の木と等しい(`c` の U+2028 は、` ` の書き方でも直接でもよい) |
-| AC-470 | 変換の YAML の出力: 予約語に見える文字列 | JSON: `{"a": "true", "b": "1", "c": "null", "d": "@end", "e": "", "f": "~", "g": "on", "h": "1e3", "i": "0x1F", "j": "yes", "k": "-", "l": "a: b", "m": "# c"}` | `convert in.json --to yaml` の OUT を `convert --to json` に通す | 往復の木が入力と等しい(すべて文字列のまま。YAML の出力は自前の書き出しで、必要なものを引用符で囲む) |
+| AC-470 | 変換の YAML の出力: 予約語に見える文字列 | JSON: `{"a": "true", "b": "1", "c": "null", "d": "@end", "e": "", "f": "~", "g": "on", "h": "1e3", "i": "0x1F", "j": "yes", "k": "-", "l": "a: b", "m": "# c", "n": "n", "N": "N", "y": "y", "Y": "Yes", "o": "Off"}`(`y`・`n` は YAML 1.1 の型の表の真偽値の語。キー `n`・`y` も含む) | `convert in.json --to yaml` の OUT を `convert --to json` に通す。さらに OUT を、テスト用の YAML 1.1 のローダー(PyYAML の `yaml.safe_load`。テストだけで使う)で読む | 往復の木が入力と等しい(すべて文字列のまま。YAML の出力は自前の書き出しで、必要なものを引用符で囲む)。OUT で、値・キーの `y`・`n`・`N`・`Yes`・`Off`・`on`・`yes` が二重引用符で囲まれている(09 章 8 節の条件 6)。YAML 1.1 のローダー(`yaml.safe_load`)で読んでも、これらが真偽値にならず、キーも文字列のまま。区分: 自動 |
 | AC-471 | 変換の YAML の出力: 特殊な文字列 | JSON: 複数行の文字列(`"a\nb\n"`)、先頭・末尾に空白のある文字列、タブ、`"\u0007"`(制御文字)、非 ASCII、絵文字、長い文字列(1 万文字)、空のキー `""`、`@` や `%` や `` ` `` で始まるキー | `convert in.json --to yaml` の OUT を `convert --to json` に通す | 往復の木が入力と等しい |
 | AC-472 | 変換の JSON の入力の数値 | JSON: `{"a": 1, "b": 1.0, "c": 1e2, "d": -0, "e": 9223372036854775807, "f": -9223372036854775808}` | `convert in.json --to yaml` の OUT を `convert --to json` に通す | 型が変わらない(`a`・`d`・`e`・`f` は整数、`b`・`c` は浮動小数)。往復の木が入力と等しい。`e`・`f` は桁を落とさない |
 | AC-473 | ステートの JSON 固有の異常 | ステートが、重複するキーを持つ JSON、値のあとに余分なデータ、最上位が配列 / `null` / 文字列、`{}` | `run a` | 65(ジョブは起動されない)。余分なデータ・最上位の型の誤りは `state file is corrupt: JSON として読めません`、キーの重複は `state file is corrupt: キーが重複しています`、`{}` は `state file is corrupt: format_version がありません` |
@@ -1356,17 +1356,17 @@ Python の実行モデル(インタプリタの起動と import、`signal` と `
 | AC-500 | 終了の呼び出しの点検 | ソース | 点検(`ast` の走査) | `sys.exit`・`os._exit`・`raise SystemExit`・`exit(`・`quit(` の呼び出しが、`src/conductor/__main__.py` に 1 か所以下で、ほかのファイルにない。`__main__.py` の関数 `main` は、終了コードを**返す**(`int`)。`sys.exit(main())` は、`if __name__ == "__main__":` の中の 1 か所。標準出力・標準エラーの `flush` が、その前に済んでいる。`os._exit` を使うのは、`sys.excepthook` の中で、標準エラーへ書いて `flush` したあとだけ(使う場合)。区分: 点検 |
 | AC-501 | 64 ビット符号なし整数の飽和演算 | `flow/` の単体 | 待ち時間を求める関数に、検査を通らない極端な値を直接渡す(`prev = 2**63`、`prev = 2**64 - 1`、`multiplier = 10`、`cap = 2**64 - 1`)。`max` = 100、`interval = 86400`、`multiplier = 10`、`max_interval = 86400` の列 | 結果が `int` で、`2**64 - 1` を超えず(`min(x, 2**64 - 1)` による飽和)、折り返し(`0` に戻る)がない(`2**64 - 1` のまま)。`& 0xFFFFFFFFFFFFFFFF` で切って折り返さない。`float` に直して比べない(`float` の精度で桁が落ちる)。列は 86400 のまま 100 回続く。待ちの秒数を、待ちの 1 区間の長さに直す関数は、AC-503 の範囲に収まる値だけを返す。区分: 単体 |
 | AC-502 | 整数の検査: `bool`・浮動小数・`NaN`・巨大な整数 | 定義(YAML・JSON): `format_version: true`、`warning_exit_codes: [true]`、`[1.0]`、`[1e0]`、`max: true`、`max: 3.0`、JSON の `[NaN]`・`[Infinity]`、YAML の `[.nan]`・`[.inf]`、`[99999999999999999999]`、`max: 4294967296`、桁が 10,000 の整数(`format_version: 1000…0`。`int()` の文字数の上限(`sys.set_int_max_str_digits`。この文書の環境では未確認)で `ValueError` が起きる場合を含む)、YAML の `1e999`(`float()` が `inf`)、ステートの `exit_code: true`・`1.0`・`NaN`・`99999999999999999999` | `validate` / `run a` | すべて「範囲外・型の誤り」として拒否する(定義: 64、ステート: 65)。`True` を `1`、`1.0` を `1`、`inf` を整数として受理しない(`isinstance(x, bool)` を、`isinstance(x, int)` より先に検査する。`type(x) is int` で調べてもよい)。`ValueError`・`OverflowError` が漏れて 70 にならない。桁が多い入力で、ハングしない・異常終了しない。区分: 自動と単体 |
-| AC-503 | 待ちの 1 区間の上限 | `runner/` の待ちの部品の単体(`time.sleep`・`Popen.wait` を、渡された時間を記録する関数に差し替える。合図で打ち切る) | 待機を 24 時間(86,400 秒)、`max_interval` の上限で呼ぶ。続けて、検査を通らない 30 日の待機を直接呼ぶ。さらに `2**40` 秒と、`float("inf")` に近い値 | 下の関数に渡される時間が、いつも 1 秒以下(07 章の区間の長さ以下)で、`threading.TIMEOUT_MAX` を超えない。`OverflowError`(`time.sleep` や `Popen.wait(timeout=…)` に大きすぎる値を渡したとき)が起きない。30 日の待機は、区間に分けて待つ(合図で打ち切って旗を検査する)。区分: 単体 |
+| AC-503 | 待ちの 1 区間の上限 | `runner/` の待ちの部品の単体(`time.sleep`・`Popen.wait` を、渡された時間を記録する関数に差し替える。合図で打ち切る) | 待機を 24 時間(86,400 秒)、`max_interval` の上限で呼ぶ。続けて、検査を通らない 30 日の待機を直接呼ぶ。さらに `2**40` 秒と、`float("inf")` に近い値 | 下の関数に渡される時間が、いつも 50 ms 以下(07 章の決定: リトライの待機は、50 ms 以下の刻みの `sleep` と、単調な時計の期限の確認で行う)で、`threading.TIMEOUT_MAX` を超えない。`OverflowError`(`time.sleep` や `Popen.wait(timeout=…)` に大きすぎる値を渡したとき)が起きない。30 日の待機は、区間に分けて待つ(合図で打ち切って旗を検査する)。区分: 単体 |
 | AC-504 | シグナルの番号と終了コードの対応 | `runner/` の単体 | `Popen.returncode`(`-9`、`-15`、`-2`、`-1`、`-3`、`-200`、`0`、`3`)を、「シグナルで終了」と終了コードに分ける関数 | 負の値 `-n` は、シグナル `n` で終了(番号 n)。0 以上は終了コード。`signal.Signals(n)` が `ValueError` になる番号(例: 200)でも、落ちない(名前なしで番号だけを使う)。`SIGHUP`=1、`SIGINT`=2、`SIGQUIT`=3、`SIGKILL`=9、`SIGTERM`=15(UNIX 系の共通の値。`SIGUSR1` など OS で違うものは、その OS の `signal.Signals` の値)。Windows の `Popen.returncode` は、符号なしの大きな値でも負の値でも、シグナルとして解釈しない(終了コードとして範囲合わせをする。07 章に従う。実機は未確認)。区分: 単体 |
 | AC-505 | シグナルの送信で、ジョブの終わりを待たずに終わらない | `SL` の `sleeper` を `TJ --out O trap 500 3` にする(UNIX 系) | `run sleeper` を起動し、`ready` のあと SIGTERM | 終了 143。`O` に `trapped`、続いて `done` が記録されており、`conductor` が、ジョブの終了(`Popen.wait` / `poll` が終了を返すこと)を待ってから終わる(`send_signal` が戻った時点で終わらない)。`conductor` の終了は、SIGTERM の送信から 500 ms 以上あと。ステート `sleeper=error`(終了コード 3 は、中断の分類により `128 + 15` が採られる。ジョブの終了コード 3 は表示に使わない)。区分: UNIX 系 |
 | AC-506 | ジョブが残した孫のプロセスを待たない | `argv=["sh", "-c", "sleep 5 & exit 3"]`(UNIX 系) | `run a`(標準出力・標準エラーを、パイプではなく一時ファイルに向けて起動する。パイプだと、孫が持ち続ける書き込み側のために、`communicate()` が EOF を 5 秒待つ。終了の時刻は `Popen.wait()` で測る) | 終了コード 3。`conductor` が、ジョブ(`sh`)の終了から 2 秒以内に終わる(孫の終了を待たない。子の標準入出力を `PIPE` にして `communicate()` で読むと、孫を待ってしまうので、`conductor` は、子の標準入出力を引き継ぐ。`None`)。区分: UNIX 系 |
 | AC-507 | コンソールスクリプトと `python -m conductor` が同じ | wheel を入れた仮想環境 | `conductor` と `python -m conductor` で、`--version`、`--help`、`validate`(正しい定義・誤りの定義)、`run`、`watch`、使い方の誤りを実行 | 終了コード・OUT・ERR が同じ。`entry_points.txt` に `[console_scripts]` の `conductor = conductor.__main__:main` がある。コンソールスクリプトの終了コードは、`main()` の戻り値(`sys.exit(main())`)。区分: 自動(3 OS) |
 | AC-508 | `pyproject.toml` の形 | `pyproject.toml` | 点検(文面の走査) | `[build-system]` の `requires`(ビルドバックエンドを、正確な版で固定)と `build-backend`。`[project]` に `name = "conductor"`、`version`、`description`、`readme`、`requires-python`、`license`(Apache-2.0)、`dependencies`(1 つ)、`[project.scripts]` の `conductor = "conductor.__main__:main"`、`[project.optional-dependencies]` の `dev`。`setup.py`・`setup.cfg`・`requirements.txt`(ビルドの設定として)がない。`[tool.pytest.ini_options]`・`[tool.ruff]`・`[tool.mypy]`・`[tool.coverage.*]` がある。区分: 点検 |
 | AC-509 | 標準入力はジョブに引き継ぐ | `P(p; a:0{cmd="TJ --out O stdin"})` | `run a`(標準入力のパイプに `hello⏎` を書いて閉じる) | 終了 0。`O` = `stdin="hello\n"`。`conductor` が標準入力を読まない(`sys.stdin` を読み始めない。AC-497 と合わせて、読み始めると入力を奪うため。`Popen` の `stdin` は `None` のまま) |
-| AC-510 | Windows の `.cmd` / `.bat` を、最小の Python でも最新の Python でも起動できる | Windows。`T/ok.cmd`(`exit /b 7`) | `PY_MIN` と `PY_MAX` で `run a`(`cmd` = そのパス + ` plain`) | どちらも 7(AC-115)。Python の `subprocess` は、Windows で `.cmd` / `.bat` を、`CreateProcess` 経由で暗黙の `cmd.exe` に渡す。引数の引用の扱いの版による違いと、その安全策は、07 章の決定に従い、この項目は、その方法が両方の Python で動くことを確かめる(実機で未確認)。区分: 自動(Windows の CI) |
+| AC-510 | Windows の `.cmd` / `.bat` を、最小の Python でも最新の Python でも起動できる | Windows。`T/ok.cmd`(`exit /b 7`) | `PY_MIN` と `PY_MAX` で `run a`(`cmd` = そのパス + ` plain`) | どちらも 7(AC-115)。07 章の決定: `cmd.exe` を `str` のコマンドライン(`"<cmd.exe のパス>" /d /s /c "<全体>"`。`<全体>` は `program` と各引数を `"` で囲んで空白で連結)で直接起動し(`shell=False` のまま)、禁止文字を含む引数は起動しない(AC-486、AC-513)。この方法が、両方の Python で動くことを確かめる(実機で未確認)。区分: 自動(Windows の CI) |
 | AC-511 | 辞書のキーの順序(整数に見えるキー) | YAML: `"2": a⏎"1": b⏎b: c`(キーは引用符つきの文字列)。JSON: `{"2": "a", "1": "b", "b": "c"}` | `convert in.yaml --to json` / `convert in.json --to yaml` | OUT のキーの順が、入力の記述順(`2`、`1`、`b`)。`sorted()`・`sort_keys=True`・`set` を経由して順序を失わない。区分: 自動 |
 | AC-512 | 特別な名前のキーを、普通のキーとして扱う | JSON: `{"__proto__": 1, "__class__": 2, "__dict__": 3, "self": 4, "keys": 5, "items": 6, "constructor": 7}`(変換)。定義に `__class__: x`、`self: x`、`keys: x`(未知のキー) | `convert in.json --to yaml`、`validate` | 変換: 7 つのキーがそのまま出る(往復で木が等しい)。定義: `unknown key`(64)。`TypeError`(`dataclass` の `**kwargs` 展開で、キー名が仮引数と衝突する)や `AttributeError` で落ちない。区分: 自動と単体 |
-| AC-513 | Windows の `.cmd` の起動引数の組み立ての単体(どの OS でも動く) | `runner/platform.py` の、起動引数を組み立てる関数(07 章。名前は 07 章に従う)に、Windows の分岐を表す引数を与える | `program` と `args` を与える: (a) `x.cmd` / `X.BAT`(拡張子の大文字小文字を区別しない)と引数 `plain`、(b) 禁止文字(`"`、`%`、`^`、`&`、`\|`、`<`、`>`、`!`、`(`、`)`、`\n`、`\r`、NUL)を 1 つ含む引数(1 文字ずつ)、(c) `program` が `C:\Program Files (x86)\t\x.cmd`(`(` と `)` は許す)、(d) 拡張子が `.exe` のもの、拡張子なしのもの、(e) 空の引数 | 07 章の決定のとおり。(a) `.cmd` の規則を使う(`shell=False` のまま。`shell=True` にならない)。(b) 拒否(起動しない)。(c) 受理。(d) `.cmd` の規則を使わず、そのまま。(e) 空の引数が失われない。UNIX 系の分岐は常に、そのまま(`start_new_session` の扱いは 07 章に従う)。区分: 単体(3 OS) |
+| AC-513 | Windows の `.cmd` の起動引数の組み立ての単体(どの OS でも動く) | `runner/platform.py` の、起動引数を組み立てる関数(07 章 8.2 節の `platform_for("windows").prepare_spawn`。UNIX 系の分岐は `platform_for("posix")`)を呼ぶ | `program` と `args` を与える: (a) `x.cmd` / `X.BAT`(拡張子の大文字小文字を区別しない)と引数 `plain`、(b) 禁止文字(`"`、`%`、`^`、`&`、`\|`、`<`、`>`、`!`、`(`、`)`、`\n`、`\r`、NUL)を 1 つ含む引数(1 文字ずつ)、(c) `program` が `C:\Program Files (x86)\t\x.cmd`(`(` と `)` は許す)、(d) 拡張子が `.exe` のもの、拡張子なしのもの、(e) 空の引数 | 07 章 4.8 節の決定のとおり。(a) `.cmd` の規則を使う(第 1 引数は `list` でなく、`"<cmd.exe のパス>" /d /s /c "…"` の形の `str`。`shell=False` のまま。`shell=True` にならない)。(b) 拒否(起動しない)。(c) 受理。(d) `.cmd` の規則を使わず、そのまま。(e) 空の引数が失われない。UNIX 系の分岐は常に、そのまま(第 1 引数は `list[str]`、`start_new_session=True`)。区分: 単体(3 OS) |
 | AC-514 | 依存の向きと循環の検査 | `src/`、`tests/inspect/test_imports.py` | 点検(`ast` で、各ファイルの `import` と `from … import` を集め、パッケージ(`definition`・`convert`・`runid`・`flow`・`state`・`runner`・`report`・`cli`)の依存の有向グラフを作り、`graphlib.TopologicalSorter` で循環を調べる) | 循環が 0 件(`graphlib.CycleError` が起きない)。02 章 3 章の許可されない組み合わせ(例: `definition/` から `flow/`・`runner/`・`state/`・`cli/`、`state/` と `runner/` の相互、`report/` から `cli/`)がない。ほかのパッケージからの import が、相手の `__init__.py` が公開した名前だけを通る(`conductor.flow.classify` のようにサブモジュールを直接読まず、`conductor.flow` から読む)。許可の表は、テストの中に書く。違反するコードを一時ファイルに置くと、テストが失敗する(テストの自己確認)。CI の `lint` ジョブで実行する。区分: 点検 |
 | AC-515 | `--help` / `--version` の標準出力が閉じたパイプでも落ちない | `python -m conductor` | `conductor --help` と `conductor --version` を、標準出力を閉じた読み手(`proc.stdout.close()`、または `\| head -c 1`)で実行 | 終了 0(書き込みの失敗は無視する。08 章 1.2 節)。トレースバック・`Exception ignored in` が現れない。70 にも 120 にもならない。5 秒以内に終わる。区分: 自動(UNIX 系) |
 | AC-516 | `watch` の標準出力が閉じたパイプ(`BrokenPipeError`) | 十分に大きな表になるステート(ジョブ 2,000 個)。UNIX 系 | `watch` を起動し、標準出力の最初のデータを受けた時点で、読み手側を閉じる | 終了 65。ERR に `conductor: error: cannot write to standard output`。`BrokenPipeError`・トレースバックが現れない。70 にも 120 にもならない。AC-493(`convert` は 67)と対にする。表が小さく、書き込みが閉じる前に終わるときは検査にならないので、表を大きくする(確実さは実装時に調整。10.1 節)。区分: 自動(UNIX 系) |
@@ -1375,16 +1375,21 @@ Python の実行モデル(インタプリタの起動と import、`signal` と `
 | AC-519 | 孤立サロゲートの表示 | UNIX 系。ジョブID・`--run-id`・`--config` のパスに、不正なバイト(`b"\xff"`)を渡す(AC-406 と同じ方法)。YAML の `"\ud800"` を含む `command`・キー名(03 章が受理する場合) | `run <ID>`、`validate --config <パス>`、`watch`(ジョブID に孤立サロゲートを含むステートがある場合) | ERR・OUT の書き込みで `UnicodeEncodeError` が起きない。出力が、有効な UTF-8 として読める(`bytes.decode("utf-8")` が成功する)。孤立サロゲートは、08 章のエスケープ(例: `\u{dcff}`)で出る(生のバイト `0xff` を出さない)。区分: UNIX 系と単体 |
 | AC-520 | 標準出力・標準エラーの符号化 | 日本語を含む出力を出す実行(`LANG=ja_JP.UTF-8` で `watch`・`validate`・`--help`) | 環境変数 `PYTHONIOENCODING=ascii`、`PYTHONUTF8=0`、`PYTHONUTF8=1`、`LANG=C`、`LC_ALL=C`、`PYTHONIOENCODING=latin-1` の各組み合わせで実行 | どの組み合わせでも、OUT・ERR のバイト列が同じ(UTF-8)。`UnicodeEncodeError` が起きない。起動時に `sys.stdout.reconfigure(encoding="utf-8", errors=<08 章の決定>)` と `sys.stderr.reconfigure(…)` を行う(08 章)。Windows のコンソールの表示(コードページ)は、別に手で確かめる(未確認)。区分: 自動 |
 | AC-521 | 出力の順序(flush) | `P(p; a:0{cmd="TJ flaky F 1 75", retry=(exit_codes=[75], max=3, interval="1s")})`、標準出力と標準エラーを同じパイプ(`stderr=STDOUT`)にする | `run -v a` | 出力の行の順が、時間の順になる。`conductor` の `retry` の行が、2 回目のジョブの出力より前に現れる。`conductor` が自分の出力を、子を起動する前に `flush` している(標準エラーは行バッファでも、パイプでは、ブロックバッファのことがある。flush の漏れの確認)。区分: 自動 |
-| AC-522 | NUL を含む `command` | `command: "a\u0000b"`、`argv=["a", "b\u0000c"]`(YAML の `\u0000` のエスケープ) | `validate` / `run a` | `ValueError: embedded null byte` が漏れて 70 にならない。定義の誤り(64)か、起動失敗(127、`cannot start command`)のどちらかとして扱う(03・07 章に規定があればそれに従う。未確認)。ステートが作られる場合は、`a=error ; resume=a`。区分: 自動と単体 |
+| AC-522 | NUL を含む `command` | `command: "a\u0000b"`、`argv=["a", "b\u0000c"]`(YAML の `\u0000` のエスケープ) | `validate` / `run a` | `validate` は 0(03 章は、`command` の中の NUL を定義の誤りにしない)。`run a` は、`Popen` が送出する `ValueError: embedded null byte` を、07 章 4.3 節の規定で起動失敗にして、終了 127、ERR = `conductor: error: job 'a': cannot start command '…'`。70 にならない。ステートは `a=error ; resume=a`。区分: 自動と単体(UNIX 系の実測は 07 章。Windows は未確認) |
 | AC-523 | 空白の定義(`str.strip()` との差) | `command: "\u001c"`、`"\u0085"`、`"\u00a0"`、`"\u200b"`、`"\u3000"`、`name: "\u001c"`(別々の定義) | `validate` | 03 章の「空白だけ」の定義(Unicode の White_Space など)のとおり。Python の `str.strip()` / `str.isspace()` は、`\x1c`〜`\x1f` も空白として扱う(1 章で `"\x1c".isspace()` が真であることを確認)が、`\u200b` は扱わない。03 章が White_Space の集合を定めている場合は、`\x1c` を空白と見なさず(受理、または別の理由で拒否)、`\u200b` も空白と見なさない。実装は、03 章の集合を明示した表で判定する(`str.strip()` に頼らない)。区分: 単体 |
 | AC-524 | 再帰の深さ | 深さ 1,000 / 100,000 の YAML・JSON(定義・ステート・変換)。`command` の分割(AC-410) | `validate` / `run a` / `convert` | `RecursionError` が漏れて 70 にならない(64 / 65 / 67)。`sys.setrecursionlimit` の呼び出しが製品のコードにない(点検)。`sys.getrecursionlimit()` を小さく設定した状態(テストが `sys.setrecursionlimit(200)` にして、単体を呼ぶ)でも、深さ 32 の入力が処理できる(再帰の深さが、入力の深さに比例して、上限に近づかない作りであること。32 段なら、読み取りの再帰の深さが 200 を超えない)。区分: 単体と自動 |
-| AC-525 | YAML ライブラリの型判定に頼らない | YAML: AC-228 の値に加え、`a: 2001-12-14t21:59:43.10-05:00`(日時)、`b: 190:20:30`(60 進数)、`c: =`(値のタグ)、`d: <<`、`e: 0o17`、`f: +1`、`g: .5`、`h: 1.`、`i: -.inf`、`j: 0x_1F`、`k: 1e3` | `convert in.yaml --to json` | 日時・60 進数・`=` などは、文字列のまま(`datetime`・`date` が JSON の出力に漏れない。`TypeError: Object of type date is not JSON serializable` で落ちない)。数値は 03 章 4.2 節の規則(YAML 1.2 のコアスキーマ)に従う。ライブラリの `Loader`・`resolver` の暗黙の型判定(`yaml.SafeLoader` が `date`・`datetime`・`bool`(`yes`・`on`)・60 進数の整数にするもの)の結果を、そのまま使っていないこと。区分: 自動 |
+| AC-525 | YAML ライブラリの型判定に頼らない | YAML: AC-228 の値に加え、`a: 2001-12-14t21:59:43.10-05:00`(日時)、`b: 190:20:30`(60 進数)、`c: =`(値のタグ)、`d: <<`、`e: 0o17`、`f: +1`、`g: .5`、`h: 1.`、`i: -.inf`、`j: 0x_1F`、`k: 1e3` | `convert in.yaml --to json` | 日時・60 進数・`=` などは、文字列のまま(`datetime`・`date` が JSON の出力に漏れない。`TypeError: Object of type date is not JSON serializable` で落ちない)。数値は 03 章 4.2 節の規則(YAML 1.2 のコアスキーマ)に従う。ライブラリの `Loader`・`resolver` の暗黙の型判定(`yaml.SafeLoader` などが `date`・`datetime`・`bool`(`yes`・`on`)・60 進数の整数にするもの)の結果を、そのまま使っていないこと。区分: 自動 |
 | AC-526 | sdist と wheel の中身の検査 | ビルド済みの `dist/` | `python scripts/check_dist.py dist`(5.4 節) | wheel: 最上位が `conductor/` と `conductor-<版>.dist-info/` だけ。`conductor/` の中が `.py` だけ(`__pycache__`・テスト・テスト用ジョブ・`.so`・`.pyd` を含まない)。`conductor/__main__.py` と `conductor/version.py` がある。sdist: `pyproject.toml`・`LICENSE`・`README.md`・`PKG-INFO`・`src/conductor/` がある。`.github/`・`demo/`・`docs/`・`.venv/`・`constraints.txt` を含まない(含めるかどうかの決めは 6.2 節)。`__pycache__`・`*.pyc`・`.git*` を含まない。区分: 点検 |
 | AC-527 | wheel のメタデータ | wheel の `*.dist-info/METADATA`・`WHEEL` | 点検(`zipfile` で読み、行を走査) | `Name: conductor`(配布名を置き換えた場合はその名前)、`Version` が `VERSION` と一致、`Requires-Python` が `pyproject.toml` の `requires-python` と一致、`Requires-Dist` が、`extra == "dev"` の条件つきのものを除いて 1 行だけ(YAML ライブラリ)、`Provides-Extra: dev`、`WHEEL` に `Root-Is-Purelib: true` と `Tag: py3-none-any`。`License` に Apache-2.0 の記載。区分: 点検 |
 | AC-528 | 空の仮想環境に wheel を入れて動く | 配布された wheel | 空の仮想環境(`python -m venv`)に `pip install <wheel>`、`pip check`、`conductor --version`、`python -m conductor validate`(`B0`) | インストールが成功し(依存の YAML ライブラリを取得するため、ネットワークを使う)、`pip check` が衝突なし、`--version` の OUT = `conductor <版>`、`validate` が 0。作業ツリーの `src/` を `PYTHONPATH` に置かなくても動く。区分: 自動(3 OS) |
 | AC-529 | sdist から入れて動く | 配布された sdist | 空の仮想環境に `pip install <sdist>`(ビルドの分離でバックエンドを取得する。ネットワークを使う)、`conductor --version` | 成功し、`--version` の OUT = `conductor <版>`。区分: 自動(Linux の CI) |
 | AC-530 | `python -O` でも同じ | 4.1〜4.9 節の代表の実行(`validate`、`run`、`pipeline`、`watch`、`convert`、使い方の誤り) | `python -O -m conductor …` と `python -OO -m conductor …`(`CONDUCTOR_PYTHON` か既定の起動方法のとき) | 終了コード・OUT・ERR が、通常の実行と同じ(`assert` 文の除去と、docstring の除去に、挙動が依存しない。使い方の文言を docstring から作らない)。区分: 自動 |
 | AC-531 | 危険な YAML のタグで任意のコードが実行されない | YAML: `command: !!python/object/apply:os.system ["touch pwned.txt"]`、`a: !!python/name:os.system`、`b: !!python/object/new:subprocess.Popen [["touch", "pwned2.txt"]]`(定義と変換の入力の両方) | `validate` / `convert in.yaml --to json` | 64 / 67(`syntax error`。理由 `タグは使えません`)。`T` に `pwned.txt`・`pwned2.txt` ができない。ライブラリの構築(`construct`)の段階に進まない(`yaml.load` の系列を呼ばない。AC-421)。区分: 自動 |
+| AC-532 | `KeyboardInterrupt` は、出力なしで、シグナル終了(または 130)で終わる | UNIX 系。`python tests/support/inject_sigint.py <引数>`(`inject_sigint.py` は、`conductor.cli` の `run` を、自分に `os.kill(os.getpid(), signal.SIGINT)` を送って眠る関数に差し替えてから、`conductor.__main__.main()` を呼ぶ。製品に試験用の経路を持たせず、外から `KeyboardInterrupt` を起こす)。Python の既定の SIGINT のハンドラが働く経路(監視の登録の前。07 章 7.6 節)を再現する | `watch` / `reset` / `validate` / `convert in.yaml --to json` の各引数で起動 | OUT・ERR が空(トレースバック・`internal error` が出ない)。終了は、シグナル 2 による終了(`Popen.returncode` が `-2`)か、終了コード 130(シェルから見て 130)。70 にならない。ステートファイルが壊れず、`.tmp` が残らない。07 章 7.6 節の決定(UNIX 系は `SIG_DFL` に戻して自分に SIGINT を送る)では `-2` になる。区分: 自動(UNIX 系)。Windows は、`platform_for("windows")` の `exit_by_interrupt()` が 130 を返すことを単体で確かめる(区分: 単体、3 OS) |
+| AC-533 | Windows の Ctrl+Break の自動テスト | Windows の CI。`SL`(眠るジョブ)。テストが、`conductor` を `Popen(..., creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)` で起動する(テストの起動の方法。製品のコードは `creationflags` を指定しない。07 章 7.3 節) | ジョブが `ready` を記録したあと、`Popen.send_signal(signal.CTRL_BREAK_EVENT)` を送る | `conductor` の終了コードが `128 + int(signal.SIGBREAK)`。ステートに中断が記録され、`sleeper` は `error`、後ろは `pending`(AC-301 の確認項目と同じ)。ジョブの子プロセスが残らない。07 章 7.3 節の方法の実機での確認は未確認。確認できない場合は、このテストを外し、AC-301 の手動だけにする(その場合、10 章に記録)。区分: 自動(Windows の CI) |
+| AC-534 | `SIGCHLD` を無視して起動されても、ジョブの終了コードが正しい | Linux。`python tests/support/launch_sigchld_ign.py <引数>`(`launch_sigchld_ign.py` は、`signal.signal(signal.SIGCHLD, signal.SIG_IGN)` を設定してから、`os.execv(sys.executable, [sys.executable, "-m", "conductor", *引数])` で起動する。`SIG_IGN` は `exec` を越えて引き継がれる)。`P(p; a:3)`(`TJ exit 3`) | `run a` | 終了コード 3(`0` にならない)。ステートは `a=error(3)`。07 章 4.4 節の `prepare_child_reaping()`(`SIG_IGN` なら `SIG_DFL` に直す)の効果の確認。区分: 自動(Linux。macOS では、無視しても正しい値になったが、必須としない) |
+| AC-535 | 疑似端末の下で、ジョブが標準入力から読める(`SIGTTIN` で止まらない)。ジョブは制御端末を持たない | UNIX 系。標準ライブラリの `pty.openpty()` の子側を、`conductor` の標準入力・標準出力・標準エラーにする。`TJ` のジョブ 2 つ: (a) 標準入力から 1 行を読んで終了コード 0、(b) `/dev/tty` を開こうとして、開けなければ終了コード 9 | (a) `run a`(親から 1 行を書く)、(b) `run b` | (a) 5 秒以内に 0 で終わる(`start_new_session=True` では、標準入力を読めて、`SIGTTIN` で止まらない。07 章 4.7 節)。(b) 9(`/dev/tty` を開けない。`ENXIO`。受け入れる制約)。`process_group=0` の実装では (a) が止まる。区分: 自動(UNIX 系。疑似端末の手順は、標準ライブラリの `pty` だけで行う。実行は未確認) |
+| AC-536 | `convert` の入力が名前つきパイプ(FIFO)でもブロックしない | UNIX 系。`os.mkfifo(T/in.fifo)`(書き込む側は現れない) | `convert in.fifo --to json`(タイムアウト 5 秒) | 5 秒以内に終わり、終了 67。ERR の最初の行の種類の文 = `cannot read input file`(理由 `通常のファイルではありません`)。09 章 3 節の決定: `os.open` に `O_NONBLOCK` を付けるので、`open(path, "rb")` のようにブロックしない。区分: 自動(UNIX 系。macOS で確認した挙動に基づく。Linux は未確認) |
 
 
 ---
@@ -1392,7 +1397,7 @@ Python の実行モデル(インタプリタの起動と import、`signal` と `
 ## 5. CI(GitHub Actions)と品質ゲート
 
 ワークフローは `.github/workflows/` の 3 つ: `ci.yml`、`audit.yml`、`release.yml`。GitHub Actions の部品(`actions/checkout`、`actions/setup-python`、`actions/upload-artifact`、`actions/download-artifact`)の版は、`<版>` と書いた場所を、**実装時に、その時点の最新の安定版のメジャー版で確かめて決める**(この文書では確認していない)。
-Python の版は、`PY_MIN`(最小。`pyproject.toml` の `requires-python` の最小と一致させる。5.4 節)と、`PY_MAX`(最新。公式にセキュリティ修正が続いている最新の版。分類子の最大と一致させる。5.4 節)で指定する。どちらも、ワークフローの `env` に書く(例: `PY_MIN: "3.11"`、`PY_MAX: "3.14"`。確認した値ではない)。
+Python の版は、`PY_MIN`(最小。`pyproject.toml` の `requires-python` の最小と一致させる。5.4 節)と、`PY_MAX`(最新。公式にセキュリティ修正が続いている最新の版。分類子の最大と一致させる。5.4 節)で指定する。どちらも、ワークフローの `env` に書く(例: `PY_MIN: "3.11"`、`PY_MAX: "3.15"`。確認した値ではない)。
 GitHub Actions では、`env` コンテキストを、ジョブの `strategy.matrix` の中では使えない(使えるコンテキストは `github`・`needs`・`vars`・`inputs` などで、`env` は含まれない。確認は文書の記憶による。実装時に確認)。そこで、最小と最新を行列に入れず、ジョブを分けるか、行列に `py: min` / `py: max` の印を入れて、**ステップの `with:` の中で** `${{ matrix.py == 'min' && env.PY_MIN || env.PY_MAX }}` と選ぶ。
 
 ### 5.1 `ci.yml`(名前 `CI`)
@@ -1402,7 +1407,7 @@ GitHub Actions では、`env` コンテキストを、ジョブの `strategy.mat
 | 起動 | `push`(`main`)、`pull_request`(対象 `main`)、`workflow_call`(リリースから呼ばれる) |
 | 権限 | `contents: read` |
 | 同時実行 | `group: ci-${{ github.workflow }}-${{ github.ref }}`、`cancel-in-progress: true` |
-| 環境変数 | `PY_MIN: "3.11"`(最小の Python。例。`pyproject.toml` の `requires-python` と一致させる)、`PY_MAX: "3.14"`(最新。例) |
+| 環境変数 | `PY_MIN: "3.11"`(最小の Python。例。`pyproject.toml` の `requires-python` と一致させる)、`PY_MAX: "3.15"`(最新。例) |
 | チェックアウト | `actions/checkout@<版>` |
 | Python の用意 | `actions/setup-python@<版>`。`python-version` は `${{ env.PY_MAX }}`(最新)か `${{ env.PY_MIN }}`(最小)。`cache: pip`、`cache-dependency-path: constraints.txt`(pip のキャッシュ。実装時に確認) |
 | 依存の入れ方 | `python -m pip install -c constraints.txt -e ".[dev]"`(制約ファイルのとおり。8.4 節)。Windows の `pip` の更新は、`python -m pip` の形で行う |
@@ -1435,7 +1440,7 @@ concurrency:
   cancel-in-progress: true
 env:
   PY_MIN: "3.11"
-  PY_MAX: "3.14"
+  PY_MAX: "3.15"
 jobs:
   lint:
     runs-on: ubuntu-24.04
@@ -2276,14 +2281,14 @@ job:
 
 | 候補 | 特徴 | 評価 |
 |------|------|------|
-| `PyYAML`(配布名 `PyYAML`、import 名 `yaml`) | **この文書の作成時に、版 6.0.3(CPython 3.9.6、macOS)で、次を確かめた**。(a) `yaml.parse(text, Loader=yaml.SafeLoader)` が、イベント(`MappingStartEvent`・`SequenceStartEvent`・`ScalarEvent`・`AliasEvent`・`DocumentStartEvent` など)を**遅延して**返し、各イベントが `start_mark.line`(0 始まり)・`start_mark.column` を持つ。(b) `ScalarEvent.tag` は、**明示のタグがあるときだけ**非 `None`(`!!str 1` で `tag:yaml.org,2002:str`。暗黙の場合は `None`)で、`implicit` の組と `value`(生の文字列。`yes`・`1:30`・`2001-01-01` が、そのまま文字列)も取れる。(c) アンカーは `anchor`、エイリアスは `AliasEvent` で、展開されずに取り出せる。(d) 文書は `DocumentStartEvent` の数で数えられる(`a: 1⏎---⏎b: 2` で 2 文書)。(e) タブのインデント(`a:⏎\t- 1`)が `ScannerError`、閉じていない `[` が `ParserError` で、`problem_mark.line`・`column` を持つ。(f) **イベントの API は再帰しない**(深さ 1,000 の `a: [[[…]]]` を `RecursionError` なしで読めた。ただし、時間は入れ子の深さに対して超線形(深さ 1,000 で 1.1 秒、3,000 で 8.4 秒)だった)ので、**イベントを読みながら入れ子の深さを数え、33 段目で打ち切る**(深さ 100,000・約 200 KB の入力で、打ち切りまで 0.38 秒)。構文木を作る `yaml.compose` は再帰し、深さ 2,000 で `RecursionError` になった(使わない)。(g) `yaml.SafeLoader`(純 Python)を使えば、ライブラリの C の拡張(`libyaml`)の有無に左右されない(`__with_libyaml__` は、この環境で真だった。`CSafeLoader` の位置や誤りの文言が、純 Python 版と同じかは未確認)。重複キーは、イベントの列から自前で検出する(`yaml.load` は後勝ちで黙って受理する。確認は記憶による)。型は暗黙のタグの解決(YAML 1.1: `yes`・`on`・`1_000`・60 進数・日付)に頼らず、生の `value` から、03 章 4.2 節の規則で自前で決める。実行時の依存はなし | **採用案**。版は、実装時に最新の安定版を確認して、`dependencies` に範囲で書き、`constraints.txt` に正確な版を固定する。基準(1)〜(3)・(5)〜(7)は、6.0.3 の上の(a)〜(g)で確認した(03 章 7 節の試験も参照)。(4)(8)(9)は、実装時に確認する。**スキャナと構文は、YAML 1.1 に基づく。1.2 との文法の差が受け入れテストの入力に影響するかは、実装時に確認する(未確認)** |
+| `PyYAML`(配布名 `PyYAML`、import 名 `yaml`) | 03 章 7 節が、確認の結果と呼び出しの設定の正本である(CPython 3.10.7・3.14.10・3.15.2、PyYAML 6.0.3、macOS)。要点: `yaml.parse(text, Loader=yaml.BaseLoader)` が、構文要素の列(`ScalarEvent`・`AliasEvent`・`SequenceStartEvent`・`MappingStartEvent`・`DocumentStartEvent` など)を遅延して返し、各要素が `start_mark`・`end_mark`(`index`)、`anchor`、`tag`(明示のタグがあるときだけ非 `None`)、`style`、`value`(書かれた文字列のまま)を持つ。**位置は `start_mark.index`(コードポイントの添字)から自前で行・列を求める**(`mark.line`・`mark.column` は、U+0085・U+2028・U+2029・CR だけの改行も改行として数えるので使わない)。`BaseLoader` は型を付けないので、型は 03 章 4.2 節の規則で自前で決める。構文要素の API は再帰せず、読みながら開いているコレクションの数を数えて、1,000 を超えたら打ち切る(03 章 7.4 節 #14)。C の拡張(`CBaseLoader`)は使わず、常に純粋な Python の実装(`BaseLoader`)を使う(環境ごとの差を避けるため)。重複キー・タグ・複数文書・非文字列キー・アンカーの展開・サロゲート・タブ・制御文字・U+0085 などの拒否は自前(03 章 7.4 節)。実行時の依存はなし | **採用案**。版は、実装時に最新の安定版を確認して、`dependencies` に範囲で書き、`constraints.txt` に正確な版を固定する。基準(1)〜(3)・(5)〜(7)は、6.0.3 で確認済み(03 章 7.5 節の試験を、採用する版で再度行う)。(4)(8)(9)は、実装時に確認する。**スキャナと構文は、YAML 1.1 に基づく。1.2 との文法の差が受け入れテストの入力に影響するかは、実装時に確認する(未確認)** |
 | `ruamel.yaml` | YAML 1.2 を扱い、位置情報(行・列)と、ラウンドトリップの機能を持つとされる。C の拡張を、任意の追加の依存(`ruamel.yaml.clib`)として持つとされる | 採らない(この文書の作成時に動かして確かめていない。基準(1)〜(6)を確認できていない。実装時に、PyYAML が基準を満たさない場合の代案として再評価してよい) |
 | 自前の YAML 読み取り | — | 採らない(YAML の文法が大きく、誤りが入りやすい) |
 
-**採用案**: `PyYAML`(上のとおり版を固定)。YAML を読む **定義と変換の入口**でだけ使い、`import yaml` は、その入口の関数の中で行う(遅延 import。`--version` などの起動を速くする。AC-489)。ステートは JSON(自前の読み取り)。ライブラリのイベント(`yaml.parse`)を、03 章 6.1 節の「木」(順序つきの `entries`・`seq`・文字列・整数(`int`)・浮動小数・真偽値・`None`)に変換する層を自前で書き、その層で、重複キー・タグ・複数文書・文字列でないキー・深さ・要素数・エイリアスの展開を扱う(`null` は拒否しない)。**`yaml.load`・`yaml.unsafe_load`・`yaml.full_load`・`yaml.safe_load` は、呼ばない**(`safe_load` も、暗黙の型判定と構築を行うため。AC-421、AC-531)。ライブラリのエラー文(`str(YAMLError)`)と例外は、表示に出さない(2.3 節)。必要なら、位置(`problem_mark`)だけを使う。ライブラリの警告(`warnings.warn`)は、標準エラーに出さない(`filterwarnings`。AC-498)。
+**採用案**: `PyYAML`(上のとおり版を固定)。YAML を読む **定義と変換の入口**でだけ使い、`import yaml` は、その入口の関数の中で行う(遅延 import。`--version` などの起動を速くする。AC-489)。ステートも JSON の自前の読み取り(定義・変換と共用。06 章 6.5 節)。ライブラリのイベント(`yaml.parse(…, Loader=yaml.BaseLoader)`)を、03 章 6.1 節の「木」(順序つきの `entries`・`seq`・文字列・整数(`int`)・浮動小数・真偽値・`None`)に変換する層を自前で書き、その層で、重複キー・タグ・複数文書・文字列でないキー・深さ・要素数・エイリアスの展開を扱う(`null` は拒否しない)。**`yaml.load`・`yaml.unsafe_load`・`yaml.full_load`・`yaml.safe_load`・`yaml.compose` は、呼ばない**(`safe_load` も、暗黙の型判定と構築を行い、`compose` は再帰してアンカーの再定義を拒否するため。AC-421、AC-531)。ライブラリのエラー文(`str(YAMLError)`)と例外は、表示に出さない(2.3 節)。必要なら、位置(`problem_mark`)だけを使う。ライブラリの警告(`warnings.warn`)は、標準エラーに出さない(`filterwarnings`。AC-498)。
 実装時は、まず AC-010、AC-217〜232、AC-453〜460、AC-498、AC-525、AC-531 の入力を、小さな試験で候補に通し、基準(1)〜(9)を確かめてから決める。採用したライブラリと版は、`pyproject.toml`、`constraints.txt`、README に記録する。
 
-**JSON の読み取り**は、自前の小さな字句・構文解析で行う([03](03-definition-format.md))。標準ライブラリの `json` は、CPython 3.9.6 で確かめた範囲で、次の理由から、定義・ステート・変換の入力の読み取りに使わない。(a) 構文の誤りの位置(`JSONDecodeError` の `lineno`・`colno`・`pos`)は取れるが、**成功した値には位置がない**(定義の誤りの行を出せない。AC-037、AC-475)。(b) 重複キーは、既定で後勝ちで黙って受理する(`object_pairs_hook` で検出はできる)。(c) `NaN`・`Infinity` を受理する(`parse_constant` で拒否はできる)。(d) `1` は `int`、`1.0` と `1e0` は `float` で区別されるが、`1e999` は `inf` になる。(e) `"\ud800"`(孤立サロゲート)を `str` として受理する。(f) 深い入れ子(100,000 段)で `RecursionError` になる(深さの上限を、解析の前に効かせられない)。(g) 整数の桁数の上限(`int()` の変換の上限。この文書の環境では未確認)で `ValueError` が起きうる。したがって、位置・重複・深さ・字句の厳格さが要る部分を、自前で読む。`json.loads` を使ってよいのは、テストと開発用のスクリプトだけ(AC-421。03 章が、製品のコードで `json` の一部を使う方針を定めた場合は、その範囲に合わせる。10.2 節)。JSON の出力(`json.dumps` の使用の可否と、`indent=2`・`ensure_ascii=False`・浮動小数の書式の細部)は、09 章に従う。
+**JSON の読み取り**は、自前の小さな字句・構文解析で行う([03](03-definition-format.md) 5.3 節。定義・ステート・変換の 3 つが同じ関数 `read_json` を使う。決定と理由は [06](06-state-file.md) 6.5 節)。標準ライブラリの `json.loads` は、製品のコードで使わない(`object_pairs_hook`・`parse_int`・`parse_float`・`parse_constant` で縛る方式も採らない)。理由(03 章 5 節、06 章 6.5 節で確認): 成功した値に位置がない(定義の誤りの行を出せない。AC-037、AC-475)、重複キーを黙って後勝ちにする、`NaN`・`Infinity`・孤立サロゲートのエスケープを受理する、深い入れ子の挙動が版で違う(`RecursionError`)、3.11 以降は 4300 桁を超える整数の字句で `ValueError` になる。`json.loads` を使ってよいのは、テストと開発用のスクリプトだけ(AC-421)。JSON の出力のうち、ステートの書き出し(06 章 4.3 節)は `json.dumps(ensure_ascii=False, indent=2, allow_nan=False)` と後処理を使う。`convert` の出力(`json.dumps` は使わない)は、09 章に従う。
 
 ### 8.3 開発時の依存の一覧
 
@@ -2297,7 +2302,7 @@ job:
 | `ruff` | 静的検査(`check`)と整形(`format`)。規則の集合(`S`、`BLE`、`TID`、`ANN` など)を使える版 | 版を固定して、整形の差・規則の追加で、突然失敗しないようにする |
 | `build` | sdist と wheel のビルド(`python -m build`) | PyPA の標準の入口 |
 | `pip-audit` | 既知の脆弱性の検査 | 実行環境に依存しない(オンラインのデータベースを使う)。定期の検査(5.2 節) |
-| `types-PyYAML` | `PyYAML` の型の情報(スタブ)。`mypy --strict` が、`import yaml` を型つきで通すため | `PyYAML` の版に合う版。`mypy` の設定で `ignore_missing_imports` に逃げない(AC-518)。この依存の追加は、共通の設計判断の一覧(`pytest`・`pytest-cov`・`mypy`・`ruff`・`build`・`pip-audit`)への追加であり、10.2 節で合意を取る |
+| `types-PyYAML` | `PyYAML` の型の情報(スタブ)。`mypy --strict` が、`import yaml` を型つきで通すため | `PyYAML` の版に合う版。`mypy` の設定で `ignore_missing_imports` に逃げない(AC-518)。開発時の依存は、`pytest`・`pytest-cov`・`mypy`・`ruff`・`build`・`pip-audit` に、この型の情報(`types-PyYAML`)を加えた 7 つである。実行時の依存(YAML ライブラリ 1 つ)は増えない(wheel の `Requires-Dist` に出ない。AC-527)。置き換える方法は、10.2 節 |
 
 上記以外の開発時の依存(`pytest-timeout`、`pytest-xdist`、`pytest-mock`、`hypothesis`、`tox`、`nox`、`black`、`isort`、`flake8`、`pylint`、`pip-tools`、`twine`(手元の道具としては使ってよいが、リポジトリの依存には入れない)など)は入れない(`scripts/check_deps.py` が検査する。5.4 節)。
 
@@ -2350,7 +2355,7 @@ tests/acceptance/test_*.py      受け入れテスト(3.3 節)
 tests/inspect/test_*.py         点検のテスト(ast の走査、依存の向き)
 tests/perf/test_*.py            性能の計測(2.1 節。CONDUCTOR_PERF=1 のときだけ)
 tests/jobs/tj.py                テスト用ジョブ(3.4 節。配布しない)
-tests/support/                  __init__.py、harness.py、fakes.py、marks.py、tree.py、xorshift.py、inject_alarm.py、inject_hook.py、inject_delay.py
+tests/support/                  __init__.py、harness.py、fakes.py、marks.py、tree.py、xorshift.py、inject_alarm.py、inject_hook.py、inject_delay.py、inject_sigint.py、launch_sigchld_ign.py
 tests/fixtures/                 入力例(YAML・JSON。壊れたものを含む。ruff の対象外)
 tests/WINDOWS_CTRL_C_CHECKLIST.md   Windows の Ctrl+C と Ctrl+Break の手動確認の手順と記録欄(AC-301、AC-487)
 demo/                           7 章
@@ -2381,6 +2386,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Operating System :: OS Independent",
   "License :: OSI Approved :: Apache Software License",
 ]
@@ -2443,6 +2449,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "S", "BLE", "ANN", "T20", "TID", "
 "yaml.unsafe_load".msg = "never construct Python objects from YAML"
 "yaml.full_load".msg = "never construct Python objects from YAML"
 "yaml.safe_load".msg = "use yaml.parse events and resolve types by hand"
+"yaml.compose".msg = "use yaml.parse events (compose rejects anchor redefinition and recurses)"
 "typing.cast".msg = "no casts"
 "socket".msg = "no network"
 "ssl".msg = "no network"
@@ -2502,16 +2509,16 @@ disallow_any_explicit = false
 - ブランチ保護(どのジョブを必須にするか)は、リポジトリの設定であり、リポジトリ内のファイルからは確認できない。
 - 現在の行の網羅率の実測値、各性能の計測値(起動時間、import の時間、`run` のオーバーヘッドなど)は、この文書の作成時には測れていない(基準だけを記した。「仮」は、実測して見直す)。`python -X importtime` の出力の書式(累積の列)は、実機で確認した(`import time: <自己> | <累積> | <名前>`)が、`conductor` の import の時間は測っていない。
 - `ruff`、`mypy`、`pytest`、`pytest-cov`、`build`、`hatchling`、`pip-audit`、GitHub Actions を実際に動かしては確かめていない。版、設定のキー・書式、フラグ、終了コードの規則は、**実装時に確認する**。特に: `actions/setup-python` の `cache: pip`・`allow-prereleases`、`strategy.matrix` で `env` を使えないこと(5 章の冒頭)、`${{ matrix.py == 'min' && env.PY_MIN || env.PY_MAX }}` の式、`pytest` の `pythonpath`・`faulthandler_timeout`・`filterwarnings` の挙動、`pytest-cov` の `--cov-fail-under` と `coverage.json` の `totals.percent_covered`、`ruff` の `banned-api` の検出範囲、`mypy --python-version`・`--platform`、`pip-audit` のオプションと終了コード、`python -m build` の分離環境と `hatchling` の sdist の `include` の書式、wheel のファイル名の正規化。
-- YAML ライブラリ(PyYAML)の挙動のうち、`CSafeLoader` との差、YAML 1.1 と 1.2 の文法の差(受け入れテストの入力への影響)、`PY_MIN`・`PY_MAX` での動作、警告の有無、巨大な入力・深い入れ子での時間(超線形だった。1 MiB の入力で、33 段目の打ち切りまで何秒かは未測定)。
+- YAML ライブラリ(PyYAML)の挙動のうち、`CBaseLoader`(使わない)との差、YAML 1.1 と 1.2 の文法の差(受け入れテストの入力への影響)、`PY_MIN`・`PY_MAX` での動作、警告の有無、巨大な入力・深い入れ子での時間(超線形だった。1 MiB の入力で、33 段目の打ち切りまで何秒かは未測定)。
 - Windows の実機: `.cmd` / `.bat` の起動の方法が、最小の Python でも最新の Python でも動くこと(AC-113〜115、AC-486、AC-510、AC-513。07 章の決定)。子プロセスの終了コードが `-1`(0xFFFFFFFF)のときの `Popen.returncode` の値(AC-112)。`signal.SIGBREAK` の番号(AC-301)。Ctrl+C の手動の確認(AC-301。記録は作成時点で存在しない)。`os.replace` の、同時の読み手に対する原子性(AC-322)。
-- Linux の実機: `Popen(start_new_session=True)` が新しいセッションを作ること(AC-288。仕様の記述に基づく。確認していない)。ディレクトリへの `os.unlink` が `IsADirectoryError`(または `PermissionError`)になること(06 章)。`/proc/<pid>/stat` の書式(AC-403)。
+- Linux の実機: `Popen(start_new_session=True)` が新しいセッションを作ること(AC-288。macOS では `ps` で `PGID = PID` を確認した(07 章 4.7 節)。Linux は確認していない)。ディレクトリへの `os.unlink` が `IsADirectoryError`(または `PermissionError`)になること(06 章)。`/proc/<pid>/stat` の書式(AC-403)。`SIGCHLD` を無視して起動したときの `Popen.returncode`(AC-534。macOS では正しい値になった。Linux は未確認)。FIFO を `O_NONBLOCK` で開いてブロックしないこと(AC-536。macOS で確認した挙動に基づく)。
 - 最小の Python と最新の Python での、07・08・06・05 章の【実測】の再確認(確認した版は、各章に従う)。
 - `sleep` / `trap` モードの `TJ` が、SIGTERM・SIGINT・SIGHUP で「シグナルで終了した」と観測されること(自分に同じシグナルを送り直す設計。3.4 節)。SIGQUIT の既定の動作。
 - 疑似端末(AC-182、AC-183)を、標準ライブラリの `pty.openpty()` で作る手順は、この文書の作成時には実行していない。
 - 大文字小文字を区別しないファイルシステムでの run ID の衝突(AC-260)は、仕様の記述に基づく。
 - 非 UTF-8 のバイトを含むファイル名を、macOS の APFS で作れないこと(AC-349)。Linux で作れること(未確認)。
 - `Popen.send_signal` が、終了済みの子に送らない作り(AC-289)の、各版(`PY_MIN`〜`PY_MAX`)での挙動。1 章のソースのコメント(bpo-38630)は、3.9.6 のもの。
-- `sys.set_int_max_str_digits` の既定の値(4300 と記憶している)と、その上限に達したときの `ValueError`(AC-502)は、この文書の環境(3.9.6)に機能がなく、確認していない。
+- 整数の文字列変換の桁数の上限(既定 4300 桁。`sys.get_int_max_str_digits()`)は、CPython 3.10.7・3.14.10・3.15.2 で確認した(03・05・06 章)。上限に達したときの `ValueError`(AC-502)が、製品のコードで漏れないことは、各版で実機の確認を要する(03 章は、巨大な字句で `int()` を呼ばない作りにしてある)。
 - `macos-latest` のランナーに `shasum` / `sha256sum` があること、`ubuntu-24.04` で `ps` などが使えること。`windows-2022` の `bash` での、`dist/*.whl` の展開と、`$RUNNER_TEMP` の形式。
 - 単一の実行ファイルの配布(6.4 節)は、任意で、この文書では確かめていない。
 - `build-repro`(5.1 節の任意のジョブ)で、wheel が、3 OS で同じ結果になること。
@@ -2522,20 +2529,13 @@ disallow_any_explicit = false
 - `argparse` が、3.9.6 より新しい版で、この仕様の文法のどこまでを満たすか(4.12 節の末尾)。
 - 受け入れテストの期待の値の一部は、定義・ステート・変換の他章([03](03-definition-format.md)、[06](06-state-file.md)、[09](09-converter.md)、[10](10-errors-and-exit-codes.md))の字句に依存する。他章と食い違う場合は、他章を正とし、この文書の期待を直す。
 
-### 10.2 他の章との整合が要る点
+### 10.2 他の章との整合(解消した項目を除き、残るもの)
 
-この文書が、他の章の決定に依存している、または、他の章に確認が要る点。
+02〜10 章との食い違いは、この版の作成時に解消した(JSON の読み取りの共用、型と関数の名前、`.cmd` / `.bat` の起動、新しいセッション、待機の区間の長さ、`KeyboardInterrupt`、標準出力の失敗の扱い、開発時の依存、Python の版の仮置き)。次の項目だけが、実装時の確認を要する。
 
-- **開発時の依存に `types-PyYAML` を足している**(8.3 節)。共通の設計判断の一覧(`pytest`・`pytest-cov`・`mypy`・`ruff`・`build`・`pip-audit`)を超える。`mypy --strict` が、型の情報のない `import yaml` を通さないための追加である。置き換える方法(型の情報のない `yaml` を、1 つの部品に閉じて、型つきの `Protocol` で包む)を採る場合は、8.3 節と `check_deps.py` を直す。
-- **JSON の読み取り**(8.2 節): 製品のコードで `json.loads` を使わない(自前の読み取り)前提で、AC-421 と `ruff` の禁止の一覧を書いた。03 章が、`json` の一部の機能(`object_pairs_hook` など)の使用を定めた場合は、AC-421・AC-461〜464・9.3 節を合わせる。`json.dumps` の使用は、09 章に従う。
-- **`.cmd` / `.bat` の起動**(AC-113〜115、AC-116、AC-486、AC-510、AC-513): 禁止文字を含む引数の拒否と、起動の方法は、07 章の決定に従う。この文書は、拒否(127)と、安全な引数(`plain`)の成功(7)だけを期待として書いた。
-- **新しいセッションにするか**(AC-288): 07 章の決定に従う(両方の場合の期待を書いた)。
-- **待ちの区間の長さ**(AC-275、AC-403、AC-503): 07 章の決定に従う。この文書は、1 秒以内の中断、CPU 時間 50 ms 以下、1 区間が 1 秒以下、だけを要求する。
-- **終了時の flush・`--help` / `--version` の書き込み失敗**(AC-496、AC-515): 08 章 1.2 節の決定(書き込みの失敗を無視して 0)に従う。`watch` は 65、`convert` は 67(10 章)。
-- **孤立サロゲートの表示**(AC-519、4.14 節): 08 章のエスケープの規則に従う。この文書は、`\u{dcff}` の形を例として書いた。
-- **標準出力・標準エラーの符号化の設定**(AC-520): 08 章の決定(起動時に `reconfigure(encoding="utf-8", errors=…)`)に従う。`errors` の値は 08 章。
-- **`KeyboardInterrupt` の扱い**: 共通の設計判断では、`SystemExit` を除く `BaseException` を入口で捕捉し(終了コード 70)、`KeyboardInterrupt` の扱いを別に決める、とされている。`run`・`pipeline` では、`SIGINT` のハンドラが旗を立てるので `KeyboardInterrupt` は起きない。`validate`・`watch`・`reset`・`convert`・使い方の誤りの経路で、Ctrl+C を受けたときの終了コード(例: 130)と出力の有無は、07 章と 10 章に従う。この文書に、この項目の受け入れテストはない(決まり次第、4.10 節に足す)。
-- **NUL を含む `command`**(AC-522)と、**空白の定義**(AC-523): 03 章の規定に従う(未確認)。
-- **YAML の型判定**(AC-228、AC-458、AC-525): 03 章 4.2 節の規則が正本。
-- **`threading` の使用**(AC-420): 共通の設計判断のとおり、使わないのが原則。使う場合は、02・07 章に、理由・所有者・終了条件の表を置き、この文書の AC-420 の許可の一覧に加える。
-- 受け入れテストの ID は、この文書の中で一意(001〜531)。他の章の ID は、この文書と独立である。
+- **`KeyboardInterrupt`**(AC-532): 07 章 7.6 節の決定(UNIX 系は `SIG_DFL` に戻して自分に SIGINT を送り、シグナル終了。Windows は 130)の、実プロセスでの確認は、macOS だけである(10 章 6.2 節)。Linux・Windows は未確認。
+- **Windows の Ctrl+Break の自動テスト**(AC-533): 07 章 7.3 節の方法(`CREATE_NEW_PROCESS_GROUP` で起動して `CTRL_BREAK_EVENT` を送る)は、実機で未確認。動かなければ、手動の AC-301 だけにする。
+- **`.cmd` / `.bat` の起動**(AC-113〜115、AC-486、AC-510、AC-513): 07 章 4.8 節の決定(`cmd.exe` を `str` のコマンドラインで直接起動)が、`PY_MIN`・`PY_MAX` の両方で動くことは、Windows の実機で未確認。
+- **`threading` の使用**(AC-420): 使わない決定。使う場合は、02・07 章に、理由・所有者・終了条件の表を置き、AC-420 の許可の一覧に加える。
+- **YAML の型判定**(AC-228、AC-458、AC-525): 03 章 4.2 節の規則が正本。`PyYAML` の版を替えたとき、03 章 7.5 節の試験で再確認する。
+- 受け入れテストの ID は、この文書の中で一意(001〜536)。他の章の ID は、この文書と独立である。

@@ -383,8 +383,8 @@ POSIX(macOS で確認)では、Python はプロセスの引数のバイト列を
 
 ## 8. ヘルプとバージョン
 
-- `-h`/`--help`: 使い方全文を標準出力に出して 0。言語はロケールに従う(全文は 08 章 8 章)。
-- `-V`/`--version`: 標準出力に `conductor <版>` と改行 1 つ(`conductor 0.8.0`)。ロケールを判定しない(常にこの英語の形)。終了コード 0。版の文字列は `conductor/version.py` の定数 `VERSION = "0.8.0"` から作る(`pyproject.toml` の `version` と一致することをテストで検査する。実行時に `pyproject.toml` や、インストール済みの配布物のメタデータ(`importlib.metadata`)を読まない)。
+- `-h`/`--help`: 使い方全文を標準出力に出して 0。言語はロケールに従う(全文は 08 章 8 章)。標準出力に書けなくても(閉じたパイプなど)、失敗は無視して 0 で終わる(08 章 1.3.2。`watch` は 65、`convert` は 67 で、ここだけが違う)。
+- `-V`/`--version`: 標準出力に `conductor <版>` と改行 1 つ(`conductor 0.8.0`)。ロケールを判定しない(常にこの英語の形)。終了コード 0(標準出力に書けなくても、失敗は無視して 0。08 章 1.3.2)。版の文字列は `conductor/version.py` の定数 `VERSION = "0.8.0"` から作る(`pyproject.toml` の `version` と一致することをテストで検査する。実行時に `pyproject.toml` や、インストール済みの配布物のメタデータ(`importlib.metadata`)を読まない)。
 
 ```text
 $ conductor --version
