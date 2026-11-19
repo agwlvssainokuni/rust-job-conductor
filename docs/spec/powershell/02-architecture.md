@@ -21,11 +21,11 @@
 | # | 前提 | 内容 |
 |---|------|------|
 | 1 | 形態 | PowerShell モジュール `Conductor`(`Conductor.psd1` + `Conductor.psm1`)と、ランチャー(`bin/conductor`、`bin/conductor.cmd`、`bin/conductor.ps1`)。公開する関数は `Invoke-Conductor` の 1 つ。利用者向けの文法は、現行の CLI のまま(`conductor pipeline -v --config x nightly`)で、PowerShell のコマンドレット(`-Parameter`、パイプライン)の形にしない |
-| 2 | 対象 | PowerShell 7.x。最小の版は、実装時点でサポート中の LTS のうち最小のもの(`PowerShellVersion`。5.2 節)。Windows PowerShell 5.1 は対象外 |
+| 2 | 対象 | PowerShell 7.x。この版の決定は、7.6 LTS(作成日 2026-11-20 時点でサポート中の LTS は 7.6 だけ。[11-quality-and-build.md](11-quality-and-build.md) の 1 章・2.5 節。具体的な版は実装時に確認する)。版の出所は `build/Versions.psd1` で、`PowerShellVersion` と `#requires` は同じ値にする。Windows PowerShell 5.1 は対象外 |
 | 3 | 実行時の依存 | なし(標準の PowerShell と .NET の BCL だけ)。C# の小さなヘルパー(`Add-Type`)は、ソースをモジュールが持つ([07-process-and-signals.md](07-process-and-signals.md)) |
 | 4 | 開発時の依存 | Pester 5、PSScriptAnalyzer([11-quality-and-build.md](11-quality-and-build.md)) |
 | 5 | 同期 | 本体は同期。コールバックは C# ヘルパーの中だけ(8 章) |
-| 6 | 出力 | パイプラインに流さない。画面への出力は専用の関数が `[Console]::Out` / `[Console]::Error` に書く(9.2 節) |
+| 6 | 出力 | パイプラインに流さない。画面への出力は専用の関数(`Report` の `Write-ConductorStream`)だけが、`[Console]::OpenStandardOutput()` / `[Console]::OpenStandardError()` のストリームを BOM なし UTF-8 の `StreamWriter`(LF、`AutoFlush`)で包んで書く。`[Console]::Out` / `[Console]::Error` は使わない。書き込みの失敗は例外でなく `[bool]` の偽で返す([08-output-and-i18n.md](08-output-and-i18n.md) の 1.2・1.3)(9.2 節) |
 | 7 | `class` を使わない | 値は `[pscustomobject]` と `[ordered]` のハッシュテーブル。理由は 7 章 |
 | 8 | 終了 | `exit` を呼ぶのはランチャーだけ。`Invoke-Conductor` は `[int]` の終了コードを**返す** |
 
@@ -40,7 +40,8 @@ src/Conductor/
   Public/
     Invoke-Conductor.ps1          公開する唯一の関数(6.1 節)
   Private/
-    Json/        ...              自前の JSON の読み取りと書き出し、上限の検査
+    Text/        ...              文字列の部品(文字として正しくない文字列の判定、読める形への変換、エスケープと切り詰め)
+    Json/        ...              自前の JSON の読み取りと書き出し、木の型、上限の検査
     RunId/       ...              run ID の検査と決定
     Flow/        ...              純粋な判断(分類、起動前の判断、次の動き、再開位置、記録、リトライ、終了コード)
     Definition/  ...              定義の読み込みと検査(`.psd1` と JSON)
@@ -69,6 +70,8 @@ build/                            ビルド・検査・パッケージのスク�
 
 ## 3. 各ディレクトリ・ファイルの責務と関数の一覧【規定】
 
+名前は、03〜10 章が定めたものに合わせてある(この章の一覧は、それらの要約。食い違うときは、各章が正本)。
+
 ### 3.1 命名の規則
 
 - 関数名は `Verb-ConductorNoun`。`Verb` は PowerShell の承認された動詞(`Get-Verb` の一覧。PSScriptAnalyzer の `PSUseApprovedVerbs` が検査する)。`Noun` は単数形(`PSUseSingularNouns`)。モジュールの名前の接頭辞 `Conductor` を、名詞の先頭に付ける(利用者のセッションの他の関数と衝突しないため。非公開でも付ける)。
@@ -77,80 +80,101 @@ build/                            ビルド・検査・パッケージのスク�
 - 引数は、位置ではなく、名前で渡す(`-Name value`)。引数を取る関数は、`param(...)` ブロックを持ち、型を明示する。`[CmdletBinding()]` は、内部の関数に付けない(共通パラメータ `-v`、`-Verbose`、`-Debug` などが付き、`-v` が `-Verbose` の短縮として解釈されるため。6.1 節の理由)。
 - 値を返す関数の戻り値は、`return` で明示する。関数が返す値は 1 つだけ(1 つの `[pscustomobject]`、`[int]`、`[string]`、`[bool]`、またはハッシュテーブル)。配列を返す場合は、`return ,$array`(単項のカンマで包む)で、パイプラインによる展開を防ぐ。値を返さない関数は、何も出力しない(9.2 節)。
 
-### 3.2 `Private/Json/`(依存の最下層)
+### 3.2 `Private/Text/`(最下層。文字列の部品)
 
 | 関数 | 責務 |
 |------|------|
-| `ConvertFrom-ConductorJsonText` | JSON の文字列を、位置つきの木に読む(自前の走査。明示のスタック。重複キー、巨大整数、深さ上限)。`ConvertFrom-Json` を使わない |
-| `ConvertTo-ConductorJsonText` | 木または値を、JSON の文字列(インデント 2、LF)に書き出す。`ConvertTo-Json` を使わない |
-| `Test-ConductorTreeLimits` | 展開後の要素数、文字の大きさ、入れ子の深さの検査 |
-| `New-ConductorTreeError` | 木の誤り(種類、位置、固定の文)を作る |
+| `Test-ConductorSuspectText` | 文字として正しくない文字列(対になっていないサロゲート、U+FFFD)の判定([04-cli.md](04-cli.md) の 4.4.2) |
+| `ConvertTo-ConductorReadableText` | 対になっていないサロゲートを U+FFFD に置き換えて、読める形にする(04 章 4.4.2、06 章) |
+| `ConvertTo-ConductorEscapedText` | 入力由来の文字列の表示用のエスケープと切り詰め(08 章 9 章。`Report` と、定義・ステート・変換の各処理が共用する) |
 
-### 3.3 `Private/RunId/`
-
-| 関数 | 責務 |
-|------|------|
-| `Test-ConductorRunId` | run ID の値の検査(空、長さ、文字、先頭のドット) |
-| `Resolve-ConductorRunId` | `--run-id` と環境変数から run ID を決める |
-
-### 3.4 `Private/Flow/`(純粋。入出力に触れない)
+### 3.3 `Private/Json/`(最下層。木の読み取りと書き出し)
 
 | 関数 | 責務 |
 |------|------|
-| `New-ConductorJobExecution` | 実行結果(`JobExecution`。[07-process-and-signals.md](07-process-and-signals.md) の 4.5 節)を作る |
-| `Get-ConductorClassification` | 実行結果の分類と、報告する終了コード |
-| `Get-ConductorDecision` | 起動前の判断(実行・スキップ・拒否) |
-| `Get-ConductorNextStep` | 次の動き |
-| `Get-ConductorResumePoint` | 中断時の再開位置 |
-| `Get-ConductorRetryDecision`、`Get-ConductorRetryWait`、`Test-ConductorRetryTarget` | リトライの判断と待ち時間(`[bigint]` の飽和演算) |
-| `New-ConductorInitialState`、`Add-ConductorOutcome`、`Add-ConductorSkip`、`Add-ConductorInterrupt` | 記録関数(元のステートを変えず、新しいステートを返す純粋な関数) |
-| `Get-ConductorExitCode` | 終了コードの範囲合わせ(0〜255) |
-| `Compare-ConductorState` | ステートの等価性(元と等しいとき書かない判断に使う) |
-| `Add-ConductorSaturatedMultiply` | `[bigint]` を使う 64 ビット符号なしの飽和した積(折り返さない) |
+| `Read-ConductorJsonTree` | JSON の文字列を、位置つきの木に読む(自前の走査。明示のスタック。重複キー、巨大整数)。`ConvertFrom-Json` を使わない。定義・変換・ステートが共用する(03 章 5.3 節) |
+| `ConvertTo-ConductorJsonText` | 木または値を、JSON の文字列(インデント 2、LF)に書き出す。`ConvertTo-Json` を使わない(09 章 7 章) |
+| `Test-ConductorTreeLimits` | 展開後の要素数、文字の大きさ、入れ子の深さの検査(`-Which all` または `depth_only`。03 章 6.3 節) |
+| `New-ConductorNode…`(`New-ConductorNullNode` など) | 木のノード(`Kind` が `null`・`bool`・`int`・`hugeInt`・`float`・`string`・`seq`・`map`)を作る(03 章 6.1 節) |
+| `Test-ConductorJsonInt32` | 整数ノードが `[int]` の範囲かの検査(06 章 6.5 節) |
 
-### 3.5 `Private/Definition/`
+### 3.4 `Private/RunId/`
 
 | 関数 | 責務 |
 |------|------|
-| `Read-ConductorDefinitionFile` | 定義ファイルの場所の決定と読み取り(Intake)。拡張子の判定、大きさの上限。`Load` に相当 |
-| `Read-ConductorDefinitionText` | 文字列に対する純粋な読み取りと検査(`Parse` に相当) |
-| `Get-ConductorDefinitionFormat` | 拡張子から書式(`psd1` または `json`)を判定する(大文字小文字を区別しない) |
-| `Read-ConductorPsd1Tree` | `.psd1` の文字列を、`[System.Management.Automation.Language.Parser]` で構文木にし、許可する構文だけを木に変換する |
-| `Test-ConductorDefinitionDepth` | 入れ子の深さの検査 |
-| `Test-ConductorDefinitionStructure` | 構造・型・遷移・終了コード・名前の検査(`Walk`) |
-| `Read-ConductorLooseRunIdEnv` | `run_id_env` だけのゆるい読み取り(どの失敗でも `$null`) |
-| `New-ConductorDefinitionError` | 定義の誤り(種類、ファイル、行、列、理由)を作る |
+| `Test-ConductorRunId` | run ID の値の検査(空、長さ、文字、先頭のドット)。整数の範囲の比較で書く(04 章 5.2 節) |
+| `Get-ConductorRunIdError` | 規則違反の内部の理由(`Empty`、`TooLong`、`InvalidChar`、`LeadingDot`)を返す(05 章 6.1 節) |
+| `Resolve-ConductorRunId` | `--run-id` と環境変数から run ID を決める(05 章 6.2 節。環境変数の読み取りは、引数のスクリプトブロックを通す) |
 
-### 3.6 `Private/Convert/`
+### 3.5 `Private/Flow/`(純粋。入出力に触れない)
+
+名前と署名は 05 章が正本。
 
 | 関数 | 責務 |
 |------|------|
-| `Invoke-ConductorConvertFile` | 変換の入口(入力ファイル 1 つを読み、`--to` の形式の文字列を返す) |
+| `New-ConductorJobState`、`New-ConductorPipelineState`、`New-ConductorJobExecution`、`New-ConductorJobOutcome`、`New-ConductorNextStep`、`New-ConductorDecision` | 値(`[pscustomobject]`)の生成。固定の集合は文字列定数 |
+| `Get-ConductorOutcome` | 実行結果の分類と、報告する終了コード(05 章 2.3 節) |
+| `Get-ConductorClassifiedStep`、`Get-ConductorNextStep` | 分類と次の動き(05 章 3 章) |
+| `Get-ConductorDecision` | 起動前の判断(実行・スキップ・拒否。05 章 4 章) |
+| `Get-ConductorResumePoint`、`Get-ConductorSkippedJobIds` | 中断時の再開位置、スキップ対象のジョブID |
+| `Get-ConductorRetryDecision`、`Get-ConductorNextWaitSecs`、`Test-ConductorRetryTarget` | リトライの判断と待ち時間(`[bigint]` の飽和演算。05 章 7 章) |
+| `Add-ConductorInt32Saturating`、`Get-ConductorSaturatedProduct` | 32 ビットの飽和加算、64 ビット符号なしの飽和した積(折り返さない) |
+| `ConvertTo-ConductorProcessExitCode`、`Get-ConductorSignalExitCode` | 終了コードの範囲合わせ(0〜255)、中断の終了コード(05 章 2.2 節) |
+| `New-ConductorInitialState`、`Set-ConductorOutcomeRecord`、`Set-ConductorSkipRecord`、`Set-ConductorInterruptRecord` | 記録関数(元のステートを変えず、新しいステートを返す純粋な関数。05 章 3.3〜3.5 節) |
+| `Test-ConductorStateEqual` | ステートの全項目の比較(元と等しいとき書かない判断に使う。05 章 4.3 節) |
+
+### 3.6 `Private/Definition/`
+
+名前と署名は 03 章 12.2 節が正本。
+
+| 関数 | 責務 |
+|------|------|
+| `Get-ConductorFormatFromPath` | 拡張子から書式(`psd1` または `json`。それ以外は `$null`)を判定する(大文字小文字を区別しない) |
+| `Read-ConductorDefinitionFile` | 定義ファイルの場所の決定と読み取り(Intake)。書式の決定、大きさの上限。段階 1〜5 |
+| `ConvertFrom-ConductorDefinitionText` | 文字列に対する純粋な読み取りと検査(段階 2〜5) |
+| `Read-ConductorTree` | 段階 2〜3(読み取りと展開)。変換器と共有する(`-ConvertTo` 指定時は最初の表せない値を記録する) |
+| `Read-ConductorPsd1Tree` | `.psd1` の文字列を、`[System.Management.Automation.Language.Parser]` で構文木にし、許可する構文だけを木に変換する(03 章 4 章) |
+| `New-ConductorWalkContext`、`Add-ConductorError`、`Test-ConductorWalkRoot`、`Test-ConductorWalkPipeline`、`Test-ConductorWalkJob`、`Read-ConductorExitCodes`、`ConvertFrom-ConductorInterval`、`Test-ConductorJobSet` | 構造・型・遷移・終了コード・名前・間隔の検査(Walk。03 章 8・9 章) |
+| `Get-ConductorRunIdEnv` | `run_id_env` だけのゆるい読み取り(どの失敗でも `$null`。03 章 13 章) |
+
+(`Read-ConductorJsonTree` と `Test-ConductorTreeLimits` は、`Private/Json/` にある。03 章 12.2 節に載る署名も同じ。)
+
+### 3.7 `Private/Convert/`
+
+| 関数 | 責務 |
+|------|------|
+| `Convert-ConductorFile` | 変換の入口(入力ファイル 1 つを読み、`--to` の形式の文字列、または変換の誤りを返す。09 章 1 章) |
 | `Convert-ConductorText` | 文字列の変換(純粋) |
-| `ConvertTo-ConductorPsd1Text` | 木を `.psd1` の文字列に書き出す |
+| `ConvertTo-ConductorPsd1Text` | 木を `.psd1` の文字列に書き出す(09 章 8 章) |
 
-### 3.7 `Private/State/`
+### 3.8 `Private/State/`
+
+名前と署名は 06 章が正本。
 
 | 関数 | 責務 |
 |------|------|
 | `Get-ConductorStatePath` | ステートファイルの場所と名前 |
 | `Read-ConductorState`、`Read-ConductorStateRaw` | 読み込み(14 段階の検査、異常系。`Raw` は完了のものも返す。`watch` 用) |
-| `Write-ConductorState` | 書き込み(一時ファイル、同期、名前の付け替え、必要ならディレクトリの同期)。`-Durability`、`-SyncDirectory`(スクリプトブロック) |
-| `Reset-ConductorState`、`Reset-ConductorStateAll` | `reset` と `reset --all` |
+| `Write-ConductorState` | 書き込み(一時ファイル、同期、名前の付け替え、必要ならディレクトリの同期)。`-Durability`、`-SyncDirectory`(スクリプトブロック。`$null` なら同期しない) |
+| `Reset-ConductorState`、`Reset-ConductorAllState` | `reset` と `reset --all` |
+| `Test-ConductorRunStateFile` | `reset --all` が、ファイルの中身を見分ける |
 | `Test-ConductorStateConsistency` | 定義との整合性の検査(純粋) |
-| `ConvertTo-ConductorStateJson`、`ConvertFrom-ConductorStateJson` | ステートの論理値と JSON の変換(`Json/` を使う) |
+| `ConvertTo-ConductorStateJsonBytes` | ステートの論理値から JSON のバイト列(`Json/` を使う) |
+| `Resolve-ConductorFsPath`、`Get-ConductorBaseException` | .NET に渡すパスの絶対化、外側の例外から元の例外を取り出す |
 | `New-ConductorStateError` | ステートの誤り(種類、パス、理由)を作る |
 
-### 3.8 `Private/Runner/`
+### 3.9 `Private/Runner/`
+
+名前と署名は 07 章が正本。
 
 | 関数 | 責務 |
 |------|------|
 | `Split-ConductorCommandLine` | `command` の分割(状態機械) |
 | `Test-ConductorCommand` | `command` の検査 |
-| `Invoke-ConductorJob` | ジョブの起動と待ち |
+| `Invoke-ConductorJob` | ジョブの起動と待ち(`-Progress` を受け取り、停止経路で `Execution` を入れる) |
 | `Wait-ConductorChild` | 待機ループ |
 | `Wait-ConductorRetry` | リトライの待機 |
-| `New-ConductorInterrupt` | 中断の合図(C# ヘルパーの `Interrupt`)を作る |
+| `New-ConductorInterrupt` | 中断の合図(C# ヘルパーの `ConductorNative.Interrupt`)を作る |
 | `Start-ConductorSignalWatch` | シグナル監視の開始 |
 | `Initialize-ConductorNativeHelper` | C# ヘルパーの読み込み(`Add-Type`。ここだけ) |
 | `Get-ConductorPlatformKind` | OS の判定(ここだけ。`'Unix'` または `'Windows'`) |
@@ -159,41 +183,46 @@ build/                            ビルド・検査・パッケージのスク�
 | `ConvertTo-ConductorCmdArguments` | Windows の `.cmd`/`.bat` の起動の形(純粋) |
 | `Send-ConductorSignal` | シグナルを子の pid に 1 回送る(`kill`) |
 | `Read-ConductorExit` | 終了から `ExitCode` と `TerminatedBySignal` を決める |
-| `Sync-ConductorDirectory` | ディレクトリの同期(C# ヘルパー経由) |
+| `Sync-ConductorDirectory` | ディレクトリの同期(C# ヘルパーの `UnixNative.SyncDirectory(string)` 経由) |
 
-ファイル `NativeHelper.ps1` は、C# のソース(here-string)と、`Initialize-ConductorNativeHelper`、`Sync-ConductorDirectory`、`Send-ConductorSignal` の中の、ヘルパーの型の呼び出しを持つ(`Add-Type` と P/Invoke の許可箇所。[07-process-and-signals.md](07-process-and-signals.md) の 9.2 節)。
+ファイル `NativeHelper.ps1` は、C# のソース(here-string)と、`Initialize-ConductorNativeHelper` を持つ。`Sync-ConductorDirectory`、`Send-ConductorSignal` の中の、ヘルパーの型の呼び出しも、このファイルの許可の範囲に入る(`Add-Type` と P/Invoke の許可箇所。[07-process-and-signals.md](07-process-and-signals.md) の 9.2 節)。ヘルパーの名前(名前空間 `ConductorNative`、型 `HelperInfo`・`Interrupt`・`SignalWatcher`・`UnixNative`)は、07 章 7.2 節が正本。
 
-### 3.9 `Private/Report/`
+### 3.10 `Private/Report/`
+
+名前と署名は 08 章が正本。
 
 | 関数 | 責務 |
 |------|------|
-| `Write-ConductorOutput`、`Write-ConductorErrorLine` | 標準出力・標準エラーへの書き込みの窓口(書くたびに flush。製品のコードが画面に書く唯一の経路) |
-| `Get-ConductorLocale`、`Test-ConductorColor` | ロケールと色の判定(最初に必要になったとき 1 回) |
+| `Write-ConductorStream` | 標準出力・標準エラーへの書き込みの唯一の経路(`-Stream 'Out'` または `'Err'`、`-Text`。書くたびに flush。戻り値は `[bool]`。失敗は例外でなく偽で返す) |
+| `Send-ConductorOutput`、`Send-ConductorError`、`Send-ConductorVerbose`、`Complete-ConductorOutput` | 水準ごとの書き込み、終了前の flush(08 章 10.1 節) |
+| `Get-ConductorLocale`、`Get-ConductorStdoutIsTerminal` | ロケールと端末の判定(最初に必要になったとき 1 回) |
 | `Get-ConductorMessage` | メッセージカタログ(英語・日本語) |
-| `Format-ConductorVerboseResult`、`Format-ConductorDefinitionErrors`、`Format-ConductorCommandError`、`Format-ConductorStateError`、`Format-ConductorWatchTable`、`Get-ConductorUsageText` | 行・表・使い方を作る(純粋。書き込みはしない) |
-| `ConvertTo-ConductorEscapedText` | 入力由来の文字列のエスケープと切り詰め |
-| `Write-ConductorInternalFailure` | 想定外の内部の誤りの固定の 1 行([07-process-and-signals.md](07-process-and-signals.md) の 11 章) |
+| `Format-ConductorRetryNotice`、`Format-ConductorVerboseResult`、`Format-ConductorDefinitionErrors`、`Format-ConductorCommandError`、`Format-ConductorStateError`、`Format-ConductorWatchTable`、`Get-ConductorUsageText` | 行・表・使い方を作る(純粋。書き込みはしない) |
+| `Write-ConductorInternalError` | 想定外の内部の誤りの固定の 1 行([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md) の 6.1 節。`[Console]::OpenStandardError()` のストリームに直接書く) |
 
-### 3.10 `Private/Cli/`(最上位)
+### 3.11 `Private/Cli/`(最上位)
 
 | 関数 | 責務 |
 |------|------|
 | `Invoke-ConductorMain` | 引数と `Deps` を受け取り、終了コードを返す(`Invoke-Conductor` の本体。テストが `Deps` を渡して呼ぶ) |
-| `ConvertFrom-ConductorArguments` | 引数の字句の解析と検査(誤りの優先順位) |
-| `Invoke-ConductorPrepare` | `run`・`pipeline` の前処理(前処理の順序と失敗の終了コード) |
+| `ConvertFrom-ConductorArguments`、`Get-ConductorLexResult` | 引数の字句の解析(04 章 4.1 節)と検査(誤りの優先順位。4.2 節) |
+| `Get-ConductorEnvironmentVariable` | 環境変数の読み取りの 1 か所(`Deps` の `Env.GetEnvironmentVariable` の本番の実体。04 章 5.1 節) |
+| `Invoke-ConductorPrepare` | `run`・`pipeline` の前処理(前処理の順序と失敗の終了コード。05 章 5.1 節) |
 | `Invoke-ConductorRunCommand`、`Invoke-ConductorPipelineCommand` | `run`・`pipeline` の流れ |
-| `Invoke-ConductorExecJob` | リトライ込みの 1 ジョブの実行、記録、表示(停止経路の `finally` を持つ) |
+| `Invoke-ConductorExecJob` | 1 ジョブの「実行 → 分類 → 表示 → 記録」(停止経路の `finally` を持つ。`-Progress` を渡す)。リトライ込みの実行ループは `Invoke-ConductorJobWithRetry` に任せる |
+| `Invoke-ConductorJobWithRetry` | リトライ込みの実行ループ(05 章 7.7 節。待機は `-Waiter` のスクリプトブロック) |
 | `Invoke-ConductorWatchCommand`、`Invoke-ConductorResetCommand`、`Invoke-ConductorValidateCommand`、`Invoke-ConductorConvertCommand` | 補助のサブコマンド |
-| `New-ConductorSystemDeps` | 本番の `Deps` を作る(4.3 節) |
+| `Get-ConductorExitCodeForError` | 規定された誤りの値から終了コードを決める(10 章 8.4 節) |
+| `Test-ConductorDeps`、`New-ConductorSystemDeps` | `Deps` の検査と、本番の `Deps` の作成(7 章) |
 | `Get-ConductorVersion` | 版の取り出し(10 章) |
 
-### 3.11 `Public/`
+### 3.12 `Public/`
 
 | 関数 | 責務 |
 |------|------|
-| `Invoke-Conductor` | 公開する唯一の関数。`$args` を受け、本番の `Deps` で `Invoke-ConductorMain` を呼び、`[int]` を返す。想定外の内部の失敗を捕まえて 70 にする(6.1 節) |
+| `Invoke-Conductor` | 公開する唯一の関数。`-ArgumentList [string[]]` を受け、本番の `Deps` で `Invoke-ConductorMain` を呼び、`[int]` を返す。想定外の内部の失敗を捕まえて 70 にする(6.1 節。署名は [04-cli.md](04-cli.md) の 1.4 節) |
 
-### 3.12 ファイル単位の責務の補足【目安】
+### 3.13 ファイル単位の責務の補足【目安】
 
 実装者は、ファイルの分け方を変えてよい。ただし、ディレクトリの責務と依存の向き(4 章)と、OS 分岐・`Add-Type` の置き場所は守る。`tests/` の対応: `tests/<ディレクトリ名>/<関数名>.Tests.ps1`(`src` と同じ構成)。
 
@@ -206,15 +235,16 @@ build/                            ビルド・検査・パッケージのスク�
 ```text
 Public ─▶ Cli
 
-Cli ─▶ Report, Runner, State, Flow, Definition, Convert, RunId, Json
-Report ─▶ (なし。データを受け取って文を作るだけ)
-Runner ─▶ Flow
-State  ─▶ Flow, RunId, Json
-Convert ─▶ Definition, Json
-Definition ─▶ Json
+Cli ─▶ Report, Runner, State, Flow, Definition, Convert, RunId, Json, Text
+Report ─▶ Text(データを受け取って文を作るだけ)
+Runner ─▶ Flow, Text
+State  ─▶ Flow, RunId, Json, Text
+Convert ─▶ Definition, Json, Text
+Definition ─▶ Json, Text
 Flow   ─▶ (なし)
 RunId  ─▶ (なし)
-Json   ─▶ (なし)
+Json   ─▶ Text
+Text   ─▶ (なし)
 ```
 
 図(下へ向かって依存する):
@@ -229,13 +259,14 @@ Json   ─▶ (なし)
             ▼       ▼  ╲      ▼
            Flow ◀───┘   ╲   Definition ─▶ Json
                          ╲──────────────▶ Json, RunId
+(Text は、Json・Definition・Convert・State・Runner・Report・Cli のどれからも呼べる最下層)
 ```
 
 規則:
 
 1. **`Cli` が最上位**(`Public` を除く)。ほかのディレクトリは `Cli` の関数を呼ばない。`Report` も呼ばない。
-2. **`Json`、`RunId`、`Flow` は最下層**。互いに呼ばず、ほかのディレクトリの関数を呼ばない。入出力に触れない(`Flow` は純粋)。
-3. **`State` と `Runner` は、`Flow` の関数を使うが、互いに依存しない**。`State` は「ステートを読み書きする」だけで、ジョブを起動しない。`Runner` は「ジョブを起動して待つ」だけで、ステートに触れない。両者をつなぐのは `Cli`。ディレクトリの同期は、`Runner` の `Sync-ConductorDirectory` を、`Cli` が `Deps` の `SyncDirectory`(スクリプトブロック)として `State` に渡す(`State` は `Runner` を呼ばず、OS の判定も持たない)。
+2. **`Text`、`Json`、`RunId`、`Flow` は最下層**(`Json` が呼んでよいのは `Text` だけ)。互いに呼ばず(上記を除く)、ほかのディレクトリの関数を呼ばない。入出力に触れない(`Flow` は純粋)。`Text` は 04 章・08 章が、`Cli` と `Report` と、定義・ステート・変換の各処理で共用する文字列の部品を置くために加えた(依存の向きを守るため、下位に置く)。
+3. **`State` と `Runner` は、`Flow` の関数を使うが、互いに依存しない**。`State` は「ステートを読み書きする」だけで、ジョブを起動しない。`Runner` は「ジョブを起動して待つ」だけで、ステートに触れない。両者をつなぐのは `Cli`。ディレクトリの同期は、`Runner` の `Sync-ConductorDirectory` を、`Cli` がスクリプトブロックに包み、`Write-ConductorState` の `-SyncDirectory` として `State` に渡す(Windows では `$null`)(`State` は `Runner` を呼ばず、OS の判定も持たない)。
 4. **`Convert` が呼ぶのは `Definition` と `Json` だけ**(木の読み取りを共有)。定義の検証(`Test-ConductorDefinitionStructure`)は呼ばない。
 5. **`Report` は、データを受け取って文を作る**。判断をしない。何を表示するかは `Cli` が決める。環境変数と端末の判定は、`Deps` の `Env`(スクリプトブロック)を、引数で受け取る。
 6. **OS ごとの分岐は、`Runner` の `Get-ConductorPlatformKind` と、プラットフォーム層の関数(`Get-ConductorStartInfo`、`Send-ConductorSignal`、`Read-ConductorExit`、`Sync-ConductorDirectory`)と、`NativeHelper.ps1` だけ**([07-process-and-signals.md](07-process-and-signals.md) の 9.2 節)。
@@ -250,7 +281,7 @@ PowerShell は、名前空間の強制を持たない(関数は、読み込ま�
 1. `src/Conductor/Private/**/*.ps1` と `Public/*.ps1` を、すべて `ParseFile` で構文木にする(`Parser` は静的メソッド。`out` 引数の `[ref]` で、トークンと構文エラーも受ける。構文エラーがあれば、点検テストの失敗)。
 2. 各ファイルの `FunctionDefinitionAst`(`$ast.FindAll({ $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)`)から、「関数名 → ディレクトリ」の表を作る。
 3. 各関数の本体の `CommandAst` のうち、最初の要素(`CommandElements[0]`)が定数の文字列(`StringConstantExpressionAst`)で、その名前が手順 2 の表にあるものを集め、「呼び出し元のディレクトリ → 呼び出し先のディレクトリ」の辺を作る。
-4. 辺の集合が、上の 4 章の許可の表(`Cli` は全部、`Runner` は `Flow`、`State` は `Flow`/`RunId`/`Json`、`Convert` は `Definition`/`Json`、`Definition` は `Json`、そのほかは同じディレクトリの中だけ)に含まれることを検査する。同じディレクトリの中の呼び出しは許す。許されない辺があれば、失敗にする(呼び出し元の関数名と呼び出し先の関数名を失敗の文に書く)。
+4. 辺の集合が、上の 4 章の許可の表(`Cli` は全部、`Runner` は `Flow`/`Text`、`State` は `Flow`/`RunId`/`Json`/`Text`、`Convert` は `Definition`/`Json`/`Text`、`Definition` は `Json`/`Text`、`Json` と `Report` は `Text`、そのほかは同じディレクトリの中だけ)に含まれることを検査する。同じディレクトリの中の呼び出しは許す。許されない辺があれば、失敗にする(呼び出し元の関数名と呼び出し先の関数名を失敗の文に書く)。
 5. ディレクトリのあいだのグラフに、循環がないこと(深さ優先の走査)を検査する。
 6. **動的な呼び出しの禁止**: `&` や `.` の呼び出しで、最初の要素が定数でない `CommandAst`(例: `& $name`、`& "Get-$x"`)は、`Cli` の `Deps` を通した呼び出し(最初の要素が、`$Deps` から始まるメンバーアクセス、または `Deps` 由来の変数)を除いて、失敗にする(静的な走査で追えない辺を作らないため)。`Invoke-Expression`、`Invoke-Command -ScriptBlock` の変数を取る形も、禁止の検査(11 章)で失敗にする。
 7. 関数名の接頭辞の検査: すべての関数名が `Verb-ConductorNoun` の形で、`Verb` が `Get-Verb` の一覧にあること(PSScriptAnalyzer の規則と二重の備え)。
@@ -271,7 +302,7 @@ PowerShell は、名前空間の強制を持たない(関数は、読み込ま�
 | `ModuleVersion` | `'0.8.0'` | **版の唯一の出所**(10 章) |
 | `GUID` | 固定の GUID(最初に 1 回作り、変えない) | 識別子 |
 | `Author`、`CompanyName`、`Copyright`、`Description` | 実装時に決める | 公開の情報 |
-| `PowerShellVersion` | `'7.4'`(実装時点の最小の LTS に合わせて決める。サポート中かを実装時に確認する。7.4 のサポート期間が、この文書の作成時点(2026-11)で終わっているかは未確認) | 最小の版。`#requires -Version` と、ランチャーの検査に使う |
+| `PowerShellVersion` | `'7.6'`(この版の決定。作成日 2026-11-20 時点でサポート中の LTS は 7.6 だけで、7.4 は 2026-11-10 にサポートが終わった。確認: [11-quality-and-build.md](11-quality-and-build.md) の 1 章。実装時に再確認する)。値の出所は `build/Versions.psd1` の `MinPowerShell` で、マニフェストと一致させる(11 章 2.5 節) | 最小の版。`#requires -Version` と、ランチャーの検査に使う |
 | `CompatiblePSEditions` | `@('Core')` | Core のエディション(`pwsh`)だけ(確認: マニフェストの標準のキー。この文書では個別の出典を確認していない。未確認) |
 | `FunctionsToExport` | `@('Invoke-Conductor')` | 公開する関数。ワイルドカードを使わない(性能のため。確認。出典: 同上のサンプルのコメント「for best performance, do not use wildcards and do not delete the entry」) |
 | `CmdletsToExport` | `@()` | 空の配列(キーを消さない) |
@@ -291,11 +322,11 @@ PowerShell は、名前空間の強制を持たない(関数は、読み込ま�
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 版(10 章): マニフェストから 1 回だけ読む
+# 版(10 章): マニフェストから 1 回だけ読む(動かなければ、定数と一致の試験に切り替える。10 章)
 $script:ConductorVersion = (Import-PowerShellDataFile -LiteralPath (Join-Path $PSScriptRoot 'Conductor.psd1')).ModuleVersion
 
 # 読み込みの順序(4 章の依存の下層から。ドットソース)。固定の配列で、`Get-ChildItem` の並びに頼らない
-$private = @('Json', 'RunId', 'Flow', 'Definition', 'Convert', 'State', 'Runner', 'Report', 'Cli')
+$private = @('Text', 'Json', 'RunId', 'Flow', 'Definition', 'Convert', 'State', 'Runner', 'Report', 'Cli')
 foreach ($dir in $private) {
     foreach ($file in <# そのディレクトリの *.ps1 を、ファイル名の序数の昇順で #>) {
         . $file
@@ -311,8 +342,8 @@ Export-ModuleMember -Function 'Invoke-Conductor'
 | 項目 | 規定 |
 |------|------|
 | `Set-StrictMode -Version Latest` | ファイルの先頭。モジュールのスコープに効く(確認: `Set-StrictMode` は、設定したスコープとその子のスコープに効く。公式の文書の記述。この文書では個別の出典を確認していない。未確認)。`Latest` は、将来の `pwsh` の版で、厳しくなりうる。テストの行列(最小の版と最新の版)で検出する |
-| `$ErrorActionPreference = 'Stop'` | `Set-StrictMode` の直後。非終了エラーも終了エラーにして、`catch` に届ける。モジュールの関数が、呼び出し元の設定ではなく、モジュールの値を使うこと(モジュールは、独立したセッション状態を持つ)は、公式の文書で確かめていない(未確認。T-S2) |
-| ドットソースの順序 | 4 章の依存の下層から上へ(`Json`、`RunId`、`Flow`、`Definition`、`Convert`、`State`、`Runner`、`Report`、`Cli`、`Public`)。同じディレクトリの中は、ファイル名の序数の昇順。関数の定義は、呼び出されるより前に読み込まれる必要はない(関数は実行時に解決される)ので、順序は、`class` を使わない限り、動作に影響しない。順序は、検査の再現性と、起動時のエラーの再現のために固定する |
+| `$ErrorActionPreference = 'Stop'` | `Set-StrictMode` の直後。非終了エラーも終了エラーにして、`catch` に届ける。モジュールの関数が、呼び出し元の設定ではなく、モジュールの値を使うこと(モジュールは、独立したセッション状態を持つ)は、公式の文書で確かめていない(未確認。10 章の T8) |
+| ドットソースの順序 | 4 章の依存の下層から上へ(`Text`、`Json`、`RunId`、`Flow`、`Definition`、`Convert`、`State`、`Runner`、`Report`、`Cli`、`Public`)。同じディレクトリの中は、ファイル名の序数の昇順。関数の定義は、呼び出されるより前に読み込まれる必要はない(関数は実行時に解決される)ので、順序は、`class` を使わない限り、動作に影響しない。順序は、検査の再現性と、起動時のエラーの再現のために固定する |
 | 起動の速さ | ドットソースは、ファイルを 1 つずつ構文解析する。ファイル数が多いと、`Import-Module` が遅くなる。【目安】ビルドで、すべての `.ps1` を 1 つの `Conductor.psm1` に結合した配布物を作ってよい(`build/` のスクリプト。結合の順序は、上と同じ)。開発時は、ドットソースの形で動かす。どちらの形でも、テストを通す。起動時間の計測で、結合の要否を決める(11 章) |
 | `Export-ModuleMember` | `Invoke-Conductor` だけ。マニフェストの `FunctionsToExport` と同じにする(二重の備え) |
 | 出力 | ファイルの読み込み中に、何も出力しない(`Import-Module` の出力が混ざらない) |
@@ -342,60 +373,22 @@ PowerShell の `class` には、次の制約がある(確認。出典: `about_Cl
 
 ### 5.5 ランチャー
 
-引数の受け渡しの前提(確認。出典: `about_Pwsh` の `-File` の節): `-File` の値のあとのすべての文字は、スクリプトのファイルパスと、スクリプトへの引数として解釈される。引数は、現在のシェルの解釈を経たあとの、リテラルの文字列としてスクリプトに渡される。`cmd.exe` では、環境変数は `%VAR%` の形が展開される。`File` は、`pwsh` の最後のパラメータでなければならない。Windows では、`-File` は `.ps1` だけを受け付ける(7.2 以降)。`-NoProfile`、`-NonInteractive`、`-NoLogo` は、`pwsh` のパラメータ(確認。出典: `about_Pwsh`。`-NonInteractive` は、対話的な機能の使用を、ハングではなく、終了エラーにする)。
+ランチャーの仕様(3 つのファイル、`pwsh` の起動の引数、環境変数、引数の受け渡し、`pwsh` が無いときの扱い)は、[04-cli.md](04-cli.md) の 1.3〜1.6 節が正本である。この節は、構成と、他の章との接点だけを要約する。
 
-#### `bin/conductor.ps1`(本体のランチャー)【規定】
+引数の受け渡しの前提(確認。出典: `about_Pwsh` の `-File` の節): `-File` の値のあとのすべての文字は、スクリプトのファイルパスと、スクリプトへの引数として解釈される。引数は、現在のシェルの解釈を経たあと、リテラルの文字列としてスクリプトに渡される。`File` は、`pwsh` の最後のパラメータでなければならない。Windows では、`-File` は `.ps1` だけを受け付ける(7.2 以降)。`-NoProfile`、`-NonInteractive`、`-NoLogo` は、`pwsh` のパラメータである。ただし、`pwsh -File` の引数は、スクリプトに届く前に PowerShell のパラメータの形に変換される(`:` で分割、`-` 始まりをスイッチ化。確認: 04 章 1.5 節)ので、**`$args` を使わず、`[System.Environment]::GetCommandLineArgs()` から、最初の `-File` の後ろを、生の引数として取り出す**(04 章 1.5 節。T1 で確かめる)。
 
-役割: モジュールを読み込み、`Invoke-Conductor` を呼び、終了コードで `exit` する。`param` ブロックを持たない(`$args` で、すべての引数を、文字列のまま受ける。`-v` などが、スクリプト自身のパラメータとして束縛されないため)。骨格:
+| ファイル | 役割 | 規定(詳細は 04 章) |
+|----------|------|----------------------|
+| `bin/conductor`(UNIX 系) | `#!/bin/sh` のスクリプト。`pwsh` の有無を確かめ、`POWERSHELL_UPDATECHECK=Off`・`POWERSHELL_TELEMETRY_OPTOUT=1` を設定し、`exec pwsh -NoLogo -NoProfile -NonInteractive -File "<自分のディレクトリ>/conductor.ps1" "$@"` で、本体の入口に引き継ぐ。利用者の引数を、変えず、足さず(`--` も足さない)、並べ替えない | 04 章 1.3.2 |
+| `bin/conductor.cmd`(Windows) | `pwsh -NoLogo -NoProfile -NonInteractive -File "%~dp0conductor.ps1" %*` を呼び、`pwsh` の終了コードをそのまま返す。`-ExecutionPolicy Bypass` を付けない | 04 章 1.3.3 |
+| `bin/conductor.ps1`(入口スクリプト) | `param()`・`[CmdletBinding()]`・`$input` を持たない。モジュールを読み込み(`../Conductor/Conductor.psd1`、なければ `../src/Conductor/Conductor.psd1`)、生の引数を取り出し、`Invoke-Conductor -ArgumentList` を呼び、戻り値を `exit` に渡す。**`exit` を呼ぶのはこのスクリプトだけ**(と、停止経路の `[System.Environment]::Exit`) | 04 章 1.3.4 |
 
-```powershell
-#requires -Version 7.4            # PowerShellVersion と同じ値(版の一致の検査。11 章)
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-$exitCode = 70
-$returned = $false
-try {
-    Import-Module (Join-Path $PSScriptRoot '../src/Conductor/Conductor.psd1') -Force:$false
-    $exitCode = Invoke-Conductor @args        # 配列のスプラット。引数は文字列のまま渡る
-    $returned = $true
-}
-catch [System.Exception] {                    # 読み込みの失敗など。固定の 1 行を出して 70
-    <# conductor: error: internal error を標準エラーに 1 回だけ(例外の内容は出さない) #>
-}
-finally {
-    if (-not $returned) {
-        <# 停止経路(Ctrl+C など): 07 章 7.7 節。予約された終了コード、なければ 130 で [System.Environment]::Exit(code) #>
-    }
-}
-exit $exitCode
-```
-
-- 配置の前提: 配布物では、`bin/` の隣に `src/Conductor/`(または、配布の形に合わせた相対のパス)を置く。ランチャーは、`$PSScriptRoot` からの相対で、モジュールのマニフェストを読み込む(カレントディレクトリに依存しない)。`Import-Module` に、マニフェストの完全なパスを渡す。
-- **`Invoke-Conductor @args` の注意**: 配列のスプラットは、要素を位置の引数として渡す。要素が `-v`、`--`、`-?`、`-Verbose` のような文字列でも、`Invoke-Conductor` の関数に `param` ブロックがなければ(6.1 節)、すべて `$args` に入る(確認していない。T-5 で確かめる。[07-process-and-signals.md](07-process-and-signals.md) の 12.2 節)。
-- ランチャーの `exit $exitCode` は、`exit` を呼ぶ唯一の箇所(と、停止経路の `Environment.Exit`)である。`Invoke-Conductor` が返す値は `[int]` で、0〜255 に合わせ済みである。
-- `$ErrorActionPreference` と、`trap`: ランチャーに `trap` を置かない。`catch [System.Exception]` は、`PipelineStoppedException` を捕まえない場合がある([07-process-and-signals.md](07-process-and-signals.md) の 7.7 節。未確認)。停止は `finally` で扱う。
-- `pwsh` の異常終了(モジュールの構文エラー、`pwsh` 自身の失敗)は、ランチャーの外側になる場合があり、終了コードが 1 になる(確認。出典: `about_Pwsh` の `-File` の節の「when a script-terminating error occurs, the exit code is set to 1」)。70 にならない場合がある。許容する(11 章の受け入れテストは、ランチャーが読み込みに成功する前提)。
-
-#### `bin/conductor`(UNIX 系)【規定】
-
-`/bin/sh` のスクリプト(先頭 `#!/bin/sh`)。自分のディレクトリを求め、`exec pwsh -NoLogo -NoProfile -NonInteractive -File "$dir/conductor.ps1" "$@"` で、本体のランチャーに引き継ぐ。
-
-- 引数 `"$@"` を、そのまま渡す(`sh` の引用で、空白と空文字列の引数が保たれる)。`--` を足さない(足すと、スクリプトの `$args` の先頭に `--` が入るおそれがある。未確認)。
-- 自分のディレクトリの求め方: シンボリックリンク(`/usr/local/bin/conductor` からの)を、`readlink` で追うかは、実装時に決める。追わない場合は、配布の形(zip、tar.gz)が、リンクを要しない構成であること。
-- `pwsh` が `PATH` にないとき、固定の英語の 1 行 `conductor: error: pwsh not found` を標準エラーに書き、終了コード 127 で終わる(コマンドが見つからない場合のシェルの慣習。メッセージの文言は、他の文書と合わせる)。
-- `#!/usr/bin/env pwsh` を先頭に持つ `.ps1` の形(ランチャーを 1 つにする案)は、`-NoProfile` を渡す方法が、`env -S` に依存し(`env -S` が macOS と各 Linux で使えるかは未確認)、`-File` の引数の解釈も不確かなため、採らない(`pwsh` のプロファイルが読まれると、起動が遅くなり、`conductor` の出力が汚れる)。
-- 実行ビットは、配布物で保つ(zip と tar.gz。11 章)。
-
-#### `bin/conductor.cmd`(Windows)【規定】
-
-`@echo off` のあと、`pwsh -NoLogo -NoProfile -NonInteractive -File "%~dp0conductor.ps1" %*` を呼び、`exit /b %ERRORLEVEL%` で、`pwsh` の終了コードをそのまま返す。
-
-- `%~dp0` は、バッチファイルのあるディレクトリ(確認。出典: `about_Pwsh` の `-File` の節の `%~dp0` の例)。`.\conductor.ps1` と書かない(カレントディレクトリに依存し、見つからない。同じ節)。
-- `-ExecutionPolicy Bypass` を付けない(実行ポリシーの回避を、この製品が勝手に行わない。ダウンロードした `.ps1` が `Zone.Identifier` でブロックされるときの案内は、利用者向けの文書に書く。[11-quality-and-build.md](11-quality-and-build.md))。
-- `%*` の展開: `cmd.exe` は、`%*` を、引数を元のまま(引用符つきで)展開する。引数の中の `%` は、バッチファイルの中では、`%%` と書かない限り、展開されるが、`%*` の展開の結果は、再度は展開されない(確認していない。未確認)。`^`、`&`、`|`、`<`、`>` は、利用者が `cmd.exe` のコマンドラインで引用符で囲まずに書くと、`cmd.exe` が先に解釈する(ランチャーの責任の外。利用者向けの文書に、引用符で囲む注意を書く)。引用符で囲まれた引数の中の `"`(`\"`)の扱い、`!` の遅延展開は、確かめていない(未確認。11 章の Windows 専用の項目で確かめる)。
-- `ERRORLEVEL` の値が、`pwsh` の終了コードと一致すること(確認していない。未確認)。
-- `pwsh` が見つからないとき、`cmd.exe` が、`'pwsh' is not recognized ...` を出し、`ERRORLEVEL` は 9009 になる(確認していない。未確認。固有の処理はしない)。
+- **`pwsh` が `PATH` にないとき**: `bin/conductor`・`bin/conductor.cmd` が、固定の英語の 1 行 `conductor: error: pwsh (PowerShell 7) was not found in PATH` を標準エラーに書き、**終了コード 70**(04 章 1.3.2・1.3.3、08 章 4.1 節、10 章 1 章)。127 は、ジョブを起動できなかったときの終了コードで、ランチャーは返さない。
+- **`Invoke-Conductor` が例外を漏らした・戻り値が `[int]` 1 つで 0〜255 でなかった**とき: 入口スクリプトが、`conductor: error: internal error` を標準エラーに 1 回だけ(`OpenStandardError` のストリームに直接)出して 70(10 章 6.1 節)。
+- **停止経路(Ctrl+C など)**: Ctrl+C でスクリプトが `PipelineStoppedException` で止まるとき、入口スクリプトは、内部の誤りの行を出さず、`finally` で、ヘルパーが予約した終了コード(`HasPendingExitCode` が真なら `PendingExitCode`。なければ 130)を `[System.Environment]::Exit` に渡して終わる(07 章 7.7 節。`finally` の中で `Environment.Exit` が働くかは未確認。T4)。
+- `trap` を置かない。`catch [System.Exception]` が `PipelineStoppedException` を捕まえない場合がある(未確認)ので、停止は `finally` で扱う。
+- `pwsh` 自身の異常終了(モジュールの構文エラー、`pwsh` 自身の失敗)は、入口スクリプトの外側になる場合があり、終了コードが 1 になる(確認。出典: `about_Pwsh` の `-File` の節の「when a script-terminating error occurs, the exit code is set to 1」)。70 にならない場合がある。許容する(11 章の受け入れテストは、ランチャーが読み込みに成功する前提)。`pwsh` 自身が起動の失敗に使う 64・70 は、`conductor` の 64・70 と同じ数値になる(10 章 1 章)。
+- 配布物では、`bin/` の隣に `Conductor/`(リリースの配置)を置く。ソースの配置は `src/Conductor/`。入口スクリプトは、`$PSScriptRoot` からの相対で、マニフェストの完全なパスを `Import-Module` に渡す(カレントディレクトリに依存しない)。
 
 ---
 
@@ -403,21 +396,30 @@ exit $exitCode
 
 ### 6.1 `Invoke-Conductor`(`Public/Invoke-Conductor.ps1`)【規定】
 
+署名は [04-cli.md](04-cli.md) の 1.4 節が正本である。
+
 ```powershell
-# 引数 ($args): conductor の引数(プログラム名を除く)。文字列のまま。
-# 戻り値: [int] の終了コード(0〜255)。exit は呼ばない。
+# 引数 (-ArgumentList): conductor の引数(プログラム名を除く)。生の文字列の配列。
+# 戻り値: [int] の終了コード(0〜255)を 1 つだけ。exit は呼ばない。
 function Invoke-Conductor {
-    # param ブロックを持たない。[CmdletBinding()] を付けない。
-    # 本体: 1) 内部の誤りの捕捉を、最初に設定する(try/catch [System.Exception])。
-    #       2) New-ConductorSystemDeps で本番の Deps を作る。
-    #       3) Invoke-ConductorMain -Arguments ([string[]]$args) -Deps $deps を呼び、結果の [int] を返す。
-    #       4) 想定外の例外は、固定の 1 行を標準エラーに書き、70 を返す(07 章 11 章)。
+    [OutputType([int])]
+    param(
+        [Parameter(Position = 0)]
+        [AllowNull()] [AllowEmptyCollection()] [AllowEmptyString()]
+        [string[]] $ArgumentList = @()
+    )
+    # [CmdletBinding()] を付けない。$args を使わない(空でなければ内部の誤り。70)。
+    # 本体: 1) 内部の誤りの捕捉を、最初に設定する(try/catch [System.Exception]。PipelineStoppedException は再送出)。
+    #       2) 作業ディレクトリの合わせ込み(04 章 1.4 節)。
+    #       3) New-ConductorSystemDeps で本番の Deps を作る。
+    #       4) Invoke-ConductorMain -Arguments $ArgumentList -Deps $deps を呼び、結果の [int] を返す。
+    #       5) 想定外の例外は、固定の 1 行を標準エラーに書き、70 を返す(07 章 11 章、10 章 6.1 節)。
 }
 ```
 
-- **`param` ブロックと `[CmdletBinding()]` を持たない理由**: `[CmdletBinding()]` を付けると、共通パラメータ(`-Verbose`、`-Debug`、`-ErrorAction` など)が付き、PowerShell のパラメータの束縛が、これらの名前の短縮(`-v` は `-Verbose` の短縮として解釈されうる)を先に解釈し、`conductor` の `-v` オプションを奪う。`param` ブロックのない関数は、すべての引数を `$args` に入れる(確認していない。T-5)。この規定を、実装時に最初に確かめる。確かめて、食い違うなら、`-ArgumentList` の名前つきの 1 つのパラメータ(`[Parameter(ValueFromRemainingArguments)] [string[]]$ArgumentList`)に変えて、ランチャーが `-ArgumentList $args` で渡す形にする(`-` で始まる引数が、パラメータ名として解釈されない保証は、この形でも未確認)。
-- **`--` の扱い**: `conductor` の文法の `--`(以降を、オプションとして解釈しない)が、PowerShell のコマンド呼び出しの `--`(パラメータの終わり)として、`$args` に入る前に消えないことを、確かめる(T-5)。ランチャーが、配列を作って(`$args` をそのまま)スプラットする形なら、要素の `--` は、リテラルとして渡ると想定する(未確認)。消える場合の回避策: ランチャーが、`$args` を `[string[]]` の変数に入れ、`Invoke-ConductorMain` を直接呼ぶ(`Invoke-Conductor` を経由せず、`Invoke-ConductorMain` を呼べるよう、モジュールの内部の関数を、ランチャーから呼ぶ形に変える)。この回避策は、公開する関数を 1 つにする規定に反するため、確かめた結果で決める(実装時の判断として、この文書を直す)。
-- `-h` と `--help`、`-V` と `--version` の解釈は、`conductor` の引数の解析([04-cli.md](04-cli.md))が行う。PowerShell は、`$args` の文字列としてしか見ない。
+- **`[CmdletBinding()]` を付けない理由**: 付けると、共通パラメータ(`-Verbose`、`-Debug`、`-ErrorAction` など)が足され、対話セッションで `Invoke-Conductor -v` と書いたとき、`-v` が `-Verbose` の省略形として束縛されうる(04 章 1.4 節。未確認)。
+- **引数は `-ArgumentList` に配列で渡す**(`Invoke-Conductor -ArgumentList @('run', '-v', 'job1')`)。配列の要素は、パラメータとして解釈されず、値として渡る(`-v`、`--`、`-?`、`-Verbose` も文字列のまま。T5 で確かめる)。`$args` に頼らない(`pwsh -File` が引数を変換する。04 章 1.5 節)。入口スクリプトは、`GetCommandLineArgs()` から取り出した生の配列をこの形で渡す。
+- `-h` と `--help`、`-V` と `--version` の解釈は、`conductor` の引数の解析([04-cli.md](04-cli.md))が行う。PowerShell は、文字列としてしか見ない。したがって、`conductor run -Verbose a` は、連結の分解で `-V`(version)になり、`conductor 0.8.0` を出して 0 で終わる(04 章 4.2 の 1)。
 
 ### 6.2 `Invoke-ConductorMain`(非公開。`Private/Cli/`)
 
@@ -451,16 +453,16 @@ function Invoke-ConductorMain {
 
 | キー | 口(メンバー) | シグネチャ(引数 → 戻り値) | 本番の実体 |
 |------|----------------|------------------------------|------------|
-| `Env` | `GetEnvironmentVariable` | `name:[string]` → `[string]` または `$null` | `[System.Environment]::GetEnvironmentVariable($name)`(`$env:` の読み取りは、大文字小文字の扱いが OS で違うため、使わない) |
-| | `IsStdoutTerminal` | → `[bool]` | `-not [Console]::IsOutputRedirected`(挙動は 3 OS で確かめる。未確認) |
+| `Env` | `GetEnvironmentVariable` | `name:[string]` → `[string]` または `$null` | `Get-ConductorEnvironmentVariable`(中身は `[System.Environment]::GetEnvironmentVariable($name)`。`$env:` の読み取りは、大文字小文字の扱いが OS で違うため、使わない。04 章 5.1 節) |
+| | `IsStdoutTerminal` | → `[bool]` | `Get-ConductorStdoutIsTerminal`(中身は `-not [Console]::IsOutputRedirected`。挙動は 3 OS で確かめる。未確認) |
 | | `Platform` | → `'Unix'` / `'Windows'` | `Get-ConductorPlatformKind` |
-| | `Cwd` | → `[string]` | `[System.IO.Directory]::GetCurrentDirectory()`(`$PWD` を使わない) |
+| | `Cwd` | → `[string]` | `[System.IO.Directory]::GetCurrentDirectory()`(`$PWD` を使わない。`Invoke-Conductor` が開始時に、これを `$PWD.ProviderPath` に合わせる。04 章 1.4 節) |
 | `Clock` | `Now` | → `[System.DateTimeOffset]` | `[System.DateTimeOffset]::UtcNow`(ステートの一時ファイル名に使う) |
-| `Out` | `Stdout`、`Stderr`(口ごとに `WriteAll`) | `text:[string]` → なし。書いて flush する。失敗は、`[System.IO.IOException]` などで伝える(08 章) | `[Console]::OpenStandardOutput()` / `[Console]::OpenStandardError()` から作った UTF-8(BOM なし)のストリームに書く |
+| `Out` | `Stdout`、`Stderr`(口ごとに `Write`) | `text:[string]` → `[bool]`(真が成功)。書いて flush する。**失敗は例外にせず、偽で返す**(08 章 1.3.2) | `Write-ConductorStream -Stream 'Out'` / `'Err'`。`[Console]::OpenStandardOutput()` / `[Console]::OpenStandardError()` から作った UTF-8(BOM なし。LF。`AutoFlush`)の `StreamWriter` に書く(08 章 1.2.2) |
 | `Defs` | `Load` | `path`、`expectedPipelineName` → 結果(`Ok` と定義、または失敗の列) | `Read-ConductorDefinitionFile` |
-| | `LooseRunIdEnv` | `path` → `[string]` または `$null` | `Read-ConductorLooseRunIdEnv` |
-| `States` | `Read`、`ReadRaw`、`Write`、`Reset`、`ResetAll` | 06 章が正。失敗は値で返す | `Read-ConductorState` ほか。`Write` は `-SyncDirectory`(下の `Proc` と別の口。`Cli` が `Sync-ConductorDirectory` を包んで渡す。`$kind -eq 'Unix'` のとき真) |
-| `Converter` | `Convert` | `inputPath`、`to` → 結果 | `Invoke-ConductorConvertFile` |
+| | `LooseRunIdEnv` | `path` → `[string]` または `$null` | `Get-ConductorRunIdEnv` |
+| `States` | `Read`、`ReadRaw`、`Write`、`Reset`、`ResetAll` | 06 章が正。失敗は値で返す | `Read-ConductorState` ほか。`Write` は `-SyncDirectory`(下の `Proc` と別の口。`Cli` が、UNIX 系では `Sync-ConductorDirectory` を包んだスクリプトブロックを、Windows では `$null` を渡す。06 章) |
+| `Converter` | `Convert` | `inputPath`、`to` → 結果 | `Convert-ConductorFile` |
 | `Proc` | `CheckCommand` | `command` → 結果 | `Test-ConductorCommand` |
 | | `RunJob` | `job`、`sig`、`progress` → `JobExecution` | `Invoke-ConductorJob` |
 | | `Wait` | `secs:[uint64]`、`sig` → `Elapsed` / `Interrupted(番号)` | `Wait-ConductorRetry` |
@@ -468,8 +470,8 @@ function Invoke-ConductorMain {
 
 - 口の呼び出しは、`& $Deps.Proc.RunJob -Job $job ...` のように、`&` で行う。スクリプトブロックの引数は、`param(...)` で受ける。`$_` と `$args` に頼らない。
 - ファイルシステムの差し替えは、`Defs`、`States`、`Converter` の 3 つの口が担う。本番の実体は、実ファイルを読み書きする。偽の実体は、メモリに持つ(ファイルなし)。ステートの書き込みの原子的な置換の失敗は、`State` の内側のテスト(一時ディレクトリの実ファイル)で行う。
-- すべての口は、同期の関数(スクリプトブロック)である。`Proc`、`Defs`、`States`、`Converter` の口は、例外を送出しない(失敗は値で返す)。`Out` の `WriteAll` だけは、失敗を例外で伝える。**例外の扱いは、`Report` の窓口の 1 か所**(標準出力は専用の例外に変えて呼び出し元へ、標準エラーは握りつぶす。08 章)。
-- 書き込みは `Report` の窓口の 1 か所を通す(順序を保つ。書くたびに flush する)。
+- すべての口は、同期の関数(スクリプトブロック)である。`Proc`、`Defs`、`States`、`Converter` の口は、例外を送出しない(失敗は値で返す)。`Out` の `Write` も、失敗を例外でなく `[bool]` の偽で返す。**書き込みの失敗の扱いは、`Report` の窓口の 1 か所**(標準出力の偽は呼び出し元の `watch`・`convert` が 65・67 にし、標準エラーの偽は握りつぶす。08 章 1.3.2)。
+- 書き込みは `Report` の窓口(`Write-ConductorStream`。`Send-Conductor*` 経由)の 1 か所を通す(順序を保つ。書くたびに flush する)。テストは、その出力口(`$script:` の `StreamWriter`)をメモリ上のストリームに差し替える(08 章 10 章)。
 
 ### 7.4 偽の実装(`tests/support/`)【規定】
 
@@ -479,7 +481,7 @@ function Invoke-ConductorMain {
 |-----------|----------|----------|
 | `Env` | 環境変数を表(ハッシュテーブル)で与える。`GetEnvironmentVariable` を呼んだ名前と回数を記録する。`IsStdoutTerminal`、`Platform`、`Cwd` の値を設定する | ロケール(`LC_ALL`・`LC_MESSAGES`・`LANG`)・`NO_COLOR`・run ID の環境変数。ロケールの判定を**遅延**して、最初に必要になったとき 1 回だけであること |
 | `Clock` | 固定の時刻を返す。進める操作を持つ | 一時ファイル名の時刻 |
-| `Out`(バッファ) | `WriteAll` で文字列に溜める。呼び出しの順序の記録も持つ。「n 回目の書き込みで失敗する」設定を持つ | 出力の中身、`cannot write to standard output`(`watch` の 65、`convert` の 67) |
+| `Out`(バッファ) | `Write` で文字列に溜める(`[bool]` を返す)。呼び出しの順序の記録も持つ。「n 回目の書き込みで偽を返す」設定を持つ | 出力の中身、`cannot write to standard output`(`watch` の 65、`convert` の 67) |
 | `Defs` | パスごとに、決めた定義や誤りの並びを返す。または、実ファイルを `Read-ConductorDefinitionFile` で読む | 定義の誤り(64)の経路 |
 | `States`(メモリ) | ステートをメモリに持つ。読み込み・書き込み・削除の呼び出しを記録する。失敗の設定を持つ | 大きなジョブ数(1,000 個)の流れの測定、ステートの異常系(65) |
 | `Converter` | 入力パスごとに、決めた文字列かエラーを返す | `convert` の 67 |
@@ -519,7 +521,7 @@ function Invoke-ConductorMain {
 | 項目 | 方針 |
 |------|------|
 | 基本 | 失敗は、戻り値(判別用の `Kind` または `Ok` を持つ `[pscustomobject]`)で返す。外部の入力(引数・環境・ファイル・OS の結果)に対して、例外を送出しない(`throw` しない) |
-| 例外を許す場所 | (1) 実装の不具合(論理の矛盾。起こるはずのない状態)。`Invoke-Conductor` の `catch [System.Exception]` が、固定の 1 行を標準エラーに出して 70 を返す。(2) 標準出力への書き込みの失敗(`Report` が送出し、`watch`・`convert` の呼び出し元が捕まえる)。(3) .NET のメソッドが例外を送出する場合は、その場で、想定する型だけを狭く捕まえて、値にする(例: `Process.Start` の `Win32Exception`、ファイル入出力の `System.IO.IOException`・`System.UnauthorizedAccessException`、デコードの `System.Text.DecoderFallbackException`) |
+| 例外を許す場所 | (1) 実装の不具合(論理の矛盾。起こるはずのない状態)。`Invoke-Conductor` の `catch [System.Exception]` が、固定の 1 行を標準エラーに出して 70 を返す。(2) 標準出力への書き込みの失敗は、例外にせず、`Write-ConductorStream` の `[bool]` の偽で返し、`watch`・`convert` の呼び出し元が 65・67 にする(08 章 1.3.2)。(3) .NET のメソッドが例外を送出する場合は、その場で、想定する型だけを狭く捕まえて、値にする(例: `Process.Start` の `Win32Exception`、ファイル入出力の `System.IO.IOException`・`System.UnauthorizedAccessException`、デコードの `System.Text.DecoderFallbackException`) |
 | 捕まえる例外の範囲 | 想定する型だけを、狭く捕まえる(`catch [System.IO.IOException]`)。`catch { }`(型なし)と `catch [System.Exception]` を、`Invoke-Conductor` の 1 か所(とランチャー)以外に書かない。`try` の中身は、失敗しうる 1 つの呼び出しに絞る |
 | 例外の内容 | 例外の `Message` と `ToString()` を、利用者への表示に使わない(入力の値、OS のメッセージが混ざらないよう、固定の文だけを表示する) |
 | 終了 | `Invoke-Conductor` が `[int]` を返し、ランチャーが `exit` する。`exit` を、モジュールの中で呼ばない(モジュールの中の `exit` は、対話セッションごと終了する。確認していない。`pwsh` のプロセスの終了と同じ扱いになることは、PowerShell の既知の挙動)。例外: 停止経路のランチャー([07-process-and-signals.md](07-process-and-signals.md) の 7.7 節) |
@@ -533,7 +535,7 @@ function Invoke-ConductorMain {
 PowerShell は、関数の中で、式の結果が変数に代入されずに残ると、それを関数の出力(戻り値の一部)にする。この版の規律:
 
 - 値を返すメソッドや式を、結果を使わずに書くときは、`[void]` または `$null =` を付ける(例: `$null = $list.Add($x)` は不要(`List.Add` は戻り値なし)だが、`$set.Add($x)` は `bool` を返す。`StringBuilder.Append` は `StringBuilder` を返す)。
-- `Write-Host`、`Write-Output`、`Write-Error`、`Write-Warning`、`Write-Verbose`、`Write-Debug`、`Write-Information`、`Out-Host`、`Out-String`、`Out-Null`(性能が遅い)を製品のコードで使わない(PSScriptAnalyzer の `PSAvoidUsingWriteHost` と、禁止コマンドの検査。[11-quality-and-build.md](11-quality-and-build.md))。画面への出力は、`Report` の `Write-ConductorOutput`/`Write-ConductorErrorLine` だけが、`[Console]::Out`/`[Console]::Error`(または、標準のストリーム)に書く。
+- `Write-Host`、`Write-Output`、`Write-Error`、`Write-Warning`、`Write-Verbose`、`Write-Debug`、`Write-Information`、`Out-Host`、`Out-String`、`Out-Null`(性能が遅い)を製品のコードで使わない(PSScriptAnalyzer の `PSAvoidUsingWriteHost` と、禁止コマンドの検査。[11-quality-and-build.md](11-quality-and-build.md))。画面への出力は、`Report` の `Write-ConductorStream`(`Send-Conductor*` 経由)だけが、`[Console]::OpenStandardOutput()` / `[Console]::OpenStandardError()` のストリームを包んだ `StreamWriter` に書く(`[Console]::Out`/`[Console]::Error` は使わない。08 章 1.2.2)。
 - 関数は、戻り値を `return` で 1 つだけ明示する。配列を返すときは `return ,$array`。呼び出し側は、`@(...)` で包んで受ける(戻り値が 1 要素や 0 要素の配列のとき、単一の値・`$null` になるのを防ぐ)。
 - 文字列の比較は、`-eq`、`-like`、`-match`、`switch` を使わない(既定で大文字小文字を区別しない)。区別が要る箇所は、`-ceq`、`[string]::Equals($a, $b, [System.StringComparison]::Ordinal)` を使う。`-match`/`-replace`/`-split`/`switch -Regex` を使わず、手書きの走査にする。`[regex]` を使うなら、`[System.Text.RegularExpressions.RegexOptions]` を明示する(`CultureInvariant`、`ECMAScript` か `None`)。
 - `$null` の比較は、`$null -eq $x`(`$null` を左辺)。`if ($x)` で、`0`、空文字列、空配列を真偽として判定しない。
@@ -547,7 +549,7 @@ PowerShell は、関数の中で、式の結果が変数に代入されずに残
 |------|------|
 | 唯一の出所 | `src/Conductor/Conductor.psd1` の `ModuleVersion`(`'0.8.0'`)。版は、ここだけを書き換えて変える |
 | 実行時の読み方 | `Conductor.psm1` の先頭で、`Import-PowerShellDataFile -LiteralPath (Join-Path $PSScriptRoot 'Conductor.psd1')` を 1 回だけ呼び、`.ModuleVersion` を `$script:ConductorVersion` に保つ。`Get-ConductorVersion`(`Cli`)が、これを返す。コードの中に、版の文字列のリテラルを書かない(二重の管理がない) |
-| 選択肢の比較 | (a) `Import-PowerShellDataFile` でマニフェストを読む: モジュールの読み込み方(パス、名前)に依存しない。マニフェストはデータだけなので、安全に読める(確認: `Import-PowerShellDataFile` は、データファイルを、コードを実行せずに読む。出典: PowerShell の公式の文書の説明。この文書では個別の出典を確認していない。未確認)。**採用**。(b) `(Get-Module Conductor).Version`: モジュールが、`Conductor` という名前で読み込まれていることに依存し(別のパスから読み込んだ場合や、結合した `.psm1` では、名前や版の取り出しの挙動が違いうる)、`Get-Module` の探索のコストがある。不採用。(c) `$MyInvocation.MyCommand.Module.Version`、`$ExecutionContext.SessionState.Module.Version`: モジュールのスコープの中で取れるが、ドットソースされたスクリプトの中での値が確かめられていない。不採用(未確認) |
+| 選択肢の比較 | (a) `Import-PowerShellDataFile` でマニフェストを読む: モジュールの読み込み方(パス、名前)に依存しない。マニフェストはデータだけなので、安全に読める(確認: `Import-PowerShellDataFile` は、データファイルを、コードを実行せずに読む。出典: PowerShell の公式の文書の説明。この文書では個別の出典を確認していない。未確認)。**採用**。`Import-PowerShellDataFile` がマニフェストを読めること(`ModuleVersion` が文字列で返ること)は未確認(04 章の試験 T6、11 章 10.2 節の試験)。読めなければ、`$script:ConductorVersion` に定数 `'0.8.0'` を書き、`Test-ModuleManifest` の `Version` と一致することを、単体テストと `Invoke-Checks version`(11 章)で検査する方式に切り替える(唯一の出所はマニフェストのまま。定数は検査で縛る)。(b) `(Get-Module Conductor).Version`: モジュールが、`Conductor` という名前で読み込まれていることに依存し(別のパスから読み込んだ場合や、結合した `.psm1` では、名前や版の取り出しの挙動が違いうる)、`Get-Module` の探索のコストがある。不採用。(c) `$MyInvocation.MyCommand.Module.Version`、`$ExecutionContext.SessionState.Module.Version`: モジュールのスコープの中で取れるが、ドットソースされたスクリプトの中での値が確かめられていない。不採用(未確認) |
 | 結合した配布物 | ビルドで `.psm1` を結合した場合も、`Conductor.psd1` は同じ場所に置かれ、同じ方法で読む |
 | 表示 | `conductor --version` は `conductor <Get-ConductorVersion>`(`conductor 0.8.0`)。`--help` などに、版を書かない |
 | 一致の検査 | (1) 単体テストが、`Test-ModuleManifest` の `Version` と、`Get-ConductorVersion` の値が等しいことを検査する。(2) 受け入れテストが、実際の `conductor --version` の出力が `conductor <マニフェストの ModuleVersion>` と等しいことを検査する。(3) リリースの CI が、タグ(`v0.8.0`)から `v` を除いた値と、`ModuleVersion` と、ビルドした配布物の `--version` の出力が、等しいことを検査する([11-quality-and-build.md](11-quality-and-build.md))。(4) ランチャー、テスト、ドキュメントの中の版の文字列(`#requires` の版は別。`PowerShellVersion` との一致を検査する)が、`ModuleVersion` と矛盾しないこと(ランチャーは版の文字列を持たない) |
@@ -561,13 +563,14 @@ PowerShell は、関数の中で、式の結果が変数に代入されずに残
 ```text
 bin/conductor.ps1:
     モジュールを読み込む
-    code = Invoke-Conductor @args                 # 例外は 70(停止は finally で扱う)
-    exit code                                     # 終了は、ここで 1 回だけ
+    raw = GetCommandLineArgs() の、最初の -File の後ろ         # 04 章 1.5 節
+    code = Invoke-Conductor -ArgumentList raw                    # 例外は 70(停止は finally で扱う)
+    exit code                                                    # 終了は、ここで 1 回だけ(停止経路は Environment.Exit)
 
-Invoke-Conductor:
+Invoke-Conductor(-ArgumentList):
     内部の誤りの捕捉を、最初に設定する(try / catch [System.Exception])   # 固定の英語 1 行 + 70
     deps = New-ConductorSystemDeps
-    return Invoke-ConductorMain -Arguments $args -Deps deps
+    return Invoke-ConductorMain -Arguments ArgumentList -Deps deps
 
 Invoke-ConductorMain(arguments, deps):
     Test-ConductorDeps(deps)
@@ -595,7 +598,7 @@ Cli: pipeline
  └─ for job in 定義のジョブ(記述順):
       ├─ Get-ConductorDecision(...) → 実行 / スキップ / 拒否
       │    ├─ 拒否     → Report: 表示、return 66
-      │    ├─ スキップ → Add-ConductorSkip → 変化があれば & Deps.States.Write(Durable)、続行(完了なら finish)
+      │    ├─ スキップ → Set-ConductorSkipRecord → 変化があれば & Deps.States.Write(Durable)、続行(完了なら finish)
       │    └─ 実行:
       │         Invoke-ConductorExecJob    # 1 ジョブの try { ... } finally { 停止経路の後始末 }(07 章 7.7 節)
       │         ├─ ステートが空なら New-ConductorInitialState → & Deps.States.Write(Fast)
@@ -604,12 +607,12 @@ Cli: pipeline
       │         │           dec = Get-ConductorRetryDecision(job, r, retriesDone, lastWait)
       │         │           リトライなら Report: 知らせ(常に標準エラー) → w = & Deps.Proc.Wait(secs, sig)
       │         │                    w が Interrupted なら「起動しなかった中断」の実行結果(Started=false, Interrupted=true, SignalNumber)を作って抜ける }
-      │         ├─ Get-ConductorClassification(..., RunMode = 'Pipeline')
+      │         ├─ Get-ConductorClassifiedStep(..., RunMode = 'Pipeline')
       │         ├─ Report: 表示(-v のときの結果行・遷移行。常時のエラー行)
-      │         ├─ Add-ConductorOutcome → & Deps.States.Write(Durable)
-      │         ├─ エラーまたは分類なし → return Get-ConductorExitCode(...)
+      │         ├─ Set-ConductorOutcomeRecord → & Deps.States.Write(Durable)
+      │         ├─ エラーまたは分類なし → return ConvertTo-ConductorProcessExitCode(...)
       │         ├─ 完了 → finish(--remove-on-complete なら & Deps.States.Reset)、return 0
-      │         └─ sig.IsRaised → Get-ConductorResumePoint → Add-ConductorInterrupt → & Deps.States.Write(Durable)、return 128 + 番号
+      │         └─ sig.IsRaised → Get-ConductorResumePoint → Set-ConductorInterruptRecord → & Deps.States.Write(Durable)、return 128 + 番号
  └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
 ```
 
@@ -626,10 +629,10 @@ Cli: pipeline
 ステートファイル ──Deps.States.Read──▶ PipelineState ───────┤
                                                              ▼
                        Get-ConductorDecision ──▶ 実行 / スキップ / 拒否
-Invoke-ConductorJob ──▶ JobExecution ──Get-ConductorClassification──▶ (JobOutcome, NextStep)
+Invoke-ConductorJob ──▶ JobExecution ──Get-ConductorClassifiedStep──▶ (JobOutcome, NextStep)
                                           │
         Add-Conductor*(結果・スキップ・中断) ──▶ 新しい PipelineState ──Deps.States.Write──▶ ステートファイル
-JobOutcome の報告する終了コード ──Get-ConductorExitCode──▶ conductor の終了コード
+JobOutcome の報告する終了コード ──ConvertTo-ConductorProcessExitCode──▶ conductor の終了コード
 ```
 
 ### 11.4 中断の伝わり方
@@ -642,12 +645,12 @@ JobOutcome の報告する終了コード ──Get-ConductorExitCode──▶ c
 ## 12. 未確認の事項
 
 - この環境には `pwsh` も .NET SDK もなく、スクリプトの構文、`Add-Type`、マニフェストの検査、Pester の実行を、確かめていない。関数の骨格は、書き方の例であり、構文の検査を通していない。
-- `param` ブロックのない関数と、配列のスプラットで、`-v`、`--`、`-?`、`-Verbose` が文字列のまま `$args` に入るか(T-5)。`pwsh -File` に、`--` を挟まず渡した引数が、リテラルのまま届くか。
+- `GetCommandLineArgs()` が、`pwsh` の受け取った引数を、変換や欠落なしに返すか(04 章の T1)。`Invoke-Conductor -ArgumentList` に渡した配列の要素(`-v`、`--`、`-?`、`-Verbose`)が、パラメータとして解釈されず文字列のまま届くか(04 章の T5)。
 - モジュールのスコープで、`Set-StrictMode` と `$ErrorActionPreference` が、呼び出し元の設定と独立に効くか。`Set-StrictMode -Version Latest` の下で、ハッシュテーブルの存在しないキーの参照が、例外になるか `$null` になるか。
 - ドットソースされた `.ps1` の中の `$PSScriptRoot` の値。
 - Pester 5 の `Mock` と、モジュールの非公開の関数の扱い(`-ModuleName`、`InModuleScope`)の細部。
 - AST の走査(4.1 節)が、パイプラインのスクリプトブロックの中の呼び出し(`ForEach-Object { ... }`)も、関数の呼び出しとして拾えること(`FindAll` に、検索の対象にネストしたスクリプトブロックを含める第 2 引数 `$true` を渡す。公式の API の仕様のとおりと想定するが、確かめていない)。
-- マニフェストの `PowerShellVersion` の最小の版(7.4 のサポート期間)、`CompatiblePSEditions` の扱い。
+- マニフェストの `PowerShellVersion` の最小の版(7.6 LTS。実装時にサポート期間を再確認する)、`CompatiblePSEditions` の扱い。
 - 結合した `.psm1` の起動時間と、ドットソースの形との差(11 章の startup-bench で測る)。
 - `bin/conductor` のシンボリックリンクの解決、`bin/conductor.cmd` の `%*` と `^`/`&`/`!` の扱い、`ERRORLEVEL` と `pwsh` の終了コードの一致、Windows での実機の動作。
 - 確認できたこと(出典つき): `Add-Type` の挙動([07-process-and-signals.md](07-process-and-signals.md) の 7.3 節)、`about_Classes` の制約(5.3 節)、`about_Pwsh` の `-File` の終了コードと引数の受け渡し(5.5 節)、マニフェストのキー(5.1 節)、`ConsoleHost.cs` の Ctrl+C の処理(07 章の 7.5・7.6 節)。

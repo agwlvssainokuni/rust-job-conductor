@@ -8,7 +8,7 @@
 - 確認できなかった点は「未確認」と書く。公式ドキュメントや公開されたソースの記述で確かめた点は「確認(出典: …)」と書く。この環境には PowerShell(`pwsh`)も .NET SDK も無く、実機では動かしていない。したがって「確認」は、**文書・ソースの記述の確認**であり、動作の確認ではない。実装時に最初に行う小さな試験を第 16 節に一覧にする。
 - 「必須」と書いた挙動は、利用者から見える結果(受理/拒否、エラーの種類・文言・行番号、取り込み後の値)であり、同じにしなければならない。「任意」「実装に任せてよい」と書いた点は、利用者から見える結果が変わらない範囲で、実装が選んでよい。
 - このツールの終了コード、エラー行の標準エラーへの出し方は [10. エラーと終了コード](10-errors-and-exit-codes.md)、メッセージの言語の選び方と標準出力・標準エラーの文字コードは [08. 出力と多言語対応](08-output-and-i18n.md) に従う。この文書は、エラーの内容(種類・位置・理由)までを定める。
-- `.psd1` と JSON の読み取り(第 4〜6 節)は、[09. 変換器](09-converter.md)と共有する。実装は、`src/Conductor/Private/Json/`(自前の JSON の読み書き)と `src/Conductor/Private/Definition/`(木の型、`.psd1` の読み取り、上限、検査)に「木の読み取り」の部分を置き、`src/Conductor/Private/Convert/` はその関数を使う([02. アーキテクチャ](02-architecture.md))。ファイル名は任意。
+- `.psd1` と JSON の読み取り(第 4〜6 節)は、[09. 変換器](09-converter.md)と共有する。実装は、`src/Conductor/Private/Json/`(自前の JSON の読み書き、木の型、上限の検査)と `src/Conductor/Private/Definition/`(`.psd1` の読み取り、検査)に「木の読み取り」の部分を置き、`src/Conductor/Private/Convert/` はその関数を使う([02. アーキテクチャ](02-architecture.md))。ファイル名は任意。
 - 実装は、モジュールの先頭で `Set-StrictMode -Version Latest` と `$ErrorActionPreference = 'Stop'` を設定する。読み込み処理は、利用者の入力の誤りを**例外ではなく戻り値**(結果のオブジェクト)で返す。例外は、実装の不具合(想定外の内部失敗)にだけ使う。ただし、.NET や PowerShell のパーサーが投げる例外は、第 3、4 節のとおり、読み込み処理の内側で捕まえて、定められた種類の戻り値にする。
 - 画面への出力は、この文書の処理では行わない(`Write-Host`、`Write-Output`、`Write-Error` を使わない)。関数の戻り値に出力が混ざる事故を避けるため、戻り値は `return` で明示し、コマンドレットの出力を `$null = ...` か `[void]` で捨てる。
 - 文化に依存する API(`ToString()` の引数なし、`Parse` の既定、`ToUpper()`、`-eq` などの比較演算子、`switch`)は、この文書の処理では使わない。数の書式化と解析は `[System.Globalization.CultureInfo]::InvariantCulture`、文字列の比較は `[string]::Equals(a, b, [System.StringComparison]::Ordinal)` か `-ceq` を使う。
@@ -139,7 +139,7 @@
 | `EndBlock` が `$null` でない | 空のファイル、コメントだけのファイルは `EndBlock` が空の文の並びになる(未確認: `$null` か、空のブロックか。どちらでも、「文が 0 個」として扱う) |
 | `EndBlock.Statements.Count` が 1 | 0 個(空・コメントだけ)は `syntax`(理由 ``.psd1 の文法に誤りがあります``。位置は入力の末尾)。2 個以上(`@{} @{}`、`$a = 1; @{}`)は `syntax`(理由 ``.psd1 で使えない書き方です``。位置は 2 つ目の文) |
 | `EndBlock.Traps` が空、`EndBlock.Unnamed` が真 | `trap {}` を許さない(未確認: 属性名。実装時に確かめる) |
-| その 1 つの文が `PipelineAst` で、`PipelineElements.Count` が 1、その要素が `CommandExpressionAst`、`Redirections.Count` が 0、`PipelineAst.Background` が偽 | `a | b`、`@{} > file`、`@{} &`、コマンドを許さない |
+| その 1 つの文が `PipelineAst` で、`PipelineElements.Count` が 1、その要素が `CommandExpressionAst`、`Redirections.Count` が 0、`PipelineAst.Background` が偽 | `a \| b`、`@{} > file`、`@{} &`、コマンドを許さない |
 
 `CommandExpressionAst.Expression` が、第 4.3 節の「値の式」であれば、その値が最上位の値になる。最上位が、マップ以外(配列、文字列、数など)でも、段階 3 では文法として受理する(最上位の確認は第 6.7 節)。
 
@@ -1000,7 +1000,7 @@ JSON のノードの位置は、オブジェクトは `{`、配列は `[`、ス�
 
 ### 12.2 公開する関数の署名(例)
 
-`src/Conductor/Private/Definition/` が提供する関数(名前は規定。[02. アーキテクチャ](02-architecture.md)と一致させる。`Verb-ConductorNoun`。公開しない)。
+`src/Conductor/Private/Definition/` と `Private/Json/` が提供する関数(名前は規定。[02. アーキテクチャ](02-architecture.md)の 3 章の一覧と一致している。`Verb-ConductorNoun`。公開しない)。`Read-ConductorJsonTree` と `Test-ConductorTreeLimits` は `Private/Json/`、ほかは `Private/Definition/` に置く。
 
 ```powershell
 function Get-ConductorFormatFromPath {

@@ -157,7 +157,7 @@ PowerShell の側で確認した事項:
 | `[System.Console]::Out`・`[System.Console]::Error`・`WriteLine` | `OutputEncoding` が環境(ロケール)に依存し(1.2.1)、`WriteLine` の改行が `[System.Environment]::NewLine`(Windows で CRLF)になりうる。`[System.Console]::OutputEncoding` を設定すると、その設定が `pwsh` のプロセス全体(対話セッションのコンソール)に残る。ホストと同じ書き込み口を共有するため、ホスト自身の出力との順序・バッファリングが未確認 |
 | `Format-Table`・`Out-String`・`$PSStyle` | `watch` の表の幅と埋めを、仕様の表示幅の規則(6.2)に合わせられない。色は、`$PSStyle` を使わず、自前の ANSI の制御列で付ける(6.3) |
 
-この仕様の書き込みは、1.2.2 の自前の `StreamWriter` に、組み立て済みの文字列を渡す 1 つの関数に集める。共通の設計判断どおり、画面への出力は専用の関数だけが行い、それ以外の関数は、値を返すだけにする。
+この仕様の書き込みは、1.2.2 の自前の `StreamWriter` に、組み立て済みの文字列を渡す 1 つの関数に集める。02 章 9.2 節のとおり、画面への出力は専用の関数だけが行い、それ以外の関数は、値を返すだけにする。
 
 ## 2. `-v`(`--verbose`)
 
@@ -314,8 +314,8 @@ conductor: error: nonexist.psd1: 定義ファイルが存在しません: 指定
 
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
-| `unclosedQuote` | `command has an unclosed quote` | `command の引用符が閉じていません` |
-| `empty` | `command is empty` | `command が空です` |
+| `UnclosedQuote` | `command has an unclosed quote` | `command の引用符が閉じていません` |
+| `Empty` | `command is empty` | `command が空です` |
 
 `command` の解釈の規則は [03-definition-format.md](03-definition-format.md) と [05-execution-flow.md](05-execution-flow.md) にある。
 
@@ -541,7 +541,7 @@ Run ID: <ID>                       ← run ID があるときだけ。見出し�
 
 ### 6.3 色
 
-- 色を使う条件(最初に必要になったとき一度だけ判定): 環境変数 `NO_COLOR` が未設定または空(値が `Test-ConductorSuspectText` の場合も未設定と同じ。04 章 4.4.2)、かつ標準出力が端末(`[System.Console]::IsOutputRedirected` が偽。確認: 1.2.1)、かつ実行環境が Windows でない。Windows は常に色なし(挙動をほかの OS の実装と揃えるための決定。Windows の端末の ANSI 対応の可否は、この規定のために確認していない)。OS の判定は、`Private/Runner/` の 1 か所(`Get-ConductorPlatform`。内部で `$IsWindows` を使ってよい。確認(出典: about_Automatic_Variables): `$IsWindows`・`$IsLinux`・`$IsMacOS` が PowerShell 7 にある)にまとめ、`Report` は `$IsWindows` などを直接参照しない(OS 差を 1 か所にまとめる規則)。端末判定は `Get-ConductorStdoutIsTerminal` が、OS を見ずに、`-not [System.Console]::IsOutputRedirected` だけを返す。
+- 色を使う条件(最初に必要になったとき一度だけ判定): 環境変数 `NO_COLOR` が未設定または空(値が `Test-ConductorSuspectText` の場合も未設定と同じ。04 章 4.4.2)、かつ標準出力が端末(`[System.Console]::IsOutputRedirected` が偽。確認: 1.2.1)、かつ実行環境が Windows でない。Windows は常に色なし(この版の決定。Windows の端末の ANSI 対応の可否は、この規定のために確認していない)。OS の判定は、`Private/Runner/` の 1 か所(`Get-ConductorPlatformKind`。内部で `$IsWindows` を使ってよい。確認(出典: about_Automatic_Variables): `$IsWindows`・`$IsLinux`・`$IsMacOS` が PowerShell 7 にある)にまとめ、`Report` は `$IsWindows` などを直接参照しない(OS 差を 1 か所にまとめる規則)。端末判定は `Get-ConductorStdoutIsTerminal` が、OS を見ずに、`-not [System.Console]::IsOutputRedirected` だけを返す。
 - **`$PSStyle`、`$Host.UI.SupportsVirtualTerminal`、`TERM` を使わない**。確認(出典: about_Environment_Variables): `NO_COLOR` が存在すると `$PSStyle.OutputRendering` が `PlainText` になる、`TERM=dumb` で `$Host.UI.SupportsVirtualTerminal` が偽になる。これらは、PowerShell 自身の出力の色の設定であり、`conductor` の条件は、この節の規則で固定する(`TERM=dumb` の端末でも、`NO_COLOR` が空で標準出力が端末なら、色を付ける。他の実装と同じ)。
 - 端末の判定: `[System.Console]::IsOutputRedirected` は、標準出力が端末でないとき(パイプ・ファイル)真になる(確認: 1.2.1。UNIX 系では `isatty(1)` の否定。Windows の実装は出典を取得しておらず、未確認)。端末(疑似端末を含む)で偽になることは、この環境では確認できなかった(未確認。実装時に、実際の端末で確かめる)。`[System.Console]::IsOutputRedirected` に統一し、`IsInputRedirected` などを混ぜない。外部のモジュールは使わない。
 - 色は、状態語だけに、ANSI の SGR で付ける: `ESC[<番号>m<語>ESC[0m`(ESC は U+001B。PowerShell の文字列では `[char]0x1B` で作る。`` "`e" `` は PowerShell 6 以降の書き方だが、`[char]0x1B` に統一する)のあとに埋めの空白。`success` = 32(緑)、`warning` = 33(黄)、`error` = 31(赤)、`skipped` = 36(シアン)、`pending` = 色なし(制御列を付けない)。
@@ -589,7 +589,7 @@ load       success  終了コード 0
 - 判定は、1 回の実行につき、最初に表示が必要になったときだけ行い、結果を保つ(`$script:Locale` が `$null` なら未判定)。
 - ロケールを判定しない固定の文: `--version`、内部の誤りの文、シグナルの準備の失敗の文、ランチャーの `pwsh` が見つからない文(英語のみ)。
 - 言語によらず英語: 状態語、`job=`・`result=`、`Run ID`、`conductor: error: `・`conductor: warning: `・`conductor: retry: `・`[conductor] ` の接頭辞、`--help` の中のオプション名。定義・ステート・変換の誤りの `<原因>` は日本語のまま。
-- 必須: ロケールの判定に、`$PSCulture`・`$PSUICulture`・`Get-Culture`・`Get-UICulture`・`[System.Globalization.CultureInfo]::CurrentCulture`・`CurrentUICulture`・`InstalledUICulture`・`[System.Threading.Thread]::CurrentThread.CurrentCulture`・`Import-LocalizedData`・メッセージのリソースなどの、PowerShell と .NET の文化の仕組みを**使わず**、上の 3 つの環境変数だけで決めること。理由: 確認(出典: about_Automatic_Variables): `$PSCulture` は PowerShell 7 で実行空間の文化を反映し、`$PSUICulture` は OS の UI の文化(`CurrentUICulture.Name`)であって、環境変数 `LANG` などを反映するとは限らない。他の実装は環境変数だけで決めており、挙動を揃える必要がある。文字列の整形・比較にも、`[System.Globalization.CultureInfo]::InvariantCulture` と序数(`[System.StringComparison]::Ordinal`)を明示する(04 章 4.0、4.9)。
+- 必須: ロケールの判定に、`$PSCulture`・`$PSUICulture`・`Get-Culture`・`Get-UICulture`・`[System.Globalization.CultureInfo]::CurrentCulture`・`CurrentUICulture`・`InstalledUICulture`・`[System.Threading.Thread]::CurrentThread.CurrentCulture`・`Import-LocalizedData`・メッセージのリソースなどの、PowerShell と .NET の文化の仕組みを**使わず**、上の 3 つの環境変数だけで決めること。理由: 確認(出典: about_Automatic_Variables): `$PSCulture` は PowerShell 7 で実行空間の文化を反映し、`$PSUICulture` は OS の UI の文化(`CurrentUICulture.Name`)であって、環境変数 `LANG` などを反映するとは限らない。`conductor` は環境変数だけで決める(挙動を一定にするため)。文字列の整形・比較にも、`[System.Globalization.CultureInfo]::InvariantCulture` と序数(`[System.StringComparison]::Ordinal`)を明示する(04 章 4.0、4.9)。
 - PowerShell は、`switch`・`-eq`・`-like`・`-match` が既定で大文字小文字を区別しない。この章で書く比較(ロケールの先頭の `ja`、種別の識別子、状態語)は、序数の比較(`StartsWith(..., Ordinal)`、`[string]::Equals(..., Ordinal)`、`-ceq`、`switch -CaseSensitive -Exact`)で行う(04 章 4.0 の表)。
 
 ## 8. 使い方(`--help`)全文
@@ -649,7 +649,7 @@ Options:
 
 ### 8.3 この版で文言を直した箇所(一覧)
 
-元の `conductor` の文言から、次の 3 点(英語・日本語とも。計 6 行)だけを、定義の主書式が `.psd1`(副書式が JSON)になったことに合わせて直した。それ以外の行は、文字単位で同じ。実装は「直した後」の文言だけを出す。
+v0.8.0 の `conductor` の文言から、次の 3 点(英語・日本語とも。計 6 行)だけを、定義の主書式が `.psd1`(副書式が JSON)になったことに合わせて直した。それ以外の行は、文字単位で同じ。実装は「直した後」の文言だけを出す。
 
 | 行 | 直した後 | 直した内容 |
 |----|----------|------------|
@@ -662,7 +662,7 @@ Options:
 
 (表の `\|` は Markdown の表のための書き方で、実際の文言は `|` 1 文字。)
 
-あわせて、ステートの原因・定義の誤りの種類の文言は、0 章の表のとおり(`JSON として読めません`、`内容を JSON にできません`、`retry はマップで書きます`、`定義ファイルの形式に対応していません`)。変換の誤りの原因(10 章 7.3)は、`.psd1` に合わせて、次を置き換え・削除した(「元」は、`.psd1` の前提に直す前の文言)。元の文法の誤りの文(書式名が `.psd1` でないもの)を `.psd1 の文法に誤りがあります` に置き換えた。タグ・複数の文書・アンカー・マージキーに関する 4 件(`タグは使えません`、`複数の文書は書けません(…)`、`アンカーが自分自身を含んでいます`、`マージキーの値がマップではありません`)は、`.psd1` に対応する構文が無いので削除し、`この構文は使えません(データだけを書けます)` を追加した。`NaN と無限大は JSON で表せません` は、`.psd1` の許可する構文に `NaN`・無限大を表す書き方が無いので削除した。`文書が空です` は、`.psd1` の文書が空(式が 0 個)のとき。
+あわせて、ステートの原因・定義の誤りの種類の文言は、0 章の表のとおり(`JSON として読めません`、`内容を JSON にできません`、`retry はマップで書きます`、`定義ファイルの形式に対応していません`)。変換の誤りの原因(09 章 10 章の一覧が正本。10 章 7.3 の表も同じ 17 件)は、`.psd1` に合わせて、次を置き換え・削除・追加した(「元」は、`.psd1` の前提に直す前の文言)。元の文法の誤りの文(書式名が `.psd1` でないもの)を `.psd1 の文法に誤りがあります` に置き換えた。タグ・複数の文書・アンカー・マージキーに関する 4 件(`タグは使えません`、`複数の文書は書けません(…)`、`アンカーが自分自身を含んでいます`、`マージキーの値がマップではありません`)は、`.psd1` に対応する構文が無いので削除し、`.psd1 で使えない書き方です`(許可しない構文)を追加した。`NaN と無限大は JSON で表せません` は、`.psd1` の許可する構文に `NaN`・無限大を表す書き方が無いので削除した。`.psd1` のハッシュテーブルがキーの大文字小文字を区別しないことに合わせて、`.psd1 では、大文字小文字だけが違うキーを同時に書けません`(種類 `unrepresentable`。JSON を `.psd1` に変換するときだけ)を追加した。空の入力は、`rootNotMap` でなく `syntax`(`.psd1 の文法に誤りがあります` または `JSON の文法に誤りがあります`)にした。
 
 ### 8.4 全文の保持と検査
 
@@ -732,7 +732,7 @@ PowerShell での実装の方針:
 
 | 項目 | 採用 | 理由・補足 |
 |------|------|------------|
-| メッセージの保持 | ロケールごとの読み取り専用の辞書(`[System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)`)を `Private/Report/` に持つ。キーは、この章の識別子(文字列)。**`@{}` のハッシュテーブルのリテラルは、キーの大文字小文字を区別しないので、辞書には使わない**(共通の設計判断 9・18)。全キーがすべてのロケールにあることを、Pester のテストで、キーの一覧との照合で確かめる | 表の全件を持てているかを、テストで検出できる。ただし、ロケールごとの語順の違いがあるメッセージは、組み立てる関数(下)で作る |
+| メッセージの保持 | ロケールごとの読み取り専用の辞書(`[System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)`)を `Private/Report/` に持つ。キーは、この章の識別子(文字列)。**`@{}` のハッシュテーブルのリテラルは、キーの大文字小文字を区別しないので、辞書には使わない**(02 章 9.2 節、03 章 6.1 節)。全キーがすべてのロケールにあることを、Pester のテストで、キーの一覧との照合で確かめる | 表の全件を持てているかを、テストで検出できる。ただし、ロケールごとの語順の違いがあるメッセージは、組み立てる関数(下)で作る |
 | プレースホルダの置換 | 固定の文字列に、値を連結する(`+`、または `[string]::Concat`)。**入力に由来する文字列を、書式演算子 `-f` の書式文字列にしない。文言のひな形にも `-f` を使わない**。値(ジョブIDなど)に `{n}` のような文字列が入っても、再度置換されないこと。**二重引用符の文字列の展開(`"... $x ..."`)に、入力に由来する値を、数値の書式つきで頼らない**(数値は `.ToString([System.Globalization.CultureInfo]::InvariantCulture)`) | 値の中の `{` `}` `$` が、書式や展開として再解釈されないことを、設計で保証する |
 | 文言の組み立て | 種類ごとの関数(例: `Format-ConductorRetryNotice -Locale <string> -JobId <string> -ExitCode <int> -Attempt <int> -Max <int> -Seconds <uint64>`)。ロケールによる分岐は関数の中(`switch -CaseSensitive -Exact`) | 日本語・英語で語順が違う(リトライの知らせ)ため、単純な置換の表では足りない |
 | 端末判定 | `[System.Console]::IsOutputRedirected`(6.3)。`Get-ConductorStdoutIsTerminal` の 1 か所を通す | 外部のモジュールは使わない |
@@ -767,7 +767,7 @@ PowerShell の `[string]` は、.NET の `System.String` で、UTF-16 のコー�
 | 名前用の切り詰め(9 章) | コードポイント(エスケープ後) | 1 かたまりずつ足して数える | エスケープ後の文字列を位置指定で切る(`.Substring`。エスケープ列・サロゲートの対を分断する) |
 | `watch` の表示幅(6.2) | コードポイントごとに 1 か 2 | `$cp -le 0x7F` なら 1、それ以外は 2、の合計 | `.Length`(基本多言語面の外の文字を 2 と数える)、`.PadRight`・`.PadLeft`、`-f` の幅指定、`Format-Table` |
 | run ID の長さ(04 章 5.2) | (ASCII だけなので単位による差がない) | 範囲の比較のあと `.Length` | — |
-| ファイルへ書く(ステート・変換の出力) | UTF-8 のバイト列(BOM なし) | `[System.Text.UTF8Encoding]::new($false, $true)` で符号化した `[byte[]]` を、`[System.IO.File]::WriteAllBytes`(または `FileStream`)で書く。UTF-8 のバイト数は `$enc.GetByteCount($s)` | `Set-Content`・`Out-File`・`>`(リダイレクト)・`Add-Content`(既定のエンコーディングと改行が、版と OS で違う。取得した文書では確認しておらず未確認。共通の設計判断 19)、`[System.IO.File]::WriteAllText($path, $text)`(エンコーディングを省略した形の既定は未確認)、`[System.Text.Encoding]::UTF8`(BOM の有無が未確認) |
+| ファイルへ書く(ステート・変換の出力) | UTF-8 のバイト列(BOM なし) | `[System.Text.UTF8Encoding]::new($false, $true)` で符号化した `[byte[]]` を、`[System.IO.File]::WriteAllBytes`(または `FileStream`)で書く。UTF-8 のバイト数は `$enc.GetByteCount($s)` | `Set-Content`・`Out-File`・`>`(リダイレクト)・`Add-Content`(既定のエンコーディングと改行が、版と OS で違う。取得した文書では確認しておらず未確認。02 章 9.2 節)、`[System.IO.File]::WriteAllText($path, $text)`(エンコーディングを省略した形の既定は未確認)、`[System.Text.Encoding]::UTF8`(BOM の有無が未確認) |
 
 注意:
 

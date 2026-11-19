@@ -157,7 +157,7 @@ function ConvertTo-ConductorStateJsonBytes {
 }
 ```
 
-- 出力は、`[System.Text.StringBuilder]` に、キーを §4.2 の順に 1 つずつ書いて作る(`run_id` などの省略可能なキーは、値があるときだけ、その順序の位置で書く)。順序は、コードに書いた順序そのもので決まる。`@{}`(順序の無いハッシュテーブル)を使わない。**確認(出典: `ConvertTo-Json` のページ): `@{Account="User01";Domain="Domain01";Admin="True"} | ConvertTo-Json -Compress` の出力は `{"Domain":"Domain01","Account":"User01","Admin":"True"}` で、記述順(Account, Domain, Admin)と異なる**。`[ordered]@{}` は順序を保つ(確認: `ConvertFrom-Json` のページに「`-AsHashtable` は 7.3 以降 `OrderedHashtable` を作り、キーの順序を保つ」とある。`[ordered]` 構文そのものの公式ドキュメントは本担当では取得していない)が、この仕様は、書き出しを `StringBuilder` への直接の追記で行い、ハッシュテーブルを経由しない。
+- 出力は、`[System.Text.StringBuilder]` に、キーを §4.2 の順に 1 つずつ書いて作る(`run_id` などの省略可能なキーは、値があるときだけ、その順序の位置で書く)。順序は、コードに書いた順序そのもので決まる。`@{}`(順序の無いハッシュテーブル)を使わない。**確認(出典: `ConvertTo-Json` のページ): `@{Account="User01";Domain="Domain01";Admin="True"} | ConvertTo-Json -Compress` の出力は `{"Domain":"Domain01","Account":"User01","Admin":"True"}` で、記述順(Account, Domain, Admin)と異なる**。`[ordered]@{}` は順序を保つ(確認: `ConvertFrom-Json` のページに「`-AsHashtable` は 7.3 以降 `OrderedHashtable` を作り、キーの順序を保つ」とある。`[ordered]` 構文そのものの公式ドキュメントはこの文書の作成時には取得していない)が、この仕様は、書き出しを `StringBuilder` への直接の追記で行い、ハッシュテーブルを経由しない。
 - `StringBuilder` の `Append` は、`StringBuilder` 自身を返す。`[void]$sb.Append(...)` と書く(戻り値を捨てない文は、関数の出力に混ざる。[05](05-execution-flow.md) §14.4)。改行は `[void]$sb.Append([char]10)`(`Environment.NewLine` と `AppendLine()` を使わない)。
 - 「無い」値のキーは、`null` を書かず、**キーを書かない**。`ExitCode` は **`$null -ne $exitCode` で判定する**(`if ($exitCode)` と書くと、値 `0` のキーが落ちる。[05](05-execution-flow.md) §14.3)。`SkipReason`・`ResumeJobId`・`RunId` も `$null -ne` で判定する(空文字列の `run_id` は作られない: run ID なしは `$null`)。
 - 数値は `$exitCode.ToString([System.Globalization.CultureInfo]::InvariantCulture)`(文化の負号・桁区切りを使わない)。`ExitCode` が `[int]` であることを、書く前に `$exitCode -is [int]` で確かめる(`[long]` や `[double]` が混ざっていたら、書き出しの失敗(理由 22))。
@@ -210,7 +210,7 @@ function ConvertTo-ConductorStateJsonBytes {
 | 孤立サロゲート(対にならない U+D800〜U+DFFF) | `definition_path`・`definition_key` では書く前に U+FFFD に置き換える(下)。ほかの文字列に現れたら書き出しの失敗(理由 `内容を JSON にできません`) |
 
 - PowerShell での実装の注意: 文字ごとの分類は、`[int]$c`(`[char]` のコードユニット)の整数の比較で行う。`[char]` どうしの `-lt` / `-eq` は、大文字小文字を区別しない文字列の比較になりうる([05](05-execution-flow.md) §6.1)ので、`$c -eq '"'` と書かず、`[int]$c -eq 34` と書く(`"` = 34、`\` = 92、`0x08`〜`0x0D` の制御文字、`0x2028` = 8232、`0x2029` = 8233)。文字列を 1 文字ずつ `Append` するのは遅い(PowerShell のループは 1 反復あたりの固定のコストが大きい。性能の基準値は実装時に測る: 未確認)ので、エスケープが要る文字が無い区間を、`$s.Substring($start, $len)` でまとめて `Append` する。エスケープが要る文字の判定には、`[char[]]` の特殊文字の集合と `$s.IndexOfAny($specials, $i)` を使ってよい(結果が同じなら自由)。16 進の変換は、`$code.ToString('x4', [System.Globalization.CultureInfo]::InvariantCulture)`(小文字 4 桁)。
-- **孤立サロゲート**: .NET の `string` は UTF-16 のコードユニットの列で、孤立サロゲートを持ちうる(例: Windows のファイル名は孤立サロゲートを含みうる。未確認)。`[System.Text.UTF8Encoding]::new($false, $true).GetBytes(...)` は、これを例外で拒否する。確認(出典: `UTF8Encoding(Boolean, Boolean)` の API ページ): `throwOnInvalidBytes = $true` のとき、不正なバイト列(符号化では不正な文字列)を検出すると例外を投げる(ページの記載は `ArgumentException`、例の出力は `EncoderFallbackException`)。`$false`(`[System.Text.Encoding]::UTF8` の既定)は例外を投げず、不正なサロゲートを `EF BF BD`(U+FFFD)に置き換える。この仕様は、**`definition_path` と `definition_key` だけ**、書き出す前に、孤立サロゲートの 1 つずつを U+FFFD に置き換える関数(`Convert-ConductorLoneSurrogate`)を通す(対になるサロゲートは置き換えない。高サロゲートの直後が低サロゲートなら対。`[char]::IsHighSurrogate`・`[char]::IsLowSurrogate` を使ってよい)。定義から来る文字列(`pipeline_name`・ジョブIDなど)は孤立サロゲートを含まない([03](03-definition-format.md))ので、置き換えは 2 つのパスだけでよい。それでも書き出し(`UTF8Encoding($false, $true).GetBytes`)が例外を投げたら、書き出しの失敗(理由 `内容を JSON にできません`)にする。`[System.Text.Encoding]::UTF8` を、書き出しの符号化に使わない(黙って置換してしまうため、検査にならない)。
+- **孤立サロゲート**: .NET の `string` は UTF-16 のコードユニットの列で、孤立サロゲートを持ちうる(例: Windows のファイル名は孤立サロゲートを含みうる。未確認)。`[System.Text.UTF8Encoding]::new($false, $true).GetBytes(...)` は、これを例外で拒否する。確認(出典: `UTF8Encoding(Boolean, Boolean)` の API ページ): `throwOnInvalidBytes = $true` のとき、不正なバイト列(符号化では不正な文字列)を検出すると例外を投げる(ページの記載は `ArgumentException`、例の出力は `EncoderFallbackException`)。`$false`(`[System.Text.Encoding]::UTF8` の既定)は例外を投げず、不正なサロゲートを `EF BF BD`(U+FFFD)に置き換える。この仕様は、**`definition_path` と `definition_key` だけ**、書き出す前に、孤立サロゲートの 1 つずつを U+FFFD に置き換える関数(`ConvertTo-ConductorReadableText`)を通す(対になるサロゲートは置き換えない。高サロゲートの直後が低サロゲートなら対。`[char]::IsHighSurrogate`・`[char]::IsLowSurrogate` を使ってよい)。定義から来る文字列(`pipeline_name`・ジョブIDなど)は孤立サロゲートを含まない([03](03-definition-format.md))ので、置き換えは 2 つのパスだけでよい。それでも書き出し(`UTF8Encoding($false, $true).GetBytes`)が例外を投げたら、書き出しの失敗(理由 `内容を JSON にできません`)にする。`[System.Text.Encoding]::UTF8` を、書き出しの符号化に使わない(黙って置換してしまうため、検査にならない)。
 - Unix で、引数に不正な UTF-8 のバイトを含むパスが、PowerShell の `[string]` にどう入るか(U+FFFD への置き換えなど)は、公式ドキュメントで確認していない(未確認)。置き換わっていた場合、その `[string]` でファイルを開くと別の名前になる。この問題は、ステートの書き出しの規定の外(引数の扱いは [04](04-cli.md))。
 - 書き出した文字列は、`[System.Text.UTF8Encoding]::new($false, $true).GetBytes($text)` でバイト列にして、バイトのまま書く(§5)。BOM(`EF BB BF`)を付けない(確認(出典: `UTF8Encoding(Boolean, Boolean)` のページ): `encoderShouldEmitUTF8Identifier = $true` にしても `GetBytes` は BOM を前置しない。BOM を出すのは `GetPreamble()` を使う側。したがって `GetBytes` の結果をそのまま書けば BOM は付かない)。
 
@@ -558,7 +558,7 @@ function ConvertTo-ConductorStateJsonBytes {
 
 PowerShell での実装の規則:
 
-- 3〜8 は、`try { ... } catch { ... } finally { ... }` で書く。`$ErrorActionPreference = 'Stop'`(モジュールの先頭。共通の設計判断)のもとで、.NET のメソッドの例外は終了エラーになり、`catch` に入る。`catch` では、`$_.Exception` から、PowerShell が付けた外側の例外(`MethodInvocationException`)を、`InnerException` が `$null` になるまで(または外側の型でなくなるまで)たどって、元の例外の型を得る(`Get-ConductorBaseException`)。型の判定は `-is`。`catch [System.IO.IOException]` のように型を指定する書き方が、外側の例外に包まれていても一致するかは、公式ドキュメントでは確認していない(未確認: 試験 T-8)ので、この仕様は、`catch`(型の指定なし)で受け、`Get-ConductorBaseException` で型を調べる。**`PipelineStoppedException`(`[System.Management.Automation.PipelineStoppedException]`)は握りつぶさず、`throw` で再送出する**([05](05-execution-flow.md) §16、[07](07-process-and-signals.md))。それ以外の想定外の型(`NullReferenceException` など、実装の誤り)も `StateFail` にせず再送出し、最上位が 70 にする([10](10-errors-and-exit-codes.md))。`IOException`・`UnauthorizedAccessException`・`DirectoryNotFoundException`・`PathTooLongException`・`NotSupportedException`・`ArgumentException`・`System.Security.SecurityException` だけが `StateFail` になる。
+- 3〜8 は、`try { ... } catch { ... } finally { ... }` で書く。`$ErrorActionPreference = 'Stop'`(モジュールの先頭。02 章 5.2 節)のもとで、.NET のメソッドの例外は終了エラーになり、`catch` に入る。`catch` では、`$_.Exception` から、PowerShell が付けた外側の例外(`MethodInvocationException`)を、`InnerException` が `$null` になるまで(または外側の型でなくなるまで)たどって、元の例外の型を得る(`Get-ConductorBaseException`)。型の判定は `-is`。`catch [System.IO.IOException]` のように型を指定する書き方が、外側の例外に包まれていても一致するかは、公式ドキュメントでは確認していない(未確認: 試験 T-8)ので、この仕様は、`catch`(型の指定なし)で受け、`Get-ConductorBaseException` で型を調べる。**`PipelineStoppedException`(`[System.Management.Automation.PipelineStoppedException]`)は握りつぶさず、`throw` で再送出する**([05](05-execution-flow.md) §16、[07](07-process-and-signals.md))。それ以外の想定外の型(`NullReferenceException` など、実装の誤り)も `StateFail` にせず再送出し、最上位が 70 にする([10](10-errors-and-exit-codes.md))。`IOException`・`UnauthorizedAccessException`・`DirectoryNotFoundException`・`PathTooLongException`・`NotSupportedException`・`ArgumentException`・`System.Security.SecurityException` だけが `StateFail` になる。
 - 例外の `Message` を、理由にも表示にも含めない(.NET の例外メッセージは、実行環境の言語・OS で変わる)。`$_`(`ErrorRecord`)を文字列化して表示しない。
 - `fs` 変数は、`try` の前に `$null` で宣言し、`finally`(または `catch`)で `if ($null -ne $fs) { $fs.Dispose() }` とする。`using` に相当する構文は PowerShell に無い(確認はしていない: `using` 文は名前空間・モジュールの宣言)。
 - バイト列の変数は `[byte[]]`。`$data.Length` は `[int]`。バイト列を関数の戻り値にするときは、プロパティに入れる(§4.2)。
@@ -577,7 +577,7 @@ API の選定と注意:
 
 **ディレクトリの同期(手順 9)**: .NET には、ディレクトリの `fsync` を行う管理 API が無い、と理解している(`File.OpenHandle` はディレクトリを開こうとすると `UnauthorizedAccessException` になる、と理解している。いずれも公式ドキュメントでは確認していない: 未確認)。この仕様は、UNIX 系で、`libc` の `open`・`fsync`・`close` を P/Invoke で呼ぶことに決める。P/Invoke を行う型は、シグナルの転送(`kill`)と同じ 1 つのヘルパー型に置く([07-process-and-signals.md](07-process-and-signals.md)。型名・メソッド名は 07 章が正本。この文書では `SyncDirectory(string)` と書く)。ヘルパー型は、`Add-Type` で型定義(.NET のソース)を与えて作る(最初のジョブの起動時までに遅延させる。07 章)。根拠: 手順 9 は「失敗は無視」の、耐久性のための最善の努力で、P/Invoke が使えない環境(ConstrainedLanguage のように `Add-Type` で任意のコードを読み込めない環境。確認: `about_Language_Modes`「`Add-Type` は署名済みのアセンブリを読み込めるが、任意のコードや Win32 API は読み込めない」)でも、他の挙動(ファイルの内容・原子性)は変わらない。
 
-- `SyncDirectory` の中身(ヘルパー側。この文書は挙動だけを定める): ディレクトリを `O_RDONLY` で開き、`fsync`、`close`。失敗はすべて無視する(例外も握りつぶす)。Windows では呼ばない(呼び側が、ステートの書き込みの設定 `SyncDirectory` で決める。`Cli` が OS の判定から決めて渡す)。ヘルパー型が読み込めていない(`Add-Type` の失敗・未実行)ときは、ディレクトリの同期を省く(`$script:` の変数で、ヘルパーの有無を持つ)。
+- `SyncDirectory` の中身(ヘルパー側。この文書は挙動だけを定める): ディレクトリを `O_RDONLY` で開き、`fsync`、`close`。失敗はすべて無視する(例外も握りつぶす)。Windows では呼ばない(`Write-ConductorState` の引数 `-SyncDirectory`(スクリプトブロック。`param([string] $Directory)` を受ける)で決める。`Cli` が OS の判定から決める: UNIX 系は、`Runner` の `Sync-ConductorDirectory`(ヘルパーの `ConductorNative.UnixNative.SyncDirectory(string)` を呼ぶ)を包んだスクリプトブロックを渡し、Windows は `$null` を渡す。`$null` のときは同期を省く。`State` は `Runner` とヘルパーの型を直接呼ばない)。ヘルパー型が読み込めていない(`Add-Type` の失敗・未実行)ときは、`Sync-ConductorDirectory` が何もしない(07 章 7.8 節)ので、同期は省かれる。
 - `directory` が空のとき `"."`(§1)。`flags` は `O_RDONLY`(0)だけ(`O_DIRECTORY`・`O_CLOEXEC` は値が OS で違うので使わない。ディレクトリを `O_RDONLY` で開いて `fsync` できることは、Linux・macOS で一般に使われる方法で、この文書では確認していない: 未確認)。
 - この P/Invoke を実装しない(省略する)場合の影響: 電源断・カーネルの異常終了で、置き換え(`rename`)がディスクに反映される前に失われうる(ファイルの内容は `Flush($true)` で同期済みなので、古い完全な内容か、新しい完全な内容のどちらかが残る)。「完全な内容のどちらか」という原子性は保たれる。したがって、省略は、この仕様の「必須の性質」(§3)の違反にはならず、「耐久性の強さ」だけを弱める。採用する(P/Invoke を行う)ことを標準とする。
 
@@ -687,7 +687,7 @@ catch { <# 外側の例外を取り除いた型が ArgumentException(DecoderFall
 
 6a が 6c より先であることは、仕様として固定する(重複キーが先にあっても、後ろに構文の誤りがあれば、`JSON として読めません` になる)。空白の定義は JSON の空白(スペース、`\t`、`\n`、`\r`)。BOM・NBSP・垂直タブ・改ページは空白でないので、6a で拒否される。書き出しは BOM を付けない。他のツールが BOM 付きで保存した場合は壊れたステートとして 65 になり、`reset` で回復する。
 
-順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定は、読み取りが返す値の種類(整数の字句 / それ以外の数 / 真偽 / 文字列 / `null` …。§6.5)で行い、受理は「整数の字句で、値が 1」のときだけとする。64 ビットを超える整数の字句でも `versionMismatch`(字句の桁数の判定だけで足り、`[bigint]` に変換しない・値を作らない)。値が 1 かの判定は、字句の文字列が `"1"` に等しい(`-ceq`)かで行う(`-0`、`01` 相当は構文の誤りか別の字句なので、`"1"` だけが一致する)。
+順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない。ノードの種類は `int` か `hugeInt`)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定は、読み取りが返すノードの種類(`int` / `hugeInt` / `float` / `bool` / `string` / `null` …。§6.5)で行い、受理は「`Kind` が `int` で、`Value` が 1」のときだけとする。64 ビットを超える整数の字句(`hugeInt`)でも `versionMismatch`(読み取りが値を作らず、`[bigint]` に変換しない)。`-0` は `Value` が 0 の `int` なので `versionMismatch`(`01` は構文の誤り)。
 
 順 11 の `corrupt` の理由文(個別。いずれも種類は `corrupt`。1 つの要素の中の検査の順に上から):
 
@@ -800,7 +800,7 @@ conductor: error: c2.json.r3.state: state file is corrupt: run_id がファイ�
 
 目的: 順序が固定の 14 段階の検査と、理由文の区別を、確実に満たす。**JSON の読み取りの規定は、定義(`.json` の入力)・変換・ステートで共通で、[03-definition-format.md](03-definition-format.md) と同じ内容である。この節は、ステートが要求する性質と、挙動を表で簡潔に再掲する。木の型の名前・上限の細部が 03 章と食い違う場合は、03 章が正本。**
 
-**決定: ステートの JSON は、定義・変換と共用する自前の読み取り(`Private/Json/` の `Read-ConductorJson`。PowerShell で書く。引数: 入力の `[string]`、最大の深さ、重複キーを見つけても止めない指定)で読み、深さだけを確かめる。`ConvertFrom-Json` と、`System.Text.Json` の `Utf8JsonReader`・`JsonDocument`・`JsonSerializer` は、製品のコードのどこでも(定義、ステート、変換とも)読み取りに使わない。** 判断の根拠を、公式ドキュメントで確認できた範囲で次に示す。
+**決定: ステートの JSON は、定義・変換と共用する自前の読み取り(`Private/Json/` の `Read-ConductorJsonTree`(03 章 12.2 節。PowerShell で書く。引数: 入力の `[string]`、`-DeferDuplicateKey` スイッチ(重複キーを見つけても止めない指定))で読み、続けて `Test-ConductorTreeLimits -Which depth_only`(03 章 6.3 節の深さの上限 32)で深さだけを確かめる。`ConvertFrom-Json` と、`System.Text.Json` の `Utf8JsonReader`・`JsonDocument`・`JsonSerializer` は、製品のコードのどこでも(定義、ステート、変換とも)読み取りに使わない。** 判断の根拠を、公式ドキュメントで確認できた範囲で次に示す。
 
 `ConvertFrom-Json` について、確認できたこと(出典: `ConvertFrom-Json` のページ(PowerShell 7.4 版)の記載)と、この仕様の要件との関係:
 
@@ -823,13 +823,13 @@ conductor: error: c2.json.r3.state: state file is corrupt: run_id がファイ�
 - 定義・変換(03、09)が必要とする、位置(行・列)、重複キーの位置、整数の字句(範囲を超えるものの判定)、入れ子の深さ、要素数の上限も、同じ自前の読み取りで満たせる。読み取りが 1 つなので、同じ入力の受理・拒否が、定義・ステート・変換で食い違わない。
 - PowerShell の読み取りの遅さ: ファイルは最大 1 MiB。PowerShell のループは、1 反復の固定のコストが大きいので、1 文字ずつの走査は、最悪(1 MiB の入力)で数秒〜数十秒になりうる(実測していない: 未確認。基準値は実装時に測って決める)。実際のステートファイルは数 KB 程度で、問題にならない。性能の規則: (a) 文字列の中身は、`$text.IndexOfAny($stop, $i)`(`$stop` は `"`・`\`・U+0000〜U+001F の `[char[]]`)で、次の特殊文字まで一度に進み、`Substring` で切り出す。(b) 空白の読み飛ばしと、数値・リテラルの字句の走査は、`[int]$text[$i]` の整数の比較で行う。(c) 結果の組み立ては `[System.Collections.Generic.List[object]]` と `[System.Text.StringBuilder]`(`[void]`)で行い、`+=` で配列・文字列を伸ばさない([05](05-execution-flow.md) §14.2)。
 
-自前の読み取りに、ステートが要求すること(木の型の名前・署名は 03 章の規定に従う。ここは必要な性質だけ。この文書では、木の値の種類を `object`(メンバーの並び)・`array`・`string`・`int`(整数の字句)・`number`(整数でない数の字句)・`bool`・`null` と書く):
+自前の読み取りに、ステートが要求すること(木の型の名前・署名は 03 章の規定に従う。ここは必要な性質だけ。この文書も、木のノードの種類は 03 章 6.1 節の名前を使う: `map`(キーと値の並び)・`seq`・`string`・`int`(64 ビット符号つき整数に収まる整数。`Value` は `[long]`)・`hugeInt`(範囲外の整数。値を持たない)・`float`(整数でない数。`Value` は `[double]`)・`bool`・`null`):
 
 | # | 性質 |
 |---|---|
 | 1 | 入力は、`[string]`(順 5 で厳密に復号した UTF-16)。構文解析は、再帰でなく**明示のスタック**(`[System.Collections.Generic.Stack[object]]` か `List`)で行う(1 MiB の `[` の列でも、スタックオーバーフローを起こさない。スタックオーバーフローは捕捉できないので、再帰の深さの上限に頼らない。[10](10-errors-and-exit-codes.md)) |
-| 2 | 返す値の種類: `object`(メンバーの**並び**。キーと値の組。記述順。重複を落とさない)、`array`、`string`、**`int`(整数の字句)**、**`number`(整数でない数の字句。小数点・指数を持つもの)**、`bool`、`null`。整数の字句は、`-?(0\|[1-9][0-9]*)` に一致するもの。`-0` は整数の字句(値 0)。木の値は `[pscustomobject]@{ Kind = ...; Value = ... }`(`Kind` は固定の文字列。`-ceq` で比べる)。`null` の値は `Kind = 'null'`、`Value = $null`(PowerShell の `$null` と JSON の `null` を、`Kind` で区別する) |
-| 3 | 整数の字句から、`[int]` の範囲を判定できる(`Test-ConductorJsonInt32`: 符号を除いた桁数が 10 を超えれば範囲外。10 桁以下なら、桁を 1 つずつ `[long]` に積んで、符号を掛け、`-2147483648`〜`2147483647` の範囲かを比べる。`[int]::Parse`・`[long]::Parse`・`[int]'...'` のキャスト・`[bigint]`・`[decimal]`・`[double]` を経由しない。`[int]` へのキャストは範囲を確かめた後に行う)。字句そのもの(文字列)は木に保持する(定義の読み取りが、64 ビットを超える整数の字句を範囲外と判定するため。03 章) |
+| 2 | 返すノードの種類(03 章 6.1 節): `map`(エントリの**並び**。キーと値の組。記述順。重複を落とさない)、`seq`、`string`、**`int`**(整数の字句で、`[long]` に収まるもの)、**`hugeInt`**(整数の字句で、`[long]` に収まらないもの)、**`float`**(整数でない数の字句。小数点・指数を持つもの)、`bool`、`null`。整数の字句は、`-?(0\|[1-9][0-9]*)` に一致するもの。`-0` は整数の字句(値 0)。木の値は `[pscustomobject]@{ Kind = ...; Value = ... }`(`Kind` は固定の文字列。`-ceq` で比べる)。`null` の値は `Kind = 'null'`、`Value = $null`(PowerShell の `$null` と JSON の `null` を、`Kind` で区別する) |
+| 3 | 整数ノードから、`[int]` の範囲を判定できる(`Test-ConductorJsonInt32`: `Kind` が `int` なら、`Value`(`[long]`。読み取りが字句から桁を 1 つずつ積んで作る。03 章 5.1 節)が `-2147483648`〜`2147483647` の範囲かを `[long]` どうしの比較で調べる。`hugeInt`(`[long]` に収まらない整数)は範囲外。`[int]::Parse`・`[long]::Parse`・`[int]'...'` のキャスト・`[bigint]`・`[decimal]`・`[double]` を経由しない。`[int]` へのキャストは範囲を確かめた後に行う) |
 | 4 | 構文の誤り(BOM・余分な文字・空白だけ・制御文字・エスケープの誤り・対にならないサロゲートのエスケープ・`NaN`・`Infinity`・先頭が `0` の整数・末尾のカンマ・コメント)をすべて拒否する(失敗は 1 種類。位置はステートでは使わず捨てる)。受理する文法は下の「文法」 |
 | 5 | 重複キーを**見つけても止めず**、「重複したキーがあった」ことを結果に持たせて、構文解析を続ける(後ろに構文の誤りがあれば、そちらを先に失敗にするため)。キーの比較は、エスケープを展開した後の文字列の序数比較(オブジェクトごとに `HashSet[string]`(`StringComparer.Ordinal`)を作る) |
 | 6 | 入れ子の深さの上限を、呼び出し側が指定できる。ステートでは 32(根の値を数えず、33 段目の `[`・`{` を拒否。03 の規定と同じ)。要素数・文字の大きさの上限は、ステートには適用しない(ファイルの大きさの上限 1 MiB が別にある) |
@@ -842,19 +842,19 @@ conductor: error: c2.json.r3.state: state file is corrupt: run_id がファイ�
 - オブジェクト: `{` 空白 `}`、または `{` メンバー(`,` メンバー)* `}`。メンバー = 文字列 `:` 値。末尾の `,` は拒否。キーは文字列だけ。
 - 配列: `[` 空白 `]`、または `[` 値(`,` 値)* `]`。末尾の `,` は拒否。
 - 文字列: `"` で囲む。U+0000〜U+001F の直接の混入は拒否(U+007F は許す)。エスケープは `\"` `\\` `\/` `\b` `\f` `\n` `\r` `\t` `\uXXXX`(`X` は 16 進の 4 桁。大文字・小文字とも)だけ。それ以外の `\x` は拒否。`\u` で書かれた高サロゲートの直後が `\u` の低サロゲートの対なら 1 つの文字(U+10000 以上)になる。対にならない `\ud800`(直後が低サロゲートでない)・孤立した低サロゲートの `\udc00` は拒否。
-- 数値: `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?`。`+1`、`01`、`1.`、`.5`、`1e`、`-` だけ、`0x10`、`NaN`、`Infinity`、`-Infinity` は拒否。小数部も指数部も無いものが `int`、あるものが `number`。
+- 数値: `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?`。`+1`、`01`、`1.`、`.5`、`1e`、`-` だけ、`0x10`、`NaN`、`Infinity`、`-Infinity` は拒否。小数部も指数部も無いものが `int`(`[long]` に収まらなければ `hugeInt`)、あるものが `float`。
 - 最上位: 1 個の値の前後に空白だけ。2 つ目の値・余分な文字は拒否。値が無い(空・空白だけ)は拒否。
 - コメント(`//`、`/* */`)は拒否。
 
 読み込みの手順(順 6〜13 を、この木に対して行う):
 
-1. `$text.Length -gt 0 -and [int]$text[0] -eq 0xFEFF` なら 6a。そうでなければ、自前の読み取りを、深さの上限 32 で呼ぶ。失敗(構文の誤り・深さの超過)→ 6a。
+1. `$text.Length -gt 0 -and [int]$text[0] -eq 0xFEFF` なら 6a。そうでなければ、`Read-ConductorJsonTree -DeferDuplicateKey` で読み、成功したら `Test-ConductorTreeLimits -Which depth_only` で深さ(上限 32。根を数えず 33 段目を拒否。03 章 6.3 節)を確かめる。失敗(構文の誤り・深さの超過)→ 6a。
 2. 結果の最上位がオブジェクトでなければ 6b。
 3. 「重複したキーがあった」が真なら 6c。
 4. 順 7〜12 は、仕様の順に、最上位のオブジェクトから取り出す。未知のキーの検査(順 8)は、キーの全部が §2.1 の 10 個のどれかか、を見る(序数比較)。
-5. 値の型の判定は、木の `Kind` で行う(`string`・`bool`・`array`・`object`・`int`・`number`・`null`)。整数の判定は `Kind -ceq 'int'`(`1.0`・`1e0` は `number`、`true`・`false` は `bool`、`null` は `null`)。
-6. `format_version`: `Kind` が `int` で、字句が `"1"` のときだけ受理。ほかの整数の字句(`0`、`-0`、`2`、巨大な整数)は `versionMismatch`。
-7. `exit_code`: `Kind` が `int` で、`Test-ConductorJsonInt32` が真のときだけ受理(`-2147483648` 〜 `2147483647`)。範囲外の整数、整数でない数、真偽、`null`、文字列は、型の誤り。`-0` は値 0。
+5. 値の型の判定は、木の `Kind` で行う(`string`・`bool`・`seq`・`map`・`int`・`hugeInt`・`float`・`null`)。整数の判定は `Kind -ceq 'int'`(`1.0`・`1e0` は `float`、範囲外の整数は `hugeInt`、`true`・`false` は `bool`、`null` は `null`)。
+6. `format_version`: `Kind` が `int` で、`Value` が 1 のときだけ受理。ほかの整数(`0`、`-0`、`2`、`hugeInt` になる巨大な整数)は `versionMismatch`。`Kind` が `int` でも `hugeInt` でもないとき(`float`、`bool`、`null`、`string`、`seq`、`map`)は整数ではない。
+7. `exit_code`: `Kind` が `int` で、`Test-ConductorJsonInt32` が真のときだけ受理(`-2147483648` 〜 `2147483647`)。範囲外の整数(`hugeInt` を含む)、整数でない数(`float`)、真偽、`null`、文字列は、型の誤り。`-0` は値 0。
 8. `job_order` と `job` の要素も同様に取り出す(`job` の各要素がオブジェクトでなければ、順 11 の a)。
 9. 木から取り出した値は、`[string]`・`[int]`・`[bool]` に明示して作る(`[pscustomobject]` のプロパティに代入する値の型が、そのまま残る。[05](05-execution-flow.md) §7.2)。配列(`job_order`・`Jobs`)は、0 件・1 件でも `[string[]]`・`[object[]]` で作る([05](05-execution-flow.md) §14.2)。
 
@@ -864,7 +864,7 @@ conductor: error: c2.json.r3.state: state file is corrupt: run_id がファイ�
 
 | 入力(要点) | 期待 |
 |---|---|
-| 正常(§4.4 の例 1〜8) | 受理。往復(読んで書く)で元と一致(例 8 の ` `・` ` のエスケープを含む。例 9 は `Convert-ConductorLoneSurrogate` の入力で、往復では U+FFFD のまま) |
+| 正常(§4.4 の例 1〜8) | 受理。往復(読んで書く)で元と一致(例 8 の ` `・` ` のエスケープを含む。例 9 は `ConvertTo-ConductorReadableText` の入力で、往復では U+FFFD のまま) |
 | 先頭に BOM(`EF BB BF`)+ 正常な内容 | `corrupt`(`JSON として読めません`)。`Get-Content`・`ReadAllText`・`StreamReader` で読むか、`GetString` が BOM を取り除くか、読み取りの前の BOM の前処理を省くと、受理されてしまう(このテストで検出する) |
 | BOM + 不正な UTF-8 | `corrupt`(`UTF-8 の文字列ではありません`。順 5 が先) |
 | 正常な内容の後ろに `{}` や `x` | `corrupt`(`JSON として読めません`) |
@@ -1085,7 +1085,7 @@ function Reset-ConductorAllState  { [OutputType([pscustomobject])] param([string
 function Test-ConductorStateConsistency { [OutputType([pscustomobject])] param([pscustomobject] $State, [pscustomobject] $Definition) }   # §7
 ```
 
-- 書き込みの設定(依存の注入): 時刻の取得(`[scriptblock] $Now`)、ディレクトリの同期の有無(`[bool] $SyncDirectory`。UNIX 系 true・Windows false。`Cli` が OS の判定から決めて渡す)を、モジュール内の設定オブジェクト(`$script:` の変数)または引数で受ける。
+- 書き込みの設定(依存の注入): 時刻の取得(`[scriptblock] $Now`)、ディレクトリの同期(`[scriptblock] $SyncDirectory`。UNIX 系は `Sync-ConductorDirectory` を包んだスクリプトブロック、Windows は `$null`。`Cli` が OS の判定から決めて渡す)を、モジュール内の設定オブジェクト(`$script:` の変数)または引数で受ける。
 - 表示用の組み立て(種類の文・案内・ロケール)は `Report` が行う。
 - `IOException`・`UnauthorizedAccessException` などの BCL の例外は、これらの関数の内側で、**狭く**(ファイル操作の `try` の中だけ)捕まえて失敗の値に変える。それ以外の例外(`NullReferenceException`、実装の誤り。`PipelineStoppedException`)は捕まえず、`Invoke-Conductor` の最上位が扱う([10](10-errors-and-exit-codes.md))。
 - 一時ファイル名の時刻(§5 の手順 3)は、`$Now` から得る(`DateTimeOffset` の UTC の Unix エポックからのナノ秒に直す)。`Get-Date` や `[DateTime]::UtcNow` を直接読まない(テストで時刻を固定するため)。

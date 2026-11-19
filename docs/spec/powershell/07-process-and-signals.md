@@ -40,7 +40,7 @@
 | C# ヘルパー | `Initialize-ConductorNativeHelper`(`Add-Type` を呼ぶのはここだけ) | ヘルパーの型を、最初に必要になったときに 1 回だけ読み込む(7.1〜7.3 節) |
 | シグナル監視 | `Start-ConductorSignalWatch` | OS のシグナル(UNIX 系)/ Ctrl+C(Windows)を受け取り、中断の合図を立てる登録を行う(7 章)。受け取りの本体は C# ヘルパーの中で完結する |
 | 流れの制御 | `Private/Cli/` の関数(`Invoke-ConductorRunCommand` ほか) | 合図の準備、ジョブの起動の呼び出し、中断時のステートの記録、終了コード(128 + 番号) |
-| 分類 | `Private/Flow/` の `Get-ConductorClassification`(純粋) | 実行結果を、成功・警告・エラー・分類なしと、報告する終了コードに変える(4.6 節) |
+| 分類 | `Private/Flow/` の `Get-ConductorOutcome`(純粋。05 章 2.3 節) | 実行結果を、成功・警告・エラー・分類なしと、報告する終了コードに変える(4.6 節) |
 
 OS の分岐と OS 固有の呼び出し(`[System.OperatingSystem]` の判定、`kill`、`.cmd` の起動の形)は、プラットフォーム層(`Private/Runner/` の上の関数群と C# ヘルパー)の外に置かない(9.2 節)【規定】。
 
@@ -48,7 +48,7 @@ OS の分岐と OS 固有の呼び出し(`[System.OperatingSystem]` の判定、
 
 ## 2. `command` の形式(定義の側の受理条件)
 
-定義ファイルの各ジョブの `command` は、次の 2 つの形式のどちらか(`.psd1` と JSON のどちらでも、論理モデルは同じ)。
+定義ファイルの各ジョブの `command` は、次の 2 つの形式のどちらか(`.psd1` と JSON のどちらでも、意味は同じ)。
 
 | 形式 | 書き方(`.psd1` の例) | 表す値(【PowerShell の設計】) | 起動のときの扱い |
 |------|------------------------|-------------------------------|------------------|
@@ -287,7 +287,7 @@ return Ok(words[0], words.GetRange(1, words.Count-1).ToArray())
 
 ### 4.3 起動の失敗の検出
 
-`Process.Start(ProcessStartInfo)` が送出する例外のうち、公式の文書に書かれているもの(確認。出典: `Process.Start(ProcessStartInfo)` の API 文書。以下の表は、他の言語の実装と共通の .NET の挙動):
+`Process.Start(ProcessStartInfo)` が送出する例外のうち、公式の文書に書かれているもの(確認。出典: `Process.Start(ProcessStartInfo)` の API 文書。以下の表は .NET の挙動):
 
 | 例外(PowerShell の型名) | 文書上の原因 |
 |---------------------------|--------------|
@@ -397,9 +397,9 @@ SignalNumber       [int] または $null   Interrupted のとき、最初に受�
 
 **決定: UNIX 系でも、ジョブを新しいプロセスグループにも新しいセッションにも置かない。`conductor` と同じプロセスグループで起動する。**
 
-理由: `System.Diagnostics.Process` には、UNIX 系で、子を新しいプロセスグループに置く公開の手段がない。`ProcessStartInfo.CreateNewProcessGroup` は Windows 専用で、新しいプロセスの Ctrl+C を無効にする(確認。出典: `ProcessStartInfo.CreateNewProcessGroup` の API 文書)。`ProcessStartInfo.StartDetached` は .NET 11 以降だけで、標準入出力を既定でヌルデバイスにつなぐ(確認。出典: `ProcessStartInfo.StartDetached` の API 文書。`pwsh` 7.4 の .NET 8 では使えない)。C# ヘルパーから `setpgid`/`setsid` を起動のあとに呼ぶと、子が `exec` を終えたあとは失敗し、起動との競合があって信頼できない。`posix_spawn` の `POSIX_SPAWN_SETPGROUP` を呼んで `Process` を使わずに起動する案は、ランタイムの子の回収(`SIGCHLD`)と自前の `waitpid` が競合しない保証がなく、構造体と定数の OS 差があり、環境変数と `PATH` の探索を自前で持つことになるため、採らない(未確認の点を含む。将来採るときは、この章と受け入れテストを改める)。
+理由: `System.Diagnostics.Process` には、UNIX 系で、子を新しいプロセスグループに置く公開の手段がない。`ProcessStartInfo.CreateNewProcessGroup` は Windows 専用で、新しいプロセスの Ctrl+C を無効にする(確認。出典: `ProcessStartInfo.CreateNewProcessGroup` の API 文書)。`ProcessStartInfo.StartDetached` は .NET 11 以降だけで、標準入出力を既定でヌルデバイスにつなぐ(確認。出典: `ProcessStartInfo.StartDetached` の API 文書。`pwsh` 7.6 の .NET 10 では使えない)。C# ヘルパーから `setpgid`/`setsid` を起動のあとに呼ぶと、子が `exec` を終えたあとは失敗し、起動との競合があって信頼できない。`posix_spawn` の `POSIX_SPAWN_SETPGROUP` を呼んで `Process` を使わずに起動する案は、ランタイムの子の回収(`SIGCHLD`)と自前の `waitpid` が競合しない保証がなく、構造体と定数の OS 差があり、環境変数と `PATH` の探索を自前で持つことになるため、採らない(未確認の点を含む。将来採るときは、この章と受け入れテストを改める)。
 
-帰結(**他の言語の実装との差。受け入れテストの項目に影響する。12 章の末尾の「合わせる点」にも書く**):
+帰結(**受け入れテストの項目に影響する。12 章の末尾の「合わせた点」にも書く**):
 
 - 端末の Ctrl+C(SIGINT)は、端末のフォアグラウンドのプロセスグループ全体に配られるため、ジョブにも**直接**届き、そのあと `conductor` の転送(7.5 節)でもう 1 回届く(ジョブは SIGINT を 2 回受けうる)。`kill -INT <conductor の pid>` のように、`conductor` の pid だけに送った場合は、転送の 1 回だけである。
 - 「ジョブが新しいプロセスグループにある」ことを確かめる試験(プロセスグループ ID が子の pid)は、この版では行わない。
@@ -884,7 +884,7 @@ OS ごとの分岐と OS 固有の呼び出しは、プラットフォーム層(
 
 | 保証 | 内容 |
 |------|------|
-| 出力の順序 | 標準出力・標準エラーへの書き込みは、`Private/Report/` の窓口の 1 か所を通し、**書くたびに flush する**。標準出力と標準エラーの書き込みの順序が、呼び出しの順序と一致する。`Write-Host`、`Write-Output`、`Write-Error` を使わず、`[Console]::Out`、`[Console]::Error` に書く(詳細は [08-output-and-i18n.md](08-output-and-i18n.md)) |
+| 出力の順序 | 標準出力・標準エラーへの書き込みは、`Private/Report/` の窓口の 1 か所を通し、**書くたびに flush する**。標準出力と標準エラーの書き込みの順序が、呼び出しの順序と一致する。`Write-Host`、`Write-Output`、`Write-Error` を使わず、`[Console]::OpenStandardOutput()` / `[Console]::OpenStandardError()` のストリームを包んだ `StreamWriter`(`Write-ConductorStream`)に書く。`[Console]::Out`・`[Console]::Error` は使わない(詳細は [08-output-and-i18n.md](08-output-and-i18n.md)) |
 | 子の出力との順序 | `conductor` は、子を起動する前に、自分の出力を flush して書き切る(4.1 節の手順 5)。子の実行中に、リトライの知らせ以外の出力を書かない。子の出力(子が直接ファイル記述子へ書く)と、`conductor` の出力が、混ざらない。リトライの知らせは、子の終了のあと、次の起動の前に、書いて flush する |
 | ステートの順序 | ステートの書き込み(一時ファイルへの書き込み、同期、名前の付け替え、必要ならディレクトリの同期)の完了を待ってから、次のジョブを起動する。「記録して(Durable)から次へ」を破らない([05-execution-flow.md](05-execution-flow.md)、[06-state-file.md](06-state-file.md)) |
 | 出力とステートの順序 | 05 章の順序に従う。ジョブごとに、`-v` の結果行などの表示を書き(flush し)、そのあとステートを書く。順序を入れ替えない |
@@ -955,7 +955,7 @@ OS ごとの分岐と OS 固有の呼び出しは、プラットフォーム層(
 | T-2 | 空の C# ヘルパーと、実際のヘルパーの `Add-Type` の所要時間。`-ReferencedAssemblies` なしで、参照が解決するか | 起動のコスト、参照の指定の要否 | 7.3 節、11 章の startup-bench |
 | T-3 | `NativeLibrary.TryLoad` の候補(`libc.so.6`、`libc`、`/usr/lib/libSystem.B.dylib`)で、`kill`、`open`、`fsync`、`close` が解決する。arm64 の macOS で、可変長引数の `open` を 2 引数で呼べる | P/Invoke の方法 | 7.2 節 |
 | T-4 | `try { ... } finally { [System.Environment]::Exit(7) }` が、Ctrl+C による停止のあとに、終了コード 7 で終わるか | launcher の停止経路 | 7.7 節の 3 |
-| T-5 | `pwsh -File x.ps1 -- a -v` と `pwsh -File x.ps1 a -v` で、`$args` に `--` と `-v` がそのまま入るか。配列のスプラット(`f @args`)で、`-v`、`--`、`-?`、`-Verbose` が、関数のパラメータとして解釈されず、文字列のままか | 引数の受け渡し | [02-architecture.md](02-architecture.md) の `Invoke-Conductor` |
+| T-5 | `pwsh -File x.ps1 -- a -v` と `pwsh -File x.ps1 a -v` で、`GetCommandLineArgs()`(04 章 1.5 節)に `--` と `-v` がそのまま入るか。`Invoke-Conductor -ArgumentList @('-v', '--', '-?', '-Verbose')` で、要素が、関数のパラメータとして解釈されず、文字列のままか | 引数の受け渡し | [04-cli.md](04-cli.md) の 1.4・1.5 節(04 章の T1・T5 と同じ) |
 | T-6 | `catch [System.ComponentModel.Win32Exception]` が、`Process.Start` の失敗を捕まえるか(`MethodInvocationException` に包まれるか) | 起動の失敗の捕まえ方 | 4.3 節 |
 | T-7 | `catch [System.Exception]` が、Ctrl+C の停止を捕まえるか。`finally` の中の関数の呼び出しと .NET の呼び出しが、停止のあとに動くか | 停止経路の `finally` の規定 | 7.7 節、11 章 |
 | T-8 | `$child.WaitForExit(10)` の最中の Ctrl+C が、呼び出しの戻りのあとに届くまでの遅れ | 刻みの値 | 5 章 |
@@ -963,16 +963,16 @@ OS ごとの分岐と OS 固有の呼び出しは、プラットフォーム層(
 | T-10 | 子の環境変数が、`conductor` の起動前の環境と等しいか(`pwsh` が足す変数の一覧) | 環境の引き継ぎ | 4.2 節 |
 | T-11 | CLM でのヘルパーの失敗の様子(AppLocker または WDAC のある Windows) | 縮退の動作 | 7.3・7.8 節 |
 
-### 12.3 他の担当と合わせる点
+### 12.3 他の章と合わせた点
 
-- 4.7 節: UNIX 系で、ジョブを**新しいプロセスグループに置かない**(論理モデルの「新しいグループで動く」とは異なる。`System.Diagnostics.Process` で実現できないため)。受け入れテストの「新しいプロセスグループ」を、この版は行わない。端末の Ctrl+C はジョブに直接届く。
-- 7.2 節: `Add-Type` のヘルパーのソースは `Private/Runner/NativeHelper.ps1`。`kill` と、ステートのディレクトリの `fsync`(`SyncDirectory`)は、同じヘルパーに置く。`State` は、`Runner` に依存せず、`Deps` の `SyncDirectory` を、`Cli` が渡す(06 章の担当と合わせる)。
-- 7.7 節: 停止経路で、`Invoke-Conductor` から値が戻らないため、launcher(`bin/conductor.ps1`)が `finally` で `[System.Environment]::Exit` を呼ぶ。`pwsh -File` の Ctrl+C のあとの終了コードは 0(公式の文書)。launcher の規定は 02 章で定める。
-- 4.5 節: `JobExecution` は `[pscustomobject]`(`class` を使わない)。05 章の担当と合わせる。
+- 4.7 節: UNIX 系で、ジョブを**新しいプロセスグループに置かない**(`System.Diagnostics.Process` で実現できないため)。受け入れテストの「新しいプロセスグループ」を、この版は行わない。端末の Ctrl+C はジョブに直接届く。
+- 7.2 節: `Add-Type` のヘルパーのソースは `Private/Runner/NativeHelper.ps1`。`kill` と、ステートのディレクトリの `fsync`(`SyncDirectory`)は、同じヘルパーに置く。`State` は、`Runner` に依存せず、`Deps` の `SyncDirectory` を、`Cli` が渡す(06 章と合わせる)。
+- 7.7 節: 停止経路で、`Invoke-Conductor` から値が戻らないため、launcher(`bin/conductor.ps1`)が `finally` で `[System.Environment]::Exit` を呼ぶ。`pwsh -File` の Ctrl+C のあとの終了コードは 0(公式の文書)。launcher の規定は 04 章 1.3.4 節(骨格)と 02 章 5.5 節で定める。
+- 4.5 節: `JobExecution` は `[pscustomobject]`(`class` を使わない)。05 章と合わせる。
 - 1 ジョブの実行の関数が、`-Progress`(進捗の入れ物)を受け取り、停止経路で `Execution` を返す(05 章、02 章の流れと合わせる)。
 - 8 章: `Wait-ConductorRetry` の数値の計算は `[bigint]` で行う(05 章の式を正とする)。
 - 3.2 節: 文字の比較は符号位置の整数で行う(`[char]` の `-eq` に頼らない)。
-- PSScriptAnalyzer の設定(11 章の担当): 純粋な関数に `New-`/`Set-`/`Reset-` の動詞を使うため、`PSUseShouldProcessForStateChangingFunctions` を無効にする([02-architecture.md](02-architecture.md))。`Add-Type` の許可箇所は `NativeHelper.ps1` だけ。
+- PSScriptAnalyzer の設定(11 章): 純粋な関数に `New-`/`Set-`/`Reset-` の動詞を使うため、`PSUseShouldProcessForStateChangingFunctions` を無効にする([02-architecture.md](02-architecture.md))。`Add-Type` の許可箇所は `NativeHelper.ps1` だけ。
 
 ---
 
@@ -988,5 +988,5 @@ OS ごとの分岐と OS 固有の呼び出しは、プラットフォーム層(
 - Windows の `.cmd` / `.bat` の起動(`cmd.exe` の引数の再解釈、`Arguments` の再引用の有無)、Ctrl+C の終了コード 130、`Ctrl+Break`。実機で未確認。
 - UNIX 系で、ジョブが `conductor` と同じプロセスグループにあるときの、端末の入力の扱いと、Ctrl+C の 2 回の配送の実機での確認。
 - `File.GetUnixFileMode` の API の存在の出典の確認、`pid` の再利用の競合の実際の確率。
-- 最小の対象版の `pwsh` が載せる .NET の版と、`PosixSignalRegistration` の動作の版ごとの差(7.4 は .NET 8。他は実装時に確認)。
+- 最小の対象版の `pwsh` が載せる .NET の版と、`PosixSignalRegistration` の動作の版ごとの差(7.6 は .NET 10。他の版は実装時に確認)。
 - この仕様は、公式のドキュメントと、PowerShell・.NET の公開ソースの一部の読み取りに基づく。テストやビルドは実行していない。

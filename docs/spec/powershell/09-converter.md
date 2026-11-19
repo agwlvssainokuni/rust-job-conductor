@@ -53,7 +53,7 @@ function Convert-ConductorText {
 - **入力の形式は、変換後の形式の反対**とみなす(`--to psd1` なら入力は JSON、`--to json` なら入力は `.psd1`)。**拡張子は見ない**。`.psd1` の名前のファイルでも、`--to psd1` なら JSON として読む(`.psd1` を JSON として読めば、JSON の文法の誤りになる)。
 - 変換結果は、全部作ってから 1 つの文字列として返す。失敗のときは、出力は無い。
 - 誤りは、例外ではなく戻り値で返す。例外は、実装の不具合にだけ使う。
-- `conductor convert` は、成功したら結果を標準出力に 1 回で書く(`[Console]::Out.Write($text)`。`WriteLine` は、`Console.Out` の改行の設定に依存する可能性があるので使わない。未確認)。**変換結果の改行は LF だけであり、書き出しで CRLF に変わってはならない**(.NET の `Console.Out` が、`\n` を `\r\n` に変えないことは、Windows で未確認。試験 T-C06)。標準出力の文字コード(UTF-8、BOM なし)は [08](08-output-and-i18n.md) に従う。`Write-Host`、`Write-Output`、`Out-File`、`Set-Content` は使わない。失敗したら標準出力は空で、標準エラーに原因を出し、終了コード 67 で終わる([04](04-cli.md)・[10](10-errors-and-exit-codes.md))。
+- `conductor convert` は、成功したら結果を標準出力に 1 回で書く(`Send-ConductorOutput -Text $text`。08 章 10.1 節。`Write-ConductorStream` が、`[Console]::OpenStandardOutput()` のストリームを包んだ BOM なし UTF-8 の `StreamWriter`(LF、`AutoFlush`)に 1 回の `Write` で書く。戻り値の `[bool]` の偽が書き込みの失敗)。`[Console]::Out` と `WriteLine` は使わない。**変換結果の改行は LF だけであり、書き出しで CRLF に変わってはならない**(自前の `StreamWriter` は `NewLine = "`n"` で、文字列の `\n` を変えない。Windows の実機では未確認。試験 T-C06)。標準出力の文字コード(UTF-8、BOM なし)は [08](08-output-and-i18n.md) に従う。`Write-Host`、`Write-Output`、`Out-File`、`Set-Content` は使わない。失敗したら標準出力は空で、標準エラーに原因を出し、終了コード 67 で終わる([04](04-cli.md)・[10](10-errors-and-exit-codes.md))。
 
 ## 2. 処理の流れと失敗の順序
 
@@ -610,14 +610,14 @@ conductor: error: t.json:1: top level is not a map: 最上位がマップでは�
 | T-C03 | `-9223372036854775808` と `1e16` の型 | 書き出した `.psd1` を、`Import-PowerShellDataFile` で読むと、`long`/`double` のどれになるか。この仕様の読み取りは `[long]::MinValue` になること |
 | T-C04 | 裸のキー | 予約語を含む、第 8.3 節の予約語の一覧が十分か。一覧に無い語(例: `Class`、`Enum`)の裸のキーが、`ParseInput` で `StringConstantExpressionAst`(`BareWord`)になること |
 | T-C05 | 文字列の書き方 | 単一引用符の文字列の中の U+201C〜U+201E、タブ、`$`、`` ` ``。二重引用符の文字列の `` `u{0} ``、`` `u{2028} ``、`` `u{feff} ``、`` `u{201c} `` の値。BMP 外の文字を二重引用符の中にそのまま書いたときの値 |
-| T-C06 | 標準出力の改行 | Windows で `[Console]::Out.Write("a`nb")` が CRLF に変わらないこと |
+| T-C06 | 標準出力の改行 | Windows で、`[Console]::OpenStandardOutput()` を包んだ `StreamWriter`(`NewLine = "`n"`)に `"a`nb"` を書いても、CRLF に変わらないこと |
 | T-C07 | 往復の試験 | 第 9 節のランダムな木 1 万個の往復(JSON → `.psd1` → JSON、`.psd1` → JSON → `.psd1`)。第 11 節の例の出力の一致 |
 | T-C08 | 速度 | 1 MiB の `.psd1`(大きなリスト、長い文字列、多数のキー)の読み取りと、100,000 要素の書き出しの時間(目標: 読み取り・書き出しとも 30 秒以内。未確認) |
 | T-C09 | 単項のカンマ | `@(,@(1))`、`@(,@())`、`a = ,@(1, 2)` が、第 4.6 節の木(`[[1]]`、`[[]]`、`[[1, 2]]`)になること。`Import-PowerShellDataFile` が同じ値を返すこと |
 
 ## 13. 未確認事項
 
-- 第 1 節: `[Console]::Out.Write` の改行の変換(Windows)。
+- 第 1 節: 標準出力の `StreamWriter` が書いた `\n` が、Windows で `\r\n` に変わらないこと(T-C06)。
 - 第 3 節: FIFO を `FileStream` で開くときのブロック。`FileStream.CanSeek` が、通常のファイル以外で偽になること。
 - 第 5 節: `.psd1` が、ハッシュテーブルのキーの大文字小文字を区別しないこと(公式ドキュメントを取得して確かめていない)。`1e999` を、パーサーが読むか。
 - 第 6.1 節: .NET の `Double.ToString()` の結果の書式の細部。最短の桁であること(公式ドキュメントの記述は確認済みで、実機の結果は未確認)。

@@ -59,7 +59,7 @@
 
 ## 3. ジョブの結果から終了コードへ(分類)
 
-最初に当てはまるものを採る。この判断は `Private/Flow/` の純粋な関数(ジョブの実行結果の値を入力に、分類と報告する終了コードを返す。`Get-ConductorJobOutcome`)として実装する([05-execution-flow.md](05-execution-flow.md))。
+最初に当てはまるものを採る。この判断は `Private/Flow/` の純粋な関数(ジョブの実行結果の値を入力に、分類と報告する終了コードを返す。`Get-ConductorOutcome`)として実装する([05-execution-flow.md](05-execution-flow.md))。
 
 | 順 | 状況 | 分類 | 報告する終了コード | 備考 |
 |----|------|------|--------------------|------|
@@ -74,7 +74,7 @@
 | 9 | 終了コードが 0 だが成功コードにない | エラー | 1 | `conductor` のエラー。`job '<ID>': exit code 0 is not listed in success_exit_codes` を常に表示 |
 | 10 | それ以外 | エラー | ジョブの終了コード | 範囲を 0〜255 に合わせる(4 章) |
 
-プロセスの終了コード = `ConvertTo-ConductorExitCode -Reported <報告する終了コード> -IsError <エラーか>`(4 章)。`run` は、この値で終わる。`pipeline` は、エラーまたは分類なしのジョブで止まるとき同じ式で、完了なら 0。
+プロセスの終了コード = `ConvertTo-ConductorProcessExitCode -Reported <報告する終了コード> -IsError <エラーか>`(4 章)。`run` は、この値で終わる。`pipeline` は、エラーまたは分類なしのジョブで止まるとき同じ式で、完了なら 0。
 
 注: 「起動した」は、子プロセスを作れたこと(`[System.Diagnostics.Process]::Start` が例外を送出せずに戻り、`Process` のオブジェクトが得られること)を指す。「中断」は、`conductor` がシグナル(07 章)を受け取り、中断の合図が立ったこと。ジョブがシグナルで終了した(順 5)のと区別する。
 
@@ -87,22 +87,22 @@
 
 ## 4. 終了コードの範囲合わせ
 
-`ConvertTo-ConductorExitCode -Reported [int] -IsError [bool]` → `[int]`(`Private/Flow/`。05 章が正):
+`ConvertTo-ConductorProcessExitCode -Reported [int] -IsError [bool]` → `[int]`(`Private/Flow/`。05 章が正):
 
 | 入力 | 出力 |
 |------|------|
 | `0 <= reported <= 255` | `reported` |
 | 範囲外 | `reported` の下位 8 ビット(負の値は 2 の補数表現の下位 8 ビット)。ただし、その結果が 0 で `isError` が真なら 1(エラーを成功に見せない) |
 
-計算の書き方(PowerShell の演算の既定の挙動に頼らない):
+計算の書き方(PowerShell の演算の既定の挙動に頼らない。05 章 2.2 節が正本):
 
-- 下位 8 ビットは、`$low = (([long]$reported % 256) + 256) % 256` で求める。`%` は、被除数の符号に従う剰余を返すとされるが、取得した出典はなく未確認である。この式は、剰余が負になる実装でも、非負になる実装でも、同じ結果になる(`[long]` にしてから計算するので、`[int]::MinValue` でも桁あふれしない)。`-band` による論理積は、負の値での挙動を取得した出典で確認していないので、この仕様では使わない。
+- 下位 8 ビットは、05 章 2.2 節のとおり `$reported -band 0xFF`(2 の補数表現の下位 8 ビット)で求める。負の値での `-band` の結果そのものは、取得した出典で確認できていない(未確認。05 章 §0.2)。そこで、単体テストで、この章の判定表(下の例)の全行を固定し、外れたときは、`$low = (([long]$reported % 256) + 256) % 256` に切り替える(`[long]` にしてから計算するので、`[int]::MinValue` でも桁あふれしない。`%` が負の被除数で返す値は未確認だが、この式は、剰余が負になる実装でも非負になる実装でも、同じ結果になる)。
 - `128 + n`(シグナル番号 `n` は小さな正の整数)の計算は、`[long]` で行ってから、この関数に渡す。
 - 入力の型は `[int]`(`Process.ExitCode` と `128 + n`)。`[int]` へのキャストは、小数を銀行丸めにするが、ここでは整数だけを扱う。
 
 例(判定表。受け入れテストの入力に使う): 259 → 3、511 → 255、-1 → 255、-2 → 254、`0xC0000005`(符号なしで 3221225477。符号つき 32 ビットの `-1073741819` と同じビット列)→ 5。256・512・`-256`・`[int]::MinValue` は、エラーなら 1、エラーでなければ 0。
 
-- `ConvertTo-ConductorSignalExitCode -Signal [int]` = `ConvertTo-ConductorExitCode -Reported (128 + n) -IsError $true`。15 → 143、2 → 130、1 → 129、3 → 131、300 → 172(428 の下位 8 ビット)。`n` が負のときの規定はない(呼び出し側が正の番号だけを渡す)。
+- `Get-ConductorSignalExitCode -Signal [int]` = `ConvertTo-ConductorProcessExitCode -Reported (Add-ConductorInt32Saturating 128 n) -IsError $true`(05 章 2.2 節が正本)。15 → 143、2 → 130、1 → 129、3 → 131、300 → 172(428 の下位 8 ビット)。`n` が負のときの規定はない(呼び出し側が正の番号だけを渡す)。
 - `-v` の結果行には、元の値(`exit code <C>`)と、`conductor` の終了コードが異なるとき(`result=error` のみ)`, conductor exits with <E>` を示す(08 章 2.1)。
 
 ### 4.1 プロセスの終了(入口スクリプトの `exit`)
@@ -119,9 +119,9 @@
 | `$LASTEXITCODE` | `-File` で呼ばれたスクリプトでは、例外で終われば 1、`exit` があればその値、正常終了なら 0 |
 | `exit` と `finally` | 「A `finally` block also runs if an `exit` keyword stops the script from within a `catch` block.」(`catch` の中の `exit` では、`finally` が実行される) |
 | `-Command` との違い | `-Command` では、最後のコマンドが 0・1 以外の終了コードを設定しても、プロセスの終了コードは 1 に変換される。「To preserve the specific exit code, add `exit $LASTEXITCODE`」。この仕様は `-Command` を使わない(04 章 1.6) |
-| 終了コードを決めるホストの処理 | 確認(出典: `ConsoleHost.cs`): ファイルの実行が失敗すると、終了コードは 0x1 に設定される。`exit` による値があればそれが使われる。ホストは、最後に `$global:?` を調べ、偽なら終了コードを 1(`ExitCodeSuccess | 0x1`)にする |
+| 終了コードを決めるホストの処理 | 確認(出典: `ConsoleHost.cs`): ファイルの実行が失敗すると、終了コードは 0x1 に設定される。`exit` による値があればそれが使われる。ホストは、最後に `$global:?` を調べ、偽なら終了コードを 1(`ExitCodeSuccess \| 0x1`)にする |
 
-OS ごとの範囲(確認できた範囲): Windows は 32 ビットの値(`exit` は `[int]` の全範囲)。UNIX 系は、`exit` が 0〜255 だけを受ける(上の表)。この仕様では、`ConvertTo-ConductorExitCode` で自分で 0〜255 に合わせた値だけを `exit` に渡し、OS の切り詰めや、`exit` の範囲外の値が 0 になる挙動に頼らない。**`pwsh` が `exit` の値をそのままプロセスの終了コードにすること、`$global:?` の検査が `exit` の値を上書きしないこと(たとえば `exit 66` のあとの `$?`)は、公式ドキュメントでは確認できていない**(ソースの断片から、`exit` による値が優先されるとみえるが、確定していない)。試験 T2(04 章 11.2)で、0、1、64、66、255 を確かめる。
+OS ごとの範囲(確認できた範囲): Windows は 32 ビットの値(`exit` は `[int]` の全範囲)。UNIX 系は、`exit` が 0〜255 だけを受ける(上の表)。この仕様では、`ConvertTo-ConductorProcessExitCode` で自分で 0〜255 に合わせた値だけを `exit` に渡し、OS の切り詰めや、`exit` の範囲外の値が 0 になる挙動に頼らない。**`pwsh` が `exit` の値をそのままプロセスの終了コードにすること、`$global:?` の検査が `exit` の値を上書きしないこと(たとえば `exit 66` のあとの `$?`)は、公式ドキュメントでは確認できていない**(ソースの断片から、`exit` による値が優先されるとみえるが、確定していない)。試験 T2(04 章 11.2)で、0、1、64、66、255 を確かめる。
 
 `Invoke-Conductor` の戻り値の型は `[int]` で、`[void]` にしない(終了コードを持たない経路を作らない)。入口スクリプトは、`exit` の前に、戻り値が `[int]` で 0〜255 であることを確かめ、そうでなければ 70 にする。
 
@@ -129,9 +129,9 @@ OS ごとの範囲(確認できた範囲): Windows は 32 ビットの値(`exit`
 
 - UNIX 系: `SIGHUP`(1)・`SIGINT`(2)・`SIGQUIT`(3)・`SIGTERM`(15)を、07 章が規定する方式(インラインの .NET コードの静的なフラグ。PowerShell のスクリプトブロックを、別のスレッドから呼ばれるコールバックにしない)で受け取り、最初の番号を中断の合図(フラグ)に記録するだけにする。コールバックは、メインスレッドと別のスレッドで実行されうる。ほぼ同時に複数届くと、番号の小さい方が「最初」になりうる(順序は実装依存。必須ではない)。
 - Windows: Ctrl+C(番号 2)だけ(07 章)。Ctrl+Break とコンソールを閉じたときの通知は対象外(OS の既定の動作)。
-- `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は、シグナルを準備しない。これらのコマンドの実行中のシグナルは、`pwsh` の既定の動作に任せる。**既定の動作**: 確認(出典: about_Pwsh): `-File` で実行したスクリプトが Ctrl+C で中断されると、終了コードは 0 である(「unlike with `-Command`, when the execution is interrupted with Ctrl+C the exit code is `0`」)。確認(出典: `ConsoleHost.cs`): Ctrl+C は、ホストの割り込みの処理が、実行中のパイプラインを停止させる(`StopAsync`)。したがって、これらのコマンドの実行中の Ctrl+C は、終了コード 0 で終わりうる(**他の実装が 130 を返す場面との既知の差**。受け入れテストは、この場面の終了コードを検査しない)。SIGTERM などの、端末の Ctrl+C 以外のシグナルでの終了コードは未確認。
+- `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は、シグナルを準備しない。これらのコマンドの実行中のシグナルは、`pwsh` の既定の動作に任せる。**既定の動作**: 確認(出典: about_Pwsh): `-File` で実行したスクリプトが Ctrl+C で中断されると、終了コードは 0 である(「unlike with `-Command`, when the execution is interrupted with Ctrl+C the exit code is `0`」)。確認(出典: `ConsoleHost.cs`): Ctrl+C は、ホストの割り込みの処理が、実行中のパイプラインを停止させる(`StopAsync`)。したがって、これらのコマンドの実行中の Ctrl+C は、終了コード 0 で終わりうる(**`run`・`pipeline` が 130 を返す場面との既知の差**。受け入れテストは、この場面の終了コードを検査しない)。SIGTERM などの、端末の Ctrl+C 以外のシグナルでの終了コードは未確認。
 - 起動済みのジョブが中断されると、`128 + 番号`、エラーとして記録する。起動前、またはジョブのあいだ、リトライの待機中に中断されたときは、エラーとして記録せず、再開位置を記録して `128 + 番号` で終わる。
-- **`run`・`pipeline` で、Ctrl+C に対して、終了コード `128 + 2 = 130` で終わること**は、`pwsh` が Ctrl+C でパイプラインを停止し(上)、`-File` の終了コードが 0 になる(上)ことと、両立させる必要がある。次の 3 点を、実装の最初に確かめる(試験 T4)。(1) 07 章の方式の登録が、`pwsh` 自身の Ctrl+C の処理(パイプラインの停止)を止められるか(止められるなら、`Invoke-Conductor` は通常の経路で 130 を返せる)。(2) 止められないとき、パイプラインの停止のあと、入口スクリプトの `finally` の中で、中断の合図があれば `exit` に 128 + 番号を渡して、プロセスの終了コードを決められるか(`finally` の実行は確認(出典: about_Try_Catch_Finally): 「A `finally` block runs even if you use CTRL+C to stop the script」)。(3) どちらもできないとき、Ctrl+C の終了コードは 0 になる。この場合は、この章に追記して、既知の差として受け入れる。
+- **`run`・`pipeline` で、Ctrl+C に対して、終了コード `128 + 2 = 130` で終わること**は、`pwsh` が Ctrl+C でパイプラインを停止し(上)、`-File` の終了コードが 0 になる(上)ことと、両立させる必要がある。次の 3 点を、実装の最初に確かめる(試験 T4)。(1) 07 章の方式の登録が、`pwsh` 自身の Ctrl+C の処理(パイプラインの停止)を止められるか(止められるなら、`Invoke-Conductor` は通常の経路で 130 を返せる)。(2) 止められないとき、パイプラインの停止のあと、入口スクリプトの `finally` の中で、ヘルパーが予約した `128 + 番号`(なければ 130)を `[System.Environment]::Exit` に渡して、プロセスの終了コードを決められるか(07 章 7.7 節の規定)(`finally` の実行は確認(出典: about_Try_Catch_Finally): 「A `finally` block runs even if you use CTRL+C to stop the script」)。(3) どちらもできないとき、Ctrl+C の終了コードは 0 になる。この場合は、この章に追記して、既知の差として受け入れる。
 - 準備の失敗は、`conductor: error: failed to set up signal handling` を出して 70。同じプロセスで 2 回目の登録になる「すでに登録済み」は、成功と同じに扱う(実装が複数回呼ぶ構造のときだけ関係する)。登録などの失敗は、シグナルの口の実装が、準備できなかったとき、値(失敗)として返し、`run` がそれを準備の失敗(70)にする(07 章)。
 - 詳細は [07-process-and-signals.md](07-process-and-signals.md)。
 
@@ -194,7 +194,7 @@ OS ごとの範囲(確認できた範囲): Windows は 32 ビットの値(`exit`
 規定:
 
 - **後始末は `finally` に書く**: 子プロセスの終了の待機、ステートの書き込み、シグナルの登録の解除、`[System.Console]::OutputEncoding` の復元は、`try`/`finally` の `finally` で行う。Ctrl+C でパイプラインが止められても、`finally` は実行される。
-- 入口スクリプトと `Invoke-Conductor` の `catch` は、パイプラインの停止を表す例外(`System.Management.Automation.PipelineStoppedException`。名前は共通の設計判断による。以降、この例外と呼ぶ)に対して、`conductor: error: internal error` の行を**出さない**(Ctrl+C は内部の誤りではない)。そのため、型を指定した `catch` を、型を指定しない `catch` の前に置く(確認(出典: about_Try_Catch_Finally): 「If you specify an error class and one of its derived classes, place the `catch` block for the derived class before the `catch` block for the general class.」)。この例外が、`try`/`catch` の `catch` で捕捉できるのか、捕捉されずに `finally` だけが実行されて伝わるのかは、取得した出典に記述がなく**未確認**(試験 T4)。いずれの場合でも、「内部の誤りの行を出さない」ことと、「`finally` で後始末が行われる」ことを守る。
+- 入口スクリプトと `Invoke-Conductor` の `catch` は、パイプラインの停止を表す例外(`System.Management.Automation.PipelineStoppedException`。型名は 07 章 7.7 節。以降、この例外と呼ぶ)に対して、`conductor: error: internal error` の行を**出さない**(Ctrl+C は内部の誤りではない)。そのため、型を指定した `catch` を、型を指定しない `catch` の前に置く(確認(出典: about_Try_Catch_Finally): 「If you specify an error class and one of its derived classes, place the `catch` block for the derived class before the `catch` block for the general class.」)。この例外が、`try`/`catch` の `catch` で捕捉できるのか、捕捉されずに `finally` だけが実行されて伝わるのかは、取得した出典に記述がなく**未確認**(試験 T4)。いずれの場合でも、「内部の誤りの行を出さない」ことと、「`finally` で後始末が行われる」ことを守る。
 - 中断の終了コード(130 など)の決め方は、5 章の 3 点の確認の結果に従う。
 - `trap` を使わない(確認(出典: about_Try_Catch_Finally): `try` の中に `trap` があると、一致する `catch` があっても `trap` が先に処理を取る。意図しない経路を作らない)。
 
@@ -216,7 +216,7 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 
 ### 7.2 `command` の誤りとステートの誤り
 
-`command` の誤り(終了コード 64): 2 種。`unclosedQuote`(引用符が閉じていない)、`empty`(コマンド名がない)。表示は 08 章 4.4 の種類の文だけ(原因は表示しない。内部の原因の文は、前者が `引用符が閉じていません`、後者が `コマンド名がありません`)。
+`command` の誤り(終了コード 64): 2 種。`UnclosedQuote`(引用符が閉じていない)、`empty`(コマンド名がない)。表示は 08 章 4.4 の種類の文だけ(原因は表示しない。内部の原因の文は、前者が `引用符が閉じていません`、後者が `コマンド名がありません`)。
 
 ステートの誤り(終了コード 65): 6 種。`unreadable`, `tooLarge`, `corrupt`, `versionMismatch`, `writeFailed`, `removeFailed`。持つ情報は、パス、種類、原因、`detail`(任意)。表示は 08 章 4.5。
 
@@ -268,19 +268,19 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 | `tooLarge` | `入力が上限(1 MiB)を超えています` | 入力の大きさ |
 | `tooLarge` | `要素数が上限(100000)を超えています` | 要素数の上限 |
 | `tooLarge` | `文字の大きさが上限(16 MiB)を超えています` | 文字の大きさの上限 |
-| `syntax` | `.psd1 の文法に誤りがあります` | `.psd1` の文法(パーサーのエラー) |
-| `syntax` | `JSON の文法に誤りがあります` | JSON の文法 |
-| `syntax` | `キーが重複しています` | キーの重複 |
+| `syntax` | `.psd1 の文法に誤りがあります` | `.psd1` の文法(パーサーのエラー、前処理での拒否、文が 0 個、空の入力) |
+| `syntax` | `.psd1 で使えない書き方です` | `.psd1` の、許可しない構文(コマンド、変数、式、演算子、スクリプトブロックなど) |
+| `syntax` | `JSON の文法に誤りがあります` | JSON の文法(空の入力を含む) |
+| `syntax` | `キーが重複しています` | キーの重複(`.psd1` は ASCII の大文字小文字を畳んで比べる) |
 | `syntax` | `キーは文字列で書きます` | 文字列でないキー(`.psd1`) |
-| `syntax` | `この構文は使えません(データだけを書けます)` | `.psd1` の、許可しない構文(コマンド、変数、式、演算子、スクリプトブロックなど) |
 | `syntax` | `入れ子が深すぎます(上限は 32 段)` | 入れ子の深さ |
 | `unrepresentable` | `数値が表せる範囲を超えています` | 64 ビット整数・浮動小数の範囲外 |
-| `unrepresentable` | `キーが長すぎます(上限 1024 文字)` | 1,024 文字を超えるキーを JSON から `.psd1` へ |
-| `rootNotMap` | `最上位がマップではありません` | 最上位 |
-| `rootNotMap` | `文書が空です` | `.psd1` の文書が空(式が 0 個) |
+| `unrepresentable` | `.psd1 では、大文字小文字だけが違うキーを同時に書けません` | ASCII の英字の大文字小文字だけが違うキーを持つ JSON を `.psd1` へ(`--to psd1` のときだけ) |
+| `rootNotMap` | `最上位がマップではありません` | 最上位がマップでない(`--to` のどちらでも) |
 
-- `null` は、どちらの形式でも表せる値であり、変換の誤りにならない。日時らしい書式は文字列として読むので、変換の誤りにならない。表の理由は、この 18 件で全件である。
-- 「キーが長すぎます(上限 1024 文字)」の長さは、コードポイント単位で数える(サロゲートの対を 1 文字と数える。`[string].Length` はコードユニット数なので使わない。04 章 4.0、08 章 11 章)。
+- `null` は、どちらの形式でも表せる値であり、変換の誤りにならない。日時らしい書式は文字列として読むので、変換の誤りにならない。表の理由は、この 17 件で全件である(09 章 10 章の一覧と同じ。理由が 09 章で増減したときは 09 章が正)。
+- 空の入力(0 バイト、空白とコメントだけ)は `rootNotMap` ではなく `syntax`(09 章 4.3 節)。
+- キーの長さの上限(1,024 文字)は、変換には無い(09 章 8.3 節)。
 
 キーの位置の形式: キーは `.` で連結(各キーは 64 文字で切る)、配列の添字は `[i]`、文字列でないキーは `(非文字列キー)`。例: `job[2].transitions[0]`。
 
@@ -330,7 +330,7 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 - 各誤りの値は、「種別(文字列)」と「利用者に見える情報」を持つ。文言への変換(ロケール、エスケープ)は `Private/Report/` の責務で、例外の `Message` は、ロケールを判定せず、デバッグ用の固定の英語の 1 行にする(利用者向けの出力には使わない)。
 - **種別は、`enum` にせず、文字列(7 章の識別子)で表す**。理由: 確認(出典: about_Classes): `enum` もモジュールの外へは自動で取り込まれず、アンロードもできない。ドットソースした複数のファイルの間での型の解決が、一貫しない(上の表)。種別の文字列は、7 章の識別子と同じ綴り(例: `'unsupportedFormat'`、`'UnknownCommand'`)にし、比較は、大文字小文字を区別する(`-ceq`、`switch -CaseSensitive -Exact`、または `[string]::Equals(..., [System.StringComparison]::Ordinal)`)。種別から文言への表は、`[System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)` に持つ(`@{}` のハッシュテーブルは、既定で大文字小文字を区別しない。08 章 10)。全種別が、全ロケールの文言の表にあることを、Pester のテストで検査する(08 章 10)。
 - 終了コードは、値の種別から、`Private/Cli/` の 1 つの関数(`Get-ConductorExitCodeForError`。種別ごとの `switch`)で決める。終了コードの数値の定義は 1 か所(8.2)に集める。
-- 呼び出し側は、値の判定(`$result.IsOk`、`switch`)で扱う。**型を指定しない `catch` と、`catch { }`(空の本体)を、規定された誤りの処理に使わない**(想定外の失敗を握りつぶさないため)。想定外の失敗を捕捉してよいのは、`Invoke-Conductor` と入口スクリプトの最上位(6 章)と、08 章 1.3.2 の書き込みの失敗の処理(**列挙した型に限る**)だけ。.NET の境界での例外の変換(`IOException` 系、`UnauthorizedAccessException`、`Win32Exception` などを、その境界の規定された種類に対応づける。例: 定義ファイルの `FileNotFoundException`・`DirectoryNotFoundException` は `fileMissing`、`UnauthorizedAccessException` は `unreadable`)は、`catch` する型を列挙して行い、列挙にない例外は伝える(70 になる)。どの操作がどの型の例外を投げるかの詳細は、公式ドキュメントを取得しておらず、未確認(実装時に確かめ、確かめた対応を 03・06・07・09 章に書く)。
+- 呼び出し側は、値の判定(`$result.Ok`、`switch`)で扱う。**型を指定しない `catch` と、`catch { }`(空の本体)を、規定された誤りの処理に使わない**(想定外の失敗を握りつぶさないため)。想定外の失敗を捕捉してよいのは、`Invoke-Conductor` と入口スクリプトの最上位(6 章)と、08 章 1.3.2 の書き込みの失敗の処理(**列挙した型に限る**)だけ。.NET の境界での例外の変換(`IOException` 系、`UnauthorizedAccessException`、`Win32Exception` などを、その境界の規定された種類に対応づける。例: 定義ファイルの `FileNotFoundException`・`DirectoryNotFoundException` は `fileMissing`、`UnauthorizedAccessException` は `unreadable`)は、`catch` する型を列挙して行い、列挙にない例外は伝える(70 になる)。どの操作がどの型の例外を投げるかの詳細は、公式ドキュメントを取得しておらず、未確認(実装時に確かめ、確かめた対応を 03・06・07・09 章に書く)。
 - 例外を値に変えるとき、下位の例外の文(`Exception.Message`)を、利用者向けの値に持たない(固定の理由だけ)。利用者向けの出力は、値の情報だけから作る。
 - **終了エラーと非終了エラー**: 製品コードは、`Write-Error` と、コマンドレットの非終了エラーに頼らない(確認(出典: about_Automatic_Variables): `Write-Error` は、直後に `$?` を偽にするが、呼び出した関数の `$?` は変えない。`$ErrorActionPreference = 'Stop'` では、非終了エラーが終了エラーに格上げされる。08 章 1.5)。製品コードが使うコマンドレットは、`Stop` の下で、失敗が例外になるものだけ(`Join-Path` など、失敗しない純粋なもの)に限る。ファイルとプロセスの操作は、.NET の API で行う。
 - **戻り値の汚染**: PowerShell の関数は、文の値をすべて出力に流す。値で返す関数は、`return` で 1 つの `[pscustomobject]` を返す。メソッドの戻り値を捨てるときは `[void]` か `$null =` を付ける(`StringBuilder.Append`、`List.Remove`、`HashSet.Add` など)。複数の誤りの配列は、値の `Errors` プロパティに入れて返し、関数の戻り値そのものを配列にしない(0 個・1 個の配列の展開を避ける)。
@@ -352,8 +352,8 @@ $script:ExitCode = [pscustomobject]@{
 結果の値(成功か規定された誤りか)は、次の形の `[pscustomobject]` で返す。
 
 ```powershell
-function New-ConductorOk  { param($Value)  [pscustomobject]@{ IsOk = $true;  Value = $Value; Error = $null } }
-function New-ConductorErr { param($Error_) [pscustomobject]@{ IsOk = $false; Value = $null;   Error = $Error_ } }
+function New-ConductorOk  { param($Value)  [pscustomobject]@{ Ok = $true;  Value = $Value; Error = $null } }
+function New-ConductorErr { param($Error_) [pscustomobject]@{ Ok = $false; Value = $null;   Error = $Error_ } }
 ```
 
 (骨格。名前と分け方は、成功と失敗を表せれば変えてよい。`$Error` は自動変数の名前なので、引数名に使わない。)
@@ -365,7 +365,7 @@ function New-ConductorErr { param($Error_) [pscustomobject]@{ IsOk = $false; Val
 | 置き場所 | 分類 | 種別(文字列) | 終了コード | 持つ情報(伝え方) |
 |----------|------|----------------|------------|----------|
 | `Private/Definition/` | `Definition` | 7.1 の 31 種(03 章) | 64 | ファイル、行・列(`[Nullable[int]]` 相当。`$null` は「なし」)、種類、原因(日本語の固定の文)。複数の誤りは、`Errors` の配列で返す(03 章) |
-| `Private/Runner/` | `Command` | `unclosedQuote`, `empty`(07 章) | 64 | 種類(ジョブIDは、呼び出し側が持つ)。値で返す(07 章) |
+| `Private/Runner/` | `Command` | `UnclosedQuote`, `Empty`(07 章) | 64 | 種類(ジョブIDは、呼び出し側が持つ)。値で返す(07 章) |
 | `Private/RunId/` | `RunId` | `Empty`, `TooLong`, `InvalidChar`, `LeadingDot`(05 章) | 68(利用者には `invalid value`) | 種類のみ(値は持たない) |
 | `Private/State/` | `State` | `unreadable`, `tooLarge`, `corrupt`, `versionMismatch`, `writeFailed`, `removeFailed`(06 章) | 65 | パス、種類、原因(固定の日本語の文)、`Detail`(任意)。ステートの読み書きの関数は、例外を送出せず、失敗の値を返す(06 章)。.NET の例外は、境界の内側で値に変える |
 | `Private/State/` | `Consistency` | `pipelineName`, `jobIds`, `jobOrder`(06 章) | 65 | 種類。値で返す(06 章) |
@@ -410,7 +410,7 @@ function New-ConductorErr { param($Error_) [pscustomobject]@{ IsOk = $false; Val
 - シグナルの準備をしないコマンド(`watch`・`reset`・`validate`・`convert`)の実行中の SIGTERM などの終了コード(5 章)。
 - スタックの溢れで、プロセスが終わるときの終了コード。PowerShell の関数の再帰の深さの上限(6.3)。
 - 子プロセスの起動の失敗で `Process.Start` が投げる例外の型の全件と、`Process.ExitCode` の、シグナルで終了した子に対する値(07 章が規定する。3 章)。
-- `%`(剰余)が負の被除数で返す値(4 章。式は、どちらの実装でも同じ結果になるよう書いてある)。
+- `-band 0xFF` が負の値で 2 の補数の下位 8 ビットを返すこと、`%`(剰余)が負の被除数で返す値(4 章。05 章 2.2 節。切り替え先の式は、どちらの実装でも同じ結果になる)。
 - 「if」文の真偽の判定(空文字・`0`・空配列)と、`-eq` が配列に対して要素を絞り込む挙動(8.3)。この仕様は、それらに頼らない書き方を規定している。
 - `Constant` の属性の変数の、`Import-Module -Force` での再定義の挙動(8.2)。
 - OS の境界で、どの操作がどの例外の型を投げるか(8.1)。

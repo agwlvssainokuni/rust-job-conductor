@@ -577,7 +577,7 @@ else: 検査が失敗なら 68(`invalid value: '<subject>'`)、成功なら run 
 |---|---|---|
 | `exit_codes` | 整数の一覧。空でない。各値は 1〜255。昇順・重複なしに正規化済み | リトライの対象にするジョブ自身の終了コード。このジョブの成功コード・警告コードと重ならない |
 | `max` | 整数 1〜100 | リトライの最大回数(最初の実行を除く)。実行は合計で最大 `max + 1` 回 |
-| `interval` | 文字列 `<整数><s|m|h>`。結果が 1 秒〜24 時間(86400 秒) | 1 回目のリトライの前の待ち時間。数字は半角の数字だけで、整数は 1 以上。単位は小文字 1 文字(`s` 秒、`m` 分 = 60 秒、`h` 時間 = 3600 秒)。例 `"30s"`、`"2m"`、`"1h"` |
+| `interval` | 文字列 `<整数><s\|m\|h>`。結果が 1 秒〜24 時間(86400 秒) | 1 回目のリトライの前の待ち時間。数字は半角の数字だけで、整数は 1 以上。単位は小文字 1 文字(`s` 秒、`m` 分 = 60 秒、`h` 時間 = 3600 秒)。例 `"30s"`、`"2m"`、`"1h"` |
 | `multiplier` | 整数 2〜10 | 待ち時間にかける倍率。`max_interval` と同時に指定 |
 | `max_interval` | `interval` と同じ書式。`interval` 以上 | 待ち時間の上限。`multiplier` と同時に指定 |
 
@@ -601,7 +601,7 @@ else: 検査が失敗なら 68(`invalid value: '<subject>'`)、成功なら run 
 
 ### 7.3 `interval` / `max_interval` の文字列から秒への変換
 
-文字列 → 秒(`ConvertFrom-ConductorDuration`。定義の検証で使う。置き場所は `Private/Definition/`。ここでは落とし穴を示すために再掲する):
+文字列 → 秒(`ConvertFrom-ConductorInterval`。定義の検証で使う。置き場所は `Private/Definition/`。ここでは落とし穴を示すために再掲する):
 
 ```text
 1. s の長さ(char の数)が 2 未満なら 拒否
@@ -739,32 +739,32 @@ loop:
 
 ### 7.8 待機とシグナルによる中断(`Wait-ConductorRetry`)
 
-**決定: 待機は同期で、中断の合図(シグナルのヘルパーの静的な旗。[07](07-process-and-signals.md))を 250 ミリ秒以下の刻みで繰り返し読み、刻みごとに合図と単調な時計の期限を確かめる。** シグナルのコールバックはヘルパー側で完結し、旗を立てるだけにする(07 章)。PowerShell は旗を読むだけ。`Start-Sleep` / `[System.Threading.Thread]::Sleep` を 1 刻み(最大 250 ミリ秒)ずつ呼ぶ。`Start-Job`・`ForEach-Object -Parallel`・`Register-ObjectEvent` は使わない。スレッドを作らない。旗の名前と読み方は、この文書では「`$signals.Number`(最初のシグナル番号の `[int]`。立っていなければ `-1`)」と書く(名前は 07 章が正本。旗は 1 つの値の読み取りで、番号と「立った」を別々に読まない。§16)。
+**決定: 待機は同期で、中断の合図(C# ヘルパーの `ConductorNative.Interrupt`。[07](07-process-and-signals.md) 6 章)を 250 ミリ秒以下の刻みで繰り返し確かめ、刻みごとに合図と単調な時計の期限を確かめる。** 刻みの待ちは `$Interrupt.Wait(ms)`(ヘルパーの `ManualResetEventSlim`。合図が立つと直ちに戻る)で行い、`Start-Sleep` と `[System.Threading.Thread]::Sleep` は使わない(07 章 8 章の規定。コマンドレットは、PowerShell の停止の挙動に依存し、合図で起こせない)。シグナルのコールバックはヘルパー側で完結し、旗を立てるだけにする(07 章)。PowerShell は、先に `$Interrupt.IsRaised`(`[bool]`)を読み、`$true` のときだけ `$Interrupt.Number`(最初のシグナル番号の `[int]`)を読む(番号 0 を「立っていない」と取り違えない。1 つの判断のなかで、それぞれ 1 回だけ読む。§16)。`Start-Job`・`ForEach-Object -Parallel`・`Register-ObjectEvent` は使わない。スレッドを作らない。
 
-手順(`Private/Runner/` に置く。時計は差し替え可能にする: `[scriptblock] $Timestamp`(既定は `{ [System.Diagnostics.Stopwatch]::GetTimestamp() }`)と `[long] $Frequency`(既定は `[System.Diagnostics.Stopwatch]::Frequency`)。刻みの待機も差し替え可能にする: `[scriptblock] $SleepMs`):
+手順(`Private/Runner/` の `Wait-ConductorRetry`。07 章 8 章と同じ。時計と待ちは差し替え可能にする: `[scriptblock] $Timestamp`(既定は `{ [System.Diagnostics.Stopwatch]::GetTimestamp() }`)、`[long] $Frequency`(既定は `[System.Diagnostics.Stopwatch]::Frequency`)、`[scriptblock] $WaitRaised`(既定は `{ param($ms) $Interrupt.Wait($ms) }`)):
 
 ```text
 start  = Timestamp()                                       # [long]
 target = SaturatedProduct(secs, frequency)                 # 期限までのティック数。[bigint] で計算して [uint64] に飽和(secs = 2^64-1 でも例外にならない)
 loop:
-    n = signals.Number                                     # 1 回だけ読む
-    if n >= 0: return Interrupted(n)                       # 待機の開始時にも確かめる(最初の番号)
+    raised = Interrupt.IsRaised                            # 1 回だけ読む
+    if raised: return Interrupted(Interrupt.Number)        # 待機の開始時にも確かめる(最初の番号)
     elapsed = [bigint](Timestamp() - start)                # 単調なので 0 以上。[long] の引き算(収まる)
     if elapsed >= [bigint]target: return Elapsed
     remaining   = [bigint]target - elapsed                 # ティック
     remainingMs = CeilDiv(remaining * 1000, frequency)     # ミリ秒に切り上げ。[bigint] で計算。(a + b - 1) を [bigint]::Divide(…, b)
     chunkMs     = [int]([bigint]::Min(remainingMs, 250))   # 1〜250(250 以下の [int] に収まる)
-    SleepMs(chunkMs)                                       # 戻り値は使わず、ループの先頭で再確認
+    WaitRaised(chunkMs)                                    # 戻り値は使わず、ループの先頭で再確認
 ```
 
 - `[bigint]::Min` は、引数が 2 つの `[System.Numerics.BigInteger]` の静的メソッド(`[System.Numerics.BigInteger]::Min($a, $b)`)。PowerShell から静的メソッドを呼ぶ形は一般に使えるが、この文書では `BigInteger.Min` の API ページを取得していない(未確認)。使えなければ、`-lt` で比べる `if` に置き換える(結果は同じ)。
-- 守るべきことは 2 つ: (a) 合図から 1 秒以内に打ち切る(この方式では、最大でも 250 ミリ秒)。(b) 待ち時間が `secs` 秒以上になるまで `Elapsed` を返さない(経過は単調な時計で毎回確かめる。ミリ秒への換算は**切り上げ**なので、早く戻っても、ループが期限を再確認する)。
-- 刻みの待機は、`Start-Sleep -Milliseconds $chunkMs`、または `[System.Threading.Thread]::Sleep($chunkMs)` のどちらでもよい。違い: 確認(出典: `Start-Sleep` のページの Notes)「`Ctrl+C` は `Start-Sleep` を中断する。`Ctrl+C` は `[Threading.Thread]::Sleep` を中断しない」。この文書は **`Thread.Sleep` を既定**にする(Ctrl+C で `Start-Sleep` が `PipelineStoppedException` で中断すると、`finally` に入る前に、子プロセスへの転送や、ステートの記録の機会を失いうる。07 章と §16 の規定に従い、Ctrl+C はヘルパーの旗として受け、PowerShell のパイプラインは止めない。この組み合わせで `Ctrl+C` が実際に `PipelineStoppedException` を起こさないかは未確認: 試験 T-7)。
+- 守るべきことは 2 つ: (a) 合図から 1 秒以内に打ち切る(この方式では、`Wait` が合図で直ちに戻るので、通常は即時。最大でも 250 ミリ秒の刻み)。(b) 待ち時間が `secs` 秒以上になるまで `Elapsed` を返さない(経過は単調な時計で毎回確かめる。ミリ秒への換算は**切り上げ**なので、早く戻っても、ループが期限を再確認する)。
+- Ctrl+C の扱い: Ctrl+C は、ヘルパーの旗として受ける(07 章)。`$Interrupt.Wait(int)` は .NET のメソッドで、PowerShell の停止の要求で割り込まれない(確認していない。07 章 7.7 節。停止は、メソッドが戻ったあとの文の境目で届く)。この組み合わせで Ctrl+C が実際にどう届くかは未確認(試験 T-7)。
 
 確認(出典: `Start-Sleep` のページ。PowerShell 7.4 版):
 
 - `-Milliseconds` は `[Int32]`(`-Milliseconds <Int32>`)。上限は `[int]::MaxValue`。`-Seconds` は `[Double]`(PowerShell 6.2 以降は小数も受け付ける)で、`double` を経由するので、この仕様では使わない(§0.2 の丸めの方針に反する)。`-Duration` は `[TimeSpan]`(PowerShell 7.3 以降)で、「負でなく `[int]::MaxValue` ミリ秒を超えない」(ページの記載)ので、秒の `[uint64]` から作らない。
-- 1 回の待機に渡す刻みは**常に 250 ミリ秒以下の `[int]`**なので、`[int]::MaxValue` ミリ秒(約 24.8 日)を超える待機は、刻みの繰り返しで自然に分割される。別の待機(例: `Process.WaitForExit(int)`、`WaitHandle.WaitOne(int)`)に、ミリ秒の `[bigint]`(`[uint64]`)の値を渡すときの変換は、次の規則で行う:
+- 1 回の待機に渡す刻みは**常に 250 ミリ秒以下の `[int]`**なので、`[int]::MaxValue` ミリ秒(約 24.8 日)を超える待機は、刻みの繰り返しで自然に分割される。別の待機(例: `Process.WaitForExit(int)`、`Interrupt.Wait(int)`)に、ミリ秒の `[bigint]`(`[uint64]`)の値を渡すときの変換は、次の規則で行う:
 
 ```text
 ToWaitMs(remainingMs: bigint) -> int:
@@ -776,7 +776,7 @@ ToWaitMs(remainingMs: bigint) -> int:
 |---|---|---|---|
 | 86,400(24 時間。定義の上限) | 86,400,000 | 収まる | この方式は 250 ミリ秒ずつ |
 | 2,147,483 | 2,147,483,000 | 収まる(`[int]::MaxValue` = 2,147,483,647 以下) | 同上 |
-| 2,147,484 | 2,147,484,000 | 収まらない | `ToWaitMs` で `[int]::MaxValue` に切り詰め、繰り返す(`Start-Sleep -Milliseconds` に `[int]` に収まらない値を渡すとパラメーターの変換が失敗する) |
+| 2,147,484 | 2,147,484,000 | 収まらない | `ToWaitMs` で `[int]::MaxValue` に切り詰め、繰り返す(`[int]` に収まらない値を `Wait(int)` に渡すと変換が失敗する) |
 | 18,446,744,073,709,551,615(`[uint64]::MaxValue`) | 18,446,744,073,709,551,615,000 | `[uint64]` にも収まらない | ミリ秒への換算は `[bigint]` で行う。事実上、終わらない |
 
 - 単調な時計: `[System.Diagnostics.Stopwatch]::GetTimestamp()`(`[long]`)と `[System.Diagnostics.Stopwatch]::Frequency`(ティックの毎秒の数)を使う。ティックの差は `[long]` の引き算で、`Get-Date` の調整(時計合わせ・夏時間)に影響されない。`Stopwatch` が単調増加であること、システムの休止中にティックが進むかどうかは、公式ドキュメントを取得して確認していない(未確認)。分解能は `Frequency` で換算する(Linux・macOS は 10^9、Windows は環境による、と理解している。未確認)ので、秒への換算にティックの数の定数を埋め込まない。
@@ -784,7 +784,7 @@ ToWaitMs(remainingMs: bigint) -> int:
 
 待機中に中断された場合は、次の実行をせず、分類なし(起動しなかった中断)として扱う: 終了コード `128 + 番号`、ジョブの状態は変えず(エラーとして記録しない)、再開位置はそのジョブ。`pipeline` でも、そこで止まって終わる(§5.3: 分類なしは停止)。再開すると、そのジョブを最初の実行から数え直す。
 
-テストでは、`$Waiter` を偽の実装(待ち時間の `[uint64]` を記録するだけで実際には待たない)に、待機の実装自体のテストでは `$Timestamp`・`$Frequency`・`$SleepMs` を偽の時計に差し替える。別のプロセスからシグナルを送る受け入れテストは [11-quality-and-build.md](11-quality-and-build.md)。
+テストでは、`$Waiter` を偽の実装(待ち時間の `[uint64]` を記録するだけで実際には待たない)に、待機の実装自体のテストでは `$Timestamp`・`$Frequency`・`$WaitRaised` を偽の時計に差し替える。別のプロセスからシグナルを送る受け入れテストは [11-quality-and-build.md](11-quality-and-build.md)。
 
 ### 7.9 リトライの知らせ
 
@@ -955,7 +955,7 @@ function Test-ConductorStateEqual { [OutputType([bool])]             param([pscu
 ### 14.4 戻り値への出力の混入
 
 - 関数は、`return` の式だけでなく、**文の結果のすべて**を出力する(確認: `about_Return`「the results of each statement are returned as output, even without a statement that contains the return keyword」。`"Please wait..."` の文字列が戻り値に混ざる例)。したがって、メソッドが値を返す呼び出し(`$list.Add($x)`(`ArrayList` のとき)、`$set.Add($x)`(`HashSet` は `bool` を返す)、`$sb.Append(...)`(`StringBuilder` を返す)、`[Environment]::...`、`$proc.Start()`(`bool`)、`$matches`)は、結果を `[void]`、または `$null = ...` で捨てる。**製品コードの関数は、戻り値以外のものを出力しない**。
-- 画面への出力は、専用の関数だけが `[Console]::Out` / `[Console]::Error` に書く。`Write-Host`・`Write-Output`・`Write-Error`・`Write-Warning` は使わない(PSScriptAnalyzer で検査。[11](11-quality-and-build.md))。
+- 画面への出力は、専用の関数(`Report` の `Write-ConductorStream`。`Send-Conductor*` 経由)だけが、標準出力・標準エラーのストリームを包んだ `StreamWriter` に書く(08 章 1.2.2。`[Console]::Out` / `[Console]::Error` は使わない)。`Write-Host`・`Write-Output`・`Write-Error`・`Write-Warning` は使わない(PSScriptAnalyzer で検査。[11](11-quality-and-build.md))。
 - 戻り値を `return` で明示する(最後の式の値に頼らない)。関数の最後が `if` / `foreach` の文のとき、その中の式の結果が出力に混ざりうる。単体テストで、各関数の戻り値の個数(`@($result).Count -eq 1`、`$result -is [pscustomobject]`)を確かめる。
 
 ### 14.5 クラスを使わない理由と `Import-Module -Force`
@@ -990,7 +990,7 @@ function Test-ConductorStateEqual { [OutputType([bool])]             param([pscu
 | `Get-ConductorSaturatedProduct` | §7.6 の境界の表の全行。戻り値の型が `[uint64]`。特に 2^63 × 2、`[uint64]::MaxValue` × 1 |
 | `Get-ConductorNextWaitSecs` | §7.6 の境界の表と待ち時間の列の表 |
 | `Test-ConductorRunId` | §6.1 の有効・無効の例と境界の表。LF 付きの値、全角 `１`、孤立サロゲート、`'あ' * 30`、`'A'` と `'a'` を含む値。走査と `GetByteCount` の照合 |
-| `ConvertFrom-ConductorDuration` | §7.3 の例(受理・拒否の全件)。`"1S"`、全角、`"0x10s"` |
+| `ConvertFrom-ConductorInterval` | §7.3 の例(受理・拒否の全件)。`"1S"`、全角、`"0x10s"` |
 | `Test-ConductorStateEqual` | §0.2 の 3 つの性質 |
 | `Get-ConductorOutcome` / `Get-ConductorNextStep` / `Get-ConductorDecision` | §2.3・§3.2・§4.2 の表の全行。`ExitCode` が 0 のとき「有る」と扱う(`$null -ne` で判定)こと、状態の文字列が大文字小文字違い(`Success`)のとき内部の誤りになること、ジョブIDの `a` と `A` が別であること |
 | 戻り値の個数と型 | `Flow` の全関数について、`@(& $fn ...).Count` が 1 であること(出力の混入が無い)と、`-is` による型の確認。配列のプロパティが、0 件・1 件で `[object[]]`・`[string[]]` のままであること(T-3) |
@@ -1006,14 +1006,14 @@ function Test-ConductorStateEqual { [OutputType([bool])]             param([pscu
 
 | 共有する値 | 所有者 | 書き手 | 読み手 | 方法 | 終了条件 |
 |---|---|---|---|---|---|
-| 中断の合図(最初のシグナル番号) | ヘルパー型(07 章)が静的に持つ。`Prepare` が登録する | シグナルのコールバック(ヘルパー側。複数のコールバックが同時に呼ばれうる) | メインスレッド(待機のループ、ジョブの待機、`pipeline` のジョブのあいだ) | 書き込みはヘルパーが、「立っているか」と番号を 1 つの値にまとめ、`Interlocked.CompareExchange` で 1 度だけ書く(最初の 1 つだけが勝つ)。読み込みは PowerShell から静的プロパティ(`Volatile.Read`)で 1 つの値として読む | プロセスの終了まで。立ったら戻さない |
+| 中断の合図(「立っているか」と最初のシグナル番号) | ヘルパー型 `ConductorNative.Interrupt`(07 章 6 章)のインスタンス。`Prepare` が作り、`SignalWatcher.Start` で登録する(登録はヘルパーが静的に保持する) | シグナルのコールバック(ヘルパー側。複数のコールバックが同時に呼ばれうる) | メインスレッド(待機のループ、ジョブの待機、`pipeline` のジョブのあいだ) | 書き込みはヘルパーが、「立っているか」と番号を 1 つの値にまとめ、`Interlocked.CompareExchange` で 1 度だけ書く(最初の 1 つだけが勝つ)。読み込みは PowerShell から `IsRaised`(`Volatile.Read`)を先に読み、`$true` のときだけ `Number` を読む | プロセスの終了まで。立ったら戻さない |
 | 子への転送を済ませたか | `Invoke-ConductorJob`(07) | 07 の規定 | 同上 | 07 の規定 | ジョブの終了まで |
 | ステート値・定義・実行結果 | メインスレッド | メインスレッドだけ | メインスレッドだけ | 共有しない(不変の値を引数で渡す) | - |
 
-- **PowerShell のスクリプトブロックを .NET のデリゲート(シグナルのコールバック)にしない**。別スレッドで呼ばれると、そのスレッドに実行空間(runspace)が無く、失敗する問題が知られている(共通の設計判断。公式ドキュメントでの確認は 07 章の担当。この文書では取得していない: 未確認)。旗の更新はヘルパーの .NET のコード(`Add-Type` で与える)の中で完結させ、PowerShell は旗を読むだけにする。
-- 旗を PowerShell の変数(`$script:`・`$global:`)に持たない。ヘルパーの静的メンバーを読む。
-- 番号と「立った」の 2 つの値を別々に持つと、「立ったが番号がまだ見えない」瞬間を読み手が見うる。1 つの値にまとめ、読み手は「無し」か「完全な番号」のどちらかだけを見る。
-- 1 つの判断のなかで、旗を 2 回読んで食い違いを起こさない(1 回読んで、その値を使う。例: `pipeline` のジョブのあいだの確認と、`Get-ConductorSignalExitCode` の引数 `n` は、同じ読み取りの結果)。
+- **PowerShell のスクリプトブロックを .NET のデリゲート(シグナルのコールバック)にしない**。別スレッドで呼ばれると、そのスレッドに実行空間(runspace)が無く、失敗する問題が知られている(07 章 7.1 節。この文書では公式ドキュメントを取得していない: 未確認)。旗の更新はヘルパーの .NET のコード(`Add-Type` で与える)の中で完結させ、PowerShell は旗を読むだけにする。
+- 旗を PowerShell の変数(`$script:`・`$global:`)に持たない。ヘルパーの `Interrupt` のメンバーを読む。
+- 「立った」と番号は、ヘルパーの内部で 1 つの値にまとめて書かれる(`Interlocked.CompareExchange`)。読み手は、`IsRaised` が `$true` のときだけ `Number` を読み、「無し」か「完全な番号」のどちらかだけを見る。番号 0 や負の番号でも「立った」ことは記録される(07 章 6.1 節)。
+- 1 つの判断のなかで、`IsRaised` と `Number` を、それぞれ 1 回だけ読み、その値を使う(例: `pipeline` のジョブのあいだの確認と、`Get-ConductorSignalExitCode` の引数 `n` は、同じ読み取りの結果)。
 - ハンドラ(コールバック)の中で、ファイルの書き込み・画面への出力・`Process` のメンバーの呼び出し(子への転送を除く。転送は 07 の規定)をしない。旗を立てることだけを行う。
 - `Start-Job`・`Start-ThreadJob`・`ForEach-Object -Parallel`・`Register-ObjectEvent`・`Register-EngineEvent` を使わない(07 章の決定)。`[System.Threading.Tasks.Task]` の `.Wait()`・`.Result` を使わない。
 
@@ -1042,7 +1042,7 @@ function Test-ConductorStateEqual { [OutputType([bool])]             param([pscu
 - T-4: `[int]$x = $null` が 0 になること(型付きのパラメーター・変数に `$null` を入れない規則の根拠)。`[AllowNull()] [object]` の `$null` が保たれること。
 - T-5: `[bigint]` を `-lt`・`-gt` で比べたときの結果、`[System.Numerics.BigInteger]::Divide`・`Min` の呼び出し。
 - T-6: `[int]$s[$i]`(`[char]` から `[int]`)がコードユニットの値を返すこと。`'A' -ge 'a'` が True になるか(大文字小文字を区別しない比較の確認)。
-- T-7: ヘルパーが `CancelKeyPress` を `Cancel = $true` で処理するとき、`pwsh -File` 実行中のスクリプトが `PipelineStoppedException` で止まらないこと。`Thread.Sleep` の刻みの待機が、SIGINT/SIGTERM で中断されないこと(07 章と合わせて確認)。
+- T-7: ヘルパーが `CancelKeyPress` を `Cancel = $true` で処理するとき、`pwsh -File` 実行中のスクリプトが `PipelineStoppedException` で止まらないこと。`Interrupt.Wait(int)` の刻みの待機が、`PipelineStoppedException` の要求で途中で割り込まれず、合図で直ちに戻ること(07 章と合わせて確認)。
 - `Stopwatch` の単調性・休止中の挙動・`Frequency`(§7.8)。
 - `Process.ExitCode` が Windows で負数として現れること(§1.2)。
 - Unix の引数・環境変数の不正な UTF-8 が `[string]` にどう入るか(§6.1)。

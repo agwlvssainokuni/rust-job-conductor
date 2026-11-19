@@ -12,10 +12,10 @@
 |----|----------|------|
 | ランチャー(UNIX 系) | `bin/conductor`(POSIX の `sh` スクリプト) | `pwsh` を `-NoLogo -NoProfile -NonInteractive -File` で起動し、利用者の引数を**変えずに**渡し、`pwsh` の終了コードで終わる(1.3) |
 | ランチャー(Windows) | `bin/conductor.cmd` | 同上(1.3) |
-| 入口スクリプト | `bin/conductor.ps1` | モジュールを読み込み、生の引数を取り出し(1.2)、`Invoke-Conductor` を呼び、戻り値を `exit` に渡す。**`exit` を呼ぶのはこのスクリプトだけ** |
+| 入口スクリプト | `bin/conductor.ps1` | モジュールを読み込み、生の引数を取り出し(1.2)、`Invoke-Conductor` を呼び、戻り値を `exit` に渡す。**`exit` を呼ぶのはこのスクリプトだけ**(と、停止経路の `[System.Environment]::Exit`。07 章 7.7 節) |
 | 公開関数 | `Invoke-Conductor`(モジュール `Conductor`) | 引数の配列を受け、`[int]` の終了コードを**返す**(1.4)。`exit` を呼ばない(呼ぶと、対話セッションを丸ごと終了させるため) |
 
-(共通の設計判断では、ランチャーは `bin/conductor` と `bin/conductor.cmd` の 2 つだった。この章は、`pwsh` に `-NoProfile` などを確実に渡すため、UNIX 系のランチャーを `sh` スクリプトにし、`pwsh` が実行する入口を `bin/conductor.ps1` として分けた。理由は 1.3。)
+(ランチャーは、`pwsh` に `-NoProfile` などを確実に渡すため、UNIX 系を `sh` スクリプトにし、`pwsh` が実行する入口を `bin/conductor.ps1` として分けた。理由は 1.3。)
 
 ### 1.2 共通の規則
 
@@ -24,7 +24,7 @@
 - 特別なオプション(`-h`/`--help`, `-V`/`--version`)は、コマンドの解釈より先に処理する(4.2 の 1)。
 - 使い方の誤りのときは、標準エラーに「誤りの 1 行 + 空行 + 使い方全文」を書き、終了コード 68 で終わる。ジョブは実行しない。
 - 既定では、`conductor` 自身は何も出力しない(ジョブ本体の出力がそのまま流れる)。エラーのとき、または `-v` のときだけ標準エラーに書く。例外として、`watch`・`--help`・`--version`・`convert` は結果を標準出力に書く。
-- プロセスの終了コードを決める箇所は、入口スクリプトの `exit` の 1 か所だけにする。`Invoke-Conductor` は `[int]` を返し、入口スクリプトが、出力を完了させたうえで(08 章 1.4)その値を `exit` に渡す(10 章 4.1)。
+- プロセスの終了コードを決める箇所は、入口スクリプトの `exit` の 1 か所だけにする(停止経路の `Environment.Exit` を除く。07 章 7.7 節)。`Invoke-Conductor` は `[int]` を返し、入口スクリプトが、出力を完了させたうえで(08 章 1.4)その値を `exit` に渡す(10 章 4.1)。
 - 引数は、入口スクリプトが `[System.Environment]::GetCommandLineArgs()` から取り出した**生の文字列の配列**(`[string[]]`)として `Invoke-Conductor` に渡す。取り出しの手順は 1.5。
 
 ### 1.3 ランチャーの仕様
@@ -106,24 +106,37 @@ Ctrl+C: `cmd.exe` は、バッチの実行中の Ctrl+C で「バッチ ジョ�
 - 骨格(実装コードは規定しない。順序と意味を規定する):
 
 ```powershell
+#requires -Version 7.6            # PowerShellVersion と同じ値(11 章 2.5 節。版の一致の検査)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $exitCode = 70
+$finished = $false
 try {
     # 1. モジュールを読み込む(リリース: ../Conductor/Conductor.psd1、ソース: ../src/Conductor/Conductor.psd1)
     # 2. 生の引数を取り出す(1.5)
-    # 3. $exitCode = Invoke-Conductor -ArgumentList $rawArguments
+    # 3. $result = @(Invoke-Conductor -ArgumentList $rawArguments)
+    #    $result が [int] 1 つで 0〜255 でなければ内部の誤り(10 章 4.1。固定の 1 行を出して 70)
+    #    それ以外は $exitCode = $result[0]
+    $finished = $true
 }
 catch [System.Management.Automation.PipelineStoppedException] {
-    # Ctrl+C による停止。内部の誤りの 1 行を出さない(10 章 6.4)
+    # Ctrl+C による停止。内部の誤りの 1 行を出さない(10 章 6.4)。finally で終了コードを決める
     throw
 }
 catch {
     # 想定外の失敗(モジュールの読み込みの失敗を含む)。10 章 6.1 の固定の 1 行を標準エラーに書き、70
     $exitCode = 70
+    $finished = $true
+}
+finally {
+    if (-not $finished) {
+        # 停止経路(07 章 7.7 節): ヘルパーが予約した終了コード(HasPendingExitCode が真なら PendingExitCode。
+        # なければ 130)で [System.Environment]::Exit を呼ぶ。出力の flush は Invoke-Conductor の finally が済ませている
+    }
 }
 exit $exitCode
 ```
+
 
 - モジュールの探索: 入口スクリプトのあるディレクトリ(`$PSScriptRoot`。確認(出典: about_Automatic_Variables): 「Contains the full path of the executing script's parent directory」。PowerShell 3.0 以降、すべてのスクリプトで有効)から、リリースの配置(`../Conductor/Conductor.psd1`)、なければソースの配置(`../src/Conductor/Conductor.psd1`)の順に探す。見つからなければ、固定の 1 行を出して 70(10 章 6)。
 - `exit` に渡す値は `[int]`(0〜255。10 章 4)。
@@ -149,7 +162,7 @@ function Invoke-Conductor {
 - **`[CmdletBinding()]` を付けない。** 付けると、共通パラメータ(`-Verbose` など)が足され、対話セッションで `Invoke-Conductor -v` と書いたとき、`-v` が `-Verbose` の省略形として束縛されうる(確認(出典: about_CommonParameters): `Verbose` の別名は `vb` だが、共通パラメータは、名前の先頭の一部だけでも束縛される通常のパラメータ名の規則に従うかは、取得したページに記述がなく未確認。付けないことで、この問題を避ける)。
 - 引数は、必ず `-ArgumentList` に配列(`[string[]]`)で渡す。呼び出しの例: `Invoke-Conductor -ArgumentList @('run', '-v', 'job1')`、引数なしは `Invoke-Conductor -ArgumentList @()`。配列の要素は、パラメータとして解釈されない(値として渡る)。
 - 対話セッションで `Invoke-Conductor run -v job1` のように書くと、`run`・`-v`・`job1` は、宣言されていないパラメータとして `$args` に入る(確認(出典: about_Automatic_Variables): 「`$args` Contains an array of values for undeclared parameters that are passed to a function, script, or scriptblock」)。`$args` の中身が、`-v` や `--` を含む引数をそのまま保つかは未確認。したがって、この関数は `$args` を**使わない**。`$args` が空でないとき(呼び出し側の誤り)は、内部の誤りとして、固定の 1 行を出して 70 を返す。
-- 戻り値は、`return` で明示した `[int]` 1 つだけ。関数の中で、パイプラインに値が漏れる文(戻り値を捨てていないメソッド呼び出しなど)を作らない(02 章。共通の設計判断 9)。公開関数は、内部の本体の出力をすべて配列に集め(`@(...)`)、要素が `[int]` 1 つだけであることを確かめる。そうでなければ、バグとして、固定の 1 行を出して 70 を返す。
+- 戻り値は、`return` で明示した `[int]` 1 つだけ。関数の中で、パイプラインに値が漏れる文(戻り値を捨てていないメソッド呼び出しなど)を作らない(02 章 9.2 節)。公開関数は、内部の本体の出力をすべて配列に集め(`@(...)`)、要素が `[int]` 1 つだけであることを確かめる。そうでなければ、バグとして、固定の 1 行を出して 70 を返す。
 - `Invoke-Conductor` 全体を `try`/`catch` で囲む(10 章 6.1)。`exit` を呼ばない。
 - 作業ディレクトリ: 確認(出典: about_Automatic_Variables, `$PWD`): 「Each runspace has its own *current directory*. This isn't the same as the current directory of the process: `[System.Environment]::CurrentDirectory`」。.NET のファイル API(`[System.IO.File]` など)は、相対パスを、プロセスのカレントディレクトリから解決する。`pwsh -File` で起動された直後は、両者が一致する(未確認)。対話セッションから呼ばれたときのため、`Invoke-Conductor` は、開始時に `$PWD` が `FileSystem` プロバイダーの場所なら、`[System.Environment]::CurrentDirectory` を `$PWD.ProviderPath` に設定し、`finally` で元に戻す。設定が失敗したら、内部の誤り(70)にする。`Set-Location` を製品コードで使わない。
 
@@ -253,7 +266,7 @@ conductor --help | --version
 
 既定の定義ファイル名 `conductor.psd1` は、`conductor.json` を探索しない。既定の名前でファイルがなければ、通常の「ファイルなし」(64)になる。JSON の定義を使うときは、`--config conductor.json` のように明示する。人が書く定義にコメントが要るときは、`.psd1` を使う(JSON はコメントを書けない)、と利用者向けに案内する(使い方の文には入れない)。
 
-`--config` のパスについての注意: `Resolve-Path`・`Join-Path`・`[System.IO.Path]::GetFullPath`・`Get-Item` は、文字列を変える(区切りの正規化、`.`・`..` の解決、相対パスの絶対化。`Resolve-Path` は、存在しないパスで誤りになる。確認していない挙動は未確認)。利用者に見せる文字列と、ステートのパスの元には、`--config` に渡された**元の `[string]`** を使い、`[System.IO.Path]` の API は、内部でパスをつなぐ(ステートのパスの作り方は [06-state-file.md](06-state-file.md))道具にとどめる。`Get-Content`・`Set-Content` などのコマンドレットで定義・ステートを読み書きしない(`[System.IO.File]` を使う。共通の設計判断 19)。空文字の `--config ''` は、ファイルを開けず、定義ファイルなし(64)になる(例外の型と文言は 03 章の読み込みの規定に従う。実機では未確認)。
+`--config` のパスについての注意: `Resolve-Path`・`Join-Path`・`[System.IO.Path]::GetFullPath`・`Get-Item` は、文字列を変える(区切りの正規化、`.`・`..` の解決、相対パスの絶対化。`Resolve-Path` は、存在しないパスで誤りになる。確認していない挙動は未確認)。利用者に見せる文字列と、ステートのパスの元には、`--config` に渡された**元の `[string]`** を使い、`[System.IO.Path]` の API は、内部でパスをつなぐ(ステートのパスの作り方は [06-state-file.md](06-state-file.md))道具にとどめる。`Get-Content`・`Set-Content` などのコマンドレットで定義・ステートを読み書きしない(`[System.IO.File]` を使う。02 章 9.2 節)。空文字の `--config ''` は、ファイルを開けず、定義ファイルなし(64)になる(例外の型と文言は 03 章の読み込みの規定に従う。実機では未確認)。
 
 ## 4. 引数の解釈
 
@@ -261,7 +274,7 @@ conductor --help | --version
 
 ### 4.0 内部の表現(骨格)
 
-関数の名前と形は目安であり、4.1・4.2 の挙動を満たせば変えてよい。種別は、文字列の定数(下の表)で表す(`enum` は、モジュール内の複数のファイルにまたがる型の解決に制限があるため、10 章 8.1 の規則どおり、最小限にとどめる)。
+関数の名前と形は目安であり、4.1・4.2 の挙動を満たせば変えてよい。種別は、文字列の定数(下の表)で表す(`enum` と `class` は定義しない。モジュール内の複数のファイルにまたがる型の解決に制限があるため。02 章 5.3 節、10 章 8.1)。
 
 | 名前 | 型 | 内容 |
 |------|----|------|
@@ -277,7 +290,7 @@ conductor --help | --version
 
 「見た目の 1 文字」(書記素クラスタ。結合文字、国旗など)とは一致しない。連結の分解は、コードポイント 1 つずつで行う(`-é`(分解形で `e` + U+0301)は、`-e` と、知らない文字 U+0301 の 2 文字として分解される。`[System.Globalization.StringInfo]` で書記素単位に切らない)。
 
-**文字列の比較と検索は、すべて序数(`StringComparison.Ordinal`)で行う。PowerShell は、既定が文化にも大文字小文字にも依存しない形ではない**ので、次の表のとおり書く(共通の設計判断 9・19)。
+**文字列の比較と検索は、すべて序数(`StringComparison.Ordinal`)で行う。PowerShell は、既定が文化にも大文字小文字にも依存しない形ではない**ので、次の表のとおり書く(02 章 9.2 節)。
 
 | やりたいこと | 書き方 | 使ってはならない書き方と理由 |
 |--------------|--------|--------------------------------|
@@ -531,7 +544,7 @@ UNIX 系の引数は、OS からはバイト列として渡される。そのバ
 ## 8. ヘルプとバージョン
 
 - `-h`/`--help`: 使い方全文を標準出力に出して 0。言語はロケールに従う(全文は 08 章 8 章)。標準出力に書けなくても(閉じたパイプなど)、失敗は無視して 0 で終わる(08 章 1.3.2。`watch` は 65、`convert` は 67 で、ここだけが違う)。
-- `-V`/`--version`: 標準出力に `conductor <版>` と改行 1 つ(`conductor 0.8.0`)。ロケールを判定しない(常にこの英語の形)。終了コード 0(標準出力に書けなくても、失敗は無視して 0。08 章 1.3.2)。版の文字列は、モジュールのマニフェスト `Conductor.psd1` の `ModuleVersion`(唯一の出所)を、モジュールの読み込み時に 1 度だけ、`Import-PowerShellDataFile`(マニフェストのパスは `Join-Path $PSScriptRoot 'Conductor.psd1'` で作る。`.psm1` の中の `$PSScriptRoot` は、確認(出典: about_Automatic_Variables)すべてのスクリプトで有効)で読んで、モジュール内の変数 `$script:ProgramVersion` に保つ。`Test-ModuleManifest`(重い。未確認)、`Get-Module` の呼び出しを実行のたびに行わない。**`Import-PowerShellDataFile` が、マニフェストを読めること(`ModuleVersion` が文字列で返ること)は未確認**(試験 T6)。確かめて使えなければ、`$script:ProgramVersion` に定数 `'0.8.0'` を書き、マニフェストの値と一致することをテストで検査する(11 章)方式に直す。
+- `-V`/`--version`: 標準出力に `conductor <版>` と改行 1 つ(`conductor 0.8.0`)。ロケールを判定しない(常にこの英語の形)。終了コード 0(標準出力に書けなくても、失敗は無視して 0。08 章 1.3.2)。版の文字列は、モジュールのマニフェスト `Conductor.psd1` の `ModuleVersion`(唯一の出所)を、モジュールの読み込み時に 1 度だけ、`Import-PowerShellDataFile`(マニフェストのパスは `Join-Path $PSScriptRoot 'Conductor.psd1'` で作る。`.psm1` の中の `$PSScriptRoot` は、確認(出典: about_Automatic_Variables)すべてのスクリプトで有効)で読んで、モジュール内の変数 `$script:ConductorVersion` に保ち、`Get-ConductorVersion`(`Cli`。02 章 10 章)が返す。`Test-ModuleManifest`(重い。未確認)、`Get-Module` の呼び出しを実行のたびに行わない。**`Import-PowerShellDataFile` が、マニフェストを読めること(`ModuleVersion` が文字列で返ること)は未確認**(試験 T6)。確かめて使えなければ、`$script:ConductorVersion` に定数 `'0.8.0'` を書き、マニフェストの値と一致することをテストで検査する(11 章)方式に直す。
 
 ```text
 $ conductor --version
@@ -603,13 +616,13 @@ $ conductor -vh        # help が勝つ。標準出力に使い方、0
 | 誤りの表示用の変換 | `ConvertTo-ConductorReadableText`: 対になっていないサロゲートを U+FFFD に置き換える(4.4.2) |
 | run ID の検査 | 正規表現を使わない、整数の範囲の比較(5.2) |
 
-### 共通の設計判断から変えた点
+### 設計の選択と理由
 
-| 項目 | 共通の設計判断 | この章 | 理由 |
-|------|----------------|--------|------|
-| UNIX 系のランチャー | `bin/conductor`(先頭 `#!/usr/bin/env pwsh`) | `bin/conductor`(`#!/bin/sh`)+ `bin/conductor.ps1` | シェバンの行に `-NoProfile` などを足す移植性のある方法を確認できない(1.3.2) |
-| 引数の受け方 | `$args`(または `ValueFromRemainingArguments`)で生の文字列を受ける | `-ArgumentList [string[]]`。生の引数は `GetCommandLineArgs()` から取り出す | `pwsh -File` が、引数を PowerShell のパラメータの形に変換する(`:` で分割、`-` 始まりをスイッチ化)ため、`$args` で元の文字列が保たれる保証がない(1.5) |
-| 版の出所 | マニフェストが唯一の出所 | 同じ。読み込み時に 1 度、`Import-PowerShellDataFile` で読む(使えなければ定数とテスト) | 8 章 |
+| 項目 | この章の選択 | 理由 |
+|------|--------------|------|
+| UNIX 系のランチャー | `bin/conductor`(`#!/bin/sh`)+ `bin/conductor.ps1`。先頭を `#!/usr/bin/env pwsh` にした 1 つの `.ps1` にしない | シェバンの行に `-NoProfile` などを足す移植性のある方法を確認できない(1.3.2) |
+| 引数の受け方 | `Invoke-Conductor` は `-ArgumentList [string[]]`。生の引数は `GetCommandLineArgs()` から取り出す。`$args` を使わない | `pwsh -File` が、引数を PowerShell のパラメータの形に変換する(`:` で分割、`-` 始まりをスイッチ化)ため、`$args` で元の文字列が保たれる保証がない(1.5) |
+| 版の出所 | マニフェスト `Conductor.psd1` の `ModuleVersion` が唯一の出所。読み込み時に 1 度、`Import-PowerShellDataFile` で読む(使えなければ定数とテスト) | 8 章 |
 
 ## 11. 未確認
 
