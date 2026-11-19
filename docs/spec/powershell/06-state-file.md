@@ -1,0 +1,1139 @@
+# 06. ステートファイル(論理項目・JSON の形式・読み書き・整合性・reset)
+
+対象: PowerShell 7.x(`pwsh`)で実装する `conductor` v0.8.0 と同じ挙動の実行ツール。ステートファイルは、あるパイプライン定義の実行の途中経過(どのジョブがどう終わったか、どこから再開するか)を保存するファイル。実行の意味論(いつ何を記録するか)は [05-execution-flow.md](05-execution-flow.md) にある。この文書は、ステートが持つ**論理的な項目**、保存の**必須の性質**、**JSON の形式**、読み書きの手順、異常系の挙動を定める。
+
+ファイル名は `<定義ファイル名>.state` / `<定義ファイル名>.<run ID>.state`(定義ファイルの拡張子を含む)で、中身は **JSON**(UTF-8、BOM なし)。実装は `src/Conductor/Private/State/`(読み書き・整合性検査・reset)。ステート値(`JobState`、`PipelineState` など)と、記録の純粋な関数は `Private/Flow/` にある([05](05-execution-flow.md) §1.1、§13)。JSON の読み取りは、定義・変換と共用する自前の読み取り(`Private/Json/`)を使う(§6.5)。JSON の読み書きに `ConvertFrom-Json` / `ConvertTo-Json` を使わない(§4.3、§6.5)。
+
+## 確認の範囲(この文書の根拠)
+
+この文書を書いた環境には PowerShell(`pwsh`)も .NET SDK も無く、コードを実行して確かめていない。API と言語の挙動は、learn.microsoft.com の公式ドキュメント(PowerShell 7.4 版のコマンドレットと `about_*`、.NET の API ページ)を取得して確認できた範囲だけを「確認(出典: …)」と書く。取得できなかった・記載が無かった点は「未確認」と書く(§13.4 に一覧と、実装時に最初に行う小さな試験)。§4.4 の実ファイルの例は、§4.2・§4.3 の規則から機械的に作った文字列で、実装の出力そのものではない(実装時に、この例との完全一致を単体テストで固定する。§6.6)。サポートする版(実装時点でサポート中の LTS のうち最小のものと、最新の安定版)は「実装時に確認」する([11-quality-and-build.md](11-quality-and-build.md))。
+
+## 0. この文書の読み方
+
+| 区分 | 内容 |
+|---|---|
+| 必須(どの実装も同じ) | §2 の論理項目・値の規則・矛盾の条件、§3 の保存の性質、§4 の JSON の形式(キー名・型・固定の順序・書き出しの規則)、§6 の読み込みの検査(順序・種類・理由文・案内文)、§7 の整合性検査、§8 の reset の挙動、ファイルの場所と名前(§1)、§5 のパーミッションの規定 |
+| 実装に任せてよい点 | 一時ファイルの名前の細部(§1 の条件を満たす)、内部の構造、読み込みの内部の作り(§6.5 の規則を満たす) |
+
+---
+
+## 1. 場所と名前
+
+ステートファイルは、**定義ファイルと同じディレクトリ**に置く。
+
+| run ID | ファイル名 |
+|---|---|
+| なし | `<定義ファイル名>.state` |
+| あり | `<定義ファイル名>.<run-id>.state` |
+
+- `<定義ファイル名>` は、定義ファイルのパスの最後の要素(拡張子を含む)。例: `conductor.psd1` → `conductor.psd1.state`、`--config ci/nightly.psd1 --run-id 12345` → `ci/nightly.psd1.12345.state`。
+- 定義ファイルのパスは、`--config` で与えられた文字列のまま(正規化・絶対化しない)。ディレクトリ部分が空(`conductor.psd1` のように親が無い)なら、実行ディレクトリ。**ステートの中身に書く `definition_path` と、画面に出す `<ステートファイルのパス>` は、この文字列から作った結果のまま**(絶対化したものを書かない)。
+- パスの組み立て(`Get-ConductorStatePath`(DefinitionPath, RunId))は、**`[System.IO.Path]` の静的メソッド**を使う: `[System.IO.Path]::GetFileName($definitionPath)`(最後の要素)、`[System.IO.Path]::GetDirectoryName($definitionPath)`(ディレクトリ部分)、`[System.IO.Path]::Join($directory, $name)`。**`Join-Path`・`Split-Path`・`Resolve-Path`・`Test-Path` を使わない**: これらは PowerShell のパスの規則(ドライブ・プロバイダー・ワイルドカード)で解釈する。ワイルドカード文字(`[`、`]`、`*`、`?`)を含むファイル名は、`-Path` の引数では、ワイルドカードとして解釈される(確認: `Set-Content`・`Get-Content` のページ「`-Path`: Wildcard characters are permitted」「`-LiteralPath`: No characters are interpreted as wildcards」)。`Join-Path` / `Resolve-Path` が存在しないパスをどう扱うかは、この文書では取得して確認していない(未確認)。次の点を守る:
+  - `GetDirectoryName` は、パスにディレクトリ部分が無いとき(`conductor.psd1`)に空文字列、ルートのときに `$null` を返す、と理解している(この文書では公式ドキュメントを取得して確認していない: 未確認)。`$null` と空文字列は、どちらも「ディレクトリ部分なし」として空文字列に統一する。空のとき、ステートのパスは名前だけ(`$directory.Length -eq 0` なら `$name`、そうでなければ `Join($directory, $name)`)と書いて、`Join` が空文字列をどう扱うかに頼らない。ディレクトリの操作(§5 の 9、§8.2 の一覧)には、空のとき `"."` を渡す。
+  - `GetFileName` は、パスが区切り文字で終わるとき(`ci/`)に空文字列を返す(未確認)。空の名前になる定義ファイルのパスは、定義の読み込み(64)で先に弾かれる。ここでは来ない前提とするが、空なら内部の誤り(70)にする(`writeFailed` にしない)。
+  - 区切り文字は、Unix では `/` だけ、Windows では `/` と `\` の両方。この扱いは `Path` に任せ、自前で `LastIndexOf('/')` を書かない。
+  - 文化依存の比較(`-like`、`-match`、`-eq`、引数が 1 つの `StartsWith`)で名前を判定しない。序数(`StartsWith($x, [System.StringComparison]::Ordinal)`、`-ceq`)を使う。
+- **現在のディレクトリの二重性(PowerShell 固有の注意)**: PowerShell の現在の場所(`Get-Location`、`$PWD`)と、.NET のプロセスの現在のディレクトリ(`[System.Environment]::CurrentDirectory`)は、別の値になりうる(PowerShell の `Set-Location` はプロセスのディレクトリを必ずしも変えない、と理解している。この文書では公式ドキュメントを取得して確認していない: 未確認)。`[System.IO.File]` などの .NET のメソッドに相対パスを渡すと、プロセスのディレクトリを基準に解決される。そこで、**.NET のファイル API に渡す直前に**、`Resolve-ConductorFsPath`(Path)= `[System.IO.Path]::GetFullPath($path, (Get-Location -PSProvider FileSystem).ProviderPath)` で、PowerShell の現在の場所を基準にした絶対パスにする(`GetFullPath(String, String)` の存在と、`Get-Location -PSProvider FileSystem` の結果は未確認: 試験 T-9)。保存するパス・表示するパスの文字列は、元の文字列のまま。`Invoke-Conductor` を `pwsh -File` で起動するランチャー経由では、2 つのディレクトリは一致する(新しいプロセスの現在のディレクトリが、そのまま最初の場所になる、と理解している。未確認)。
+- run ID は検査済み(`A-Za-z0-9._-`、1〜64 文字、先頭が `.` でない。[05](05-execution-flow.md) §6)なので、パス区切りや `..` は入らない。
+- 一時ファイルの名前: `.<ステートファイル名>.tmp.<プロセス番号>.<時刻(ナノ秒)>.<連番>`(同じディレクトリ。§5)。名前の付け方は実装に任せてよいが、**ドットで始まり、`.tmp.` を含み、後始末(§5 の 9)で識別できる**こと。
+- 大文字小文字を区別しないファイルシステム(macOS の既定、Windows)では、`A` と `a` の run ID は同じファイルになる。食い違いは、中身の `run_id` との照合で壊れたステート(65)として検出される(§6 の 9)。
+
+---
+
+## 2. ステートの論理項目
+
+### 2.1 ステート全体の項目
+
+メモリ上の名前(`PipelineState` のプロパティ)と、ファイル上のキー名の対応を併記する。メモリ上の名前はキー名の PascalCase 版だが、`job` だけはプロパティ名が `Jobs`。
+
+| 項目(ファイルのキー) | メモリ上の名前 | 型 | 必須 | 意味・値 |
+|---|---|---|---|---|
+| `format_version` | (書き出し時に固定値 `1` を出す) | 整数 | 必須 | 常に `1`。読み込みでは最初に検査される(§6) |
+| `definition_key` | `DefinitionKey` | 文字列 | 必須 | 定義ファイルのパス(`definition_path` と**同じ文字列**を書く。読むときは別々に保持するが、どちらも照合に使わない) |
+| `definition_path` | `DefinitionPath` | 文字列 | 必須 | 定義ファイルのパス(`--config` の文字列。文字列として表せない部分(孤立サロゲート)は U+FFFD に置き換える。§4.3、[04](04-cli.md))。空でもよい |
+| `pipeline_name` | `PipelineName` | 文字列 | 必須 | 記録時の `pipeline.name`。照合に使う(§7) |
+| `job_order` | `JobOrder` | 文字列の列(`[string[]]`) | 必須 | 記録時のジョブIDを、定義の記述順に並べたもの |
+| `job` | `Jobs` | ジョブ状態の列(`[object[]]`) | 必須 | ジョブごとの状態(§2.2)。`job_order` と同じ順・同じ数 |
+| `resume_job_id` | `ResumeJobId` | 文字列(`$null` を許す) | 任意 | 次に実行する、または再開するジョブのID。無いときは項目自体を保存しない。`job_order` に含まれる値 |
+| `end_reached` | `EndReached` | 真偽 | 必須 | `@end` に到達したか。一度 true になったら、その run のあいだ false に戻らない |
+| `completed` | `Completed` | 真偽 | 必須 | 完了したか(§9) |
+| `run_id` | `RunId` | 文字列(`$null` を許す) | 任意 | run ID。run ID ありのステートだけが保存する。無いステートには項目を保存しない |
+
+上の表にない項目は、ステート全体にも、ジョブ状態の中にも許さない(§6 の `corrupt`)。
+
+### 2.2 ジョブ状態の項目
+
+| 項目(ファイルのキー) | メモリ上の名前 | 型 | 必須 | 意味・値 |
+|---|---|---|---|---|
+| `id` | `Id` | 文字列 | 必須 | ジョブID |
+| `status` | `Status` | 文字列 | 必須 | `"pending"` / `"success"` / `"warning"` / `"error"` / `"skipped"`(これ以外は `corrupt`)。メモリ上も同じ文字列([05](05-execution-flow.md) §1.1、§0.2) |
+| `exit_code` | `ExitCode`(`$null` を許す) | 整数(`[int]` の範囲: -2147483648〜2147483647) | 任意 | ジョブの終了コード。`status` が success / warning / error のときだけ持てる。終了コードが無い結果(起動失敗・シグナル終了)の error には保存しない。負数も許す(例 `-1`)。範囲外の整数は `corrupt` |
+| `skip_reason` | `SkipReason`(`$null` を許す) | 文字列 | 条件付き | `"byTransition"`(遷移によるスキップ)/ `"byEnd"`(`@end` によるスキップ)。**`status = "skipped"` のときだけ必須、そのほかの `status` では保存してはならない** |
+
+### 2.3 内容の矛盾(読み込み時に `corrupt` になる条件)
+
+- ジョブ状態のジョブID に重複がある。
+- ジョブ状態の並び(`id` の列)が `job_order` と、数も順序も完全には一致しない。
+- `resume_job_id` が `job_order` にない。
+- `resume_job_id` があるのに `completed = true`(完了と再開位置は両立しない)。
+- `status` が `skipped` なのに `skip_reason` が無い、または `skipped` 以外なのに `skip_reason` がある。
+- `status` が pending / skipped なのに `exit_code` がある。
+
+### 2.4 初期ステート(`New-ConductorInitialState`)
+
+定義から作る、記録前のステート: 全ジョブ `pending`(`exit_code`・`skip_reason` なし)、`resume_job_id` 無し、`end_reached = false`、`completed = false`、`definition_key` = `definition_path` = 定義ファイルのパス文字列、`pipeline_name` = 定義の名前、`job_order` = 定義のジョブIDの記述順、`run_id` = 決定した run ID(あれば)。
+
+### 2.5 不変条件(実装が保つもの)
+
+[05](05-execution-flow.md) §3 の記録関数が作るステートは、次を満たす(読み込みの検査と対応する)。
+
+- ジョブ状態と `job_order` は同じ順・同じID。
+- `skipped` のジョブにだけ `skip_reason` がある。`exit_code` は結果のある状態(success / warning / error)にだけある。
+- `end_reached` は単調(true になったら戻らない)。
+- `completed = true` のとき `resume_job_id` は無い。
+- ただし、エラーのジョブを再実行して「起動前の中断」([05](05-execution-flow.md) §12 の 2)になったときは、`status = error` のまま `exit_code` が消える。
+
+---
+
+## 3. 保存の必須の性質
+
+| # | 性質 | 内容 |
+|---|---|---|
+| 1 | 原子的な置換 | 読み手は、直前の完全な内容か、新しい完全な内容のどちらかだけを見る。途中の内容は決して見えない。どの段階で失敗しても、ステートファイルは直前の完全な内容のまま(§5) |
+| 2 | 再開に必要な情報 | 全ジョブの `id`・`status`・`exit_code`・`skip_reason`、`resume_job_id`、`end_reached`、`completed`、定義との照合用の `pipeline_name`・`job_order`、run ID を保存する。リトライの回数・待ち時間は保存しない(再開は最初の実行から数え直す) |
+| 3 | 壊れたときの検出 | 読み込みで、構文・型・値・矛盾・版・run ID・大きさを検査し(§6)、壊れていれば**黙って続行せず**、種類と理由を表示して 65 で止まる。読み込みは、ファイルを消さず、書き換えない |
+| 4 | 完了のステートの扱い | 完了のステートは書式を変えず残し、読み込み(`run`・`pipeline`)では「空」とみなす(§9) |
+| 5 | 耐久性の 2 段階 | 結果・スキップ・中断の記録は、内容の同期まで行う(Durable)。最初の初期ステートだけは、同期を省いてよい(Fast)(§5) |
+| 6 | 排他制御はしない | ファイルロック・PID ファイルを使わない(§11) |
+
+---
+
+## 4. JSON の形式(`format_version = 1`)
+
+### 4.1 エンコードの基本
+
+- UTF-8 の JSON(RFC 8259 の 1 個の値)。最上位は**オブジェクト**。BOM は書かない(読むときは拒否する。§6.1 の 5・6a)。
+- 論理項目とのキーの対応は同名: §2.1 の項目は最上位のキー、§2.2 は `job` の配列の要素(オブジェクト)の中のキー。`job` は**オブジェクトの配列**(キー名は `job` のまま。論理項目の名前と一致させるための決定)、`job_order` は文字列の配列。
+- 任意の項目(`resume_job_id`、`run_id`、`exit_code`、`skip_reason`)は、無いときキー自体を書かない(`null` を書かない)。
+- 空の配列は `[]` と書く(`null` にしない)。
+
+### 4.2 スキーマ(キー・型・固定の順序)
+
+**書き出すときのキーの順序は固定**とする(辞書順にしない)。読み込みはキーの順序に依存しない。
+
+最上位:
+
+| 順 | キー | JSON の型 | 有無 |
+|---|---|---|---|
+| 1 | `format_version` | 数値(整数 `1`) | 必須 |
+| 2 | `definition_key` | 文字列 | 必須 |
+| 3 | `definition_path` | 文字列 | 必須 |
+| 4 | `pipeline_name` | 文字列 | 必須 |
+| 5 | `run_id` | 文字列 | run ID があるときだけ |
+| 6 | `job_order` | 文字列の配列 | 必須 |
+| 7 | `job` | オブジェクトの配列 | 必須 |
+| 8 | `resume_job_id` | 文字列 | あるときだけ |
+| 9 | `end_reached` | 真偽(`true`/`false`) | 必須 |
+| 10 | `completed` | 真偽 | 必須 |
+
+`job` の要素:
+
+| 順 | キー | JSON の型 | 有無 |
+|---|---|---|---|
+| 1 | `id` | 文字列 | 必須 |
+| 2 | `status` | 文字列(`"pending"`/`"success"`/`"warning"`/`"error"`/`"skipped"`) | 必須 |
+| 3 | `exit_code` | 数値(整数。32 ビット符号付き) | 結果のある状態で、終了コードがあるときだけ |
+| 4 | `skip_reason` | 文字列(`"byTransition"`/`"byEnd"`) | `status = "skipped"` のときだけ |
+
+書き出し用の関数(読み込みには使わない。理由は §6.5):
+
+```powershell
+function ConvertTo-ConductorStateJsonBytes {
+    # §4.3 の規則で UTF-8 のバイト列にする(末尾に LF 1 つ、BOM なし)。
+    # 戻り値: [pscustomobject]@{ Ok = [bool]; Bytes = [byte[]](Ok のとき。$null でない); Reason = [string](失敗のとき §6.4 の 22) }
+    # バイト配列を直接 return しない(配列は要素ごとに展開されて流れる。05 §14.2)。Bytes は戻り値オブジェクトのプロパティで運ぶ。
+    [OutputType([pscustomobject])]
+    param([Parameter(Mandatory)] [pscustomobject] $State)
+}
+```
+
+- 出力は、`[System.Text.StringBuilder]` に、キーを §4.2 の順に 1 つずつ書いて作る(`run_id` などの省略可能なキーは、値があるときだけ、その順序の位置で書く)。順序は、コードに書いた順序そのもので決まる。`@{}`(順序の無いハッシュテーブル)を使わない。**確認(出典: `ConvertTo-Json` のページ): `@{Account="User01";Domain="Domain01";Admin="True"} | ConvertTo-Json -Compress` の出力は `{"Domain":"Domain01","Account":"User01","Admin":"True"}` で、記述順(Account, Domain, Admin)と異なる**。`[ordered]@{}` は順序を保つ(確認: `ConvertFrom-Json` のページに「`-AsHashtable` は 7.3 以降 `OrderedHashtable` を作り、キーの順序を保つ」とある。`[ordered]` 構文そのものの公式ドキュメントは本担当では取得していない)が、この仕様は、書き出しを `StringBuilder` への直接の追記で行い、ハッシュテーブルを経由しない。
+- `StringBuilder` の `Append` は、`StringBuilder` 自身を返す。`[void]$sb.Append(...)` と書く(戻り値を捨てない文は、関数の出力に混ざる。[05](05-execution-flow.md) §14.4)。改行は `[void]$sb.Append([char]10)`(`Environment.NewLine` と `AppendLine()` を使わない)。
+- 「無い」値のキーは、`null` を書かず、**キーを書かない**。`ExitCode` は **`$null -ne $exitCode` で判定する**(`if ($exitCode)` と書くと、値 `0` のキーが落ちる。[05](05-execution-flow.md) §14.3)。`SkipReason`・`ResumeJobId`・`RunId` も `$null -ne` で判定する(空文字列の `run_id` は作られない: run ID なしは `$null`)。
+- 数値は `$exitCode.ToString([System.Globalization.CultureInfo]::InvariantCulture)`(文化の負号・桁区切りを使わない)。`ExitCode` が `[int]` であることを、書く前に `$exitCode -is [int]` で確かめる(`[long]` や `[double]` が混ざっていたら、書き出しの失敗(理由 22))。
+- キーの順序を、単体テストで固定する(§4.4 の例との完全一致。§6.6)。
+
+### 4.3 書き出しの規則
+
+**決定: ステートの JSON の書き出しは、`ConvertTo-Json` を使わず、自前の文字列の組み立てで行う。** 理由(公式ドキュメントで確認できた範囲。出典はいずれも `ConvertTo-Json` のページ(PowerShell 7.4 版)):
+
+| # | 事実 | 帰結 |
+|---|---|---|
+| 1 | `-Depth` の既定は 2(0〜100 の範囲)。入力の入れ子が指定より深いと、警告を出す(7.1 以降) | ステートは、最上位 → `job` の配列 → 要素のオブジェクトで 3 段。既定の深さ 2 では、`job` の要素の中身が切り捨てられる(切り捨ての形は未確認)。`-Depth` を明示すれば足りるが、ほかの事実と合わせて採らない |
+| 2 | ハッシュテーブルのキーの順序は、記述順にならない(例の出力が `Domain`, `Account`, `Admin` の順) | 固定のキー順(§4.2)を保てない。`[ordered]` を使えば保てる可能性があるが、`ConvertTo-Json` が `OrderedDictionary` の順序を保つことは、ページに記載が無い(未確認) |
+| 3 | パイプラインで 1 要素の配列を渡すと、配列が展開される(`ConvertFrom-Json` のページの例 5: `'[1]' \| ConvertFrom-Json \| ConvertTo-Json -Compress` は `1` になる)。`-AsArray` で、単一のオブジェクトも `[]` で囲める | `job_order` や `job` が 1 要素のとき、`[]` の配列ではなくなる事故が起きうる。`-InputObject` で渡す・`-AsArray` を使うなど、回避はできるが、入れ子の中の 1 要素の配列の扱いは未確認 |
+| 4 | `-EscapeHandling` の既定は `Default`(制御文字だけをエスケープ)。`EscapeNonAscii` は ASCII 以外をすべて、`EscapeHtml` は `<` `>` `&` `'` `"` と制御文字をエスケープ。実装は Newtonsoft の JSON ライブラリ(ページの Notes) | 既定は、日本語・`<` `&` `>` をそのまま出す点で、この仕様と同じ向きだが、U+2028・U+2029 のエスケープの有無、制御文字の `\u00xx` の 16 進の大文字・小文字、U+007F・U+0085 の扱いは、ページに記載が無い(未確認)。この仕様は U+2028・U+2029 を ` `・` ` と書き、16 進は小文字と決めている(§4.3 の表)ので、一致するかを確認できない |
+| 5 | 出力のインデント(例では 2 空白)・改行文字(LF か CRLF か)・空配列の書き方(`[]`)・キーと値のあいだの空白(`": "`)・末尾の改行の有無 | 例の出力は 2 空白のインデントに見えるが、改行文字・空配列・末尾の改行の規則は、ページに記載が無い(未確認)。LF 固定・末尾 LF 1 つの規定(下)を保証できない |
+| 6 | 孤立サロゲートを含む文字列を書いたときの挙動 | ページに記載が無い(未確認) |
+| 7 | `-Compress` / 既定の整形の形式は、版で変わりうる(7.5 で BigInteger のサポートが加わった、など、版による変更が複数ある) | 出力が PowerShell の版で変わりうる。同じ入力から同じバイト列を作る(往復・テスト)規定に反する |
+| 8 | 出力は `[string]`(文字列)で、`Out-File`・`Set-Content` に渡すと、エンコーディングと改行が付く(下の「ファイルへの書き込み」) | ステートのバイト列を、この仕様どおりに決められない |
+
+したがって、エスケープの規則を、この文書が全部定め、自前で実装する(下)。`ConvertTo-Json` の出力の細部に、この仕様を預けない。
+
+**ファイルへの書き込みに `Set-Content`・`Out-File`・`>`・`Add-Content` を使わない**理由(確認の出典: `Set-Content`・`Get-Content` のページ):
+
+| # | 事実 | 帰結 |
+|---|---|---|
+| 1 | `Set-Content` の `-Encoding` の既定は `utf8NoBOM`(PowerShell 7.4 のページ。`Get-Content` も `UTF8NoBOM`)。Windows PowerShell 5.1 の既定は異なる(5.1 版のページは取得していない: 未確認) | 7.x だけを対象にするので、既定は BOM なしの UTF-8 だが、既定に依存する理由が無い。`-Encoding` を明示しても、下の 3〜5 が残る |
+| 2 | `Set-Content` は文字列処理のコマンドレットで、パイプラインの入力を文字列に変換して書く。`-NoNewline` が無ければ、最後の出力の後に改行が付く(`-NoNewline`: 「No newline is added after the last output string」)。改行はプラットフォームの改行(Windows は CRLF)と理解している(未確認) | LF 固定・末尾 LF 1 つの規定を、改行を付ける・付けないの指定で満たせるかは、ページから確認できない |
+| 3 | `-Path` はワイルドカードを解釈する(`[`、`*`、`?`)。`-LiteralPath` は解釈しない | ファイル名にワイルドカード文字を含む定義ファイルで、`-Path` を使うと別のファイルを指しうる。`-LiteralPath` を使えば避けられる |
+| 4 | `Set-Content` は、既存のファイルを**その場で置き換える**(内容を置換する)。一時ファイルへの作成・同期・置き換えの手順(§5)の、「既存なら失敗する新規作成」「`Flush(true)`」「パーミッション」を指定する手段が、ページに記載が無い | 原子的な置換(§3 の 1)・耐久性(§3 の 5)・パーミッション(§5)を満たせない |
+| 5 | `Get-Content` は既定で、改行で区切った行の配列を返す。`-Raw` で 1 つの文字列。エンコーディングは BOM から判定する動作を持つ(ページは既定 `utf8NoBOM` と記す。BOM の扱いは未確認)。`-AsByteStream`(6.0 以降)でバイト列。大きさの上限を指定する手段は、バイト単位では記載が無い(`-TotalCount` は行数) | 読み込みの検査(大きさの上限 1 MiB + 1 バイトで止める、BOM を取り除かない、不正な UTF-8 を拒否する。§6.1)を満たせない。`-AsByteStream -Raw` は、ファイル全体を読む(上限で止められない) |
+
+したがって、ステートの読み書きは、`[System.IO.FileStream]` と `[System.IO.File]` の静的メソッドで、バイト列として行う(§5、§6.1)。
+
+規則:
+
+- 文字列 = 下の規則で作った全体 + LF 1 つ。インデントは空白 2 つ、改行は LF のみ(`[System.Environment]::NewLine` を使わない)。ファイルの末尾は LF 1 つ。CR は出力に現れない(文字列の中の CR は `\r` にエスケープされる)。
+- オブジェクトは `{` + LF、各メンバーを「インデント + `"キー"` + `: ` + 値」で、メンバーのあいだは `,` + LF、最後のメンバーの後は LF、`}`。配列は、要素ごとに 1 行(インデントされる)。空配列は `[]`(1 行)。キーと値のあいだは `": "`(コロンの後に空白 1 つ)。行末に空白を付けない。入れ子のインデントは、深さ 1 つにつき空白 2 つ(最上位のメンバーが 2、`job` の要素のオブジェクトが 4、その中のメンバーが 6、`job_order` の要素が 4)。
+- 数値は 10 進の整数だけ(`1`、`0`、`-1`、`2147483647`)。小数点・指数・先頭の `+` は書かない。
+- 文字列は `"` で囲み、文字ごとに次の表で書く。**表にない文字は、そのまま(エスケープせず)UTF-16 から UTF-8 に符号化して出す**(`<` `>` `&` `'` `/`、DEL(U+007F)、U+0085、ASCII 以外の全部の文字を含む)。
+
+| 文字 | 出力 |
+|---|---|
+| `"`(U+0022) | `\"` |
+| `\`(U+005C) | `\\` |
+| U+0008 / U+000C / U+000A / U+000D / U+0009 | `\b` / `\f` / `\n` / `\r` / `\t` |
+| その他の U+0000〜U+001F | `\u00xx`(`xx` は 2 桁の**小文字**の 16 進。例 `\u001f`、`\u0000`) |
+| U+2028・U+2029 | ` `・` `(6 文字)。どちらも JSON としては生のまま書いても有効だが、これらを行の区切りとみなす構文解析との互換のための決定。読み込み側(§6.5)は同じ値を得る |
+| 対になるサロゲート(U+10000 以上) | そのまま(UTF-8 の 4 バイトになる)。エスケープしない |
+| 孤立サロゲート(対にならない U+D800〜U+DFFF) | `definition_path`・`definition_key` では書く前に U+FFFD に置き換える(下)。ほかの文字列に現れたら書き出しの失敗(理由 `内容を JSON にできません`) |
+
+- PowerShell での実装の注意: 文字ごとの分類は、`[int]$c`(`[char]` のコードユニット)の整数の比較で行う。`[char]` どうしの `-lt` / `-eq` は、大文字小文字を区別しない文字列の比較になりうる([05](05-execution-flow.md) §6.1)ので、`$c -eq '"'` と書かず、`[int]$c -eq 34` と書く(`"` = 34、`\` = 92、`0x08`〜`0x0D` の制御文字、`0x2028` = 8232、`0x2029` = 8233)。文字列を 1 文字ずつ `Append` するのは遅い(PowerShell のループは 1 反復あたりの固定のコストが大きい。性能の基準値は実装時に測る: 未確認)ので、エスケープが要る文字が無い区間を、`$s.Substring($start, $len)` でまとめて `Append` する。エスケープが要る文字の判定には、`[char[]]` の特殊文字の集合と `$s.IndexOfAny($specials, $i)` を使ってよい(結果が同じなら自由)。16 進の変換は、`$code.ToString('x4', [System.Globalization.CultureInfo]::InvariantCulture)`(小文字 4 桁)。
+- **孤立サロゲート**: .NET の `string` は UTF-16 のコードユニットの列で、孤立サロゲートを持ちうる(例: Windows のファイル名は孤立サロゲートを含みうる。未確認)。`[System.Text.UTF8Encoding]::new($false, $true).GetBytes(...)` は、これを例外で拒否する。確認(出典: `UTF8Encoding(Boolean, Boolean)` の API ページ): `throwOnInvalidBytes = $true` のとき、不正なバイト列(符号化では不正な文字列)を検出すると例外を投げる(ページの記載は `ArgumentException`、例の出力は `EncoderFallbackException`)。`$false`(`[System.Text.Encoding]::UTF8` の既定)は例外を投げず、不正なサロゲートを `EF BF BD`(U+FFFD)に置き換える。この仕様は、**`definition_path` と `definition_key` だけ**、書き出す前に、孤立サロゲートの 1 つずつを U+FFFD に置き換える関数(`Convert-ConductorLoneSurrogate`)を通す(対になるサロゲートは置き換えない。高サロゲートの直後が低サロゲートなら対。`[char]::IsHighSurrogate`・`[char]::IsLowSurrogate` を使ってよい)。定義から来る文字列(`pipeline_name`・ジョブIDなど)は孤立サロゲートを含まない([03](03-definition-format.md))ので、置き換えは 2 つのパスだけでよい。それでも書き出し(`UTF8Encoding($false, $true).GetBytes`)が例外を投げたら、書き出しの失敗(理由 `内容を JSON にできません`)にする。`[System.Text.Encoding]::UTF8` を、書き出しの符号化に使わない(黙って置換してしまうため、検査にならない)。
+- Unix で、引数に不正な UTF-8 のバイトを含むパスが、PowerShell の `[string]` にどう入るか(U+FFFD への置き換えなど)は、公式ドキュメントで確認していない(未確認)。置き換わっていた場合、その `[string]` でファイルを開くと別の名前になる。この問題は、ステートの書き出しの規定の外(引数の扱いは [04](04-cli.md))。
+- 書き出した文字列は、`[System.Text.UTF8Encoding]::new($false, $true).GetBytes($text)` でバイト列にして、バイトのまま書く(§5)。BOM(`EF BB BF`)を付けない(確認(出典: `UTF8Encoding(Boolean, Boolean)` のページ): `encoderShouldEmitUTF8Identifier = $true` にしても `GetBytes` は BOM を前置しない。BOM を出すのは `GetPreamble()` を使う側。したがって `GetBytes` の結果をそのまま書けば BOM は付かない)。
+
+### 4.4 実ファイルの例(全フィールドを含む)
+
+以下は §4.2・§4.3 の規則で出力される内容。機械的に作った文字列で(上の確認の範囲を参照)、実装の出力そのものではない。例 6・8・9 は、規則の確認のための入力。
+
+(1)エラーで止まった run ID なしのステート(3 ジョブ。`b` が exit 3)。ファイル名 `c2.json.state`。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "c2.json",
+  "definition_path": "c2.json",
+  "pipeline_name": "n2",
+  "job_order": [
+    "a",
+    "b",
+    "c"
+  ],
+  "job": [
+    {
+      "id": "a",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "b",
+      "status": "error",
+      "exit_code": 3
+    },
+    {
+      "id": "c",
+      "status": "pending"
+    }
+  ],
+  "resume_job_id": "b",
+  "end_reached": false,
+  "completed": false
+}
+```
+
+(2)`@end` で完了した、run ID ありのステート。ファイル名 `conductor.json.r1.state`(a が成功し、遷移 `@end`。b・c が `byEnd`)。`resume_job_id` は無い。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "conductor.json",
+  "definition_path": "conductor.json",
+  "pipeline_name": "nightly",
+  "run_id": "r1",
+  "job_order": [
+    "a",
+    "b",
+    "c"
+  ],
+  "job": [
+    {
+      "id": "a",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "b",
+      "status": "skipped",
+      "skip_reason": "byEnd"
+    },
+    {
+      "id": "c",
+      "status": "skipped",
+      "skip_reason": "byEnd"
+    }
+  ],
+  "end_reached": true,
+  "completed": true
+}
+```
+
+(3)全種類の状態を含む例(4 ジョブ。run ID なし、`end_reached = true`、エラーで停止、負の `exit_code`)。定義 `dir/conductor.json`、ファイル名は `dir/conductor.json.state`(ディレクトリ `dir` の中に置かれる)。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "dir/conductor.json",
+  "definition_path": "dir/conductor.json",
+  "pipeline_name": "nightly",
+  "job_order": [
+    "a",
+    "b",
+    "c",
+    "d"
+  ],
+  "job": [
+    {
+      "id": "a",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "b",
+      "status": "warning",
+      "exit_code": 2
+    },
+    {
+      "id": "c",
+      "status": "skipped",
+      "skip_reason": "byEnd"
+    },
+    {
+      "id": "d",
+      "status": "error",
+      "exit_code": -1
+    }
+  ],
+  "resume_job_id": "d",
+  "end_reached": true,
+  "completed": false
+}
+```
+
+(4)`skip_reason = "byTransition"` の例(遷移 `a --success--> c` で b を飛ばした直後。a 成功、b は byTransition でスキップ、c が次)。定義が `.psd1` のとき。ファイル名 `conductor.psd1.state`。
+
+(`resume_job_id` が付くかどうかは書き込みの契機による。遷移のスキップは結果の記録([05](05-execution-flow.md) §3.3)で書かれ、その `resume_job_id` は無し。この例のステート値は規則から導いたもの。)
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "conductor.psd1",
+  "definition_path": "conductor.psd1",
+  "pipeline_name": "nightly",
+  "job_order": [
+    "a",
+    "b",
+    "c"
+  ],
+  "job": [
+    {
+      "id": "a",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "b",
+      "status": "skipped",
+      "skip_reason": "byTransition"
+    },
+    {
+      "id": "c",
+      "status": "pending"
+    }
+  ],
+  "end_reached": false,
+  "completed": false
+}
+```
+
+(5)**すべてのキーが現れる**例(run ID あり。ファイル名 `ci/nightly.json.12345.state`。定義 `ci/nightly.json`。`run_id`、`resume_job_id`、`exit_code`(0、正、負)、`skip_reason` が全部ある)。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "ci/nightly.json",
+  "definition_path": "ci/nightly.json",
+  "pipeline_name": "nightly",
+  "run_id": "12345",
+  "job_order": [
+    "a",
+    "b",
+    "c",
+    "d"
+  ],
+  "job": [
+    {
+      "id": "a",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "b",
+      "status": "warning",
+      "exit_code": 2
+    },
+    {
+      "id": "c",
+      "status": "skipped",
+      "skip_reason": "byTransition"
+    },
+    {
+      "id": "d",
+      "status": "error",
+      "exit_code": -1
+    }
+  ],
+  "resume_job_id": "d",
+  "end_reached": false,
+  "completed": false
+}
+```
+
+(6)ジョブIDに特殊な文字を含む例(`"`、`\`、日本語、タブ、前後の空白)。ジョブID は定義の検証で空でなく `@` で始まらない文字列であることだけが保証される(前後の空白もそのまま)。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "c.json",
+  "definition_path": "c.json",
+  "pipeline_name": "名前 \"x\"",
+  "job_order": [
+    " a ",
+    "b\\c",
+    "日本語\tタブ"
+  ],
+  "job": [
+    {
+      "id": " a ",
+      "status": "pending"
+    },
+    {
+      "id": "b\\c",
+      "status": "pending"
+    },
+    {
+      "id": "日本語\tタブ",
+      "status": "pending"
+    }
+  ],
+  "end_reached": false,
+  "completed": false
+}
+```
+
+(7)定義が `.json` のとき(ファイル名 `pipelines/ci.json.2026-11-20_01.state`。run ID に `-`・`_`・`.` を含む。`exit_code` が 32 ビット符号付き整数の最小値)。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "pipelines/ci.json",
+  "definition_path": "pipelines/ci.json",
+  "pipeline_name": "ci",
+  "run_id": "2026-11-20_01",
+  "job_order": [
+    "build",
+    "test",
+    "deploy"
+  ],
+  "job": [
+    {
+      "id": "build",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "test",
+      "status": "error",
+      "exit_code": -2147483648
+    },
+    {
+      "id": "deploy",
+      "status": "pending"
+    }
+  ],
+  "resume_job_id": "test",
+  "end_reached": false,
+  "completed": false
+}
+```
+
+(8)U+2028・U+2029 と `<` `&` `>` を含む例(§4.3 のエスケープの確認用。`pipeline_name` は `x` + U+2028 + `y`、ジョブID は `a` + U+2029 + `b <&>`)。U+2028・U+2029 は 6 文字の `\u2028`・`\u2029` になり、`<` `&` `>` は生のまま。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "c.json",
+  "definition_path": "c.json",
+  "pipeline_name": "x\u2028y",
+  "job_order": [
+    "a\u2029b <&>"
+  ],
+  "job": [
+    {
+      "id": "a\u2029b <&>",
+      "status": "pending"
+    }
+  ],
+  "end_reached": false,
+  "completed": false
+}
+```
+
+(9)`definition_path` に孤立サロゲートを含む入力(例: Windows で、ファイル名に孤立サロゲート U+D800 を含む `dir/` + U+D800 + `.json` を `--config` に渡した場合。Unix の不正なバイトの扱いは未確認。§4.3)。書き出す前に、孤立サロゲートが U+FFFD(1 文字)に置き換わる。置き換わるのは**中身の `definition_key` / `definition_path` だけ**で、ステートファイルの実際の名前は元のパスのまま。
+
+```json
+{
+  "format_version": 1,
+  "definition_key": "dir/�.json",
+  "definition_path": "dir/�.json",
+  "pipeline_name": "nightly",
+  "job_order": [
+    "a",
+    "b"
+  ],
+  "job": [
+    {
+      "id": "a",
+      "status": "success",
+      "exit_code": 0
+    },
+    {
+      "id": "b",
+      "status": "pending"
+    }
+  ],
+  "end_reached": false,
+  "completed": false
+}
+```
+
+---
+
+## 5. 書き込み(`Write-ConductorState`)の手順と原子性
+
+入力: 定義ファイルのパス、run ID、ステート、耐久性(`durable` / `fast`)。同期の関数で、失敗は例外でなく値(`Kind = 'fail'` の結果オブジェクト。中身の `Error` の `Kind` = `writeFailed`)で返す(型は §13)。
+
+```text
+1. data = ConvertTo-ConductorStateJsonBytes(state)  # §4.3。失敗(通常は起きない)なら writeFailed(理由=「内容を JSON にできません」)
+2. path = ステートファイルの場所(§1)。.NET に渡す形は Resolve-ConductorFsPath(path)
+3. 一時ファイルを、同じディレクトリに、「既存なら失敗する」新規作成で作る
+     opts = [System.IO.FileStreamOptions]::new()
+     opts.Mode = CreateNew; opts.Access = Write; opts.Share = None; opts.Options = None
+     if not [System.OperatingSystem]::IsWindows(): opts.UnixCreateMode = 0666(下)
+     fs = [System.IO.FileStream]::new(tmpPath, opts)
+     名前 = ".<ステートファイル名>.tmp.<[System.Environment]::ProcessId>.<UTC の Unix エポックからのナノ秒>.<連番>"
+     名前が既存(IOException かつ [System.IO.File]::Exists(tmpPath))なら、連番を進めて作り直す。最大 16 回。それでも作れなければ writeFailed
+     連番 = モジュール内の通し番号($script: の整数。単一スレッドなので排他は不要)+ 試行回数
+4. 全内容を書く: fs.Write(data, 0, data.Length)(3 引数の形に固定する。引数が 1 つの Span の過負荷を PowerShell が選ばないように)
+5. durable のとき fs.Flush($true)(内容を記憶装置まで同期する。下の「確認」)。fast のときは fs.Flush($false) までで、同期を省く
+6. fs.Dispose()(一時ファイルを閉じる。Windows は、開いたままだと移せない・消せない。Dispose が投げた例外も失敗として扱う)
+7. [System.IO.File]::Move(tmpPath, path, $true) で置き換える
+8. 3〜7 のどこかで失敗(例外)したら: fs が開いたままなら Dispose(失敗は無視)、
+     自分が作った一時ファイルを [System.IO.File]::Delete(失敗は無視)し、writeFailed(理由=「書き込みに失敗しました」)。下位の例外は表示しない
+9. 成功し、かつ durable のとき:
+     UNIX 系では、ディレクトリを同期する(下。失敗は無視。Windows では何もしない)
+     同じ名前の型の一時ファイルのうち、更新から 24 時間以上たった通常のファイルを消す(失敗は無視)
+```
+
+PowerShell での実装の規則:
+
+- 3〜8 は、`try { ... } catch { ... } finally { ... }` で書く。`$ErrorActionPreference = 'Stop'`(モジュールの先頭。共通の設計判断)のもとで、.NET のメソッドの例外は終了エラーになり、`catch` に入る。`catch` では、`$_.Exception` から、PowerShell が付けた外側の例外(`MethodInvocationException`)を、`InnerException` が `$null` になるまで(または外側の型でなくなるまで)たどって、元の例外の型を得る(`Get-ConductorBaseException`)。型の判定は `-is`。`catch [System.IO.IOException]` のように型を指定する書き方が、外側の例外に包まれていても一致するかは、公式ドキュメントでは確認していない(未確認: 試験 T-8)ので、この仕様は、`catch`(型の指定なし)で受け、`Get-ConductorBaseException` で型を調べる。**`PipelineStoppedException`(`[System.Management.Automation.PipelineStoppedException]`)は握りつぶさず、`throw` で再送出する**([05](05-execution-flow.md) §16、[07](07-process-and-signals.md))。それ以外の想定外の型(`NullReferenceException` など、実装の誤り)も `StateFail` にせず再送出し、最上位が 70 にする([10](10-errors-and-exit-codes.md))。`IOException`・`UnauthorizedAccessException`・`DirectoryNotFoundException`・`PathTooLongException`・`NotSupportedException`・`ArgumentException`・`System.Security.SecurityException` だけが `StateFail` になる。
+- 例外の `Message` を、理由にも表示にも含めない(.NET の例外メッセージは、実行環境の言語・OS で変わる)。`$_`(`ErrorRecord`)を文字列化して表示しない。
+- `fs` 変数は、`try` の前に `$null` で宣言し、`finally`(または `catch`)で `if ($null -ne $fs) { $fs.Dispose() }` とする。`using` に相当する構文は PowerShell に無い(確認はしていない: `using` 文は名前空間・モジュールの宣言)。
+- バイト列の変数は `[byte[]]`。`$data.Length` は `[int]`。バイト列を関数の戻り値にするときは、プロパティに入れる(§4.2)。
+
+API の選定と注意:
+
+- **`Path.GetTempFileName()` / `[System.IO.File]::Create` / `FileMode.Create` を使わない**: 一時ファイルは、ステートファイルと同じディレクトリに、この名前の規則で作る(別のディレクトリの一時ファイルは、別のファイルシステムになりうる。そうなると `File.Move` はコピーと削除になり、原子的でない。確認(出典: `File.Move` の API ページ): 「ディスクのボリュームをまたぐ移動は、コピーして、成功したらコピー元を削除するのと同じ」)。`FileMode.Create`・`Truncate` は既存のファイルを黙って上書きする。`FileMode.CreateNew` は、既存のとき `IOException` を投げる(`FileMode` の一般の契約。この文書では取得して確認していない: 未確認)。
+- **`FileShare.None`**: 一時ファイルを、書いている最中にほかのプロセスが開けないようにする(Windows で意味を持つ。Unix では、助言のロックが掛かる程度、と理解している。未確認)。
+- **`[System.IO.File]::Move($src, $dst, $true)` を採る(`File.Replace` を採らない)**。確認(出典: `File.Move` の API ページ。対象の版は net-5.0〜net-11.0 と netcore-3.0・3.1。PowerShell 7 が使う .NET の版は、実装時に確認する): `Move(String, String, Boolean)` が存在し、`overwrite = $true` なら、移動先が既にあれば置き換える(「.NET Core 3.0 以降」)。移動先が既にあって `overwrite = $false` なら `IOException`。`overwrite = $true` で OS が移動先への排他アクセスを取れないときは `UnauthorizedAccessException`(ページの例外の記載)。コピー元と先が同じなら例外を投げない。ページには、この置き換えが**原子的である**という記載が無い(ページが原子的でないと書いているのは、`Copy` + `Delete` で代用する方法のほう)。実装(Unix では `rename(2)`、Windows では `MoveFileEx` と理解しているが、取得して確認していない)の原子性は未確認。PowerShell の `Move-Item -Force` は使わない(パスをワイルドカードとして解釈する `-Path` を使い、置き換えの方法が記載されていない: 未確認)。`File.Replace` を採らない理由: (a) 置き換え先が無いと失敗する(最初の書き込みで使えない)と理解しており、分岐が要る(未確認)。(b) Windows の `ReplaceFile` は、置き換え先の属性・ACL を引き継ぐと理解している(この仕様は権限を引き継がない。下)。(c) バックアップのパラメーターなど、不要な機能を持つ。いずれも未確認。
+- **`UnixCreateMode`**。確認(出典: `FileStreamOptions.UnixCreateMode` の API ページ): `Nullable<UnixFileMode>` 型のプロパティで、「新しいファイルを作るときに使う Unix のファイルモード」。.NET 7 以降の版で使える(ページの版は net-7.0〜net-11.0)。`set` は `UnsupportedOSPlatform("windows")` の属性を持つので、**`[System.OperatingSystem]::IsWindows()` が偽のときだけ**このプロパティに代入する。`$IsWindows` 自動変数も使えるが、この文書では取得して確認していない(未確認)ので、.NET の静的メソッドを使う。ページには、**既定の値**(`$null` のときのモード)と、**umask との関係**の記載が無い(未確認)。この仕様は、パーミッションを明示的に変更せず、OS 標準の新規作成の権限(`0666` から umask を引いた値)にする(下)ので、`0666`(`[System.IO.UnixFileMode]'UserRead, UserWrite, GroupRead, GroupWrite, OtherRead, OtherWrite'`。列挙型の文字列からのキャストの書式は未確認。数値で書くなら `[System.IO.UnixFileMode]438`(`438` = 8 進の 0666))を明示する。umask が `open(2)` で適用されること(`open` の `mode` 引数は umask との論理積を取る)は POSIX の一般の規則で、.NET がこの値を `open(2)` にそのまま渡すなら、結果は `0666 & ~umask` になるはず。**この実装の挙動は未確認なので、受け入れテスト(Unix の 2 つの OS)で固定する**: umask 022 で書いたステートファイルの `[System.IO.File]::GetUnixFileMode($path)` が `UserRead, UserWrite, GroupRead, OtherRead`(`0644`)、umask 077 なら `UserRead, UserWrite`(`0600`)になること。もし、`UnixCreateMode` を設定しても umask が掛からない(`0666` のまま)なら、設定せずに(`$null` のまま)作った場合の結果を測り、どちらかが `0666 & ~umask` になる方を採る。
+- **パーミッションは明示的に変更しない**(`[System.IO.File]::SetUnixFileMode`・`chmod`・`Set-Acl` を使わない)。既存のステートファイルを置き換えるときも、権限は引き継がず、新しい一時ファイルの権限になる(`File.Move` の上書きは、コピー元のファイルがそのまま移動先になる、と理解している。未確認)。所有者の変更・ACL の操作はしない。Windows では、ACL を明示せず、親のディレクトリから継承される既定の ACL になる(未確認)。
+- **`FileStream.Flush(Boolean flushToDisk)`**。確認(出典: `FileStream.Flush` の API ページ): `Flush(true)` は「バッファを消し、バッファのデータをファイルに書き、**すべての中間のファイルバッファも消す**」。「中間のファイルバッファのデータがディスクに書かれたことを確実にしたいときにこの過負荷を使う」。`Flush()` を呼ぶと、OS の I/O バッファも消される(同ページ)。ページには、Unix の `fsync(2)` や Windows の `FlushFileBuffers` を呼ぶと明記されていない(未確認。実装は、`flushToDisk = $true` でそれらを呼ぶと理解している)。この仕様は、durable のとき `Flush($true)` を、fast のとき `Flush($false)`(または `Flush()`)を呼ぶ。
+- 書き込みは `FileStream.Write(byte[], int, int)`。バッファを持つ `FileStream` なので、`Flush` を忘れると、`Dispose` まで内容が書かれない。必ず `Flush($durable)` を `Dispose` の前に呼ぶ。`StreamWriter` を重ねない。
+- ファイル記述子・ハンドルは、子プロセスに引き継がれない(`FileStream` の既定。`FileOptions` に継承の指定が無い。この文書では取得して確認していない: 未確認)。
+- 時刻は、差し替え可能な `[scriptblock] $Now`(既定は `{ [System.DateTimeOffset]::UtcNow }`)の結果の `UtcTicks` から `[System.DateTime]::UnixEpoch.Ticks` を引いて 100 を掛けた値(ナノ秒単位、分解能 100 ナノ秒。`[long]` に収まる範囲。収まらない値になる時刻は現実には来ない)でよい。クロックが戻っても、名前の衝突は連番の再試行(最大 16 回)で避ける。`Get-Date` を使わない(出力の型・書式が文化に依存しうる)。
+
+**ディレクトリの同期(手順 9)**: .NET には、ディレクトリの `fsync` を行う管理 API が無い、と理解している(`File.OpenHandle` はディレクトリを開こうとすると `UnauthorizedAccessException` になる、と理解している。いずれも公式ドキュメントでは確認していない: 未確認)。この仕様は、UNIX 系で、`libc` の `open`・`fsync`・`close` を P/Invoke で呼ぶことに決める。P/Invoke を行う型は、シグナルの転送(`kill`)と同じ 1 つのヘルパー型に置く([07-process-and-signals.md](07-process-and-signals.md)。型名・メソッド名は 07 章が正本。この文書では `SyncDirectory(string)` と書く)。ヘルパー型は、`Add-Type` で型定義(.NET のソース)を与えて作る(最初のジョブの起動時までに遅延させる。07 章)。根拠: 手順 9 は「失敗は無視」の、耐久性のための最善の努力で、P/Invoke が使えない環境(ConstrainedLanguage のように `Add-Type` で任意のコードを読み込めない環境。確認: `about_Language_Modes`「`Add-Type` は署名済みのアセンブリを読み込めるが、任意のコードや Win32 API は読み込めない」)でも、他の挙動(ファイルの内容・原子性)は変わらない。
+
+- `SyncDirectory` の中身(ヘルパー側。この文書は挙動だけを定める): ディレクトリを `O_RDONLY` で開き、`fsync`、`close`。失敗はすべて無視する(例外も握りつぶす)。Windows では呼ばない(呼び側が、ステートの書き込みの設定 `SyncDirectory` で決める。`Cli` が OS の判定から決めて渡す)。ヘルパー型が読み込めていない(`Add-Type` の失敗・未実行)ときは、ディレクトリの同期を省く(`$script:` の変数で、ヘルパーの有無を持つ)。
+- `directory` が空のとき `"."`(§1)。`flags` は `O_RDONLY`(0)だけ(`O_DIRECTORY`・`O_CLOEXEC` は値が OS で違うので使わない。ディレクトリを `O_RDONLY` で開いて `fsync` できることは、Linux・macOS で一般に使われる方法で、この文書では確認していない: 未確認)。
+- この P/Invoke を実装しない(省略する)場合の影響: 電源断・カーネルの異常終了で、置き換え(`rename`)がディスクに反映される前に失われうる(ファイルの内容は `Flush($true)` で同期済みなので、古い完全な内容か、新しい完全な内容のどちらかが残る)。「完全な内容のどちらか」という原子性は保たれる。したがって、省略は、この仕様の「必須の性質」(§3)の違反にはならず、「耐久性の強さ」だけを弱める。採用する(P/Invoke を行う)ことを標準とする。
+
+性質:
+
+- **原子的**: 読み手は、直前の完全な内容か、新しい完全な内容のどちらかだけを見る。途中の内容は見えない。どの段階で失敗しても、ステートファイルは直前の完全な内容のまま。UNIX 系の `rename(2)` が原子的であること、`File.Move(overwrite)` がそれを使うことは、この文書では確認していない(未確認)。Windows での原子性も未確認(§5.1)。
+- 置き換え先がディレクトリなど、名前の付け替えが失敗するときは `writeFailed`。ステートは変わらず、一時ファイルも残らない(手順 8 で消す。置き換え先がディレクトリのときの例外の型は、`IOException` か `UnauthorizedAccessException` と理解している。未確認。どちらでも `writeFailed`)。書けないディレクトリ・存在しないディレクトリ(`DirectoryNotFoundException`)も `writeFailed`。
+- 残った一時ファイル(プロセスが落ちたとき)は、読み込みに影響しない。`durable` の書き込みの成功後に、24 時間以上古いものだけ消える。`fast` では消さない。
+- 「同じ名前の型」= 名前が `.<ステートファイル名>.tmp.` で始まるもの。後始末は、`[System.IO.Directory]::EnumerateFileSystemEntries($dir)` で名前を列挙し(`searchPattern` を使わない。`*`・`?` を含むファイル名で、パターンの解釈と食い違うため。`Get-ChildItem` も使わない: `-Path` はワイルドカードを解釈し、`[` を含むディレクトリで失敗しうる)、`[System.IO.Path]::GetFileName($entry).StartsWith($prefix, [System.StringComparison]::Ordinal)` かつ、通常のファイル(ディレクトリでない: `[System.IO.FileInfo]::new($entry).Attributes` に `[System.IO.FileAttributes]::Directory` が無い。シンボリックリンクでない: `LinkTarget` が `$null`。`LinkTarget` は .NET 6 以降。未確認)で、`[System.IO.File]::GetLastWriteTimeUtc($entry)` が `Now - 24 時間` 以前のものを `[System.IO.File]::Delete` する(エラーはすべて無視)。列挙は `foreach` の中で例外が出うる(列挙の途中でファイルが消える、など)ので、全体を `try/catch` で囲み、無視する(`PipelineStoppedException` を除く)。列挙の結果(`IEnumerable`)を `foreach` で走査する。**列挙の結果をパイプラインに流さない**(0 件・1 件・複数件で型が変わる。[05](05-execution-flow.md) §14.2)。
+- 排他制御(ファイルロック)はしない(§11)。
+
+### 5.1 Windows での置き換えの注意
+
+- `File.Move(overwrite = $true)` は、移動先が既にあっても置き換える、と書かれている(確認(出典: `File.Move` の API ページ))。Windows での実機の確認はしていない(**未確認**。Windows の CI のテストで、既存のファイルへの置き換えが成功することと、置き換え中に読み手が「古い完全な内容」か「新しい完全な内容」だけを見ることを確認する)。
+- 一時ファイルは、`File.Move` の前に `Dispose` する(開いたままだと移せない。`FileShare.None` で開いているので、自分の `FileStream` が生きているあいだは、自分でも移せない)。
+- 置き換え先のステートファイルを、ほかのプロセス(例: 同時に走る `watch`、ウイルス対策ソフトの走査)が、`FileShare.Delete` を許さない設定で開いている間は、`File.Move` が `UnauthorizedAccessException`(OS が移動先への排他アクセスを取れない。ページの例外の記載)または `IOException` で失敗しうる(**未確認**)。失敗したら `writeFailed`(65)にする。再試行はしない(仕様として、読み手との同時の実行は想定しない。§11)。conductor 自身の読み込みは、`FileShare.ReadWrite | FileShare.Delete` で開く(§6.1 の 1)ので、conductor どうし(`watch` を含む)は、置き換えを妨げない。
+- ディレクトリの同期は行わない(Windows では、ディレクトリのハンドルを `FlushFileBuffers` で同期する方法が一般的でないと理解している。未確認)。
+- 一時ファイルの後始末は、UNIX 系と同じ(24 時間以上古い通常のファイル。`FileInfo.LinkTarget` が `$null`)。
+- Windows の `UnixCreateMode` は使えない(`set` が `UnsupportedOSPlatform("windows")`)。ACL は親から継承される既定のまま。
+- Windows PowerShell 5.1 の .NET Framework には `File.Move` の `overwrite` 付きの過負荷が無い(確認: 同ページの対象の版に netframework が列挙されない)。この仕様は PowerShell 7 だけを対象にするので影響しない。
+
+### 5.2 いつ書くか(書き込みの契機)
+
+| 契機 | 内容 | 耐久性 |
+|---|---|---|
+| ステートが空で、最初のジョブが `run` と決まった直後(ジョブを起動する前) | 初期ステート。完了のまま残ったステートがあっても、同じ名前のファイルを初期ステートで**上書きする** | `fast`(同期を省く) |
+| ジョブの最終の結果が出た後(リトライを含めて 1 回だけ) | [05](05-execution-flow.md) §3.3 の結果の記録。起動前の中断・待機中の中断も、この契機で書く(ジョブの状態は変わらず、`resume_job_id` が付く) | `durable` |
+| スキップが決まったとき([05](05-execution-flow.md) §3.4 の記録が元と異なるときだけ) | スキップの記録 | `durable` |
+| `pipeline` のジョブのあいだの中断 | [05](05-execution-flow.md) §3.5 の中断の記録 | `durable` |
+| 完了(`completed = true`)になったとき | 上の契機の書き込みに含まれる(完了のステートも同じ手順) | `durable` |
+
+- `reject`(66)では何も書かない(初期ステートも)。
+- 書き込みの失敗(65)の表示の末尾に、ジョブの起動前なら `(ジョブは起動していません / the job was not started)`、起動後なら `(ジョブは実行されました / the job has already been executed)` が付く(ロケールに従う)。
+- 結果を書けなかったときは、以降のジョブを起動せず、65 で終わる。
+
+---
+
+## 6. 読み込み(`Read-ConductorState` / `Read-ConductorStateRaw`)の手順と異常系
+
+### 6.1 手順
+
+入力: 定義ファイルのパス、run ID(ファイル名側の期待値)。上から順に、最初に当てはまる結果で終わる。`Read` は完了のステートを「空」にし、`ReadRaw`(`watch` が使う)は 14 を行わない。どちらも同期の関数で、結果は `[pscustomobject]`: 成功は `Kind = 'ok'` と `State`(`$null` なら空)、失敗は `Kind = 'fail'` と `Error`(§13)。例外を送出しない(下位の `IOException` などは、この関数の内側で狭く捕まえて失敗の値に変える。`PipelineStoppedException` と想定外の例外は再送出する。§5 の規則)。
+
+| 順 | 処理 | 結果 |
+|---|---|---|
+| 1 | ファイルを開く: `$opts = [System.IO.FileStreamOptions]::new()`、`Mode = Open`、`Access = Read`、`Share = ReadWrite -bor Delete`、`Options = None`。`[System.IO.FileStream]::new($fsPath, $opts)` | 存在しない(`FileNotFoundException`、または `DirectoryNotFoundException`。ただし、親のパスが通常のファイルとして存在するときは `unreadable`(下の注))→ **空**(ステート無し)。その他の開く失敗(`UnauthorizedAccessException`(権限、およびディレクトリを開こうとしたとき)、`IOException`、`PathTooLongException`、`NotSupportedException`、`ArgumentException`、`SecurityException`)→ `unreadable` |
+| 2 | 開いた `FileStream` の大きさを確認(`CanSeek` なら `Length`。ハンドルへの問い合わせで、パスの再解決をしない) | `Length` の取得失敗(`IOException` など)→ `unreadable`。1 MiB(1,048,576 バイト)**超** → `tooLarge`。`CanSeek` が偽(パイプ・特殊ファイル)なら、大きさは不明として次へ(順 3 で止める) |
+| 3 | 上限 + 1 バイトまで読む(§6.1.1)。終わりのない入力でも止まる | 読み取り失敗(`IOException`)→ `unreadable`。読めたバイト数が 1,048,576 を超える → `tooLarge`(ちょうど上限は受理) |
+| 4 | 長さ 0 | **空** |
+| 5 | UTF-8 として厳密に解釈(§6.1.2)。BOM を**取り除かない** | 失敗 → `corrupt`(理由 `UTF-8 の文字列ではありません`) |
+| 6 | JSON として解析(下の 6a〜6c を順に) | 失敗 → `corrupt`(6a・6b は `JSON として読めません`、6c は `キーが重複しています`) |
+| 7 | `format_version` の確認(**ほかの検査より先**。将来の版が、未知の項目で corrupt にならないように) | 項目無し → `corrupt`(`format_version がありません`)。整数以外 → `corrupt`(`format_version が整数ではありません`)。整数で 1 以外(0 や 2 や巨大な整数を含む)→ `versionMismatch`(`対応していない版です(reset が必要です)`) |
+| 8 | 最上位に未知の項目がある | `corrupt`(`知らないキーがあります`) |
+| 9 | `run_id` の取り出しと照合 | 型が文字列でない(`null` を含む)→ `corrupt`(`値の型が誤っています`)。中身の `run_id`(無ければ「なし」)がファイル名の run ID(無ければ「なし」)と一致しない → `corrupt`(`run_id がファイル名の run ID と一致しません`) |
+| 10 | 必須項目の取り出し: `definition_key`、`definition_path`、`pipeline_name`、`end_reached`、`completed`、`job_order`、`job`(**この順に 1 項目ずつ**、無い/型が違うを判定する) | 無い → `corrupt`(`必須のキーがありません`)。型が違う → `corrupt`(`値の型が誤っています`)。`job_order` は文字列の配列(要素に文字列以外があれば型の誤り)、`job` は配列(要素がオブジェクトかは順 11 で見る) |
+| 11 | `job` の各要素を、**配列の順に 1 つずつ**、次の順で検査する(下の表) | 下の表のとおり、すべて `corrupt` |
+| 12 | `resume_job_id` の型 | 文字列でない(`null` を含む)→ `corrupt`(`値の型が誤っています`) |
+| 13 | 内容の矛盾(この順): ジョブIDの重複 → `job` の並びと `job_order` の不一致 → `resume_job_id` が `job_order` に無い → `completed` かつ `resume_job_id` あり | いずれも `corrupt`(それぞれ `ジョブIDが重複しています`、`job の並びが job_order と一致しません`、`resume_job_id が job_order にありません`、`completed と resume_job_id が両立しません`) |
+| 14 | `Read` のみ: `completed = true` | **空**(完了のまま残ったステート。ファイルは消さない) |
+
+順 1 の注と補足:
+
+- **`FileShare.ReadWrite | FileShare.Delete`**(PowerShell では `[System.IO.FileShare]'ReadWrite, Delete'` または `-bor`): 読んでいるあいだに、書き手が `File.Move` で置き換えても、Windows で書き手が失敗しないようにする(`FileShare.Delete` が無いと、読み手が開いている間、置き換えと削除が拒否される。Windows の一般の性質と理解している。未確認)。Unix では、開いているファイルを置き換えても、読み手は元の内容(古い版のファイルの実体)を読み続ける。
+- 親のパスが通常のファイルのとき(`file/x` を開く。`ENOTDIR` に当たる)は、`DirectoryNotFoundException` になる、と理解している(未確認。公式ドキュメントには、`DirectoryNotFoundException` が「パスが無効」のときと書かれている)。`DirectoryNotFoundException` を「空」にする場合は、次の確認を足す: ステートファイルの親ディレクトリのパスを `[System.IO.File]::Exists` した結果が真(親のパスが通常のファイル)なら、`unreadable` にする。親が存在しないだけ(`[System.IO.Directory]::Exists` が偽)なら「空」(ステートの親のディレクトリが無い = 何も書かれていない)。この区別が、期待の挙動と一致するかは未確認で、受け入れテストで固定する。
+- ディレクトリを指すパスを開く: Unix でも Windows でも `UnauthorizedAccessException` になる、と理解している(未確認)。どちらも `unreadable`(順 1 の「その他の開く失敗」)。ディレクトリでも、例外にならずに開けて、順 3 の読み取りで失敗する環境がありうる(その場合の例外は `IOException`/`UnauthorizedAccessException` と理解している。未確認)ので、順 3 の読み取り失敗も `unreadable` にする。いずれも、ファイルは変更しない。
+- **`Get-Content`・`Get-Content -Raw`・`Get-Content -AsByteStream`・`[System.IO.File]::ReadAllBytes`・`ReadAllText`・`StreamReader`・`[System.IO.File]::OpenText` を使わない**。`Get-Content` は、ファイル全体を読み、大きさの上限で止められない(上の §4.3 の表)。`-Path` はワイルドカードを解釈する。`ReadAllBytes` はファイル全体を読む(上限を超える入力で止まらない)。`ReadAllText`・`StreamReader`・`OpenText` は BOM による自動のエンコーディング判定、UTF-16・UTF-32 の判定、不正バイトの黙った置換が起きうる(順 5・6a の規定と衝突する。BOM で判定することは一般に知られているが、この文書では取得して確認していない: 未確認)。
+- ファイルの内容に対して、`Get-Content` の結果を `ConvertFrom-Json` に渡す、という使い方をしない(§6.5)。
+
+#### 6.1.1 順 3 の読み取り
+
+```text
+buffer = [byte[]]::new(1048576 + 1)
+total = 0
+while total < buffer.Length:
+    n = fs.Read(buffer, total, buffer.Length - total)      # 3 引数の形。要求より少なく返すことがありうるので、ループで埋める
+    if n == 0: break                                         # 終端
+    total += n
+# total > 1048576 なら tooLarge。そうでなければ buffer[0..total) が内容
+```
+
+- 上限 + 1 バイトまで読んで止める。終わりのない入力(`/dev/zero` など。`Length` が 0 または `CanSeek` が偽)でも、1 MiB + 1 バイトで止まる。`Stream.Read` が `0` を返したら終端(契約として知られているが、この文書では取得して確認していない: 未確認)。
+- `fs.Read(...)` の戻り値(`[int]`)は、変数に代入する(捨てない)。`fs.Read` を文として単独で書くと、読んだバイト数が関数の出力に混ざる([05](05-execution-flow.md) §14.4)。
+- `FileStream` の `bufferSize` は既定でよい。要求より少なく返ることがあるのは、一般の `Stream.Read` の契約なので、ループで埋める。
+- 名前付きパイプ(FIFO)を開くと、書き手が現れるまで止まる(`open(2)` の一般の性質。この仕様の確認はしていない: 未確認)。ステートのパスが FIFO であることは想定しない。
+
+#### 6.1.2 順 5 のデコード
+
+```powershell
+$strictUtf8 = [System.Text.UTF8Encoding]::new($false, $true)    # BOM を出さない設定、不正なバイト列は例外
+try { $text = $strictUtf8.GetString($buffer, 0, $total) }
+catch { <# 外側の例外を取り除いた型が ArgumentException(DecoderFallbackException を含む)なら corrupt(UTF-8 の文字列ではありません)。それ以外は再送出 #> }
+```
+
+- **`UTF8Encoding($false, $true)` を使う**。確認(出典: `UTF8Encoding(Boolean, Boolean)` の API ページ): `throwOnInvalidBytes = $true` なら、不正なバイト列の検出で例外を投げる(ページは `ArgumentException` と書く)。`$false`(`[System.Text.Encoding]::UTF8` と、引数なしの `[System.Text.UTF8Encoding]::new()` の既定)は、例外を投げず、不正な部分を置換する(ページ: 「セキュリティのため、`throwOnInvalidBytes` を持つ構造体で、エラーの検出を有効にすることを勧める」)。**`[System.Text.Encoding]::UTF8.GetString` を使わない**(黙って U+FFFD に置換するので、不正な UTF-8 を検出できず、順 5 が働かない)。
+- 復号の例外は、`DecoderFallbackException`(`ArgumentException` の派生型。復号の失敗で投げられる型は、ページの例では符号化側の `EncoderFallbackException` だけが示されている。復号側の型は未確認)。したがって、`ArgumentException` で判定する(`DecoderFallbackException` に限定しない)。例外の `Message` は表示に使わない。
+- **BOM を取り除かない**。`GetString` は BOM(`EF BB BF`)を取り除かず、U+FEFF の 1 文字として残す、と理解している(`GetPreamble` の設定が `GetBytes` に影響しないことは、ページに書かれている(確認)。`GetString` が BOM を取り除かないことは、ページに記載が無い: 未確認)。このため、**`GetString` の結果の先頭が U+FEFF か**(`$text.Length -gt 0 -and [int]$text[0] -eq 0xFEFF`)を、6a の前処理として確かめる(§6.5)。BOM を取り除く API(`StreamReader`、`ReadAllText`、`OpenText`、`Get-Content`)を使わない。`GetString` が万一 BOM を取り除くなら、BOM 付きのファイルが受理されてしまうので、§6.6 の BOM のテストで検出する。
+- 厳密な復号は、不正な UTF-8 を拒否する(`ED A0 80`(サロゲートの符号化)、`C0 80`(最短でない符号化)、`F4 90 80 80`(U+10FFFF 超)、途中で切れた `E3 81`)。.NET の復号がこれらを不正とみなすことは、一般に知られたこと(Unicode の標準の定義)と理解しているが、この環境では実行して確かめていない(未確認)。§6.6 のテストで固定する。
+- NUL は UTF-8 としては有効で、JSON の構文の検査(6a)で拒否される(文字列の外に現れれば構文の誤り、文字列の中に現れれば制御文字の誤り)。
+
+順 6 の細目(この順。最初の失敗で終わる):
+
+| 細目 | 処理 | 失敗の理由 |
+|---|---|---|
+| 6a | §6.5 の読み取り(自前の JSON の読み取りと、深さの検査)で、全体を構文解析する。失敗するもの: 構文の誤り、BOM(先頭の U+FEFF)、値の後ろの余分な文字(2 つ目の値を含む)、空白だけの内容、制御文字(U+0000〜U+001F)の文字列内への直接の混入、`\u` エスケープの誤り、**対にならないサロゲートのエスケープ**(`"\ud800"`)、`NaN`・`Infinity`・`-Infinity`、先頭が `0` の整数(`01`)、コメント、末尾のカンマ、入れ子が深すぎるもの(§6.5 の深さの上限 32 を超える) | `JSON として読めません` |
+| 6b | 最上位の値がオブジェクトか(`null`、配列、数値、文字列、真偽の最上位を拒否する) | `JSON として読めません` |
+| 6c | どのオブジェクトにも、同じキーが 2 回以上現れないか(最上位と `job` の各要素を含む全オブジェクト。エスケープを展開した後の文字列で、序数比較で比べる。`"id"` と `"id"` は同じキー) | `キーが重複しています` |
+
+6a が 6c より先であることは、仕様として固定する(重複キーが先にあっても、後ろに構文の誤りがあれば、`JSON として読めません` になる)。空白の定義は JSON の空白(スペース、`\t`、`\n`、`\r`)。BOM・NBSP・垂直タブ・改ページは空白でないので、6a で拒否される。書き出しは BOM を付けない。他のツールが BOM 付きで保存した場合は壊れたステートとして 65 になり、`reset` で回復する。
+
+順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定は、読み取りが返す値の種類(整数の字句 / それ以外の数 / 真偽 / 文字列 / `null` …。§6.5)で行い、受理は「整数の字句で、値が 1」のときだけとする。64 ビットを超える整数の字句でも `versionMismatch`(字句の桁数の判定だけで足り、`[bigint]` に変換しない・値を作らない)。値が 1 かの判定は、字句の文字列が `"1"` に等しい(`-ceq`)かで行う(`-0`、`01` 相当は構文の誤りか別の字句なので、`"1"` だけが一致する)。
+
+順 11 の `corrupt` の理由文(個別。いずれも種類は `corrupt`。1 つの要素の中の検査の順に上から):
+
+| 順 | 違反 | 理由 |
+|---|---|---|
+| a | 要素がオブジェクトでない(`null` を含む) | `値の型が誤っています` |
+| b | 未知のキー(大文字小文字も区別。`ID`、`Status` は未知。`__proto__` も未知のキー) | `知らないキーがあります` |
+| c | `id` が無い | `必須のキーがありません` |
+| d | `id` が文字列でない | `値の型が誤っています` |
+| e | `status` が無い | `必須のキーがありません` |
+| f | `status` が文字列でない | `値の型が誤っています` |
+| g | `status` が 5 つの値以外 | `status の値が誤っています` |
+| h | `exit_code` があり、整数でない(`1.0`、`1e2`、文字列、`null`、`true` / `false` を含む)、または 32 ビット符号付き整数の範囲外(§6.5 の字句による判定) | `値の型が誤っています` |
+| i | `skip_reason` があり、文字列でない(`null` を含む) | `値の型が誤っています` |
+| j | `skip_reason` が 2 つの値以外 | `skip_reason の値が誤っています` |
+| k | `status = skipped` と `skip_reason` の有無の不整合 | `skip_reason が status と合いません` |
+| l | `status` が pending / skipped なのに `exit_code` あり | `exit_code が status と合いません` |
+
+- `ReadRaw`(`watch` が使う)は、14 を行わない(完了のステートもそのまま返す)。1〜13 は同じ。
+- 検査の `run_id` 照合(9)は、`completed` の判定(14)より前なので、完了のステートでも run ID の食い違いは `corrupt`。
+- 読み取りでは、ファイルを**消さない・書き換えない**。
+- 「空」= ステートが無いのと同じ扱い。呼び出し側は、すべて pending のステートとして扱い、最初の `run` の前に初期ステートを書く。
+- 空のステートを返す結果の `State` は `$null`。
+- 型の判定は、読み取りが返す木の値の種類(§6.5)で行う。`true`/`false` を整数として受理しない(PowerShell では `$true -eq 1` が True になる(`-eq` は右辺の型に左辺を変換する。確認: `about_Comparison_Operators`)ので、値の種類(`Kind`)を型の判定の唯一の根拠にし、`-eq` で数値と真偽を比べない)。
+- キーの検査(未知のキー・必須のキー)は、キーの文字列を **`-ceq` / `HashSet[string]`(`StringComparer.Ordinal`)**で比べる。`-eq`・`-contains`・`-in`・ハッシュテーブルのキー検索(`@{}` は大文字小文字を区別しない。確認: `ConvertFrom-Json` のページ「Without `-AsHashtable`, when two or more keys in a JSON object are case-insensitively identical, they are treated as identical keys」。ハッシュテーブルの既定が大文字小文字を区別しないことの直接の記載ではない)を使わない。キーの集合は `[System.Collections.Generic.HashSet[string]]::new([string[]]$names, [System.StringComparer]::Ordinal)` で作る。
+- `FileStream` は、`try/finally` の `Dispose` で必ず閉じる。
+
+### 6.2 失敗の表示と終了コード
+
+すべて終了コード 65。標準エラーの 1 行(固定の文 + パス + 固定の理由。入力の値・部品のエラー文は含めない):
+
+```text
+conductor: error: <ステートファイルのパス>: <kind の文>: <理由>[; <案内>]
+```
+
+| kind | 英語の文 | 日本語の文 | 理由の例(常に日本語) | 案内を付けるか |
+|---|---|---|---|---|
+| `unreadable` | `cannot read state file` | `ステートファイルを読めません` | `開く、または読み取ることができません` | 付ける |
+| `tooLarge` | `state file is too large` | `ステートファイルが大きすぎます` | `大きさが上限(1 MiB)を超えています` | 付ける |
+| `corrupt` | `state file is corrupt` | `ステートファイルが壊れています` | §6.4 の各理由 | 付ける |
+| `versionMismatch` | `state file version is not supported` | `ステートファイルの版が合いません` | `対応していない版です(reset が必要です)` | 付ける |
+| `writeFailed` | `cannot write state file` | `ステートファイルを書き込めません` | `書き込みに失敗しました` / `内容を JSON にできません` | 付けない(§5.2 の `(ジョブは…)` が付く) |
+| `removeFailed` | `cannot remove state file` | `ステートファイルを削除できません` | `削除に失敗しました` | 付けない |
+
+案内(読み込みのときだけ): run ID なし → ``; run `conductor reset` to discard the state``(日本語 ``; `conductor reset` でステートを初期化できます``)、run ID あり → ``; run `conductor reset --run-id <ID>` to discard the state``(`<ID>` は文字どおりの `<ID>`。日本語は ``; `conductor reset --run-id <ID>` でステートを初期化できます``)。
+
+実例(英語ロケール):
+
+```text
+conductor: error: c2.json.state: state file is corrupt: JSON として読めません; run `conductor reset` to discard the state
+conductor: error: c2.json.state: state file is corrupt: キーが重複しています; run `conductor reset` to discard the state
+conductor: error: c2.json.state: state file version is not supported: 対応していない版です(reset が必要です); run `conductor reset` to discard the state
+conductor: error: c2.json.r3.state: state file is corrupt: run_id がファイル名の run ID と一致しません; run `conductor reset --run-id <ID>` to discard the state
+```
+
+表示に使うパス(`<ステートファイルのパス>`)の文字列化(孤立サロゲートのエスケープ表示など)は [08](08-output-and-i18n.md)。
+
+### 6.3 異常系の挙動の一覧(`run` / `pipeline`)
+
+| 状況 | 結果 | ジョブの起動 | ステート |
+|---|---|---|---|
+| ファイルが無い | 空として続行 | する | 最初の `run` の前に初期ステートを書く |
+| 長さ 0 | 空として続行 | する | 同上(上書き) |
+| `completed = true` | 空として続行(定義との照合もしない) | する | 初期ステートで上書き |
+| 読めない(権限等) | 65 | しない | 変更なし |
+| 1 MiB 超 | 65 | しない | 変更なし |
+| UTF-8 でない・JSON の構文の誤り・BOM・最上位がオブジェクトでない・深すぎる入れ子・キーの重複・未知のキー・必須項目欠落・型の誤り・内容の矛盾 | 65(`corrupt`) | しない | 変更なし |
+| `format_version` が 1 以外の整数 | 65(`versionMismatch`) | しない | 変更なし |
+| 中身の `run_id` とファイル名の run ID が不一致、または片方だけ有る | 65(`corrupt`) | しない | 変更なし |
+| 定義と食い違い(§7) | 65 | しない | 変更なし |
+| 書き込み・削除の失敗 | 65 | §5.2 の表のとおり | 直前の内容のまま(書き込み)/ 残る(削除) |
+
+どの異常でも、回復は `conductor reset`(または `--run-id`、`--all`)。`reset` は読まず検査もしないため、どんなファイルでも消せる(§8)。
+
+### 6.4 理由文の全件表
+
+読み込みで出しうる `corrupt` / `versionMismatch` / `unreadable` / `tooLarge` の理由文と、書き込み・削除の理由文の**全件**(23 行)。表の文言は、ロケールに関わらず日本語の固定文である。
+
+| # | kind | 理由文 | 出る順 | 条件 |
+|---|---|---|---|---|
+| 1 | unreadable | `開く、または読み取ることができません` | 1〜3 | 開く・大きさの取得・読み取りの失敗(存在しないを除く) |
+| 2 | tooLarge | `大きさが上限(1 MiB)を超えています` | 2、3 | 1,048,576 バイト超 |
+| 3 | corrupt | `UTF-8 の文字列ではありません` | 5 | UTF-8 として不正 |
+| 4 | corrupt | `JSON として読めません` | 6a、6b | JSON の構文の誤り、BOM、余分な文字、最上位がオブジェクトでない、空白だけの内容、対にならないサロゲートのエスケープ、`NaN` / `Infinity`、入れ子の深さの超過 |
+| 5 | corrupt | `キーが重複しています` | 6c | 同じキーが 2 回以上(最上位・`job` の要素を含む全オブジェクト) |
+| 6 | corrupt | `format_version がありません` | 7 | キー無し |
+| 7 | corrupt | `format_version が整数ではありません` | 7 | 整数の字句でない(`1.0`、`"1"`、`null`、`true` など。整数の定義は §6.1) |
+| 8 | versionMismatch | `対応していない版です(reset が必要です)` | 7 | 整数で 1 以外 |
+| 9 | corrupt | `知らないキーがあります` | 8、11b | 最上位、または `job` の要素に未知のキー(大文字小文字を区別) |
+| 10 | corrupt | `値の型が誤っています` | 9、10、11、12 | 型の誤り(`null` を含む。任意の項目でも「無い」とは扱わない)、`exit_code` の範囲外・小数・真偽 |
+| 11 | corrupt | `run_id がファイル名の run ID と一致しません` | 9 | 中身とファイル名の run ID の不一致(内部の判別 `Detail = 'runIdMismatch'`) |
+| 12 | corrupt | `必須のキーがありません` | 10、11 | 必須キーが無い |
+| 13 | corrupt | `status の値が誤っています` | 11 | 5 つの値以外 |
+| 14 | corrupt | `skip_reason の値が誤っています` | 11 | 2 つの値以外 |
+| 15 | corrupt | `skip_reason が status と合いません` | 11 | `skipped` と `skip_reason` の有無の不整合 |
+| 16 | corrupt | `exit_code が status と合いません` | 11 | pending / skipped に `exit_code` |
+| 17 | corrupt | `ジョブIDが重複しています` | 13 | `job` の `id` の重複 |
+| 18 | corrupt | `job の並びが job_order と一致しません` | 13 | 数または順序の不一致 |
+| 19 | corrupt | `resume_job_id が job_order にありません` | 13 | |
+| 20 | corrupt | `completed と resume_job_id が両立しません` | 13 | |
+| 21 | writeFailed | `書き込みに失敗しました` | 書き込み | 一時ファイル・書き込み・同期・閉じる・置き換えの失敗 |
+| 22 | writeFailed | `内容を JSON にできません` | 書き込み | JSON への変換・UTF-8 への符号化の失敗(`exit_code` の範囲の確認の失敗、孤立サロゲートを含む文字列の符号化の失敗を含む) |
+| 23 | removeFailed | `削除に失敗しました` | reset | 「存在しない」以外の削除の失敗 |
+
+- キー名は大文字小文字を区別する(`Format_Version`、`ID` は未知のキー、または必須のキーが無い、として扱う)。キーの比較は序数(`-ceq`、`StringComparer.Ordinal`)。
+- 理由文の言語は、ロケールに関わらず日本語の固定文である(`conductor: error: ...` の行の中で、種類の文と案内だけがロケールに従う)。
+- 例外の `Message`・`ToString()`・`InnerException` の文を、理由にも表示にも含めない(.NET の例外メッセージは、実行環境の言語・OS で変わる)。
+
+### 6.5 JSON の読み込み: 定義と共用する自前の読み取り(03 章と共通の規定)
+
+目的: 順序が固定の 14 段階の検査と、理由文の区別を、確実に満たす。**JSON の読み取りの規定は、定義(`.json` の入力)・変換・ステートで共通で、[03-definition-format.md](03-definition-format.md) と同じ内容である。この節は、ステートが要求する性質と、挙動を表で簡潔に再掲する。木の型の名前・上限の細部が 03 章と食い違う場合は、03 章が正本。**
+
+**決定: ステートの JSON は、定義・変換と共用する自前の読み取り(`Private/Json/` の `Read-ConductorJson`。PowerShell で書く。引数: 入力の `[string]`、最大の深さ、重複キーを見つけても止めない指定)で読み、深さだけを確かめる。`ConvertFrom-Json` と、`System.Text.Json` の `Utf8JsonReader`・`JsonDocument`・`JsonSerializer` は、製品のコードのどこでも(定義、ステート、変換とも)読み取りに使わない。** 判断の根拠を、公式ドキュメントで確認できた範囲で次に示す。
+
+`ConvertFrom-Json` について、確認できたこと(出典: `ConvertFrom-Json` のページ(PowerShell 7.4 版)の記載)と、この仕様の要件との関係:
+
+| # | 事実 | この仕様への帰結 |
+|---|---|---|
+| 1 | 重複するキーがあると、**最後のキーだけが使われる**(「if the JSON string contains duplicate keys, only the last key is used」) | 6c(重複キーは `corrupt`)を満たせない。重複を検出する手段が無い |
+| 2 | `-AsHashtable` なしでは、大文字小文字だけが違うキー(`"key"` と `"Key"`)は同じキーとして扱われ、最後のものだけが含まれる(例 4: `-AsHashtable` なしでは、エラーを投げただろう)。空文字列のキーはエラー | キーは大文字小文字を区別する(`ID` は未知のキー。§6.4)。区別できない。`-AsHashtable` を付けても、ハッシュテーブルのキーの大文字小文字の扱いは、ページに記載が無い(未確認) |
+| 3 | `-Depth` の既定は 1024(最大の深さ)。6.2 以降のパラメーター | 深さの上限 32(根を数えず 33 段目を拒否)と数え方が一致するかが、ページから確認できない。上限を 32 にして渡しても、深さの超過の例外の型・位置は未確認 |
+| 4 | **時刻の形の文字列は `[datetime]` に変換される**(「ConvertTo-Json attempts to convert strings formatted as timestamps to DateTime values」と書かれている。コマンドレット名はページの記載のまま。ConvertFrom-Json の Notes に置かれている)。`Kind` はタイムゾーンの情報により `Unspecified`・`Utc`・`Local` | ジョブID・パイプライン名が、時刻の形(`2026-11-20T01:00:00Z`)のとき、文字列でなくなり、型の誤り(§6.1 の 10・11)になる、または別の文字列になりうる。`-DateKind` で抑えられるかは、このページには記載が無い(未確認) |
+| 5 | 実装は Newtonsoft の JSON ライブラリ(Notes) | 整数の大きさの扱い(64 ビットを超える整数の字句)・`NaN`・`Infinity`・BOM・コメント・末尾のカンマ・先頭の `0`・制御文字・孤立サロゲートの扱いが、ページに記載が無い。**コメントは、PowerShell 6 以降で受け付ける**(確認: ページの Note「PowerShell 6 and higher, the cmdlet supports JSON with comments」)ので、6a の「コメントは拒否」(§6.1)と衝突する |
+| 6 | `-InputObject` は `[string]`。空文字列は出力なし(エラーでもない)。`$null` は不可 | 「空白だけ・空は構文の誤り」の区別と、空のステートの規定(順 4)を、このコマンドレットに預けられない |
+| 7 | 出力は `PSCustomObject`(または `-AsHashtable` で `OrderedHashtable`。7.3 以降は記述順を保つ)。配列は、`-NoEnumerate` なしでは、パイプラインで展開される(例 5) | 1 要素の配列・空配列・`null` の区別(型の検査)が、受け取り側で崩れる。`$null` を持つメンバーと、メンバーが無い場合が区別しにくい。位置情報(行・列・オフセット)は、ページに記載が無い(定義の読み取りが必要とする(03 章)) |
+| 8 | BOM の扱い・不正な UTF-8 の扱い | `ConvertFrom-Json` は文字列を受けるので、復号は呼び出し側(`Get-Content` など)で行われる。`Get-Content` は `utf8NoBOM` を既定とする(確認: ページ)が、BOM がある場合の扱いは未確認。§6.1.2 の厳密な復号を、自前でやる前提 |
+
+`Utf8JsonReader` について、確認できたこと: `Utf8JsonReader` は**スタックだけに置ける型(stack-only。ref struct)**で、ref struct のすべての制限が当てはまる(出典: `Utf8JsonReader` の API ページの趣旨。ページ本体は取得せず、検索結果の要約で確認したもの)。PowerShell から `ref struct` を扱えるか(変数に保持する、メソッドに渡す)について、公式ドキュメントでは、確認できなかった(**未確認**。一般に、`ref struct` は PowerShell のスクリプトの変数(ボックス化される型)に格納できないと理解している)。BOM・不正 UTF-8・サロゲートのエスケープ・重複キー・数値の字句・深さの超過の挙動も、ページに記載が無い(未確認)。したがって、`Utf8JsonReader` を土台にすることを採らない。
+
+帰結(決定の理由):
+
+- ステートの検査は、**順序が固定の 14 段階**で、理由文が 23 件に分かれる。特に「構文の誤り(6a)が重複キー(6c)より先」「`format_version` が未知のキーより先」「BOM は構文の誤りではなく壊れたステート」は、読み取りの内部の順序・拒否の規則に、仕様として依存する。重複キー・BOM・不正 UTF-8・サロゲート・整数の字句の挙動が、公式ドキュメントで確認できない(または、仕様と食い違うと確認できた)以上、既存のコマンドレット・ライブラリに預けると、版で挙動が変わりうる。自前の読み取りなら、これらを 1 つの規則表で決められる。
+- 定義・変換(03、09)が必要とする、位置(行・列)、重複キーの位置、整数の字句(範囲を超えるものの判定)、入れ子の深さ、要素数の上限も、同じ自前の読み取りで満たせる。読み取りが 1 つなので、同じ入力の受理・拒否が、定義・ステート・変換で食い違わない。
+- PowerShell の読み取りの遅さ: ファイルは最大 1 MiB。PowerShell のループは、1 反復の固定のコストが大きいので、1 文字ずつの走査は、最悪(1 MiB の入力)で数秒〜数十秒になりうる(実測していない: 未確認。基準値は実装時に測って決める)。実際のステートファイルは数 KB 程度で、問題にならない。性能の規則: (a) 文字列の中身は、`$text.IndexOfAny($stop, $i)`(`$stop` は `"`・`\`・U+0000〜U+001F の `[char[]]`)で、次の特殊文字まで一度に進み、`Substring` で切り出す。(b) 空白の読み飛ばしと、数値・リテラルの字句の走査は、`[int]$text[$i]` の整数の比較で行う。(c) 結果の組み立ては `[System.Collections.Generic.List[object]]` と `[System.Text.StringBuilder]`(`[void]`)で行い、`+=` で配列・文字列を伸ばさない([05](05-execution-flow.md) §14.2)。
+
+自前の読み取りに、ステートが要求すること(木の型の名前・署名は 03 章の規定に従う。ここは必要な性質だけ。この文書では、木の値の種類を `object`(メンバーの並び)・`array`・`string`・`int`(整数の字句)・`number`(整数でない数の字句)・`bool`・`null` と書く):
+
+| # | 性質 |
+|---|---|
+| 1 | 入力は、`[string]`(順 5 で厳密に復号した UTF-16)。構文解析は、再帰でなく**明示のスタック**(`[System.Collections.Generic.Stack[object]]` か `List`)で行う(1 MiB の `[` の列でも、スタックオーバーフローを起こさない。スタックオーバーフローは捕捉できないので、再帰の深さの上限に頼らない。[10](10-errors-and-exit-codes.md)) |
+| 2 | 返す値の種類: `object`(メンバーの**並び**。キーと値の組。記述順。重複を落とさない)、`array`、`string`、**`int`(整数の字句)**、**`number`(整数でない数の字句。小数点・指数を持つもの)**、`bool`、`null`。整数の字句は、`-?(0\|[1-9][0-9]*)` に一致するもの。`-0` は整数の字句(値 0)。木の値は `[pscustomobject]@{ Kind = ...; Value = ... }`(`Kind` は固定の文字列。`-ceq` で比べる)。`null` の値は `Kind = 'null'`、`Value = $null`(PowerShell の `$null` と JSON の `null` を、`Kind` で区別する) |
+| 3 | 整数の字句から、`[int]` の範囲を判定できる(`Test-ConductorJsonInt32`: 符号を除いた桁数が 10 を超えれば範囲外。10 桁以下なら、桁を 1 つずつ `[long]` に積んで、符号を掛け、`-2147483648`〜`2147483647` の範囲かを比べる。`[int]::Parse`・`[long]::Parse`・`[int]'...'` のキャスト・`[bigint]`・`[decimal]`・`[double]` を経由しない。`[int]` へのキャストは範囲を確かめた後に行う)。字句そのもの(文字列)は木に保持する(定義の読み取りが、64 ビットを超える整数の字句を範囲外と判定するため。03 章) |
+| 4 | 構文の誤り(BOM・余分な文字・空白だけ・制御文字・エスケープの誤り・対にならないサロゲートのエスケープ・`NaN`・`Infinity`・先頭が `0` の整数・末尾のカンマ・コメント)をすべて拒否する(失敗は 1 種類。位置はステートでは使わず捨てる)。受理する文法は下の「文法」 |
+| 5 | 重複キーを**見つけても止めず**、「重複したキーがあった」ことを結果に持たせて、構文解析を続ける(後ろに構文の誤りがあれば、そちらを先に失敗にするため)。キーの比較は、エスケープを展開した後の文字列の序数比較(オブジェクトごとに `HashSet[string]`(`StringComparer.Ordinal`)を作る) |
+| 6 | 入れ子の深さの上限を、呼び出し側が指定できる。ステートでは 32(根の値を数えず、33 段目の `[`・`{` を拒否。03 の規定と同じ)。要素数・文字の大きさの上限は、ステートには適用しない(ファイルの大きさの上限 1 MiB が別にある) |
+| 7 | 先頭の U+FEFF を無視しない(定義・変換の読み取りは、先頭の BOM を読み飛ばしてよいが、それは呼び出し側の前処理か、オプションで切り替える。ステートでは、読み取りに渡す前に、BOM を 6a として扱う) |
+
+文法(RFC 8259 の範囲。ステートで拒否するものを含めて固定する):
+
+- 空白: U+0020、U+0009、U+000A、U+000D だけ。値の前後・`,` `:` `[` `]` `{` `}` の前後に許す。
+- 値: オブジェクト、配列、文字列、数値、`true`、`false`、`null`(いずれも小文字。`True`・`NULL` は拒否)。
+- オブジェクト: `{` 空白 `}`、または `{` メンバー(`,` メンバー)* `}`。メンバー = 文字列 `:` 値。末尾の `,` は拒否。キーは文字列だけ。
+- 配列: `[` 空白 `]`、または `[` 値(`,` 値)* `]`。末尾の `,` は拒否。
+- 文字列: `"` で囲む。U+0000〜U+001F の直接の混入は拒否(U+007F は許す)。エスケープは `\"` `\\` `\/` `\b` `\f` `\n` `\r` `\t` `\uXXXX`(`X` は 16 進の 4 桁。大文字・小文字とも)だけ。それ以外の `\x` は拒否。`\u` で書かれた高サロゲートの直後が `\u` の低サロゲートの対なら 1 つの文字(U+10000 以上)になる。対にならない `\ud800`(直後が低サロゲートでない)・孤立した低サロゲートの `\udc00` は拒否。
+- 数値: `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?`。`+1`、`01`、`1.`、`.5`、`1e`、`-` だけ、`0x10`、`NaN`、`Infinity`、`-Infinity` は拒否。小数部も指数部も無いものが `int`、あるものが `number`。
+- 最上位: 1 個の値の前後に空白だけ。2 つ目の値・余分な文字は拒否。値が無い(空・空白だけ)は拒否。
+- コメント(`//`、`/* */`)は拒否。
+
+読み込みの手順(順 6〜13 を、この木に対して行う):
+
+1. `$text.Length -gt 0 -and [int]$text[0] -eq 0xFEFF` なら 6a。そうでなければ、自前の読み取りを、深さの上限 32 で呼ぶ。失敗(構文の誤り・深さの超過)→ 6a。
+2. 結果の最上位がオブジェクトでなければ 6b。
+3. 「重複したキーがあった」が真なら 6c。
+4. 順 7〜12 は、仕様の順に、最上位のオブジェクトから取り出す。未知のキーの検査(順 8)は、キーの全部が §2.1 の 10 個のどれかか、を見る(序数比較)。
+5. 値の型の判定は、木の `Kind` で行う(`string`・`bool`・`array`・`object`・`int`・`number`・`null`)。整数の判定は `Kind -ceq 'int'`(`1.0`・`1e0` は `number`、`true`・`false` は `bool`、`null` は `null`)。
+6. `format_version`: `Kind` が `int` で、字句が `"1"` のときだけ受理。ほかの整数の字句(`0`、`-0`、`2`、巨大な整数)は `versionMismatch`。
+7. `exit_code`: `Kind` が `int` で、`Test-ConductorJsonInt32` が真のときだけ受理(`-2147483648` 〜 `2147483647`)。範囲外の整数、整数でない数、真偽、`null`、文字列は、型の誤り。`-0` は値 0。
+8. `job_order` と `job` の要素も同様に取り出す(`job` の各要素がオブジェクトでなければ、順 11 の a)。
+9. 木から取り出した値は、`[string]`・`[int]`・`[bool]` に明示して作る(`[pscustomobject]` のプロパティに代入する値の型が、そのまま残る。[05](05-execution-flow.md) §7.2)。配列(`job_order`・`Jobs`)は、0 件・1 件でも `[string[]]`・`[object[]]` で作る([05](05-execution-flow.md) §14.2)。
+
+### 6.6 読み込みの単体テストで固定する入力(最低限)
+
+この表の期待は、§6.1〜§6.5 の規則から導いた。PowerShell で実行して確かめた結果ではない(実装時に、このテストで固定する)。
+
+| 入力(要点) | 期待 |
+|---|---|
+| 正常(§4.4 の例 1〜8) | 受理。往復(読んで書く)で元と一致(例 8 の ` `・` ` のエスケープを含む。例 9 は `Convert-ConductorLoneSurrogate` の入力で、往復では U+FFFD のまま) |
+| 先頭に BOM(`EF BB BF`)+ 正常な内容 | `corrupt`(`JSON として読めません`)。`Get-Content`・`ReadAllText`・`StreamReader` で読むか、`GetString` が BOM を取り除くか、読み取りの前の BOM の前処理を省くと、受理されてしまう(このテストで検出する) |
+| BOM + 不正な UTF-8 | `corrupt`(`UTF-8 の文字列ではありません`。順 5 が先) |
+| 正常な内容の後ろに `{}` や `x` | `corrupt`(`JSON として読めません`) |
+| `null`、`[]`、`1`、`"x"`、`true` | `corrupt`(`JSON として読めません`) |
+| 空白だけ(`"\n"`) | `corrupt`(`JSON として読めません`) |
+| 文字列の中に制御文字(生のタブ・NUL) | `corrupt`(`JSON として読めません`) |
+| コメント(`// x`、`/* x */`)を含む正常な内容 | `corrupt`(`JSON として読めません`)。`ConvertFrom-Json` では受理される(上の表の 5)ので、既製のコマンドレットを使っていると検出できる |
+| 入れ子の深さが 33(`{"a":[[[...]]]}` で 33 段目) | `corrupt`(`JSON として読めません`)。深さ 32 は受理(ほかの検査で別の理由になりうるので、深さだけを変えたテスト用の入力を使う) |
+| 入れ子が極端に深い(1 MiB の `[` の列 + `]` の列) | `corrupt`(`JSON として読めません`)。プロセスが異常終了しない(スタックオーバーフローを起こさない)。許容時間の目安内(§6.5。基準値は実装時に測る) |
+| `{"format_version": NaN}`、`[Infinity]` | `corrupt`(`JSON として読めません`) |
+| 最上位に同じキーが 2 回(`"completed": false, "completed": true`) | `corrupt`(`キーが重複しています`) |
+| `job` の要素に同じキーが 2 回 | `corrupt`(`キーが重複しています`) |
+| `"id"` と `"id"` が同じ要素に | `corrupt`(`キーが重複しています`) |
+| 重複キーがあり、かつ後ろに構文の誤り | `corrupt`(`JSON として読めません`。6a が先) |
+| `{"format_version": 2, "unknown": 1}` | `versionMismatch`(未知のキーより版が先) |
+| `{"format_version": 9007199254740993}`、`{"format_version": 100000000000000000000}`、5000 桁の整数 | `versionMismatch`(整数の字句の判定だけ。値を作らない。例外が出ない) |
+| `{"format_version": -0}`、`{"format_version": 0}` | `versionMismatch` |
+| `{"format_version": 1.0}`、`{"format_version": true}` | `corrupt`(`format_version が整数ではありません`) |
+| `{"format_version": "1"}` | `corrupt`(`format_version が整数ではありません`) |
+| `{"Format_Version": 1}` | `corrupt`(`format_version がありません`) |
+| `{"format_version": 1, "__proto__": {}}` | `corrupt`(`知らないキーがあります`) |
+| `{"format_version": 1, "__proto__": 1, "__proto__": 2}` | `corrupt`(`キーが重複しています`) |
+| `{"format_version": 1, "id": 1, "ID": 2}` に相当する、大文字小文字だけが違うキー(最上位。`job` の要素の中でも) | 別のキーとして扱い、未知のキー(`知らないキーがあります`)。重複とは扱わない |
+| `exit_code` が `1.5`、`2147483648`、`9007199254740993`、`"3"`、`null`、`true`、`1e2` | `corrupt`(`値の型が誤っています`) |
+| `exit_code` が `-2147483648`、`2147483647`、`-0` | 受理 |
+| `resume_job_id` が `null` | `corrupt`(`値の型が誤っています`) |
+| `run_id` が `null` | `corrupt`(`値の型が誤っています`) |
+| ジョブID・`pipeline_name` が時刻の形(`"2026-11-20T01:00:00Z"`) | 文字列のまま受理される(`[datetime]` に変換されない)。往復で元の文字列と一致 |
+| 文字列に `"\ud800"`(孤立サロゲートのエスケープ) | `corrupt`(`JSON として読めません`。conductor が書いたステートには現れない) |
+| 文字列に生の `😀`(正しい対)、またはエスケープ `\ud83d\ude00` | 受理(1 つの文字 U+1F600 になる) |
+| 不正な UTF-8(`FF`)、サロゲートの符号化(`ED A0 80`)、最短でない符号化(`C0 80`)、途中で切れた(`E3 81`) | `corrupt`(`UTF-8 の文字列ではありません`) |
+| ディレクトリを指すパス | `unreadable`(Unix・Windows の実機で確認する) |
+| 1,048,576 バイトちょうど(正常な内容を空白で埋める)/ 1,048,577 バイト | 前者は受理、後者は `tooLarge` |
+| 親が通常のファイルであるパス(`file/x`) | `unreadable`(§6.1 の順 1 の注。実機で確認する) |
+| ファイル名に `[`・`]`・`*`・`?` を含む定義ファイルのステート | 読み書き・reset が、その名前のファイルを対象にする(ワイルドカードとして解釈されない) |
+| 長さ 0 のファイル | 空(`$null`) |
+
+---
+
+## 7. 定義との整合性検査(`Test-ConductorStateConsistency`)
+
+空でない(完了していない)ステートを読んだ後、`run`・`pipeline` の前処理([05](05-execution-flow.md) §5.1 の 7)で、定義と照合する。純粋な関数(`Private/State/`。ファイル・時計に触れない)。
+
+```text
+if state.PipelineName != definition.Name:              Mismatch(pipelineName)
+defined  = 定義のジョブIDの記述順の列
+recorded = state.JobOrder
+if defined の列と recorded の列が、要素ごとに(序数比較で)完全に等しい:   Ok
+if 並べ替えた defined と並べ替えた recorded が、要素ごとに等しい:          Mismatch(jobOrder)    # 並びだけが違う
+else:                                                                    Mismatch(jobIds)      # 追加・削除・改名
+```
+
+結果は `[pscustomobject]`: `Kind`(`ok` / `mismatch`)と、`mismatch` のとき `What`(`pipelineName` / `jobIds` / `jobOrder`)。
+
+比較は文字列の完全一致(`-ceq`、または `[string]::Equals($a, $b, [System.StringComparison]::Ordinal)`。UTF-16 のコードユニットごとの比較で、大文字小文字・正規化を区別する。`.Normalize()` を呼ばない。`-eq`・`[string]::Compare`・`Sort-Object` の既定・`[Array]::Sort` の既定(現在の文化の規則)を使わない)。並べ替えは `[System.Array]::Sort($copy, [System.StringComparer]::Ordinal)`(コピーに対して行い、入力の列を変えない。`[string[]]` のコピーは `[string[]]@($list)` ではなく `$list.Clone()` か `[string[]]::new` + `Copy`。`@($x)` による複製は、配列の単一化の影響を受けるので使わない)で、重複は取り除かず、並べ替えた列同士の一致を見る。ここでの並べ替えは「集合として同じか」を見るためだけなので、一貫した全順序なら何でもよい(UTF-16 の序数の順は、サロゲートの対の文字の順がコードポイントの順と一致しないことがあるが、全順序であることは変わらない)。読み込んだ文字列は、孤立サロゲートを含まない(§6.5。孤立サロゲートのエスケープは 6a で拒否される)。
+
+| 状況 | 結果 |
+|---|---|
+| パイプライン名が違う | `pipelineName` |
+| ジョブID の集合が違う(追加・削除・改名。重複の有無も含め、並べ替えた列が違う) | `jobIds` |
+| 集合は同じで記述順だけが違う | `jobOrder` |
+| すべて同じ | `ok` |
+
+- `definition_key` と `definition_path` は照合に使わない(定義ファイルの置き場所を動かしても食い違いにしないため)。
+- ジョブのコマンド、遷移、成功コード、リトライ設定などの違いは検知しない(IDと並びだけを見る)。
+- `completed = true` のステートは「空」なので、照合しない。
+- 食い違いのとき、ジョブは起動せず、ステートも変えず、65。標準エラー:
+
+```text
+conductor: error: <ステートファイルのパス>: state does not match the definition: <種類>; <案内>
+```
+
+  種類: `pipeline name` / `job ids` / `job order`(日本語: `パイプライン名` / `ジョブID` / `ジョブの並び`)。日本語の文は `ステートが定義と食い違っています`。案内は §6.2 と同じ(run ID あり/なしで切り替わる)。
+
+---
+
+## 8. 初期化(`reset`)
+
+### 8.1 `conductor reset [--config <パス>] [--run-id <ID>]`
+
+- 読まず、検査せず(破損・食い違い・版違い・大きさに関係なく)ステートファイルを削除する。定義ファイルは検証しない。
+- 対象のファイル: run ID の決定([05](05-execution-flow.md) §6.2。`--run-id` があれば定義を読まない。なければ定義の `pipeline.run_id_env` だけをゆるく読み、その環境変数を見る)で決まった 1 つ。
+- 結果: ファイルが無ければ**成功**(0、何も表示しない)。削除が成功 → 0。失敗(ディレクトリ・権限等。「存在しない」以外)→ `removeFailed`、65。実装は **`[System.IO.File]::Delete($fsPath)`** を使う(`Remove-Item` を使わない: `-Path` がワイルドカードを解釈し、`-Recurse`・確認の挙動を持つ。`-LiteralPath` でも、ディレクトリを指す場合の挙動が仕様と合うかを、公式ドキュメントで確認していない: 未確認)。`File.Delete` は、削除するファイルが存在しなくても例外を投げない、と理解している(`File.Delete` の一般の契約。この文書では取得して確認していない: 未確認)。そのため、「存在しない」を成功にする分岐を別に書かなくてよいが、念のため、`File.Delete` の前後で `File.Exists` を見て分岐する書き方は避ける(競合する。`File.Delete` の結果だけで決める)。`DirectoryNotFoundException`(親のディレクトリが無い)は、「存在しない」として成功にする。それ以外の例外(`UnauthorizedAccessException`、`IOException`、`PathTooLongException`、`NotSupportedException`、`ArgumentException`)は `removeFailed`。外側の例外の取り除き・`PipelineStoppedException` の再送出は §5 の規則。
+- 完了のステートも消す。標準出力・標準エラーには何も出さない。
+- パスがシンボリックリンクなら、リンク自体を削除する(`File.Delete` は、Unix では `unlink(2)` を使うので、リンクを辿らず、リンク自体を消す、と理解している。未確認。受け入れテストで、削除後もリンク先のファイルが残ることを確かめる)。
+- **ディレクトリを指すパスは消さない**。`File.Delete` はディレクトリを消さず、`UnauthorizedAccessException`(または `IOException`)を投げる、と理解している(Unix・Windows とも。未確認)ので、`removeFailed`(65)になる。`[System.IO.Directory]::Delete`・`Remove-Item -Recurse`(再帰)を使わない(空のディレクトリや中身ごと消しうるため)。受け入れテストで、ディレクトリの名前が `conductor.psd1.state` であるとき、ディレクトリとその中身が残り、65 になることを確かめる。
+- 親のパスが通常のファイルのとき(`ENOTDIR`)は、`DirectoryNotFoundException` になる、と理解している(未確認)ので、成功(0)になる。期待の挙動(`removeFailed`)と違うかもしれない。実装時に実機で確認し、違うなら、`[System.IO.File]::Exists(parent)` の確認を足して `removeFailed` にする。
+- run ID の値が規則に合わなければ 68。
+
+### 8.2 `conductor reset --all [--config <パス>]`
+
+定義の全ステートを、run ID の有無によらず消す。環境変数は見ない(値の誤りも 68 にならない)。`--run-id` との併用は 68。
+
+対象の判定(厳密):
+
+1. 一覧にするのは、定義ファイルと同じディレクトリだけ(再帰しない。`[System.IO.Directory]::EnumerateFileSystemEntries($dir)` で名前を列挙する。順序は保証されないので、名前を `[System.StringComparer]::Ordinal` で並べ替える。run ID は ASCII だけで、候補の名前は同じ接頭辞を持つので、UTF-16 の序数の順と、コードポイントの順・UTF-8 のバイト列の順は一致する)。`$dir` はディレクトリ部分が空のとき `"."`。`searchPattern` を使わない(§5)。`Get-ChildItem` を使わない(§5)。
+2. `<定義ファイル名>.state`(run ID なし): **通常のファイルのときだけ**(シンボリックリンクを辿らず、消さない。`$info = [System.IO.FileInfo]::new($path)` の `Exists` が真、`Attributes` に `[System.IO.FileAttributes]::Directory` が無く、`LinkTarget` が `$null`。`File.Exists` はリンクを辿るので使わない。`LinkTarget` は .NET 6 以降で、リンクでなければ `null` と理解している。未確認)、中身を読まずに削除(`[System.IO.File]::Delete`)。
+3. `<定義ファイル名>.<run-id>.state`: 名前の `<run-id>` が有効な run ID(§1・[05](05-execution-flow.md) §6.1 の検査が成功)であるものだけが候補。名前は、定義ファイル名で始まり、続けて `.`、run ID、`.state`(`$name.Length -ge $defName.Length + 1 + 1 + 6` で、`$name.StartsWith($defName + '.', [System.StringComparison]::Ordinal)`、`$name.EndsWith('.state', [System.StringComparison]::Ordinal)` で、その間 `$name.Substring($defName.Length + 1, $name.Length - $defName.Length - 1 - 6)` が run ID。`'.state'` の長さは 6。run ID なしの `<定義ファイル名>.state` は、この間が空になるので、候補にならない)。候補をファイル名の昇順(序数)に処理する。
+   - 通常のファイルでない(ディレクトリ、シンボリックリンク)→ 黙って除外。取得中に消えた(`FileInfo.Exists` が偽)→ 除外。`FileInfo` の取得でその他の理由の例外(`IOException`、`UnauthorizedAccessException`)→ `kept` に入れる。
+   - 中身を見分ける(`Test-ConductorRunStateFile`。§6.1 の順 1〜13 を、ファイル名側の run ID を期待値として行う。`ReadRaw` と同じ手順):
+
+| 中身 | 結果 |
+|---|---|
+| 開けない、1 MiB 超、読み取り失敗、UTF-8・JSON の構文・形式の誤り(`Detail = 'runIdMismatch'` 以外の `corrupt`。キーの重複・BOM・深すぎる入れ子を含む)、`versionMismatch` | **残して**、名前を `kept` に入れる |
+| 長さ 0 | 残す。`kept` に**入れない**(誰のものか分からない) |
+| 読めて、中身の `run_id` が名前の run ID と一致(完了のままのものを含む) | **削除** |
+| 読めるが、中身の `run_id` が無い、または値が違う(別の定義のステートでありうる。`Detail = 'runIdMismatch'`) | 残す。`kept` に入れない(黙って残す) |
+
+4. 一時ファイル(`.<ステート名>.tmp.*`)、ほかの名前のファイル、ほかのディレクトリは対象外。
+5. 削除の失敗(「存在しない」以外)→ `removeFailed`、65(処理は途中で打ち切る)。ディレクトリ一覧の取得に失敗(ディレクトリが無い場合(`DirectoryNotFoundException`)を除く)→ `unreadable`、65。ディレクトリが無ければ成功。
+
+結果の出力: `kept` が空でなければ、標準エラーに警告(終了コードは 0)。消すものがなければ何も出さず 0。`kept` は `[string[]]`(結果オブジェクトのプロパティ。0 件でも配列)。
+
+```text
+conductor: warning: kept state files that could not be read (remove one with `conductor reset --run-id <ID>`):
+  c2.json.r2.state
+```
+
+日本語: ``conductor: warning: 読めなかったため、次のステートファイルは残しました(`conductor reset --run-id <ID>` で個別に消せます):``、続けて 2 スペースで字下げしたファイル名を 1 行ずつ。
+
+例(`c2.json` に対して `reset --all`): run ID なしの `c2.json.state` は削除、順序が壊れた(JSON として壊れた、または内容に矛盾のある)`c2.json.r2.state` は `kept`(警告)、`"run_id": "r2"` を持つが名前が `r3` の `c2.json.r3.state` は黙って残る、ほかの定義のステート `conductor.json.r1.state` は対象外で残る。
+
+---
+
+## 9. 完了と `--remove-on-complete`
+
+### 9.1 完了のステートの扱い
+
+- 完了(`completed = true`)の条件は [05](05-execution-flow.md) §10。完了のステートは、`completed = true` のまま**残る**(自動では消えない)。書式は変わらない(`format_version` は 1)。
+- 読み込み(`Read`)は、完了のステートを「空」として返す(§6.1 の 14)。したがって次の `pipeline` は先頭から始まり、`run` は最初のジョブ以外が順序外(66)になる。
+- `watch` は `ReadRaw` で完了のステートを読み、表の下に完了を示す行(英語 `completed`、日本語 `完了`)を足す。`no state (nothing has run yet)` を出すのは、ファイルが無いか長さ 0 のときだけ。壊れた完了のステートは 65。
+- `reset`・`reset --all` は完了のステートも消す。
+
+### 9.2 削除の指定
+
+| 項目 | 値 |
+|---|---|
+| オプション | `--remove-on-complete`(`run`・`pipeline` だけ。値を取らない。ほかのコマンドに付けると 68) |
+| 定義 | `pipeline.remove_on_complete`(真偽値。省略時 false。真偽値でなければ定義の誤り 64) |
+| 実効値 | `--remove-on-complete` があれば true、なければ定義の値。環境変数では切り替えない。オプションで false にする手段はない |
+
+完了時の手順: 完了のステートを `durable` で書く → 実効値が真なら `ResetState`(run ID に応じたファイルを削除。存在しなくても成功)→ 成功なら 0(`run` ではジョブの終了コード)。削除に失敗したら 65(完了のステートは `completed = true` のまま残る。`watch` は完了として表示する)。
+
+`run` では、完了の契機が「スキップの記録」のときも同様に、書き込みの後に削除する。
+
+---
+
+## 10. 書き込みと読み込みの併用シナリオ(確認用)
+
+再実装の確認に使える、ファイルの状態遷移の例(定義 `a → b → c`、遷移なし、run ID なし、`conductor.psd1`)。
+
+| 操作 | ファイル `conductor.psd1.state` | 終了コード |
+|---|---|---|
+| `pipeline`(b が exit 3 でエラー) | §4.4 の例(1)と同じ内容(`pipeline_name` は定義の名前。`definition_path` は `conductor.psd1`) | 3 |
+| `pipeline` を再実行(a は alreadyExecuted、b・c 成功) | 全ジョブ success、`completed = true`、`resume_job_id` 無し(残る) | 0 |
+| もう一度 `pipeline` | 完了のステートは空とみなされ、初期ステートで上書きされ、先頭から実行 | ジョブによる |
+| ファイルの `format_version` を `2` に書き換えて `run a` | 変更なし。`state file version is not supported` | 65 |
+| `reset` | ファイルを削除(無くても成功) | 0 |
+
+---
+
+## 11. 並行実行・排他・持続性
+
+- **排他制御はしない**(ファイルロック、PID ファイルなし。`FileStream.Lock`・`FileShare.None` を長く保持するロックにしない。一時ファイルを書いている間だけの `FileShare.None` は、ロックではなく、書き込み中の保護)。同じ定義(同じ run ID)で複数の conductor を同時に動かすと、それぞれが読んで書き、後に書いた方が勝つ。書き込み自体は原子的なので、ファイルが壊れることはないが、記録は失われうる。同時の実行は避けること。
+- 別の実行単位(run)で同じ定義を並行して使うときは、run ID でステートを分ける(§1)。run ID ごとに独立したファイルと再開位置を持つ。
+- **at-least-once**: ジョブの終了と、結果の書き込みのあいだに conductor が落ちると、ジョブは未実行として扱われ、再実行されうる。
+- **リトライの回数はステートに書かない**(書式に項目がない)。再開は、そのジョブを最初の実行から数え直す。
+- ステートは、定義ファイルのあるディレクトリに作られる。書き込めないディレクトリでは、最初のジョブの前に 65 で止まる(初期ステートが書けない)。
+- 古い run のステートは自動では消えない。`reset --all` か、`--remove-on-complete` で片づける。
+- 書き込みは同期の関数で、1 つの `run`・`pipeline` の中では常にメインスレッドから直列に行う([05](05-execution-flow.md) §16)。シグナルのコールバックの中でステートを書かない。書き込みを、ジョブの終了の観測より前に行わない(「ジョブの終了後に書く」が at-least-once の前提)。`Start-Job`・`Start-ThreadJob` を使わない。
+- PowerShell の `Ctrl+C`(`PipelineStoppedException`)が、書き込みの途中(手順 3〜7)で届いたとき: `finally` で、開いている `FileStream` を `Dispose` し、自分が作った一時ファイルを削除する(§5 の手順 8)。ステートファイルは、直前の完全な内容のまま(置き換えの前なら)、または新しい完全な内容(置き換えの後なら)になる。シグナルの受け方は [07](07-process-and-signals.md)。
+
+---
+
+## 12. 再現すべき特記事項
+
+| # | 項目 | 挙動 |
+|---|---|---|
+| 1 | `reset --all` と長さ 0 のファイル | 長さ 0 の `<定義>.<run-id>.state` は、消さず、警告にも出さない |
+| 2 | `reset`(個別)とシンボリックリンク | 個別の `reset` は、リンク自体を削除する。`reset --all` は、シンボリックリンクを消さない |
+| 3 | 理由文の言語 | 理由(例: `JSON として読めません`)は、ロケールに関わらず日本語の固定文。種類の文と案内はロケールに従う |
+| 4 | `definition_key` | 形式に残っているが、`definition_path` と同じ値で、照合に使わない |
+| 5 | 版の先行検査 | `format_version` は、未知の項目の検査より先に調べる |
+| 6 | キーの大文字小文字 | 区別する。`Format_Version` や `ID` は未知のキー(または必須のキーが無い)として扱う。PowerShell のハッシュテーブル・`-eq`・`PSCustomObject` のプロパティ名は、大文字小文字を区別しない(または区別が不確か)ので、序数の比較(`-ceq`・`HashSet[string]`・`StringComparer.Ordinal`)を使う |
+| 7 | `null` | どの項目の `null` も型の誤り。「無い」とは扱わない |
+| 8 | BOM | 拒否する(`UTF8Encoding($false, $true)` で復号し、結果の先頭の U+FEFF を 6a にする。§6.1.2、§6.5) |
+| 9 | 巨大な整数 | `format_version` と `exit_code` は、整数の字句の判定で行う。巨大な字句で数値への変換(`[int]`・`[long]`・`[bigint]` へのキャスト、`Parse`)を呼ばない(例外・`[double]` への昇格を起こさない) |
+| 10 | ディレクトリを指すステートのパス | `reset` は消さず `removeFailed`(`File.Delete` を使う。§8.1) |
+| 11 | 真偽 | `true` / `false` は整数でない。`exit_code` や `format_version` に受理しない(PowerShell では `$true -eq 1`。種類 `Kind` で判定する) |
+| 12 | `NaN` / `Infinity` | 拒否する(自前の読み取りが拒否する) |
+| 13 | 孤立サロゲート | 読み込みでは拒否する(6a)。書き出しでは、`definition_path` / `definition_key` の孤立サロゲートを U+FFFD に置き換える |
+| 14 | `exit_code` の `0` | 「ある」。`$null -ne $exitCode` で判定する(§4.2) |
+| 15 | 改行 | 書き出しは LF のみ。`Environment.NewLine`・`Set-Content`・`Out-File`・`AppendLine()` を使わない(Windows で CRLF になりうる) |
+| 16 | 時刻の形の文字列 | ジョブID・名前が時刻の形でも文字列のまま読む(`ConvertFrom-Json` の自動変換を受けない) |
+| 17 | コメント | JSON のコメントは拒否する(`ConvertFrom-Json` は受け付ける) |
+
+---
+
+## 13. 型の骨格・実装に任せてよい点・未確認
+
+### 13.1 エラーと読み書きの結果(骨格)
+
+型の置き場所と名前は [02-architecture.md](02-architecture.md) の `State` に合わせる。**失敗は例外でなく値で返す**。結果は `[pscustomobject]`(`class` を使わない。[05](05-execution-flow.md) §0.2)。
+
+| 値 | 項目 |
+|---|---|
+| `StateError` | `Kind`(`unreadable` / `tooLarge` / `corrupt` / `versionMismatch` / `writeFailed` / `removeFailed`)、`Path`(`[string]`)、`Reason`(§6.4 の固定文)、`Detail`(`none` / `runIdMismatch`。内部の判別用で、表示に使わない。`reset --all` が「中身の `run_id` が名前と合わない」を見分けるために使う) |
+| 結果(すべての入出力の共通) | `Kind`(`ok` / `fail`)、`Error`(`fail` のとき `StateError`、そうでなければ `$null`)、`State`(`Read` / `ReadRaw` の `ok` のとき `PipelineState` か、空なら `$null`)、`Kept`(`ResetAll` の `ok` のとき `[string[]]`。整列済み。それ以外は `$null`) |
+
+```powershell
+# いずれも、戻り値は上の結果オブジェクト 1 つ(配列でない)。例外を送出しない(PipelineStoppedException と実装の誤りを除く)。
+function Read-ConductorState      { [OutputType([pscustomobject])] param([string] $DefinitionPath, [AllowNull()] [object] $RunId) }   # 空は Kind 'ok', State $null。完了も $null(14)
+function Read-ConductorStateRaw   { [OutputType([pscustomobject])] param([string] $DefinitionPath, [AllowNull()] [object] $RunId) }   # 14 を行わない
+function Write-ConductorState     { [OutputType([pscustomobject])] param([string] $DefinitionPath, [AllowNull()] [object] $RunId,
+                                                                          [pscustomobject] $State, [string] $Durability) }              # 'durable' | 'fast'(-ceq で検査)
+function Reset-ConductorState     { [OutputType([pscustomobject])] param([string] $DefinitionPath, [AllowNull()] [object] $RunId) }   # 無くても ok
+function Reset-ConductorAllState  { [OutputType([pscustomobject])] param([string] $DefinitionPath) }                                   # ok のとき Kept
+function Test-ConductorStateConsistency { [OutputType([pscustomobject])] param([pscustomobject] $State, [pscustomobject] $Definition) }   # §7
+```
+
+- 書き込みの設定(依存の注入): 時刻の取得(`[scriptblock] $Now`)、ディレクトリの同期の有無(`[bool] $SyncDirectory`。UNIX 系 true・Windows false。`Cli` が OS の判定から決めて渡す)を、モジュール内の設定オブジェクト(`$script:` の変数)または引数で受ける。
+- 表示用の組み立て(種類の文・案内・ロケール)は `Report` が行う。
+- `IOException`・`UnauthorizedAccessException` などの BCL の例外は、これらの関数の内側で、**狭く**(ファイル操作の `try` の中だけ)捕まえて失敗の値に変える。それ以外の例外(`NullReferenceException`、実装の誤り。`PipelineStoppedException`)は捕まえず、`Invoke-Conductor` の最上位が扱う([10](10-errors-and-exit-codes.md))。
+- 一時ファイル名の時刻(§5 の手順 3)は、`$Now` から得る(`DateTimeOffset` の UTC の Unix エポックからのナノ秒に直す)。`Get-Date` や `[DateTime]::UtcNow` を直接読まない(テストで時刻を固定するため)。
+
+### 13.2 実装に任せてよい点
+
+- 一時ファイルの名前の細部(§1 の条件を満たすこと)、再試行の回数の上限の具体値は 16 を推奨。
+- 内部の構造(書き出しの関数の分け方、読み込みの内部の作りなど)。ただし、キーの順序・インデント・末尾の改行・文字のエスケープ(§4)、読み込みの規則(§6.5)は固定。
+- ファイルの権限(§5。`0666` から umask を引いた OS 標準にする)。
+
+### 13.3 確認できたこと(公式ドキュメントの取得による。出典は本文の該当箇所)
+
+learn.microsoft.com の PowerShell 7.4 版のドキュメントを取得して確認:
+
+- `ConvertFrom-Json`: 重複キーは最後だけが使われる、`-AsHashtable` のキーの扱い・7.3 以降の順序保存、`-Depth` の既定 1024、`-NoEnumerate`、時刻の形の文字列の自動変換、コメントを受け付ける(6 以降)、Newtonsoft の実装、空文字列の入力は出力なし。
+- `ConvertTo-Json`: `-Depth` の既定 2(0〜100)と警告(7.1 以降)、ハッシュテーブルのキーの出力順が記述順にならない例、`-EscapeHandling` の値と既定、`-AsArray`、`BigInteger` の対応(7.5 以降)。
+- `Set-Content`・`Get-Content`: `-Encoding` の既定は `utf8NoBOM`、`-NoNewline`、`-Path` はワイルドカードを解釈し `-LiteralPath` は解釈しない、`Get-Content` は既定で行の配列を返す・`-Raw`・`-AsByteStream`。
+- `about_Language_Modes`: ConstrainedLanguage では `Add-Type` は署名済みのアセンブリだけを読み込め、任意のコードは読み込めない。
+- `about_Comparison_Operators`・`about_Return`・`Set-StrictMode`: [05](05-execution-flow.md) §17 のとおり。
+
+.NET の API のページを取得して確認(learn.microsoft.com):
+
+- `File.Move(String, String, Boolean)`: net-5.0 以降と netcore-3.0・3.1。`overwrite = true` で置き換え。例外の種類。ボリュームをまたぐ移動はコピーと削除に等しい。原子性の記載は無い。
+- `FileStreamOptions.UnixCreateMode`: net-7.0 以降。`Nullable<UnixFileMode>`。`set` は Windows で使えない。既定値・umask の記載は無い。
+- `FileStream.Flush(Boolean)`: 「すべての中間のファイルバッファを消す」。`Flush()` は OS の I/O バッファも消す。
+- `UTF8Encoding(bool, bool)`: `throwOnInvalidBytes` の働き(既定は不正を黙って置換)。`GetBytes` は BOM を前置しない。不正なサロゲートは `EF BF BD` に置換される(同ページの例)。
+- `Utf8JsonReader`: stack-only(ref struct)の型。
+
+### 13.4 未確認(実装時に確認する)。最初に行う小さな試験
+
+- T-8: `catch [System.IO.IOException]` が、PowerShell が .NET のメソッド呼び出しの例外を包んだ(`MethodInvocationException`)場合にも一致するか。一致しない場合の、内側の例外の取り出し方(`InnerException`、`GetBaseException()`)。
+- T-9: `[System.IO.Path]::GetFullPath(String, String)` の存在と動作。`Get-Location -PSProvider FileSystem` の `ProviderPath` が、PowerShell の現在の場所と一致すること。PowerShell の `Set-Location` が、プロセスの現在のディレクトリ(`[System.Environment]::CurrentDirectory`)を変えるか。
+- T-10: `[System.IO.FileStreamOptions]::new()` のプロパティを PowerShell から設定して `[System.IO.FileStream]::new($path, $opts)` が呼べること。`Mode` に `[System.IO.FileMode]::CreateNew` を代入できること。`UnixCreateMode` に列挙型の値を代入できること(`[System.IO.UnixFileMode]438` と文字列のキャストの両方)。
+- T-11: `FileStream.Write($bytes, 0, $bytes.Length)` と `Read($buffer, $offset, $count)` の過負荷の選択(3 引数の形が `byte[]` の過負荷に解決されること)。
+- T-12: 1 MiB の JSON(空白で埋めた入力、`[` の列の入力)を、§6.5 の読み取りで処理する時間。基準値を決める。
+- `FileMode.CreateNew` が既存のとき `IOException` を投げること(一般の契約と理解)、衝突と他の `IOException` を `File.Exists` で見分ける方法の十分さ。
+- `UnixCreateMode` の既定値と umask の関係、`0666` を指定したときの実際の権限(§5。受け入れテストで固定)。
+- `FileStream.Flush($true)` が Unix で `fsync(2)`、Windows で `FlushFileBuffers` を呼ぶこと。
+- `File.Move(overwrite)` の原子性(Unix: `rename(2)`、Windows: `MoveFileEx`)と、Windows で他のプロセスが開いているときの失敗の型。
+- `File.Replace` を採らない理由の各点(置き換え先が無いと失敗、Windows の属性・ACL の引き継ぎ)。
+- ディレクトリの同期の P/Invoke(ヘルパー型。07 章)の名前解決、`open` を `O_RDONLY` でディレクトリに使えること。
+- `Path.GetDirectoryName`・`Path.GetFileName`・`Path.Join` の境界の挙動(§1)。
+- `FileInfo.LinkTarget` が、リンクでないとき `null`、Unix のシンボリックリンクで非 `null` になること。
+- ディレクトリ・親が通常のファイルのパスを `FileStream` で開いたとき、`File.Delete` で消そうとしたときの例外の型(Unix・Windows)。`File.Delete` が存在しないファイルで例外を投げないこと。
+- `UTF8Encoding($false, $true).GetString` が、§6.1.2 の不正な UTF-8 の 4 種を拒否し、BOM を取り除かないこと、投げる例外の型(`DecoderFallbackException`)。
+- PowerShell から `Utf8JsonReader`(ref struct)が使えるか。`ConvertFrom-Json` の `-DateKind`(7.5 以降にあると理解している。このページには無かった)。`ConvertFrom-Json` の 64 ビットを超える整数・`NaN`・BOM・制御文字・孤立サロゲートの挙動(自前の読み取りを採るので、仕様の達成には影響しない)。
+- PowerShell の列挙型への文字列のキャスト(`[System.IO.FileShare]'ReadWrite, Delete'`)の書式。
+- 引数のパスに不正な UTF-8 のバイトがあるとき、Unix で `[string]` にどう入るか。Windows のパスの孤立サロゲート。
+- Windows での、ファイルの権限(ACL)、ディレクトリを開いたときの `unreadable` の判定、`FileShare` の組み合わせの挙動。
+- 一時ファイルの `<時刻>` は、`$Now` 由来のナノ秒。クロックが戻った場合の挙動は、名前の衝突の再試行(最大 16 回)に任せている。
+- §4.4 の例は、規則から機械的に作った文字列で、PowerShell の実装の出力としては確認していない。例 4 は、規則から導いた値(実行の流れの中で書かれた出力ではない)。
