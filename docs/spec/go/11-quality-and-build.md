@@ -25,7 +25,7 @@
 
 - 受け入れテストは、**ビルドした実行ファイルを外から実行して**確かめる(終了コード、標準出力、標準エラー、作られるファイル)。外からは確かめにくい項目は、区分を「単体」「注入」「点検」「手動」「計測」として示す(3.6 節)。
 - 定義ファイルは YAML(`.yaml` / `.yml`)か JSON(`.json`)。既定のファイル名は `conductor.yaml`。ステートファイルは JSON で、名前は `<定義ファイル名>.state`(run ID があれば `<定義ファイル名>.<run ID>.state`)。`convert` は YAML と JSON の相互変換(`--to yaml|json`)。
-- 受け入れテストの ID は `AC-xxx`。001〜449 は、`conductor` が満たすべき基本の項目。450 以降は、YAML と JSON の扱いに固有の項目。番号は、この文書の中で一意。
+- 受け入れテストの ID は `AC-xxx`。001〜449 は、`conductor` が満たすべき基本の項目。450 以降は、YAML と JSON の扱いに固有の項目と、品質・CI の項目(AC-476〜487)。番号は、この文書の中で一意。
 - 期待の標準エラーの文言は、特に記さない限り `LANG=C`(英語)。理由の文(日本語の固定の文)は、英語の表示でも日本語のまま([08](08-output-and-i18n.md)、[10](10-errors-and-exit-codes.md))。理由の文の正確な字句は、08・10 章が正本で、この文書の例は、それと同じ字句を使う。
 - 確認できなかった点は「未確認」と書き、10 章にまとめる。Go の道具(標準ライブラリ、`go` コマンド、外部ライブラリ、GitHub Actions)の挙動を、この文書の作成時に実機で確かめられなかったものは、「実装時に確認する」と書く。
 - 版の数字(Go、依存ライブラリ、GitHub Actions)は、例として書いたものを除き、「実装時に確認する」。
@@ -52,7 +52,7 @@ p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目(1 始まり)�
 | ジョブの実行中(約 3 秒)の `conductor` の CPU 時間(UNIX 系) | 100 ms 以下 | **強制**(CPU 時間を読めない環境ではスキップ) | AC-403 |
 | 同じ定義への 2 つの `run` を同時に | 両方が実行され、どちらもジョブの終了コードで終わり、ステートは読み戻せる(排他制御はしない) | **強制** | AC-404 |
 | リトライの待機の中断 | 合図から 1 秒以内に返る。確認の間隔は 50 ms 以下 | **強制**(1 秒)/ 目安(50 ms) | AC-275 |
-| ジョブの終了の確認の間隔 | 1・2・4・8・10 ms、以降 10 ms(上限 10 ms) | 目安 | [07](07-process-and-signals.md) |
+| ジョブの終了の待ち | `select` で待ち、確認の間隔(ポーリング)を持たない。合図から転送までの遅れは 10 ms 以下 | 目安 | [07](07-process-and-signals.md) 5 章 |
 
 測定のしかた:
 
@@ -95,7 +95,7 @@ Go では、`panic` は `recover` で捕まえられるが、**スタックの�
 | `unsafe` を使わない | 製品のコードが `unsafe` を import しない(0 か所)。リンクの指示(`//go:linkname`)と `cgo`(`import "C"`)も使わない | AC-420(点検) |
 | シグナルの送信 | ジョブの子プロセスの pid だけ(0 以下にならない)、許可した 4 つのシグナルだけ、1 回だけ(プロセスグループには送らない) | 4.10 節の単体の項目 |
 | テスト専用の経路を製品に持たない | 製品の入口に、わざと異常終了するコマンドなどがない。配布物は `conductor` だけ(`conductor-testjob` を含めない) | AC-422(点検)、6 章 |
-| 変換の副作用 | 変換の部品(`internal/convert`)が `os/exec`・`net`・`os`(環境変数・カレントディレクトリ)を import しない。`convert` は入力以外のファイルを作らず、カレントディレクトリの変更と環境変数に左右されない | AC-418 |
+| 変換の副作用 | 変換の部品(`internal/convert`)が `os/exec`・`net` を import しない。`os` は、入力ファイルを読む入口 `Convert` だけが使い(`os.Open`)、`ConvertText` と書き出しは、ファイルにも環境変数にもカレントディレクトリにも触れない。`convert` は入力以外のファイルを作らず、カレントディレクトリの変更と環境変数に左右されない | AC-418 |
 | 既知の脆弱性 | 依存の既知の脆弱性を、定期的に(毎週)と、変更のたびに `govulncheck` で検査する。結果は警告で、マージをブロックしない | 5 章 |
 | 配布物の完全性 | チェックサムのファイル(`SHA256SUMS`)を付ける(署名はしない。転送の破損の検知まで)。macOS の署名・公証はしない | 6 章 |
 
@@ -103,7 +103,7 @@ Go では、`panic` は `recover` で捕まえられるが、**スタックの�
 
 | 項目 | 基準 | 受け入れテスト |
 |------|------|----------------|
-| OS 固有コードの隔離 | OS ごとの分岐(`runtime.GOOS`、`//go:build` の制約、`syscall` の import)は、`internal/runner` の OS 別ファイル(`_unix.go` / `_windows.go`)の中だけ | AC-420 |
+| OS 固有コードの隔離 | OS ごとの分岐(`runtime.GOOS`、`//go:build` の制約、`syscall` の import)は、OS 別ファイル(`internal/runner` の `platform_*.go`、`internal/state` の `syncdir_*.go`、`internal/cli` の `terminal_*.go`、`cmd/conductor` の `signal_*.go`)の中だけ | AC-420 |
 | 外部の入力で異常終了しない書き方 | 2.2 節 | AC-421 |
 | 整形と静的検査 | `gofmt -s` の差分、`go vet` と `golangci-lint` の警告が 1 つでもあればマージを止める | 5 章 |
 | 命名 | Go の標準の命名規則(公開は PascalCase、非公開は camelCase、パッケージ名は短い小文字)に従う。独自の規則は設けない | (規約) |
@@ -340,7 +340,7 @@ ERR の期待は、**最初の行**のうち、`conductor: error: <ファイル>
 | AC-011 | 書式の版が 1 でない | `format_version: 2` に `B0` の他を足す | `validate` | 64。`unsupported format_version` |
 | AC-012 | 書式の版が整数でない | `format_version: "1"`、`format_version: 1.0`、`format_version: true` | `validate` | 64。`unsupported format_version` |
 | AC-013 | 版の確認が先 | `format_version` なし、未知のキーと型の誤りを含む | `validate` | 64。ERR は 1 行だけ。種類の文 = `format_version is missing` |
-| AC-014 | 旧形式のキー | `B0` の `job:` を `jobs:` に | `validate` | 64。`unknown key` |
+| AC-014 | `jobs`(複数形)のキー | `B0` の `job:` を `jobs:` に | `validate` | 64。`unknown key` |
 | AC-015 | 未知のキー(ジョブ) | `B0` の job に `colour: red` | `validate` | 64。`unknown key`(行はそのキーの行) |
 | AC-016 | 未知のキー(パイプライン) | `pipeline:` に `owner: x`(または `remove_on_complet: true`) | `validate` | 64。`unknown key` |
 | AC-017 | `pipeline` がない | `format_version: 1` と `job:` だけ | `validate` | 64。`wrong value type`(行 1) |
@@ -369,8 +369,8 @@ ERR の期待は、**最初の行**のうち、`conductor: error: <ファイル>
 | AC-040 | 定義の大きさの上限(受理) | `B0` に、コメント行(`#` で始まる行)を足して、ちょうど 1,048,576 バイト | `validate` | 0 |
 | AC-041 | 定義の大きさの上限(超過) | 1,048,577 バイト(UTF-8 でなくてもよい) | `validate` | 64。`definition file is too large` |
 | AC-042 | UTF-8 でない定義 | 上限以内で、不正なバイト列を含む | `validate` | 64。`cannot read definition file` |
-| AC-043 | 入れ子の深さ(受理) | `a: ` に `[` を 31 個、`]` を 31 個続けただけのファイル(`format_version` なし) | `validate` | 64。`format_version is missing`(深さの検査は通った) |
-| AC-044 | 入れ子の深さ(超過) | `[` を 32 個・1,000 個(閉じも書く) | `validate` | 64。`syntax error` |
+| AC-043 | 入れ子の深さ(受理) | `a: ` に `[` を 32 個、`]` を 32 個続けただけのファイル(`format_version` なし。根のマップは数えず、32 段まで受理。03 章 6.3 節) | `validate` | 64。`format_version is missing`(深さの検査は通った) |
+| AC-044 | 入れ子の深さ(超過) | `a: ` に `[` を 33 個・1,000 個(閉じも書く) | `validate` | 64。`syntax error`(理由 `入れ子が深すぎます(上限は 32 段)`。行は 33 段目の `[` の行) |
 | AC-045 | パイプライン名の照合 | `P(p; a:0)` | `validate p` / `validate wrong` / `validate` | 0 / 64(`pipeline name does not match the definition`)/ 0(照合しない) |
 | AC-046 | 名前の不一致の誤りに値を含めない | `name: SECRET-NAME` | `validate other-name` | 64。ERR に `SECRET-NAME` も `other-name` も現れない |
 | AC-047 | 誤りの文に入力の値を含めない | `format_version: 1`、`pipeline:` の `name: p`、`job:` の `id: a`、`command: 5`、`warning_exit_codes: ["SENTINEL-VALUE"]` | `validate` | 64。ERR に `SENTINEL-VALUE` が現れない |
@@ -395,7 +395,7 @@ ERR の期待は、**最初の行**のうち、`conductor: error: <ファイル>
 | AC-059 | 受理(倍率と上限) | `multiplier: 2`、`max_interval: 1m` を足す | 0 |
 | AC-060 | 受理(境界) | `exit_codes: [1,255,127]`、`max: 1` と `max: 100`、`interval` が `1s`・`24h`・`86400s`・`1440m`、`multiplier` が 2 と 10、`max_interval` が `interval` と同じ | いずれも 0 |
 | AC-061 | 受理(流れ形式の写像) | `retry: { exit_codes: [75], max: 3, interval: 1s }` | 0 |
-| AC-062 | `retry` が写像でない | `retry: 5`、または `retry: [{exit_codes: [75], max: 3, interval: 1s}]` | 64。`retry must be a table` |
+| AC-062 | `retry` が写像でない | `retry: 5`、または `retry: [{exit_codes: [75], max: 3, interval: 1s}]` | 64。`retry must be a map` |
 | AC-063 | 必須のキーがない | `retry: {}` | 64。`a required key of retry is missing` が 3 行(`exit_codes`、`max`、`interval` の順) |
 | AC-064 | 未知のキー | `retries: 2` を足す | 64。`unknown key` |
 | AC-065 | `exit_codes` が空 | `exit_codes: []` | 64。`retry exit_codes is empty` |
@@ -487,7 +487,7 @@ JSON で同じ構造を書いた `ME`(`conductor.json`)では、誤りの行は�
 | AC-110 | 大きな終了コード | `TJ exit 300` | `run a` | 44(UNIX 系も Windows も `300 mod 256`) |
 | AC-111 | 256 の終了コード(Windows) | `TJ exit 256`、`-v` | `run -v a` | 1。ERR に `exit code 256, conductor exits with 1` |
 | AC-112 | 負の終了コード(Windows) | `TJ exit -1`、`-v` | `run -v a` | 255。ERR に `exit code -1, conductor exits with 255` |
-| AC-113 | `.cmd` への危険な引数(文字列形式。Windows) | `T/echo-args.cmd`(内容 `@echo off` と `exit /b 0`)。`cmd` = そのパス + ` 'x" & echo injected > T\injected.txt'` | `run a` | ジョブが起動される(`started`)か起動を拒否される(127)のどちらか。`T/injected.txt` ができない |
+| AC-113 | `.cmd` への危険な引数(文字列形式。Windows) | `T/echo-args.cmd`(内容 `@echo off` と `exit /b 0`)。`cmd` = そのパス + ` 'x" & echo injected > T\injected.txt'` | `run a` | 127(禁止文字を含む引数なので、起動を拒否する。07 章 8.3 節)。`T/injected.txt` ができない |
 | AC-114 | `.cmd` への危険な引数(配列形式。Windows) | 同じスクリプト。`argv=[パス, "x\" & echo injected > T\injected.txt"]` | `run a` | 同上 |
 | AC-115 | `.cmd` への安全な引数(Windows) | `T/ok.cmd`(`exit /b 7`)。`cmd` = そのパス + ` plain` | `run a` | 7 |
 | AC-116 | シェルを使わないことの点検 | ソース | (検索) | シェルの名前(`sh`・`cmd`・`bash`・`powershell`・`-c`・`/C`)で起動する経路がない。`exec.Command` / `exec.CommandContext` の呼び出しが、製品のコードに 1 種類(分割結果の `program` を渡すもの)だけ。区分: 点検 |
@@ -680,38 +680,38 @@ job:
 
 | ID | 機能 | 前提 | 実行 | 期待 |
 |----|------|------|------|------|
-| AC-206 | YAML から JSON | `T/in.yaml` = `CV1` | `convert in.yaml --to json` | 終了 0。ERR 空。OUT は JSON で、`"format_version": 1` と `"id": "extract"` を含む。OUT を JSON として読んだ木が `CV1` の木と等しい。キーは辞書順、インデントは 2 スペース、末尾は改行(細部は [09](09-converter.md) のとおり) |
+| AC-206 | YAML から JSON | `T/in.yaml` = `CV1` | `convert in.yaml --to json` | 終了 0。ERR 空。OUT は JSON で、`"format_version": 1` と `"id": "extract"` を含む。OUT を JSON として読んだ木が `CV1` の木と等しい。キーの順は入力の記述順、インデントは 2 スペース、末尾は改行(細部は [09](09-converter.md) のとおり) |
 | AC-207 | YAML から JSON(アンカー展開) | `T/in.yaml` = `CV2` | `convert in.yaml --to json` | 0。OUT に `<<` も `&defaults` もない。OUT を JSON として読んだ木が、`CV2` を展開した木と等しい(`transform` の `success_exit_codes` は `[0]`、`extract` は `[0, 2]`) |
 | AC-208 | 変換の出力は標準出力だけ | `T/in.yaml` = `format_version: 1⏎pipeline:⏎  name: p⏎job:⏎  - id: a⏎    command: echo a` | `convert in.yaml --to json` | 0。ERR 空。OUT に `"job": [` と `"format_version": 1` |
 | AC-209 | 入力形式は `--to` の反対で、拡張子は見ない | `T/looks-like.json` = `a: 1⏎b: [x, y]`(YAML の内容) | `convert looks-like.json --to json` / `convert looks-like.json --to yaml` | 前者: 0、OUT を JSON として読むと `{"a": 1, "b": ["x","y"]}`。後者: 67(JSON として読んで `syntax error`) |
-| AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to json` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:1: syntax error: 文法の誤りです` |
+| AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to json` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:` で始まり、種類の文が `syntax error`、理由が `YAML の文法に誤りがあります`(行は採用ライブラリの検出位置。03 章 13.4 節。未確認) |
 | AC-211 | 入力がない | なし | `convert nofile --to json` | 67。ERR = `conductor: error: nofile: input file does not exist: 指定の場所にファイルがありません` |
 | AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to json` | 67。`cannot read input file` |
 | AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to json` | 67。`input is too large` |
 | AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to json` | 0。OUT が `{⏎  "a": "xxx` で始まる |
 | AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to json` | 67。`cannot read input file`(文法を見る前) |
-| AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to json` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` |
-| AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x` / `a: .inf` / `a: .nan`(`--to json`)。JSON: `{"a": null}` / `{"a": 9223372036854775808}` / `{"a": 1e999}`(`--to yaml`) | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(YAML の 3 つと JSON の 1 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(YAML の 2 つと JSON の 2 つ)、`文字列でないキーは表せません`(2 つ)。`.inf`・`.nan` の原因の文は [09](09-converter.md) のとおり(未確認 — 10 章) |
-| AC-218 | 複数の文書 | `a: 1⏎---⏎b: 2` | `convert in.yaml --to json` | 67。`value cannot be represented in the target format: 複数の文書は表せません` |
+| AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: .nan` | `convert in.yaml --to json` | 67。ERR に `value cannot be represented in the target format: NaN と無限大は JSON で表せません` と `(at: job[1].note)` |
+| AC-217 | 表せない値と、表せる値の境界 | YAML(`--to json`): `a: .inf` / `a: .nan` / `a: -.inf` / `a: [1, .inf]` / `a: 9223372036854775808` / `a: 0xFFFFFFFFFFFFFFFFFF` / `a: 1e999`。JSON(`--to yaml`): `{"a": 9223372036854775808}` / `{"a": 1e400}` / キーが 1,025 文字のオブジェクト。受理されるもの: YAML の `a: ~` / `a: null` / `a:`(値は `null`)、JSON の `{"a": null}`、`{"a": 9223372036854775807}`、キーが 1,024 文字のオブジェクト | `convert … --to <変換後>` | 表せないものは 67(種類 `unrepresentable`)。原因の文は、順に `NaN と無限大は JSON で表せません`(`.inf`・`.nan`・`-.inf`・`[1, .inf]` の 4 つ)、`数値が表せる範囲を超えています`(YAML の 3 つと JSON の 2 つ)、`キーが長すぎます(上限 1024 文字)`(1,025 文字のキー)。受理されるものは 0 で、`null` は `null` のまま出る(09 章 5 節) |
+| AC-218 | 複数の文書・タグ・文字列でないキー | `a: 1⏎---⏎b: 2` / `a: !!str 1` / `1: x` / `true: x` | `convert in.yaml --to json` | 67。種類の文は `syntax error`。理由は順に `複数の文書は書けません(1 ファイルに書ける文書は 1 つです)`、`タグは使えません`、`キーは文字列で書きます`、`キーは文字列で書きます` |
 | AC-219 | 最上位がマップでない | YAML `- 1⏎- 2`(`--to json`)、JSON `[1, 2]`(`--to yaml`) | `convert` | 67。`top level is not a map: 最上位がマップではありません`(行 1) |
 | AC-220 | 空の入力 | 空の YAML ファイル(または `# c` だけ)を `--to json` で。空の JSON ファイル(0 バイト)を `--to yaml` で | `convert` | YAML: 67。`top level is not a map: 文書が空です`。JSON: 67。`syntax error`(JSON では空の入力は誤り) |
 | AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to json` | 0。OUT = `{⏎  "a": 1⏎}`。OUT に `#` がない |
-| AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to json` | OUT = `{⏎  "a": 2,⏎  "b": 1⏎}`(入力の順を保たない) |
+| AC-222 | キーの順序は入力の記述順 | `b: 1⏎a: 2` | `convert in.yaml --to json` | OUT = `{⏎  "b": 1,⏎  "a": 2⏎}`(辞書順に並べ替えない。マージキーで取り込まれたエントリは `<<` の位置に並ぶ。09 章 6 節) |
 | AC-223 | 空のマップ | `{}`(YAML)、`{}`(JSON) | `convert in.yaml --to json` / `convert in.json --to yaml` | 0。JSON の出力は `{}`。YAML の出力は `{}` |
 | AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to json` | 0。`d` は `"x": 1`、`"y": 9`(自身のキーが優先) |
-| AC-225 | マージキーの値がマップでない | `a:⏎  <<: 5` | `convert in.yaml --to json` | 67。`マージキーの値がマップではありません`(`(at: a.<<)`) |
+| AC-225 | マージキーの値がマップでない | `a:⏎  <<: 5` | `convert in.yaml --to json` | 67。種類の文は `syntax error`、理由は `マージキーの値がマップではありません`(行 2。場所 `(at: …)` は付かない。09 章 2 節の順 6) |
 | AC-226 | 重複するキー | YAML `a: 1⏎b: 2⏎a: 3`(`--to json`)、JSON `{"a": 1, "b": 2, "a": 3}`(`--to yaml`) | `convert` | 67。`syntax error: キーが重複しています`(YAML は行 3) |
 | AC-227 | 再帰するアンカー | `a: &r [*r]` | `convert in.yaml --to json` | 67。`アンカーが自分自身を含んでいます` |
-| AC-228 | スカラーの解決 | YAML: `a: yes`、`b: 0x1F`、`c: 007`、`d: '1'`、`e: 2001-01-01`、`f: 1_000`、`g: on`、`h: ~~`、`i: 'null'` | `convert in.yaml --to json` | `"a": "yes"`、`"b": 31`、`"c": 7`、`"d": "1"`、`"e": "2001-01-01"`、`"f": "1_000"`、`"g": "on"`、`"h": "~~"`、`"i": "null"`(キーは辞書順に並ぶ)。真偽値になるのは `true`/`false` の 3 通りの書き方(`true`、`True`、`TRUE` と `false` の同様の形)だけ |
-| AC-229 | 展開後の要素数の上限 | `a: [0, 0, …]`(0 を n 個)。JSON は `{"a": [0, 0, …]}` | `convert in.yaml --to json` / `convert in.json --to yaml` | n = 99,997 は 0。n = 99,998 は 67(`input is too large`。原因 `展開後の要素数が上限(100000)を超えています`) |
-| AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to json` | 30 秒以内に 67(`input is too large`)。メモリを使い果たさない |
-| AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 31 個 / 32 個(閉じも書く)。JSON: `{"a": ` に続けて `[` を 31 個 / 32 個(閉じも書く) | `convert` | 31 個: 0。32 個: 67(`syntax error: 入れ子が深すぎます(上限 32)`)。最上位の写像を深さ 1 と数える |
+| AC-228 | スカラーの解決 | YAML: `a: yes`、`b: 0x1F`、`c: 007`、`d: '1'`、`e: 2001-01-01`、`f: 1_000`、`g: on`、`h: ~~`、`i: 'null'` | `convert in.yaml --to json` | `"a": "yes"`、`"b": 31`、`"c": 7`、`"d": "1"`、`"e": "2001-01-01"`、`"f": "1_000"`、`"g": "on"`、`"h": "~~"`、`"i": "null"`(キーは入力の記述順に並ぶ)。真偽値になるのは `true`/`false` の 3 通りの書き方(`true`、`True`、`TRUE` と `false` の同様の形)だけ |
+| AC-229 | 展開後の要素数の上限 | `a: [0, 0, …]`(0 を n 個)。JSON は `{"a": [0, 0, …]}` | `convert in.yaml --to json` / `convert in.json --to yaml` | n = 99,997 は 0。n = 99,998 は 67(種類の文 `input is too large`。理由 `要素数が上限(100000)を超えています`)。JSON も同じ境界 |
+| AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to json` | 30 秒以内に 67(`input is too large`。理由は `要素数が上限(100000)を超えています` または `文字の大きさが上限(16 MiB)を超えています`)。メモリを使い果たさない |
+| AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 32 個 / 33 個(閉じも書く)。JSON: `{"a": ` に続けて `[` を 32 個 / 33 個(閉じも書く) | `convert` | 32 個: 0。33 個: 67(`syntax error: 入れ子が深すぎます(上限は 32 段)`)。最上位の写像(根)は数えず、その直下のコレクションを 1 段と数える(03 章 6.3 節) |
 | AC-232 | 極端な深さでも異常終了しない | 1,000 段、100,000 段の入れ子(YAML・JSON) | `convert … ` | 67(`syntax error`)。異常終了しない(スタックを使い果たす致命的な失敗にならない。2.2 節) |
 | AC-233 | 往復で木が等しい | `CV1` | `convert in.yaml --to json` の OUT を `convert --to yaml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`retry` の写像も同じ。`CV1J` を先に `--to yaml`、次に `--to json` に通しても等しい |
 | AC-234 | 数値の往復 | 整数の端(`int64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`0.5`、`1e21`)、空の配列・写像 | 往復(YAML → JSON → YAML、JSON → YAML → JSON) | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別。JSON の出力で、浮動小数は、小数点か指数を持つ書き方になる) |
 | AC-235 | ファイルを作らず環境に左右されない | `T` に入力のみ | `convert` を、別のカレントディレクトリ・異なる環境変数で実行 | `T` のファイル一覧が実行の前後で同じ。結果が同じ |
 | AC-236 | 標準出力に書けない(注入) | 正しい入力 | `convert`(標準出力を `FailingWriter` に) | 67。ERR = `conductor: error: cannot write to standard output` |
-| AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to toml` / `convert f --to YAML` / `convert f --to Json` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: 'toml'` / `invalid value: 'YAML'` / `invalid value: 'Json'` / `option not allowed for this command: '--config'` |
+| AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to xml` / `convert f --to YAML` / `convert f --to Json` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: 'xml'` / `invalid value: 'YAML'` / `invalid value: 'Json'` / `option not allowed for this command: '--config'` |
 | AC-238 | 変換結果の全体を 1 回で書く | 失敗する入力 | `convert` | 失敗のとき、標準出力に 1 バイトも書かれない |
 
 ### 4.8 run ID
@@ -753,7 +753,7 @@ job:
 | AC-262 | -v で結果の行は 1 回だけ | 上と同じ | `run -v a` | ERR は上の 2 行のあとに `[conductor] job=a result=success (exit code 0)` の 1 行だけ(途中の失敗の結果行は出ない) |
 | AC-263 | 使い切る | `RT`(`fails=99`) | `run a` | 75。ERR は retry の行 3 つ(`retry 1 of 3`、`2 of 3`、`3 of 3`)。`F` の値 = 4(最大 4 回の実行)。ステート `a=error(75)`、`resume=a` |
 | AC-264 | 対象外の終了コードはリトライしない | `exit_codes: [75]` で、ジョブが 3 で失敗(`flaky F 99 3`) | `run a` | 3。retry の行なし。`F` の値 = 1 |
-| AC-265 | 設定がなければ従来どおり | `P(p; a:0{cmd="TJ flaky F 99 75"})` | `run a` | 75。retry の行なし。`F` = 1 |
+| AC-265 | `retry` がなければ 1 回だけ実行 | `P(p; a:0{cmd="TJ flaky F 99 75"})` | `run a` | 75。retry の行なし。`F` = 1 |
 | AC-266 | 知らせは日本語でも | `RT`(`fails=1`)、`LANG=ja_JP.UTF-8` | `run a` | 0。ERR = `conductor: retry: ジョブ 'a' が終了コード 75 で終わりました。1 秒後にリトライします(1/3 回目)` |
 | AC-267 | 倍率と上限の待ち時間 | `retry=(exit_codes=[75], max=3, interval="1s", multiplier=2, max_interval="2s")`、`fails=99` | `run a` | 75。retry の行の待ち時間は順に `1`、`2`、`2`(`in 1 seconds`、`in 2 seconds`、`in 2 seconds`)。実行全体の時間は 5 秒以上 |
 | AC-268 | 待ち時間の列(関数の検査) | `interval` / `multiplier` / `max_interval` / `max` | 待ち時間を求める関数(`internal/flow`) | `30s`、倍率なし、max 3 → 30、30、30。`10s`、2、`60s`、max 5 → 10、20、40、60、60。`60s`、3、`60s`、max 3 → 60、60、60。`1s`、10、`1h`、max 6 → 1、10、100、1000、3600、3600。`1h`、10、`24h`、max 4 → 3600、36000、86400、86400。極端に大きい値でも桁あふれしない(飽和。`int64` と `time.Duration` の掛け算の桁あふれに注意)。区分: 単体 |
@@ -810,7 +810,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-304 | 大きさの上限 | 正しいステートの JSON の末尾に、空白(スペース)を足して 1,048,577 バイト | `state file is too large: 大きさが上限(1 MiB)を超えています`。ちょうど 1,048,576 バイトは受理(実行が進む) |
 | AC-305 | 書式の版が違う | `"format_version": 2`(ほかに未知のキーがあっても)/ `0` | `state file version is not supported: 対応していない版です(reset が必要です)` |
 | AC-306 | 書式の版がない・整数でない | `format_version` なし / `"1"` / `1.0` | `state file is corrupt: format_version がありません` / `format_version が整数ではありません`(`1.0` も同じ) |
-| AC-307 | 未知のキー | 最上位に未知のキー。旧形式の `jobs` | `state file is corrupt: 知らないキーがあります` |
+| AC-307 | 未知のキー | 最上位に未知のキー。`jobs` というキー | `state file is corrupt: 知らないキーがあります` |
 | AC-308 | 必須のキーがない | `pipeline_name` などを欠く | `state file is corrupt: 必須のキーがありません` |
 | AC-309 | 値の型・状態の誤り | `status: "weird"`、`skip_reason` の誤り、`skipped` に `skip_reason` なし、`success` に `skip_reason` あり、`pending` に `exit_code` あり | `state file is corrupt: status の値が誤っています` / `skip_reason が status と合いません` / `exit_code が status と合いません` など([06](06-state-file.md) の矛盾) |
 | AC-310 | ジョブの並びの矛盾 | ジョブID の重複 / `job_order` と `job` の不一致 / `resume_job_id` が `job_order` にない / `completed: true` と `resume_job_id` | `state file is corrupt: ジョブIDが重複しています` / `job の並びが job_order と一致しません` / `resume_job_id が job_order にありません` / `completed と resume_job_id が両立しません` |
@@ -852,7 +852,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-334 | 重複 | `run -vv a`、`run -v -v a`、`run -v --verbose a`、`run a --config x --config y`、`run a --run-id x --run-id y`、`reset --all --all`、`run a --remove-on-complete --remove-on-complete`、`convert f --to yaml --to json` | 68。`invalid value: '<オプション名>'`(`-vv` は `'-v'`) |
 | AC-335 | `--all` と `--run-id` | `reset --all --run-id x` | 68。`invalid value: '--all'` |
 | AC-336 | 値を取らないオプションに `=値` | `run --verbose=x a`、`reset --all=x`、`run a --remove-on-complete=x` | 68。`invalid value: '--verbose'` / `'--all'` / `'--remove-on-complete'` |
-| AC-337 | `--to` の値 | `convert f --to toml` / `YAML` / `Json` | 68。`invalid value: 'toml'` など(値そのもの) |
+| AC-337 | `--to` の値 | `convert f --to xml` / `YAML` / `Json` | 68。`invalid value: 'xml'` など(値そのもの) |
 | AC-338 | `--to` がない | `convert f` | 68。`missing argument: '--to'` |
 | AC-339 | `--run-id` の値の検査 | `run a --run-id 'a b'` | 68。`invalid value: '--run-id'`(値を含めない) |
 | AC-340 | 空の `--config` | `run a --config=` | 64。`definition file does not exist`(空のパスとして受理され、後で誤りになる) |
@@ -988,9 +988,9 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-415 | 検証は副作用を持たない | 4.1 節の最後の項目 | — | AC-057 |
 | AC-416 | 入力の値を表示に出さない | 各種類のエラー(定義・`command`・ステート・変換・使い方)に、秘密のつもりの文字列を含む入力。YAML・JSON のライブラリが、入力の断片を含むエラー文を返す入力(例: 不正な文字を含む行)も含む | 各コマンド | ERR に、その値が現れない(キー名は、エスケープして現れてよい)。`command` の誤りの文に `command` の中身が現れない |
 | AC-417 | ステートに機微な値を書かない | 4.3 節の項目 | — | AC-148 |
-| AC-418 | 変換に副作用がない | 4.7 節の項目 | — | AC-235。加えて、`internal/convert` が `os/exec`・`net`・`os` を import しない(点検) |
+| AC-418 | 変換に副作用がない | 4.7 節の項目 | — | AC-235。加えて、`internal/convert` が `os/exec`・`net` を import せず、`os` を使うのが入力ファイルの読み取り(`Convert`)だけであること(点検) |
 | AC-419 | ネットワークに接続しない | 実装と依存 | 点検(ソースの検索、`go list -deps ./cmd/conductor` の一覧) | 製品のコードと外部モジュールが、`net`・`net/http`・`crypto/tls` を import しない。標準ライブラリの内部の依存で `net` が入る場合の扱いは未確認(10 章)。区分: 点検 |
-| AC-420 | OS 固有コードの隔離 | ソース | 点検(`go/parser` で全ファイルを走査) | `runtime.GOOS`・`runtime.GOARCH` の参照、`//go:build` の制約、`syscall` と `golang.org/x/sys` の import が、`internal/runner` の OS 別ファイルの外にない。`unsafe` と `import "C"` と `//go:linkname` が、どこにもない(0 か所)。区分: 点検 |
+| AC-420 | OS 固有コードの隔離 | ソース | 点検(`go/parser` で全ファイルを走査) | `runtime.GOOS`・`runtime.GOARCH` の参照、`//go:build` の制約、`syscall` と `golang.org/x/sys` の import が、OS 別ファイル(`internal/runner/platform_*.go`、`internal/state/syncdir_*.go`、`internal/cli/terminal_*.go`、`cmd/conductor/signal_*.go`。2.4 節)の外にない。`unsafe` と `import "C"` と `//go:linkname` が、どこにもない(0 か所)。区分: 点検 |
 | AC-421 | 異常終了を起こす書き方がない | ソース | 点検(`go/ast`) | 製品のコード(`_test.go` と `cmd/conductor-testjob` と `internal/testsupport` を除く)に、`panic(` の呼び出し、`log.Fatal*`、`os.Exit`(`cmd/conductor/main.go` の 1 か所を除く)、コンマ ok なしの型アサーション(`x.(T)` を単独の式で使う)がない。区分: 点検 |
 | AC-422 | テスト専用の経路を持たない | ソース、配布物 | 点検 | 入口に、異常終了を起こす経路がない。`conductor-testjob` と `internal/testsupport` を、`cmd/conductor` と `internal/*`(`_test.go` を除く)が import しない。配布物にテスト用ジョブが入っていない |
 | AC-423 | 著作権表示 | ソース | 点検 | 各 `.go` ファイルの先頭に Apache License 2.0 のヘッダ(`Copyright 2026 agwlvssainokuni`)がある。`.yml`・`.sh`・`.cmd` も同じ(コメントの書式は各言語に合わせる)。区分: 点検 |
@@ -1040,7 +1040,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 |----|------|------|------|------|
 | AC-450 | JSON の定義 | `P(p; a:0)` を JSON で書いた `T/conductor.json` | `validate --config conductor.json`、`run a --config conductor.json` | 0 / 0。ステートは `T/conductor.json.state`。YAML の定義と同じ結果 |
 | AC-451 | `.yml` も受理 | `T/conductor.yml`(`B0`) | `run a --config conductor.yml` | 0。ステートは `T/conductor.yml.state` |
-| AC-452 | 拡張子が違うファイルは拒否 | `B0` の内容を、`conductor.toml`、`conductor.txt`、拡張子なしの `conductor`、`conductor.yaml.bak` に置く | `validate --config <ファイル>` | 64。ERR の最初の行は `conductor: error: <ファイル>: ` で始まる(種類の文は 03 章)。ステートなし。ジョブは起動されない(`convert` の入力は拡張子を見ない。AC-209) |
+| AC-452 | 拡張子が違うファイルは拒否 | `B0` の内容を、`conductor.xml`、`conductor.txt`、拡張子なしの `conductor`、`conductor.yaml.bak` に置く(ファイルが存在しないパス `nofile.txt` も) | `validate --config <ファイル>` | 64。ERR の最初の行は `conductor: error: <ファイル>: unsupported definition file format: 拡張子は .yaml、.yml、.json のいずれかで書きます`(行なし。03 章 2.1 節)。大文字の拡張子 `conductor.YAML` は受理(0)。ステートなし。ジョブは起動されない(`convert` の入力は拡張子を見ない。AC-209) |
 | AC-453 | YAML のタグを拒否 | `command: !!str "TJ exit 0"`、`id: !foo a`、`name: !!binary aGk=` | `validate` | 64(それぞれ別の定義)。行は、そのタグの行 |
 | AC-454 | YAML の複数の文書を拒否 | `B0` の内容 + `---⏎` + もう 1 つの文書 | `validate` | 64。行は 2 つ目の文書の始まり。先頭に `---` が 1 つだけある `B0` は受理(0) |
 | AC-455 | YAML の文字列でないキーを拒否 | `1: x`、`true: x`、`? [a, b]⏎: x`(トップレベルまたは `job` の中) | `validate` | 64 |
@@ -1048,12 +1048,12 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-457 | YAML のアンカー・エイリアス・マージキーは展開して受理 | 既知のキーの中に書く。(a) 1 つ目のジョブに `warning_exit_codes: &w [3]`、2 つ目に `warning_exit_codes: *w`。(b) 遷移 `- <<: {on: success, next: "@end"}`。(c) トップレベルに `defaults: &d {…}` という未知のキー | `validate`、`run` | (a)(b) は 0。展開した値で動く(2 つ目のジョブの警告コードは `[3]`、(b) は `@end` への遷移)。(c) は 64(`unknown key`。アンカーの置き場所のための未知のキーは作れない)。整合: 10 章 |
 | AC-458 | 数値・真偽値に見えるジョブID | `id: 1`、`id: true`、`id: "1"`、`id: yes`、`id: on`、`id: 0x10` | `validate`(それぞれ別の定義) | `id: 1`・`id: true`・`id: 0x10` は 64(`wrong value type`)。`id: "1"`・`id: yes`・`id: on` は 0(文字列。YAML 1.2 の既定の規則。`on`・`yes` を真偽値として読まない) |
 | AC-459 | `command` の書き方(YAML のブロック・折り返し・複数行) | `command: \|⏎  TJ --out O echo a⏎  b⏎`(ブロック)、`command: >-⏎  TJ --out O echo⏎  a b`(折りたたみ)、複数行の plain スカラー | `run a` | 0。`O` の引数は、それぞれ `a`、`b` / `a`、`b` / 同様(改行・空白は区切り) |
-| AC-460 | null の値を拒否 | `name: ~`、`command: null`、`warning_exit_codes: ~`、`retry: null`、`remove_on_complete:`(値なし)。JSON: `"command": null` | `validate` | 64。`wrong value type`。整合: 10 章 |
-| AC-461 | JSON の重複キー | `{"format_version": 1, "format_version": 1, ...}`(`conductor.json`)、`job` の要素の `id` の重複 | `validate --config conductor.json` | 64。`syntax error`(`encoding/json` は重複を受理するので、読み取りの部品が検出する) |
+| AC-460 | 定義の中の null の扱い | `name: ~`、`command: null`、`warning_exit_codes: ~`、`retry: null`、`remove_on_complete:`(値なし)。JSON: `"command": null` | `validate` | 64。`name`・`command`・`warning_exit_codes`・`remove_on_complete`・JSON の `command` の `null` は `wrong value type`。`retry: null` は `retry must be a map`。未知のキーの値が `null` なら `unknown key`(03 章 4.2 節、9 章) |
+| AC-461 | JSON の重複キー | `{"format_version": 1, "format_version": 1, ...}`(`conductor.json`)、`job` の要素の `id` の重複 | `validate --config conductor.json` | 64。`syntax error`(理由 `キーが重複しています`。標準の `encoding/json` は重複を受理するので、自前の読み取りが検出する。03 章 5 節) |
 | AC-462 | JSON のコメントを拒否 | 行コメント `// c`、ブロックコメント `/* c */` を含む定義 | `validate --config conductor.json` | 64。`syntax error` |
 | AC-463 | JSON の末尾のカンマを拒否 | `[1,]`、`{"a": 1,}`(定義の中) | `validate --config conductor.json` | 64。`syntax error` |
 | AC-464 | JSON の非標準の書き方を拒否 | 一重引用符の文字列、`NaN`、`Infinity`、先頭が 0 の数(`01`)、引用符のないキー、値のあとの余分なデータ(`{...} {...}`、`{...} x`) | `validate --config conductor.json` | 64。`syntax error`(それぞれ別の定義) |
-| AC-465 | JSON の最上位がオブジェクトでない | `[]`、`"x"`、`1`、`null`、`true` | `validate --config conductor.json` | 64(種類は 03 章) |
+| AC-465 | JSON の最上位がオブジェクトでない | `[]`、`"x"`、`1`、`null`、`true` | `validate --config conductor.json` | 64。`wrong value type`(理由 `最上位はマップで書きます`。JSON の `null` も同じ。03 章 6.7 節) |
 | AC-466 | JSON の大きさの上限 | 正しい JSON の定義の末尾に、空白を足して 1,048,576 バイト / 1,048,577 バイト | `validate --config conductor.json` | 0 / 64(`definition file is too large`) |
 | AC-467 | JSON の文字列のエスケープ | `"command": "TJ --out O echo \"a b\" c A 😀"`、不正なエスケープ `"\x"`、閉じていない文字列、制御文字(生の LF)を含む文字列 | `run a --config conductor.json`(正しいもの)、`validate`(誤り) | 正しいもの: `O` の引数 = `a b`、`c`、`A`、`😀`。誤りは 64(`syntax error`) |
 | AC-468 | JSON の数値の型 | `"format_version": 1.0`、`1e0`、`"warning_exit_codes": [3.0]`、`[1e1]`、`[99999999999999999999]`、`[true]` | `validate --config conductor.json` | `format_version` は 64(`unsupported format_version`)。終了コードは 64(`wrong value type`)。整数のリテラルだけを整数と読む |
@@ -1061,7 +1061,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-470 | 変換の YAML の出力: 予約語に見える文字列 | JSON: `{"a": "true", "b": "1", "c": "null", "d": "@end", "e": "", "f": "~", "g": "on", "h": "1e3", "i": "0x1F", "j": "yes", "k": "-", "l": "a: b", "m": "# c"}` | `convert in.json --to yaml` の OUT を `convert --to json` に通す | 往復の木が入力と等しい(すべて文字列のまま。YAML の出力は、必要なものを引用符で囲む) |
 | AC-471 | 変換の YAML の出力: 特殊な文字列 | JSON: 複数行の文字列(`"a\nb\n"`)、先頭・末尾に空白のある文字列、タブ、`"\u0007"`(制御文字)、非 ASCII、絵文字、長い文字列(1 万文字)、空のキー `""`、`@` や `%` や `` ` `` で始まるキー | `convert in.json --to yaml` の OUT を `convert --to json` に通す | 往復の木が入力と等しい |
 | AC-472 | 変換の JSON の入力の数値 | JSON: `{"a": 1, "b": 1.0, "c": 1e2, "d": -0, "e": 9223372036854775807, "f": -9223372036854775808}` | `convert in.json --to yaml` の OUT を `convert --to json` に通す | 型が変わらない(`a`・`d`・`e`・`f` は整数、`b`・`c` は浮動小数)。往復の木が入力と等しい |
-| AC-473 | ステートの JSON 固有の異常 | ステートが、重複するキーを持つ JSON、値のあとに余分なデータ、最上位が配列 / `null` / 文字列、`{}` | `run a` | 65(ジョブは起動されない)。重複・余分なデータ・最上位の型の誤りは `state file is corrupt: JSON として読めません`、`{}` は `state file is corrupt: format_version がありません` |
+| AC-473 | ステートの JSON 固有の異常 | ステートが、重複するキーを持つ JSON、値のあとに余分なデータ、最上位が配列 / `null` / 文字列、`{}` | `run a` | 65(ジョブは起動されない)。余分なデータ・最上位の型の誤りは `state file is corrupt: JSON として読めません`、キーの重複は `state file is corrupt: キーが重複しています`、`{}` は `state file is corrupt: format_version がありません` |
 | AC-474 | ステートの数値の型 | `exit_code` が `3.0` / `"3"` / `1e1` / `256` / `-1`、`format_version` が `1e0` | `run a` | 65。`state file is corrupt: …`(型・範囲の理由は 06 章) |
 | AC-475 | JSON の `ME` の誤りの行 | `ME` を JSON で書く(4.1 節。次のとおり) | `validate --config conductor.json` | 64。ERR は 4 行。順に `…:3: unknown key`、`…:11: wrong value type`、`…:16: unknown key`、`…:20: transition target job is not defined` |
 | AC-476 | 版の表示と定数 | ソース、実行ファイル | 点検と `--version` | `internal/version` の定数 `Version` が、リポジトリ中の版の唯一の定義(`const Version = "0.8.0"` の 1 行)。`--version` の OUT = `conductor ` + `Version`。ビルドの指示(`-ldflags -X` など)で版を書き換えていない。区分: 点検 |
@@ -1071,6 +1071,11 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-480 | 整形と静的検査 | ソース | `gofmt -s -l .`、`go vet ./...`、`golangci-lint run` | 出力が空(差分・警告なし)。区分: 点検 |
 | AC-481 | 既知の脆弱性の検査 | 依存 | `govulncheck ./...` | 結果を記録する。脆弱性が見つかっても、マージはブロックしない(警告)。区分: 点検 |
 | AC-482 | 変換した定義がそのまま使える | `CV1J` を `conductor.json` に | `convert conductor.json --to yaml > conductor.yaml`、`validate`、逆向きに `convert conductor.yaml --to json > c2.json`、`validate --config c2.json` | すべて 0。展開された木が同じ |
+| AC-483 | cgo 有効の環境で `go test -race` が通る | ソース。`CGO_ENABLED=1` と C のコンパイラがある環境(Linux のランナー) | `CGO_ENABLED=1 go test -race -count=1 ./...`(07 章 9.2 節の `internal/runner` の競合の試験を含む) | 全テストが通り、データ競合の報告がない。macOS・Windows のランナーで C の道具がなく `-race` が動かないときは、その OS だけ `-race` を外し、Linux のランナーでは必ず `-race` を付ける。区分: 点検(CI) |
+| AC-484 | 合図とジョブの終了の競合(`-race`) | `internal/runner` の単体 | 合図を別の goroutine から立てる。複数の goroutine から `Raise` を同時に呼ぶ。短いジョブへの転送を繰り返す(07 章 9.2 節) | 最初の番号だけが残る。データ競合の報告がない。区分: 単体(`-race`) |
+| AC-485 | 偽の `Signals` で登録に失敗すると 70 | 偽の `Signals`(登録が失敗を返す) | `run a`、`pipeline p`(定義は正しい / 誤りがある) | どちらも 70。ERR = `conductor: error: failed to set up signal handling`。定義の検査(定義が誤りでも 64 にならない)もジョブの起動もしない。区分: 注入。(AC-298 を、定義が誤りの場合まで広げたもの) |
+| AC-486 | Windows の `.cmd` / `.bat` の禁止文字は起動しない | Windows。`T/echo-args.cmd`(内容 `@echo off` と `exit /b 0`)。`cmd` = そのパス + 引数 1 つ。引数に `"`、`%`、`^`、`&`、`\|`、`<`、`>`、`!`、`(`、`)`、改行のどれか 1 つを含める(07 章 8.3 節。1 文字ずつ別の定義)。配列形式でも同じ | `run a` | 127(起動失敗)。ERR = `conductor: error: job 'a': cannot start command '…'`。`T/injected.txt` ができない。含まない引数(`plain`)は起動される(AC-115)。区分: 自動(Windows の CI) |
+| AC-487 | Windows の Ctrl+C のチェックリストの記録 | AC-301 の記録欄 | リリース前に、Windows の実機で AC-301 を行い、結果を `cmd/conductor/WINDOWS_CTRL_C_CHECKLIST.md` の記録欄に書く | 記録欄に、実施日、OS の版、(1)〜(4)の結果が書かれている。ない場合はリリースの前に実施する。区分: 手動(Windows) |
 
 AC-475 の JSON の `ME`:
 
@@ -1102,7 +1107,7 @@ AC-475 の JSON の `ME`:
 }
 ```
 
-JSON の誤りの行は、`encoding/json` のデコーダの位置(`InputOffset`)から、行番号を求める(UTF-8 の改行 LF を数える。CRLF でも同じ行番号。AC-038 と同様)。実装は、`json.Decoder.Token()` で 1 つずつ読んで、各キーと値の開始の位置を記録する(未確認 — 10 章)。
+JSON の定義の誤りの行は、自前の読み取りが、各キーと値の開始の位置(行・列)を記録して求める(LF の数で数える。CRLF でも同じ行番号。AC-038 と同様。03 章 6.1・13 節)。
 
 ---
 
@@ -1481,10 +1486,10 @@ job:
 | `github.com/goccy/go-yaml` | 構文木(`ast`)と、行・列つきのエラーを提供するライブラリ。重複キーの扱いは、**未確認** | 第三候補 |
 | 自前の YAML 読み取り | — | 採らない(YAML の文法が大きく、誤りが入りやすい) |
 
-**採用案**: 構文木(行・列・タグ・種類・エイリアスつき)を提供するライブラリを 1 つ採り、YAML を読む **定義と変換の入口**でだけ使う(ステートは JSON)。構文木を、この仕様の「木」(写像・列・文字列・整数・浮動小数点数・真偽値)に変換する層を自前で書き、その層で、重複キー・タグ・複数文書・文字列でないキー・null・深さ・要素数・エイリアスの展開を扱う。ライブラリのエラー文は、表示に出さない(2.3 節)。
+**採用案**: 構文木(行・列・タグ・種類・エイリアスつき)を提供するライブラリを 1 つ採り、YAML を読む **定義と変換の入口**でだけ使う(ステートは JSON)。構文木を、この仕様の「木」(写像・列・文字列・整数・浮動小数点数・真偽値)に変換する層を自前で書き、その層で、重複キー・タグ・複数文書・文字列でないキー・深さ・要素数・エイリアスの展開を扱う(`null` は拒否しない。03 章 4.2 節)。ライブラリのエラー文は、表示に出さない(2.3 節)。
 実装時は、まず AC-010、AC-217〜232、AC-453〜460 の入力を、小さな試験で候補に通し、基準(1)〜(7)を確かめてから決める。採用したライブラリと版は、`go.mod` と README に記録する。
 
-JSON の読み取りは、標準の `encoding/json` を使うが、重複キーの検出・数値の整数と浮動小数点数の区別・深さの上限・行番号は、標準の `Unmarshal` では得られない。`json.Decoder` の `Token()` と `InputOffset()` で、1 つずつ読んで、自前で検査する(`UseNumber()` で数値を文字列のまま受ける)。
+JSON の定義と変換の入力の読み取りは、自前の小さな字句・構文解析で行う(03 章 5 節。標準の `encoding/json` の `Unmarshal` は、重複キーの検出・数値の整数と浮動小数点数の区別・深さの上限・行と列の位置を得られないため)。ステートの JSON の読み込みだけが、`encoding/json` を使う(06 章 6.5 節)。
 
 ### 8.3 `go.mod` と `go.sum` の運用
 
@@ -1579,32 +1584,34 @@ formatters:
 - `//go:build unix` の制約が使える Go の版の下限(最小版の Go で、UNIX 系のファイルが正しく選ばれるか)。
 - `sleep` モードの `TJ` が、SIGTERM・SIGINT・SIGHUP で「シグナルで終了した」と観測されるか(Go の実行時の既定の動作)。SIGQUIT は、スタックを出力して終了コード 2 で終わるはず(3.4 節)。
 - 標準ライブラリの内部の依存に `net` が入るか(AC-419 の検査の範囲。入る場合は、「製品のコードと外部モジュールが import しない」に限る)。
-- `exec.Command` の、相対パスの解決(`exec.ErrDot`。Go 1.19 以降の挙動)と、Windows の `.bat` / `.cmd` への引数の安全性の検査(Go の版による)が、[07](07-process-and-signals.md) の規定とどう組み合わさるか(AC-113〜115 は、「起動される」か「拒否される(127)」のどちらでもよい形にしてある)。
+- `exec.Command` の、相対パスの解決(`exec.ErrDot`。Go 1.19 以降の挙動)と、Windows の `.bat` / `.cmd` への引数の安全性の検査(Go の版による)が、[07](07-process-and-signals.md) の規定とどう組み合わさるか(AC-113〜115、AC-486 は、07 章 8.3 節の「禁止文字を含むなら拒否する(127)」に基づく。Go 自身が独自の安全策で拒否する場合も 127 になるので、結果は同じ)。
 - 疑似端末の作り方(AC-182、AC-183)。標準ライブラリだけでは作れない。外部のライブラリを使うか、`script` コマンドを使うか、UNIX 系の `openpty` 相当を `syscall` で呼ぶかは、実装時に決める(テスト専用の依存を増やす場合は、8.1 節の方針の例外として、README に理由を書く)。
 - Windows の Ctrl+C の手動の確認(AC-301)の記録は、この文書の作成時点では存在しない。
 - 大文字小文字を区別しないファイルシステムでの run ID の衝突(AC-260)は、仕様の記述に基づく。
 - `macos-latest` のランナーの CPU が arm64 であること、`ubuntu-24.04` に `file` が入っていること(実装時に確認する)。
-- `.inf`・`.nan` を含む YAML を JSON に変換するときの原因の文(AC-217)。
 - リリースの成果物の `linux-arm64` は、動作の確認をしていない。
 - 起動の性能の測定を強制に切り替える予定の有無は、決まっていない。
 - 標準出力への書き込みの失敗(`watch`・`convert`)を、実際の実行ファイルで(例: Linux の `/dev/full`)確かめた記録は、この文書の作成時にはない(偽の部品で検査する)。
 - 受け入れテストのうち、4.1 節〜4.19 節の、期待の値の一部は、定義・ステート・変換の他章([03](03-definition-format.md)、[06](06-state-file.md)、[09](09-converter.md)、[10](10-errors-and-exit-codes.md))の字句に依存する。他章と食い違う場合は、他章を正とし、この文書の期待を直す。
 
-### 10.2 他の章との整合が要る点(この文書で決めた前提)
+### 10.2 他の章との整合(解消済みの点と、残る未確認)
 
-次は、この文書が、受け入れテストを書くために置いた前提。他の章が違う規定を置く場合は、他の章を正とする。
+定義・ステート・変換の仕様(03、06、09 章)の決定と、この文書の受け入れテストの期待は、次のとおり揃えてある(受け入れテストの期待は、該当章の字句が正本である)。
 
-| 項目 | この文書の前提 |
+| 項目 | 決定(出どころ) |
 |------|----------------|
-| 定義のキー名 | 配列のキーは `job`(`jobs` ではない)。遷移は `transitions`、再実行は `retry` |
-| 定義の null | 定義の中の null(YAML の `~`・`null`・値なし、JSON の `null`)は、`wrong value type` |
-| 定義の YAML の高度な機能 | アンカー・エイリアス・マージキーは、既知のキーの中で、展開して受理する。タグ・複数文書・文字列でないキー・重複キーは拒否 |
-| 入れ子の深さ | 最上位の写像を深さ 1 と数え、上限 32(32 を超える入れ子は `syntax error`)。YAML と JSON で同じ。要素数の上限は 100,000(`a` の列の要素数 n が 99,997 まで受理) |
+| 定義のキー名 | 配列のキーは `job`(`jobs` は未知のキー)。遷移は `transitions`、再実行は `retry`(03 章 9 節) |
+| 定義の null | `wrong value type`(`retry: null` は `retry must be a map`、未知のキーの値が null なら `unknown key`)(03 章 4.2・9 節) |
+| 定義の YAML の高度な機能 | アンカー・エイリアス・マージキーは、定義でも展開して受理する。タグ・複数文書・文字列でないキー・重複キーは拒否(03 章 4 節) |
+| 入れ子の深さ | 根のマップを数えず、32 段まで受理し 33 段目を拒否(YAML・JSON・変換で同じ)。要素数の上限は 100,000(`a` の列の要素数 n が 99,997 まで受理)(03 章 6.3 節) |
 | 大きさの上限 | 定義・ステート・変換の入力は、それぞれ 1 MiB(1,048,576 バイト)まで |
-| JSON の数 | 整数のリテラルだけを整数と読む(`1.0`、`1e0` は浮動小数点数)。`format_version: 1.0` は `unsupported format_version` |
-| JSON の空の入力 | 定義・変換とも `syntax error`(YAML の空の文書は「空」の扱い) |
-| `convert` の入力形式 | `--to` の反対で、拡張子は見ない。`null`、タグ、`int64` を超える数、文字列でないキー、複数文書、`.inf`・`.nan` は、`value cannot be represented in the target format`(67) |
-| `convert` の出力 | キーは辞書順、インデントは 2 スペース、末尾は改行。JSON の出力は、`<`、`>`、`&` をエスケープせず、非 ASCII をそのまま出す。浮動小数点数は、整数と区別できる書き方で出す |
-| 定義の拡張子 | `.yaml`・`.yml`・`.json` だけ。大文字の拡張子(`.YAML`)の扱いは、03 章に従う(この文書は規定しない) |
-| 理由の文 | ステートの読み取りの失敗の文は `JSON として読めません`。YAML の文法の誤りは `文法の誤りです`。深さは `入れ子が深すぎます(上限 32)` |
-| ステートの JSON | キー名は論理項目と同じ(`format_version`、`pipeline_name`、`definition_key`、`definition_path`、`job_order`、`job`、`resume_job_id`、`end_reached`、`completed`、`run_id`、`job` の要素は `id`・`status`・`skip_reason`・`exit_code`)。キーの順と整形は 06 章に従う |
+| JSON の数 | 整数のリテラルだけを整数と読む(`1.0`、`1e0` は浮動小数点数)。`format_version: 1.0` は `unsupported format_version`(03 章 5.1 節) |
+| JSON の空の入力 | 定義・変換とも `syntax error`(YAML の空の文書は、定義では「空のマップ」で `format_version is missing`、変換では `rootNotMap`)(03 章 4.6 節、09 章 4.3 節) |
+| `convert` の入力形式 | `--to` の反対で、拡張子は見ない(09 章 1 節) |
+| `convert` の拒否 | `null` は拒否しない。YAML のタグ・複数文書・文字列でないキーは読み取りの `syntax error`。範囲外の数、YAML の `.inf`・`.nan`(JSON へ)、1,024 文字超のキー(JSON から YAML へ)は `unrepresentable`(09 章 5 節) |
+| `convert` の出力 | キーは入力の記述順、インデントは 2 スペース、末尾は改行。JSON の出力は、`<`、`>`、`&` をエスケープせず、非 ASCII をそのまま出す。浮動小数点数は、整数と区別できる書き方で出す(09 章 6〜8 節) |
+| 定義の拡張子 | `.yaml`・`.yml`・`.json`(ASCII の大文字小文字を区別しない)だけ。ほかは `unsupportedFormat`(03 章 2.1 節) |
+| 理由の文 | ステートの読み取りの失敗は `JSON として読めません`、キーの重複は `キーが重複しています`。YAML の文法の誤りは `YAML の文法に誤りがあります`、JSON は `JSON の文法に誤りがあります`。深さは `入れ子が深すぎます(上限は 32 段)`(03 章 12.3 節、06 章 6.4 節) |
+| ステートの JSON | キー名は論理項目と同じ。キーの順と整形は 06 章 4 節に従う |
+
+残る未確認は、10.1 節のとおりである(YAML ライブラリの挙動、Windows の実機の挙動など)。

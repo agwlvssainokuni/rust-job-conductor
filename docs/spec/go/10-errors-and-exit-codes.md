@@ -157,13 +157,13 @@ func runMain() (code int) {
 
 ### 7.1 定義の誤り(終了コード 64)
 
-30 種。種類の識別子と、英語・日本語の文は [08-output-and-i18n.md](08-output-and-i18n.md) 4.3 に全件ある。
+31 種。種類の識別子と、英語・日本語の文は [08-output-and-i18n.md](08-output-and-i18n.md) 4.3 に全件ある(03 章 12.3 節と同じ)。
 
-識別子: `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`。すべて終了コード 64。
+識別子: `unsupportedFormat`, `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`。すべて終了コード 64。
 
-Go 版の定義の拡張子の誤り(`.yaml`・`.yml`・`.json` のどれでもない)の種類・原因の文は、[03-definition-format.md](03-definition-format.md) が規定する(この 30 種のどれに当てはめるか、新しい種類を足すかは、03 章に従う。終了コードは 64)。
+`unsupportedFormat` は、定義ファイルの拡張子が `.yaml`・`.yml`・`.json` のどれでもないときの種類で、原因の文は `拡張子は .yaml、.yml、.json のいずれかで書きます`、行はない(03 章 2.1 節)。
 
-誤りが持つ情報: ファイル(表示するパス)、行(あれば)、種類、原因(日本語の固定の文)。表示は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。原因には、入力の値を含めない(入力に由来するのはキー名だけで、`` `キー名` `` の形で入り、64 文字で切る)。原因の文の全件は [03-definition-format.md](03-definition-format.md) にある(YAML/JSON 版)。
+誤りが持つ情報: ファイル(表示するパス)、行(あれば)、種類、原因(日本語の固定の文)。表示は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。原因には、入力の値を含めない(入力に由来するのはキー名だけで、`` `キー名` `` の形で入り、64 文字で切る)。原因の文の全件は [03-definition-format.md](03-definition-format.md) にある。
 
 run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通り)は、利用者には区別を見せず、すべて `invalid value`(68)にまとめ、値を含めない。
 
@@ -175,32 +175,33 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 
 定義との食い違い(終了コード 65): 3 種。`PipelineName`, `JobIds`, `JobOrder`。表示は 08 章 4.6。
 
-ステートの原因の文(固定の日本語。言語を切り替えない)と、それを返す種類。ステートファイルは JSON なので、TOML に触れていた 2 件を直してある(表の太字ではなく、「変更」の列で示す):
+ステートの原因の文(固定の日本語。言語を切り替えない)と、それを返す種類(全 23 件。06 章 6.4 節の表と同じ)。
 
-| 原因の文 | 種類 | 場面 | 変更 |
-|----------|------|------|------|
-| `開く、または読み取ることができません` | `Unreadable` | 読み込み、`reset --all` で読めなかった | |
-| `大きさが上限(1 MiB)を超えています` | `TooLarge` | 読み込み | |
-| `UTF-8 の文字列ではありません` | `Corrupt` | 読み込み | |
-| `JSON として読めません` | `Corrupt` | 読み込み | 「TOML として読めません」から変更 |
-| `format_version がありません` | `Corrupt` | 読み込み | |
-| `format_version が整数ではありません` | `Corrupt` | 読み込み | |
-| `対応していない版です(reset が必要です)` | `VersionMismatch` | 読み込み | |
-| `知らないキーがあります` | `Corrupt` | 読み込み | |
-| `必須のキーがありません` | `Corrupt` | 読み込み | |
-| `値の型が誤っています` | `Corrupt` | 読み込み | |
-| `status の値が誤っています` | `Corrupt` | 読み込み | |
-| `skip_reason の値が誤っています` | `Corrupt` | 読み込み | |
-| `skip_reason が status と合いません` | `Corrupt` | 読み込み | |
-| `exit_code が status と合いません` | `Corrupt` | 読み込み | |
-| `ジョブIDが重複しています` | `Corrupt` | 読み込み | |
-| `job の並びが job_order と一致しません` | `Corrupt` | 読み込み | |
-| `resume_job_id が job_order にありません` | `Corrupt` | 読み込み | |
-| `completed と resume_job_id が両立しません` | `Corrupt` | 読み込み | |
-| `run_id がファイル名の run ID と一致しません` | `Corrupt` | 読み込み(`reset --all` では「別の定義のステート」として扱い、消さない) | |
-| `書き込みに失敗しました` | `WriteFailed` | 書き込み | |
-| `内容を JSON にできません` | `WriteFailed` | 書き込み | 「内容を TOML にできません」から変更 |
-| `削除に失敗しました` | `RemoveFailed` | `reset`、`reset --all`、完了時の削除 | |
+| 原因の文 | 種類 | 場面 |
+|----------|------|------|
+| `開く、または読み取ることができません` | `Unreadable` | 読み込み、`reset --all` で読めなかった |
+| `大きさが上限(1 MiB)を超えています` | `TooLarge` | 読み込み |
+| `UTF-8 の文字列ではありません` | `Corrupt` | 読み込み |
+| `JSON として読めません` | `Corrupt` | 読み込み |
+| `キーが重複しています` | `Corrupt` | 読み込み |
+| `format_version がありません` | `Corrupt` | 読み込み |
+| `format_version が整数ではありません` | `Corrupt` | 読み込み |
+| `対応していない版です(reset が必要です)` | `VersionMismatch` | 読み込み |
+| `知らないキーがあります` | `Corrupt` | 読み込み |
+| `必須のキーがありません` | `Corrupt` | 読み込み |
+| `値の型が誤っています` | `Corrupt` | 読み込み |
+| `status の値が誤っています` | `Corrupt` | 読み込み |
+| `skip_reason の値が誤っています` | `Corrupt` | 読み込み |
+| `skip_reason が status と合いません` | `Corrupt` | 読み込み |
+| `exit_code が status と合いません` | `Corrupt` | 読み込み |
+| `ジョブIDが重複しています` | `Corrupt` | 読み込み |
+| `job の並びが job_order と一致しません` | `Corrupt` | 読み込み |
+| `resume_job_id が job_order にありません` | `Corrupt` | 読み込み |
+| `completed と resume_job_id が両立しません` | `Corrupt` | 読み込み |
+| `run_id がファイル名の run ID と一致しません` | `Corrupt` | 読み込み(`reset --all` では「別の定義のステート」として扱い、消さない) |
+| `書き込みに失敗しました` | `WriteFailed` | 書き込み |
+| `内容を JSON にできません` | `WriteFailed` | 書き込み |
+| `削除に失敗しました` | `RemoveFailed` | `reset`、`reset --all`、完了時の削除 |
 
 読み込みの検査の順序と、各原因の判定条件は [06-state-file.md](06-state-file.md)(JSON 版)に従う。複数の原因が当てはまるときにどれを出すかの順序は、この章では未確認(06 章に従う)。
 
@@ -208,40 +209,38 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 
 6 種: `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `unrepresentable`, `rootNotMap`。持つ情報は、ファイル、行(あれば)、キーの位置(あれば)、種類、原因。表示は 08 章 4.8。
 
-原因の文(固定の日本語。言語を切り替えない)。変換の規則と、どの場面で使うかは [09-converter.md](09-converter.md)(YAML と JSON の相互変換)が規定する。次の表は、使ってよい文の全件で、文言はここと完全に同じにする。Go 版の変換の規則で起こりえない場面の文は、09 章が使わないと規定すれば、使わなくてよい。
+原因の文(固定の日本語。言語を切り替えない)。変換の規則と、どの場面で使うかは [09-converter.md](09-converter.md)(YAML と JSON の相互変換)が規定する。次の表が全件で、文言は 09 章 10 節と完全に同じにする。
 
-| 原因の文 | 場面 |
-|----------|------|
-| `指定の場所にファイルがありません` | 入力なし |
-| `読み取りの権限がありません` | 権限 |
-| `読み取りに失敗しました` | 読み取りの失敗 |
-| `通常のファイルではありません` | ディレクトリなど |
-| `UTF-8 として読めません` | 文字コード |
-| `入力が上限(1 MiB)を超えています` | 入力の大きさ |
-| `展開後の要素数が上限(100000)を超えています` | アンカーの展開 |
-| `展開後の文字の大きさが上限(16 MiB)を超えています` | アンカーの展開 |
-| `文法の誤りです` | 文法 |
-| `キーが重複しています` | キーの重複 |
-| `アンカーが自分自身を含んでいます` | 再帰するアンカー |
-| `定義されていないアンカーを参照しています` | 未定義のアンカー |
-| `入れ子が深すぎます(上限 32)` | 入れ子 |
-| `展開後の入れ子が深すぎます(上限 32)` | 入れ子 |
-| `複数の文書は表せません` | YAML の複数文書 |
-| `null は表せません` | `null`(09 章が `null` を拒否すると規定するときだけ) |
-| `文字列でないキーは表せません` | 非文字列キー |
-| `タグつきの値は表せません` | YAML のタグ |
-| `日時の値は表せません` | 日時(09 章が日時を拒否すると規定するときだけ) |
-| `数値が表せる範囲を超えています` | 数値 |
-| `マージキーの値がマップではありません` | `<<` |
-| `最上位がマップではありません` | 最上位 |
-| `文書が空です` | 空 |
-| `変換後の形式として書き出せません` | 出力 |
+| 種類 | 原因の文 | 場面 |
+|------|----------|------|
+| `fileMissing` | `指定の場所にファイルがありません` | 入力なし |
+| `unreadable` | `読み取りの権限がありません` | 権限 |
+| `unreadable` | `読み取りに失敗しました` | 読み取りの失敗 |
+| `unreadable` | `通常のファイルではありません` | ディレクトリなど |
+| `unreadable` | `UTF-8 として読めません` | 文字コード |
+| `tooLarge` | `入力が上限(1 MiB)を超えています` | 入力の大きさ |
+| `tooLarge` | `要素数が上限(100000)を超えています` | 要素数の上限 |
+| `tooLarge` | `文字の大きさが上限(16 MiB)を超えています` | 文字の大きさの上限 |
+| `syntax` | `YAML の文法に誤りがあります` | YAML の文法 |
+| `syntax` | `JSON の文法に誤りがあります` | JSON の文法 |
+| `syntax` | `キーが重複しています` | キーの重複 |
+| `syntax` | `キーは文字列で書きます` | 文字列でないキー(YAML) |
+| `syntax` | `タグは使えません` | YAML のタグ |
+| `syntax` | `複数の文書は書けません(1 ファイルに書ける文書は 1 つです)` | YAML の複数文書 |
+| `syntax` | `アンカーが自分自身を含んでいます` | 再帰するアンカー |
+| `syntax` | `マージキーの値がマップではありません` | `<<` |
+| `syntax` | `入れ子が深すぎます(上限は 32 段)` | 入れ子の深さ |
+| `unrepresentable` | `数値が表せる範囲を超えています` | 64 ビット整数・浮動小数の範囲外 |
+| `unrepresentable` | `NaN と無限大は JSON で表せません` | YAML の `.nan`、`.inf` を JSON へ |
+| `unrepresentable` | `キーが長すぎます(上限 1024 文字)` | 1,024 文字を超えるキーを JSON から YAML へ |
+| `rootNotMap` | `最上位がマップではありません` | 最上位 |
+| `rootNotMap` | `文書が空です` | YAML の文書が 0 個 |
 
-この表の文のうち TOML に触れるものはない(元の仕様の一覧から、削除も変更もしていない)。`null`・`日時` の 2 件は、元の実装が TOML への変換を前提に拒否していた文であり、Go 版(YAML と JSON の相互変換)で使うかは 09 章が決める(この章では未確認)。
+- `null` は、どちらの形式でも表せる値であり、変換の誤りにならない。日時らしい書式は文字列として読むので、変換の誤りにならない。表の理由は、この 22 件で全件である(未定義のアンカーの参照は、YAML の文法の誤りとして `YAML の文法に誤りがあります` になる)。
 
 キーの位置の形式: キーは `.` で連結(各キーは 64 文字で切る)、配列の添字は `[i]`、文字列でないキーは `(非文字列キー)`。例: `job[2].transitions[0]`。
 
-どの種類とどの原因が組になるか(例: `fileMissing` ↔ `指定の場所にファイルがありません`)は、場面の列から自然に決まる。完全な対応表は 09 章に従う(この章では未確認)。
+種類と原因の組は、上の表のとおり(09 章 10 節と同じ)。
 
 ### 7.4 使い方の誤り(終了コード 68)
 
@@ -308,12 +307,12 @@ type CodedError interface {
 
 | パッケージ | 型 | 種別の列挙 | 終了コード | 持つ情報 |
 |------------|----|------------|------------|----------|
-| `internal/definition` | `*DefinitionError` | `DefinitionKind`(7.1 の 30 種 + 03 章が足すもの) | 64 | ファイル、行(0 は「なし」)、種類、原因(日本語の固定の文) |
+| `internal/definition` | `*Error`(`definition.Error`) | `ErrKind`(7.1 の 31 種) | 64 | ファイル、行(0 は「なし」)、種類、原因(日本語の固定の文) |
 | `internal/definition` | `*CommandError` | `CommandKind`(`UnclosedQuote`, `Empty`) | 64 | ジョブID、種類 |
 | `internal/runid` | `*RunIDError` | `RunIDKind`(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot`) | 68(利用者には `invalid value`) | 種類のみ(値は持たない) |
 | `internal/state` | `*StateError` | `StateKind`(`Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`) | 65 | パス、種類、原因 |
 | `internal/state` | `*MismatchError` | `MismatchKind`(`PipelineName`, `JobIds`, `JobOrder`) | 65 | パス、種類 |
-| `internal/convert` | `*ConvertError` | `ConvertKind`(7.3 の 6 種) | 67 | ファイル、行、キーの位置、種類、原因 |
+| `internal/convert` | `*Error`(`convert.Error`) | `ErrKind`(7.3 の 6 種) | 67 | ファイル、行、キーの位置、種類、原因 |
 | `internal/cli` | `*UsageError` | `UsageKind`(7.4 の 8 種) | 68 | 種類、対象(あれば) |
 | `internal/cli` | `*RejectedError` | `RejectReason`(`OutOfOrder`, `SkipTarget`, `AfterEnd`, `AlreadyExecuted`) | 66 | ジョブID、理由 |
 | `internal/cli` | `*JobFailure` | (なし。分類の結果として扱う) | 3 章から決まる | 報告する終了コード、エラーか |
@@ -344,7 +343,7 @@ func (e *UsageError) ExitCode() int   { return ExitUsage }
 `internal/cli.Run` は、各処理が返した `error` を受け取り、次の順で終了コードと表示を決める。
 
 1. `errors.As` で、`*UsageError` → 使い方の誤りの表示(誤りの行、空行、使い方全文)と 68。
-2. `*DefinitionError` / `*CommandError` → 64。`*StateError` / `*MismatchError` → 65。`*RejectedError` → 66。`*ConvertError` → 67。それぞれの表示は 08 章。
+2. `*definition.Error` / `*CommandError` → 64。`*StateError` / `*MismatchError` → 65。`*RejectedError` → 66。`*convert.Error` → 67。それぞれの表示は 08 章。
 3. 上のどれでもない `error`(想定していない誤り)は、`panic` と同じ扱いにはせず、`conductor: error: internal error` を標準エラーに 1 行出して 70 で終わる(6 章と同じ文)。想定外の `error` を握りつぶして成功にしてはならない。
 4. 型の判定の順序は、同じ値が複数の型に当てはまらないように作る(各型は独立で、埋め込みで継承しない)ので、実際には順序に依存しない。
 
@@ -400,21 +399,20 @@ $ (ジョブが SIGKILL で終了)
 - 同時に届いた複数のシグナルのうち、どれを「最初」とみなすか。
 - 想定外の失敗の詳細を標準エラーへ追加で出すか。
 
-## 11. Go 版で変えた点
+## 11. この版が採った選択(まとめ)
 
-| 項目 | 変更 |
+| 項目 | 内容 |
 |------|------|
-| ステートの原因の文 | `TOML として読めません` → `JSON として読めません`、`内容を TOML にできません` → `内容を JSON にできません` |
-| 定義の誤りの識別子 `retryNotTable` の文言 | 08 章 4.3(`retry must be a mapping` / `retry はマップで書きます`) |
-| 変換の誤り | YAML と JSON の相互変換。原因の文の使用は 09 章に従う |
-| 定義の拡張子の誤り | 64。種類・原因は 03 章 |
+| ステートの原因の文 | `JSON として読めません`、`キーが重複しています`、`内容を JSON にできません`(7.2) |
+| 定義の誤り | 31 種。`unsupportedFormat`(拡張子が `.yaml`・`.yml`・`.json` のどれでもない)を含む(7.1) |
+| `retryNotTable` の文言 | 08 章 4.3(`retry must be a map` / `retry はマップで書きます`) |
+| 変換の誤り | YAML と JSON の相互変換。6 種の種類と 22 件の原因(7.3) |
 | 想定外の内部失敗 | `defer` + `recover`(メインと、すべてのゴルーチン)で 70 |
 
 ## 12. 未確認
 
-- 定義の誤りの原因の文の全件(03 章に属する)。拡張子の誤りの種類と原因の文(03 章に属する)。
-- 変換の種類と原因の完全な対応表(09 章に属する)。`null`・日時の原因の文を Go 版で使うか。
-- ステートの読み込みで複数の原因が重なるときの優先(06 章)。
+- 定義の誤りの YAML の文法の誤りの行番号(採用する YAML ライブラリの検出位置による。03 章 13.4 節)。
+- ステートの読み込みの検査の順序は 06 章 6.1 節で固定してあり、この章に未確認はない。
 - Windows で `ExitCode()` が返す値の符号(3 章の注)。
 - `signal.Notify` と `SIGPIPE`・子プロセスへの影響(08 章 1.2)。
 - Go の整数変換(`int32` → `uint32`)と `ExitError.ExitCode()` の、使用する Go の版ごとの文書の記述。実装時に、テストで確認する。

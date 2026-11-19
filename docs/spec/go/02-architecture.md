@@ -22,7 +22,7 @@
 | 言語・版 | Go。`go.mod` の `go` 行は、実装時点の最新の安定版の 1 つ前以降(例: 「Go 1.25 以降」。実装時に、最新の 2 つの安定版を確認する) |
 | モジュール名 | `conductor`(置き換えてよい。置き換えたときは、すべての import のパスを合わせる) |
 | 構成 | 1 つのモジュールに、実行ファイル 2 つ(`cmd/conductor`、`cmd/conductor-testjob`)と、`internal/` 配下のパッケージ 9 つ |
-| 外部のライブラリ | YAML の読み書きだけ(選定は [03-definition-format.md](03-definition-format.md) と [09-converter.md](09-converter.md))。それ以外は標準ライブラリ。引数の解析は自前(`flag` は使わない) |
+| 外部のライブラリ | YAML の読み取りだけ(書き出しは自前。選定は [03-definition-format.md](03-definition-format.md) と [09-converter.md](09-converter.md))。それ以外は標準ライブラリ。引数の解析は自前(`flag` は使わない) |
 | 公開の範囲 | すべて `internal/` に置く。他のモジュールから import できない(ライブラリとして公開しない) |
 | 配布物 | `conductor` だけ。`conductor-testjob` は配布物に含めない |
 
@@ -33,10 +33,10 @@
 | パッケージ | 責務 | 入出力 |
 |------------|------|--------|
 | `cmd/conductor` | 薄い入口。`os.Exit` を 1 回だけ呼ぶ。`defer`+`recover` で想定外の失敗を終了コード 70 にする。本番の `Deps` を作って `cli.Run` を呼ぶ | プロセスの引数・環境・標準入出力 |
-| `internal/definition` | 定義ファイルの読み込み(場所の決定と読み取り、YAML/JSON の構文解析、入れ子の深さ、`format_version`、構造・型・遷移・終了コード・名前の検査)。誤りを位置(行)つきで返す。定義の型(`Pipeline`、`Job`、`Command`、`Retry`、`Transition`)と、誤りの種類(`ErrorKind`)を持つ。`run_id_env` だけのゆるい読み取りも持つ | ファイルを読む(`Load` だけ)。ほかは文字列に対する純粋な処理 |
-| `internal/convert` | YAML ⇔ JSON の変換(`convert --to yaml\|json`)。定義の検証はしない。他の `internal/` に依存しない | 入力ファイル 1 つを読む(`Convert`)。`ConvertText` は文字列に対して純粋 |
+| `internal/definition` | 定義ファイルの読み込み(場所の決定と読み取り、YAML/JSON の構文解析、入れ子の深さ、`format_version`、構造・型・遷移・終了コード・名前の検査)。誤りを位置(行)つきで返す。定義の型(`Definition`、`Job`、`Command`、`RetryPolicy`、`Transition`)と、誤りの種類(`ErrKind`。31 種)を持つ。`run_id_env` だけのゆるい読み取りも持つ | ファイルを読む(`Load` だけ)。ほかは文字列に対する純粋な処理 |
+| `internal/convert` | YAML ⇔ JSON の変換(`convert --to yaml\|json`)。定義の検証はしない。木の読み取りは `internal/definition` と共有する(`definition.ReadTree`) | 入力ファイル 1 つを読む(`Convert`)。`ConvertText` は文字列に対して純粋 |
 | `internal/runid` | run ID の値の検査と、決定(`--run-id` と環境変数のどちらを使うか)に使う純粋な関数 | なし |
-| `internal/flow` | 純粋な判断。実行結果の分類(成功・警告・エラー・分類なし)と報告する終了コード、遷移と次の動き、起動前の判断(実行・スキップ・拒否)、中断時の再開位置、リトライの判断と待ち時間、終了コードの範囲合わせ。**実行時の値の型**(`ExecResult`、`JobState`、`PipelineState`、`Outcome`、`NextStep` など)を持つ | なし(引数だけから結果を決める。ファイル・プロセス・環境変数・時刻に触れない) |
+| `internal/flow` | 純粋な判断。実行結果の分類(成功・警告・エラー・分類なし)と報告する終了コード、遷移と次の動き、起動前の判断(実行・スキップ・拒否)、中断時の再開位置、リトライの判断と待ち時間、終了コードの範囲合わせ。**実行時の値の型**(`JobExecution`、`JobState`、`PipelineState`、`Outcome`、`NextStep` など)を持つ | なし(引数だけから結果を決める。ファイル・プロセス・環境変数・時刻に触れない) |
 | `internal/state` | ステートの読み書き。JSON の表現(ファイル用の構造体と、固定の順序の書き出し)、記録関数(結果・スキップ・中断を、新しい `flow.PipelineState` として作る純粋な関数)、読み込み(検査と異常系)、書き込み(一時ファイル + `fsync` + `os.Rename` + ディレクトリの同期)、定義との整合性の検査、`reset` と `reset --all`、ステートファイルの場所と名前 | ステートのファイル(とそのディレクトリ)。記録関数と整合性の検査は純粋 |
 | `internal/runner` | `command` の分割と検査、`os/exec` によるジョブの起動と待ち、シグナルの転送、リトライの待機、中断の合図(`Interrupt`)、シグナル監視、プラットフォーム層(`platform_unix.go`、`platform_windows.go`) | 子プロセス、時刻(待ち)、OS のシグナル。分割と検査は純粋 |
 | `internal/report` | 出力。メッセージカタログ(英語・日本語)、ロケールと色の判定、`-v` の行、誤りの行、`watch` の表、使い方(`--help`)、入力由来の文字列のエスケープと切り詰め。**文を作るだけ**で、書き込みは `cli` が `Sink` へ行う | 環境変数・端末かどうかは、引数で受け取る(自分では読まない) |
@@ -52,65 +52,73 @@
 #### `internal/definition`
 
 ```go
-type Pipeline struct {
-    FormatVersion  int
-    Name           string
-    Description    string // 空なら無し
-    RunIDEnv       string // 空なら無し
+// 03 章 14 節の型が正。ここでは他のパッケージが使う名前だけを示す。
+type Definition struct {
+    FormatVersion    int
+    Name             string
+    Description      *string // nil なら無し
+    RunIDEnv         *string // nil なら無し
     RemoveOnComplete bool
-    Jobs           []Job   // 記述順
+    Jobs             []Job // 記述順
 }
-func (p *Pipeline) JobIndex(id string) (int, bool)
+func (d *Definition) JobIndex(id string) (int, bool)
 
 type Job struct {
     ID               string
     Command          Command
-    WarningExitCodes []int
-    SuccessExitCodes []int  // nil なら既定の [0]
+    WarningExitCodes []int32
+    SuccessExitCodes *[]int32 // nil なら既定の [0]
     Transitions      []Transition
-    Retry            *Retry
+    Retry            *RetryPolicy
 }
-func (j *Job) EffectiveSuccessCodes() []int
-func (j *Job) TransitionFor(on TransitionOn) (Transition, bool)
+func (j *Job) EffectiveSuccessCodes() []int32
+func (j *Job) TransitionFor(on string) (Transition, bool)
 
 type Command struct {
-    IsArray bool
-    Line    string   // IsArray が偽のとき
-    Argv    []string // IsArray が真のとき
+    IsArgv bool
+    Line   string   // IsArgv が偽のとき
+    Argv   []string // IsArgv が真のとき
 }
 
-type Retry struct {
-    ExitCodes       []int
-    Max             uint32
-    IntervalSecs    uint64
-    Multiplier      *uint32 // multiplier と max_interval は両方ある、または両方ない
-    MaxIntervalSecs *uint64
+type RetryPolicy struct {
+    ExitCodes    []int32
+    Max          uint32
+    IntervalSecs uint64
+    Backoff      *Backoff // multiplier と max_interval は両方ある、または両方ない(05 章 7.2 節)
+}
+type Backoff struct {
+    Multiplier      uint32
+    MaxIntervalSecs uint64
 }
 
-type TransitionOn int // OnSuccess, OnWarning
 type Transition struct {
-    On     TransitionOn
-    Target string // ジョブID。End のときは空
-    IsEnd  bool   // 遷移先が @end
+    On    string // "success" | "warning"
+    Next  string // ジョブID。IsEnd のときは空
+    IsEnd bool   // 遷移先が @end
 }
 
-type ErrorKind int // FileMissing, Unreadable, TooLarge, Syntax, TypeMismatch, ... (03 章の全件)
+// 誤り(03 章 12.1 節)。種類は 31 種(ErrKind)。
 type Error struct {
-    Kind ErrorKind
-    Path string // 定義ファイルのパス(表示用)
-    Line int    // 0 なら位置なし
-    // 追加のフィールド(キー名、ジョブID など)は 03 章に従う
+    File   string
+    Line   int // 0 なら行なし
+    Column int // 順序づけにだけ使う
+    Kind   ErrKind
+    Reason string // 固定の日本語の文
 }
 func (e *Error) Error() string // 固定の文。入力の値や、ライブラリのエラー文を含めない
 
-// Load は定義ファイルを読み、検証する。誤りは、すべて集めて返す(最初の 1 件で止めない)。
-func Load(fsys fs.FS /* または path */, path string, expectedPipelineName string) (*Pipeline, []*Error)
-// LooseRunIDEnv は、run_id_env だけをゆるく読む(読めない・キーがない・文字列でない・名前の形が違う、のどれでも "")。
+// Load は定義ファイルを読み、検証する。誤りは、見つけたものをまとめて返す(早い段階の誤りは 1 件で打ち切る。03 章 2.2 節)。
+func Load(path string, expectedPipelineName string) (*Definition, []*Error)
+// Parse は、ファイルに触れず、文字列に対して 03 章の段階 2〜5 を行う。
+func Parse(text string, format Format, fileLabel string, expectedPipelineName string) (*Definition, []*Error)
+// LooseRunIDEnv は、run_id_env だけをゆるく読む(03 章 15 節。どの失敗でも "")。
 func LooseRunIDEnv(path string) string
+// ReadTree は、YAML/JSON を 03 章 4〜6 節の規定で木(*Node)に読む。convert が共有する。
+func ReadTree(text string, format Format, fileLabel string) (*Node, *Error)
 ```
 
-- `Load` の入力の取り方(`fs.FS` か、パスの文字列か)は、実装者が決めてよい。ただし、本番はファイルシステムを読み、テストは一時ディレクトリで動かす(`Deps.Defs` が包む。4 章)。
-- 定義の書式は、拡張子で決める(`.yaml`/`.yml`/`.json`。それ以外は拒否)。[03-definition-format.md](03-definition-format.md)。
+- `Load` の入力の取り方(ファイルシステムの抽象を使うか、パスの文字列か)は、実装者が決めてよい。ただし、本番はファイルシステムを読み、テストは一時ディレクトリで動かす(`Deps.Defs` が包む。4 章)。
+- 定義の書式は、拡張子で決める(`.yaml`/`.yml`/`.json`。それ以外は `unsupportedFormat`)。[03-definition-format.md](03-definition-format.md)。
 
 #### `internal/runid`
 
@@ -123,70 +131,22 @@ func Resolve(flagValue *string, envName string, getenv func(string) (string, boo
 #### `internal/flow`
 
 ```go
-// --- 実行時の値の型(runner が作り、state が記録し、report が表示する) ---
-type ExecResult struct {
-    JobID              string
-    Command            definition.Command
-    Started            bool
-    ExitCode           *int
-    TerminatedBySignal *int
-    StartFailure       bool
-    Interrupted        bool
-    SignalNumber       *int
-}
-
-type JobStatus string // "pending" | "success" | "warning" | "error" | "skipped"
-type SkipReason string // "byTransition" | "byEnd"(ステート上の表記は 06 章)
-type JobState struct {
-    JobID      string
-    Status     JobStatus
-    ExitCode   *int
-    SkipReason *SkipReason
-}
+// 型と関数の骨格の全体は 05 章 13 節が正(JobStatus、SkipReason、JobState、JobExecution、JobOutcome、
+// NextStepResult、Decision、ResumePoint、RetryResult、Classify、ClassifyAndDecide、DecideBeforeRun、
+// RetryDecision、NextWaitSecs、ResumePointOnInterrupt、ExitCodeFor、SignalExitCode)。
+// ここには、state と report が使う PipelineState だけを示す。
 type PipelineState struct {
     DefinitionKey  string
-    PipelineName   string
     DefinitionPath string
+    PipelineName   string
+    RunID          *string
     JobOrder       []string
     JobStates      []JobState
     ResumeJobID    *string
     EndReached     bool
     Completed      bool
-    RunID          *string
     // 06 章の論理項目の全件
 }
-
-type Classification int // Success, Warning, Error
-type Outcome struct {
-    JobID             string
-    Classification    *Classification // nil は「分類なし」
-    ReportedExitCode  int
-    ConductorError    bool
-}
-type RunMode int // Individual, Pipeline
-type NextStep struct {
-    JobID          string
-    NextJobID      *string
-    SkippedJobIDs  []string
-    SkipReasonKind *SkipReason
-    EndReached     bool
-    Completed      bool
-    ResumeJobID    *string
-}
-type DecisionKind int // Run, Skip, Reject
-type DecisionReason int // SkipTarget, AfterEnd, AlreadyExecuted, OutOfOrder
-type Decision struct { Kind DecisionKind; Reason DecisionReason }
-type ResumePoint struct { ResumeJobID *string; EndReached bool; Completed bool }
-
-// --- 純粋な関数 ---
-func Classify(job *definition.Job, r ExecResult) Outcome
-func ClassifyAndDecide(job *definition.Job, r ExecResult, states []JobState, def *definition.Pipeline, mode RunMode) (Outcome, NextStep)
-func DecideBeforeRun(jobID string, def *definition.Pipeline, states []JobState, resumeJobID *string, endReached bool) Decision
-func ResumePointOnInterrupt(def *definition.Pipeline, states []JobState) ResumePoint
-
-type RetryDecision struct { Retry bool; WaitSecs uint64 }
-func DecideRetry(job *definition.Job, r ExecResult, retriesDone uint32, lastWaitSecs uint64) RetryDecision
-func ExitCodeFor(reported int, conductorError bool) int // 0〜255 に合わせる(10 章)
 
 const ( // 終了コードの定数。10 章の全件
     ExitOK = 0
@@ -208,14 +168,14 @@ type Location struct{ path string }
 func LocationOf(definitionPath string, runID *runid.RunID) Location
 
 // 記録関数(純粋。元を変更せず、新しい値を返す)
-func InitialState(def *definition.Pipeline, definitionPath string, runID *runid.RunID) flow.PipelineState
-func ApplyOutcome(s flow.PipelineState, o flow.Outcome, step flow.NextStep) flow.PipelineState
+func InitialState(def *definition.Definition, definitionPath string, runID *runid.RunID) flow.PipelineState
+func ApplyOutcome(s flow.PipelineState, o flow.JobOutcome, step flow.NextStepResult) flow.PipelineState
 func ApplySkip(s flow.PipelineState, jobID string, reason flow.SkipReason /* ... */) flow.PipelineState
 func ApplyInterrupt(s flow.PipelineState, rp flow.ResumePoint) flow.PipelineState
 
 // 整合性の検査(純粋)
 type Mismatch int
-func CheckConsistency(s flow.PipelineState, def *definition.Pipeline, definitionPath string, runID *runid.RunID) (Mismatch, bool /* ok */)
+func CheckConsistency(s flow.PipelineState, def *definition.Definition, definitionPath string, runID *runid.RunID) (Mismatch, bool /* ok */)
 
 // 入出力
 type Writer struct { /* 時刻を返す関数 now func() time.Time を持つ(一時ファイル名用) */ }
@@ -250,7 +210,7 @@ func (i *Interrupt) Raise(n int)
 func (i *Interrupt) Number() (n int, raised bool)
 func (i *Interrupt) Done() <-chan struct{}
 
-func RunJob(job *definition.Job, sig *Interrupt) flow.ExecResult
+func RunJob(job *definition.Job, sig *Interrupt) flow.JobExecution
 type WaitOutcome struct{ Interrupted bool; Number int }
 func WaitFor(secs uint64, sig *Interrupt) WaitOutcome
 
@@ -266,7 +226,7 @@ type Env interface { Getenv(name string) (string, bool); StdoutIsTerminal() bool
 type Reporter struct{ /* ロケールと色を、最初に必要になったとき 1 回だけ判定する */ }
 func NewReporter(env Env) *Reporter
 // 文を作る関数群。戻り値は文字列(改行を含む)。書き込みはしない。
-func (r *Reporter) VerboseResult(o flow.Outcome, er flow.ExecResult) string
+func (r *Reporter) VerboseResult(o flow.JobOutcome, er flow.JobExecution) string
 func (r *Reporter) DefinitionErrors(errs []*definition.Error) string
 func (r *Reporter) CommandError(path, jobID string, e *runner.CommandError) string
 func (r *Reporter) StateError(e *state.Error) string
@@ -309,10 +269,11 @@ cmd/conductor-testjob ─▶ (標準ライブラリだけ)
 cli ─▶ report, runner, state, flow, definition, convert, runid, version
 
 report ─▶ state, runner, flow, definition        (cli を import しない)
+
 runner ─▶ flow, definition
 state  ─▶ flow, definition, runid
 flow   ─▶ definition
-convert ─▶ (外部の YAML ライブラリ、標準ライブラリだけ)
+convert ─▶ definition   (木の読み取りを共有。ほかの internal/ には依存しない)
 runid  ─▶ (標準ライブラリだけ)
 definition ─▶ (外部の YAML ライブラリ、標準ライブラリだけ)
 version ─▶ (なし)
@@ -328,7 +289,8 @@ testsupport ─▶ flow, definition, runner, state, runid, convert   (cli を im
                       cli  ─────────┬────────────┐
         ┌──────┬──────┼──────┐      │            │
      report  runner  state  convert version     runid
-        │ ╲      │ ╲    │ ╲
+        │ ╲      │ ╲    │ ╲      │
+        │  ╲     │  ╲   │  ╲     └─▶ definition(convert は木の読み取りを使う)
         │  ╲     ▼  ╲   ▼  ╲
         │   ╲──▶ flow ◀──── (state も runner も flow を使う)
         ▼          │
@@ -342,9 +304,9 @@ testsupport ─▶ flow, definition, runner, state, runid, convert   (cli を im
 1. **`cli` が最上位**。他のパッケージは `cli` を import しない。`report` も `cli` を import しない(環境の判定は `report.Env` の形で受け取る)。
 2. **`definition` と `flow` が下層**。`definition` は、`internal/` のどれにも依存しない。`flow` は `definition` だけに依存する。入出力に触れない(`definition.Load` の読み取りを除く)。
 3. **`state` と `runner` は、`flow` と `definition` の型を使うが、互いに依存しない**。`state` は「ステートを読み書きする」だけで、ジョブを起動しない。`runner` は「ジョブを起動して待つ」だけで、ステートに触れない。両者をつなぐのは `cli`。
-4. **`convert` は、他の `internal/` に依存しない**。定義の検証(`definition`)を呼ばない。
+4. **`convert` が使う `internal/` は `definition` だけ**で、木の読み取り(`definition.ReadTree`。03 章 4〜6 節)を共有するためである。定義の検証(`definition.Load` の段階 4・5)は呼ばない。
 5. **`report` は、データを受け取って文を作る**。判断をしない。何を表示するかは `cli` が決める。
-6. **OS ごとの分岐は、`runner` の `platform_*.go`、`state` の `syncdir_*.go`、`cmd/conductor` の入口の OS 別のファイルだけ**に置く([07-process-and-signals.md](07-process-and-signals.md) の 8 章)。
+6. **OS ごとの分岐は、`runner` の `platform_*.go`、`state` の `syncdir_*.go`、`cli` の `terminal_*.go`、`cmd/conductor` の入口の OS 別のファイルだけ**に置く([07-process-and-signals.md](07-process-and-signals.md) の 8 章)。
 7. **`testsupport` は `cli` を import しない**: `cli` のテスト(`package cli`)が `testsupport` を import しても、循環しないため。`testsupport` の偽実装は、`cli` のインターフェースを、メソッドの形が合うこと(構造的な一致)で満たす。インターフェースのメソッドのシグネチャは、`cli` の型ではなく、下層のパッケージの型だけで書く(4 章)。
 8. 「`internal/` 配下の他のパッケージ」を、他のパッケージのテストが import する場合も、循環させない(外部テストパッケージ `xxx_test` を使えば、循環せずに import できる)。
 
@@ -379,7 +341,7 @@ type Sink interface {
 
 // 定義ファイルの読み込み。
 type Definitions interface {
-    Load(path string, expectedPipelineName string) (*definition.Pipeline, []*definition.Error)
+    Load(path string, expectedPipelineName string) (*definition.Definition, []*definition.Error)
     LooseRunIDEnv(path string) string
 }
 
@@ -400,7 +362,7 @@ type Converter interface {
 // プロセス(ジョブの起動と待ち)。
 type Process interface {
     CheckCommand(c definition.Command) (runner.CommandLine, error)
-    RunJob(job *definition.Job, sig *runner.Interrupt) flow.ExecResult
+    RunJob(job *definition.Job, sig *runner.Interrupt) flow.JobExecution
     Wait(secs uint64, sig *runner.Interrupt) runner.WaitOutcome // リトライの待機
 }
 
@@ -451,10 +413,10 @@ type Deps struct {
 | `FakeEnv` | 環境変数を表(`map`)で与える。`Getenv` を呼んだ回数と名前を記録する。`StdoutIsTerminal` の値を設定する | ロケール(`LC_ALL`・`LC_MESSAGES`・`LANG`)・`NO_COLOR`・run ID の環境変数。ロケールの判定を**遅延**して、最初に必要になったとき 1 回だけであること(成功・スキップで `-v` なしなら、読まない) |
 | `FakeClock` | 固定の時刻を返す。進める操作を持つ | 一時ファイル名の時刻 |
 | `BufSink` | `WriteOut`・`WriteErr` を、別々の `bytes.Buffer` に溜める。順序の記録も持つ。「n 回目の書き込みで失敗する」設定を持つ | 出力の中身、`cannot write to standard output`(`watch` の 65、`convert` の 67) |
-| `FakeDefs` | パスごとに、決めた `*Pipeline` や誤りの並びを返す。または、実ファイル(一時ディレクトリ)を `definition.Load` で読む版 | 定義の誤り(64)の経路 |
+| `FakeDefs` | パスごとに、決めた `*Definition` や誤りの並びを返す。または、実ファイル(一時ディレクトリ)を `definition.Load` で読む版 | 定義の誤り(64)の経路 |
 | `MemStates` | ステートをメモリに持つ(ファイルなし)。読み込み・書き込み・削除の呼び出しを記録する。「読み込みで `state.Error` を返す」「書き込みで失敗する」設定を持つ | 大きなジョブ数(1,000 個)の流れの測定、ステートの異常系(65) |
-| `FakeConverter` | 入力パスごとに、決めた文字列かエラーを返す | `convert` の 65・67 |
-| `ScriptProcess` | ジョブIDごとに、台本の `flow.ExecResult`(終了コード・シグナル終了・起動失敗・中断)を順に返す。呼び出しの記録(何が、何回、どの順で実行されたか)を持つ。`CheckCommand` は、台本の誤り、または `runner.CheckCommand` を呼ぶ。`Wait` は、待ち時間(秒)を記録するだけ。「`Wait` が中断を返す」設定を持つ | 分類・遷移・再開・リトライ(待ち時間の列 1・2・4・…)・中断の経路。実際の待ちをしない |
+| `FakeConverter` | 入力パスごとに、決めた文字列かエラーを返す | `convert` の 67 |
+| `ScriptProcess` | ジョブIDごとに、台本の `flow.JobExecution`(終了コード・シグナル終了・起動失敗・中断)を順に返す。呼び出しの記録(何が、何回、どの順で実行されたか)を持つ。`CheckCommand` は、台本の誤り、または `runner.CheckCommand` を呼ぶ。`Wait` は、待ち時間(秒)を記録するだけ。「`Wait` が中断を返す」設定を持つ | 分類・遷移・再開・リトライ(待ち時間の列 1・2・4・…)・中断の経路。実際の待ちをしない |
 | `FakeSignals` | `Start` の戻り値を設定する(成功、`ErrAlreadyRegistered`、その他の失敗)。「開始時に、すでに `sig.Raise(n)` を呼ぶ」設定を持つ | 登録の失敗(70)、登録済み、開始時にすでに合図が立っている |
 | 補助 | 一時ディレクトリ(`t.TempDir()`)に、定義ファイルを書く。実行して、ステートファイルの内容を読み戻す | 実ファイルを使うテスト(受け入れテストの下位) |
 
@@ -506,7 +468,7 @@ cli: pipeline
       │         │    loop { r := d.Process.RunJob(job, sig)
       │         │           dec := flow.DecideRetry(job, r, retriesDone, lastWait)
       │         │           Retry なら report: 知らせ(常に標準エラー) → w := d.Process.Wait(secs, sig)
-      │         │                    w.Interrupted なら「起動しなかった中断」の ExecResult(Started=false, Interrupted=true, SignalNumber)を作って抜ける }
+      │         │                    w.Interrupted なら「起動しなかった中断」の JobExecution(Started=false, Interrupted=true, SignalNumber)を作って抜ける }
       │         ├─ flow.ClassifyAndDecide(..., RunMode=Pipeline)
       │         ├─ report: 表示(-v のときの結果行・遷移行。常時のエラー行)
       │         ├─ state.ApplyOutcome → d.States.Write(Durable)
@@ -524,14 +486,14 @@ cli: pipeline
 ### 5.3 責務の流れ(データ)
 
 ```text
-定義ファイル ──definition.Load──▶ *definition.Pipeline ─┐
+定義ファイル ──definition.Load──▶ *definition.Definition ─┐
 ステートファイル ──state.Read──▶ flow.PipelineState ──────┤
                                                           ▼
                        flow.DecideBeforeRun ──▶ Run / Skip / Reject
-runner.RunJob ──▶ flow.ExecResult ──flow.ClassifyAndDecide──▶ (Outcome, NextStep)
+runner.RunJob ──▶ flow.JobExecution ──flow.ClassifyAndDecide──▶ (JobOutcome, NextStepResult)
                                          │
         state.Apply*(結果・スキップ・中断) ──▶ 新しい PipelineState ──state.Write──▶ ステートファイル
-Outcome.ReportedExitCode ──flow.ExitCodeFor──▶ conductor の終了コード
+JobOutcome.ReportedExitCode ──flow.ExitCodeFor──▶ conductor の終了コード
 ```
 
 ### 5.4 中断の伝わり方
@@ -551,16 +513,16 @@ Outcome.ReportedExitCode ──flow.ExitCodeFor──▶ conductor の終了コ�
 | `cmd/conductor/signal_unix.go`、`signal_windows.go` | 入口の OS 別の準備(必要な場合のみ。たとえば書き込み先が壊れたパイプのときの扱い。[07-process-and-signals.md](07-process-and-signals.md) の 12 章) |
 | `cmd/conductor-testjob/main.go` | テストジョブ(サブコマンド: 終了コード、スリープ、出力、環境・引数・作業ディレクトリの表示、標準入力を読む、シグナルを無視する、など) |
 | `internal/version/version.go` | 版の定数 |
-| `internal/definition/types.go` | 定義の型 |
-| `internal/definition/errors.go` | 誤りの種類(`ErrorKind`)と `Error` |
+| `internal/definition/types.go` | 定義の型(`Definition` ほか) |
+| `internal/definition/errors.go` | 誤りの種類(`ErrKind`。31 種)と `Error` |
 | `internal/definition/load.go` | `Load`(場所の決定、読み取り、書式の判定、段階の組み立て) |
 | `internal/definition/intake.go` | ファイルの読み取り、大きさの上限、拡張子の判定 |
-| `internal/definition/parse_yaml.go`、`parse_json.go` | YAML/JSON の構文解析(位置つき) |
+| `internal/definition/tree.go`、`read_yaml.go`、`read_json.go` | 木の型、YAML/JSON の読み取り(位置つき。展開と上限を含む。`convert` と共有。03 章 4〜6 節) |
 | `internal/definition/depth.go` | 入れ子の深さの検査 |
 | `internal/definition/walk.go` | 構造・型・遷移・終了コード・名前の検査 |
 | `internal/definition/loose.go` | `run_id_env` のゆるい読み取り |
 | `internal/convert/convert.go` | YAML ⇔ JSON の変換の入口(`Convert`、`ConvertText`) |
-| `internal/convert/read_yaml.go`、`write_yaml.go`、`json.go`、`error.go` | 読み取り(エイリアスの展開と上限)、書き出し、JSON、誤り |
+| `internal/convert/write_yaml.go`、`write_json.go`、`error.go` | YAML の書き出し、JSON の書き出し、誤り(読み取りは `definition.ReadTree`) |
 | `internal/runid/runid.go` | run ID の型、検査、決定 |
 | `internal/flow/types.go` | 実行時の値の型 |
 | `internal/flow/classify.go` | 分類 |
@@ -595,6 +557,7 @@ Outcome.ReportedExitCode ──flow.ExitCodeFor──▶ conductor の終了コ�
 | `internal/cli/prepare.go` | 前処理(`run`・`pipeline` に共通) |
 | `internal/cli/run.go`、`pipeline.go` | `run`・`pipeline` の流れ |
 | `internal/cli/exec_job.go` | リトライ込みの 1 ジョブの実行、記録、表示 |
+| `internal/cli/terminal_unix.go`、`terminal_windows.go` | 標準出力が端末かの判定(OS 別。Windows は常に偽) |
 | `internal/cli/aux.go` | `watch`・`reset`・`validate`・`convert` |
 | `internal/testsupport/*.go` | 4.4 節の偽の実装と補助 |
 
@@ -624,13 +587,13 @@ Outcome.ReportedExitCode ──flow.ExitCodeFor──▶ conductor の終了コ�
 | 項目 | 方針 |
 |------|------|
 | 基本 | 失敗は、戻り値の `error`(または、検査の結果を表す値)で返す。外部の入力(引数・環境・ファイル・OS の結果)に対して、`panic` しない |
-| `panic` を許す場所 | `main` の `recover` が捕まえる、実装の不具合(論理の矛盾)だけ。`recover` は `main` の 1 か所に置く(`cli` の内側では呼ばない) |
+| `panic` を許す場所 | `main` の `recover` が捕まえる、実装の不具合(論理の矛盾)だけ。`recover` は、`main` の入口と、`go` で起動する各 goroutine の先頭にだけ置く(`cli` の流れの内側では呼ばない。捕まえたら、固定の 1 行を標準エラーに出して終了コード 70。10 章 6 節) |
 | 終了 | `os.Exit` は `cmd/conductor/main.go` の `main` だけ。`log.Fatal`、`panic` による終了を使わない。`cli.Run` は、終了コードを返す |
 | 種類 | パッケージごとに、**種類(列挙)を持つエラー型**を公開する: `definition.Error`、`runner.CommandError`、`state.Error`、`convert` の誤り。呼び出し側は、`errors.As` で種類を取り出し、`switch` で分岐する。文字列を比べて分岐しない |
 | 表示 | 利用者への表示の文は、`report` が、種類と引数(ジョブID、パスなど)から組み立てる(メッセージカタログ)。**`err.Error()` の文字列や、ライブラリ(YAML、`os`)のエラー文を、そのまま表示しない**(入力の値や、内部の情報が出るため。[10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。`Error()` が返す文は、固定の短い文だけにする |
 | ラップ | 内部では、`fmt.Errorf("...: %w", err)` で原因を包んでよい。ただし、表示に使わない。原因は、デバッグ用に残してもよいが、利用者への出力に出さない |
 | 複数の誤り | 定義の検査・`command` の検査は、誤りを**すべて集めて**返す(`[]*Error`)。1 件で止めない |
-| 値で返す失敗 | ジョブの起動の失敗(`ExecResult.StartFailure`)、出力の書き込みの失敗(`Sink` の `error`)は、値として扱い、終了コードに結びつける |
+| 値で返す失敗 | ジョブの起動の失敗(`JobExecution.StartFailure`)、出力の書き込みの失敗(`Sink` の `error`)は、値として扱い、終了コードに結びつける |
 | 終了コードの決定 | 「失敗の種類 → 終了コード」の対応は `cli` の 1 か所で行う([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md)) |
 | 想定外 | `recover` で捕まえ、固定の英語 1 行 `conductor: error: internal error` と終了コード 70([07-process-and-signals.md](07-process-and-signals.md) の 10 章) |
 | 静的検査 | `errcheck` 相当(`golangci-lint`)で、戻り値の `error` を無視しない。意図して無視する場合(シグナルの送信の失敗など)は、`_ =` と、理由の注釈を付ける |

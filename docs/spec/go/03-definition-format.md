@@ -2,7 +2,7 @@
 
 この文書は、`conductor` の定義ファイルの書式と、読み込み時の検証を定める。この文書だけで、Go でゼロから、同じ受理・拒否・エラー(種類、文言、行番号)を返す読み込み処理を実装できることを目標とする。
 
-- 定義ファイルの書式は **YAML(主)** と **JSON** の 2 つ。書式は**拡張子**で決める(第 2 節)。既定のファイル名は `conductor.yaml`。TOML は扱わない。
+- 定義ファイルの書式は **YAML(主)** と **JSON** の 2 つ。書式は**拡張子**で決める(第 2 節)。既定のファイル名は `conductor.yaml`。
 - 検証は、見つけた誤りを**まとめて**返す。ただし、早い段階の誤り(取り込み、文法、展開と上限、版)は 1 件だけで打ち切る(第 2 節)。
 - 定義の内容は、読み込みでは実行も評価もしない。`command` の文字列は、そのまま保持する。
 - 確認できなかった点は「未確認」と書く。ライブラリや Go の API の挙動で、この文書の作成時点で確認できていないものは、実装時に確かめるべき点として明記してある。
@@ -34,7 +34,7 @@
 |--------|------|
 | `.yaml`、`.yml` | YAML |
 | `.json` | JSON |
-| それ以外(拡張子なしを含む。`.toml` も) | 拒否: `unsupportedFormat`、行なし、理由 ``拡張子は .yaml、.yml、.json のいずれかで書きます`` |
+| それ以外(拡張子なしを含む。`.txt`、`.xml` など) | 拒否: `unsupportedFormat`、行なし、理由 ``拡張子は .yaml、.yml、.json のいずれかで書きます`` |
 
 - この判定は、ファイルに触れる前に行う(ファイルが存在しなくても、拡張子が合わなければ `unsupportedFormat` になる)。
 - 表示用のファイル名は、パスを文字列にしたもの(与えられた表記のまま。正規化しない)である。
@@ -408,7 +408,7 @@ YAML は Go の標準ライブラリにないので、外部ライブラリを�
 | `pipeline` | マップ | 必須 | 第 9.1 節 |
 | `job` | マップのリスト | 必須(1 つ以上) | 第 9.2 節 |
 
-許されていないキー(上の 3 つ以外)は、`unknownKey` である。以前の版の `jobs` も未知のキーとして拒否される(``キー `jobs` は定義にありません``)。`unknownKey` の理由は、`` キー `<キー名>` は定義にありません `` の形(`<キー名>` は整形したキー名)で、キー名の整形は第 12.2 節。位置はそのキーの位置。値の型は問わない(null でも、アンカーの参照でも同じ)。
+許されていないキー(上の 3 つ以外)は、`unknownKey` である。`jobs`(複数形)も未知のキーとして拒否される(``キー `jobs` は定義にありません``)。`unknownKey` の理由は、`` キー `<キー名>` は定義にありません `` の形(`<キー名>` は整形したキー名)で、キー名の整形は第 12.2 節。位置はそのキーの位置。値の型は問わない(null でも、アンカーの参照でも同じ)。
 
 ### 9.1 `pipeline`
 
@@ -715,7 +715,7 @@ conductor: error: conductor.yaml: definition file does not exist: 指定の場�
 | `retryMultiplierInvalid` | retry の倍率が正しくありません | retry multiplier is invalid |
 | `retryMaxIntervalTooSmall` | retry の間隔の上限が、間隔より小さくなっています | retry max_interval is smaller than interval |
 
-(`retryDurationInvalid` の英語は、`max_interval` の誤りにも同じ文が使われる。`retryNotTable` の識別子は、論理モデルの名前のまま残し、文は「マップ」と言う。)
+(`retryDurationInvalid` の英語は、`max_interval` の誤りにも同じ文が使われる。`retryNotTable` の識別子は、論理的な名前のまま残し、文は「マップ」と言う。)
 
 理由(`reason`)は、第 3〜11 節の各表の日本語の原文のとおり。英語の理由文は存在しない(理由は常に日本語)。理由の文中の `` ` `` は、文の一部としてそのまま出力する。`syntax`、`tooLarge`、`typeMismatch` の、読み取り(段階 2・3)の理由は、次のとおり。
 
@@ -812,11 +812,15 @@ type Transition struct {
 }
 
 type RetryPolicy struct {
-    ExitCodes       []int  // 昇順・重複なし・各 1〜255・空でない
-    Max             int    // 1〜100
-    IntervalSecs    uint64 // 1〜86400
-    Multiplier      *int   // 2〜10。MaxIntervalSecs と同時に有り
-    MaxIntervalSecs *uint64 // IntervalSecs 以上。Multiplier と同時に有り
+    ExitCodes    []int32  // 昇順・重複なし・各 1〜255・空でない
+    Max          uint32   // 1〜100
+    IntervalSecs uint64   // 1〜86400
+    Backoff      *Backoff // nil なら固定間隔。multiplier と max_interval は必ず同時に有る/無い
+}
+
+type Backoff struct {
+    Multiplier      uint32 // 2〜10
+    MaxIntervalSecs uint64 // IntervalSecs 以上、86400 以下
 }
 ```
 
@@ -995,7 +999,7 @@ job:
 
 | 入力 | 種類(行) |
 |------|----------|
-| パス `conductor.toml` | `unsupportedFormat`(行なし) |
+| パス `conductor.txt` | `unsupportedFormat`(行なし) |
 | パス `conductor`(拡張子なし) | `unsupportedFormat`(行なし) |
 | 存在しない `x.yaml` | `fileMissing`(行なし) |
 | ちょうど 1,048,576 バイトの有効な定義 | 受理(Walk へ) |

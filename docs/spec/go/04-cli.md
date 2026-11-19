@@ -133,9 +133,9 @@ type token struct {
 
 非 UTF-8 のバイトを含む引数を 4 の連結として分解するときの `-<c>` の綴りは未確認(`range` は不正なバイトを U+FFFD として 1 バイトずつ返す。そのまま `-�` の綴りにしてよいが、実機との一致は確認していない)。
 
-補足(元の実装の実機で確認した挙動):
+補足(実機で確認した挙動):
 
-- `--help=x`・`-V=1`・`--version=x` は、それぞれ help / version / version。`-vx run a` は `unknown option: '-x'`、`run -vh` は help、`-vV` は version、`--config --help run a` は `--help` という名前のパスを定義ファイルとして扱う(help ではない。ファイルがなければ 64)。
+- `--help=x`・`-V=1`・`--version=x` は、それぞれ help / version / version。`-vx run a` は `unknown option: '-x'`、`run -vh` は help、`-vV` は version、`--config --help run a` は `--help` という名前のパスを定義ファイルとして扱う(help ではない。拡張子が `.yaml`・`.yml`・`.json` のどれでもないので、定義の誤り `unsupportedFormat` として 64)。
 - `--config --help`(ほかの引数なし)は `--help` を値に取り、位置引数が 0 個なので `missing argument`(68)。`run a --config --version` も `--version` を値(パス)として扱う。
 - `--help --config` は、`--help` が先に解釈されるので、値の欠落(`--config`)より前に help(0)になる。
 - `run -- a --` は 2 個目の `--` が位置引数になり `unexpected argument: '--'`。`run -- -v` は、ジョブID `-v`。`run -` は、ジョブID `-`。
@@ -174,7 +174,7 @@ type token struct {
 | `-- run a` | `run` コマンドで、ジョブID `a` |
 | `--config` | `option requires a value: '--config'`(68) |
 | `run a --config` | `option requires a value: '--config'`(68) |
-| `--config --help run a` | `--help` というパスを定義ファイルとして読む(ファイルがなければ 64) |
+| `--config --help run a` | `--help` というパスを定義ファイルとして読む(拡張子が合わないので、定義の誤り `unsupportedFormat` で 64) |
 | `--config --help` | `--help` を値に取り、位置引数が 0 個: `missing argument`(68) |
 | `--help --config` | help(0)(`--help` が先に解釈され、値の欠落は検査されない) |
 | `-h --config --version` | help(0)(`--version` は `--config` の値) |
@@ -191,7 +191,7 @@ type token struct {
 | `run -- -v` | ジョブID `-v` |
 | `run a --to yaml` | `option not allowed for this command: '--to'`(68) |
 | `convert --to yaml --to json f` | `invalid value: '--to'`(68) |
-| `convert f --to toml` | `invalid value: 'toml'`(68)(Go 版は `yaml`・`json` だけ) |
+| `convert f --to xml` | `invalid value: 'xml'`(68)(`--to` の値は `yaml`・`json` だけ。大文字小文字も区別する) |
 | `convert f` | `missing argument: '--to'`(68) |
 | `reset --all --run-id x` | `invalid value: '--all'`(68) |
 
@@ -311,7 +311,7 @@ Windows で `os.Args` が、不正な UTF-16 をどう文字列にするかは�
 
 入力ファイルを、入力形式を `--to` の反対(`--to json` なら入力は YAML、`--to yaml` なら入力は JSON)とみなして変換する。この判定で、拡張子は見ない(定義ファイルの読み込みとは異なる)。結果を全部作ってから標準出力に 1 回で書く。失敗したときは標準出力に何も書かず、標準エラーに原因を出して 67。標準出力に書けないときも 67(`cannot write to standard output`)。シグナルの準備はしない。変換の規則そのもの(コメントとキー順の扱い、アンカーの展開、入力の大きさの上限など)は [09-converter.md](09-converter.md)。
 
-(「入力形式を `--to` の反対とみなし、拡張子を見ない」という判定の規定は、この章が持つ。YAML は JSON の上位集合に近いが、`--to yaml` のとき入力を JSON として厳密に読むかどうかは [09-converter.md](09-converter.md) の規定に従う。)
+(「入力形式を `--to` の反対とみなし、拡張子を見ない」という判定の規定は、この章が持つ。`--to yaml` のときの入力は JSON として厳密に読む(RFC 8259。[09-converter.md](09-converter.md) 4.1)ので、拡張子が `.yaml` でも、`--to yaml` で渡せば JSON の文法の誤り(67)になる。)
 
 ## 8. ヘルプとバージョン
 
@@ -354,8 +354,8 @@ $ conductor convert conductor.yaml
 conductor: error: missing argument: '--to'
 [68]
 
-$ conductor convert conductor.yaml --to toml
-conductor: error: invalid value: 'toml'
+$ conductor convert conductor.yaml --to xml
+conductor: error: invalid value: 'xml'
 [68]
 
 $ conductor run nojob          # 定義にないジョブID
@@ -369,14 +369,14 @@ conductor: error: invalid value: 'run ID (environment variable)'
 $ conductor -vh        # help が勝つ。標準出力に使い方、0
 ```
 
-## 10. Go 版で変わった点(まとめ)
+## 10. この版が採った選択(まとめ)
 
-| 項目 | 変更 |
+| 項目 | 内容 |
 |------|------|
-| 既定の定義ファイル名 | `conductor.yaml`(`--config` の拡張子は `.yaml`・`.yml`・`.json`) |
-| `--to` の値 | `yaml` か `json`(`toml` は `invalid value`) |
-| `convert` | YAML と JSON の相互変換(入力形式は `--to` の反対。拡張子を見ない) |
-| 定義の `run_id_env` の読み方(`watch`/`reset`) | YAML/JSON をゆるく読む(読めなければ既定名) |
+| 既定の定義ファイル名 | `conductor.yaml`(`--config` の拡張子は `.yaml`・`.yml`・`.json`。それ以外は定義の誤り `unsupportedFormat`、終了コード 64) |
+| `--to` の値 | `yaml` か `json`(それ以外は `invalid value`、68) |
+| `convert` | YAML と JSON の相互変換(入力形式は `--to` の反対。拡張子を見ない。出力のキーの順は入力の記述順) |
+| 定義の `run_id_env` の読み方(`watch`/`reset`) | YAML/JSON をゆるく読む(読めなければ既定名。03 章 15 節) |
 | 引数の解析 | `flag` を使わず、4 章の自前の手順 |
 
 ## 11. 未確認

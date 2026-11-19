@@ -35,14 +35,14 @@
 |----------|------|---------------------|
 | 分割器 | `command` の文字列を、コマンド名と引数に分ける。`rune` を 1 つずつ左から読む状態機械。再帰を使わない。3 OS で同じ規則 | `split.go` |
 | `command` の検査 | `command` を起動せずに検査する。成功なら分けた結果(`CommandLine`)を返す | `split.go` |
-| ジョブの起動と待ち | 1 つのジョブをシェルを介さずに起動し、終了を待ち、実行結果(`flow.ExecResult`)を返す。失敗は値で返し、`panic` しない | `run.go` |
+| ジョブの起動と待ち | 1 つのジョブをシェルを介さずに起動し、終了を待ち、実行結果(`flow.JobExecution`)を返す。失敗は値で返し、`panic` しない | `run.go` |
 | 待機ループ | ジョブの終了を待つ。中断の合図の転送の判断もここで行う(5 章) | `wait_job.go` |
 | リトライの待機 | リトライの前に待つ。待機中に中断の合図を見る(7.5 節) | `wait_retry.go` |
 | 中断の合図 | 「中断が要求された」ことと、最初に受け取ったシグナルの番号を、goroutine の間で共有する値(6 章) | `interrupt.go` |
 | プラットフォーム層 | 新しいプロセスグループの指定、シグナルの送信、シグナル終了の読み取り、受け取るシグナルの集合、`.cmd` の安全策。OS ごとに実装が違う | `platform_unix.go`、`platform_windows.go` |
 | シグナル監視 | OS のシグナルを受け取り、中断の合図を立てる | `watcher.go`(共通)、`platform_*.go`(OS 別の部分) |
 
-`flow.ExecResult`(実行結果)と、分類(実行結果 → 成功・警告・エラー・分類なし)は `internal/flow` にある([02-architecture.md](02-architecture.md) と [05-execution-flow.md](05-execution-flow.md))。`runner` は分類をしない。
+`flow.JobExecution`(実行結果)と、分類(実行結果 → 成功・警告・エラー・分類なし)は `internal/flow` にある([02-architecture.md](02-architecture.md) と [05-execution-flow.md](05-execution-flow.md))。`runner` は分類をしない。
 
 OS ごとの分岐と OS 固有の呼び出し(`syscall` の OS 固有の名前を含む)は、`platform_unix.go` と `platform_windows.go` の外に置かない【規定】。
 共通のファイルには `runtime.GOOS` による分岐も、`syscall.SIGHUP` のような UNIX 固有の名前も書かない。
@@ -234,7 +234,7 @@ return (words[0], words[1:])
 
 ### 4.1 手順(時系列)
 
-関数: `func RunJob(job definition.Job, sig *Interrupt) flow.ExecResult`(実際の起動は、`Process` の本番の実装が呼ぶ。[02-architecture.md](02-architecture.md))。
+関数: `func RunJob(job definition.Job, sig *Interrupt) flow.JobExecution`(実際の起動は、`Process` の本番の実装が呼ぶ。[02-architecture.md](02-architecture.md))。
 失敗はすべて戻り値で返し、`panic` しない。
 
 1. 実行結果を初期化する: `Started = true`、`ExitCode = nil`、`TerminatedBySignal = nil`、`StartFailure = false`、
@@ -282,7 +282,7 @@ return (words[0], words[1:])
 - `*exec.ExitError` は、終了コードが 0 でない、またはシグナルで終了したときに、`Wait` が返す。`errors.As(err, &exitErr)` で判定するが、結果の取り出しは `cmd.ProcessState`(`exitErr.ProcessState` と同じ)から行い、`err` の文字列は使わない(入力の値を表示に出さない。[10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。
 - ジョブが、停止(`SIGSTOP`)や再開で `Wait` を戻らせることはない(`Wait` は終了だけを待つ。停止の通知を受けるフラグを使わない)。未確認の点は 12 章。
 
-実行結果(`flow.ExecResult`)の各項目:
+実行結果(`flow.JobExecution`)の各項目:
 
 | 項目 | 意味 |
 |------|------|
@@ -616,7 +616,7 @@ Windows の `cmd.exe` は、`.cmd` / `.bat` を実行するときに、引数を
 | 規則 | 内容 |
 |------|------|
 | 共有する値 | goroutine の間で共有する可変の値は、`Interrupt`(`sync.Mutex` で保護)と、シグナルの登録の印(パッケージ内の変数。`sync.Mutex` で保護)の 2 つだけ |
-| 渡し方 | 実行結果(`flow.ExecResult`)は、値で返す(チャネルや戻り値で渡し、渡したあとは送る側が触れない)。ポインタの先を、2 つの goroutine が同時に読み書きしない |
+| 渡し方 | 実行結果(`flow.JobExecution`)は、値で返す(チャネルや戻り値で渡し、渡したあとは送る側が触れない)。ポインタの先を、2 つの goroutine が同時に読み書きしない |
 | パッケージの変数 | 可変のパッケージの変数を、上記の登録の印以外に持たない(`init` で 1 回だけ作って読み取り専用にする表は可。`map` に並行の書き込みをしない) |
 | 偽の実装 | `internal/testsupport` の偽の実装は、メインの goroutine からだけ呼ばれる設計。受信の goroutine を使うテストで、偽の実装に触れるときは、`sync.Mutex` で保護する |
 | ループ変数 | `go` 文の中で、ループ変数や、あとで書き換える変数を直接参照しない(引数で渡す)。Go 1.22 以降の言語の版では、ループ変数は反復ごとの変数になるが、それに頼らない |
@@ -634,7 +634,7 @@ Windows の `cmd.exe` は、`.cmd` / `.bat` を実行するときに、引数を
 - 入口の形(骨格): `func main() { os.Exit(realMain()) }`。`realMain() (code int)` の中で、`defer func() { if r := recover(); r != nil { /* 1 行を書く(失敗は無視) */ code = 70 } }()` を最初に書く。
   `os.Exit` は `defer` を実行しないので、`defer` は `realMain` の中に置き、`os.Exit` は `main` で、戻り値で 1 回だけ呼ぶ(終了は 1 か所)。
 - `recover` が捕まえられるのは、同じ goroutine の `panic` だけである。そのため、**メイン以外の goroutine は、`panic` を起こさない書き方にする**(9.1 節の goroutine は、`Interrupt.Raise` と `Wait` と送信だけで、失敗しうる処理を持たない)。
-  メイン以外の goroutine で `panic` が起きると、`recover` を通らず、Go の実行環境の既定の動作(終了コード 2、スタックの出力)になる。これは避けるべき失敗であり、起こさない設計とする。
+  そのうえで、`go` で起動する各 goroutine の先頭にも、`defer` + `recover` を置く(10 章 6 節)。捕まえたら、同じ 1 行を標準エラーに出し、`os.Exit(70)` で終わる。置かないと、`panic` は Go の実行環境の既定の動作(終了コード 2、スタックの出力)になる。
 - 入口に、わざと `panic` を起こすコマンドを持たない。内部の誤りの検査は、`realMain` に差し替えた(`panic` する)`Deps` を渡す単体テスト、または別のテスト用の実行ファイルで行う([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。
 - ジョブの実行中に内部の誤りが起きると、子プロセスの終了を待たずに終わり、ジョブが孤児として残りうる。ステートは直前の完全な内容のままで、
   次の実行はそのジョブを再実行しうる(少なくとも 1 回の実行の範囲)。

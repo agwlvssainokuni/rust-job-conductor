@@ -10,13 +10,13 @@
 
 | パッケージ | 置くもの |
 |---|---|
-| `internal/flow` | 共有の値の型(`JobStatus`、`SkipReason`、`JobState`、`JobExecution` ほか)、`Classify`、`ClassifyAndDecide`、`NextStep`、`DecideBeforeRun`、`RetryDecision`、`NextWaitSecs`、`ResumePointOnInterrupt`、`ExitCodeFor`、`SignalExitCode`。標準ライブラリのうち `math`・`math/bits` だけを使う。ファイル・時計・環境変数・シグナルには触れない |
-| `internal/state` | ステート値(`PipelineState`)、記録の関数(`ApplyOutcome`、`ApplySkip`、`ApplyInterrupt`、`InitialState`。純粋。複製して更新)、読み書き([06](06-state-file.md)) |
+| `internal/flow` | 共有の値の型(`JobStatus`、`SkipReason`、`JobState`、`PipelineState`、`JobExecution` ほか。`JobExecution` が 1 回の実行結果の型)、`Classify`、`ClassifyAndDecide`、`NextStep`、`DecideBeforeRun`、`RetryDecision`、`NextWaitSecs`、`ResumePointOnInterrupt`、`ExitCodeFor`、`SignalExitCode`。標準ライブラリのうち `math`・`math/bits` だけを使う。ファイル・時計・環境変数・シグナルには触れない |
+| `internal/state` | 記録の関数(`ApplyOutcome`、`ApplySkip`、`ApplyInterrupt`、`InitialState`。純粋。複製して更新)、読み書き([06](06-state-file.md)) |
 | `internal/runid` | run ID の検査と決定(§6) |
-| `internal/runner` | `RunJob`(子プロセスの起動と待機)、`WaitFor`(§7.6) |
-| `internal/cli` | `prepare`、`run`・`pipeline` の流れ(§5)、リトライの実行ループ(§7.5)。`Deps` を介して時計・環境・ファイル・プロセスに触れる |
+| `internal/runner` | `RunJob`(子プロセスの起動と待機)、`WaitFor`(§7.8) |
+| `internal/cli` | `prepare`、`run`・`pipeline` の流れ(§5)、リトライの実行ループ(§7.7)。`Deps` を介して時計・環境・ファイル・プロセスに触れる |
 
-依存の向きは `definition` ← `flow` ← `state` ← `runner`/`cli`(`flow` は `definition` の型だけを使い、`state` は `flow` の共有の型を使う。循環させない)。
+依存の向きは `definition` ← `flow` ← (`state`、`runner`) ← `cli`(`flow` は `definition` の型だけを使い、`state` と `runner` は `flow` の共有の型を使う。`state` と `runner` は互いに依存しない。`cli` が最上位で、循環させない。[02-architecture.md](02-architecture.md) 3 章)。
 
 ---
 
@@ -498,14 +498,14 @@ else: Parse(value) が失敗なら 68(`invalid value: '<subject>'`)、成功な�
 | `max_interval` | `interval` と同じ書式。`interval` 以上 | 待ち時間の上限。`multiplier` と同時に指定 |
 
 - `multiplier` と `max_interval` は両方書くか両方書かない。検証の詳細は [03-definition-format.md](03-definition-format.md)。
-- `retry` を書かないジョブは、従来どおり 1 回だけ実行する。
+- `retry` を書かないジョブは、1 回だけ実行する。
 
 ### 7.2 数値の型(Go 版の決定)
 
 | 値 | Go の型 | 理由 |
 |---|---|---|
-| 待ち時間(秒。`interval`、`max_interval`、各回の待ち) | `uint64` | 元の仕様が 64 ビット符号なし整数の秒。乗算の飽和も 64 ビット符号なしで定める |
-| 倍率 `multiplier` | `uint32`(範囲 2〜10) | 元の仕様が 32 ビット符号なし整数 |
+| 待ち時間(秒。`interval`、`max_interval`、各回の待ち) | `uint64` | 64 ビット符号なし整数の秒とする。乗算の飽和も 64 ビット符号なしで定める |
+| 倍率 `multiplier` | `uint32`(範囲 2〜10) | 32 ビット符号なし整数に収まる値とする |
 | `max`、`retriesDone`、`n`(知らせの回数) | `uint32`(`max` は 1〜100) | |
 | `exit_codes` の各値 | `int32`(1〜255) | ジョブの終了コードの型と同じ |
 | `time.Duration`(待機の実行時だけ) | `int64` のナノ秒 | §7.3 の変換だけで使う。**待ち時間の計算には使わない** |
@@ -915,13 +915,13 @@ func ResumePointOnInterrupt(def *definition.Definition, states []JobState) Resum
 - 待機の実現方法(§7.8。タイマーでもポーリングでもよい)、シグナル監視の仕組み。
 - 標準エラーの出力のバッファリング(ただし行単位で、順序を保つ)。
 
-### Go 版で元の挙動から変えた点
+### この版が採った選択
 
 | # | 点 | 内容 |
 |---|---|---|
 | 1 | 既定の定義ファイル名 | `conductor.yaml`(拡張子 `.yaml`/`.yml`/`.json` で書式を決める) |
 | 2 | ステートの書式 | JSON(06) |
-| 3 | 理由文のうち書式に関わるもの | `JSON として読めません` ほか(06 §6.4 の書き換えの一覧) |
+| 3 | 理由文のうち書式に関わるもの | `JSON として読めません` ほか(06 §6.4 の全件表) |
 | 4 | 「なし」の表現 | `nil` ポインタと空文字列 `""`(ジョブIDは空でないことが保証される) |
 | 5 | 待機 | `select` とタイマーで実装してよい(合図から 1 秒以内の打ち切りは同じ) |
 | 6 | `Backoff` の構造体 | `multiplier` と `max_interval` を 1 つの `*Backoff` にまとめ、「両方有るか両方無い」を型で保証 |

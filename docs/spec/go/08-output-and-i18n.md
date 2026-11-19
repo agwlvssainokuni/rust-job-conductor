@@ -4,28 +4,28 @@
 
 実装は `internal/report` に置く。処理の流れは、「表示する内容」(種類と値を持つ型)を `report` に渡し、`report` がロケールと水準に従って文言に直して書く、という分担にする。
 
-## 0. Go 版で変えた文言の一覧(まとめ)
+## 0. この版の文言の決め(まとめ)
 
-「TOML に触れる文言」を YAML/JSON に直した箇所は、次の表のとおり。これ以外の文言は、元の仕様と文字単位で同じにする。
+文言は、この章の表のとおりに(文字単位で)出力する。この版が採った書式に関わる文言は次のとおり。
 
-| 場所 | 変更前 | 変更後 |
-|------|--------|--------|
-| 使い方(英語)の `convert` の行 | `conductor convert <file> --to <yaml\|toml>` | `conductor convert <file> --to <yaml\|json>` |
-| 使い方(日本語)の `convert` の行 | `conductor convert <ファイル> --to <yaml\|toml>` | `conductor convert <ファイル> --to <yaml\|json>` |
-| 使い方の `--config` の既定(英語) | `(default: conductor.toml in the current directory)` | `(default: conductor.yaml in the current directory)` |
-| 使い方の `--config` の既定(日本語) | `(省略時: 実行ディレクトリの conductor.toml)` | `(省略時: 実行ディレクトリの conductor.yaml)` |
-| 使い方の `--to`(英語) | `--to <yaml\|toml>    target format of convert` | `--to <yaml\|json>    target format of convert` |
-| 使い方の `--to`(日本語) | `--to <yaml\|toml>    convert の変換後の形式` | `--to <yaml\|json>    convert の変換後の形式` |
-| ステートの原因: 構文の誤り | `TOML として読めません` | `JSON として読めません` |
-| ステートの原因: 書き出しの失敗 | `内容を TOML にできません` | `内容を JSON にできません` |
-| 定義の誤りの種類 `retryNotTable`(英語) | `retry must be a table` | `retry must be a mapping` |
-| 定義の誤りの種類 `retryNotTable`(日本語) | `retry は表で書きます` | `retry はマップで書きます` |
-| 例の中の定義・ステートのファイル名 | `c.toml` など | `c.yaml` など |
+| 場所 | 文言 |
+|------|------|
+| 使い方(英語)の `convert` の行 | `conductor convert <file> --to <yaml\|json>` |
+| 使い方(日本語)の `convert` の行 | `conductor convert <ファイル> --to <yaml\|json>` |
+| 使い方の `--config` の既定(英語) | `(default: conductor.yaml in the current directory)` |
+| 使い方の `--config` の既定(日本語) | `(省略時: 実行ディレクトリの conductor.yaml)` |
+| 使い方の `--to`(英語) | `--to <yaml\|json>    target format of convert` |
+| 使い方の `--to`(日本語) | `--to <yaml\|json>    convert の変換後の形式` |
+| ステートの原因: 構文の誤り | `JSON として読めません` |
+| ステートの原因: 書き出しの失敗 | `内容を JSON にできません` |
+| 定義の誤りの種類 `retryNotTable`(英語 / 日本語) | `retry must be a map` / `retry はマップで書きます` |
+| 定義の誤りの種類 `unsupportedFormat`(英語 / 日本語) | `unsupported definition file format` / `定義ファイルの形式に対応していません` |
+| 例の中の定義・ステートのファイル名 | `c.yaml`、`c.yaml.state` など |
 
 - ステートの原因 2 件は、ステートファイルが JSON であるため(10 章 7.2 に全件)。
-- `retryNotTable` の識別子(`retryNotTable`)は変えない(内部の名前であり、利用者には見えない)。「table」「表」は TOML の語で、YAML/JSON では「マップ(キーと値の対応)」と呼ぶため文言だけを直した。
-- 定義の誤りの「原因」の文(日本語の固定の文)のうち、TOML に触れるもの(例: 文法の誤りの理由)は、[03-definition-format.md](03-definition-format.md) が YAML/JSON 版に直して規定する。この章は、種類の文(4.3)だけを規定する。
-- 変換の誤りの「原因」の文は、[09-converter.md](09-converter.md) が規定する変換の規則に従う。10 章 7.3 に、元の仕様の原因の文の一覧を、Go 版で使えるものとして再掲する。
+- `retryNotTable` の識別子は内部の名前であり、利用者には見えない。文言は、YAML/JSON の語である「マップ(キーと値の対応)」で言う。
+- 定義の誤りの「原因」の文(日本語の固定の文)は、[03-definition-format.md](03-definition-format.md) が規定する。この章は、種類の文(4.3)だけを規定する。
+- 変換の誤りの「原因」の文は、[09-converter.md](09-converter.md) が規定する。10 章 7.3 に全件を再掲する。
 
 ## 1. 出力先の使い分け
 
@@ -55,7 +55,7 @@
 
 ### 1.2 標準出力が閉じている・書けないときの Go の注意
 
-元の実装は、標準出力の読み手が閉じていて(例: `watch | true`)書き込みが失敗したとき、プロセスが書き込みの失敗の信号で死なずに、`cannot write to standard output` を標準エラーに出して 65(`convert` は 67)で終わる(実機で確認: `watch | true` は 65)。
+標準出力の読み手が閉じていて(例: `watch | true`)書き込みが失敗したとき、プロセスは書き込みの失敗の信号で死なずに、`cannot write to standard output` を標準エラーに出して 65(`convert` は 67)で終わらなければならない。
 
 Go では、標準出力(fd 1)・標準エラー(fd 2)への書き込みが壊れたパイプに当たると、`SIGPIPE` を受けたプロセスが終了する、という既定の挙動が `os/signal` の文書に書かれている(未確認: 実装するバージョンの文書で再確認する)。これを避け、書き込みの失敗を `error` として受け取るために、UNIX 系では起動の最初に `signal.Notify(ch, syscall.SIGPIPE)` を呼び、`ch` を読み捨てる(`signal.Ignore` は使わない。無視の設定は子プロセスに引き継がれるが、`Notify` による捕捉は、子プロセスの起動で既定に戻る、とされるため。この点も実装時に確認する)。Windows では不要。この設定が、`run`・`pipeline` で子プロセスの `SIGPIPE` の扱いに影響しないことは、[07-process-and-signals.md](07-process-and-signals.md) の規定と合わせて確認する(未確認)。
 
@@ -158,10 +158,11 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 
 ### 4.3 定義の誤り
 
-表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>` は、定義の検証が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。原因の文の一覧は [03-definition-format.md](03-definition-format.md) にある。この章では、種類の文だけを規定する。終了コードはすべて 64。
+表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>` は、定義の検証が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。原因の文の一覧は [03-definition-format.md](03-definition-format.md) にある。この章では、種類の文だけを規定する。種類は 31 種。終了コードはすべて 64。
 
 | 識別子 | 英語 | 日本語 |
 |--------|------|--------|
+| `unsupportedFormat` | `unsupported definition file format` | `定義ファイルの形式に対応していません` |
 | `fileMissing` | `definition file does not exist` | `定義ファイルが存在しません` |
 | `unreadable` | `cannot read definition file` | `定義ファイルを読めません` |
 | `tooLarge` | `definition file is too large` | `定義ファイルが大きすぎます` |
@@ -182,7 +183,7 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 | `emptyField` | `required value is empty` | `必須の値が空です` |
 | `duplicateTransition` | `duplicate transition for the same result` | `同じ結果の遷移が重複しています` |
 | `invalidEnvName` | `invalid environment variable name` | `環境変数の名前が正しくありません` |
-| `retryNotTable` | `retry must be a mapping`(変更: 0 章) | `retry はマップで書きます`(変更: 0 章) |
+| `retryNotTable` | `retry must be a map` | `retry はマップで書きます` |
 | `retryMissingKey` | `a required key of retry is missing` | `retry の必須のキーがありません` |
 | `retryExitCodesEmpty` | `retry exit_codes is empty` | `retry の終了コードの一覧が空です` |
 | `retryExitCodeInvalid` | `retry exit_codes has an invalid exit code` | `retry の終了コードが正しくありません` |
@@ -424,8 +425,8 @@ Run ID: <ID>                       ← run ID があるときだけ。見出し�
 
 ### 6.3 色
 
-- 色を使う条件(最初に必要になったとき一度だけ判定): UNIX 系の OS である(`runtime.GOOS` が `windows` でない。Windows は常に色なし)、かつ環境変数 `NO_COLOR` が未設定または空、かつ標準出力が端末。
-- 端末の判定: `golang.org/x/term` の `term.IsTerminal(int(os.Stdout.Fd()))` を使う(Go の標準ライブラリだけで同等の判定をするなら、`os.Stdout.Stat()` の `Mode()&os.ModeCharDevice` があるが、`/dev/null` などの文字デバイスも真になる点が違う、とされるため、採用しない。実装時に確認する)。`Deps` の端末判定の口(`IsTerminal() bool`)を通す。
+- 色を使う条件(最初に必要になったとき一度だけ判定): 環境変数 `NO_COLOR` が未設定または空、かつ標準出力が端末(`Deps` の `StdoutIsTerminal()` が真)。Windows は常に色なし: Windows 向けの本番の実装(`internal/cli/terminal_windows.go`)は、`StdoutIsTerminal()` が常に偽を返す。`report` は `runtime.GOOS` を参照しない。
+- 端末の判定: 標準ライブラリだけで行う。`os.Stdout.Stat()` の `Mode()&os.ModeCharDevice` が真で、かつ `/dev/null` と同じファイルでない(`os.SameFile(info, nullInfo)`。`nullInfo` は `os.Stat("/dev/null")`。取得に失敗したときは、`/dev/null` ではないものとして扱う)ときに、端末とみなす。`/dev/null` 以外の文字デバイス(`/dev/zero` など)が端末とみなされる点は、この版の決定で、実機での確認はしていない(未確認)。`Deps` の端末判定の口(`StdoutIsTerminal() bool`)を通す(UNIX 系の本番の実装は `internal/cli/terminal_unix.go`)。
 - 色は、状態語だけに、ANSI の SGR で付ける: `ESC[<番号>m<語>ESC[0m`(ESC は U+001B)のあとに埋めの空白。`success` = 32(緑)、`warning` = 33(黄)、`error` = 31(赤)、`skipped` = 36(シアン)、`pending` = 色なし(制御列を付けない)。
 - 列の幅は、色の制御文字を除いた文字で決める(状態語の埋めの空白は、制御列の外側に置く)。ファイルやパイプへの出力には制御文字を含めない。状態は色によらず文字でも表す。
 
@@ -584,7 +585,7 @@ Go での実装の方針: `fmt.Sprintf("\\u{%x}", r)` で 16 進を作ってよ�
 | メッセージの保持 | 言語ごとの構造体(または、キーから文字列への配列)を `internal/report` に持つ | 表の全件を型で漏れなく持てる。`map[string]string` でもよいが、キーの綴り間違いを実行時まで検出できない |
 | プレースホルダの置換 | `text/template` は使わない。自前の置換(文字列の連結、または 1 回の走査で `{名前}` を値に置き換える関数) | 値(ジョブIDなど)に `{n}` のような文字列が入っても、再度置換されないこと(1 回の走査)を、自分で保証できる。`text/template` は、実行時の機能が多く、文言に `{{` が入る余地があるため不要 |
 | 文言の組み立て | 種類ごとの関数(例: `FormatRetry(loc, id, code, n, max, sec) string`)。ロケールによる分岐は関数の中 | 日本語・英語で語順が違う(リトライの知らせ)ため、単純な置換の表では足りない |
-| 端末判定 | `golang.org/x/term`(`term.IsTerminal`) | 6.3 節。標準ライブラリだけでは `/dev/null` の扱いが違う、とされる。外部ライブラリは、YAML のほかにこれ 1 つだけ追加(最新の安定版を、実装時に確認する。版の断定はしない) |
+| 端末判定 | 標準ライブラリ(`os.File.Stat` の `ModeCharDevice` と、`/dev/null` の除外) | 6.3 節。外部ライブラリは、YAML のほかには追加しない |
 | 色 | 自前の SGR の定数 | 外部の色のライブラリは使わない |
 | 表示幅 | 自前(ASCII なら 1、それ以外は 2) | 仕様の近似に正確に合わせるため。`go-runewidth` などは、結果が異なりうるので使わない |
 | エスケープ | 自前(9 章) | 仕様の表に正確に合わせるため |
@@ -609,7 +610,7 @@ func (r *Reporter) Error(s string)
 
 必須:
 
-- 4 章・5 章・6 章・8 章の全文(0 章の変更を反映したもの)、`-v` の行の形式、出力先(標準出力か標準エラーか)と水準、行の改行。
+- 4 章・5 章・6 章・8 章の全文(0 章の文言を含む)、`-v` の行の形式、出力先(標準出力か標準エラーか)と水準、行の改行。
 - 言語の決め方(7 章)、エスケープの規則と切り詰め(9 章)、色の条件(6.3)。
 - 日本語・英語ともに、固定の語とトークンの区別(2.1、7 章)。
 - 標準出力の書き込みの失敗を、`watch` は 65、`convert` は 67 の終了コードに結びつけること(1.2 節)。
@@ -621,8 +622,8 @@ func (r *Reporter) Error(s string)
 
 ## 12. 未確認
 
-- 定義の誤りの `<原因>` の全文(03 章に属する)。変換の誤りの `<原因>` の、Go 版での使い分け(09 章に属する)。
+- 定義の誤りの `<原因>` は 03 章、変換の誤りの `<原因>` は 09 章が全件を規定する(この章に未確認はない)。
 - `SIGPIPE` の扱い(1.2)の、Go のバージョンごとの挙動と、子プロセスへの影響。
 - 非 UTF-8 を含むパス・名前を `for range` で置換したときの、実機との細かい一致(4 章 4.4 の 3 件を除く)。
 - Windows での色と端末判定(Windows は常に色なしと規定するため、判定そのものは不要)。
-- `golang.org/x/term` の最新の安定版と、そのサポートする Go の版(実装時に確認する)。
+- 端末の判定(6.3)の、`/dev/null` 以外の文字デバイスでの結果と、疑似端末での結果(実装時に確かめる)。
