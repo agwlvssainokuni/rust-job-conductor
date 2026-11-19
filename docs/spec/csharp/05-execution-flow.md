@@ -14,7 +14,7 @@
 
 | 置き場所 | 置くもの |
 |---|---|
-| `Conductor.Core` の `Conductor.Flow` | 値の型(`JobStatus`、`SkipReason`、`JobState`、`PipelineState`、`JobExecution`、`JobOutcome`、`NextStep`、`Decision`、`RetryPolicy` ほか)、`FlowDefinition`(判断に必要な部分だけの定義の見え方)、`Classifier.Classify`、`Classifier.ClassifyAndDecide`、`NextSteps.Next`、`Decisions.DecideBeforeRun`、`Retries.Decide`、`Retries.NextWaitSecs`、`Saturating.MulU64`、`Saturating.AddI32`、`Resume.OnInterrupt`、`ExitCodes.For`、`ExitCodes.SignalExitCode`、記録の関数(`Recorder.ApplyOutcome`、`ApplySkip`、`ApplyInterrupt`、`InitialState`)。`System.IO`・`System.Diagnostics`・`System.Threading`・`System.Environment`・`DateTime.Now`・`Stopwatch` を使わない |
+| `Conductor.Core` の `Conductor.Flow` | 値の型(`JobStatus`、`SkipReason`、`JobState`、`PipelineState`、`JobExecution`、`JobOutcome`、`NextStep`、`Decision` ほか。`RetryPolicy` と `Backoff` は 03 章の `Conductor.Definition` の型を使う)、`FlowDefinition`(判断に必要な部分だけの定義の見え方)、`Classifier.Classify`、`Classifier.ClassifyAndDecide`、`NextSteps.Next`、`Decisions.DecideBeforeRun`、`Retries.Decide`、`Retries.NextWaitSecs`、`Saturating.MulU64`、`Saturating.AddI32`、`Resume.OnInterrupt`、`ExitCodes.For`、`ExitCodes.SignalExitCode`、記録の関数(`Recorder.ApplyOutcome`、`ApplySkip`、`ApplyInterrupt`、`InitialState`)。`System.IO`・`System.Diagnostics`・`System.Threading`・`System.Environment`・`DateTime.Now`・`Stopwatch` を使わない |
 | `Conductor.Core` の `Conductor.RunIds` | run ID の検査(§6.1)。純粋 |
 | `Conductor.Runtime` の `Conductor.Runner` | `run_job`(子プロセス)、`RetryWaiter`(§7.8)、`Interrupt`(§15.1)。シグナル・時計・スレッドに触れる |
 | `Conductor.Runtime` の `Conductor.State` | 読み書き・整合性検査・`reset`([06](06-state-file.md)) |
@@ -28,7 +28,7 @@
 |---|---|---|
 | 終了コード(ジョブ自身のもの、`ReportedExitCode`、成功・警告コードの一覧の値) | `int` | 32 ビット符号付き。整形(§2.2)は `reported & 0xFF` を使う。`int` の `&` は負数を 2 の補数のビット列として扱うので、負数でも下位 8 ビットが正しく取れる(例: `(-1) & 0xFF` は 255、`(-256) & 0xFF` は 0)。これは C# の言語仕様の性質だが、この環境では実行して確かめていない(§14 のテストで固定する) |
 | 待ち時間の秒(`IntervalSecs`、`MaxIntervalSecs`、各回の待ち、`lastWaitSecs`) | `ulong` | 0〜2^64-1。符号なし 64 ビットの飽和演算(§7.6)。`long` や `double` に変換して計算しない |
-| 倍率 `Multiplier` | `uint`(2〜10) | `Saturating.MulU64` には `(ulong)multiplier` で渡す |
+| 倍率 `Multiplier` | `int`(2〜10。03 章の `Backoff`) | `Saturating.MulU64` には `(ulong)multiplier` で渡す(検証済みなので 2 以上の正の値) |
 | `Max`、`retriesDone`、知らせの回数 `n` | `int` | `Max` は 1〜100 |
 | シグナル番号 | `int` | 終了コード `128 + n` の計算に使う。飽和加算(§2.2) |
 | 時刻・経過 | `long` の `Stopwatch` のタイムスタンプ(ティック) | 単調増加のものだけを使う(§7.8)。`DateTime.UtcNow`(実時計)は待機の計測に使わない |
@@ -624,8 +624,8 @@ else: Parse(value) が失敗なら 68(`invalid value: '<subject>'`)、成功な�
 §0.2 の方針を、リトライに当てはめる。待ち時間は秒の `ulong`、倍率は `uint`。浮動小数点(`double`・`float`)・`decimal`・`TimeSpan`・`BigInteger` は、待ち時間の計算に使わない(丸めの余地を作らない)。
 
 ```csharp
-public readonly record struct Backoff(uint Multiplier, ulong MaxIntervalSecs);   // 2〜10、IntervalSecs 以上 86400 以下
-
+// Backoff と RetryPolicy は 03 章の型(名前空間 Conductor.Definition。この章は再定義しない)
+public sealed record Backoff(int Multiplier, ulong MaxIntervalSecs);   // 2〜10、IntervalSecs 以上 86400 以下
 public sealed record RetryPolicy(
     IReadOnlyList<int> ExitCodes,    // 昇順・重複なし・各 1〜255・空でない
     int Max,                         // 1〜100
@@ -633,7 +633,7 @@ public sealed record RetryPolicy(
     Backoff? Backoff);               // null なら固定間隔
 ```
 
-`Backoff` を 1 つの値にまとめるのは、「`multiplier` と `max_interval` は両方あるか両方ない」を型で保証するための決定。定義の検証で片方だけは拒否される([03](03-definition-format.md))ので、部分的に存在する状態は作れない。`Backoff` は `readonly record struct` で、`Backoff?` は `Nullable<Backoff>`。
+`Backoff` を 1 つの値にまとめるのは、「`multiplier` と `max_interval` は両方あるか両方ない」を型で保証するための決定。定義の検証で片方だけは拒否される([03](03-definition-format.md))ので、部分的に存在する状態は作れない。`Backoff` は `sealed record`(参照型)で、`Backoff?` は null 許容の参照。
 
 ### 7.3 `interval` / `max_interval` の文字列から秒への変換
 
@@ -684,7 +684,7 @@ return Retry { WaitSecs: NextWaitSecs(policy, retriesDone, lastWaitSecs) }
 NextWaitSecs(policy, retriesDone: int, lastWaitSecs: ulong) -> ulong
   if policy.Backoff が有る:
       if retriesDone == 0: return min(policy.IntervalSecs, policy.Backoff.MaxIntervalSecs)   # = IntervalSecs(検証で interval <= max_interval)
-      else:                return min(Saturating.MulU64(lastWaitSecs, policy.Backoff.Multiplier), policy.Backoff.MaxIntervalSecs)
+      else:                return min(Saturating.MulU64(lastWaitSecs, (ulong)policy.Backoff.Multiplier), policy.Backoff.MaxIntervalSecs)
   else:
       return policy.IntervalSecs                                                              # 毎回同じ(固定間隔)
 ```
@@ -770,7 +770,7 @@ loop:
 
 ### 7.8 待機とシグナルによる中断(`RetryWaiter.Wait`)
 
-**決定: 待機は同期で、中断の合図 `Interrupt`([07](07-process-and-signals.md) §6)の `WaitRaised(TimeSpan)`(内部は `ManualResetEventSlim.Wait`)を、250 ミリ秒以下の刻みで繰り返し、刻みごとに合図と単調な時計の期限を確かめる。** シグナルのハンドラは `Interrupt.Trigger` を呼び、その中で `ManualResetEventSlim.Set()` が呼ばれるので、待機はハンドラの実行と同時に起きて戻る(刻みの上限は、起こし損ねの保険と、時計の確認のため)。`async`・`Task`・`Thread.Sleep`(合図で起こせない)・`Timer` は使わない。スレッドを作らない。型 `Interrupt`・`WaitOutcome`(`Elapsed` / `Interrupted(int SignalNumber)`)と `RetryWaiter.Wait(ulong secs, Interrupt sig)` の署名は 07 §7.5 が正本で、この節は、**秒から待機への数値の変換**(桁あふれ・丸め・上限の分割)を規定する。07 の手順が `double` の秒で残りを求めている点は、この節の整数の式で置き換える(経過が数秒のオーダーでは結果は同じだが、`secs` が `ulong` の全範囲でも、丸めと例外が起きないように、この節の式を正本とする)。
+**決定: 待機は同期で、中断の合図 `Interrupt`([07](07-process-and-signals.md) §6)の `WaitRaised(TimeSpan)`(内部は `ManualResetEventSlim.Wait`)を、250 ミリ秒以下の刻みで繰り返し、刻みごとに合図と単調な時計の期限を確かめる。** シグナルのハンドラは `Interrupt.Trigger` を呼び、その中で `ManualResetEventSlim.Set()` が呼ばれるので、待機はハンドラの実行と同時に起きて戻る(刻みの上限は、起こし損ねの保険と、時計の確認のため)。`async`・`Task`・`Thread.Sleep`(合図で起こせない)・`Timer` は使わない。スレッドを作らない。型 `Interrupt`・`WaitOutcome`(`Elapsed` / `Interrupted(int SignalNumber)`)と `RetryWaiter.Wait(ulong secs, Interrupt sig)` の署名は 07 §7.5 が正本で、この節は、**秒から待機への数値の変換**(桁あふれ・丸め・上限の分割)を規定する。残りの時間は、`double` を使わず、この節の整数の式で求める(`secs` が `ulong` の全範囲でも、丸めと例外が起きない)。07 §7.5 も同じ式を使う(この節の式が正本)。
 
 手順(`Conductor.Runner` に置く。時計は差し替え可能にする: `Func<long> timestamp`(既定は `Stopwatch.GetTimestamp`)と `long frequency`(既定は `Stopwatch.Frequency`)):
 

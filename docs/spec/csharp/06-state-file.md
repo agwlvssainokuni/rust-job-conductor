@@ -549,10 +549,11 @@ API の選定と注意:
 - ファイル記述子・ハンドルは、子プロセスに引き継がれない(.NET の `FileStream` の既定。`FileOptions` に継承の指定が無い。この文書では取得して確認していない: 未確認)。
 - 時刻は `StateStoreOptions.Now()`(`DateTimeOffset`)の `UtcTicks` から `DateTime.UnixEpoch.Ticks` を引いて 100 を掛けた値(ナノ秒単位、分解能 100 ナノ秒)でよい。クロックが戻っても、名前の衝突は連番の再試行(最大 16 回)で避ける。
 
-**ディレクトリの同期(手順 9)**: .NET には、ディレクトリの `fsync` を行う管理 API が無い、と理解している(`File.OpenHandle` はディレクトリを開こうとすると `UnauthorizedAccessException` になる、と理解している。いずれも公式ドキュメントでは確認していない: 未確認)。この仕様は、UNIX 系で、`libc` の `open`・`fsync`・`close` を P/Invoke で呼ぶことに決める(`UnixNative` に足す。§13.1)。根拠: 手順 9 は「失敗は無視」の、耐久性のための最善の努力で、P/Invoke が使えない環境でも、他の挙動(ファイルの内容・原子性)は変わらない。
+**ディレクトリの同期(手順 9)**: .NET には、ディレクトリの `fsync` を行う管理 API が無い、と理解している(`File.OpenHandle` はディレクトリを開こうとすると `UnauthorizedAccessException` になる、と理解している。いずれも公式ドキュメントでは確認していない: 未確認)。この仕様は、UNIX 系で、`libc` の `open`・`fsync`・`close` を P/Invoke で呼ぶことに決める(`Conductor.Native.UnixNative` に置く。§13.1)。根拠: 手順 9 は「失敗は無視」の、耐久性のための最善の努力で、P/Invoke が使えない環境でも、他の挙動(ファイルの内容・原子性)は変わらない。
 
 ```csharp
-// 実際の置き場所は UnixNative(07 の規定。P/Invoke は 1 か所)。ここでは、足すメソッドの形だけを示す(§13.1)
+// 置き場所は Conductor.Native.UnixNative(src/Conductor.Runtime/Native/UnixNative.cs。07 §7.2.1 の規定。P/Invoke は 1 か所)。ここでは、ディレクトリの同期のメソッドの形だけを示す(§13.1)
+namespace Conductor.Native;
 internal static partial class UnixNative   // 抜粋
 {
     [LibraryImport("libc", EntryPoint = "open", StringMarshalling = StringMarshalling.Utf8)]
@@ -682,7 +683,7 @@ catch (ArgumentException) { /* DecoderFallbackException も ArgumentException �
 
 6a が 6c より先であることは、仕様として固定する(重複キーが先にあっても、後ろに構文の誤りがあれば、`JSON として読めません` になる)。空白の定義は JSON の空白(スペース、`\t`、`\n`、`\r`)。BOM・NBSP・垂直タブ・改ページは空白でないので、6a で拒否される。書き出しは BOM を付けない。他のツールが BOM 付きで保存した場合は壊れたステートとして 65 になり、`reset` で回復する。
 
-順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定は、読み取りが返す値の種類(整数の字句 / それ以外の数 / 真偽 / 文字列 / `null` …。§6.5)で行い、受理は「整数の字句で、値が 1」のときだけとする。64 ビットを超える整数の字句でも `versionMismatch`(`long.Parse`・`BigInteger.Parse` で値を作らずに、字句の判定だけで足りる)。
+順 7 の「整数」の定義: 値の字句が `-?(0|[1-9][0-9]*)` に一致するもの(小数点・指数を含まない)。`1.0`、`1e0`、`"1"`、`true`、`null`、配列、オブジェクトは**整数以外**(`format_version が整数ではありません`)。`-0` と `0`、`2`、`-1`、`99999999999999999999`、5000 桁の数字は整数で 1 ではないので `versionMismatch`。`1` だけが受理される(`01` は JSON の構文として誤り(6a))。整数の判定は、読み取りが返す値の種類(整数の字句 / それ以外の数 / 真偽 / 文字列 / `null` …。§6.5)で行い、受理は「整数の字句で、値が 1」のときだけとする。64 ビットを超える整数の字句でも `versionMismatch`(03 章の決定: 字句の桁数と `long.TryParse` の判定だけで足り、`BigInteger`・`decimal` を使わない。木では `HugeIntNode`)。
 
 順 11 の `corrupt` の理由文(個別。いずれも種類は `corrupt`。1 つの要素の中の検査の順に上から):
 
@@ -831,7 +832,7 @@ conductor: error: c2.json.r3.state: state file is corrupt: run_id がファイ�
 |---|---|
 | 1 | 入力は、`string`(順 5 で厳密に復号した UTF-16)。構文解析は、再帰でなく**明示のスタック**で行う(1 MiB の `[` の列でも、`StackOverflowException` を起こさない。`StackOverflowException` は捕捉できないので、再帰の深さの上限に頼らない。[10](10-errors-and-exit-codes.md)) |
 | 2 | 返す値の種類: オブジェクト(メンバーの**並び**。キーと値の組。記述順。重複を落とさない)、配列、文字列、**整数の字句**、**整数でない数の字句**(小数点・指数を持つもの)、真偽、`null`。整数の字句は、`-?(0\|[1-9][0-9]*)` に一致するもの。`-0` は整数の字句(値 0) |
-| 3 | 整数の字句から、`int` の範囲を判定できる(`TryGetInt32(out int value)`: 範囲内なら真。範囲外・64 ビットを超える字句は偽。字句の長さを見て、`long.Parse`・`BigInteger.Parse` を呼ぶ前に打ち切ってよい。`double` を経由しない) |
+| 3 | 整数の字句から、`int` の範囲を判定できる(`TryGetInt32(out int value)`: 範囲内なら真。範囲外・64 ビットを超える字句は偽。03 章の決定: 符号を除いた桁数が 19 を超えれば `HugeIntNode`(範囲外)とし、それ以外は `long.TryParse` で判定する。`BigInteger`・`decimal`・`double` を経由しない) |
 | 4 | 構文の誤り(BOM・余分な文字・空白だけ・制御文字・エスケープの誤り・対にならないサロゲートのエスケープ・`NaN`・`Infinity`・先頭が `0` の整数・末尾のカンマ・コメント)をすべて拒否する(失敗は 1 種類。位置はステートでは使わず捨てる) |
 | 5 | 重複キーを**見つけても止めず**、「重複したキーがあった」ことを結果に持たせて、構文解析を続ける(後ろに構文の誤りがあれば、そちらを先に失敗にするため)。キーの比較は、エスケープを展開した後の文字列の序数比較 |
 | 6 | 入れ子の深さの上限を、呼び出し側が指定できる。ステートでは 32(根の値を数えず、33 段目の `[`・`{` を拒否。03 の規定と同じ)。要素数・文字の大きさの上限は、ステートには適用しない(ファイルの大きさの上限 1 MiB が別にある) |
@@ -1047,7 +1048,7 @@ conductor: warning: kept state files that could not be read (remove one with `co
 | 6 | キーの大文字小文字 | 区別する。`Format_Version` や `ID` は未知のキー(または必須のキーが無い)として扱う |
 | 7 | `null` | どの項目の `null` も型の誤り。「無い」とは扱わない |
 | 8 | BOM | 拒否する(`new UTF8Encoding(false, true)` で復号し、結果の先頭の U+FEFF を 6a にする。§6.1.2、§6.5) |
-| 9 | 巨大な整数 | `format_version` と `exit_code` は、整数の字句の判定で行う。巨大な字句で `int.Parse`・`long.Parse`・`BigInteger.Parse` を呼ばない(`OverflowException` を起こさない) |
+| 9 | 巨大な整数 | `format_version` と `exit_code` は、整数の字句の判定で行う。巨大な字句で `int.Parse`・`long.Parse` を呼ばない(`long.TryParse` は、桁数の検査のあとだけ)(`OverflowException` を起こさない) |
 | 10 | ディレクトリを指すステートのパス | `reset` は消さず `removeFailed`(`File.Delete` を使う。§8.1) |
 | 11 | 真偽 | `true` / `false` は整数でない。`exit_code` や `format_version` に受理しない |
 | 12 | `NaN` / `Infinity` | 拒否する(自前の読み取りが拒否する) |
@@ -1074,21 +1075,21 @@ public enum StateErrorDetail { None, RunIdMismatch }
 public sealed record StateError(StateErrorKind Kind, string Path, string Reason, StateErrorDetail Detail = StateErrorDetail.None);
 // Reason は §6.4 の固定文。入力の値や下位の例外の文を、Reason にも表示にも含めない。
 
-public abstract record StateReadResult;
-public sealed record StateReadOk(PipelineState? State) : StateReadResult;   // null は「空」。Read は完了のものも null、ReadRaw は完了のものも返す
-public sealed record StateFail(StateError Error) : StateReadResult;         // StateResult / ResetAllResult にも使う
-public abstract record StateResult;                                         // StateWriteOk | StateFail
-public sealed record StateWriteOk : StateResult;
-public abstract record ResetAllResult;                                      // ResetAllOk(ResetAllOutcome) | StateFail
-public sealed record ResetAllOutcome(IReadOnlyList<string> Kept);           // 読めずに残したステートのファイル名(整列済み。空でなければ警告)
+public abstract record StateOutcome;                                         // すべての入出力の結果の共通の基底(02 章)。失敗を値で返す。例外を送出しない
+public sealed record StateFail(StateError Error) : StateOutcome;             // 失敗(読み込み・書き込み・削除のすべてで共通)
+public sealed record StateReadOk(PipelineState? State) : StateOutcome;       // null は「空」。Read は完了のものも null、ReadRaw は完了のものも返す
+public sealed record StateWriteOk : StateOutcome;                            // Write・Reset の成功
+public sealed record ResetAllOk(ResetAllOutcome Outcome) : StateOutcome;     // ResetAll の成功
+public sealed record ResetAllOutcome(IReadOnlyList<string> Kept);            // 読めずに残したステートのファイル名(整列済み。空でなければ警告)
+// 戻り値の型は StateOutcome とし、メソッドごとに、期待する派生型(Read・ReadRaw は StateReadOk、Write・Reset は StateWriteOk、ResetAll は ResetAllOk)と StateFail だけが返る、と規定する
 
 public interface IStateStore
 {
-    StateReadResult Read(string definitionPath, string? runId);             // 空は StateReadOk(null)。完了も StateReadOk(null)(14)
-    StateReadResult ReadRaw(string definitionPath, string? runId);          // 14 を行わない
-    StateResult Write(string definitionPath, string? runId, PipelineState state, Durability durability);
-    StateResult Reset(string definitionPath, string? runId);                // 無くても StateWriteOk
-    ResetAllResult ResetAll(string definitionPath);                         // §8.2
+    StateOutcome Read(string definitionPath, string? runId);                // StateReadOk | StateFail。空は StateReadOk(null)。完了も StateReadOk(null)(14)
+    StateOutcome ReadRaw(string definitionPath, string? runId);             // StateReadOk | StateFail。14 を行わない
+    StateOutcome Write(string definitionPath, string? runId, PipelineState state, Durability durability);   // StateWriteOk | StateFail
+    StateOutcome Reset(string definitionPath, string? runId);               // StateWriteOk | StateFail。無くても StateWriteOk
+    StateOutcome ResetAll(string definitionPath);                           // ResetAllOk | StateFail。§8.2
 }
 
 public sealed record StateStoreOptions(Func<DateTimeOffset> Now, bool SyncDirectory);   // 一時ファイル名用の時刻 / UNIX 系 true・Windows false
@@ -1104,7 +1105,7 @@ public static class Consistency { public static ConsistencyResult Check(Pipeline
 - 表示用の組み立て(種類の文・案内・ロケール)は `Conductor.Report` が行う。
 - `IOException`・`UnauthorizedAccessException` などの BCL の例外は、`IStateStore` の実装の内側で、**狭く**(ファイル操作の `try` の中だけ)捕まえて `StateFail` に変える。それ以外の例外(`NullReferenceException`、`InvalidCastException` など。実装の誤り)は捕まえず、`Main` の最上位が 70 にする([10](10-errors-and-exit-codes.md))。
 - 一時ファイル名の時刻(§5 の手順 3)は、`StateStoreOptions.Now` から得る(`DateTimeOffset` の UTC の Unix エポックからのナノ秒に直す。`UtcDateTime.Ticks` から 100 を掛ける)。`DateTime.UtcNow` を直接読まない(テストで時刻を固定するため)。
-- `StateStoreOptions.SyncDirectory` が真のとき、手順 9 でディレクトリを同期する。P/Invoke の呼び出しは `UnixNative` の 1 か所に置く([07](07-process-and-signals.md) §7.2.1 の規定)ので、`UnixNative` に `SyncDirectory(string)`(中身は §5 の `open`・`fsync`・`close`)を足す。**`Conductor.State` が `UnixNative`(`Conductor.Runner` 名前空間)を直接呼ぶと、02 の「State と Runner は互いに依存しない」に反する。** そのため、`UnixNative` の型を `Conductor.Runtime` の内部(`internal`)の、名前空間に依存しない共有の部品(例: `Conductor.Platform`)に置くか、`StateStoreOptions` に `Action<string>? SyncDirectoryAction` を足して `Conductor.Cli` が `UnixNative.SyncDirectory` を渡すかのどちらかにする。どちらにするかは 02・07 の担当と合わせる(この文書の範囲では未決。§13.4)。
+- `StateStoreOptions.SyncDirectory` が真のとき、手順 9 でディレクトリを同期する(決定)。P/Invoke の呼び出しは `Conductor.Native.UnixNative.SyncDirectory(string)`(中身は §5 の `open`・`fsync`・`close`。07 §7.2.1)の 1 か所に置く。`UnixNative` は `Conductor.Runtime` 内部の `internal` な型で、`Conductor.State` と `Conductor.Runner` の両方が、名前空間 `Conductor.Native` にだけ依存して使う(`State` と `Runner` は互いに依存しない。02 章 3 章)。OS の判定は `State` に持たせず、`Conductor.Cli` が `PlatformKind` から `StateStoreOptions.SyncDirectory` を決めて渡す(UNIX 系は真、Windows は偽)。
 
 ### 13.2 実装に任せてよい点
 
@@ -1131,7 +1132,7 @@ public static class Consistency { public static ConsistencyResult Check(Pipeline
 - `FileStream.Flush(true)` が Unix で `fsync(2)`、Windows で `FlushFileBuffers` を呼ぶこと。
 - `File.Move(overwrite: true)` の原子性(Unix: `rename(2)`、Windows: `MoveFileEx`)と、Windows で他のプロセスが開いているときの失敗の型。
 - `File.Replace` を採らない理由の各点(置き換え先が無いと失敗、Windows の属性・ACL の引き継ぎ)。
-- ディレクトリの同期の P/Invoke の置き場所(02 の「State と Runner は互いに依存しない」と、07 の「P/Invoke は `UnixNative` の 1 か所」の両立。§13.1)。P/Invoke の `LibraryImport("libc")` の名前解決、`open` を `O_RDONLY` でディレクトリに使えること、`AllowUnsafeBlocks` の要否)。
+- ディレクトリの同期の P/Invoke の `LibraryImport("libc")` の名前解決(置き場所は `Conductor.Native.UnixNative` に決定済み。§13.1)、`open` を `O_RDONLY` でディレクトリに使えること、`AllowUnsafeBlocks` の要否)。
 - `Path.GetDirectoryName`・`Path.GetFileName`・`Path.Join` の境界の挙動(§1)。
 - `FileInfo.LinkTarget` が、リンクでないとき `null`、Unix のシンボリックリンクで非 `null` になること。
 - ディレクトリ・親が通常のファイルのパスを `FileStream` で開いたとき、`File.Delete` で消そうとしたときの例外の型(Unix・Windows)。`File.Delete` が存在しないファイルで例外を投げないこと。

@@ -51,7 +51,7 @@
 - `reset`: run ID の決定(68。`--all` のときは決定しない)→ 削除(65)。成功は 0。
 - `validate`: 定義(64)→ `command`(64)。成功は 0。ステートに触れない。シグナルの準備はしない。
 - `convert`: 変換(67)→ 標準出力への書き込み(書けなければ 67)。成功は 0。
-- `--help`・`--version`: 標準出力に書けなくても 0(書き込みの失敗は無視する。08 章 1.3.2)。標準出力に書けない失敗は、`watch` が 65、`convert` が 67、それ以外の経路で未捕捉になったものは 70(6 章)。
+- `--help`・`--version`: 標準出力に書けなくても 0(書き込みの失敗は無視する。08 章 1.3.2)。標準出力に書けない失敗は、`watch` が 65、`convert` が 67、それ以外の経路で未捕捉になったものは 70(6 章)。**既知の差**: UNIX 系では、読み手が先に閉じたパイプへの書き込みは、.NET の標準のストリームが捨てるため検出できず、`watch`・`convert` が 65・67 でなく 0 で終わりうる(08 章 1.3.1)。Windows と、`/dev/full` などの `EPIPE` 以外の失敗では、65・67 になる(Windows は未確認)。
 - `pipeline` の特有: 実行したジョブがエラー(または分類なし)なら、そのジョブの終了コードで終わる。ジョブのあいだに中断の合図があれば `128 + 番号`。完了なら 0。完了を判定できなければ 65。
 - ステートの書き込みに失敗すると、ジョブの終了コードではなく 65 で終わり、「ジョブは実行されました」と表示する(少なくとも 1 回は実行された、という方針)。起動前の失敗(初期ステートの書き込みなど)は「ジョブは起動していません」。
 - 想定外の内部失敗(6 章)は、どの時点でも 70 で終わる(上の順序の外)。
@@ -79,29 +79,29 @@
 
 .NET での「終了の取り出し」(詳細は 07 章):
 
-- 子の終了は、07 章が規定する型 `ChildExit`(判別共用体の骨格: `Exited(int code)`、`Signaled(int signal)`、`Unknown`)に変換してから、この章の分類に渡す。`Process.ExitCode`(`int`)から、シグナルで終了した場合の `128 + n` をどう取り出すか(Unix で、子がシグナルで終了したときの `Process.ExitCode` の値)は、07 章が規定する(公式ドキュメントで確認できた範囲)。この章の分類は、`ChildExit` の 3 種だけを入力にする(`Process.ExitCode` の生の値の意味づけを、この章に持ち込まない)。順 5 は `Signaled`、順 6 は `Unknown`、順 7 以降は `Exited`。
-- Windows では、`Process.ExitCode` は符号つき 32 ビットの値で、例外コード(例: `0xC0000005`)が負の値として現れうる(値の符号の扱いは 07 章。ここでは未確認)。`Exited(code)` の `code` は、`int` のまま 4 章の `ExitCodes.For` に渡す(下位 8 ビットを取る。符号つき・符号なしのどちらの解釈でも結果が同じ)。Windows では、ジョブの終了コードが 255 を超える値(例: 256)になりうるので、4 章の範囲合わせの対象になる。
+- 子の終了は、07 章 4.4 節の規則(`IPlatform.ReadExit` が、`Process.ExitCode` から `ExitCode` と `TerminatedBySignal` を決める)で `JobExecution`(05 章)の `ExitCode`・`TerminatedBySignal` にしてから、この章の分類に渡す。`Process.ExitCode`(`int`)から、シグナルで終了した場合の `128 + n` をどう取り出すか(UNIX 系: 終了コードが 129〜159 で、そのジョブの成功・警告のコードに含まれないときだけシグナル終了とみなす)は、07 章が規定する。この章の分類は、`JobExecution` の項目(`ExitCode`、`TerminatedBySignal`、`StartFailure`)だけを入力にする(`Process.ExitCode` の生の値の意味づけを、この章に持ち込まない)。順 5 は `TerminatedBySignal` が有るとき、順 6 は `ExitCode` も `TerminatedBySignal` も無いとき、順 7 以降は `ExitCode` が有るとき。
+- Windows では、`Process.ExitCode` は符号つき 32 ビットの値で、例外コード(例: `0xC0000005`)が負の値として現れうる(値の符号の扱いは 07 章。ここでは未確認)。`ExitCode` は、`int` のまま 4 章の `ExitCodes.For` に渡す(下位 8 ビットを取る。符号つき・符号なしのどちらの解釈でも結果が同じ)。Windows では、ジョブの終了コードが 255 を超える値(例: 256)になりうるので、4 章の範囲合わせの対象になる。
 - 起動の失敗: `Process.Start` は、起動に失敗したとき、`System.ComponentModel.Win32Exception` を送出する(ファイルがない・実行権限がない、など。`NativeErrorCode` に OS の誤りの番号が入る。例外の型の詳細は 07 章。ここでは公式ドキュメントを取得しておらず、未確認)。順 4(起動失敗)として扱う。`Win32Exception` の `NativeErrorCode` の値は、利用者には区別せず、すべて `cannot start command`(127)にまとめる。**捕捉するのは起動に関する例外の型(07 章が列挙するもの)だけ**とし、`Exception` 全体は捕捉しない(想定外の失敗を、起動失敗に化けさせないため)。
 - 起動に失敗した場合は、`Process` の `WaitForExit` を呼ぶ対象がない(重複して分類しない。起動の例外の捕捉と、終了の待機は、1 つの `try` の中で、後者を前者の成功後にだけ行う)。
 
 ## 4. 終了コードの範囲合わせ
 
-`ExitCodes.For(long reported, bool isError) -> int`(`Conductor.Flow`):
+`ExitCodes.For(int reported, bool isError) -> int`(`Conductor.Flow`。05 章 2.2 節が正):
 
 | 入力 | 出力 |
 |------|------|
 | `0 <= reported <= 255` | `reported` |
-| 範囲外 | `reported` の下位 8 ビット(`(int)(reported & 0xFF)`。負の値は 2 の補数表現の下位 8 ビット)。ただし、その結果が 0 で `isError` が真なら 1(エラーを成功に見せない) |
+| 範囲外 | `reported` の下位 8 ビット(`reported & 0xFF`。負の値は 2 の補数表現の下位 8 ビット)。ただし、その結果が 0 で `isError` が真なら 1(エラーを成功に見せない) |
 
-C# の `long` の `&` は、符号つき 64 ビットの 2 の補数表現のビット演算で、負の値も 2 の補数のまま下位 8 ビットを取れる(言語の仕様どおりの挙動。この環境では出典のページを取得しておらず、未確認)。入力の型は、`int`(`Process.ExitCode`)も受けられるよう、`long` にする。例(判定表。受け入れテストの入力に使う): 259 → 3、511 → 255、-1 → 255、-2 → 254、`0xC0000005`(符号なしで 3221225477)→ 5、符号つき 32 ビットの `-1073741819`(同じビット列)→ 5。256・512・`-256`・`1L << 40` は、エラーなら 1、エラーでなければ 0。
+C# の `int` の `&` は、符号つき 64 ビットの 2 の補数表現のビット演算で、負の値も 2 の補数のまま下位 8 ビットを取れる(言語の仕様どおりの挙動。この環境では出典のページを取得しておらず、未確認)。入力の型は `int`(`Process.ExitCode` と `128 + n` の飽和加算の結果。05 章)。例(判定表。受け入れテストの入力に使う): 259 → 3、511 → 255、-1 → 255、-2 → 254、`0xC0000005`(符号なしで 3221225477)→ 5、符号つき 32 ビットの `-1073741819`(同じビット列)→ 5。256・512・`-256`・`int.MinValue` は、エラーなら 1、エラーでなければ 0。
 
-- `reported` と `128 + n` の計算は、`long` で行い、`checked` の文脈にしない(オーバーフローで例外にしない。プロジェクトで `<CheckForOverflowUnderflow>` を有効にしない)。`n` は小さな正の整数だけが渡る。
-- `ExitCodes.ForSignal(int n) -> int` = `For(128L + n, true)`。15 → 143、2 → 130、1 → 129、3 → 131、300 → 172(428 の下位 8 ビット)。`n` が負のときの規定はない(呼び出し側が正の番号だけを渡す)。
+- `128 + n` の計算は、`Saturating.AddI32(128, n)`(32 ビット符号つき整数の飽和加算。05 章)で行い、`checked` の文脈にしない(オーバーフローで例外にしない。プロジェクトで `<CheckForOverflowUnderflow>` を有効にしない)。`n` は小さな正の整数だけが渡る。
+- `ExitCodes.SignalExitCode(int n) -> int` = `For(Saturating.AddI32(128, n), true)`。15 → 143、2 → 130、1 → 129、3 → 131、300 → 172(428 の下位 8 ビット)。`n` が負のときの規定はない(呼び出し側が正の番号だけを渡す)。
 - `-v` の結果行には、元の値(`exit code <C>`)と、`conductor` の終了コードが異なるとき(`result=error` のみ)`, conductor exits with <E>` を示す(08 章 2.1)。
 
 ### 4.1 プロセスの終了(`Main` の戻り値)
 
-`Program.Main` は、`CliApp.Run` が返した `int`(すでに 0〜255 に合わせたもの)を、08 章 1.4 の手順で出力を完了させたあと、**`Main` の戻り値として `return` する**。終了コードは、必ず 0〜255 の `int` にしてから返す。
+`Program.Main` は、`EntryPoint.Run` が返した `int`(すでに 0〜255 に合わせたもの)を、08 章 1.4 の手順で出力を完了させたあと、**`Main` の戻り値として `return` する**。終了コードは、必ず 0〜255 の `int` にしてから返す。
 
 確認(出典: 「Main() and command-line arguments」、「Environment.ExitCode」、「Environment.Exit」):
 
@@ -125,7 +125,7 @@ OS ごとの範囲(確認できた範囲):
 ## 5. シグナルと中断
 
 - UNIX 系: `SIGHUP`(1)・`SIGINT`(2)・`SIGQUIT`(3)・`SIGTERM`(15)を、`PosixSignalRegistration.Create`(07 章)で受け取り、コールバックは、最初の番号を中断の合図(フラグ)に記録するだけにする(コールバックの中で、複雑な処理・出力・ロックの取得をしない。`Volatile`/`Interlocked` で書く。02 章の並行モデル)。コールバックは、メインスレッドと別のスレッド(スレッドプールなど)で実行されうる。ほぼ同時に複数届くと、番号の小さい方が「最初」になりうる(順序は実装依存。必須ではない)。
-- Windows: Ctrl+C(番号 2)と Ctrl+Break(07 章)。
+- Windows: Ctrl+C(番号 2)だけ(`Console.CancelKeyPress` の `ControlC`。07 章 7.3 節)。Ctrl+Break とコンソールを閉じたときの通知は対象外(OS の既定の動作)。
 - `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は、シグナルを準備しない。これらのコマンドの実行中のシグナルは、実行環境の既定の動作に任せる(`Console.CancelKeyPress` や `PosixSignalRegistration` を登録しない)。その既定の動作(Ctrl+C でプロセスがどう終わるか、終了コード)は、公式ドキュメントを取得しておらず、未確認。実装時に確かめ、受け入れテストは、シェルから見て、シグナルで終わったこと(Unix で 130 になるか)だけを、確かめた結果に合わせて書く。
 - 起動済みのジョブが中断されると、`128 + 番号`、エラーとして記録する。起動前、またはジョブのあいだ、リトライの待機中に中断されたときは、エラーとして記録せず、再開位置を記録して `128 + 番号` で終わる。
 - 準備の失敗は、`conductor: error: failed to set up signal handling` を出して 70。同じプロセスで 2 回目の登録になる「すでに登録済み」は、成功と同じに扱う(実装が複数回呼ぶ構造のときだけ関係する)。`PosixSignalRegistration.Create` などの失敗は、シグナルの口(インターフェース)の実装が、準備できなかったときに例外(07 章が列挙する型)として返し、`run` がそれを準備の失敗(70)にする(07 章)。
@@ -150,7 +150,7 @@ OS ごとの範囲(確認できた範囲):
            int code;
            try
            {
-               code = CliApp.Run(args, CliEnvironment.CreateProduction());
+               code = EntryPoint.Run(args, SystemDeps.Create());
            }
            catch (Exception)                       // この 1 か所だけが、Exception 全体を捕捉する(8.1)
            {
@@ -198,7 +198,7 @@ OS ごとの範囲(確認できた範囲):
 実装に任せてよい点:
 
 - 失敗の詳細の保存や標準エラーへの追加の出力。ただし、`conductor: error: internal error` の行と 70 は必須。
-- 内部の失敗を起こすための専用のコマンドや、テスト用の差し替えの口は、規定しない(製品の実行ファイルに専用のコマンドはない)。テストでは、`CliEnvironment` の差し替えで例外を投げる実装を渡し、`Main` に相当するメソッドの戻り値が 70 で、標準出力が空であることを確認してよい。`UnhandledException` のハンドラ自体のテストは、別プロセスで入口を起動して、終了コードと標準エラーを確かめる(受け入れテスト。`Environment.Exit(70)` の確認は 6.1 の 3 の未確認の解消を兼ねる)。
+- 内部の失敗を起こすための専用のコマンドや、テスト用の差し替えの口は、規定しない(製品の実行ファイルに専用のコマンドはない)。テストでは、`Deps` の差し替えで例外を投げる偽の実装を渡し、`Main` に相当するメソッド(`EntryPoint.Run` を呼ぶ入口)の戻り値が 70 で、標準出力が空であることを確認してよい。`TJ` の `inject-*` モード(11 章 3.4 節)は、実プロセスで同じことを確かめる。`UnhandledException` のハンドラ自体のテストは、別プロセスで入口を起動して、終了コードと標準エラーを確かめる(受け入れテスト。`Environment.Exit(70)` の確認は 6.1 の 3 の未確認の解消を兼ねる)。
 
 ## 7. エラー分類の一覧
 
@@ -331,15 +331,15 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 |----|------|------|------|
 | A: すべて例外 | 規定された誤りを、`Exception` を継承した型で `throw` する | 書き方が簡単。呼び出しの途中の層で、伝え方を意識しなくてよい | 定義の誤りは、複数の誤りをまとめて 1 行ずつ出す必要があり(03 章)、1 つの例外では 1 件しか持てない(複数を持たせる専用の型が要る)。例外は、スタックトレースの取得などを伴い、通常の分岐の道具としては重い。どこで何が投げられるかが、型のシグネチャに表れず、取りこぼしが、想定外の失敗(70)に化ける |
 | B: すべて結果型 | 値(`Result<T, TError>`)で返し、例外は想定外の失敗だけ | 失敗が型に出る。複数の誤りを値として持てる。`catch` の取りこぼしがない | ファイル・プロセスなど、OS の境界で例外を投げる API(`IOException`、`Win32Exception`)を、そのつど結果型に変える必要があり、冗長になる |
-| C: 混合(採用) | 純粋な層(`Conductor.Core`)と、境界で例外を変換する層は、**結果型で返す**。ステートの読み書き(`Conductor.Runtime` の `State`)は、複数の段階の入出力を深くたどるので、**`Exception` を継承した型を送出**し、入口で値に変える | 各層の性質に合う。型の方針が 8.3 の表で一意に決まる | 2 通りの伝え方を持つ。表で見分けられるようにする |
+| C: 混合(採用) | 規定された誤りは、ステートの読み書き(`Conductor.State`)を含め、すべて**値で返す**(章ごとの `abstract record` の階層。`LoadResult`・`StateOutcome`・`CommandResult`・`ConvertResult`・`RunIdParse` など。`Result<T, TError>` は、その階層を使わない小さな内部の関数の補助で、任意)。OS の境界の BCL の例外は、その場で狭く捕まえて値に変える。**例外として送出する規定された型は、標準出力の書き込みの失敗の `OutputException` だけ**(呼び出し元が 65 か 67 にする) | 失敗が型に出る。複数の誤りを値として持てる。型の方針が 8.3 の表で一意に決まる | OS の境界で、BCL の例外を値に変える記述が要る(境界の内側に閉じ込める) |
 
 採用は C。規定された誤りと、想定外の内部失敗(6 章)を、**型で区別する**: 規定された誤りは、8.3 の型の集合に属し、それ以外は、想定外とする。
 
 - 各誤りの型は、「種別(`enum`。閉じた値の集合)」と「利用者に見える情報」を持つ。文言への変換(ロケール、エスケープ)は `Conductor.Report` の責務で、例外の `Message`(`Exception.Message`)は、ロケールを判定せず、デバッグ用の固定の英語の 1 行にする(利用者向けの出力には使わない)。
 - 終了コードは、エラー型の値から、`Conductor.Cli` の 1 つのメソッドで決める(型ごとの `switch` 式)。終了コードの数値の定義は 1 か所(8.2 の `ExitCode`)に集める。
-- 呼び出し側は、型の判定(`is`、`switch` 式、`catch (StateException e)`)で扱う。**`catch (Exception)` と、`catch { }` を、規定された誤りの処理に使わない**(想定外の失敗を握りつぶさないため)。想定外の失敗を捕捉してよいのは、`Program.Main` の最上位(6 章)と、08 章 1.3.2 の書き込みの失敗の処理(`IOException` などの**列挙した型に限る**)だけ。OS の境界での例外の変換(`IOException` 系、`UnauthorizedAccessException`、`Win32Exception` などを、その境界の規定された種類に対応づける。例: 定義ファイルの `FileNotFoundException`・`DirectoryNotFoundException` は `fileMissing`、`UnauthorizedAccessException` は `unreadable`)は、`catch` する型を列挙して行い、列挙にない例外は伝える(70 になる)。どの操作がどの型の例外を投げるかの詳細は、公式ドキュメントを取得しておらず、未確認(実装時に確かめ、確かめた対応を 03・06・07・09 章に書く)。
-- 誤りを包む場合は、内部の例外を `InnerException` に入れる(`new StateException(kind, path, cause, inner)`)。包んでも、利用者向けの出力は、包んだ誤りの型の情報だけから作る(`InnerException` や `Message` は、利用者に出さない)。
-- 種別の `enum` の値(`DefinitionErrorKind.FileMissing` など。7.1 の識別子の先頭を大文字にした名前)は、永続化も外部への公開もしない(利用者に見えるのは文言だけ)。名前を出力に使わない: `enum` の `ToString()` を、利用者向けの文言や、ステートの値に使わない(識別子は、文言の表のキーとして使う)。並びの追加・並べ替えで、互換性の問題は起きない。
+- 呼び出し側は、型の判定(`is`、`switch` 式、`OutputException` の `catch`)で扱う。**`catch (Exception)` と、`catch { }` を、規定された誤りの処理に使わない**(想定外の失敗を握りつぶさないため)。想定外の失敗を捕捉してよいのは、`Program.Main` の最上位(6 章)と、08 章 1.3.2 の書き込みの失敗の処理(`IOException` などの**列挙した型に限る**)だけ。OS の境界での例外の変換(`IOException` 系、`UnauthorizedAccessException`、`Win32Exception` などを、その境界の規定された種類に対応づける。例: 定義ファイルの `FileNotFoundException`・`DirectoryNotFoundException` は `fileMissing`、`UnauthorizedAccessException` は `unreadable`)は、`catch` する型を列挙して行い、列挙にない例外は伝える(70 になる)。どの操作がどの型の例外を投げるかの詳細は、公式ドキュメントを取得しておらず、未確認(実装時に確かめ、確かめた対応を 03・06・07・09 章に書く)。
+- 誤りを例外で包む場合(`OutputException`)は、内部の例外を `InnerException` に入れる(`new OutputException(message, inner)`)。値の誤り(`StateError` など)は、下位の例外の文を持たない(固定の理由だけ)。包んでも、利用者向けの出力は、包んだ誤りの型の情報だけから作る(`InnerException` や `Message` は、利用者に出さない)。
+- 種別の `enum` の値(`ErrorKind.FileMissing` など。7.1 の識別子の先頭を大文字にした名前)は、永続化も外部への公開もしない(利用者に見えるのは文言だけ)。名前を出力に使わない: `enum` の `ToString()` を、利用者向けの文言や、ステートの値に使わない(識別子は、文言の表のキーとして使う)。並びの追加・並べ替えで、互換性の問題は起きない。
 - 種別の `switch` 式の網羅性: 種別に対する `switch` 式は、`_` の捨てのアームを置かずに書き、全メンバーを列挙する。コンパイラが、メンバーの取りこぼしや、名前のない値(`(Kind)99`)を、警告(`CS8509`・`CS8524` に相当するもの)にするかは、この環境では公式ドキュメントを取得しておらず、未確認(`TreatWarningsAsErrors` と組み合わせたときの挙動を含む)。したがって、網羅性は、単体テストで保証する(8 章 10 章のとおり、全メンバーを `Enum.GetValues<T>()` で列挙して、文言が全ロケールにあることを検査する)。
 - 例外のクラスは、`[Serializable]` や、シリアライズ用のコンストラクタを持たせない(誤りを直列化・複製しない)。`Exception` の基底のコンストラクタに、`Message`(固定の英語の 1 行)を必ず渡す。
 
@@ -365,7 +365,7 @@ public enum ExitCode : int
 
 public static class ExitCodes
 {
-    public static int For(long reported, bool isError);     // 4 章
+    public static int For(int reported, bool isError);      // 4 章(05 章 2.2 節)
     public static int ForSignal(int signal);                 // 4 章
 }
 ```
@@ -373,7 +373,8 @@ public static class ExitCodes
 ```csharp
 namespace Conductor;
 
-/// 規定された誤りのうち、例外として送出する型の基底クラス(State の読み書きなど)。
+/// 規定された誤りを例外として送出する型が必要になったときの基底クラス(任意)。
+/// この版では、規定された誤りはすべて値で返し、例外は OutputException だけなので、これを継承する型はない。
 public abstract class ConductorException : Exception
 {
     protected ConductorException(string debugMessage, Exception? inner = null) : base(debugMessage, inner) { }
@@ -408,15 +409,15 @@ public readonly struct Result<T, TError>
 
 | プロジェクト / 名前空間 | 型 | 種別の型 | 終了コード | 持つ情報(伝え方) |
 |----------------------------|-----|----------|------------|----------|
-| `Conductor.Core` / `Conductor.Definition` | `DefinitionError` | `DefinitionErrorKind`(`enum`。7.1 の 31 種。03 章) | 64 | ファイル、行・列(`int?`。`null` は「なし」)、種類、原因(日本語の固定の文)。例外にせず、`sealed record` の値として `Result` に入れて返す(03 章)。複数の誤りは `IReadOnlyList<DefinitionError>` で返す |
+| `Conductor.Core` / `Conductor.Definition` | `DefinitionError` | `ErrorKind`(`enum`。7.1 の 31 種。03 章) | 64 | ファイル、行・列(`int?`。`null` は「なし」)、種類、原因(日本語の固定の文)。例外にせず、`sealed record` の値として `Result` に入れて返す(03 章)。複数の誤りは `IReadOnlyList<DefinitionError>` で返す |
 | `Conductor.Runtime` / `Conductor.Runner` | `CommandError` | `CommandErrorKind`(`enum`: `UnclosedQuote`, `Empty`。07 章) | 64 | 種類(ジョブIDは、呼び出し側が持つ)。値で返す(07 章) |
 | `Conductor.Core` / `Conductor.RunIds` | `RunIdError` | `RunIdErrorKind`(`enum`: `Empty`, `TooLong`, `InvalidChar`, `LeadingDot`。05 章) | 68(利用者には `invalid value`) | 種類のみ(値は持たない)。結果の型で返す(05 章) |
-| `Conductor.Runtime` / `Conductor.State` | `StateException`(`ConductorException` を継承) | `StateErrorKind`(`enum`: `Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。06 章) | 65 | パス、種類、原因(固定の日本語の文)、`Detail`(任意)。ステートの読み書きのメソッドは送出する(06 章)。入口の `StateStore` が、送出された `StateException` を値に包んで呼び出し側へ返す(02 章) |
-| `Conductor.Runtime` / `Conductor.State` | `ConsistencyResult` の `Mismatch` | `MismatchKind`(`enum`: `PipelineName`, `JobIds`, `JobOrder`。06 章) | 65 | 種類。値で返す(06 章) |
+| `Conductor.Runtime` / `Conductor.State` | `StateError`(`sealed record`)を持つ `StateFail`(`StateOutcome` の派生) | `StateErrorKind`(`enum`: `Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。06 章) | 65 | パス、種類、原因(固定の日本語の文)、`Detail`(任意)。ステートの読み書きのメソッドは、例外を送出せず、`StateFail` を値で返す(06 章 13.1)。BCL の例外は、`IStateStore` の実装の内側で値に変える |
+| `Conductor.Runtime` / `Conductor.State` | `ConsistencyMismatch`(`ConsistencyResult` の派生) | `MismatchWhat`(`enum`: `PipelineName`, `JobIds`, `JobOrder`。06 章) | 65 | 種類。値で返す(06 章) |
 | `Conductor.Core` / `Conductor.Convert` | `ConvertError` | `ConvertErrorKind`(`enum`。7.3 の 6 種。09 章) | 67 | ファイル、行、キーの位置、種類、原因。値で返す(09 章) |
 | `Conductor.Cli` / `Conductor.Cli` | `UsageError` | `UsageKind`(`enum`。7.4 の 8 種) | 68 | 種類、対象(`string?`)。値として持ち回る(04 章) |
 | `Conductor.Core` / `Conductor.Flow` の `Reject` | `DecisionReason.OutOfOrder` | (1 種) | 66 | ジョブID。`Flow.DecideBeforeRun` が `Reject(OutOfOrder)` の値で返し、`Cli` が 66 にする(送出しない) |
-| `Conductor.Cli` / `Conductor.Report` | `OutputException` | (なし) | 呼び出し元による(`watch` は 65、`convert` は 67) | 内部の例外を `InnerException` に持つ。標準出力への書き込みの失敗(08 章 1.3.2)。`ConductorException` を継承しない(終了コードが文脈で決まるため) |
+| `Conductor.Cli` の `Conductor.Report` | `OutputException`(`Exception` を継承。`Conductor.Report`) | (なし) | 呼び出し元による(`watch` は 65、`convert` は 67) | 内部の例外を `InnerException` に持つ。標準出力への書き込みの失敗(08 章 1.3.2)。`ConductorException` を継承しない(終了コードが文脈で決まるため) |
 | `Conductor.Core` / `Conductor.Flow` | (クラスにしない。`JobOutcome` の値) | (なし。分類の結果として扱う) | 3 章から決まる | 報告する終了コード、エラーか |
 
 - 種別の `enum` は、すべて「値の集合が型で閉じている」。メンバー名は、7 章の識別子の先頭を大文字にした形(`unsupportedFormat` → `UnsupportedFormat`)。`enum` の値の数値(`= 0, 1, …`)を、永続化・出力に使わない(宣言の順序は、意味を持たない)。
@@ -465,7 +466,7 @@ public sealed record UsageError(UsageKind Kind, string? Target = null);
 - スタックの溢れで、プロセスが終わるときの終了コード(6.3)。
 - 子プロセスの起動の失敗で `Process.Start` が投げる例外の型の全件と、`Process.ExitCode` の、シグナルで終了した子に対する値(07 章が規定する。3 章)。
 - Unix で、範囲外の終了コード(`256` など)が、OS により下位 8 ビットになること(4.1。第三者の報告のみ。公式ドキュメントでは確認していない)。Windows での 255 を超える値の扱い(`Environment.ExitCode` の符号つきの記述のみ)。
-- `long` の `&` が負の値で 2 の補数の下位 8 ビットを返すこと(言語の仕様どおり。出典のページは取得していない。4 章)。
+- `int` の `&` が負の値で 2 の補数の下位 8 ビットを返すこと(言語の仕様どおり。出典のページは取得していない。4 章)。
 - シグナルの準備をしないコマンド(`watch`・`reset`・`validate`・`convert`)の実行中の Ctrl+C の、実行環境の既定の動作(5 章)。
 - 種別の `switch` 式の網羅性に関するコンパイラの警告の挙動(8.1)。
 - OS の境界で、どの操作がどの例外の型を投げるか(8.1)。

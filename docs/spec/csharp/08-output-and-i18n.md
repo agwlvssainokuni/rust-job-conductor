@@ -143,7 +143,7 @@
 
 プロセスの終了の手順(`Program.Main` が行う。10 章 4.1・6 も参照):
 
-1. `CliApp.Run(args, env)` が返した終了コード(`int`)を受け取る。
+1. `EntryPoint.Run(args, deps)` が返した終了コード(`int`)を受け取る。
 2. 標準出力、続いて標準エラーを、`Flush()` する。`Flush()` の失敗(1.3.2 の 1 の例外)を捕捉して無視する。作れていない出力口と、書き込みに失敗した出力口は飛ばす。
 3. そのあとで、**終了コードを 0〜255 の `int` にそろえて**(10 章 4)、`Main` から `return` する(通常の終了の経路。`Environment.Exit` を使わない)。
 4. `Environment.Exit(code)` を使ってよいのは、想定外の内部失敗(10 章 6)の経路で、標準エラーに 1 行を書き、`Flush()` を試みたあとの最後の手段としてだけ(`Exit` は、`finally` を実行せず、ほかのスレッドが動いていても直ちに終了する。1.3.1)。通常の終了では使わない。
@@ -724,7 +724,7 @@ C# での実装の方針:
 | 色 | 自前の SGR の定数 | 外部の色のライブラリは使わない。`NO_COLOR` や端末判定の規則を、この規定に固定するため |
 | 表示幅 | 自前(ASCII なら 1、それ以外は 2。コードポイント単位) | 仕様の近似に正確に合わせるため |
 | エスケープ | 自前(9 章) | 仕様の表に正確に合わせるため |
-| 書き込み | `IOutputSink`(標準出力・標準エラーの 2 つ。`WriteAll(string)` で書いて流す。失敗は例外)。本番の実装は `StreamWriter` を包んだもの(1.2、1.3) | テストで差し替えるため(`CliEnvironment`) |
+| 書き込み | `IOutputSink`(`Conductor.Report`。標準出力・標準エラーの 2 つ。`WriteAll(string)` で書いて流す。失敗は例外)。本番の実装は `StreamWriter` を包んだもの(1.2、1.3) | テストで差し替えるため(`Deps.Out`) |
 | ログ(`Microsoft.Extensions.Logging`、`Console.WriteLine`、`Trace`/`Debug`) | 使わない | 出力の形・出力先・水準が、この章で固定されているため |
 
 ### 10.1 骨格(例)
@@ -756,7 +756,7 @@ internal interface IReporter
 }
 ```
 
-`Reporter` は、`CliEnvironment` の `IOutputSink`(標準出力・標準エラー)を包む。ロケールと色の判定を、最初に必要になったときに行い、結果を保持する。判定に使う環境変数(`GetEnvironmentVariable`)と端末判定(`IsStdoutTerminal`)は `CliEnvironment` から受け取る。`Error()` は、`Flush()` まで終えてから戻る(1.3.2 の 3)。呼び出し側は、例外の捕捉を要しない(内部で握りつぶす)。
+`Reporter` は、`Deps.Out` の `IOutputSink`(標準出力・標準エラー)を包む。ロケールと色の判定を、最初に必要になったときに行い、結果を保持する。判定に使う環境変数(`GetEnvironmentVariable`)と端末判定(`IsStdoutTerminal`)は `CliEnvironment` から受け取る。`Error()` は、`Flush()` まで終えてから戻る(1.3.2 の 3)。呼び出し側は、例外の捕捉を要しない(内部で握りつぶす)。
 
 ## 11. 文字列の単位(コードポイント)
 

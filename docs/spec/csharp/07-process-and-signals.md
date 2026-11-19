@@ -66,7 +66,7 @@ OS の分岐と OS 固有の呼び出し(`OperatingSystem.IsWindows()` などの
 | 配列の 2 番目以降が空文字列 `""` | 有効(空の引数として渡す) |
 | 文字列でも配列でもない(数値・オブジェクトなど) | 誤り(型) |
 
-「前後の空白を除く」は、`string.Trim()` に頼らず、Unicode の White_Space 特性に従う規則を 03 章に従って実装する(`string.Trim()` が除く文字の集合は、Unicode の White_Space と一致するとは限らない。未確認)。この文書の 3 章の区切り(4 文字だけ)とは別の規則である。
+「前後の空白を除く」は、03 章 1 節の規定(Unicode の White_Space の 25 文字を明示した自前の表。`string.Trim()`・`char.IsWhiteSpace` を使わない)で行う。この文書の 3 章の区切り(4 文字だけ)とは別の規則である。
 
 定義の検査とは別に、実行の前にもう一度、全ジョブの `command` を 3.8 節のとおり検査する。
 
@@ -412,7 +412,7 @@ public sealed record JobExecution(
 ```
 
 3. 検査を通ったら、`FileName` に `cmd.exe` のパス、`Arguments`(`ArgumentList` ではない)に次の 1 本の文字列を設定する。
-   - `cmd.exe` のパス: 環境変数 `ComSpec` が、絶対パス(`Path.IsPathRooted`)ならその値、そうでなければ `cmd.exe`(環境変数は、`IEnv.LookupEnv` を通して受け取る。2 章 [02-architecture.md](02-architecture.md) の `Deps`)。
+   - `cmd.exe` のパス: 環境変数 `ComSpec` が、絶対パス(`Path.IsPathRooted`)ならその値、そうでなければ `cmd.exe`(環境変数は、`CliEnvironment.GetEnvironmentVariable` を `Func<string, string?>` として受け取って読む。[02-architecture.md](02-architecture.md) の `Deps`)。
    - `Arguments`: `/d /s /c "` + `<全体>` + `"`。`<全体>` は、`Program` と各 `Args` を、それぞれ `"` で囲み、空白 1 つで連結した文字列(空の引数は `""`)。例: `Program = C:\x\build.cmd`、`Args = [a b, c]` → `/d /s /c ""C:\x\build.cmd" "a b" "c""`。
    - `/d`(AutoRun のコマンドを実行しない)、`/s` と `/c`(最初と最後の `"` を取り除いて、残りを実行する)の意味は、Windows の `cmd` の文書による(この文書では未確認)。
    - `Arguments` が、OS に、そのまま渡されること(.NET が再び引用しないこと)は未確認。
@@ -432,7 +432,7 @@ Windows で、拡張子のない `Program` や、`.exe` の探索(アプリケ�
 | `Program` | 解決 |
 |-----------|------|
 | `/` を含む(絶対パスまたは相対パス) | `Path.GetFullPath(program)`(カレントディレクトリが基準)。存在を確かめない(`exec` の失敗は、4.3 節の例外になる) |
-| `/` を含まない | `PATH`(環境変数。`LookupEnv("PATH")`)を `:` で分け、各ディレクトリで、`Path.Combine(dir, program)` のファイルを探す。空のエントリ(`PATH` の先頭、末尾、`::`)は、カレントディレクトリ。ファイルであり(ディレクトリでない)、実行ビットのどれか(`File.GetUnixFileMode` の `UserExecute`、`GroupExecute`、`OtherExecute`)が立っている最初のものを採る。`PATH` が未設定のときは、探索せず、起動の失敗(実機での OS の既定の `PATH` は使わない)。見つからなければ、起動の失敗(127) |
+| `/` を含まない | `PATH`(環境変数。受け取った `Func<string, string?>` で `"PATH"` を読む)を `:` で分け、各ディレクトリで、`Path.Combine(dir, program)` のファイルを探す。空のエントリ(`PATH` の先頭、末尾、`::`)は、カレントディレクトリ。ファイルであり(ディレクトリでない)、実行ビットのどれか(`File.GetUnixFileMode` の `UserExecute`、`GroupExecute`、`OtherExecute`)が立っている最初のものを採る。`PATH` が未設定のときは、探索せず、起動の失敗(実機での OS の既定の `PATH` は使わない)。見つからなければ、起動の失敗(127) |
 
 `File.GetUnixFileMode` は .NET 7 以降の API である(確認: API の存在は既知。この文書では出典の確認を行っていない。未確認)。`FileName` に絶対パスを渡すと、`Process.Start` は、探索せず、そのまま使う(確認。出典: `ResolvePath` の「完全なパスなら、存在を問わず使う」)。
 
@@ -609,25 +609,28 @@ handler(PosixSignalContext ctx):
 .NET の管理 API には、任意のシグナルを子に送るものがない。`Process.Kill()` は強制終了(SIGKILL)である(確認。出典: `Process.ExitCode` の API 文書の「`Kill` で終了させられる」という記述と、`Process.Unix.cs` の `Interop.Sys.Kill(_processId, SIGKILL)`)。したがって、UNIX 系では、`libc` の `kill` を P/Invoke で呼ぶ。
 
 ```csharp
-namespace Conductor.Runner;
+namespace Conductor.Native;   // Conductor.Runtime の内部。Conductor.Runner と Conductor.State の両方が使う(互いには依存しない)
 
 internal static partial class UnixNative
 {
     [LibraryImport("libc", EntryPoint = "kill")]
     internal static partial int Kill(int pid, int sig);
+
+    // ステートの書き込み後のディレクトリの同期(06 章 5 章)。open・fsync・close の P/Invoke は、この型だけに置く
+    internal static void SyncDirectory(string directory) { /* 06 章 5 章。失敗はすべて無視 */ }
 }
 ```
 
 | 項目 | 内容 |
 |------|------|
 | `LibraryImport` | .NET 7 以降の P/Invoke のソース生成。`static partial` なメソッドに付ける。**プロジェクトに `AllowUnsafeBlocks` が要る**(確認。出典: 「P/Invoke source generation」の文書)。Native AOT やトリミングでも使える形(確認。同上。`DllImport` は実行時に IL を生成するため、AOT では使えない)。`Conductor.Runtime.csproj` に `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` を書く |
-| 呼び出しの 1 か所 | この P/Invoke は、`UnixNative` の 1 か所だけにある【規定】(8.2 節。ほかのファイルで `LibraryImport` / `DllImport` を使わない) |
+| 呼び出しの 1 か所 | P/Invoke(シグナルの送信の `kill`、ステートのディレクトリの同期の `open`・`fsync`・`close`)は、`UnixNative`(名前空間 `Conductor.Native`。`src/Conductor.Runtime/Native/UnixNative.cs`)の 1 か所だけにある【規定】(8.2 節。ほかのファイルで `LibraryImport` / `DllImport` を使わない)。`Conductor.Runner` と `Conductor.State` が、この名前空間にだけ依存する(`State` と `Runner` は互いに依存しない。[02-architecture.md](02-architecture.md) 3 章)。`internal` なので、単体テストには `InternalsVisibleTo` で見せる |
 | ライブラリ名 | `"libc"`。.NET は、Linux と macOS で、名前に `.so` / `.dylib` を足した候補、`lib` を前につけた候補、そのままの候補を、順に探す(確認。出典: 「Native library loading」の文書)。Linux で、`libc.so.6` に解決されるか、macOS で、`libc` が解決されるかは、文書に書かれていない(未確認)。そのため、**`NativeLibrary.SetDllImportResolver` で、解決を明示する**【規定】 |
 | 解決の明示 | `UnixNative` の静的コンストラクターで、`Conductor.Runtime` のアセンブリに、`DllImportResolver` を 1 つ設定する(1 つのアセンブリに 1 つだけ設定できる。確認。出典: 同文書)。`libraryName == "libc"` のとき、Linux では `NativeLibrary.TryLoad("libc.so.6", ...)` を、続けて `NativeLibrary.TryLoad("libc", ...)` を試す。macOS では、`NativeLibrary.TryLoad("/usr/lib/libSystem.B.dylib", ...)`(絶対パスは、そのまま使われ、変種を探さない。確認: 同文書)を、続けて `"libc"` を試す。どれも失敗したら `IntPtr.Zero` を返す(既定の探索に任せる)。この名前の組が、実機で正しく解決されるかは、未確認(3 OS で確かめる) |
 | 引数の型 | `pid_t` を `int`、シグナル番号を `int` とする(Linux と macOS の通常の 64 ビットの ABI で、`pid_t` は 32 ビット。実機では未確認) |
 | 戻り値と `errno` | 戻り値は無視する(失敗の原因を見ない)。`SetLastError` を使わない |
 | ライブラリが見つからないとき | 最初の呼び出しで `DllNotFoundException` または `EntryPointNotFoundException` が起こりうる。この 2 つは、`Forward` の中で捕まえて握りつぶす(送信の失敗として無視する)。ただし、握りつぶすと、転送が黙って行われなくなるため、シグナルの転送の受け入れテスト(11 章)が、3 OS で、このことを検出する。Windows では、この型を呼ばない(`WindowsPlatform` は `Forward` で何もしない) |
-| Windows での読み込み | `UnixNative` は、Windows では、型の静的コンストラクターも、メソッドも、実行されない(`UnixPlatform` からだけ参照するため)。単一ファイルの発行(`PublishSingleFile`)でも、`LibraryImport` の生成コードは、`libc` を実行時に探す(未確認) |
+| Windows での読み込み | `UnixNative` は、Windows では、型の静的コンストラクターも、メソッドも、実行されない(`UnixPlatform` と、`SyncDirectory` が真のときの `State` からだけ参照するため)。単一ファイルの発行(`PublishSingleFile`)でも、`LibraryImport` の生成コードは、`libc` を実行時に探す(未確認) |
 
 ### 7.3 Windows
 
@@ -696,7 +699,7 @@ public static class RetryWaiter
 
 - 手順: 開始時刻を `Stopwatch.GetTimestamp()` で取る(単調な時計。壁時計の `DateTime.UtcNow` は使わない。時刻の変更に左右されない)。ループで ① `sig.Number` が非 `null` なら、すぐ `Interrupted(最初の番号)`。② 経過(`Stopwatch.GetElapsedTime(start)` の秒)が `secs` 以上なら `Elapsed`。③ 残りの時間と、上限(250 ms)の小さい方だけ、`sig.WaitRaised(...)` で待つ。待ちの途中で合図が立てば、`WaitRaised` が直ちに戻る。
 - 合図は、待機の開始時と、`WaitRaised` が戻るたび(最大 250 ms ごと)に確かめる。長い待ちでも、合図から **1 秒以内**に返る【規定】(例: 3600 秒の待機に、200 ms 後に合図を立てて、全体が 1.2 秒未満)。`Interrupt.Trigger` が `ManualResetEventSlim` を起こすので、通常は即時に返る。上限 250 ms は、起こし損ねに備える保険である(【目安】)。
-- 残りの時間の計算: `secs` は `ulong`(最大 18,446,744,073,709,551,615)であり、ミリ秒に直すと `long` や `int` に収まらない。残りは、`double`(秒)で、`secs - 経過秒` として求め、`Math.Min(残り秒 * 1000, 250)` を `int` のミリ秒に直す(`ulong` から `double` への丸めは、経過が数秒のオーダーである範囲では、結果に影響しない)。`checked` で例外にしない。`TimeSpan.FromSeconds(ulong の値)` を、そのまま呼ばない(範囲外で例外になる)。
+- 残りの時間の計算(整数。`double` を使わない): 数値の変換は [05-execution-flow.md](05-execution-flow.md) §7.8 の式を正とする。期限までのティック数 `target = Saturating.MulU64(secs, (ulong)Stopwatch.Frequency)`(`ulong` の飽和。`secs = ulong.MaxValue` でも例外にならない)、経過 `elapsed = (ulong)(timestamp() - start)`、残り `remaining = target - elapsed`、残りミリ秒 `remainingMs = CeilDiv((UInt128)remaining * 1000, frequency)`(`UInt128` で桁あふれを避け、結果は `ulong` に飽和)、1 回の待ちは `chunkMs = (int)Math.Min(remainingMs, 250)`(1〜250 ミリ秒)。`TimeSpan.FromSeconds(ulong の値)` と `TimeSpan` を秒から作る呼び出しは使わない(範囲外で例外になる)。`checked` で例外にしない。時計(`Func<long> timestamp`、`long frequency`)は差し替え可能にする。
 - 秒数が 0 のときは、合図が立っていなければ、すぐ `Elapsed`。合図が立っていれば `Interrupted`。
 - 複数の合図は、最初の番号を返す。
 - 待機の上限: 待機の合計は、`secs` で決まり、`conductor` は上限を持たない(利用者の指定が、飽和した 64 ビットの上限でも、待つ。ただし、1 つのイベントの待ちは、250 ms 以下に刻まれるので、`int` のミリ秒を超えない)。
@@ -730,7 +733,7 @@ public static class RetryWaiter
 OS ごとの分岐と OS 固有の呼び出しは、プラットフォーム層(OS 固有の処理をまとめた 1 か所)の外にない【規定】。
 
 - 「OS の判定」(`OperatingSystem.IsWindows()`、`OperatingSystem.IsLinux()`、`OperatingSystem.IsMacOS()`、`RuntimeInformation.IsOSPlatform`、`Environment.OSVersion`、`Path.DirectorySeparatorChar` を OS の判定に使うこと)は、`PlatformDetector.Detect()` の 1 か所だけ。ほかの型は、`PlatformKind`(`Unix` または `Windows`)の値を引数で受け取る。
-- `LibraryImport` / `DllImport`(P/Invoke)は、`UnixNative` の 1 か所だけ(シグナル送信)。ほかでは使わない。
+- `LibraryImport` / `DllImport`(P/Invoke)は、`UnixNative`(`Conductor.Native`)の 1 か所だけ(シグナル送信と、ステートのディレクトリの同期)。ほかでは使わない。
 - OS ごとの実装(`UnixPlatform`、`WindowsPlatform`)は、`IPlatform` を実装し、`PlatformDetector.Create(kind)` が、実行時に 1 つ選ぶ(`#if` の条件付きコンパイルは使わない。3 OS のテストを、同じビルドで行い、Linux の 1 台から `WindowsPlatform` の純粋な部分を単体テストするため)。
 - ネットワークに接続しない(実装がネットワークの機能を持たない)。`System.Net` の名前空間を使わない。
 - 製品のコードは、外部の入力(引数・環境・ファイル・OS の結果)に対して、異常終了する書き方をしない(失敗は値で返す)。
@@ -814,13 +817,13 @@ public interface IPlatform
 ## 10. 想定外の内部の誤り
 
 - 実行の入口(`Program.Main`)で、想定外の内部の誤り(実装の不具合による例外)を捕まえる仕組みを、**最初に**入れる。内部の誤りが起きると、標準エラーに固定の英語の 1 行 `conductor: error: internal error`(ロケールを判定しない)を書き、終了コード **70** で終わる。標準エラーへの書き込みが失敗しても 70 で終わる。【規定】
-- 仕組みは次の 3 つ(同じ関数 `FailInternal()` を呼ぶ。【.NET の設計】):
-  1. `Main` の内側の `try { ... } catch (Exception) { return FailInternal(); }`(`Main` を `try` で囲み、すべての実装の不具合を捕まえる)。
-  2. `AppDomain.CurrentDomain.UnhandledException` のハンドラ(コールバックのスレッドなど、`Main` の外で起きた未処理の例外のため)。ハンドラの中で、`FailInternal()` を呼び、**`Environment.Exit(70)`** で終わる(ハンドラから戻ると、ランタイムがプロセスを異常終了させ、終了コードが 70 にならないため。未確認)。
-  3. `TaskScheduler.UnobservedTaskException`(この仕様は `Task` を使わないため、通常は起こらない)。呼ばれたら、`FailInternal()` を呼び、`e.SetObserved()` のあと、`Environment.Exit(70)` で終わる。
-- `FailInternal()` は、繰り返し呼ばれても 1 行だけ出す(`Interlocked` の印を持つ)。書き込みは、`Console.OpenStandardError()` のストリームに、固定のバイト列(`conductor: error: internal error\n` の UTF-8)を 1 回書く(`try { ... } catch (IOException) { }` で囲み、失敗は無視する。`Console.Error` を使わない。エンコーディングと flush の設定に左右されないため)。例外の内容(メッセージ、スタックトレース)を、標準エラーにも標準出力にも出さない(`ToString()` を呼ばない)。
+- 仕組みは次の 3 つ(10 章 6.1 節の `InternalFailure`(`Report()` は 1 行を書いて 70 を返し、`ReportAndExit()` はさらに `Environment.Exit(70)` で終わる)を呼ぶ。【.NET の設計】):
+  1. `Main` の内側の `try { ... } catch (Exception) { return InternalFailure.Report(); }`(`Main` を `try` で囲み、すべての実装の不具合を捕まえる)。
+  2. `AppDomain.CurrentDomain.UnhandledException` のハンドラ(コールバックのスレッドなど、`Main` の外で起きた未処理の例外のため)。ハンドラの中で、`InternalFailure.ReportAndExit()`(1 行を書き、**`Environment.Exit(70)`** で終わる)を呼ぶ(ハンドラから戻ると、ランタイムがプロセスを異常終了させ、終了コードが 70 にならないため。未確認)。
+  3. `TaskScheduler.UnobservedTaskException`(この仕様は `Task` を使わないため、通常は起こらない)。呼ばれたら、`e.SetObserved()` のあと、`InternalFailure.ReportAndExit()` を呼ぶ。
+- `InternalFailure` の書き込みは、繰り返し呼ばれても 1 行だけ出す(`Interlocked` の印を持つ)。書き込みは、`Console.OpenStandardError()` のストリームに、固定のバイト列(`conductor: error: internal error\n` の UTF-8)を 1 回書く(`try { ... } catch (IOException) { }` で囲み、失敗は無視する。`Console.Error` を使わない。エンコーディングと flush の設定に左右されないため)。例外の内容(メッセージ、スタックトレース)を、標準エラーにも標準出力にも出さない(`ToString()` を呼ばない)。
 - `StackOverflowException` は、捕まえられない(プロセスが終了する)。したがって、深い入れ子の入力(定義・ステート・変換)を、再帰で処理しない(明示的なスタックを使う。03 章)。`command` の分割は、再帰を使わない(3 章)。`OutOfMemoryException` は、捕まえて続行しない(`Main` の `catch (Exception)` が捕まえた場合は 70 にする。回復を試みない)。
-- 入口は、流れの結果の終了コードで、プロセスを 1 回だけ終了させる(`Main` が `int` を返す)。入口に、わざと例外を起こすコマンドを持たない。内部の誤りの検査は、`Run` に差し替えた(例外を送出する)`Deps` を渡す単体テスト、または別のテスト用の実行ファイル(`tests/Conductor.TestJob/`)で行う([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。
+- 入口は、流れの結果の終了コードで、プロセスを 1 回だけ終了させる(`Main` が `int` を返す)。入口に、わざと例外を起こすコマンドを持たない。内部の誤りの検査は、`EntryPoint.Run` に、例外を送出する偽の `Deps` を渡す単体テスト、または別のテスト用の実行ファイル(`tests/Conductor.TestJob/`)で行う([10-errors-and-exit-codes.md](10-errors-and-exit-codes.md))。
 - ジョブの実行中に内部の誤りが起きると、`Process` の `Dispose` が行われても、子プロセスの終了を待たずに終わり、ジョブが孤児として残りうる(`Process.Dispose` は子を終了させない。確認: `Process.WaitForExit` の API 文書の「`Close` は、リソースを解放する」という記述。子を停止するとは書かれていない)。ステートは直前の完全な内容のままで、次の実行はそのジョブを再実行しうる(少なくとも 1 回の実行の範囲)。
 - `conductor` が SIGKILL などで強制終了されたときも、ジョブは残って動き続けうる(検知も停止もしない)。
 
@@ -887,4 +890,4 @@ public interface IPlatform
 - ほぼ同時に届いた複数のシグナルの再現そのもの。
 - 内部の誤りの経路で、`UnhandledException` のハンドラの中から `Environment.Exit(70)` を呼んだときに、終了コードが 70 になること(10 章)。
 - `File.GetUnixFileMode` の使用(4.9 節。.NET 7 以降の API。出典を確認していない)。
-- 他の担当と合わせる点: [02-architecture.md](02-architecture.md) の型の骨格(`Job`、`Command`、`JobExecution`、`Interrupt`、`SignalStart`、`IPlatform`)、[05-execution-flow.md](05-execution-flow.md) の分類(4.6 節)、[10-errors-and-exit-codes.md](10-errors-and-exit-codes.md) の終了コードと `FailInternal`、[11-quality-and-build.md](11-quality-and-build.md) の受け入れテスト(「新しいプロセスグループ」の試験を行わないこと、シグナル終了の推定、実行ファイルの解決の試験)。
+- 他の担当と合わせる点: [02-architecture.md](02-architecture.md) の型の骨格(`Job`、`Command`、`JobExecution`、`Interrupt`、`SignalStart`、`IPlatform`)、[05-execution-flow.md](05-execution-flow.md) の分類(4.6 節)、[10-errors-and-exit-codes.md](10-errors-and-exit-codes.md) の終了コードと `InternalFailure`、[11-quality-and-build.md](11-quality-and-build.md) の受け入れテスト(「新しいプロセスグループ」の試験を行わないこと、シグナル終了の推定、実行ファイルの解決の試験)。
