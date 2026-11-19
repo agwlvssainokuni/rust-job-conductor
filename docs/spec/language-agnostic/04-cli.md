@@ -92,13 +92,13 @@ conductor --help | --version
 
 `lexError` は最初の 1 つだけを保持する(後の字句の誤りは捨てる)。
 
-補足(確認済みの実機の挙動): `--help=x`・`-V=1`・`--version=x` はそれぞれ help / version / version。`-vx run a` は `unknown option: '-x'`、`run -vh` は help、`-vV` は version、`--config --help run a` は `--help` という名前のパスを定義ファイルとして扱う(help ではない)。`run -- a --` は 2 個目の `--` が位置引数になり `unexpected argument: '--'`。`run -- -v` は、ジョブID `-v`。`run -` は、ジョブID `-`。
+補足(確認済みの実機の挙動): `--help=x`・`-V=1`・`--version=x` はそれぞれ help / version / version。`-vx run a` は `unknown option: '-x'`、`run -vh` は help、`-vV` は version、`--config --help run a` は `--help` という名前のパスを定義ファイルとして扱う(help ではない。ファイルがなければ 64)。`--config --help`(ほかの引数なし)は `--help` を値に取り、位置引数が 0 個なので `missing argument`(68)。`run a --config --version` も `--version` を値(パス)として扱う。`--help --config` は、`--help` が先に解釈されるので、値の欠落(`--config`)より前に help(0)になる。`run -- a --` は 2 個目の `--` が位置引数になり `unexpected argument: '--'`。`run -- -v` は、ジョブID `-v`。`run -` は、ジョブID `-`。
 
 ### 4.2 検査の順序(誤りの優先順位)
 
 字句の段階のあと、次の順に検査する。最初に当てはまったもので終わる(それ以降は行わない)。
 
-1. `special` が設定されていれば(`--` より前に `-h/--help` か `-V/--version` が 1 つでもあれば)、ほかの誤りに関係なく、先に現れた方を処理して終了コード 0。両方あるとき、先に現れた方が勝つ(`-V -h` は version、`-h -V` は help)。字句の段階が値の欠落で打ち切られた場合、それ以前に現れた `-h`/`-V` は有効、以降は存在しない扱い。
+1. `special` が設定されていれば(`--` より前に、オプションとして解釈された `-h/--help` か `-V/--version` が 1 つでもあれば)、ほかの誤りに関係なく、先に現れた方を処理して終了コード 0。値を取るオプション(`--config`、`--run-id`、`--to`)の直後の引数は、`-h` や `--help` であっても値として取られ(4.1 の 3)、オプションとして解釈されないので、`special` にならない(`--config --help run a` は help ではない。`-h --config --version` は、`-h` が先に現れるので help で、`--version` は `--config` の値になる)。両方あるとき、先に現れた方が勝つ(`-V -h` は version、`-h -V` は help)。字句の段階が値の欠落で打ち切られた場合、それ以前に現れた `-h`/`-V` は有効、以降は存在しない扱い。
 2. `lexError` があれば、それを誤りとする。
 3. 「知らないオプション」が `tokens` にあれば、最初のものを `unknown option`(対象はその綴り: `-x`, `--bogus`)とする。
 4. 位置引数が 0 個: `missing argument`(対象なし)。例: 引数なし、`-v` だけ、`--` だけ。
@@ -281,6 +281,9 @@ $ conductor -vh        # help が勝つ。標準出力に使い方、0
 | `--config` | `option requires a value: '--config'`(68) |
 | `run a --config` | `option requires a value: '--config'`(68) |
 | `--config --help run a` | `--help` というパスを定義ファイルとして読む(ファイルがなければ 64) |
+| `--config --help` | `--help` を値に取り、位置引数が 0 個: `missing argument`(68) |
+| `--help --config` | help(0)(`--help` が先に解釈され、値の欠落は検査されない) |
+| `-h --config --version` | help(0)(`--version` は `--config` の値) |
 | `--help=x`、`-h=x` | help(0) |
 | `-V=1`、`--version=x` | version(0) |
 | `-vh x` | help(0) |

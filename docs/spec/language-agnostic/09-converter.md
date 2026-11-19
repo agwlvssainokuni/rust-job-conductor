@@ -370,7 +370,7 @@ z: {}
   5. 半角スペースが 2 つ連続しない。
   6. YAML 1.1 の語(`y`、`Y`、`yes`、`Yes`、`YES`、`n`、`N`、`no`、`No`、`NO`、`on`、`On`、`ON`、`off`、`Off`、`OFF`)でない。
   7. 第 5.2 節の規則で解決して文字列になる(`true`、`false`、`null`、`Null`、`NULL`、`True` などは引用符)。
-  - plain になる例: `hello`、`echo hello world`、`/bin/run.sh`、`a-b_c.d`、`cargo build --release`、`inf`、`_x`、`a b`。引用符になる例: `yes`、`no`、`on`(キー `on` は `"on": warning`)、`off`、`y`(キー `y` は `"y": []`)、`true`、`null`、`~`、`1`、`-1`、`1.5`、`0x1F`、`` (空)、` lead`、`trail `、`<<`、`a: b`、`a #b`、`.nan`、`1e3`、`Yes`、`Y`、`@end`、`-a`、`x  y`、`a `、非 ASCII を含む文字列(`"夜間バッチ"`、`"é key"`)。
+  - plain になる例: `hello`、`echo hello world`、`/bin/run.sh`、`a-b_c.d`、`prog build --release`、`inf`、`_x`、`a b`。引用符になる例: `yes`、`no`、`on`(キー `on` は `"on": warning`)、`off`、`y`(キー `y` は `"y": []`)、`true`、`null`、`~`、`1`、`-1`、`1.5`、`0x1F`、`` (空)、` lead`、`trail `、`<<`、`a: b`、`a #b`、`.nan`、`1e3`、`Yes`、`Y`、`@end`、`-a`、`x  y`、`a `、非 ASCII を含む文字列(`"夜間バッチ"`、`"é key"`)。
 - 二重引用符の中のエスケープ: `"` → `\"`、`\` → `\\`、改行 → `\n`、復帰 → `\r`、タブ → `\t`。そのほかの制御文字(U+0000〜U+001F、U+007F〜U+009F)と U+2028、U+2029、U+FEFF、U+FFFE、U+FFFF は `\uXXXX`(16 進の**大文字** 4 桁。例: `\u001B`、`\u007F`)。その他の文字(非 ASCII、絵文字を含む)は、そのまま書く。例: `"a\u2028b \u007F é 😀"`。
 - キー `<<` は、必ず引用符で囲む(マージキーとして読み戻されないように。上の plain の規則で、`<` で始まるので引用符になる)。
 - 非 ASCII を含む文字列は、常に二重引用符で囲む(値もキーも)。

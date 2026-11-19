@@ -298,6 +298,8 @@ Parse に成功した値の木を走査し、入れ子の深さを数える。
 
 - 許されたキー以外は `unknownKey`(例: `owner`、`remove_on_complet`)。
 - `name` が無い: `typeMismatch`、行は `[pipeline]` のテーブルの先頭、理由 ``必須の値 `name` がありません``。文字列でない: `typeMismatch`、値の行、理由 ``` `name` は文字列で書きます ```。`description` が文字列でない: `typeMismatch`、値の行、理由 ``` `description` は文字列で書きます ```。`run_id_env` が文字列でない: `typeMismatch`、値の行、理由 ``` `run_id_env` は文字列で書きます ```。`remove_on_complete` が真偽値でない: `typeMismatch`、値の行、理由 ``` `remove_on_complete` は真偽値(`true` または `false`)で書きます ```。
+- `name` が空白だけ: `emptyField`、`name` の値の行、理由 ``` `name` が空です ```(名前の照合はしない)。
+- `run_id_env` の名前の形の誤り: `invalidEnvName`、値の行、理由 ``` `run_id_env` は、英字または `_` で始まり、英数字と `_` だけの名前で書きます ```。
 - `run_id_env` の名前の形: 1 文字以上で、先頭が ASCII の英字(`A-Za-z`)または `_`、2 文字目以降が ASCII の英数字(`A-Za-z0-9`)または `_`。受理: `A`、`_`、`_a1`、`GITHUB_RUN_ID`。拒否(`invalidEnvName`): `""`、`1A`、`A-B`、`A B`、`A=B`、`é`、`A.B`、NUL を含む文字列。文字列でない値(整数など)は `typeMismatch`。誤りの文に、値は含めない。
 - `remove_on_complete` は真偽値だけ(`true` / `false`)。文字列 `"true"`、整数 `1`、配列 `[true]` は `typeMismatch`。型が違うときの値は、`false` として扱って続行する(誤りは報告済み)。
 - `pipeline` の形:
