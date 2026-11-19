@@ -72,6 +72,7 @@ Node.js の `process.stdout`・`process.stderr` は `Writable` ストリーム�
 1. **`'error'` のリスナーを、起動の最初に `process.stdout` と `process.stderr` の両方に付ける**。標準出力のリスナーは、最初の失敗(`EPIPE` など)の記録だけを行い、例外にしない。標準エラーのリスナーは、何もしない(失敗を無視する)。
 2. **書き込みは、`callback` を持つ `write()` を `Promise` に包んだ関数(例: `writeAll(stream, text): Promise<void>`)で行い、`await` する**。`callback` が `err` を受け取ったら `reject`、そうでなければ `resolve`。1 行(または 1 かたまり)につき `write()` を 1 回呼ぶ。
    - `Output` 水準(標準出力): `reject` を呼び出し元に伝える。`watch` は `cannot write to standard output` を標準エラーに出して 65、`convert` は同じ文を出して 67。
+   - `--help` と `--version` の出力: 書き込みの失敗は無視して、終了コード 0 で終わる(失敗を報告しない。AC-513)。
    - `Error`・`Notice`・`Verbose` 水準(標準エラー): `reject` を握りつぶして続ける(本筋を止めない)。
 3. **標準エラーの書き込みも、`await` で完了を待つ**。パイプ・ファイルの先でも、`conductor` の行が、そのあとに起動する子プロセスの出力より前に出るようにするため(子は同じ記述子を直接使うので、親の書き込みが終わる前に子を起動すると、順序が入れ替わりうる)。特に、リトライの知らせ(`Notice`)と、ジョブの起動前に出す行は、完了を待ってから子を起動する。
 4. 書き込みは直列に行う(前の `write()` の `Promise` が決着してから、次を書く)。`Writable` は書き込みの順序を保つので、`await` を省いても順序は保たれるが、3 と終了の規則(1.3)のために、`await` する。
@@ -240,8 +241,8 @@ conductor: error: nonexist.yaml: 定義ファイルが存在しません: 指定
 
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
-| `UnclosedQuote` | `command has an unclosed quote` | `command の引用符が閉じていません` |
-| `Empty` | `command is empty` | `command が空です` |
+| `unclosedQuote` | `command has an unclosed quote` | `command の引用符が閉じていません` |
+| `empty` | `command is empty` | `command が空です` |
 
 `command` の解釈の規則は [03-definition-format.md](03-definition-format.md) と [05-execution-flow.md](05-execution-flow.md) にある。
 
@@ -251,18 +252,18 @@ conductor: error: nonexist.yaml: 定義ファイルが存在しません: 指定
 
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
-| `Unreadable` | `cannot read state file` | `ステートファイルを読めません` |
-| `TooLarge` | `state file is too large` | `ステートファイルが大きすぎます` |
-| `Corrupt` | `state file is corrupt` | `ステートファイルが壊れています` |
-| `VersionMismatch` | `state file version is not supported` | `ステートファイルの版が合いません` |
-| `WriteFailed` | `cannot write state file` | `ステートファイルを書き込めません` |
-| `RemoveFailed` | `cannot remove state file` | `ステートファイルを削除できません` |
+| `unreadable` | `cannot read state file` | `ステートファイルを読めません` |
+| `tooLarge` | `state file is too large` | `ステートファイルが大きすぎます` |
+| `corrupt` | `state file is corrupt` | `ステートファイルが壊れています` |
+| `versionMismatch` | `state file version is not supported` | `ステートファイルの版が合いません` |
+| `writeFailed` | `cannot write state file` | `ステートファイルを書き込めません` |
+| `removeFailed` | `cannot remove state file` | `ステートファイルを削除できません` |
 
 `<補足>`(文脈による):
 
 | 文脈 | 補足の付き方 | 英語 | 日本語 |
 |------|----------------|------|--------|
-| `Read`(run ID なしで読んだ) | 種類が `Unreadable`/`TooLarge`/`Corrupt`/`VersionMismatch` のときだけ `; <案内>` | ``run `conductor reset` to discard the state`` | `` `conductor reset` でステートを初期化できます `` |
+| `Read`(run ID なしで読んだ) | 種類が `unreadable`/`tooLarge`/`corrupt`/`versionMismatch` のときだけ `; <案内>` | ``run `conductor reset` to discard the state`` | `` `conductor reset` でステートを初期化できます `` |
 | `ReadRunId`(run ID つきで読んだ) | 同上 | ``run `conductor reset --run-id <ID>` to discard the state``(`<ID>` は、文字どおり `<ID>` という文字列) | `` `conductor reset --run-id <ID>` でステートを初期化できます `` |
 | `JobNotStarted` | 常に ` (<文>)` | `the job was not started` | `ジョブは起動していません` |
 | `JobExecuted` | 常に ` (<文>)` | `the job has already been executed` | `ジョブは実行されました` |
@@ -288,9 +289,9 @@ conductor: error: c.yaml.state: ステートファイルが壊れています: J
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
 | `MISMATCH` | `state does not match the definition` | `ステートが定義と食い違っています` |
-| `PipelineName` | `pipeline name` | `パイプライン名` |
-| `JobIds` | `job ids` | `ジョブID` |
-| `JobOrder` | `job order` | `ジョブの並び` |
+| `pipelineName` | `pipeline name` | `パイプライン名` |
+| `jobIds` | `job ids` | `ジョブID` |
+| `jobOrder` | `job order` | `ジョブの並び` |
 
 ### 4.7 拒否・起動失敗・そのほか
 

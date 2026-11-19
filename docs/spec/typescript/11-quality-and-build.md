@@ -75,7 +75,7 @@ TypeScript(JavaScript)では、投げられた例外(`throw`)と、拒否され�
 | 項目 | 基準 | 受け入れテスト |
 |------|------|----------------|
 | ランダムな引数 | 固定の種のランダムな引数列(語の表から 0〜6 個を選ぶ。乱数は 3.1 節の `mulberry32`)500 回で、終了コードが 0〜255、標準エラーに制御文字(改行を除く)と U+202E がない | AC-405 |
-| UTF-8 でない引数(UNIX 系) | ジョブID、`--config`、オプション、`convert` の引数に、不正なバイト列を渡しても異常終了しない(Node は、`process.argv` の不正なバイトを U+FFFD に置き換えるとされる。未確認) | AC-406 |
+| UTF-8 でない引数(UNIX 系) | ジョブID、`--config`、オプション、`convert` の引数に、不正なバイト列を渡しても異常終了しない(Node は、`process.argv` の不正なバイトを U+FFFD に置き換える。macOS・v26.13.0 で確認。04 章 4.4 節) | AC-406 |
 | 壊れたステート | 壊れた JSON、ランダムなバイト列、状態・再開位置・フラグを乱したステート、巨大な値で、異常終了しない(終了コード 65) | AC-407 |
 | 空・制御文字を含むジョブID | 異常終了しない | AC-408 |
 | ランダムな `command` | 文字集合 `a b ⇥ ⏎ ' " \ ; \| & $ * あ` から長さ 0〜39 の文字列 2,000 件で、分割が成功したら `program` は空でない。成功か誤り(64)かのどちらか | AC-409 |
@@ -322,16 +322,18 @@ S[<id>=<状態>(<終了コード>), ... ; resume=<id>, end=<true|false>, complet
 
 `src/cli/` の `Deps` は、次の役割を TypeScript の interface で持つ([02](02-architecture.md))。`test/support/fakes.ts` が、それぞれの偽物を提供する。
 
-| 役割 | 本物 | 偽物(`test/support/fakes.ts`) |
-|------|------|-------------------------------|
-| 環境変数 | `process.env` | `FakeEnv`(`Record<string, string>`) |
-| 時刻・待ち | `Date.now`、`setTimeout`(`AbortSignal` で中断できる待ち) | `FakeClock`(待ちを記録し、すぐに返す。合図で中断するか選べる) |
-| ファイルシステム | `node:fs` と `src/state/` の原子的な書き込み | `MemFs`(メモリ上のステート。書き込み・削除の失敗を起こせる) |
-| プロセス実行 | `src/runner/` | `FakeRunner`(用意した結果を順に返す。起動の回数と引数を記録) |
-| シグナル | `process.on(<シグナル>)` | `FakeSignals`(任意の時点で番号を立てる。準備の失敗・「登録済み」を返せる) |
-| 標準出力・標準エラー | `process.stdout` / `process.stderr` | 文字列を溜める `MemWriter`、書き込みが常に失敗する(または `EPIPE` を返す)`FailingWriter` |
+| 役割(`Deps` のフィールド) | 本物 | 偽物(`test/support/fakes.ts`。名前は 02 章 4.4 節) |
+|-------------------------------|------|-------------------------------|
+| 環境(`env`) | `process.env`、`process.stdout.isTTY`、`detectPlatform()` | `FakeEnv`(環境変数の表。端末か・OS の種別を設定できる) |
+| 時刻(`clock`) | `new Date()` | `FakeClock`(固定の時刻) |
+| 定義(`defs`) | `definition.load`、`looseRunIdEnv` | `FakeDefs`(決めた結果を返す。または一時ディレクトリの実ファイルを読む) |
+| ステート(`states`) | `src/state/`(`node:fs/promises`、原子的な書き込み) | `MemStates`(メモリ上のステート。読み込み・書き込み・削除の失敗を起こせる) |
+| 変換(`converter`) | `convert.convertFile` | `FakeConverter` |
+| プロセス実行・待ち(`proc`) | `src/runner/`(`runJob`、`waitRetry`、`checkCommand`) | `ScriptProcess`(用意した結果を順に返す。起動の回数と引数を記録。`wait` は待ち時間(秒の `bigint`)を記録するだけで、すぐに返す。中断を返す設定がある) |
+| シグナル(`signals`) | `process.on(<シグナル>)` | `FakeSignals`(任意の時点で番号を立てる。準備の失敗・「登録済み」を返せる) |
+| 標準出力・標準エラー(`out`) | `process.stdout` / `process.stderr` | `BufSink`(文字列を溜める。「n 回目の書き込みで失敗する」設定で、書き込みが失敗する(または `EPIPE` を返す)場合を作る) |
 
-偽の部品で確かめる項目(区分「注入」)は、AC-293〜300、AC-324、AC-366〜368、AC-485、AC-491 など。`src/cli/` の流れのテストは、偽の部品の上で、`run`・`pipeline`・`watch`・`reset`・`convert`・`validate` を呼び、終了コード・標準出力・標準エラー・`MemFs` のステートを比べる。
+偽の部品で確かめる項目(区分「注入」)は、AC-293〜300、AC-324、AC-366〜368、AC-485、AC-491 など。`src/cli/` の流れのテストは、偽の部品の上で、`run`・`pipeline`・`watch`・`reset`・`convert`・`validate` を呼び、終了コード・標準出力・標準エラー・`MemStates` のステートを比べる。
 本物の部品との結合は、受け入れテスト(3.3 節)が確かめる。
 
 ### 3.8 テストの補助(`test/support/harness.ts`)
@@ -427,7 +429,7 @@ CONDUCTOR_BIN=<配布物の dist/bin/conductor.js> npx vitest run test/acceptanc
 ## 4. 受け入れテスト一覧
 
 ID は、`AC-` と通し番号。表は、ID・機能・前提・実行・期待の順。期待の標準エラーの文言は、特に記さない限り `LANG=C`(英語)。理由の文(日本語の固定の文)は、英語の表示でも日本語のまま。
-YAML と JSON に固有の項目は 4.19 節(AC-450〜487)、Node.js に固有の項目は 4.20 節(AC-488 以降)にまとめた。この節の定義は、特に記さない限り YAML の `conductor.yaml`。
+YAML と JSON に固有の項目は 4.19 節(AC-450〜487)、Node.js に固有の項目は 4.20 節(AC-488〜515)にまとめた。この節の定義は、特に記さない限り YAML の `conductor.yaml`。
 
 ### 4.1 定義の検査(`validate`、`run`、`pipeline` 共通)
 
@@ -600,7 +602,7 @@ JSON で同じ構造を書いた `ME`(`conductor.json`)では、誤りの行は�
 | AC-113 | `.cmd` への危険な引数(文字列形式。Windows) | `T/echo-args.cmd`(内容 `@echo off` と `exit /b 0`)。`cmd` = そのパス + ` 'x" & echo injected > T\injected.txt'` | `run a` | 127(禁止文字を含む引数なので、起動を拒否する。[07](07-process-and-signals.md))。`T/injected.txt` ができない |
 | AC-114 | `.cmd` への危険な引数(配列形式。Windows) | 同じスクリプト。`argv=[パス, "x\" & echo injected > T\injected.txt"]` | `run a` | 同上 |
 | AC-115 | `.cmd` への安全な引数(Windows) | `T/ok.cmd`(`exit /b 7`)。`cmd` = そのパス + ` plain` | `run a` | 7 |
-| AC-116 | シェルを使わないことの点検 | ソース | (構文木の走査) | `node:child_process` から import される名前が `spawn` だけ(`exec`・`execSync`・`execFile`・`execFileSync`・`spawnSync`・`fork` を import しない)。`spawn` の呼び出しが `src/runner/` に 1 か所だけで、オプションの `shell` が `false`(リテラル)。`shell: true` がどこにもない。シェルの名前(`sh`・`bash`・`cmd`・`powershell`・`-c`・`/C`)を `spawn` の第 1・第 2 引数に渡す経路がない。**Windows の `.cmd` / `.bat` を起動する経路だけは、07 章が定める安全策(禁止文字の拒否ほか。Node で `.cmd` を `shell: false` で起動できない場合の方法は 07 章で決める。AC-508)を通り、その経路は `platform.ts` の 1 か所に集める**。区分: 点検 |
+| AC-116 | シェルを使わないことの点検 | ソース | (構文木の走査) | `node:child_process` から import される名前が `spawn` だけ(`exec`・`execSync`・`execFile`・`execFileSync`・`spawnSync`・`fork` を import しない)。`spawn` の呼び出しが `src/runner/` に 1 か所だけで、オプションの `shell` が `false`(リテラル)。`shell: true` がどこにもない。シェルの名前(`sh`・`bash`・`powershell`・`-c`)を `spawn` の第 1・第 2 引数に渡す経路がない。**例外は、Windows の `.cmd` / `.bat` を起動する経路 1 つだけである。07 章 4.7 節の決定により、`cmd.exe`(`ComSpec` か `cmd.exe`)を、引数 `/d` `/s` `/c` と引用した 1 つの文字列で、`shell: false`・`windowsVerbatimArguments: true` のまま `spawn` する。この経路は、禁止文字(`"`、`%`、`^`、`&`、`|`、`<`、`>`、`!`、`(`、`)`、改行、復帰、NUL)を含む引数を拒否したあとでだけ使い、`src/runner/platform.ts` の `prepareSpawn` の 1 か所に集める(AC-486、AC-508)**。`cmd` と `/c` の文字列が現れてよいのは、`platform.ts` だけである。区分: 点検 |
 
 ### 4.3 `run`(個別実行)
 
@@ -687,7 +689,7 @@ JSON で同じ構造を書いた `ME`(`conductor.json`)では、誤りの行は�
 | AC-183 | `NO_COLOR` で色なし | 同上、`NO_COLOR=1` | 同上 | 制御文字なし。空の `NO_COLOR` では色あり。区分: UNIX 系(疑似端末か、注入) |
 | AC-184 | Windows は色なし | Windows | `watch`(端末) | 制御文字なし。区分: Windows |
 | AC-185 | ジョブIDの制御文字は表の中でもエスケープ | ジョブID に ESC を含む(YAML で `"a\u001bb"`)。実行済み | `watch` | 行に `a\u{1b}b`。生の ESC がない |
-| AC-186 | 標準出力に書けない(注入) | ステートあり | `watch`(標準出力を書き込み失敗にする `FailingWriter`) | 65。ERR = `conductor: error: cannot write to standard output`。Linux では `watch > /dev/full` でも起こせる(AC-494)。パイプの読み手が閉じた場合(`EPIPE`)は AC-492 |
+| AC-186 | 標準出力に書けない(注入) | ステートあり | `watch`(標準出力の `BufSink` を書き込み失敗にする) | 65。ERR = `conductor: error: cannot write to standard output`。Linux では `watch > /dev/full` でも起こせる(AC-494)。パイプの読み手が閉じた場合(`EPIPE`)は AC-492 |
 | AC-187 | 使えないオプション | なし | `watch -v` / `watch --remove-on-complete` / `watch --all` / `watch extra` | 68。ERR = `option not allowed for this command: '-v'`(それぞれ対象は `-v`、`--remove-on-complete`、`--all`)。`watch extra` は `unexpected argument: 'extra'` |
 
 ### 4.6 `reset`
@@ -820,7 +822,7 @@ job:
 | AC-233 | 往復で木が等しい | `CV1` | `convert in.yaml --to json` の OUT を `convert --to yaml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`retry` の写像も同じ。`CV1J` を先に `--to yaml`、次に `--to json` に通しても等しい |
 | AC-234 | 数値の往復 | 整数の端(64 ビット符号つき整数の最小・最大)、浮動小数(`1.0`、`-0.0`、`0.5`、`1e21`)、空の配列・写像 | 往復(YAML → JSON → YAML、JSON → YAML → JSON) | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別。JSON の出力で、浮動小数は、小数点か指数を持つ書き方になる)。整数の端は、桁を落とさない(number に直さない) |
 | AC-235 | ファイルを作らず環境に左右されない | `T` に入力のみ | `convert` を、別のカレントディレクトリ・異なる環境変数で実行 | `T` のファイル一覧が実行の前後で同じ。結果が同じ |
-| AC-236 | 標準出力に書けない(注入) | 正しい入力 | `convert`(標準出力を `FailingWriter` に) | 67。ERR = `conductor: error: cannot write to standard output` |
+| AC-236 | 標準出力に書けない(注入) | 正しい入力 | `convert`(標準出力の `BufSink` を書き込み失敗にする) | 67。ERR = `conductor: error: cannot write to standard output` |
 | AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to xml` / `convert f --to YAML` / `convert f --to Json` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: 'xml'` / `invalid value: 'YAML'` / `invalid value: 'Json'` / `option not allowed for this command: '--config'` |
 | AC-238 | 変換結果の全体を 1 回で書く | 失敗する入力 | `convert` | 失敗のとき、標準出力に 1 バイトも書かれない |
 
@@ -873,7 +875,7 @@ job:
 | AC-272 | 起動の失敗はリトライしない | 存在しないプログラム、`exit_codes: [127]` | `run a` | 127。retry の行なし |
 | AC-273 | シグナルで終了したジョブはリトライしない(UNIX 系) | `argv=["sh","-c","kill -9 $$"]`、`exit_codes: [137]` | `run a` | 137。retry の行なし |
 | AC-274 | 待機中のシグナル(UNIX 系) | `retry=(exit_codes=[75], max=3, interval="60s")`、`fails=99` | `run a` を起動し、ERR に最初の retry の行が出てから SIGTERM を送る(`child.kill('SIGTERM')`) | 143。ステート: `a=pending`(エラーとして記録しない)、`resume=a`。2 つ目の retry の行は出ない。ジョブは再び起動されない(`F` = 1) |
-| AC-275 | 待機中の中断は 1 秒以内 | `interval="1h"`、`fails=99` | 最初の retry の行のあと SIGTERM | SIGTERM を送ってから 1 秒以内に、143 で終わる(待ちは、`AbortSignal` で中断できるタイマー。確認の間隔を持たない)。単体では、3600 秒の待機に 200 ms 後の合図で、全体が 1.2 秒未満 |
+| AC-275 | 待機中の中断は 1 秒以内 | `interval="1h"`、`fails=99` | 最初の retry の行のあと SIGTERM | SIGTERM を送ってから 1 秒以内に、143 で終わる(待ちは、合図で中断できるタイマー(`Promise.race`)。確認の間隔を持たない)。単体では、3600 秒の待機に 200 ms 後の合図で、全体が 1.2 秒未満 |
 | AC-276 | 再開は最初の実行から数え直す | 上のあと(`resume=a`) | 再度 `run a`(`interval="1s"`、`fails=1`) | `retry 1 of 3` の行から始まる。0 で完了 |
 | AC-277 | 待機中のシグナル(pipeline) | 同様(pipeline) | `pipeline p`、待機中に SIGTERM | 143。以降のジョブを実行しない。`resume=a` |
 | AC-278 | ステートは最終の結果で 1 回だけ | `RT`(`fails=2`) | `run a` | 実行の途中に、ステートファイルのジョブ `a` の状態が `success`/`error` にならない(最終の結果のときだけ変わる。途中の失敗はステートに書かれない)。リトライの回数はステートに書かれない。観測: 待機中にステートファイルを読む |
@@ -894,19 +896,19 @@ UNIX 系の「実行」は、被試験体を起動し(`startConductor`)、`TJ sl
 | AC-285 | 最初の番号・登録は 1 回 | シグナル監視の単体 | 監視を登録し、HUP を受ける。再度の登録 | 最初の番号 1 が残る。2 回目の登録は「すでに登録済み」(失敗ではない)で、`process.listenerCount('SIGHUP')` などが増えない(リスナーが二重にならない)。区分: 単体(UNIX 系) |
 | AC-286 | 転送は同じシグナルを 1 回だけ | 起動の部品(`src/runner/`)の単体 | ジョブの実行中に合図を立てる(SIGTERM と SIGINT で別々に) | ジョブは、そのシグナルで終了する(`exit` イベントの `signal` が `'SIGTERM'` / `'SIGINT'`、番号 15 / 2)。送信は 1 回(続けて合図を立てても追加で送らない)。区分: 単体(UNIX 系) |
 | AC-287 | 許可外の番号は送らない | 起動の部品の単体 | 合図の番号が SIGKILL(9)、SIGSTOP、SIGCONT、SIGUSR1、0、-1、9999 | 送信しない。ジョブは自分で終わる。終わりの観測の直後に `interrupted = true`、`signal_number` がその番号。区分: 単体(UNIX 系) |
-| AC-288 | ジョブは新しいプロセスグループ | 起動の部品の単体。[07](07-process-and-signals.md) が、ジョブを新しいプロセスグループに置くと規定する場合(Node では `spawn` の `detached: true`。UNIX 系では新しいセッションを作るとされる。未確認) | ジョブを起動して、プロセスグループ ID を調べる(`ps -o pgid= -p <pid>`) | ジョブのプロセスグループ ID が、ジョブの pid に等しく、`conductor`(呼び出し側)のものと異なる。07 章が規定しない場合は、この項目を行わない。区分: 単体(UNIX 系) |
+| AC-288 | ジョブは新しいプロセスグループ | 起動の部品の単体。07 章 4.6 節の規定(UNIX 系は `spawn` の `detached: true`。新しいセッションのリーダーになり、プロセスグループ ID が子の pid になる。macOS で実測。Windows は `detached` を指定しない) | ジョブを起動して、プロセスグループ ID を調べる(`ps -o pgid= -p <pid>`) | ジョブのプロセスグループ ID が、ジョブの pid に等しく、`conductor`(呼び出し側)のものと異なる。Windows では行わない(`detached` を指定しない)。区分: 単体(UNIX 系) |
 | AC-289 | 先に終わったジョブには転送しない | 起動の部品の単体 | ジョブが終わった後に合図が立つ | 送信しない(終了済みの pid に `kill` しない)。区分: 単体(UNIX 系) |
 | AC-290 | 起動前の合図 | 起動の部品の単体 | 合図が立った状態で起動を呼ぶ | ジョブは起動されない(`started=false`、`interrupted=true`、`signal_number` = 番号)。分類は「分類なし」、終了コード `128 + 番号`。区分: 単体 |
 | AC-291 | 終了の観測の直後の合図 | 起動の部品の単体 | ジョブの実行中に、転送されない番号の合図を立てる(ジョブは自分で終わる) | ジョブの終了コードを保ったまま `interrupted = true`、`signal_number` = その番号。分類は「エラー、`128 + 番号`」。区分: 単体 |
 | AC-292 | 合図が立たなければ中断にならない | 起動の部品の単体 | 合図なしで `exit 1` | `interrupted = false`、`signal_number` なし。区分: 単体 |
-| AC-293 | 起動前の中断の記録(注入) | 流れの制御(偽の `FakeRunner`・`FakeSignals`) | 起動前に合図が立つ | ジョブを起動せず、`resume` = そのジョブ、エラーとして記録しない、終了 `128 + 番号`。区分: 注入 |
+| AC-293 | 起動前の中断の記録(注入) | 流れの制御(偽の `ScriptProcess`・`FakeSignals`) | 起動前に合図が立つ | ジョブを起動せず、`resume` = そのジョブ、エラーとして記録しない、終了 `128 + 番号`。区分: 注入 |
 | AC-294 | 実行中の中断の記録(注入) | 同上 | 実行中に合図(2 つ来ても最初の番号) | ジョブを `error` として記録、終了 `128 + 最初の番号`。区分: 注入 |
 | AC-295 | ジョブのあいだの中断(pipeline、注入) | 同上 | 1 つ目のジョブが成功した直後に合図 | 次のジョブを起動せず、再開位置を記録して `128 + 番号`。-v で `[conductor] interrupted by signal N`。区分: 注入 |
 | AC-296 | 検査中の合図より誤りが優先 | 同上 | 定義の検査中に合図が立つ。定義の誤り / 順序外 / スキップ | 64 / 66 / 0(中断の終了コードにならない)。区分: 注入 |
 | AC-297 | シグナルの準備は検査の前 | 同上 | `run` / `pipeline`、`validate`・`watch`・`reset`・`convert`・引数の誤り | `run`・`pipeline` だけが、定義の検査より前にシグナルを準備する。ほかは準備しない。区分: 注入 |
 | AC-298 | シグナルの準備の失敗は 70 | 同上 | 準備が失敗する | 70。ERR = `conductor: error: failed to set up signal handling`。定義の検査もジョブの起動もしない。区分: 注入 |
 | AC-299 | 登録済みでも続ける | 同上 | 準備が「すでに登録済み」を返す | 流れは成功と同様に続く。区分: 注入 |
-| AC-300 | 標準エラーが閉じていても本来の終了コード | 同上 | 標準エラーへの書き込みが失敗する(`FailingWriter`) | 本来の終了コードで終わる。区分: 注入 |
+| AC-300 | 標準エラーが閉じていても本来の終了コード | 同上 | 標準エラーへの書き込みが失敗する(`BufSink` の書き込み失敗) | 本来の終了コードで終わる。区分: 注入 |
 | AC-301 | Windows の Ctrl+C(手動) | Windows の実機、コンソール。`SL` | `conductor run sleeper` の実行中に Ctrl+C を押す | (1) 終了コード 130。(2) ジョブの子プロセスが残らない。(3) 続く `watch` で `sleeper` が `error`、`after` が `pending`。(4) `run -v` の ERR に `interrupted by signal 2`。結果を記録欄に残す(`test/WINDOWS_CTRL_C_CHECKLIST.md`)。区分: 手動(Windows)。実施の記録は、この文書の作成時点では存在しない(未確認) |
 
 ### 4.11 ステートの異常系
@@ -975,7 +977,7 @@ UNIX 系の「実行」は、被試験体を起動し(`startConductor`)、`TJ sl
 | AC-346 | `-h`/`-V` は最優先 | `-vh`、`bogus --help`、`run -vv --help`、`-V -h`、`-h -V` | `-vh` は help(0)。`bogus --help` も help(0)。`-V -h` は version、`-h -V` は help(先に現れた方) |
 | AC-347 | 使い方の誤りの形 | `bogus`(`LANG=C`)、`bogus`(`LANG=ja_JP.UTF-8`) | ERR の最初の行 = `conductor: error: unknown command: 'bogus'` / `conductor: error: 知らないコマンドです: 'bogus'`。2 行目は空行、3 行目以降は使い方の全文(英語 / 日本語)。OUT 空。ジョブは実行されない |
 | AC-348 | 使い方の誤りの全種類 | 上の各種類 | 8 種類(`UnknownCommand`、`MissingArgument`、`UnexpectedArgument`、`UnknownOption`、`OptionNotAllowed`、`MissingValue`、`InvalidValue`、`UnknownJob`)が、すべて 68 で、08 章の英語・日本語の文になる |
-| AC-349 | UTF-8 でない位置引数(UNIX 系) | 位置引数・`--run-id` の値に不正なバイト列(AC-406 と同じ方法で渡す) | 68。`invalid value`。`--config` と `convert` の入力パスは、Node が不正なバイトを U+FFFD に置き換えて受け取るとされるので(未確認)、そのパスのファイルは見つからず、終了 64(`--config`)/ 67(`convert`)になる(不正なバイト列のファイル名の定義は、Node 版では読めない制約。10 章)。いずれも異常終了しない。区分: UNIX 系 |
+| AC-349 | UTF-8 でない引数(UNIX 系。非 UTF-8 を理由にした `invalid value` は無い) | 定義あり。位置引数(ジョブID)・`--run-id` の値・`--config` と `convert` の入力パスに不正なバイト列(AC-406 と同じ方法で渡す) | `run <不正なバイトのジョブID>`、`run a --run-id <不正なバイト>`、`--config <不正なバイトのパス>`、`convert <不正なバイトのパス> --to json` | Node は不正なバイトを U+FFFD に置き換えて渡す(04 章 4.4 節。macOS・v26.13.0 で確認)ので、非 UTF-8 であることは区別できない。ジョブID: 68、`unknown job`(定義にないため。非 UTF-8 が理由ではない)。`--run-id`: 68、`invalid value`(U+FFFD が run ID の文字集合の外のため。同上)。パス: そのファイルは見つからず、`--config` は 64、`convert` は 67(元のバイト列のファイル名は、Node 版では読めない制約)。いずれも異常終了しない。ERR に U+FFFD はエスケープ規則(08 章 9 節)どおりに出る。区分: UNIX 系 |
 | AC-447 | 値を取るオプションの値は `-h`/`--help` でも値 | `--config --help run a`、`--config -h run a`、`run a --config --version`(定義ファイルは存在しない) | 終了 64。help・version は出ない。ERR に、その語をパスとしたファイルの誤り(`--help: ...` など) |
 | AC-448 | 値を取るオプションが値を欠く | `--config --help` / `--help --config` | 前者は 68(`missing argument`。`--help` が値に取られて位置引数が 0 個)。後者は help(0) |
 | AC-449 | `-h`/`-V`/`-` と `--` の細部 | `-h=x`、`-V=1`、`--help=x`、`-vh=x`、`run -`、`-- run`、`-- run a` | `-h=x`・`--help=x`・`-vh=x` は help(0)、`-V=1` は version(0)。`run -` はジョブID `-`(定義がなければ 64)。`-- run` は 68(`missing argument`。`run` がコマンド名でジョブIDなし)。`-- run a` は `run` のジョブID `a`(定義がなければ 64) |
@@ -1239,16 +1241,21 @@ Node.js の実行モデル(単一のイベントループ、標準入出力の�
 | AC-498 | `process.exit` の点検と、早すぎる呼び出しの検出 | ソース | 点検(構文木の走査) | `process.exit(` の呼び出しが、`src/bin/conductor.ts` に 1 か所以下で、それより前に、標準出力・標準エラーの書き込みの完了を待つ `await` がある。ほかのファイルにない。終了コードは、`process.exitCode` に設定してから終わるか、書き込みの完了を待ってから 1 か所で `process.exit` を呼ぶ。実行時の検出: AC-493(出力が欠けない)。区分: 点検 |
 | AC-499 | 64 ビット符号なし整数の飽和演算(`bigint`) | `src/flow/` の単体 | 待ち時間を求める関数に、検査を通らない極端な値を直接渡す(`prev = 2n ** 63n`、`prev = 18446744073709551615n`、`multiplier = 10n`、`cap = 18446744073709551615n`)。`max` = 100、`interval = 86400n`、`multiplier = 10n`、`max_interval = 86400n` の列。待ちの秒数をタイマーのミリ秒に直す関数に 86400n と 2147483647n 以上の値 | 結果が `bigint`(`typeof` が `'bigint'`)で、`18446744073709551615n` を超えず、丸め・桁あふれ(`0n` に戻る)がない(`18446744073709551615n` のまま)。`Number()` に直して比べない。列は 86400 のまま 100 回続く。ミリ秒に直す関数は、`Number` の安全な整数の範囲に収まる値だけを返す(AC-501)。区分: 単体 |
 | AC-500 | 範囲外の整数の検査は字句から `bigint` で行う | 定義(YAML・JSON): `warning_exit_codes: [9007199254740993]`(2^53 + 1)、`[2147483648]`、`[-2147483649]`、`max: 4294967296`、`max: 9007199254740993`、桁が 10,000 の整数 `format_version: 1000…0`、ステートの `exit_code: 9007199254740993` | `validate` / `run a` | すべて「範囲外・型の誤り」として拒否する(定義: 64、ステート: 65)。number に落として丸めた結果で、受理しない(`9007199254740993` を `9007199254740992` と読んで、別の判定をしない)。桁が多い入力で、ハングしない・異常終了しない。区分: 自動と単体 |
-| AC-501 | タイマーの上限 | `src/runner/` または待機の部品の単体(偽の `setTimeout` の記録) | 待機を 24 時間(86,400 秒)、`max_interval` の上限で呼ぶ。続けて、検査を通らない 30 日の待機を直接呼ぶ | `setTimeout` に渡すミリ秒が、いつも 2,147,483,647 以下(超えると Node は 1 ms に直して警告する、とされる。未確認)。30 日の待機は、上限を超えない長さに分けて待つか、拒否する(07 章に従う)。`TimeoutOverflowWarning` が出ない。待機中のタイマーは、イベントループを保つ(`unref` しない)。区分: 単体 |
+| AC-501 | タイマーの上限 | `src/runner/` の `waitRetry` の単体(`globalThis.setTimeout` を、渡された遅延を記録する関数で包む。合図で打ち切る) | 待機を 24 時間(86,400 秒)、`max_interval` の上限で呼ぶ。続けて、検査を通らない 30 日の待機を直接呼ぶ | `setTimeout` に渡すミリ秒が、いつも 2^30(1,073,741,824)以下(07 章 7.5 節。2,147,483,647 を超えると Node は 1 ms に直して警告する。macOS・v26.13.0 で確認)。30 日の待機は、2^30 ミリ秒以下に分けて待つ(合図で打ち切って検査する)。`TimeoutOverflowWarning` が出ない。待機中のタイマーは、イベントループを保つ(`unref` しない)。区分: 単体 |
 | AC-502 | シグナル名と番号の対応 | `src/runner/` の単体 | 子プロセスの `exit` イベントの `signal`(`'SIGKILL'`、`'SIGTERM'`、`'SIGINT'`、`'SIGHUP'`、`'SIGQUIT'` など)を番号にする関数 | `os.constants.signals` の値と一致する(UNIX 系。Linux と macOS で番号が違うシグナル(`SIGUSR1` など)も、その OS の値)。`SIGHUP`=1、`SIGINT`=2、`SIGQUIT`=3、`SIGKILL`=9、`SIGTERM`=15。`null` の `signal` と、対応表にない名前の扱いは 07 章に従う(未確認)。Windows で `exit` イベントの `signal` が返す値は、未確認。区分: 単体 |
 | AC-503 | `child.kill` の戻り値で終わりを判断しない | `SL` の `sleeper` を `TJ --out O trap 500 3` にする(UNIX 系) | `run sleeper` を起動し、`ready` のあと SIGTERM | 終了 143。`O` に `trapped`、続いて `done` が記録されており、`conductor` が、ジョブの終了(`close` イベント)を待ってから終わる(`child.kill()` が `true` を返した時点で終わらない)。`conductor` の終了は、SIGTERM の送信から 500 ms 以上あと。ステート `sleeper=error`(終了コード 3 は、中断の分類により `128 + 15` が採られる。ジョブの終了コード 3 は表示に使わない)。区分: UNIX 系 |
 | AC-504 | ジョブが残した孫のプロセスを待たない | `argv=["sh", "-c", "sleep 5 & exit 3"]`(UNIX 系) | `run a`(`conductor` の `exit` イベントの時刻を測る。標準出力・標準エラーのパイプは、孫が持ち続けるため、`close` は 5 秒後になることがある) | 終了コード 3。`conductor` が、ジョブ(`sh`)の終了から 2 秒以内に終わる(孫の終了を待たない)。試験は、`conductor` の `exit` イベントで判定する。区分: UNIX 系 |
 | AC-505 | 入口のシバン | ビルドした `dist/bin/conductor.js` | 点検(ファイルの先頭を読む) | 先頭の行が、ちょうど `#!/usr/bin/env node`(改行は LF だけ)。`package.json` の `bin.conductor` が `dist/bin/conductor.js` を指す。ESM(`"type": "module"`)として、`node dist/bin/conductor.js` が起動できる(拡張子つきの相対 import が解決できる)。区分: 点検 |
 | AC-506 | `package.json` の形 | `package.json` | 点検 | `name` = `conductor`、`version`、`type` = `module`、`bin`、`engines.node`(最小版以上を表す範囲)、`files`(`dist`、`LICENSE`、`README.md`)、`license` = `Apache-2.0`、`scripts`(9.2 節の名前)がある。`dependencies` が 1 つ(8 章)。`main` と `exports` は書かない(ライブラリとして公開しない)。区分: 点検 |
 | AC-507 | 標準入力はジョブに引き継ぐ | `P(p; a:0{cmd="TJ --out O stdin"})` | `run a`(標準入力のパイプに `hello⏎` を書いて閉じる) | 終了 0。`O` = `stdin="hello\n"`。`conductor` が標準入力を読まない(`process.stdin` を読み始めない。AC-495 と合わせて、読み始めると入力を奪うため) |
-| AC-508 | Windows の `.cmd` / `.bat` を、最小の Node でも最新の Node でも起動できる | Windows。`T/ok.cmd`(`exit /b 7`) | 最小の Node と最新の Node で `run a`(`cmd` = そのパス + ` plain`) | どちらも 7(AC-115)。Node は、`.cmd` / `.bat` を `shell: false` で `spawn` すると、`EINVAL` で失敗する版がある(2024 年の脆弱性の対応。どの版からか、`shell` なしで起動できるかは未確認)。**起動の方法は 07 章で決め、この項目は、その方法が両方の Node で動くことを確かめる**。区分: 自動(Windows の CI) |
+| AC-508 | Windows の `.cmd` / `.bat` を、最小の Node でも最新の Node でも起動できる | Windows。`T/ok.cmd`(`exit /b 7`) | 最小の Node と最新の Node で `run a`(`cmd` = そのパス + ` plain`) | どちらも 7(AC-115)。Node は、`.cmd` / `.bat` を `shell: false` で直接 `spawn` すると、`EINVAL` で失敗する版がある(2024 年の脆弱性の対応。どの版からか、確認していない)。**07 章 4.7 節の決定は、`.cmd` / `.bat` を直接 `spawn` せず、`cmd.exe` を `/d /s /c` で `shell: false` のまま起動する方法である。この項目は、その方法が両方の Node で動くことを確かめる(実機で未確認)**。区分: 自動(Windows の CI) |
 | AC-509 | オブジェクトのキーの順序(整数に見えるキー) | YAML: `"2": a⏎"1": b⏎b: c`(キーは引用符つきの文字列)。JSON: `{"2": "a", "1": "b", "b": "c"}` | `convert in.yaml --to json` / `convert in.json --to yaml` | OUT のキーの順が、入力の記述順(`2`、`1`、`b`)。JavaScript の通常のオブジェクトの「整数に見えるキーを昇順に並べる」性質に影響されない。区分: 自動 |
 | AC-510 | 特別な名前のキーを、普通のキーとして扱う | JSON: `{"__proto__": 1, "constructor": 2, "toString": 3, "hasOwnProperty": 4}`(変換)。定義に `__proto__: x`、`constructor: x`(キー) | `convert in.json --to yaml`、`validate` | 変換: 4 つのキーがそのまま出る(往復で木が等しい)。`Object.prototype` が汚染されない(実行の後で `({}).polluted === undefined`、`Object.prototype` のキーが増えない)。定義: `unknown key`(64)。例外で落ちない。区分: 自動と単体 |
+| AC-511 | Windows の `.cmd` の組み立ての単体(どの OS でも動く) | `platformFor('windows').prepareSpawn` | `program` と `args` を与える: (a) `x.cmd` / `X.BAT`(拡張子の大文字小文字を区別しない)と引数 `plain`、(b) 禁止文字(`"`、`%`、`^`、`&`、`\|`、`<`、`>`、`!`、`(`、`)`、`\n`、`\r`、NUL)を 1 つ含む引数(1 文字ずつ)、(c) `program` が `C:\Program Files (x86)\t\x.cmd`(`(` と `)` は許す)、(d) 拡張子が `.exe` のもの、拡張子なしのもの、(e) 空の引数 | (a) 実行ファイルが `ComSpec`(絶対パスのときだけ。そうでなければ `cmd.exe`)、引数が `['/d', '/s', '/c', '"' + 引用した全体 + '"']`、`windowsVerbatimArguments: true`、`shell: false`、`detached` なし。(b) 拒否(`ok: false`。起動しない)。(c) 受理。(d) `.cmd` の規則を使わず、そのまま(`program`、`args`)。(e) `""` として連結。`platformFor('posix')` は常に、そのまま(`detached: true`)。区分: 単体(3 OS) |
+| AC-512 | 依存の向きと循環の検査 | `src/`、ESLint の設定、循環の検査の道具(02 章 3 章。候補は `madge --circular`、`import/no-cycle`。実装時に確認) | 点検(道具の実行) | `src/` に循環 import がない(0 件)。`no-restricted-imports`(または `import/no-restricted-paths`)に、02 章 3 章の許可されない組み合わせ(例: `src/definition/**` から `../flow/**`、`src/state/**` と `src/runner/**` の相互、`src/report/**` から `../cli/**`)が書かれ、違反するコードを置くと失敗する(ESLint の単体の確認)。ほかのディレクトリからの import が、相手の `index.ts` だけを通る。ESLint の規則 `@typescript-eslint/no-floating-promises`、`no-misused-promises`、`only-throw-error` が `error`(AC-483、AC-421)。CI の `lint` ジョブで実行する。区分: 点検 |
+| AC-513 | `--help` / `--version` の標準出力が閉じたパイプでも落ちない | ビルドした `dist/` | `conductor --help` と `conductor --version` を、標準出力を閉じた読み手(`child.stdout.destroy()`、または `\| head -c 1`)で実行 | 終了 0(書き込みの失敗は無視する。08 章 1.2 節)。スタック・`Unhandled 'error' event` が現れない。70 にならない。5 秒以内に終わる。区分: 自動(UNIX 系) |
+| AC-514 | `watch` の標準出力が閉じたパイプ(`EPIPE`) | 十分に大きな表になるステート(ジョブ 2,000 個)。UNIX 系 | `watch` を起動し、標準出力の最初のデータを受けた時点で、読み手側を閉じる | 終了 65。ERR に `conductor: error: cannot write to standard output`。`EPIPE`・スタックが現れない。70 にならない。AC-492(`convert` は 67)と対にする。表が小さく、書き込みが閉じる前に終わるときは検査にならないので、表を大きくする(確実さは実装時に調整。10.1 節)。区分: 自動(UNIX 系) |
+| AC-515 | シグナルの一覧と転送の単体(どの OS でも動く) | `platformFor('posix')`、`platformFor('windows')`(07 章 8.2 節) | `watchedSignals`、`signalNumberOf`、`forward`(偽の子)、`readExit` を呼ぶ | posix: `watchedSignals` = `SIGHUP`・`SIGINT`・`SIGQUIT`・`SIGTERM` の 4 つ、番号 1・2・3・15。`forward` は許可集合(1・2・3・15)だけ `child.kill` を 1 回呼ぶ。windows: `watchedSignals` = `SIGINT` だけ。`forward` は何もしない(`child.kill` を呼ばない)。`readExit` は終了コードを `code \| 0` で符号つきにする。区分: 単体(3 OS) |
 
 ---
 
@@ -1270,7 +1277,7 @@ Node の版は、`NODE_MIN`(最小。`package.json` の `engines.node` の最小
 
 | ジョブ | 目的 | OS | Node | コマンド | 失敗の条件 |
 |--------|------|----|------|----------|------------|
-| `lint` | 型・静的検査・整形 | `ubuntu-24.04`(10 分) | 最新 | `npm ci` → ① `npx tsc --noEmit`(`npm run typecheck`)② `npx eslint . --max-warnings 0`(`npm run lint`)③ `npx prettier --check <対象>`(`npm run format:check`) | 型のエラー、ESLint の警告・エラーが 1 つでも、整形の差分が 1 つでもある(AC-480) |
+| `lint` | 型・静的検査・整形 | `ubuntu-24.04`(10 分) | 最新 | `npm ci` → ① `npx tsc --noEmit`(`npm run typecheck`)② `npx eslint . --max-warnings 0`(`npm run lint`)③ `npx prettier --check <対象>`(`npm run format:check`)④ 依存の向きと循環の検査(AC-512。道具は実装時に確認) | 型のエラー、ESLint の警告・エラーが 1 つでも、整形の差分が 1 つでも、循環・許可されない import がある(AC-480、AC-512) |
 | `consistency` | 依存と版の記載の整合 | `ubuntu-24.04`(5 分) | 最新 | ① `node scripts/check-version.mjs`(`src/version.ts` と `package.json` と `package-lock.json` の版の一致)② `node scripts/check-node-version.mjs`(5.4 節)③ `node scripts/check-deps.mjs`(8 章)④ `npm ci`(ロックファイルと `package.json` の一致)⑤ `npm install --package-lock-only --ignore-scripts` のあと `git diff --exit-code package-lock.json` | 版の不一致、依存の許可の違反、ロックファイルの食い違い・整理の差分(AC-476〜478) |
 | `build-check` | 最小の Node で、ビルドでき、配布物の形が正しいこと | `ubuntu-24.04`、`windows-2022`(`fail-fast: false`。15 分) | 最小 | `npm ci` → `npm run build` → `node dist/bin/conductor.js --version` → `npm run build` のあと `node scripts/check-pack.mjs`(`npm pack --dry-run --json` のファイル一覧の検査。5.4 節) | ビルドの失敗、`--version` の失敗、配布物の中身の違反(AC-422、AC-440、AC-479、AC-505) |
 | `test` | 3 つの OS で、全テスト(単体と受け入れ)が通ること | `ubuntu-24.04`、`macos-latest`、`windows-2022`(`fail-fast: false`。15 分) | 最新 | `npm ci` → `npm test`(`vitest run`。`globalSetup` が `tsc` でビルドする) | テストの失敗(30 秒の上限を含む) |
@@ -1865,7 +1872,7 @@ job:
 - 依存は最小にする。**実行時の外部ライブラリは、YAML の読み取り 1 つだけ**を認める。ほかは、`node:` の組み込みモジュールを使う(引数の解析は自前、シグナルは `process.on`、プロセスは `node:child_process`、ファイルは `node:fs`、パスは `node:path`、JSON の読み取りは自前)。YAML の書き出し(`convert --to yaml`)も自前([09](09-converter.md))。
 - 実行時の依存に、ネイティブのアドオン(コンパイルを要するもの)と、ネットワークのライブラリを持たない(AC-419、AC-443)。依存のインストールスクリプト(`install`・`postinstall`)に頼らない。
 - 開発時の依存は、TypeScript、ESLint(と `typescript-eslint`)、Prettier、Vitest(と `@vitest/coverage-v8`)、`@types/node` に限る(8.3 節)。テスト用のアサーション・モック・擬似端末のライブラリは入れない(擬似端末が要る項目 AC-182・AC-183 は、10 章)。
-- `node:util` の `parseArgs` は、この仕様の引数の文法に合わない見込みのため使わない([04](04-cli.md))。合わない点として、確認できている範囲では、(1) 値を取るオプションが、次の語が `-h` や `--help` でも、それを値として取る規則(AC-447)、(2) 短縮形の連結(`-vh`)での `-h` の優先、(3) 使い方の誤りを 8 種類に分けた文言を出す必要がある点、がある。`parseArgs` の挙動(特に `strict` と `allowPositionals`、`--` の扱い、`-vv` の重複の検出)は、採用する Node の版の文書で確かめていない(未確認)。
+- `node:util` の `parseArgs` は、この仕様の引数の文法に合わないため使わない([04](04-cli.md) 1.1 節。v26.13.0 で確認した範囲の理由: 値を取るオプションが次の語を無条件に値にする規則(AC-447)、最初の誤りで例外になり `-h`/`-V` の優先と誤りの優先順位が実装できないこと、短縮形の `=` と重複の扱い)。ほかの版の挙動は未確認。
 
 ### 8.2 YAML ライブラリの選定
 
@@ -1883,15 +1890,15 @@ job:
 | (8) 警告を、`process.emitWarning` などで標準エラーに出さない、または止められる | AC-496 | AC-496 |
 | (9) ESM から読み込め、最小の Node でも最新の Node でも動く | 6 章 | AC-479 |
 
-候補(版と保守の状況は、この文書では確認していない。実装時に確認する):
+候補(確認の詳細は [03](03-definition-format.md) 7.2 節。版と保守の状況は、実装時に再確認する):
 
-| 候補 | 特徴(確認できていない。実装時に確認する) | 評価 |
-|------|-------------------------------------------|------|
-| `yaml` | 文書オブジェクト(構文木。各ノードの範囲と、行・列を求める `LineCounter` を持つ)、複数文書の読み取り、重複キーの検出の設定、エイリアスの上限の設定、YAML 1.1 / 1.2 の選択、スキーマの選択を提供し、依存を持たない、とされる | 第一候補。基準(1)〜(3)・(5)・(7) は満たせる見込み。(4)(6)(8) の現状と、各設定の名前・既定値は、**未確認** |
-| `js-yaml` | 読み取りの関数が、JavaScript の値を返す。エラーに行・列(`mark`)がある。重複キーは既定で誤りになる、とされる。値ごと(キーごと)の位置は返さない見込みで、AC-037(キーごとの行)が満たせない可能性が高い。保守の状況は未確認 | 第二候補。基準(1)(5) が難しい見込み |
+| 候補 | 特徴 | 評価 |
+|------|------|------|
+| `yaml` | 03 章 7.2 節で、版 2.9.1(Node.js v26.13.0)を実際に動かして確認した。実行時の依存なし、型定義を同梱。`parseAllDocuments`(全文書)、`LineCounter`(行・列)、ノードの `range`・`tag`・`anchor`・`type`、`Alias`、オプション `uniqueKeys`・`merge`・`schema`・`logLevel` がある | **採用案**。版は、実装時に最新の安定版を確認して、正確な版を固定する(先行版は使わない)。基準(1)〜(3)・(5)〜(8) は 2.9.1 で確認した(03 章 7.5 節の試験)。(4)(9) は、実装時に確認する |
+| `js-yaml` | 版 5.5.0。ノードごとの位置を返す API が見当たらなかった(確認した範囲) | 採らない(基準(1)・(5) を確認できなかった) |
 | 自前の YAML 読み取り | — | 採らない(YAML の文法が大きく、誤りが入りやすい) |
 
-**採用案**: 構文木(行・列・タグ・種類・エイリアスつき)を提供するライブラリを 1 つ採る(第一候補の `yaml`)。YAML を読む **定義と変換の入口**でだけ使う(ステートは JSON)。構文木を、この仕様の「木」(順序つきの写像(`Map` か、キーの順を別に持つ構造)・列・文字列・整数(`bigint` か字句)・浮動小数点数・真偽値・`null`)に変換する層を自前で書き、その層で、重複キー・タグ・複数文書・文字列でないキー・深さ・要素数・エイリアスの展開を扱う(`null` は拒否しない)。ライブラリのエラー文と例外は、表示に出さない(2.3 節)。YAML 1.2 の既定の規則で読む設定にする(AC-228、AC-458)。ライブラリの警告は、標準エラーに出さない(AC-496)。
+**採用案**: `yaml`(上のとおり版を固定)。YAML を読む **定義と変換の入口**でだけ使う(ステートは JSON)。ライブラリの構文木(`parseAllDocuments`)を、03 章 6.1 節の「木」(順序つきの `entries`・`seq`・文字列・整数(`bigint`)・浮動小数・真偽値・`null`)に変換する層を自前で書き、その層で、重複キー・タグ・複数文書・文字列でないキー・深さ・要素数・エイリアスの展開を扱う(`null` は拒否しない)。スカラーの型は、`schema: 'failsafe'` で文字列として受け取り、03 章 4.2 節の規則で自前で決める。ライブラリのエラー文と例外は、表示に出さない(2.3 節)。ライブラリの警告は、標準エラーに出さない(`logLevel: 'silent'`。AC-496)。
 実装時は、まず AC-010、AC-217〜232、AC-453〜460、AC-496 の入力を、小さな試験で候補に通し、基準(1)〜(9)を確かめてから決める。採用したライブラリと版は、`package.json`、`package-lock.json`、README に記録する。
 
 JSON の定義とステートと変換の入力の読み取りは、自前の小さな字句・構文解析で行う([03](03-definition-format.md)。`JSON.parse` は、重複キーの検出・数値の整数と浮動小数点数の区別・桁数の多い整数・深さの上限・行と列の位置を得られないため)。`JSON.parse` を使ってよいのは、テストと、開発用のスクリプト(`package.json` などの読み取り)だけ(AC-421)。
@@ -2194,63 +2201,28 @@ test/fixtures
 
 ### 10.1 未確認の事項
 
+この文書の作成時に確かめていない点だけを挙げる。他の章で確認済み、または決定済みの点は、挙げない。
+
 - ブランチ保護(どのジョブを必須にするか)は、リポジトリの設定であり、リポジトリ内のファイルからは確認できない。
 - 現在の行の網羅率の実測値、各性能の計測値(起動時間、`run` のオーバーヘッドなど)は、この文書の作成時には測れていない(基準だけを記した。「仮」は、実測して見直す)。Node の起動時間(数十 ms の見込み)も実測していない。
-- この文書の作成時に、Node.js、npm、`tsc`、ESLint、Prettier、Vitest、YAML ライブラリ、GitHub Actions を実際に動かしては確かめていない。版、設定の書式、フラグ、終了コードの規則は、**実装時に確認する**。特に: `actions/setup-node` の `lts/*` と `cache: npm` の挙動、`npm pack --pack-destination` と `npm pack --dry-run --json` の出力の形、`npm audit` の終了コード、Vitest の `coverage.thresholds` と `pool` の書式、ESLint のフラットな設定と `typescript-eslint` の設定の名前、`tsc` が先頭のシバンを残すこと。
-- YAML ライブラリの挙動(行・列の取り方、重複キー・タグ・複数文書・文字列でないキー・エイリアスの扱いの設定、`process.emitWarning` による警告の有無、深い入れ子での失敗の仕方)。
-- `node:util` の `parseArgs` が、この仕様の文法(AC-447 ほか)を満たさない点の確認(使わない判断は、確認できた範囲の理由に基づく)。
-- Node が `process.argv` の不正な UTF-8 のバイトを U+FFFD に置き換えること。そのため、不正なバイト列を含むファイル名を、`--config` や `convert` の入力に指定できない(AC-349、AC-406)。
-- `spawn` の `detached: true` が UNIX 系で新しいセッション(新しいプロセスグループ)を作ること(AC-288)。07 章の規定による。
-- Windows で `.cmd` / `.bat` を `shell: false` で `spawn` すると `EINVAL` になる Node の版の範囲と、それを避けて安全に起動する方法(AC-113〜115、AC-486、AC-508)。07 章で決める。
-- Windows で、子プロセスの終了コードが `-1`(0xFFFFFFFF)のときに、`exit` イベントが返す値(AC-112)。Windows の `exit` イベントの `signal` の値(AC-502)。
+- この文書の作成時に、npm、`tsc`、ESLint、Prettier、Vitest、GitHub Actions を実際に動かしては確かめていない。版、設定の書式、フラグ、終了コードの規則は、**実装時に確認する**。特に: `actions/setup-node` の `lts/*` と `cache: npm` の挙動、`npm pack --pack-destination` と `npm pack --dry-run --json` の出力の形、`npm audit` の終了コード、Vitest の `coverage.thresholds` と `pool` の書式、ESLint のフラットな設定と `typescript-eslint` の設定の名前、`tsc` が先頭のシバンを残すこと、循環の検査の道具(AC-512)。
+- YAML ライブラリの挙動(行・列の取り方、重複キー・タグ・複数文書・文字列でないキー・エイリアスの扱いの設定、`process.emitWarning` による警告の有無、深い入れ子での失敗の仕方)。03 章 7.5 節の試験で、採用する版を確かめる。
+- Windows の実機: `.cmd` / `.bat` を `cmd.exe /d /s /c`(`shell: false`、`windowsVerbatimArguments: true`)で起動する方法が、最小の Node でも最新の Node でも動くこと(AC-113〜115、AC-486、AC-508。07 章 4.7 節の決定)。子プロセスの終了コードが `-1`(0xFFFFFFFF)のときの `exit` イベントの値(AC-112)、`signal` の値(AC-502)。Ctrl+C の手動の確認(AC-301。記録は作成時点で存在しない)。
+- Linux の実機: `spawn` の `detached: true` が新しいセッション(新しいプロセスグループ)を作ること(AC-288。macOS で確認、Linux は未確認)。ディレクトリへの `fs.unlink` が `EISDIR` になること(06 章 8.1 節)。`ps -o pgid=`、`/proc/<pid>/stat` の書式(AC-403)、`ETXTBSY`(3.3 節)。
+- 最小の Node と最新の LTS の Node での、07・08・06・05 章の【実測】(いずれも v26.13.0、macOS で確認)の再確認。
+- `node:util` の `parseArgs` が、この仕様の文法(AC-447 ほか)を満たさない点は、v26.13.0 で確認した範囲(04 章 1.1 節)。ほかの版は未確認。
+- 引数と環境変数の不正な UTF-8 が U+FFFD に置き換わること(AC-349、AC-406)は macOS・v26.13.0 で確認(04 章 4.4 節)。Linux と Windows は未確認。Windows の不正な UTF-16 の引数は未確認。
 - `sleep` / `trap` モードの `TJ` が、SIGTERM・SIGINT・SIGHUP で「シグナルで終了した」と観測されること(自分に同じシグナルを送り直す設計。3.4 節)。SIGQUIT の既定の動作。
-- `setTimeout` に 2,147,483,647 ms を超える値を渡したときの挙動(AC-501)。
 - 疑似端末の作り方(AC-182、AC-183)。Node の組み込みだけでは作れない。外部のライブラリを使うか、`script` コマンドを使うかは、実装時に決める(テスト専用の依存を増やす場合は、8.1 節の方針の例外として、README に理由を書く。または、端末かどうかの判定を `Deps` にして、偽の `Deps` で検査する(AC-182 の注入の併記)で代える)。
-- Windows の Ctrl+C の手動の確認(AC-301)の記録は、この文書の作成時点では存在しない。
 - 大文字小文字を区別しないファイルシステムでの run ID の衝突(AC-260)は、仕様の記述に基づく。
-- `macos-latest` のランナーに `shasum` / `sha256sum` があること、`ubuntu-24.04` で `ps -o pgid=` が使えること、Linux の `/proc/<pid>/stat` の書式(AC-403)。
+- `macos-latest` のランナーに `shasum` / `sha256sum` があること、`ubuntu-24.04` で `ps -o pgid=` が使えること。
 - 単一の実行ファイルの配布(6.4 節)は、任意で、この文書では確かめていない。
 - `tsc` の出力が、3 OS で同じ結果になること(`build-repro`。5.1 節の任意のジョブ)。
 - `npm publish` の手順の細部(二要素認証、パッケージ名の取得、`--provenance`)。
 - 起動の性能の測定を強制に切り替える予定の有無は、決まっていない。
-- 標準出力への書き込みの失敗(`watch`・`convert`)を、実際のプロセスで確かめる方法のうち、`EPIPE`(AC-492)は、読み手が閉じるタイミングに依存する。確実に起こすための調整(出力の大きさ)は、実装時に確認する。
-- 受け入れテストのうち、4.1 節〜4.20 節の、期待の値の一部は、定義・ステート・変換の他章([03](03-definition-format.md)、[06](06-state-file.md)、[09](09-converter.md)、[10](10-errors-and-exit-codes.md))の字句に依存する。他章と食い違う場合は、他章を正とし、この文書の期待を直す。
+- 標準出力への書き込みの失敗を、実際のプロセスで確かめる方法のうち、`EPIPE`(AC-492、AC-513、AC-514)は、読み手が閉じるタイミングに依存する。確実に起こすための調整(出力の大きさ)は、実装時に確認する。
+- 受け入れテストの期待の値の一部は、定義・ステート・変換の他章([03](03-definition-format.md)、[06](06-state-file.md)、[09](09-converter.md)、[10](10-errors-and-exit-codes.md))の字句に依存する。他章と食い違う場合は、他章を正とし、この文書の期待を直す。
 
-### 10.2 他の章との整合が要る点
+### 10.2 他の章との整合
 
-| 項目 | この文書の前提 | 整合が要る章 |
-|------|----------------|--------------|
-| OS 固有コードの置き場所 | `process.platform` の参照は `src/runner/platform.ts` の 1 か所だけ(AC-420)。ステートのディレクトリの同期、端末の判定、受け取るシグナルの一覧は、そこが出す値・関数を使う | 02、07 |
-| `Deps` の役割の一覧 | 環境変数、時刻・待ち(中断できる)、ファイルシステム、プロセス実行、シグナル、標準出力・標準エラー(3.7 節)。端末かどうかの判定も `Deps` の関数にする(AC-182 の注入) | 02、04 |
-| 入口の終了の方法 | `process.exit` は `src/bin/conductor.ts` に 1 か所以下で、書き込みの完了を待ってから(AC-498)。未捕捉の例外・Promise の拒否は 70(AC-489、AC-490) | 02、10 |
-| 子プロセスの扱い | `stdio: 'inherit'`、`shell: false`、`close` イベントで終わりを待つ、孫を待たない(AC-504)、中断のあとも子の終了を待つ(AC-503)、新しいプロセスグループにするか(AC-288) | 07 |
-| Windows の `.cmd` / `.bat` | 禁止文字の拒否(AC-486)と、Node の `EINVAL` を避ける起動の方法(AC-508)。シェルを使わないという規則(AC-116)との関係 | 07 |
-| シグナルの一覧と登録 | UNIX 系は `SIGHUP`・`SIGINT`・`SIGQUIT`・`SIGTERM`、Windows は `SIGINT`。登録は 1 回、終了で解除(AC-285、AC-484、AC-497) | 07 |
-| `bigint` の飽和演算 | リトライの待ち時間(`src/flow/`)は `bigint`。タイマーのミリ秒への変換は、2,147,483,647 を超えない(AC-499、AC-501) | 05、07 |
-| 整数の範囲検査 | 定義・ステートの整数は、字句から `bigint` で検査する(AC-031、AC-066、AC-068、AC-474、AC-500) | 03、06 |
-| JSON の自前の読み取り | 重複キー、位置、深さ、整数の字句、`__proto__` などのキー(AC-461〜468、AC-510)。木は `Map` などで、キーの順を保つ(AC-222、AC-509) | 03、06、09 |
-| 標準出力の失敗 | `EPIPE`・`ENOSPC` を、`watch` は 65、`convert` は 67 の「標準出力に書けない」として扱う(AC-186、AC-236、AC-492、AC-494) | 08、09、10 |
-| 版の定数 | `src/version.ts` の `export const VERSION = "0.8.0";`(1 行。AC-476) | 02、04 |
-| ファイル名の復号 | Node が `argv` を UTF-8 として復号する制約(AC-349、AC-406) | 04 |
-| テスト用ジョブの置き場所 | `test/jobs/tj.mjs`。配布物に含めない | 02、12 |
-| 再構築の手順 | 12 章は、この文書の品質ゲートの再現(5 章)とリリース(6 章)、依存の許可の一覧(8 章)を参照する | 12 |
-
-定義・ステート・変換の仕様(03、06、09 章)の決定と、この文書の受け入れテストの期待は、次のとおり揃えてある(受け入れテストの期待は、該当章の字句が正本である)。
-
-| 項目 | 決定(出どころ) |
-|------|----------------|
-| 定義のキー名 | 配列のキーは `job`(`jobs` は未知のキー)。遷移は `transitions`、再実行は `retry`([03](03-definition-format.md)) |
-| 定義の null | `wrong value type`(`retry: null` は `retry must be a map`、未知のキーの値が null なら `unknown key`) |
-| 定義の YAML の高度な機能 | アンカー・エイリアス・マージキーは、定義でも展開して受理する。タグ・複数文書・文字列でないキー・重複キーは拒否 |
-| 入れ子の深さ | 根のマップを数えず、32 段まで受理し 33 段目を拒否(YAML・JSON・変換で同じ)。要素数の上限は 100,000(`a` の列の要素数 n が 99,997 まで受理) |
-| 大きさの上限 | 定義・ステート・変換の入力は、それぞれ 1 MiB(1,048,576 バイト)まで |
-| JSON の数 | 整数のリテラルだけを整数と読む(`1.0`、`1e0` は浮動小数点数)。`format_version: 1.0` は `unsupported format_version` |
-| JSON の空の入力 | 定義・変換とも `syntax error`(YAML の空の文書は、定義では「空のマップ」で `format_version is missing`、変換では `top level is not a map`) |
-| `convert` の入力形式 | `--to` の反対で、拡張子は見ない([09](09-converter.md)) |
-| `convert` の拒否 | `null` は拒否しない。YAML のタグ・複数文書・文字列でないキーは読み取りの `syntax error`。範囲外の数、YAML の `.inf`・`.nan`(JSON へ)、1,024 文字超のキー(JSON から YAML へ)は `unrepresentable` |
-| `convert` の出力 | キーは入力の記述順、インデントは 2 スペース、末尾は改行。JSON の出力は、`<`、`>`、`&` をエスケープせず、非 ASCII をそのまま出す。浮動小数点数は、整数と区別できる書き方で出す |
-| 定義の拡張子 | `.yaml`・`.yml`・`.json`(ASCII の大文字小文字を区別しない)だけ。ほかは `unsupportedFormat` |
-| 理由の文 | ステートの読み取りの失敗は `JSON として読めません`、キーの重複は `キーが重複しています`。YAML の文法の誤りは `YAML の文法に誤りがあります`、JSON は `JSON の文法に誤りがあります`。深さは `入れ子が深すぎます(上限は 32 段)` |
-| ステートの JSON | キー名は論理項目と同じ。キーの順と整形は 06 章に従う |
-
-残る未確認は、10.1 節のとおりである(YAML ライブラリの挙動、Windows の実機の挙動、Node の各 API の挙動など)。
+他の章との整合は、この版では解消してある(`process.platform` は `src/runner/platform.ts` だけ(AC-420)、入口の `process.exit` は 1 か所以下(AC-498)、`.cmd` / `.bat` の起動は 07 章 4.7 節の決定(AC-116、AC-486、AC-508、AC-511)、UNIX 系の子は新しいプロセスグループ(AC-288)、シグナルの一覧は UNIX 系 4 つ・Windows は `SIGINT` だけ(AC-515)、タイマーは 2^30 ミリ秒以下に分割(AC-501)、標準出力の失敗は `watch` が 65・`convert` が 67・`--help` / `--version` は無視して 0(AC-492〜494、AC-513、AC-514)、JSON の読み取りは自前の `readJson`(`JSON.parse` は製品のコードで使わない。AC-421))。受け入れテストの期待は、該当章の字句が正本である。残る未確認は、10.1 節のとおりである。

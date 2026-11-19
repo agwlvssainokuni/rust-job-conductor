@@ -37,10 +37,10 @@
 | ディレクトリ | 責務 | 入出力 |
 |--------------|------|--------|
 | `src/bin/` | 薄い入口(`conductor.ts`)。先頭に `#!/usr/bin/env node`。想定外の例外と `Promise` の拒否を捕まえて、`conductor: error: internal error` を標準エラーに 1 行出し、終了コード 70 にする。本番の `Deps` を作って `cli` の `run` を呼ぶ。終了(`process.exit`)は、ここだけ | プロセスの引数・環境・標準入出力 |
-| `src/definition/` | 定義ファイルの読み込み(場所の決定と読み取り、YAML/JSON の構文解析、入れ子の深さ、`format_version`、構造・型・遷移・終了コード・名前の検査)。誤りを位置(行)つきで返す。**定義の型**(`Definition`、`Job`、`Command`、`RetryPolicy`、`Backoff`、`Transition`)と、誤りの種類(`DefinitionErrorKind`。03 章)を持つ。`run_id_env` だけのゆるい読み取りも持つ。木の読み取り(`readTree`)は `convert` が共有する | ファイルを読む(`load` だけ)。ほかは文字列に対する純粋な処理 |
+| `src/definition/` | 定義ファイルの読み込み(場所の決定と読み取り、YAML/JSON の構文解析、入れ子の深さ、`format_version`、構造・型・遷移・終了コード・名前の検査)。誤りを位置(行)つきで返す。**定義の型**(`Definition`、`Job`、`Command`、`RetryPolicy`、`Backoff`、`Transition`)と、誤りの種類(`ErrorKind`。03 章)を持つ。`run_id_env` だけのゆるい読み取りも持つ。木の読み取り(`readTree`)は `convert` が共有する | ファイルを読む(`load` だけ)。ほかは文字列に対する純粋な処理 |
 | `src/convert/` | YAML ⇔ JSON の変換(`convert --to yaml\|json`)。定義の検証はしない。木の読み取りは `definition` と共有する | 入力ファイル 1 つを読む(`convertFile`)。`convertText` は文字列に対して純粋 |
-| `src/runid/` | run ID の値の検査と、決定(`--run-id` と環境変数のどちらを使うか)に使う純粋な関数。**`RunId` の型**を持つ | なし |
-| `src/flow/` | 純粋な判断。実行結果の分類(成功・警告・エラー・分類なし)と報告する終了コード、遷移と次の動き、起動前の判断(実行・スキップ・拒否)、中断時の再開位置、リトライの判断と待ち時間(`bigint` の飽和演算)、終了コードの範囲合わせ。**実行時の値の型**(`JobExecution`、`JobState`、`PipelineState`、`JobOutcome`、`NextStepResult` など)と、終了コードの定数を持つ | なし(引数だけから結果を決める。ファイル・プロセス・環境変数・時刻に触れない) |
+| `src/runid/` | run ID の値の検査と、決定(`--run-id` と環境変数のどちらを使うか)に使う純粋な関数。**`RunIdError` の型**を持つ | なし |
+| `src/flow/` | 純粋な判断。実行結果の分類(成功・警告・エラー・分類なし)と報告する終了コード、遷移と次の動き、起動前の判断(実行・スキップ・拒否)、中断時の再開位置、リトライの判断と待ち時間(`bigint` の飽和演算)、終了コードの範囲合わせ。**実行時の値の型**(`JobExecution`、`JobState`、`PipelineState`、`JobOutcome`、`NextStep` など)と、終了コードの定数を持つ | なし(引数だけから結果を決める。ファイル・プロセス・環境変数・時刻に触れない) |
 | `src/state/` | ステートの読み書き。JSON の表現(ファイル用の型と、固定の順序の書き出し)、記録関数(結果・スキップ・中断を、新しい `PipelineState` として作る純粋な関数)、読み込み(14 段階の検査と異常系)、書き込み(一時ファイル + 同期 + 名前の付け替え + ディレクトリの同期)、定義との整合性の検査、`reset` と `reset --all`、ステートファイルの場所と名前。**ステートの誤りの型**(`StateError`)を持つ | ステートのファイル(とそのディレクトリ)。記録関数と整合性の検査は純粋 |
 | `src/runner/` | `command` の分割と検査、`node:child_process` によるジョブの起動と待ち、シグナルの転送、リトライの待機、中断の合図(`Interrupt`)、シグナル監視、プラットフォーム層(`platform.ts`。`process.platform` を読む唯一の場所)。**`CommandLine` と `CommandError` の型**を持つ | 子プロセス、時刻(待ち)、OS のシグナル。分割と検査は純粋 |
 | `src/report/` | 出力。メッセージカタログ(英語・日本語)、ロケールと色の判定、`-v` の行、誤りの行、`watch` の表、使い方(`--help`)、入力由来の文字列のエスケープと切り詰め。**文を作るだけ**で、書き込みは `cli` が `Sink` へ行う | 環境変数・端末かどうか・OS の種別は、引数(`ReportEnv`)で受け取る(自分では読まない) |
@@ -58,9 +58,9 @@
 
 | 型 | 置き場所 |
 |----|----------|
-| 定義の型(`Definition`、`Job`、`Command`、`RetryPolicy`、`Backoff`、`Transition`)、定義の誤り(`DefinitionError`) | `src/definition/` |
-| `RunId` | `src/runid/` |
-| 実行時の値の型(`JobExecution`、`JobState`、`PipelineState`、`JobOutcome`、`NextStepResult`、`ResumePoint` など)、終了コードの定数 | `src/flow/` |
+| 定義の型(`Definition`、`Job`、`Command`、`RetryPolicy`、`Backoff`、`Transition`)、定義の誤り(`DefinitionError`、`ErrorKind`)、木の型(`TreeNode` ほか) | `src/definition/` |
+| `RunIdError`、`RunIdErrorKind` | `src/runid/` |
+| 実行時の値の型(`JobExecution`、`JobState`、`PipelineState`、`JobOutcome`、`NextStep`、`ResumePoint` など)、終了コードの定数 | `src/flow/` |
 | ステートの誤り(`StateError`)、`Durability`、`StateStore` | `src/state/` |
 | `CommandLine`、`CommandError`、`CommandResult`、`Interrupt`、`WaitOutcome`、`Platform`、`PlatformKind` | `src/runner/` |
 | `Locale`、`ReportEnv`、`Reporter` | `src/report/` |
@@ -69,70 +69,76 @@
 #### `src/definition/`
 
 ```ts
-// 03 章の型が正。ここでは他のディレクトリが使う名前だけを示す。
+// 03 章 14.1 節の型が正(骨格の再掲)。ここでは他のディレクトリが使う名前だけを示す。
+// 「無し」は undefined で表す(null は使わない)。
 export interface Definition {
-  readonly formatVersion: number;
-  readonly name: string;                 // pipeline の名前
-  readonly description: string | null;
-  readonly runIdEnv: string | null;
+  readonly name: string;                         // pipeline の名前
+  readonly description: string | undefined;
+  readonly runIdEnv: string | undefined;         // undefined なら実行時に CONDUCTOR_RUN_ID
   readonly removeOnComplete: boolean;
-  readonly jobs: readonly Job[];         // 記述順
+  readonly formatVersion: 1;
+  readonly jobs: readonly [Job, ...Job[]];       // 記述順。1 つ以上
 }
-export function jobIndex(d: Definition, id: string): number | null;
 
 export interface Job {
   readonly id: string;
   readonly command: Command;
   readonly warningExitCodes: readonly number[];
-  readonly successExitCodes: readonly number[] | null; // null なら既定の [0]
-  readonly transitions: readonly Transition[];
-  readonly retry: RetryPolicy | null;
+  readonly successExitCodes: readonly number[] | undefined; // undefined なら既定の [0]
+  readonly transitions: readonly Transition[];   // on ごとに高々 1 つ
+  readonly retry: RetryPolicy | undefined;
 }
-export function effectiveSuccessCodes(j: Job): readonly number[];
-export function transitionFor(j: Job, on: 'success' | 'warning'): Transition | null;
 
 export type Command =
-  | { readonly kind: 'line'; readonly line: string }
-  | { readonly kind: 'argv'; readonly argv: readonly string[] };
+  | { readonly form: 'line'; readonly line: string }
+  | { readonly form: 'argv'; readonly argv: readonly [string, ...string[]] };
+
+export type Transition =
+  | { readonly on: 'success' | 'warning'; readonly next: 'job'; readonly jobId: string }
+  | { readonly on: 'success' | 'warning'; readonly next: 'end' };
 
 export interface RetryPolicy {
-  readonly exitCodes: readonly number[];
-  readonly max: number;                  // 32 ビット符号なしの範囲(number で足りる)
-  readonly intervalSecs: bigint;         // 64 ビット符号なし。bigint
-  readonly backoff: Backoff | null;      // multiplier と maxInterval は両方ある、または両方ない
+  readonly exitCodes: readonly [number, ...number[]];
+  readonly max: number;                  // 1〜100
+  readonly intervalSecs: bigint;         // 64 ビット符号なしの飽和演算に使うので bigint
+  readonly backoff: Backoff | undefined; // multiplier と maxInterval は両方ある、または両方ない
 }
 export interface Backoff {
-  readonly multiplier: number;           // 32 ビット符号なし
-  readonly maxIntervalSecs: bigint;      // 64 ビット符号なし。bigint
+  readonly multiplier: number;           // 2〜10
+  readonly maxIntervalSecs: bigint;
 }
 
-export interface Transition {
-  readonly on: 'success' | 'warning';
-  readonly next: string;                 // ジョブID。isEnd のときは ""
-  readonly isEnd: boolean;               // 遷移先が @end
-}
+// 補助(任意。名前と置き場所は実装が決める): ジョブIDから記述順の位置を引く(`Map<string, number>`)、
+// 実効の成功コード(successExitCodes ?? [0])を返す。
 
-export type DefinitionErrorKind = /* 03 章の全件(文字列リテラルの和集合) */ string;
-export class DefinitionError extends Error {
-  readonly file: string;
-  readonly line: number;                 // 0 なら行なし
-  readonly column: number;               // 順序づけにだけ使う
-  readonly kind: DefinitionErrorKind;
-  readonly reason: string;               // 固定の日本語の文。message も同じ。入力の値や、ライブラリのエラー文を含めない
+// 03 章 12.1 節が正本。誤りは、Error を継承しない普通の値(判別共用体)。種類は 31 種(ERROR_KINDS)。
+export type ErrorKind = /* 03 章 12.3 節の 31 種(文字列リテラルの和集合) */ string;
+export interface DefinitionError {
+  readonly kind: ErrorKind;
+  readonly file: string;                 // 表示用のファイル名
+  readonly line: number | undefined;     // 1 始まり。undefined は行なし
+  readonly column: number | undefined;   // 順序づけにだけ使い、表示しない
+  readonly reason: string;               // 固定の日本語の文。入力の値や、ライブラリのエラー文を含めない
 }
 
 export type LoadResult =
   | { readonly ok: true; readonly definition: Definition }
   | { readonly ok: false; readonly errors: readonly DefinitionError[] };
 
-// load は定義ファイルを読み、検証する。誤りは、見つけたものをまとめて返す(早い段階の誤りは 1 件で打ち切る。03 章)。拒否されない Promise を返す。
+// load は定義ファイルを読み、検証する(03 章 14.2 節の署名が正本)。誤りは、見つけたものをまとめて返す(早い段階の誤りは 1 件で打ち切る。03 章)。拒否されない Promise を返す。
 export function load(path: string, expectedPipelineName: string | null): Promise<LoadResult>;
 // parse は、ファイルに触れず、文字列に対して 03 章の段階 2〜5 を行う(純粋)。
 export function parse(text: string, format: 'yaml' | 'json', fileLabel: string, expectedPipelineName: string | null): LoadResult;
 // looseRunIdEnv は、run_id_env だけをゆるく読む(どの失敗でも "")。
-export function looseRunIdEnv(path: string): Promise<string>;
-// readTree は、YAML/JSON を 03 章の規定で木に読む。convert が共有する。
+export function looseRunIdEnv(path: string): Promise<string>;   // どの失敗でも ""(既定の名前を使う)
+// readTree は、YAML/JSON を 03 章の規定で木に読む(段階 2〜3)。convert が共有する。
 export function readTree(text: string, format: 'yaml' | 'json', fileLabel: string): TreeResult;
+// readJson は、JSON の自前の読み取り(03 章 5.3 節・14.2 節)。state も、ステートの読み込みに使う(06 章 6.5 節)。
+// checkLimits は、段階 3 の上限の確認(深さ・要素数・文字の大きさ)。state は深さだけを使う。
+export function readJson(text: string, options?: ReadJsonOptions): ReadJsonResult;
+export function checkLimits(root: TreeNode, which: 'all' | 'depthOnly'): DefinitionError | undefined;
+// 木の型(TreeNode、MapNode、MapEntry、Pos ほか。03 章 6.1 節)も公開する。
+// 型・関数の署名の正本は 03 章 14.2 節。
 ```
 
 - 定義の書式は、拡張子で決める(`.yaml`/`.yml`/`.json`、大文字小文字を区別しない。それ以外は `unsupportedFormat`)。[03-definition-format.md](03-definition-format.md)。
@@ -141,21 +147,33 @@ export function readTree(text: string, format: 'yaml' | 'json', fileLabel: strin
 #### `src/runid/`
 
 ```ts
-export type RunId = string & { readonly __brand: 'RunId' };  // 検査を通った値だけ
-export function validateRunId(s: string): RunIdError | null; // 値の検査(文字集合・長さ。04・05 章)
+export type RunIdErrorKind = 'Empty' | 'TooLong' | 'InvalidChar' | 'LeadingDot';
+export interface RunIdError { readonly kind: RunIdErrorKind } // 値は持たない(10 章)
+export type RunIdParse =
+  | { readonly ok: true; readonly runId: string }
+  | { readonly ok: false; readonly error: RunIdError };
+// 値の検査(順 1〜4。05 章 6.1 節)。検査を通った値は、ただの string として扱う。
+export function parseRunId(value: string): RunIdParse;
+// 決定(05 章 6.2 節)。--run-id、環境変数の名前、環境変数の読み取りから、run ID(なしは undefined)を決める。
+export type ResolveRunIdResult =
+  | { readonly ok: true; readonly runId: string | undefined }
+  | { readonly ok: false; readonly error: RunIdError; readonly subject: string };
 export function resolveRunId(
-  flagValue: string | null,
-  envName: string | null,
+  flagValue: string | undefined,           // --run-id が指定されなければ undefined(空文字列は「指定された」)
+  envName: string,                          // 定義の run_id_env、なければ "CONDUCTOR_RUN_ID"
   getenv: (name: string) => string | undefined,
-): ResolveResult; // { ok: true; runId: RunId | null } | { ok: false; error: RunIdError }
+): ResolveRunIdResult;
 ```
 
 #### `src/flow/`
 
 ```ts
-// 型と関数の骨格の全体は 05 章が正(JobStatus、SkipReason、JobState、JobOutcome、NextStepResult、
-// Decision、ResumePoint、RetryDecision、classify、classifyAndDecide、decideBeforeRun、
-// decideRetry、nextWaitSecs、resumePointOnInterrupt、exitCodeFor、signalExitCode)。
+// 型と関数の骨格の全体は 05 章が正(JobStatus、SkipReason、JobState、JobOutcome、NextStep、
+// Decision、ResumePoint、RetryDecision、classify、classifyAndDecide、nextStep、decideBeforeRun、
+// retryDecision、nextWaitSecs、satMulU64、resumePointOnInterrupt、exitCodeFor、signalExitCode)。
+// toFlowDefinition(def: Definition): FlowDefinition(05 章 13 章)が、定義から判断用の形を作る。
+// 「無し」は、ステート値(JobState、PipelineState)ではプロパティを書かない(`?`)で表し、
+// JobExecution では null で表す(07 章 4.4 節)。
 // ここには、runner、state、report が使う型だけを示す。
 
 // ジョブの実行結果(07 章 4.4 節)
@@ -170,14 +188,14 @@ export interface JobExecution {
   readonly signalNumber: number | null;
 }
 
-export interface PipelineState {
+export interface PipelineState {         // 05 章 1 節が正
   readonly definitionKey: string;
   readonly definitionPath: string;
   readonly pipelineName: string;
-  readonly runId: string | null;
+  readonly runId?: string;
   readonly jobOrder: readonly string[];
-  readonly jobStates: readonly JobState[];
-  readonly resumeJobId: string | null;
+  readonly jobs: readonly JobState[];
+  readonly resumeJobId?: string;
   readonly endReached: boolean;
   readonly completed: boolean;
   // 06 章の論理項目の全件
@@ -188,44 +206,62 @@ export const EXIT_OK = 0;
 // ...
 
 // リトライの待ち時間(秒)は bigint。64 ビット符号なしの上限で飽和する(05 章)。
-export function nextWaitSecs(policy: RetryPolicy, retriesDone: number, lastWait: bigint | null): bigint;
+export function nextWaitSecs(policy: RetryPolicy, retriesDone: number, lastWaitSecs: bigint): bigint;
 ```
 
 #### `src/state/`
 
 ```ts
-export type Durability = 'durable' | 'fast'; // durable: 同期してから置き換える。fast: 同期を省く(起動前の初期ステート)
+// durable: 同期してから置き換える。fast: 同期を省く(起動前の初期ステート)
+export type Durability = 'durable' | 'fast';
 
 export type StateErrorKind = 'unreadable' | 'tooLarge' | 'corrupt' | 'versionMismatch' | 'writeFailed' | 'removeFailed';
+export type StateErrorDetail = 'runIdMismatch'; // 内部の判別用(reset --all)。表示に使わない
+// 型の正本は 06 章 6.2 節。reason は 06 章 6.4 節の固定の日本語文(入力の値や下位のエラー文を含めない)。
 export class StateError extends Error {
   readonly kind: StateErrorKind;
-  readonly reason: string;  // 06 章の固定の理由文の識別子。message は固定の文
   readonly path: string;
+  readonly reason: string;
+  readonly detail?: StateErrorDetail;
 }
 
-// 記録関数(純粋。元を変更せず、新しい値を返す)
-export function initialState(def: Definition, definitionPath: string, runId: RunId | null): PipelineState;
-export function applyOutcome(s: PipelineState, o: JobOutcome, step: NextStepResult): PipelineState;
-export function applySkip(s: PipelineState, jobId: string, reason: SkipReason /* ... */): PipelineState;
-export function applyInterrupt(s: PipelineState, rp: ResumePoint): PipelineState;
+// 記録関数(純粋。元を変更せず、新しい値を返す。署名の正本は 05 章 13 節)
+export function initialState(definitionPath: string, def: FlowDefinition, runId: string | undefined): PipelineState;
+export function applyOutcome(s: PipelineState, jobId: string, exec: JobExecution, outcome: JobOutcome, next: NextStep): PipelineState;
+export function applySkip(s: PipelineState, jobId: string, reason: DecisionReason, def: FlowDefinition): PipelineState;
+export function applyInterrupt(s: PipelineState, point: ResumePoint): PipelineState;
 
-// 整合性の検査(純粋)
-export type Mismatch = /* 06 章の食い違いの種類 */ string;
-export function checkConsistency(s: PipelineState, def: Definition, definitionPath: string, runId: RunId | null): Mismatch | null;
+// 整合性の検査(純粋。06 章 7 節が正本)
+export type ConsistencyResult =
+  | { readonly kind: 'ok' }
+  | { readonly kind: 'mismatch'; readonly what: 'pipelineName' | 'jobIds' | 'jobOrder' };
+export function checkConsistency(state: PipelineState, def: { readonly name: string; readonly jobs: readonly { readonly id: string }[] }): ConsistencyResult;
 
-// 入出力
+// 入出力の関数(06 章。投げる形): 失敗は StateError を投げる(reject する)。
+//   readState(path, runId): Promise<PipelineState | undefined>      // undefined は「空」。完了のものも「空」
+//   readStateRaw(path, runId): Promise<PipelineState | undefined>   // 完了のものも返す(watch)
+//   writeState(path, runId, s, d): Promise<void>                    // writeFailed
+//   resetState(path, runId): Promise<void>                          // removeFailed
+//   resetAllStates(path): Promise<ResetAllOutcome>                  // 06 章 8.2 節
+// StateStore は、これらを包んで、StateError を値に変える(Deps の「拒否しない」の規則に合わせるため)。
+// StateError 以外の例外は捕まえない(想定外の内部失敗。入口が 70 にする)。
+export interface ResetAllOutcome { readonly kept: readonly string[] } // 読めずに残したステートのファイル名(整列済み)
+export type StateReadResult =
+  | { readonly ok: true; readonly state: PipelineState | undefined } // undefined は「空」
+  | { readonly ok: false; readonly error: StateError };
+export type StateResult = { readonly ok: true } | { readonly ok: false; readonly error: StateError };
+export type ResetAllResult =
+  | { readonly ok: true; readonly kept: readonly string[] }
+  | { readonly ok: false; readonly error: StateError };
 export interface StateStoreOptions {
   readonly now: () => Date;            // 一時ファイル名用
   readonly syncDirectory: boolean;     // UNIX 系 true、Windows false(cli が PlatformKind から決める)
 }
-export type StateReadResult =
-  | { readonly ok: true; readonly state: PipelineState | null } // null は「空」
-  | { readonly ok: false; readonly error: StateError };
 export interface StateStore {
-  read(definitionPath: string, runId: RunId | null): Promise<StateReadResult>;     // 完了のものも「空」
-  readRaw(definitionPath: string, runId: RunId | null): Promise<StateReadResult>;  // 完了のものも返す(watch)
-  write(definitionPath: string, runId: RunId | null, s: PipelineState, d: Durability): Promise<StateError | null>; // null は成功
-  reset(definitionPath: string, runId: RunId | null): Promise<StateError | null>;
+  read(definitionPath: string, runId: string | undefined): Promise<StateReadResult>;
+  readRaw(definitionPath: string, runId: string | undefined): Promise<StateReadResult>;
+  write(definitionPath: string, runId: string | undefined, s: PipelineState, d: Durability): Promise<StateResult>;
+  reset(definitionPath: string, runId: string | undefined): Promise<StateResult>;
   resetAll(definitionPath: string): Promise<ResetAllResult>;
 }
 export function createStateStore(opts: StateStoreOptions): StateStore;
@@ -403,15 +439,15 @@ export interface Sink {
 // 定義ファイルの読み込み。
 export interface Definitions {
   load(path: string, expectedPipelineName: string | null): Promise<LoadResult>;
-  looseRunIdEnv(path: string): Promise<string>;
+  looseRunIdEnv(path: string): Promise<string>;   // どの失敗でも ""(既定の名前を使う)
 }
 
 // ステートの読み書き(ファイルシステム)。state.StateStore と同じ形。
 export interface States {
-  read(definitionPath: string, runId: RunId | null): Promise<StateReadResult>;
-  readRaw(definitionPath: string, runId: RunId | null): Promise<StateReadResult>;
-  write(definitionPath: string, runId: RunId | null, s: PipelineState, d: Durability): Promise<StateError | null>;
-  reset(definitionPath: string, runId: RunId | null): Promise<StateError | null>;
+  read(definitionPath: string, runId: string | undefined): Promise<StateReadResult>;
+  readRaw(definitionPath: string, runId: string | undefined): Promise<StateReadResult>;
+  write(definitionPath: string, runId: string | undefined, s: PipelineState, d: Durability): Promise<StateResult>;
+  reset(definitionPath: string, runId: string | undefined): Promise<StateResult>;
   resetAll(definitionPath: string): Promise<ResetAllResult>;
 }
 
@@ -526,7 +562,7 @@ cli: pipeline
       │         ├─ ステートが空なら state.initialState → await d.states.write(fast)
       │         ├─ リトライ込みの実行
       │         │    loop { r = await d.proc.runJob(job, sig)
-      │         │           dec = flow.decideRetry(job, r, retriesDone, lastWait)
+      │         │           dec = flow.retryDecision(job, r, retriesDone, lastWait)
       │         │           リトライなら report: 知らせ(await d.out.writeErr。常に標準エラー) → w = await d.proc.wait(secs, sig)
       │         │                    w.interrupted なら「起動しなかった中断」の JobExecution(started=false, interrupted=true, signalNumber)を作って抜ける }
       │         ├─ flow.classifyAndDecide(..., RunMode=Pipeline)
@@ -550,7 +586,7 @@ cli: pipeline
 ステートファイル ──state.read──▶ PipelineState ┤
                                               ▼
                        flow.decideBeforeRun ──▶ run / skip / reject
-runner.runJob ──▶ JobExecution ──flow.classifyAndDecide──▶ (JobOutcome, NextStepResult)
+runner.runJob ──▶ JobExecution ──flow.classifyAndDecide──▶ (JobOutcome, NextStep)
                                          │
         state.apply*(結果・スキップ・中断) ──▶ 新しい PipelineState ──state.write──▶ ステートファイル
 JobOutcome の報告する終了コード ──flow.exitCodeFor──▶ conductor の終了コード
@@ -573,7 +609,7 @@ JobOutcome の報告する終了コード ──flow.exitCodeFor──▶ conduc
 | `src/version.ts` | 版の定数 |
 | `src/definition/index.ts` | バレル(公開する名前) |
 | `src/definition/types.ts` | 定義の型(`Definition` ほか) |
-| `src/definition/errors.ts` | 誤りの種類(`DefinitionErrorKind`)と `DefinitionError` |
+| `src/definition/errors.ts` | 誤りの種類(`ErrorKind`、`ERROR_KINDS`)と `DefinitionError` |
 | `src/definition/load.ts` | `load`(場所の決定、読み取り、書式の判定、段階の組み立て) |
 | `src/definition/intake.ts` | ファイルの読み取り、大きさの上限、拡張子の判定 |
 | `src/definition/tree.ts`、`read-yaml.ts`、`read-json.ts` | 木の型、YAML/JSON の読み取り(位置つき。展開と上限を含む。`convert` と共有。03 章) |
@@ -670,7 +706,7 @@ JobOutcome の報告する終了コード ──flow.exitCodeFor──▶ conduc
   "bin": { "conductor": "dist/bin/conductor.js" },
   "exports": { "./package.json": "./package.json" },
   "engines": { "node": ">=<最小の LTS の版>" },
-  "files": ["dist"],
+  "files": ["dist", "LICENSE", "README.md"],
   "scripts": {
     "clean": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc -p tsconfig.build.json",
@@ -696,7 +732,7 @@ JobOutcome の報告する終了コード ──flow.exitCodeFor──▶ conduc
 | `bin` | `conductor` → `dist/bin/conductor.js`。そのファイルの先頭は `#!/usr/bin/env node`。`tsc` は、ソースの先頭のシバンを出力にそのまま残す(実装時に確認)。実行権限は、`npm pack`/`npm install` が `bin` のファイルに付ける(Windows では、`npm` がラッパーを作る。実装時に確認) |
 | `exports` | ライブラリとして公開しないので、`package.json` だけを出す。`main` と `types` を書かない。`exports` を書くと、ここに無いパスの import は、外部から拒否される |
 | `engines` | `node` に最小版(最新の LTS 系列の 1 つ前の LTS 系列の最小の版)を書く。CI の Node の版(最小版と最新版)と一致することを、検査する(11 章) |
-| `files` | `["dist"]`。`src/`、`test/`、設定ファイルを含めない。`package.json` と、ライセンスなど `npm` が自動で含めるファイルは、書かなくてよい。含まれるファイルを、`npm pack --dry-run` で確かめる |
+| `files` | `["dist", "LICENSE", "README.md"]`(11 章 8.4 節)。`src/`、`test/`、設定ファイルを含めない。含まれるファイルを、`npm pack --dry-run` で確かめる |
 | `scripts` | 上の名前を持つ(中身は実装者が決めてよい)。品質ゲートの項目([11-quality-and-build.md](11-quality-and-build.md))を、これらのスクリプトで実行できること |
 | `dependencies` | YAML のライブラリ 1 つだけ。それ以外を足さない【規定】 |
 | `devDependencies` | 1 章の開発時の依存。ほかは、実装時に追加してよいが、実行時の依存を増やさない。`package-lock.json` をコミットする。CI は `npm ci` を使う |
@@ -791,7 +827,7 @@ JobOutcome の報告する終了コード ──flow.exitCodeFor──▶ conduc
 |---|------|--------------|
 | 1 | ディレクトリ構成 | 2 章のとおり固定 |
 | 2 | 実行時の値の型の置き場所 | `src/flow/`(`state` と `runner` は、`flow` に依存する。`flow` は `state` と `runner` に依存しない) |
-| 3 | ステートの書式 | JSON(`JSON.stringify` は直接使わず、ファイル用の型を通して固定の順序で書く)。[06-state-file.md](06-state-file.md) |
+| 3 | ステートの書式 | JSON(`PipelineState` を直接 `JSON.stringify` せず、キーの順を固定したファイル用の型を `JSON.stringify` で出し、06 章 4.3 節の後処理を行う。読み込みは自前の `readJson`。`JSON.parse` は製品のコードで使わない)。[06-state-file.md](06-state-file.md) |
 | 4 | 差し替え口 | `Deps` オブジェクト(interface のフィールド)。4 章 |
 | 5 | シグナル | `process.on`。リスナーは 1 組。合図は `runner.Interrupt` |
 | 6 | 待機 | `close` イベントの `Promise` と `setTimeout`。ポーリングなし |

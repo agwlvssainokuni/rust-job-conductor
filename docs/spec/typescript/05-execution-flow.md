@@ -1,6 +1,6 @@
 # 05. 実行の意味論(終了コード・分岐・再開・run ID・リトライ・パイプライン)
 
-対象: TypeScript(Node.js)で実装する `conductor` v0.8.0 と同じ挙動の実行ツール。この文書は、`run`(ジョブを 1 つ実行)と `pipeline`(定義の全ジョブを順に実行)の実行の流れを、判定表・状態遷移・擬似コードで定める。数値の計算(待ち時間の倍率・上限・飽和・変換)は、`bigint` と `number` の使い分け、式、境界の例まで定める。待機とシグナルによる中断は、`AbortSignal` を使う方式に決める(§7.8)。この文書だけで、TypeScript でゼロから同じ挙動を実装できることを目標にする。
+対象: TypeScript(Node.js)で実装する `conductor` v0.8.0 と同じ挙動の実行ツール。この文書は、`run`(ジョブを 1 つ実行)と `pipeline`(定義の全ジョブを順に実行)の実行の流れを、判定表・状態遷移・擬似コードで定める。数値の計算(待ち時間の倍率・上限・飽和・変換)は、`bigint` と `number` の使い分け、式、境界の例まで定める。待機とシグナルによる中断は、07 章の `Interrupt` と `waitRetry` を使う方式に決める(§7.8)。この文書だけで、TypeScript でゼロから同じ挙動を実装できることを目標にする。
 
 ステートファイルの論理項目・保存の性質・読み込みの検査は [06-state-file.md](06-state-file.md) にある。この文書の「ステートへの記録」は、06 の形式のファイルを書く前の、メモリ上のステート(以下「ステート値」)の更新を指す。定義ファイルの書式は [03-definition-format.md](03-definition-format.md)、コマンドラインは [04-cli.md](04-cli.md)、プロセス起動とシグナルは [07-process-and-signals.md](07-process-and-signals.md)、メッセージの文言は [08-output-and-i18n.md](08-output-and-i18n.md)、終了コードの総覧は [10-errors-and-exit-codes.md](10-errors-and-exit-codes.md) を参照。
 
@@ -17,7 +17,7 @@
 | `src/flow/` | 共有の値の型(`JobStatus`、`SkipReason`、`JobState`、`PipelineState`、`JobExecution` ほか)、`classify`、`classifyAndDecide`、`nextStep`、`decideBeforeRun`、`retryDecision`、`nextWaitSecs`、`satMulU64`、`resumePointOnInterrupt`、`exitCodeFor`、`signalExitCode`。`node:` のモジュールを一切 import しない(ファイル・時計・環境変数・シグナルに触れない) |
 | `src/state/` | 記録の関数(`applyOutcome`、`applySkip`、`applyInterrupt`、`initialState`。純粋。複製して更新)、読み書き([06](06-state-file.md)) |
 | `src/runid/` | run ID の検査と決定(§6) |
-| `src/runner/` | `runJob`(子プロセスの起動と待機)、`waitFor`(§7.8) |
+| `src/runner/` | `runJob`(子プロセスの起動と待機)、`waitRetry`(§7.8。07 章 7.5 節) |
 | `src/cli/` | `prepare`、`run`・`pipeline` の流れ(§5)、リトライの実行ループ(§7.7)。`Deps` を介して時計・環境・ファイル・プロセスに触れる |
 
 依存の向きは `definition` ← `flow` ← (`state`、`runner`) ← `cli`。`flow` は `definition` の型だけを使い、`state` と `runner` は `flow` の共有の型を使う。`state` と `runner` は互いに依存しない。循環させない([02-architecture.md](02-architecture.md))。
@@ -32,7 +32,7 @@
 | シグナル番号 | `number` | 終了コード `128 + n` の計算に使う |
 | 時刻・経過時間(待機の計測) | `bigint` のナノ秒(`process.hrtime.bigint()`) | 単調増加。実時計の調整に影響されない |
 
-- 「無し」(値がない)は、プロパティを書かない(または `undefined`)で表す。`null` は使わない(ステートの JSON の `null` は読み込みで拒否する。06)。比較(ステート値の等しさ)は、「無し」と `undefined` を同じとみなす項目ごとの比較で行う(参照の同一性ではない。§4.3)。
+- 「無し」(値がない)は、`JobExecution` では `null` で表す(07 章 4.4 節)。ステート値(`JobState` の `exitCode` など)では、プロパティを書かない(または `undefined`)で表す(ステートの JSON の `null` は読み込みで拒否する。06)。比較(ステート値の等しさ)は、「無し」と `undefined` を同じとみなす項目ごとの比較で行う(参照の同一性ではない。§4.3)。
 - ステート値と判断の入出力は読み取り専用(`readonly`)の型にし、更新は新しい値を作る(元は変えない)。
 - tsconfig は `strict`。`noUncheckedIndexedAccess` を有効にすると、配列の添字アクセスで `undefined` の考慮が型で強制されるので推奨する(必須ではない)。
 - 数値の飽和や変換は、`number` の浮動小数点に頼らない。`Number(bigintValue)` は、値が `Number.MAX_SAFE_INTEGER`(2^53-1)以下と分かっている場合だけ使う(確認済み: `Number(2n**63n)` は `9223372036854776000`、つまり丸められる)。
@@ -87,21 +87,25 @@ export interface PipelineState {
 
 | フィールド | 型 | 意味 |
 |---|---|---|
+| `jobId`、`command` | `string`、`Command` | 定義のジョブIDと `command`(表示とステートには `jobId` だけを使う) |
 | `started` | `boolean` | 起動した(子プロセスの生成に成功した)か。「中断の合図が起動の前に立っていたため起動しなかった」ときだけ `false`。ほかの起動失敗でも `started` は `true` のまま(`startFailure` を見る) |
-| `exitCode` | `number`(32 ビット符号付き整数)、または無し | プロセスの終了コード。取れないとき(シグナル終了、起動失敗)は無し |
-| `terminatedBySignal` | `number`、または無し | ジョブがシグナルで終了したときの番号(UNIX 系のみ) |
+| `exitCode` | `number \| null`(32 ビット符号付き整数) | プロセスの終了コード。取れないとき(シグナル終了、起動失敗)は `null` |
+| `terminatedBySignal` | `number \| null` | ジョブがシグナルで終了したときの番号(UNIX 系のみ) |
 | `startFailure` | `boolean` | 起動に失敗した。command を引数に分けられない、プロセス生成の失敗、終了状態を取得できない、のいずれか |
 | `interrupted` | `boolean` | conductor がシグナルを受け取り、中断の合図が立っている(ジョブの終了を観測した直後に立っていた場合を含む) |
-| `signalNumber` | `number`、または無し | `interrupted` のとき、最初に受け取ったシグナルの番号 |
+| `signalNumber` | `number \| null` | `interrupted` のとき、最初に受け取ったシグナルの番号 |
 
 ```ts
+// 型の正本は 07 章 4.4 節と 02 章 2.1 節(「無し」は null で表す)。
 export interface JobExecution {
+  readonly jobId: string;
+  readonly command: Command;
   readonly started: boolean;
-  readonly exitCode?: number;
-  readonly terminatedBySignal?: number;
+  readonly exitCode: number | null;
+  readonly terminatedBySignal: number | null;
   readonly startFailure: boolean;
   readonly interrupted: boolean;
-  readonly signalNumber?: number;
+  readonly signalNumber: number | null;
 }
 ```
 
@@ -513,7 +517,7 @@ TypeScript での注意:
 
 - 順 2 の長さは、`value.length`(UTF-16 のコード単位の数)ではなく、`Buffer.byteLength(value, "utf8")` で数える。`"あ".repeat(30)` は `.length` が 30 だが UTF-8 では 90 バイトで、`TooLong` になる(確認済み: `Buffer.byteLength` が 90、`.length` が 30)。`.length` を使うと、順 2 と順 3 の判定が入れ替わる(`InvalidChar` になる)。許す文字は ASCII だけなので、検査を通る値では文字数とバイト数は同じ。
 - 順 3 は、`/^[A-Za-z0-9._-]+$/` で判定してよい(`m` フラグを付けない。JavaScript の `$` は、`m` フラグなしでは文字列の最後にだけ一致し、末尾の改行の手前には一致しない)。空は順 1 で除かれている。
-- 環境変数や引数に UTF-8 として不正なバイト列があると、Node.js は代替文字 U+FFFD に置換した文字列を渡す(と理解している。未確認。§14)。置換後の文字は ASCII でないので、いずれにせよ `InvalidChar`(または `TooLong`)になる。
+- 環境変数や引数に UTF-8 として不正なバイト列があると、Node.js は代替文字 U+FFFD に置換した文字列を渡す(確認済み。04 章 4.4 節。macOS・v26.13.0)。置換後の文字は ASCII でないので、いずれにせよ `InvalidChar`(または `TooLong`)になる。
 
 有効: `1`, `r1`, `12345`, `build-2026.11_a`, `a.b`, 64 文字ちょうど。無効: `""`(ただし §6.2 の規則で空は「なし」)、65 文字、`a/b`、`a b`、`.x`、`..`、`日本語`。
 
@@ -616,16 +620,16 @@ export interface RetryPolicy {
 
 例: `"1s"`→1n、`"01s"`→1n、`"0000000000000000000000000001s"`→1n、`"1440m"`→86400n、`"24h"`→86400n、`"86400s"`→86400n。拒否: `""`、`"s"`、`"10"`、`"1.5s"`、`"-1s"`、`"+1s"`、`" 1s"`、`"1s "`、`"1S"`、`"１s"`(全角 1)、`"1ms"`、`"0x10s"`、`"1_0s"`、`"0s"`、`"0h"`、`"86401s"`、`"25h"`、`"99999999999999999999999s"`、`"18446744073709551615h"`。
 
-秒 → ミリ秒 → `number`(待機の直前だけ。§7.8):
+秒 → ミリ秒 → `number`(待機の直前だけ。§7.8、07 章 7.5 節):
 
 ```text
 ms = secs * 1000n                       # bigint。桁あふれしない
-# setTimeout に渡す 1 回分は 1〜MAX_TIMER_MS(= 2147483647 = 2^31 - 1)ミリ秒
-chunkMs = min(remainingMs, 2147483647n)
-Number(chunkMs)                          # 2^31-1 以下なので正確(2^53 未満)
+# setTimeout に渡す 1 回分は 1〜2^30 ミリ秒(07 章 7.5 節。上限 2^31-1 より余裕を持たせた値)
+chunkMs = min(remainingMs, 1073741824n)
+Number(chunkMs)                          # 2^30 以下なので正確(2^53 未満)
 ```
 
-- `setTimeout` の遅延は 32 ビット符号付き整数に収まる必要がある。**確認済み(Node.js v26.13.0)**: `setTimeout(fn, 2 ** 31)` は、`TimeoutOverflowWarning`(`2147483648 does not fit into a 32-bit signed integer. Timeout duration was set to 1.`)を出して**遅延 1 ミリ秒に置き換えられ、ほぼ即座に発火する**(実測 0 ミリ秒)。`timers/promises` の `setTimeout` も同じ。つまり、上限を超えた値を渡すと、長い待機が一瞬で終わってしまう。そのため、**1 回の `setTimeout` には `2147483647` 以下の整数だけを渡し、それより長い待機は分割して繰り返す**(§7.8 の手順)。
+- `setTimeout` の遅延は 32 ビット符号付き整数に収まる必要がある。**確認済み(Node.js v26.13.0)**: `setTimeout(fn, 2 ** 31)` は、`TimeoutOverflowWarning`(`2147483648 does not fit into a 32-bit signed integer. Timeout duration was set to 1.`)を出して**遅延 1 ミリ秒に置き換えられ、ほぼ即座に発火する**(実測 0 ミリ秒)。`timers/promises` の `setTimeout` も同じ。つまり、上限を超えた値を渡すと、長い待機が一瞬で終わってしまう。そのため、**1 回の `setTimeout` には 2^30(1073741824)ミリ秒以下の整数だけを渡し(07 章 7.5 節。32 ビット符号付きの上限 2147483647 を超えないための余裕を持たせた値)、それより長い待機は分割して繰り返す**(§7.8 の手順)。
 - 検証済みの定義では、待ち時間は最大 86400 秒 = 86,400,000 ミリ秒で、上限 2,147,483,647 ミリ秒(約 24.86 日)の約 2.5% であり、分割は起きない。分割の分岐は、定義の検証を通らない入力(単体テスト)でだけ通る。
 - 秒の値が 2^64-1 のとき、ミリ秒は約 1.8 × 10^22 で、分割すると約 8.6 × 10^12 回の繰り返しになり、実質的に終わらない。この入力は検証済みの定義では起きない。再現は不要で、「桁あふれして短くならない」ことだけを守る(`bigint` なので守られる)。
 - `number` の `Number.MAX_SAFE_INTEGER`(2^53-1)は 9007199254740991。待ち時間の秒を `number` に落とすと、2^53 を超える値で丸められる。検証済みの定義(86400 以下)では問題ないが、この仕様では秒を `number` で持たない。
@@ -725,10 +729,10 @@ loop:
         stop: return exec                          # 最後の結果
         retry{waitSecs}:
             表示: 常に 1 行(§7.9)。retryNumber = retriesDone + 1
-            match await waitFor(waitSecs, interrupt):
+            match await waitRetry(waitSecs, interrupt):   # Deps.proc.wait
                 elapsed:        retriesDone += 1; lastWaitSecs = waitSecs; continue
-                interrupted(n): return JobExecution{ started=false, interrupted=true, signalNumber=n,
-                                                      exitCode=無し, startFailure=false, terminatedBySignal=無し }
+                interrupted(n): return JobExecution{ jobId=job.id, command=job.command, started=false, interrupted=true, signalNumber=n,
+                                                      exitCode=null, startFailure=false, terminatedBySignal=null }
 ```
 
 - 返された最後の結果だけが、分類・表示・ステート記録の対象(ステートは最終の結果で 1 回だけ書かれ、途中では書かれない)。リトライの回数・直前の待ち時間はローカルな値で、ステートファイルに書かない。
@@ -737,68 +741,23 @@ loop:
 - 総実行回数: 最大 `max + 1`。知らせの回数: 実際に実行し直す(または待機に入る)回数。
 - 起動前に中断された(合図が立っていた)ジョブはリトライせず、その場で `started = false` の結果を返す(`retryDecision` は `started = false` で stop)。
 
-### 7.8 待機とシグナルによる中断(`waitFor`)
+### 7.8 待機とシグナルによる中断(`waitRetry`)
 
-**決定: 中断の合図は `AbortSignal` で表し、待機は `node:timers/promises` の `setTimeout(ms, undefined, { signal })` で行う。** 合図を `Promise` にして `Promise.race` で待つ方式は採らない。
-
-| 候補 | 内容 | 判断 |
-|---|---|---|
-| A. `AbortController` / `AbortSignal` + `timers/promises` の `setTimeout` | シグナルを受けたら最初の番号を記録して `abort()` を呼ぶ。待機は `signal` を渡した `setTimeout` で、`abort()` で拒否(`AbortError`)される | **採用**。タイマーが `abort()` で確実に解除され、待機の後にタイマーが残らない。`signal.aborted` で「立っている」を同期的に判定できる。子プロセスの転送(07)も同じ `signal` に `addEventListener("abort", ...)` で結べる |
-| B. 中断を `Promise` で表し、`Promise.race([timer, interruptPromise])` | 競合は書けるが、負けたタイマーを `clearTimeout` で自分で消さないと、`setTimeout` がイベントループを保持して終了が遅れる。同期的な「立っているか」の判定には、別の真偽値が要る | 不採用 |
-| C. 50 ミリ秒刻みのポーリング | 単純だが、遅延が刻みの分だけ増え、無駄な起床がある | 不採用 |
-
-**確認済み(Node.js v26.13.0)**: (1) 待機中に `abort()` すると、`setTimeout(5000, undefined, { signal })` は約 50 ミリ秒後(`abort()` の呼び出し時刻)に、`name = "AbortError"`、`code = "ABORT_ERR"` で拒否された。(2) すでに `abort` 済みの `signal` を渡すと、待機を始めずに同じ `AbortError` で拒否される。
-
-共有の旗の型の骨格(`Deps` に含める。実装は `src/runner/` か `src/cli/`):
+**決定: 中断の合図は 07 章の `Interrupt`(`raise`・`number`・`whenRaised`)で表し、待機は 07 章 7.5 節の `waitRetry(secs, sig)` で行う。** `AbortSignal` は使わない(07 章 4.2 節。`spawn` の `signal` は子を強制終了するため)。待機の手順(`setTimeout` と `Promise.race`、単調な時計での経過の再確認、1 回のタイマーを 2^30 ミリ秒以下に分けること、`finally` での `clearTimeout`)は、07 章 7.5 節が正本である。この節は、流れの側の規定だけを定める。
 
 ```ts
-export interface Interrupt {
-  readonly signal: AbortSignal;                 // 最初のシグナルで abort される
-  isRaised(): boolean;                           // signal.aborted と同じ
-  firstSignalNumber(): number | undefined;       // 最初に受け取ったシグナルの番号。立っていなければ無し
-  raise(signalNumber: number): void;             // 2 回目以降は何もしない(番号を上書きしない)
-}
-
-export type WaitResult =
-  | { readonly kind: "elapsed" }
-  | { readonly kind: "interrupted"; readonly signalNumber: number };
-
-export interface Clock {
-  monotonicNs(): bigint;                                          // 単調増加の時計(process.hrtime.bigint())
-  sleep(ms: number, signal: AbortSignal): Promise<void>;          // timers/promises の setTimeout を包む。abort で AbortError を投げる
-}
-
-export function waitFor(secs: bigint, interrupt: Interrupt, clock: Clock): Promise<WaitResult>;
+// 07 章の型(再掲。正本は 07 章)
+export type WaitOutcome =
+  | { readonly interrupted: false }                          // 経過
+  | { readonly interrupted: true; readonly number: number }; // 中断(最初のシグナルの番号)
+export function waitRetry(secs: bigint, sig: Interrupt): Promise<WaitOutcome>; // 拒否されない
 ```
 
-`raise` は、番号を保持してから `abort()` を呼ぶ(`abort` のリスナーが番号を読めるように、順序を固定する)。`abort(reason)` の `reason` には何も渡さなくてよい。
-
-`waitFor` の手順:
-
-```text
-if interrupt.isRaised(): return interrupted(最初の番号)          # 待機の開始時にも確かめる
-deadline = clock.monotonicNs() + secs * 1_000_000_000n
-loop:
-    now = clock.monotonicNs()
-    if now >= deadline:
-        # 最後に、取りこぼしの確認(sleep が正常終了したのと同時に合図が立っていた場合)
-        if interrupt.isRaised(): return interrupted(最初の番号)
-        return elapsed
-    remainingMs = ceil((deadline - now) / 1_000_000)               # bigint の切り上げ: (x + 999_999n) / 1_000_000n
-    chunkMs = min(remainingMs, 2147483647n)                        # §7.3: setTimeout の上限
-    try:
-        await clock.sleep(Number(chunkMs), interrupt.signal)
-    catch err:
-        if interrupt.isRaised(): return interrupted(最初の番号)     # AbortError かどうかではなく、旗で判定する
-        throw err                                                  # 想定外のエラーは握りつぶさない
-```
-
-- 守るべきことは 2 つ: (a) 合図から 1 秒以内に打ち切る(`abort()` で待機が即座に拒否されるので、実際には数ミリ秒以内)。(b) 待ち時間が `secs` 秒以上になるまで `elapsed` を返さない。(b)のため、`sleep` が正常に終わっても、必ず `monotonicNs()` で経過を再確認する(タイマーが目標の時刻よりわずかに早く発火しうる、という一般的な注意に基づく。この仕様では早く発火する量の実測は行っていない。確認は §14)。
-- 経過時間の測定は、単調増加の時計(`process.hrtime.bigint()`)を使い、`Date.now()` は使わない(実時計の調整に影響される)。
-- `sleep` は、**参照を保持するタイマー**(既定。`ref: true`)を使う。待機中にイベントループが空になって、プロセスが終了してしまってはならないため。
-- 1 回の待機で `abort` のリスナーが追加され、待機の終了で外される(`timers/promises` の実装による。確認していない。リトライを多数回繰り返しても警告(`MaxListenersExceededWarning`)が出ないことは、単体テストで確認する。§14)。
+- 7.7 の実行ループは、`Deps.proc.wait(secs, sig)`(02 章 4 節。本番は `waitRetry`)を呼ぶ。「経過」(`interrupted: false`)なら続け、「中断」(`interrupted: true`)なら、起動前の中断と同じ形の結果(`started = false`、`interrupted = true`、`signalNumber = number`)を返す。
+- 守るべきことは 2 つ: (a) 合図から 1 秒以内に打ち切る(ポーリングをしない。07 章 7.5 節)。(b) 待ち時間が `secs` 秒以上になるまで「経過」を返さない(経過は単調な時計 `process.hrtime.bigint()` で再確認する。`Date.now()` は使わない)。
 - 待機中に中断された場合は、次の実行をせず、分類なし(起動しなかった中断)として扱う: 終了コード `128 + 番号`、ジョブの状態は変えず(エラーとして記録しない)、再開位置はそのジョブ。`pipeline` でも、そこで止まって終わる(§5.3: 分類なしは停止)。
 - 再開すると、そのジョブを最初の実行から数え直す。
+- 待機の時計は、テストで差し替えない。`cli` のテストは、`Deps.proc.wait` の偽の実装で、待ち時間(秒の `bigint`)を記録だけして実際には待たない(02 章 4.4 節)。
 
 ### 7.9 リトライの知らせ
 
@@ -879,7 +838,7 @@ export interface ResumePoint {
 | 5 | `pipeline` の「完了を判定できない」 | 全ジョブを通過しても `completed` が真にならなければ 65(ステートは初期化しない) |
 | 6 | ステートの誤りの原因の文 | 種類の文はロケールに従うが、理由(例: `JSON として読めません`)は常に日本語の固定文(06 §6.4) |
 | 7 | run ID の長さ | 文字数ではなく UTF-8 のバイト数で数える(§6.1) |
-| 8 | 待機の分割 | `setTimeout` の上限 2147483647 ミリ秒を超える待機は分割する(§7.3、§7.8)。1 回の呼び出しに上限を超える値を渡すと、遅延 1 ミリ秒に置き換わる |
+| 8 | 待機の分割 | 1 回の `setTimeout` は 2^30 ミリ秒以下に分割する(§7.3、§7.8、07 章 7.5 節)。`setTimeout` の上限 2147483647 ミリ秒を超える値を渡すと、遅延 1 ミリ秒に置き換わる |
 
 ## 13. `src/flow/` の純粋関数の署名の骨格
 
@@ -904,6 +863,11 @@ export interface FlowDefinition {
   readonly name: string;                           // pipeline.name
   readonly jobs: readonly FlowJob[];               // 定義の記述順
 }
+
+// 検証済みの定義(03 章 14.1 節の Definition)から、判断に必要な部分だけを取り出す(純粋)。
+// 遷移の `next: 'job' | 'end'` を TransitionTarget に、`successExitCodes` の省略を [0] に、
+// `retry` と `backoff` の undefined を「プロパティなし」に直す(exactOptionalPropertyTypes のため)。
+export function toFlowDefinition(def: Definition): FlowDefinition;
 
 export type RunMode = "individual" | "pipeline";
 
@@ -974,19 +938,17 @@ export function stateEquals(a: PipelineState, b: PipelineState): boolean;
 実装に任せてよい点(外から見える挙動が同じなら自由):
 
 - 判断関数・記録関数の内部構造、型の表現(文字列の共用体か `enum` か。この文書は文字列の共用体を前提にしたシグネチャを示した)。
-- `Clock`・`Interrupt` を `Deps` のどこに置くか(型の骨格の形は固定)。
+- `Interrupt` は 07 章の型(`raise`・`number`・`whenRaised`)に従う。`Deps` の `Clock` は時刻(`now()`)だけで、待機は `Deps.proc.wait`(02 章)が担う。
 - 標準エラーの出力のバッファリング(ただし行単位で、順序を保つ)。
 
 この文書の確認の範囲:
 
-- **確認済み(Node.js v26.13.0、macOS)**: `setTimeout`(`node:timers` と `node:timers/promises`)に 2^31 を渡すと `TimeoutOverflowWarning` が出て遅延が 1 ミリ秒になる。`timers/promises` の `setTimeout` は、`signal` の `abort()` で `AbortError`(`code` が `ABORT_ERR`)で拒否され、`abort` 済みの `signal` では待たずに拒否される。`BigInt` の乗算・比較、`BigInt.asUintN` が折り返す挙動。`Number(2n ** 63n)` が丸められること。`Buffer.byteLength` と `.length` の違い。`(-1) & 0xFF` などの 32 ビット符号付きの `&`。
+- **確認済み(Node.js v26.13.0、macOS)**: `setTimeout`(`node:timers` と `node:timers/promises`。この仕様は後者を使わない)に 2^31 を渡すと `TimeoutOverflowWarning` が出て遅延が 1 ミリ秒になる。`timers/promises` の `setTimeout` は、`signal` の `abort()` で `AbortError`(`code` が `ABORT_ERR`)で拒否され、`abort` 済みの `signal` では待たずに拒否される。`BigInt` の乗算・比較、`BigInt.asUintN` が折り返す挙動。`Number(2n ** 63n)` が丸められること。`Buffer.byteLength` と `.length` の違い。`(-1) & 0xFF` などの 32 ビット符号付きの `&`。
 
 未確認:
 
 - Node.js の最新の LTS 系列と 1 つ前の LTS 系列(実装時に確認)での、上記の挙動の再確認。この確認は v26.13.0 だけで行った。上記は、サポートする版の CI の単体テストで確認すること。
 - Windows での、実行中ジョブへのシグナル転送の細部(07)と、`exitCode` が負になる場合の実機の値。`process.env` の大文字小文字の扱いと、空の値の環境変数の見え方。
 - タイマーが目標の時刻よりどれだけ早く発火しうるか(§7.8 は、毎回経過時間を再確認することで、この量に依存しないようにしている)。
-- `timers/promises` の `setTimeout` が、待機の終了で `abort` のリスナーを確実に外すか(多数回のリトライで `MaxListenersExceededWarning` が出ないか)。
-- 引数・環境変数の値が UTF-8 として不正なバイト列を含むとき、Node.js がどう文字列化するか(U+FFFD への置換と理解している)。
 - ジョブの標準入出力の扱い(07 が `stdio: "inherit"` と定める)の、この文書の流れへの影響は確認していない。
 - 複数シグナルがほぼ同時に届いたときの「最初の番号」は、Node.js がシグナルのリスナーを呼ぶ順序に依存する。再実装では「最初に観測した 1 つ」を保持すれば足りる(`Interrupt.raise` の規則)。ほぼ同時の到着の再現は未確認。

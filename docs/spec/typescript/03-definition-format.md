@@ -44,7 +44,7 @@
 
 ### 2.2 処理の段階と打ち切り
 
-`loadDefinition(path, expectedPipelineName)` は次の順に処理する。前の段階で失敗したら、そこで打ち切り、**その 1 件だけ**を返す(後ろの段階は実行しない)。最後の Walk だけが、複数の誤りを返す。
+`load(path, expectedPipelineName)` は次の順に処理する。前の段階で失敗したら、そこで打ち切り、**その 1 件だけ**を返す(後ろの段階は実行しない)。最後の Walk だけが、複数の誤りを返す。
 
 | 段階 | 内容 | 失敗の種類(`kind`) | 返る誤りの数 |
 |------|------|----------------------|--------------|
@@ -54,9 +54,9 @@
 | 4. VersionCheck | `format_version` | `versionMissing` / `versionUnsupported` | 1 |
 | 5. Walk | 構造、型、遷移、終了コード、名前 | 第 12.3 節の種類のうち該当するもの | 1 件以上(位置の順) |
 
-`parseDefinition(text, format, fileLabel, expectedPipelineName)` は、段階 2〜5 を文字列に対して行う(ファイルに触れない。同期関数)。`fileLabel` は、エラーの表示に使うファイル名である。
+`parse(text, format, fileLabel, expectedPipelineName)` は、段階 2〜5 を文字列に対して行う(ファイルに触れない。同期関数)。`fileLabel` は、エラーの表示に使うファイル名である。
 
-- `expectedPipelineName`(`pipeline` コマンドで渡されたパイプライン名)が無い(`undefined`)ときは、名前の照合をしない。
+- `expectedPipelineName`(`pipeline` コマンドで渡されたパイプライン名)が無い(`null`)ときは、名前の照合をしない。
 - 検証に成功したときだけ、定義(第 14 節)を返す。誤りが 1 件でもあれば、定義は返さない。
 - 版の確認(段階 4)に通らないと、構造の検査(段階 5)は一切行わない。たとえば `format_version` が無い定義に、未知のキーや型の誤りがあっても、返るのは `versionMissing` の 1 件だけである。
 - 文法の誤り(段階 2)は版の確認より先である。
@@ -261,7 +261,7 @@ JSON は、RFC 8259 の厳格な形式で読む。読み取りは**自前の小�
 
 ### 5.3 JSON の読み取りの規定(自前の字句・構文解析)
 
-読み取りの関数の骨格: `readJson(text: string): ReadResult`(成功なら木、失敗なら 1 件の誤り)。実装の詳細は任せるが、次は**必須**である。
+読み取りの関数: `readJson`(第 14.2 節。成功なら木、失敗なら 1 件の誤り)。ステートの読み込みも、同じ関数を `deferDuplicateKey: true` で呼ぶ(重複を見つけても止めず、後ろの文法の誤りを優先する。06 章 6.5 節)。実装の詳細は任せるが、次は**必須**である。
 
 1. **入力を、先頭から 1 回だけ読む**。文字(UTF-16 コード単位)の添字を進め、位置(行、列)を、改行(LF)の数と、行の先頭の添字から求める。列は、行の先頭からのコード単位の数 + 1(列は順序づけにだけ使い、表示しない。第 13.1 節)。
 2. **入れ子は、明示のスタックで読む**(関数の再帰で読まない)。この段階では、入れ子の深さの上限を**適用しない**(段階 3 が適用する)。これは、深い入れ子の後ろに文法の誤りがあるとき、文法の誤りが先に返る(段階 2 が先)ことを守るためである。スタックの大きさは、入力の大きさ(1 MiB)で抑えられる。
@@ -976,8 +976,8 @@ export interface RetryPolicy {
   readonly exitCodes: readonly [number, ...number[]];
   /** 1〜100 */
   readonly max: number;
-  /** 1〜86400 */
-  readonly intervalSecs: number;
+  /** 1〜86400。bigint(待ち時間は 64 ビット符号なしの飽和演算で使う。05 章 7.2 節) */
+  readonly intervalSecs: bigint;
   /** undefined なら固定間隔。multiplier と max_interval は必ず同時に有る/無い */
   readonly backoff: Backoff | undefined;
 }
@@ -985,8 +985,8 @@ export interface RetryPolicy {
 export interface Backoff {
   /** 2〜10 */
   readonly multiplier: number;
-  /** intervalSecs 以上、86400 以下 */
-  readonly maxIntervalSecs: number;
+  /** intervalSecs 以上、86400 以下。bigint */
+  readonly maxIntervalSecs: bigint;
 }
 ```
 
@@ -996,29 +996,58 @@ export interface Backoff {
 
 ### 14.2 公開する関数の署名(例)
 
+`src/definition/index.ts` が公開する名前は、次のとおり(名前は規定。[02](02-architecture.md) 2.1 節と一致させる)。
+
 ```ts
 export type Format = 'yaml' | 'json';
 
 /** 拡張子から書式を決める。決められなければ undefined(unsupportedFormat) */
 export function formatFromPath(path: string): Format | undefined;
 
-/** 段階 1〜5。ファイルに触れる(非同期) */
-export function loadDefinition(
+/** 段階 1〜5。ファイルに触れる(非同期)。拒否されない Promise を返す。expectedPipelineName は、パイプライン名の照合に使う(なければ null) */
+export function load(
   path: string,
-  expectedPipelineName?: string,
+  expectedPipelineName: string | null,
 ): Promise<LoadResult>;
 
 /** 段階 2〜5。ファイルに触れない(同期) */
-export function parseDefinition(
+export function parse(
   text: string,
   format: Format,
   fileLabel: string,
-  expectedPipelineName?: string,
+  expectedPipelineName: string | null,
 ): LoadResult;
 
-/** watch・reset 用のゆるい読み取り(第 15 節)。誤りは undefined */
-export function readRunIdEnv(path: string): Promise<string | undefined>;
+/** watch・reset 用のゆるい読み取り(第 15 節)。どの失敗でも "" を返す(既定の環境変数名を使う)。拒否されない */
+export function looseRunIdEnv(path: string): Promise<string>;
+
+/**
+ * 段階 2〜3(読み取りと展開)。09 章の変換器と共有する。
+ * 成功: 最上位のノードをそのまま返す(YAML で文書が 0 個のときは root が undefined。
+ *   最上位が null の文書は NullNode。第 6.7 節の「空のマップとして扱う」変換は、parse が行う)。
+ * 失敗: 1 件の誤り(kind は syntax か tooLarge。reason と位置は第 12 節・第 13 節)。
+ */
+export type TreeResult =
+  | { readonly ok: true; readonly root: TreeNode | undefined }
+  | { readonly ok: false; readonly error: DefinitionError };
+export function readTree(text: string, format: Format, fileLabel: string): TreeResult;
+
+/**
+ * JSON の読み取り(第 5.3 節)。ステートの読み込み(06 章 6.5 節)も、同じ関数を使う。
+ * deferDuplicateKey が true のとき、重複キーで止まらず、最初の重複の位置を duplicateKey に付けて続ける
+ * (後ろに文法の誤りがあれば、その誤りを返す)。省略時は、重複キーの時点で syntax(キーが重複しています)で返す。
+ * 入れ子の深さ・要素数・文字の大きさの上限は、段階 3(第 6.3 節)の関数が適用する(readJson は適用しない)。
+ */
+export interface ReadJsonOptions { readonly deferDuplicateKey?: boolean }
+export type ReadJsonResult =
+  | { readonly ok: true; readonly root: TreeNode; readonly duplicateKey?: Pos }
+  | { readonly ok: false; readonly error: DefinitionError };
+export function readJson(text: string, options?: ReadJsonOptions): ReadJsonResult;
+/** 段階 3 の上限の確認(深さ、要素数、文字の大きさ)。ステートの読み込みは、深さだけを使う(maxDepthOnly) */
+export function checkLimits(root: TreeNode, which: 'all' | 'depthOnly'): DefinitionError | undefined;
 ```
+
+`DefinitionError` の `file` は、`fileLabel` の値である。
 
 内部の検査の関数(名前は任意。木と、誤りを集める入れ物を受け取り、定義の部品を返す。誤りは `errors` に足す。例外を投げない):
 
@@ -1029,8 +1058,8 @@ interface WalkContext {
   add(kind: ErrorKind, pos: Pos | undefined, reason: string): void;
 }
 
-function walkRoot(root: MapNode, ctx: WalkContext, expectedName: string | undefined): Definition | undefined;
-function walkPipeline(node: TreeNode, rootPos: Pos, ctx: WalkContext, expectedName: string | undefined): PipelineParts | undefined;
+function walkRoot(root: MapNode, ctx: WalkContext, expectedName: string | null): Definition | undefined;
+function walkPipeline(node: TreeNode, rootPos: Pos, ctx: WalkContext, expectedName: string | null): PipelineParts | undefined;
 function walkJob(node: TreeNode, ctx: WalkContext): JobParts | undefined;
 function readExitCodes(
   entry: MapEntry,
@@ -1041,7 +1070,7 @@ function checkJobs(jobs: readonly JobParts[], ctx: WalkContext): void; // 第 11
 ```
 
 - `PipelineParts`、`JobParts` は、検査の途中の部品の型(誤りがあるときは組み立てを諦めて `undefined`)で、実装が決める。
-- 誤りの並べ替え(位置の昇順、安定)は、`loadDefinition`/`parseDefinition` の最後に 1 回だけ行う。
+- 誤りの並べ替え(位置の昇順、安定)は、`load`/`parse` の最後に 1 回だけ行う。
 
 ## 15. `run_id_env` のゆるい読み取り
 

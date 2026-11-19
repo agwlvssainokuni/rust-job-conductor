@@ -48,6 +48,7 @@
 - `reset`: run ID の決定(68。`--all` のときは決定しない)→ 削除(65)。成功は 0。
 - `validate`: 定義(64)→ `command`(64)。成功は 0。ステートに触れない。シグナルの準備はしない。
 - `convert`: 変換(67)→ 標準出力への書き込み(書けなければ 67)。成功は 0。
+- `--help`・`--version`: 標準出力に書けなくても 0(書き込みの失敗は無視する。08 章 1.2 節)。標準出力に書けない失敗は、`watch` が 65、`convert` が 67、それ以外の経路で未捕捉になったものは 70(6 章)。
 - `pipeline` の特有: 実行したジョブがエラー(または分類なし)なら、そのジョブの終了コードで終わる。ジョブのあいだに中断の合図があれば `128 + 番号`。完了なら 0。完了を判定できなければ 65。
 - ステートの書き込みに失敗すると、ジョブの終了コードではなく 65 で終わり、「ジョブは実行されました」と表示する(少なくとも 1 回は実行された、という方針)。起動前の失敗(初期ステートの書き込みなど)は「ジョブは起動していません」。
 - 想定外の内部失敗(6 章)は、どの時点でも 70 で終わる(上の順序の外)。
@@ -171,39 +172,39 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 
 ### 7.2 `command` の誤りとステートの誤り
 
-`command` の誤り(終了コード 64): 2 種。`UnclosedQuote`(引用符が閉じていない)、`Empty`(コマンド名がない)。表示は 08 章 4.4 の種類の文だけ(原因は表示しない。内部の原因の文は、前者が `引用符が閉じていません`、後者が `コマンド名がありません`)。
+`command` の誤り(終了コード 64): 2 種。`unclosedQuote`(引用符が閉じていない)、`empty`(コマンド名がない)。表示は 08 章 4.4 の種類の文だけ(原因は表示しない。内部の原因の文は、前者が `引用符が閉じていません`、後者が `コマンド名がありません`)。
 
-ステートの誤り(終了コード 65): 6 種。`Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。持つ情報は、パス、種類、原因。表示は 08 章 4.5。
+ステートの誤り(終了コード 65): 6 種。`unreadable`, `tooLarge`, `corrupt`, `versionMismatch`, `writeFailed`, `removeFailed`。持つ情報は、パス、種類、原因。表示は 08 章 4.5。
 
-定義との食い違い(終了コード 65): 3 種。`PipelineName`, `JobIds`, `JobOrder`。表示は 08 章 4.6。
+定義との食い違い(終了コード 65): 3 種。`pipelineName`, `jobIds`, `jobOrder`。表示は 08 章 4.6。
 
 ステートの原因の文(固定の日本語。言語を切り替えない)と、それを返す種類(全 23 件。06 章の表と同じ)。
 
 | 原因の文 | 種類 | 場面 |
 |----------|------|------|
-| `開く、または読み取ることができません` | `Unreadable` | 読み込み、`reset --all` で読めなかった |
-| `大きさが上限(1 MiB)を超えています` | `TooLarge` | 読み込み |
-| `UTF-8 の文字列ではありません` | `Corrupt` | 読み込み |
-| `JSON として読めません` | `Corrupt` | 読み込み |
-| `キーが重複しています` | `Corrupt` | 読み込み |
-| `format_version がありません` | `Corrupt` | 読み込み |
-| `format_version が整数ではありません` | `Corrupt` | 読み込み |
-| `対応していない版です(reset が必要です)` | `VersionMismatch` | 読み込み |
-| `知らないキーがあります` | `Corrupt` | 読み込み |
-| `必須のキーがありません` | `Corrupt` | 読み込み |
-| `値の型が誤っています` | `Corrupt` | 読み込み |
-| `status の値が誤っています` | `Corrupt` | 読み込み |
-| `skip_reason の値が誤っています` | `Corrupt` | 読み込み |
-| `skip_reason が status と合いません` | `Corrupt` | 読み込み |
-| `exit_code が status と合いません` | `Corrupt` | 読み込み |
-| `ジョブIDが重複しています` | `Corrupt` | 読み込み |
-| `job の並びが job_order と一致しません` | `Corrupt` | 読み込み |
-| `resume_job_id が job_order にありません` | `Corrupt` | 読み込み |
-| `completed と resume_job_id が両立しません` | `Corrupt` | 読み込み |
-| `run_id がファイル名の run ID と一致しません` | `Corrupt` | 読み込み(`reset --all` では「別の定義のステート」として扱い、消さない) |
-| `書き込みに失敗しました` | `WriteFailed` | 書き込み |
-| `内容を JSON にできません` | `WriteFailed` | 書き込み |
-| `削除に失敗しました` | `RemoveFailed` | `reset`、`reset --all`、完了時の削除 |
+| `開く、または読み取ることができません` | `unreadable` | 読み込み、`reset --all` で読めなかった |
+| `大きさが上限(1 MiB)を超えています` | `tooLarge` | 読み込み |
+| `UTF-8 の文字列ではありません` | `corrupt` | 読み込み |
+| `JSON として読めません` | `corrupt` | 読み込み |
+| `キーが重複しています` | `corrupt` | 読み込み |
+| `format_version がありません` | `corrupt` | 読み込み |
+| `format_version が整数ではありません` | `corrupt` | 読み込み |
+| `対応していない版です(reset が必要です)` | `versionMismatch` | 読み込み |
+| `知らないキーがあります` | `corrupt` | 読み込み |
+| `必須のキーがありません` | `corrupt` | 読み込み |
+| `値の型が誤っています` | `corrupt` | 読み込み |
+| `status の値が誤っています` | `corrupt` | 読み込み |
+| `skip_reason の値が誤っています` | `corrupt` | 読み込み |
+| `skip_reason が status と合いません` | `corrupt` | 読み込み |
+| `exit_code が status と合いません` | `corrupt` | 読み込み |
+| `ジョブIDが重複しています` | `corrupt` | 読み込み |
+| `job の並びが job_order と一致しません` | `corrupt` | 読み込み |
+| `resume_job_id が job_order にありません` | `corrupt` | 読み込み |
+| `completed と resume_job_id が両立しません` | `corrupt` | 読み込み |
+| `run_id がファイル名の run ID と一致しません` | `corrupt` | 読み込み(`reset --all` では「別の定義のステート」として扱い、消さない) |
+| `書き込みに失敗しました` | `writeFailed` | 書き込み |
+| `内容を JSON にできません` | `writeFailed` | 書き込み |
+| `削除に失敗しました` | `removeFailed` | `reset`、`reset --all`、完了時の削除 |
 
 読み込みの検査の順序と、各原因の判定条件は [06-state-file.md](06-state-file.md)(JSON 版)に従う。複数の原因が当てはまるときにどれを出すかの順序は、この章では未確認(06 章に従う)。
 
@@ -276,7 +277,7 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 
 ### 8.1 方針
 
-- 失敗は、`Error` を継承したクラスの値(または、後述の判別共用体の値)を、`throw`(同期)または `Promise` の `reject`(`async` 関数の中の `throw`)で伝える。規定された誤りと、想定外の内部失敗(6 章)を、**型で区別する**。規定された誤りは、このあとの型の集合に属し、それ以外は想定外とする。
+- 規定された誤りの伝え方は、モジュールごとに次のとおり決まっている(8.3 節の表の「伝え方」の列)。**値で返す**ものは、結果の型(`{ ok: true, ... } | { ok: false, ... }`)で返し、`Promise` を拒否しない(`definition`、`convert`、`runner`、`flow`、`runid`)。**投げる**ものは、`Error` を継承したクラスの値を `throw`(`async` 関数では `reject`)する(`state` の読み書きの関数。06 章。`cli` の引数の解析の `UsageError` は、値として持ち回る)。`state` の入口 `StateStore`(02 章)は、投げられた `StateError` を値に包んで `Deps` に返す。規定された誤りと、想定外の内部失敗(6 章)を、**型で区別する**。規定された誤りは、このあとの型の集合に属し、それ以外は想定外とする。
 - 各誤りの型は、「種別(文字列リテラルの共用体型)」と「利用者に見える情報」を持つ。文言への変換(ロケール、エスケープ)は `src/report/` の責務で、`Error` の `message` は、ロケールを判定せず、デバッグ用の固定の英語の 1 行にする(利用者向けの出力には使わない)。
 - 終了コードは、エラー型の値から、`src/cli/` の 1 つの関数で決める(クラスのプロパティ `exitCode`、または型の振り分け)。終了コードの数値の定義は 1 か所(定数)に集める。
 - 呼び出し側は、`instanceof` で型を判定する(`catch (e)` の `e` は `unknown` なので、`e instanceof XxxError` で絞り込む。`as` による型の断言はしない)。誤りを包む場合は、標準の `Error` の `cause` オプション(`new XxxError(..., { cause: err })`)に元の誤りを入れる。包んでも、利用者向けの出力は、包んだ誤りの型の情報だけから作る(`cause` や `message` は、利用者に出さない)。
@@ -316,13 +317,13 @@ export abstract class ConductorError extends Error {
 
 モジュールごとに、自分の誤りの型を持つ(ソース構成は 02 章)。
 
-| モジュール | クラス | 種別の型 | 終了コード | 持つ情報 |
-|------------|--------|----------|------------|----------|
-| `src/definition/` | `DefinitionError` | `DefinitionErrorKind`(7.1 の 31 種の文字列リテラルの共用体) | 64 | ファイル、行(`undefined` は「なし」)、種類、原因(日本語の固定の文) |
-| `src/definition/` | `CommandError` | `CommandErrorKind`(`"UnclosedQuote" \| "Empty"`) | 64 | ジョブID、種類 |
-| `src/runid/` | `RunIdError` | `RunIdErrorKind`(`"Empty" \| "TooLong" \| "InvalidChar" \| "LeadingDot"`) | 68(利用者には `invalid value`) | 種類のみ(値は持たない) |
-| `src/state/` | `StateError` | `StateErrorKind`(`"Unreadable" \| "TooLarge" \| "Corrupt" \| "VersionMismatch" \| "WriteFailed" \| "RemoveFailed"`) | 65 | パス、種類、原因 |
-| `src/state/` | `MismatchError` | `MismatchKind`(`"PipelineName" \| "JobIds" \| "JobOrder"`) | 65 | パス、種類 |
+| モジュール | 型 | 種別の型 | 終了コード | 持つ情報(伝え方) |
+|------------|-----|----------|------------|----------|
+| `src/definition/` | `DefinitionError` | `ErrorKind`(7.1 の 31 種の文字列リテラルの共用体。03 章 12.1 節) | 64 | ファイル、行・列(`undefined` は「なし」)、種類、原因(日本語の固定の文)。クラスにせず、普通の値で、`LoadResult` に入れて返す(03 章) |
+| `src/runner/` | `CommandError` | `CommandErrorKind`(`"unclosedQuote" \| "empty"`。02 章) | 64 | 種類(ジョブIDは、呼び出し側が持つ)。`CommandResult` で返す(07 章) |
+| `src/runid/` | `RunIdError` | `RunIdErrorKind`(`"Empty" \| "TooLong" \| "InvalidChar" \| "LeadingDot"`) | 68(利用者には `invalid value`) | 種類のみ(値は持たない)。`RunIdParse` で返す(05 章 6 節) |
+| `src/state/` | `StateError` | `StateErrorKind`(`"unreadable" \| "tooLarge" \| "corrupt" \| "versionMismatch" \| "writeFailed" \| "removeFailed"`) | 65 | パス、種類、原因(固定の日本語の文)、`detail`(任意)。`state` の読み書きの関数は投げる(06 章 6.2 節) |
+| `src/state/` | `ConsistencyResult` の `mismatch` | `what`(`"pipelineName" \| "jobIds" \| "jobOrder"`) | 65 | 種類。値で返す(06 章 7 節) |
 | `src/convert/` | `ConvertError` | `ConvertErrorKind`(7.3 の 6 種) | 67 | ファイル、行、キーの位置、種類、原因 |
 | `src/cli/` | `UsageError` | `UsageKind`(7.4 の 8 種) | 68 | 種類、対象(あれば) |
 | `src/cli/` | `RejectedError` | `RejectReason`(`"OutOfOrder" \| "SkipTarget" \| "AfterEnd" \| "AlreadyExecuted"`) | 66 | ジョブID、理由 |
@@ -356,10 +357,10 @@ export class UsageError extends ConductorError {
 
 ### 8.5 最上位での決定
 
-`src/cli/` の `run` は、各処理が投げた(または `reject` した)値を受け取り、次の順で終了コードと表示を決める。
+`src/cli/` の `run` は、各処理が返した結果の型(値で返す誤り)と、投げられた(または `reject` された)値を受け取り、次の順で終了コードと表示を決める(終了コードを決める関数は 1 つ)。
 
 1. `instanceof UsageError` → 使い方の誤りの表示(誤りの行、空行、使い方全文)と 68。
-2. `DefinitionError` / `CommandError` → 64。`StateError` / `MismatchError` → 65。`RejectedError` → 66。`ConvertError` → 67。それぞれの表示は 08 章。
+2. `DefinitionError` / `CommandError` → 64。`StateError`、整合性の `mismatch` → 65。`RejectedError` → 66。`ConvertError` → 67。それぞれの表示は 08 章。
 3. 上のどれでもない値(`ConductorError` のほかのクラスの `Error`、`Error` でない値を含む。想定していない失敗)は、`conductor: error: internal error` を標準エラーに 1 行出して 70 で終わる(6 章と同じ文。表示は 6 章の 1 つの関数に任せる)。想定外の値を握りつぶして成功にしてはならない。
 4. 型の判定の順序は、同じ値が複数のクラスに当てはまらないように作る(各クラスは独立で、`ConductorError` 以外のクラスの継承関係を作らない)ので、実際には順序に依存しない。
 
