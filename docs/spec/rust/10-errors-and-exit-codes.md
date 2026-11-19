@@ -113,7 +113,7 @@ conductor: error: internal error
 | 型 | 内容 |
 |----|------|
 | `DefinitionErrorKind`(30 種) | 識別子(`code()`)・日本語の文(`Display`)・英語の文は 08 章 4.3 に全件 |
-| `DefinitionError { file, line: Option<usize>, kind, reason }` | `Display` は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。`file` は 256 文字で切って制御文字をエスケープ。CLI は `Display` を使わず、自前の形式で表示する(08 章)。`reason` は core が作る日本語の固定の文。キー名は `` `キー名` `` の形で入り、64 文字で切る |
+| `DefinitionError { file, line: Option<usize>, kind, reason }` | `Display` は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。`Display` では、`file` を制御文字のエスケープのうえ 256 文字で切る(ライブラリ側の表示のみ)。CLI は `Display` を使わず、自前の形式で、`file` をエスケープだけして切らずに表示する(08 章)。`reason` は core が作る日本語の固定の文。キー名は `` `キー名` `` の形で入り、64 文字で切る |
 | `RunIdError`(4 種) | `Empty`, `TooLong`, `InvalidChar`, `LeadingDot`。CLI では、すべて `invalid value`(68)にまとめられ、値は含めない |
 
 `DefinitionErrorKind` の一覧(識別子順):

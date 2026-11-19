@@ -20,7 +20,7 @@
 | 項目 | 内容 |
 |------|------|
 | 作るもの | `types.rs`(02 の 2.1 の型)、`run_id.rs`(`RunId::parse` の 4 つの誤りを、空 → 長すぎ → 不正な文字 → 先頭 `.` の順に判定。`is_valid_env_name`、`peek_run_id_env`)、`error.rs`(`DefinitionErrorKind` 30 種と識別子・日本語の文、`DefinitionError`、`sanitize`、`quote_key`、`Locate`) |
-| 完了条件 | run ID の有効・無効の例(05 の 6.1)が通る。`Locate::line_of` が、行頭・行の途中・範囲外・CRLF で、03 の 10 章のとおりの行を返す。`sanitize` が制御文字・書式文字をエスケープし、64 文字(キー名)/256 文字(ファイル名)で切る |
+| 完了条件 | run ID の有効・無効の例(05 の 6.1)が通る。`Locate::line_of` が、行頭・行の途中・範囲外・CRLF で、03 の 10 章のとおりの行を返す。`sanitize` が制御文字・書式文字をエスケープし、64 文字(キー名)で切る。ファイル名は、ライブラリ側の `Display` だけ 256 文字で切り、CLI の表示は切らない |
 | 確認の観点 | 識別子は 30 種すべてが `code()` で一意。表示は `<file>:<line>: <種類の文>: <reason>` |
 | 参照 | 03 の 9・10・12 章、05 の 6 章 |
 

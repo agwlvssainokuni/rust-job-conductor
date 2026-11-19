@@ -66,17 +66,21 @@ conductor --help | --version
 | 規則 | 挙動 |
 |------|------|
 | `--opt value` と `--opt=value` | `--config`, `--run-id`, `--to` の両方の形を受け付ける |
-| 値の取り方 | 値を取るオプションは、次の引数を、先頭が `-` でもそのまま値にする(例: `--config --help` は `--help` というパスを指す)。次の引数がなければ `missing value` |
+| 値の取り方 | 値を取るオプションは、次の引数を、先頭が `-` でもそのまま値にする(例: `--config --help` は `--help` というパスを指す)。次の引数がなければ `option requires a value`(`MissingValue`。対象は `--config` など) |
 | 空の値 | `--config=`(空パス)は文字列として受理され、後段でファイルなしの誤りになる。`--run-id=` は有効(run ID なしに固定) |
 | 短縮形の連結 | lexopt の標準どおり。`-vh` は `-v` と `-h`(`-h` が勝つ)。`-vv` は `-v` が 2 回 |
 | `--` | オプションの終わり。以降はすべて位置引数(`-v` や `--help` も位置引数)。例: `run -- -weird` はジョブID `-weird`。`-- --help` は先頭の位置引数 `--help` がコマンド名として未知になり `unknown command` |
 | 値を取らないオプションに `=値` | `--verbose=x`, `--all=x`, `--remove-on-complete=x` は `invalid value`(対象はオプション名)。文法にない `--bogus=x` は `unknown option`(対象 `--bogus`) |
 | 非 UTF-8 | 位置引数(コマンド名、ジョブID、パイプライン名、`--to` の値)が UTF-8 でないと `invalid value`(対象は lossy 変換した文字列)。`--config` と convert の入力パスは `OsString` のまま通す。`--run-id` の値が非 UTF-8 だと `invalid value`(対象 `--run-id`) |
+| `-h`/`-V` に `=値` | `--help=x`、`--version=x`、`-h=x`、`-V=1`、`-vh=x` のように `=値` が付いていても、help / version が優先され、誤りにならない(`-v=1` は `invalid value`、対象 `-v`) |
+| 単独の `-` | 位置引数。`run -` はジョブID `-` として扱われる |
+| `--` の直後のコマンド名 | `-- run` は、`run` がコマンド名(先頭の位置引数)になり、ジョブIDがないので `missing argument`(68)。`-- run a` はジョブID `a` の `run` |
+| 値として取られた `-h`/`--help` | `--config --help run a` は `--help` をパスとして扱うので、help にならない(ファイルがなければ 64)。`--config --help`(ほかの引数なし)は位置引数が 0 個で `missing argument`(68)。`--help --config` は `--help` が先に解釈されるので、値の欠落より前に help(0) |
 | 解釈の打ち切り | 値の欠落(`--config` 等が最後の引数)で字句の走査は止まる。それ以前に `-h`/`-V` があれば、そちらが先に処理される |
 
 ### 4.1 解釈の順序(誤りの優先順位)
 
-1. `-h/--help` または `-V/--version` が(`--` より前に)1 つでもあれば、ほかの誤りに関係なく、先に現れた方を処理して終了コード 0。両方あるとき、先に現れた方が勝つ(`-V -h` は version、`-h -V` は help)。
+1. `-h/--help` または `-V/--version` が(`--` より前に、オプションとして解釈されて)1 つでもあれば(値を取るオプションの直後の引数は、値として取られるので数えない)、ほかの誤りに関係なく、先に現れた方を処理して終了コード 0。両方あるとき、先に現れた方が勝つ(`-V -h` は version、`-h -V` は help)。
 2. 字句の誤り(値の欠落、`--verbose=x` のような値の取り残し)。
 3. 文法にないオプション(`unknown option`。複数あれば最初のもの)。
 4. 位置引数が 0 個: `missing argument`(対象なし)。例: 引数なし、`-v` だけ。
