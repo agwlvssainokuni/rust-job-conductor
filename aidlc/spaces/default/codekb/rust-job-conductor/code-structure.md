@@ -1,105 +1,106 @@
-# Code Structure
+# コード構造
 
-## ワークスペースの構成
+## ワークスペース
 
-```
-Cargo.toml                 ワークスペース(members = crates/*、edition 2024、rust-version 1.100)
-crates/
-  core/                    conductor-core (lib)
-    src/
-      lib.rs, types.rs, error.rs, run_id.rs
-      definition/  mod.rs intake.rs parse.rs depth.rs version.rs walk.rs
-      flow/        mod.rs classify.rs decide.rs next_step.rs resume.rs
-    tests/         definition_valid / definition_errors / flow_sequences / library_capability /
-                   nfr_security / nfr_performance + fixtures/(valid_pipeline.toml, multiple_errors.toml)
-  runtime/                 conductor-runtime (lib + bin conductor-test-helper)
-    src/
-      lib.rs, types.rs, error.rs, runner.rs, split.rs
-      platform/    mod.rs unix.rs windows.rs
-      state/       mod.rs reader.rs writer.rs record.rs consistency.rs reset_all.rs
-      bin/         conductor-test-helper.rs
-    tests/         common/mod.rs + runner_basic / runner_signal / state_* / flow_with_state / run_id_state / toml_depth / nfr_*
-  converter/               conductor-converter (lib)
-    src/           lib.rs types.rs raw.rs intake.rs yaml_read.rs toml_read.rs resolve.rs scalar.rs yaml_write.rs toml_write.rs error.rs
-    tests/         common/mod.rs + convert_ac / convert_roundtrip / read_resolve / nfr_security + fixtures/
-  cli/                     conductor-cli (lib conductor_cli + bin conductor + bin conductor-cli-test-helper)
-    src/
-      main.rs, lib.rs, types.rs, args.rs, ctx.rs, run.rs, pipeline.rs, aux_commands.rs,
-      deps.rs, exit.rs, panic_hook.rs
-      platform/    mod.rs unix.rs windows.rs
-      report/      mod.rs messages.rs watch.rs escape.rs
-      bin/         conductor-cli-test-helper.rs
-    tests/         common/mod.rs, bin_support/mod.rs + flow_* / binary_* / signals_* / report_messages / args_grammar / exit_codes / ... 
-demo/                      デモ(conductor.toml、scripts/、windows/、run-demo.sh)
-.github/workflows/         ci.yml release.yml audit.yml
-README.md                  利用者向けの文書(日本語)
+`Cargo.toml`(`members = ["crates/*"]`、resolver 3、edition 2024、rust-version 1.100)。4 クレート。すべて Apache-2.0、`publish = false`(cli のみ明示)。
+
+```text
+.
+├── Cargo.toml / Cargo.lock
+├── crates/
+│   ├── core/       conductor-core
+│   ├── runtime/    conductor-runtime
+│   ├── converter/  conductor-converter
+│   └── cli/        conductor-cli(実行ファイル conductor)
+├── demo/           定義の例とスクリプト(Unix と windows/)
+├── docs/spec/      仕様書(7 版)
+├── .github/workflows/  ci.yml, release.yml, audit.yml
+└── README.md, LICENSE, .gitignore, .idea/(追跡)
 ```
 
-行数の目安(src のみ、`#[cfg(test)]` を含む): core 約 3,300、runtime 約 3,400(bin 含む)、converter 約 3,100、cli は `run.rs` 140、`report/mod.rs` 495、`report/messages.rs` 347 など。ワークスペース全体(tests を含む)で約 2 万行。
+## conductor-core(crates/core/src)
 
-## 流れの層とファイルの対応
+| ファイル | 分類 | 役割 |
+|----------|------|------|
+| `lib.rs` | Configuration | 公開関数の表と再エクスポート |
+| `types.rs` | Model | `PipelineDefinition`、`JobDefinition`、`Command`、`RetryPolicy`、`Transition*`、`JobExecution`、`JobState`、`PipelineState`、`Decision*`、`Classification`、`JobOutcome`、`NextStep`、`RunMode`、`ResumePoint` |
+| `error.rs` | Utility | `DefinitionErrorKind`(30 種、`code()`、`ALL`)、`DefinitionError`、`sanitize`、`quote_key`、`Locate`(行番号) |
+| `run_id.rs` | Utility | `RunId`、`is_valid_env_name`、`peek_run_id_env`、`DEFAULT_RUN_ID_ENV` |
+| `definition/mod.rs` | Service | `load_definition`、`parse_definition`(Intake → Parse → Depth → VersionCheck → Walk) |
+| `definition/intake.rs` | Utility | 場所の決定と 1 MiB 上限の読み取り(core で唯一のファイル入出力) |
+| `definition/parse.rs` | Utility | `toml::de::DeTable` で位置つきの木にする |
+| `definition/depth.rs` | Utility | 入れ子 32 段の上限 |
+| `definition/version.rs` | Utility | `format_version == 1` の確認 |
+| `definition/duration.rs` | Utility | `<整数><s|m|h>` を秒に(1 秒から 24 時間) |
+| `definition/walk.rs` | Service | キー・型・構造・遷移・終了コード・retry の検査と定義の組み立て(801 行) |
+| `flow/classify.rs` | Service | 分類と終了コード(127・128+n・1) |
+| `flow/decide.rs` | Service | `decide_before_run`(7 段の判断) |
+| `flow/next_step.rs` | Service | `classify_and_decide`(遷移、`@end`、完了) |
+| `flow/resume.rs` | Service | `resume_point_on_interrupt` |
+| `flow/retry.rs` | Service | `retry_decision`、待ち時間の計算(飽和演算) |
 
-| 層 | ファイル | 役割 |
-|----|----------|------|
-| 入口 | `cli/src/main.rs` | パニックのフックを設定し、`run_cli` の結果で 1 回だけ `process::exit` |
-| コマンド分岐 | `cli/src/lib.rs` | `run_cli`(本番の依存)/ `run_cli_with`(差し替え)。`CommandKind` で分岐 |
-| 引数 | `cli/src/args.rs`, `types.rs` | `lexopt` で字句 → コマンドごとの文法の表。`CliCommand`、`UsageError` |
-| 共通の前処理 | `cli/src/ctx.rs` | `Ctx::prepare`(検査の順序を固定)、`check_definition`、`report_execution`、`write`、`reset` |
-| 個別実行 | `cli/src/run.rs` | `run_individual`(RunMode::Individual) |
-| 一括実行 | `cli/src/pipeline.rs` | `run_pipeline`(RunMode::Pipeline)、`finish` |
-| 補助 | `cli/src/aux_commands.rs` | `run_watch`、`run_reset`、`run_validate`、`run_convert` |
-| 差し替え口 | `cli/src/deps.rs` | `Runtime`・`Sink`・`Env`・`Signals` と本番の実装 |
-| 表示 | `cli/src/report/` | `DisplayEvent` + `Reporter`(言語・色は遅延)、文言の表 `Text{en, ja}`、`watch` の表、エスケープ |
-| 終了コード | `cli/src/exit.rs` | `EXIT_*` 定数、`exit_code_for`、`signal_exit_code` |
-| 定義 | `core/src/definition/` | Intake → Parse → Depth → VersionCheck → Walk |
-| 判断 | `core/src/flow/` | `decide_before_run`、`classify`、`classify_and_decide`、`resume_point_on_interrupt` |
-| 起動・待ち | `runtime/src/runner.rs`, `split.rs`, `platform/` | `run_job`、`wait_loop`、`command_line`/`split`、OS 固有 |
-| ステート | `runtime/src/state/` | `reader`(読む)、`writer`(原子的に書く・reset)、`record`(`apply_*`)、`consistency`、`reset_all` |
-| 変換 | `converter/src/` | Intake → Read → RootCheck → Resolve → Write |
+## conductor-runtime(crates/runtime/src)
 
-## ファイルの分類
+| ファイル | 分類 | 役割 |
+|----------|------|------|
+| `lib.rs` | Configuration | 公開関数の表、`#![deny(unsafe_code)]` |
+| `runner.rs` | Service | `run_job`(起動と待ち。`wait_loop`、`Waitable` trait) |
+| `split.rs` | Utility | `command_line`、`check_command`(状態機械による分割) |
+| `wait.rs` | Utility | `wait_for`(50ms 間隔で中断を確認) |
+| `types.rs` | Model | `CommandLine`、`InterruptSignal`、`StateLocation`、`ConsistencyResult`、`MismatchKind`、`Durability` |
+| `error.rs` | Utility | `CommandError`、`StateError` と固定の理由の文 |
+| `platform/{mod,unix,windows}.rs` | Configuration | `configure_spawn`、`forward_signal`、`termination_signal`、`sync_dir`。`unsafe` は unix.rs の `libc::kill` のみ |
+| `state/reader.rs` | Repository | `read_state`、`read_state_raw`。1 MiB 上限、版の確認、キーの検査、矛盾の検査 |
+| `state/writer.rs` | Repository | `write_state`(一時ファイル、同期、置き換え)、`reset_state` |
+| `state/reset_all.rs` | Repository | `reset_all_states`(`--all`) |
+| `state/consistency.rs` | Service | `check_consistency` |
+| `state/record.rs` | Service | `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt` |
+| `bin/conductor-test-helper.rs` | Test | テスト専用バイナリ |
 
-| 種別 | ファイル |
-|------|----------|
-| モデル(データの形) | `core/src/types.rs`(`PipelineDefinition`、`JobDefinition`、`Command`、`Transition*`、`JobExecution`、`JobState`、`PipelineState`、`Decision*`、`Classification`、`JobOutcome`、`NextStep`、`RunMode`、`ResumePoint`)、`runtime/src/types.rs`、`converter/src/types.rs`、`cli/src/types.rs` |
-| 構文・検証 | `core/src/definition/*`、`core/src/run_id.rs` |
-| 純粋な判断 | `core/src/flow/*`、`runtime/src/state/{record,consistency}.rs`、`cli/src/exit.rs`、`cli/src/args.rs` |
-| IO(ファイル) | `core/src/definition/intake.rs`、`runtime/src/state/{reader,writer,reset_all}.rs`、`converter/src/intake.rs` |
-| IO(プロセス・OS) | `runtime/src/runner.rs`、`runtime/src/platform/*`、`cli/src/platform/*` |
-| 表示 | `cli/src/report/*`、`cli/src/panic_hook.rs` |
-| エラー型 | `core/src/error.rs`、`runtime/src/error.rs`、`converter/src/error.rs`(いずれも固定の文) |
-| テスト専用 | `runtime/src/bin/conductor-test-helper.rs`、`cli/src/bin/conductor-cli-test-helper.rs`、`*/tests/common/`、`cli/tests/bin_support/` |
+## conductor-converter(crates/converter/src)
+
+`lib.rs`(`convert`、`convert_text`)、`types.rs`(`Value`、`TargetFormat`、`ConversionRequest`、`ConvertedText`)、`error.rs`(6 種)、`intake.rs`、`raw.rs`(定数 `MAX_NODES` 等)、`yaml_read.rs`、`toml_read.rs`、`resolve.rs`(展開、`root_check`)、`scalar.rs`、`yaml_write.rs`、`toml_write.rs`。
+
+## conductor-cli(crates/cli/src)
+
+| ファイル | 分類 | 役割 |
+|----------|------|------|
+| `main.rs` | Configuration | 薄い入口。パニックのフックを設定し `run_cli` の結果で exit |
+| `lib.rs` | Controller | `run_cli`、`run_cli_with`(コマンドの振り分け) |
+| `args.rs` | Controller | `parse_args`、`resolve_run_id`(`lexopt`、許可表の検査) |
+| `types.rs` | Model | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError(Kind)`、`Language`、`Level` |
+| `ctx.rs` | Service | `Ctx`、`Session`、`prepare`、`check_definition`、`report_execution`、`aux_run_id` |
+| `run.rs` | Service | `run_individual` |
+| `pipeline.rs` | Service | `run_pipeline` |
+| `retry.rs` | Service | `run_job_with_retry` |
+| `aux_commands.rs` | Service | `run_watch`、`run_reset`、`run_validate`、`run_convert` |
+| `exit.rs` | Utility | 終了コードの定数と `exit_code_for`、`signal_exit_code` |
+| `deps.rs` | Configuration | trait と本番の実装(`SystemRuntime` など) |
+| `report/mod.rs` | View | `Reporter`、`DisplayEvent`、`StateContext`、`ResultDetail` |
+| `report/messages.rs` | View | 英日の文言表、`USAGE`、`definition_kind`、`usage_kind` など |
+| `report/escape.rs`、`report/watch.rs` | View | escape(名前 64 文字)、`watch` の表 |
+| `platform/{mod,unix,windows}.rs` | Configuration | シグナルの監視(プロセスで 1 回)、色の可否 |
+| `panic_hook.rs` | Middleware | パニックで固定の文を出し 70 で終わる |
+| `bin/conductor-cli-test-helper.rs` | Test | テスト専用バイナリ |
 
 ## コードのパターン
 
-- **crate の公開面は lib.rs の `pub use` で絞る**。runtime の `platform`・`runner`・`split`・`state` は非公開モジュールで、必要な関数だけを再公開する(`check_command`、`run_job` など)。
-- **「位置を保つ木 → 検査 → 型付きの値」**: core の `walk.rs` は `toml::de::DeTable`(`Spanned`)を走査し、`RawJob` に集めてから `build_jobs` で `JobDefinition` にする。誤りは `Vec<(offset, DefinitionError)>` に集め、位置の順に並べて返す(`complete` が偽の子は後続の検査を省略)。
-- **固定の文だけでエラーを組み立てる**: 理由は `&'static str` か固定の文。入力由来はキー名だけで、`quote_key`/`sanitize` で制御文字をエスケープし 64 文字で切る。
-- **純粋な関数は「新しい値を返す」形**: `apply_outcome(&PipelineState, ...) -> PipelineState`(`clone` して更新)。
-- **trait による差し替え + 本番の実装の薄い包み**: `SystemRuntime` は core・runtime・converter の関数を 1 行ずつ呼ぶだけ。
-- **let-chain(`if let ... && ...`)**: 入れ子の `if` は let-chain に整理済み(edition 2024、MSRV 1.100)。例: `ctx.rs` の `prepare`、`run.rs` の `Skip` の枝、`walk.rs` の `pipeline_section`。
-- **OS 固有部は `platform/` に閉じる**: `cfg(unix)`・`cfg(windows)` は各 crate の `platform` の外に置かない(`nfr_source` のテストが検査)。
-- **日本語の doc コメントに要件 ID を添える**(BR/NFR/FR/ADR)。テスト名も日本語。
-- **契約の番号**: C1(共有の型)、C2(core の関数)、C3(runtime の関数)、C4(converter の関数)。
+- 日本語のドキュメントコメントと日本語のテスト名。契約(C1〜C4)、BR/NFR/FR の番号がコメントに残る。
+- 純粋関数 + 差し替え口の trait。エラーは値で返し、パニックしない。
+- 固定の文だけでエラー表示を組み立てる(入力の値を入れない)。
+- 状態機械(再帰を使わない): `split`、YAML の読み取りと展開。
+- 定義の検査は「誤りをすべて集める」方式(`Walker.errors`)。ファイル・文法・版の誤りだけは 1 件で終える。
 
-## 新しいジョブ単位の設定を足すときに触れる場所(一覧)
+## テストの配置
 
-| # | 場所 | 内容 |
-|---|------|------|
-| 1 | `core/src/types.rs` の `JobDefinition`(`PartialEq, Eq` 導出) | フィールドを足す。浮動小数は `Eq` と相容れない |
-| 2 | `core/src/definition/walk.rs` の `JOB_KEYS`・`RawJob`・`Walker::job`・`build_jobs`・`cross_check` | キーの許可、型の検査、関係の検査、組み立て |
-| 3 | `core/src/error.rs` の `DefinitionErrorKind`(`ALL`・`code`・`#[error]`) | 新しい誤りの種類を足す場合 |
-| 4 | `cli/src/report/messages.rs` の `definition_kind` | 誤りの種類ごとの英語・日本語の文 |
-| 5 | `core/src/flow/*` | 分類・次の動き(必要な場合) |
-| 6 | `runtime/src/runner.rs`、`cli/src/run.rs`、`cli/src/pipeline.rs` | 実行の流れ |
-| 7 | `runtime/src/state/{reader,writer,record}.rs` | ステートに記録する場合のみ(`TOP_KEYS`・`JOB_KEYS`、`FORMAT_VERSION`、`serialize`) |
-| 8 | `cli/src/report/mod.rs`(`DisplayEvent`・`level`・`render`)、`report/messages.rs` | 表示の種類と文言 |
-| 9 | `converter/src/*` | 通常は変更不要(スキーマ非依存) |
-| 10 | テストの組み立て | `JobDefinition { ... }` のリテラルを持つ箇所(`core/src/types.rs` のテスト、`runtime/tests/common/mod.rs` の `job()`、各テスト)、定義の組み立て補助(`cli/tests/bin_support::job_block`、`cli/tests/common` の定義文字列) |
-| 11 | `README.md`、`demo/` | 定義の表・終了コードの表・用語。CI の `docs-check` が README の必須の見出しを検査する |
+| 場所 | 内容 |
+|------|------|
+| `crates/core/tests/` | `definition_{valid,errors,retry}.rs`、`flow_sequences.rs`、`retry_flow.rs`、`library_capability.rs`、`nfr_{performance,security}.rs`、fixtures(`valid_pipeline.toml`、`multiple_errors.toml`) |
+| `crates/runtime/tests/` | `runner_{basic,signal}.rs`、`state_{read,read_raw,write}.rs`、`flow_with_state.rs`、`run_id_state.rs`、`toml_depth.rs`、`wait_interruptible.rs`、`nfr_{content,performance,robust,source}.rs` |
+| `crates/cli/tests/` | `args_grammar.rs`、`flow_{run,pipeline,aux,retry,validate,run_id}.rs`、`report_messages.rs`、`escape_table.rs`、`exit_codes.rs`、`binary_{basic,run_id,signal}.rs`、`signals_{order,real}.rs`、`panic_hook.rs`、`unix_demo.rs`、`windows_demo.rs`、`nfr_{perf,robust,source}.rs`、`msrv_consistency.rs`、`docs_retry.rs`、`common/`、`bin_support/` |
+| `crates/converter/tests/` | `convert_{ac,roundtrip}.rs`、`read_resolve.rs`、`nfr_security.rs`、fixtures |
+| 各 `src/*.rs` | `#[cfg(test)]` の単体テスト |
 
-## 命名・構成の慣習
+## ドキュメントの配置
 
-- 命名は Rust 標準(snake_case、PascalCase、SCREAMING_SNAKE_CASE)。ファイルは機能の単位で 1 ファイル 1 責務。
-- ライセンスヘッダー(Apache-2.0、`Copyright 2026 agwlvssainokuni`)を全ソースの先頭に置く。
-- `rustfmt`・`clippy` は既定の設定(設定ファイルなし)。CI で `-D warnings`。
+`README.md`、`docs/spec/{csharp,go,language-agnostic,powershell,python,rust,typescript}/00-README.md` から `12-rebuild-guide.md`(各 13 文書)、`demo/README.md`、`crates/cli/tests/WINDOWS_CTRL_C_CHECKLIST.md`。

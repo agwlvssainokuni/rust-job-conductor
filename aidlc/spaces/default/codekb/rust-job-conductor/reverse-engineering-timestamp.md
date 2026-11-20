@@ -2,44 +2,46 @@
 
 ## Run Record
 
-- Date: 2026-11-19
-- Commit: db631cd088bd66b846b1f5b0fcb33ccaa5c0d2d0
+- Date: 2026-11-21
+- Commit: 1a77179273aed7763b89a69fed1b383c9b4ba8b2
 
 ## Scope of Analysis
 
 ```yaml
 scope_version: 1
 kind: full
-intent: 261118-job-retry
-fingerprint: d34268005e41cad032f757ebe3e4a46ffa9bad2b
+intent: env-graph-dryrun-init
+fingerprint: 7a3d59e630550b80d292eb468713a43d0ba8131c
 analyzed:
   paths:
     - ./
   components:
-    - core::Types
-    - core::DefinitionLoader
-    - core::Flow
-    - core::RunId
-    - core::Describe
-    - runtime::JobRunner
-    - runtime::CommandSplit
-    - runtime::Platform
-    - runtime::Types
-    - runtime::StateStore
-    - runtime::Recorder
-    - runtime::Consistency
-    - cli::ArgParser
-    - cli::Orchestrator
-    - cli::AuxCommands
-    - cli::Deps
-    - cli::Reporter
-    - cli::WatchView
-    - cli::Escape
-    - cli::SignalWatcher
-    - cli::ExitMapper
-    - cli::PanicHook
-    - converter::Converter
-    - TestHelpers
+    - conductor-core
+    - core::definition
+    - core::flow
+    - core::types
+    - core::error
+    - core::run_id
+    - conductor-runtime
+    - runtime::runner
+    - runtime::split
+    - runtime::platform
+    - runtime::state
+    - runtime::wait
+    - conductor-converter
+    - conductor-cli
+    - cli::args
+    - cli::ctx
+    - cli::flows
+    - cli::report
+    - cli::deps
+    - cli::platform
+    - cli::exit
+    - cli::panic_hook
+    - test-helpers
 shallow:
-  paths: []
+  paths:
+    - docs/spec/
+    - demo/
+    - .idea/
 ```

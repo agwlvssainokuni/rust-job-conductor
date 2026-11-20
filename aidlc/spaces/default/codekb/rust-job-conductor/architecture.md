@@ -1,189 +1,140 @@
-# Architecture
+# アーキテクチャ
 
 ## Architecture Analysis
 
 ### System Overview
 
-4 つの crate からなる Cargo ワークスペースで、配布物は単一のバイナリ `conductor`(conductor-cli の `[[bin]]`)である。責務は次のように縦に分かれる。
-
-| crate | 責務 | IO・OS への依存 |
-|-------|------|-----------------|
-| conductor-core | 定義の読み込み・検証、結果の分類、次の動き、起動前の判断、再開位置 | ファイル取り込み(`definition/intake.rs`)だけ。ほかは純粋な関数 |
-| conductor-runtime | ジョブの起動と待ち、シグナルの転送、ステートの読み書き・照合・記録・初期化 | プロセス起動、ファイル、OS 固有部は `platform/` に閉じる |
-| conductor-converter | YAML と TOML の相互変換(スキーマ非依存の木) | 入力ファイルの読み取りだけ。core に依存しない |
-| conductor-cli | 引数、流れの組み立て(唯一の調整役)、シグナルの監視、表示、終了コード | 標準出力・標準エラー、環境変数、シグナル |
-
-依存の向きは cli → {core, runtime, converter}、runtime → core(converter と core は互いに独立)。cli だけが 3 つを決まった順に呼ぶ。
+4 クレートの Cargo ワークスペースで構成する単一バイナリの CLI。cli クレートが唯一の調整役(Orchestrator)で、core(定義の検証と純粋な判断)、runtime(プロセスの起動とステートのファイル入出力)、converter(YAML と TOML の変換)を決まった順に呼ぶ。入出力の副作用は、core の intake、runtime、cli の deps/platform、converter の intake に閉じ込めてある。
 
 ### Architectural Style
 
-- **モノリシックな単一プロセスの CLI**(ネットワークなし、常駐なし)。ジョブごとに子プロセスを 1 つ起動して待つ。
-- **関数型コア + 命令型の殻**: 判断(core の `flow`)と記録(runtime の `state::record` の `apply_*`)は、引数だけから結果を決める純粋な関数。入出力は cli の流れが、決まった順序で呼ぶ(`run.rs` の冒頭の doc コメントが「判断 → 初期ステート → ジョブ → 記録 → 書き込み → 初期化」の固定の順序と述べる)。
-- **差し替え口(trait)による依存の注入**: cli は `Runtime`・`Sink`・`Env`・`Signals` の 4 つの trait を `Deps` で受け取る。本番は `SystemRuntime` など、テストは偽実装。純粋な関数は trait を通さず直接呼ぶ。
-- 証拠: `crates/cli/src/lib.rs`(`run_cli`/`run_cli_with`)、`crates/cli/src/deps.rs`、`crates/core/src/flow/mod.rs`(「すべて純粋な関数」)。
+レイヤー型のモジュラー・モノリス(単一プロセス、単一バイナリ)。
+
+- 依存は一方向: cli → {core, runtime, converter}、runtime → core。converter は core に依存しない。
+- 「純粋な判断」と「入出力」の分離: core の `flow` は引数だけから結果を決める純粋関数。runtime の `apply_*`、`check_consistency` も純粋。
+- 差し替え口(trait `Runtime`・`Sink`・`Env`・`Signals`)でテストの偽実装を注入する(`crates/cli/src/deps.rs`)。
+- OS 差は `platform` モジュールに閉じ込める(runtime と cli に各 1 つ)。この位置の制約は `nfr_source.rs` が検査する。
 
 ### Component Relationships
 
 ```mermaid
 flowchart TD
-    main["main.rs (conductor)"] --> cli["conductor-cli: run_cli / run_cli_with"]
-    cli --> args["ArgParser (args.rs)"]
-    cli --> orch["Orchestrator: ctx.rs / run.rs / pipeline.rs"]
-    cli --> aux["AuxCommands: watch / reset / validate / convert"]
-    orch --> deps["Deps: Runtime / Sink / Env / Signals"]
-    orch --> rep["Reporter (report/): messages EN/JA, watch table, escape"]
-    orch --> sigw["SignalWatcher (cli platform/)"]
-    orch --> core["conductor-core: load_definition, decide_before_run, classify_and_decide, resume_point_on_interrupt"]
-    orch --> rt["conductor-runtime: run_job, read/write/reset_state, apply_*, check_consistency"]
-    aux --> conv["conductor-converter: convert"]
-    deps -.本番の実装.-> core
-    deps -.本番の実装.-> rt
-    deps -.本番の実装.-> conv
-    rt --> core
-    rt --> plat["runtime platform/ (kill, process group, dir sync)"]
-    sigw -->|raise 番号| intsig["InterruptSignal (runtime types)"]
-    rt -->|読むだけ| intsig
+    main["main.rs (conductor)"] --> run_cli["run_cli / run_cli_with (lib.rs)"]
+    run_cli --> args["args::parse_args (lexopt)"]
+    run_cli --> ctx["Ctx (ctx.rs)"]
+    ctx --> run["run.rs (run)"]
+    ctx --> pipe["pipeline.rs (pipeline)"]
+    ctx --> aux["aux_commands.rs (watch/reset/validate/convert)"]
+    run --> retry["retry.rs (リトライ)"]
+    pipe --> retry
+    ctx --> report["report/ (Reporter, messages)"]
+    ctx --> deps["deps.rs (Runtime/Sink/Env/Signals)"]
+    deps --> core["conductor-core"]
+    deps --> runtime["conductor-runtime"]
+    deps --> conv["conductor-converter"]
+    run --> core
+    pipe --> core
+    run --> runtime
+    pipe --> runtime
+    runtime --> core
+    ctx --> plat["platform (signal watcher)"]
 ```
 
-テキストの説明: `main` は `run_cli` を呼ぶ。`run_cli_with` は引数を解釈し、コマンドごとに `run.rs`・`pipeline.rs`・`aux_commands.rs` へ分ける。流れは `Deps` を通して core・runtime・converter の入出力を呼び、純粋な関数は直接呼ぶ。シグナルの監視スレッドが `InterruptSignal` に書き、runtime の待ちのくり返しがそれを読む。
+テキストの代替: main が run_cli を呼ぶ。run_cli は引数を解釈し(args)、Ctx を作って、コマンドごとに run / pipeline / aux_commands へ振り分ける。run と pipeline は retry を介してジョブを実行する。Ctx は表示(report)、差し替え口(deps)、シグナル(platform)を持つ。deps は core・runtime・converter の実関数を呼ぶ。run と pipeline は core の純粋関数と runtime の `apply_*` を直接呼ぶ。runtime は core の共有型に依存する。
 
 ### Data Flow
 
-1. **定義**: `conductor.toml` → `intake`(1 MiB まで)→ `parse`(位置つきの TOML の木)→ `depth`(32 段)→ `version`(`format_version == 1`)→ `walk`(キー・型・構造の検査、誤りはすべて集める)→ `PipelineDefinition`。
-2. **実行前の検査**(`Ctx::prepare`): シグナルの準備 → 定義(誤りは 64)→ 全ジョブの `command` の検査(64)→ ジョブIDの存在(68)→ run ID の決定(68)→ ステートの読み込み(65)→ 定義との照合(65)。
-3. **ジョブの 1 回の実行**: `decide_before_run` → `Run` なら(ステートが空なら先に初期ステートを `Fast` で書く)→ `run_job` → `classify_and_decide` → `report_execution`(表示)→ `apply_outcome` → `write_state(Durable)` → 完了なら(求められていれば)`reset_state`。
-4. **ステート**: `PipelineState`(ジョブごとの status・exit_code・skip_reason、`resume_job_id`、`end_reached`、`completed`、`run_id`)を TOML で保持。一時ファイル → 同期 → `rename` の原子的な置き換え。
-5. **終了コード**: `JobOutcome.reported_exit_code` を `exit_code_for` で 0〜255 に合わせて返す。
-
-### 結果の分類と再開位置のモデル(再試行が接するところ)
-
-- 分類(`flow/classify.rs`)の優先順位: ①起動しなかった中断 → 分類なし(128 + 番号)②中断(起動済み)→ エラー(128 + 番号、ジョブのコードは見ない)③起動失敗 → エラー 127 ④シグナル終了 → エラー 128 + 番号 ⑤終了コードが成功の集合 → 成功 ⑥警告の集合 → 警告 ⑦0 で成功の集合にない → エラー(終了コード 1、`conductor_error = true`)⑧それ以外 → エラー(ジョブのコードをそのまま)。
-- 次の動き(`flow/next_step.rs`): エラーと「分類なし」は `stop()`(`next_job_id = None`、`resume_job_id = Some(自分)`、`completed = false`)。成功・警告は遷移(`@end` またはジョブID)を見て、間のジョブを `skipped_job_ids` に列挙する。遷移がなければ記述順の次。
-- 再開位置: ステートの `resume_job_id` と、エラーのジョブの `status = error`。次の呼び出しで `decide_before_run` が、`error` で記録済み、または `resume_job_id` 一致のジョブを `Run` にする。
-- **at-least-once の窓**: `run_job` が終わってから `write_state(Durable)` が終わるまでの間に落ちると、ジョブは未実行として扱われ再実行される。ステートには「実行中」の印がない(起動前に書くのは初期ステートのみ)。
+1. 引数 → `ParsedArgs`(`CliCommand`)。
+2. 定義ファイル → `load_definition`(Intake → Parse → Depth → VersionCheck → Walk)→ `PipelineDefinition`。
+3. `check_command` で全ジョブの command を、起動せずに検査。
+4. run ID の決定(`--run-id`、なければ環境変数 `run_id_env` または `CONDUCTOR_RUN_ID`)。
+5. ステートの読み込みと照合(`read_state`、`check_consistency`)。
+6. ジョブごとに `decide_before_run` → `run_job`(+ リトライ)→ `classify_and_decide` → `apply_outcome` → `write_state`。
+7. 完了なら、削除を求められているときだけ `reset_state`。
+8. 表示は `DisplayEvent` を `Reporter` が英日の文にして標準エラーに出す(`convert` の結果と `watch` の表は標準出力)。
 
 ### Key Design Decisions
 
-| 決定 | 影響 |
-|------|------|
-| ジョブを直接起動(シェルなし)、`command` は `Line` か `Argv` | 3 OS で同じ分割規則(`split.rs` の状態機械)。変数・パイプは解釈しない |
-| 待ちは `try_wait` の短い間隔(1 ms から 10 ms)のくり返し、回収はそこだけ | シグナル転送は「まだ終わっていない」回にだけ 1 回送る(pid の再利用で無関係のプロセスに届かない) |
-| ジョブは新しいプロセスグループで起動(UNIX)、Windows は同じコンソール | Ctrl+C は conductor だけに届き、conductor が 1 回転送する(二重に届かない) |
-| `InterruptSignal`(原子的な整数)を cli が書き、runtime が読む | 立ったら下りない。最初の番号を保持する |
-| ステートは原子的に置き換え、結果・スキップ・中断は `Durable`、初期ステートは `Fast` | 壊れた内容にならない。書けないディレクトリはジョブの前に検知 |
-| 完了したステートは `read_state` が空として返す(`watch` は `read_state_raw`) | 次の実行は先頭から。`remove_on_complete` で削除も選べる |
-| 定義もステートも未知のキーを拒否 | 新しい設定キーは、読み取りの側のキー表に必ず足す必要がある |
-| 外部入力でパニックしない(`#![forbid(unsafe_code)]` など) | パニックのフックは固定の英語の文を出して 70 で終わる |
-| エラーの表示に入力の値・ライブラリのエラー文を含めない | 固定の文だけで組み立て、キー名・ジョブIDはエスケープして 64 文字で切る |
-| `run` と `pipeline` が、ほぼ同じ「判断 → 実行 → 分類 → 表示 → 記録 → 書き込み」を別々に持つ | 再試行を足すと 2 か所を同じに変えるか、共通の関数に寄せる必要がある |
+- ジョブはシェルを介さず直接起動する。command は定義のデータとして扱い、解釈・展開しない(NFR4.5)。分割は `split.rs` の状態機械(再帰なし)。
+- ステートは原子的に置き換える(一時ファイル → 同期 → 置き換え)。最終結果は 1 回だけ書く(リトライの途中は書かない)。
+- シグナルは、ジョブの子プロセスの pid だけに、1 回だけ転送する(プロセスグループ全体には送らない)。UNIX は子を新しいプロセスグループで起動する。
+- エラー表示は固定の文だけで組み立て、入力に由来する文字列(キー名、ジョブID、パス)は escape して切り詰める。
+- 環境は親から継承する(`Command` に環境変数を足さない)。ステートに環境変数は書かない。
 
 ### Improvement Opportunities
 
-- 表示のエスケープ関数が 4 つの crate に重複(`tests/escape_table.rs` で揃えを検査している)。
-- `run.rs` と `pipeline.rs` の「ジョブを 1 回実行して記録する」部分の重複。
-- 時刻・スリープの差し替え口がない(`Deps` に `Clock` や `Sleep` を足せば、再試行の間隔を実時間なしでテストできる)。
-- 設計文書(`entities.md` など)がリポジトリの外にある(`local-docs/` は git 管理外)。
+- `JobDefinition` などの型が、テストのリテラルで直接組み立てられており、フィールド追加の影響範囲が広い。コンストラクタやビルダーの導入余地がある。
+- `prepare` / `run_individual` / `run_pipeline` の前処理と記録の流れが似ている。
+- 使い方の表が、`args.rs` のコメント、`messages.rs` の USAGE、README の 3 か所にある。
 
 ## Interaction Diagrams
 
-### 1. `conductor run <job-id>`(1 つのジョブの実行、ステートの書き込み、シグナル)
+### 取引 1: `conductor pipeline <name>`(一括実行)
 
 ```mermaid
 sequenceDiagram
-    participant S as スケジューラ
-    participant CLI as cli (run.rs / ctx.rs)
-    participant SIG as SignalWatcher スレッド
-    participant CORE as core (定義 / Flow)
-    participant RT as runtime (run_job / state)
-    participant J as ジョブ (子プロセス)
-    S->>CLI: conductor run job-id
-    CLI->>SIG: signals.start(InterruptSignal)
-    CLI->>CORE: load_definition(定義ファイル)
-    CORE-->>CLI: PipelineDefinition (誤りは 64)
-    CLI->>RT: check_command (全ジョブ), read_state, check_consistency
-    CLI->>CORE: decide_before_run(job_id, 状態, resume, end_reached)
-    alt Run かつステートが空
-        CLI->>RT: write_state(初期ステート, Fast)
-    end
-    CLI->>RT: run_job(job, signal)
-    RT->>J: spawn (新しいプロセスグループ)
-    loop try_wait 1ms から 10ms
-        RT->>J: try_wait
-        opt シグナルが立った (1 回だけ)
-            SIG-->>RT: InterruptSignal に番号 (cli が raise)
-            RT->>J: kill(pid, 番号) を 1 回
+    participant U as スケジューラ
+    participant CLI as cli (run_cli_with)
+    participant CTX as Ctx::prepare
+    participant CORE as core
+    participant RT as runtime
+    U->>CLI: pipeline nightly --run-id X
+    CLI->>CLI: parse_args
+    CLI->>CTX: prepare(cmd, name)
+    CTX->>CORE: load_definition(path, name)
+    CTX->>RT: check_command(各 job)
+    CTX->>RT: read_state / check_consistency
+    loop 定義の記述順の各ジョブ
+        CLI->>CORE: decide_before_run
+        alt Run
+            CLI->>RT: write_state(初期, Fast) ※空のとき
+            CLI->>RT: run_job(job, signal) ※retry.rs が包む
+            CLI->>CORE: classify_and_decide
+            CLI->>RT: apply_outcome + write_state(Durable)
+        else Skip
+            CLI->>RT: apply_skip + write_state
+        else Reject
+            CLI-->>U: 終了コード 66
         end
     end
-    J-->>RT: 終了
-    RT-->>CLI: JobExecution
-    CLI->>CORE: classify_and_decide(Individual)
-    CORE-->>CLI: JobOutcome, NextStep
-    CLI->>CLI: report_execution (-v の表示、起動失敗は常に表示)
-    CLI->>RT: apply_outcome, write_state(Durable)
-    opt 完了かつ remove_on_complete
-        CLI->>RT: reset_state
-    end
-    CLI-->>S: exit_code_for(reported_exit_code)
+    CLI->>RT: reset_state(完了かつ削除を求められたとき)
+    CLI-->>U: 終了コード(0 またはジョブのコード)
 ```
 
-テキストの説明: cli が検査を終えたあと、core の判断が `Run` を返せば `run_job` を呼び、ジョブの終了後に分類・表示・記録・耐久的な書き込みを行って、分類に応じた終了コードで終わる。落ちると困る窓は「ジョブの終了」から「Durable の書き込み完了」までである。
+テキストの代替: スケジューラが `pipeline` を呼ぶ。cli が引数を解釈し、`prepare` で定義の読み込み、command の検査、ステートの読み込みと照合を行う。ジョブごとに起動前の判断をし、Run なら(初回は初期ステートを書いて)起動、分類、記録、書き込みの順に進む。Skip ならスキップを記録する。Reject なら 66 で終わる。完了で削除を求められていれば `reset_state` を呼び、終了コードを返す。
 
-### 2. `conductor pipeline <name>` の再開(エラーで止まったあとの再実行)
+### 取引 2: ジョブの起動とリトライ
 
 ```mermaid
 sequenceDiagram
-    participant S as スケジューラ
-    participant CLI as cli (pipeline.rs)
-    participant RT as runtime
-    participant CORE as core
-    S->>CLI: conductor pipeline name (前回は job B でエラー)
-    CLI->>RT: read_state
-    RT-->>CLI: B=error, resume_job_id=B (A=success)
-    CLI->>CORE: decide_before_run(A)
-    CORE-->>CLI: Skip(AlreadyExecuted)
-    CLI->>CORE: decide_before_run(B)
-    CORE-->>CLI: Run (error で記録済み / resume 一致)
-    CLI->>RT: run_job(B)
-    CLI->>CORE: classify_and_decide(Pipeline)
-    alt 成功または警告
-        CLI->>RT: apply_outcome, write_state(Durable)
-        CLI->>CORE: decide_before_run(C) ... 以降を順に
-        CLI->>RT: 完了なら reset_state (remove_on_complete のとき)
-        CLI-->>S: 0
-    else エラー
-        CLI->>RT: apply_outcome (resume=B), write_state
-        CLI-->>S: ジョブの終了コード (再試行しない)
-    end
-    opt ジョブのあいだでシグナルが立っている
-        CLI->>CORE: resume_point_on_interrupt
-        CLI->>RT: apply_interrupt, write_state
-        CLI-->>S: 128 + 番号
+    participant R as retry::run_job_with_retry
+    participant RT as runtime::run_job
+    participant C as core::retry_decision
+    participant W as runtime::wait_for
+    loop 実行のたび
+        R->>RT: run_job(job, signal)
+        RT-->>R: JobExecution
+        R->>C: retry_decision(job, execution, n, last_wait)
+        alt Retry
+            R->>R: RetryScheduled を表示
+            R->>W: wait_for(secs, signal)
+            W-->>R: Elapsed または Interrupted
+        else Stop
+            R-->>R: 最後の実行結果を返す
+        end
     end
 ```
 
-テキストの説明: `pipeline` は定義の記述順に 1 つずつ `decide_before_run` を呼ぶ。遷移とスキップはステートが運ぶ。エラーで停止し、現状は再試行しない。
+テキストの代替: リトライ処理がジョブを実行し、core の `retry_decision` で再実行か停止かを決める。再実行なら知らせを表示し、`wait_for`(中断の合図を 50ms 間隔で確認)で待つ。待機中に中断されたら「起動していない、中断された」実行結果を返す。
 
-### 3. `conductor convert <file> --to yaml|toml`
+### 取引 3: `conductor validate`
 
-```mermaid
-sequenceDiagram
-    participant U as 利用者
-    participant CLI as cli (aux_commands.rs)
-    participant CV as converter
-    U->>CLI: conductor convert file --to toml
-    CLI->>CV: convert(ConversionRequest)
-    CV->>CV: intake (1 MiB) → read (YAML/TOML) → RootCheck → Resolve (展開) → Write
-    alt 成功
-        CV-->>CLI: ConvertedText
-        CLI-->>U: 標準出力に 1 回で書く (書けなければ 67)
-    else 失敗
-        CV-->>CLI: ConversionError
-        CLI-->>U: 標準エラーに固定の文 (67)、標準出力には何も書かない
-    end
-```
+`run_validate` → `Ctx::check_definition`(`load_definition` + 全ジョブの `check_command`)→ 成功なら `DefinitionValid`(`-v` のときだけ 1 行)で 0、誤りは `DefinitionErrors` / `CommandErrors` で 64。シグナルの準備、ステートの読み書きはしない。
 
-テキストの説明: 変換はスキーマを知らない汎用の木で行い、結果は文字列で返す。書き出しは cli が行う。
+### 取引 4: `conductor convert`
 
-### 4. (参考)再試行が入る位置の見取り図(現状のコードからの事実のみ)
+`run_convert` → `Runtime::convert` → `conductor_converter::convert`(Intake → Read → RootCheck → Resolve → Write)。成功すれば標準出力に 1 回で書き、失敗なら標準出力に何も書かず 67。
 
-再試行は、図 1・2 の `run_job` → `classify_and_decide` → `report_execution` → `apply_outcome` → `write_state` の並びのうち、「分類がエラー(ジョブ自身の終了コード)」と決まった直後に、同じ run_job をもう一度呼ぶ形で挟まる。このとき既存コードにない要素は、(a) 試行回数と間隔の設定(定義)、(b) 間隔の待ちと、その間のシグナルの扱い、(c) 進捗の表示イベント、(d) 試行を通したステートへの記録の方針、の 4 つである。設計は後続の段階で決める。
+## 並行性とシグナル
+
+cli は専用スレッド(`conductor-signals`)でシグナルを受け、`InterruptSignal`(Atomic)に最初の番号を立てる。runtime の待ちのループ(1ms から 10ms の `try_wait`)が、立っていれば子の pid に 1 回だけ転送する。ジョブのあいだで立っていれば、再開位置を記録して 128 + 番号で終わる。

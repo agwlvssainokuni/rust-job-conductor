@@ -1,48 +1,41 @@
-# Technology Stack
+# 技術スタック
 
-## 言語・ビルド
+## 言語とツールチェーン
 
-| 項目 | 内容 | 証拠 |
-|------|------|------|
-| 言語 | Rust(edition 2024) | `Cargo.toml` の `[workspace.package]` |
-| 最小の Rust(MSRV) | 1.100(README・CI・`Cargo.toml` の一致を `msrv_consistency` テストが検査) | `rust-version = "1.100"` |
-| ビルド | Cargo ワークスペース(`resolver = "3"`、members = `crates/*`)、`Cargo.lock` をコミット | `Cargo.toml` |
-| リリースプロファイル | `opt-level = 3`、`lto = "thin"`、`codegen-units = 1`、`strip = true` | `Cargo.toml` |
-| 実行ファイル | `conductor`(cli の `[[bin]]`)。テスト専用に `conductor-cli-test-helper`、`conductor-test-helper`(`test = false`、配布に含めない) | `crates/cli/Cargo.toml`、`crates/runtime/Cargo.toml` |
-| 対応 OS | Linux(x86_64、musl 向けのリリース)、macOS(Apple シリコン、Intel はクロスビルド)、Windows(x86_64 MSVC) | README、`release.yml` |
-| ローカルの Rust | cargo 1.100.0 | 実行環境(参考) |
+| 項目 | 値 | 根拠 |
+|------|----|------|
+| 言語 | Rust | `Cargo.toml` |
+| edition | 2024 | ワークスペースの `[workspace.package]` |
+| 最小の Rust(MSRV) | 1.100 | `rust-version = "1.100"`。CI の `build-check` と `msrv-test` が 1.100.0 で検査。README の表記との一致は `msrv_consistency.rs` が検査 |
+| ワークスペース | resolver 3、`members = ["crates/*"]` | `Cargo.toml` |
+| release プロファイル | opt-level 3、lto thin、codegen-units 1、strip | `Cargo.toml` |
+| ライセンス | Apache-2.0 | `Cargo.toml`、`LICENSE` |
+| 対応 OS | Linux、macOS、Windows | README、CI、release |
+| ビルド/パッケージ管理 | Cargo(`Cargo.lock` を追跡。CI は `--locked`) | |
 
-## 依存ライブラリ(`Cargo.lock` の版)
+## ライブラリ(外部)
 
-| ライブラリ | 版 | 使う crate | 用途 |
-|------------|-----|------------|------|
-| toml | 1.2.1(`default-features = false`) | core(`parse`、`std`)、runtime・converter(`parse`、`std`、`display`、`serde`) | 定義(位置つき)とステートの TOML、converter の書き出し |
-| thiserror | 2.0.21 | core、runtime、converter | エラー型の Display |
-| saphyr-parser | 0.3.4 | converter | YAML のイベント列 |
+| クレート | 版(Cargo.toml) | 使う場所 | 用途 |
+|----------|-----------------|----------|------|
+| toml | 1.2.1(default-features 無効。core: parse, std。runtime/converter: さらに display, serde) | core、runtime、converter | 定義とステートの TOML の読み書き。core は `Spanned`、`DeTable`、`DeValue` で位置つきに読む |
+| thiserror | 2.0.21 | core、runtime、converter | エラー型の `Display` |
+| saphyr-parser | 0.3.4 | converter | YAML のイベント列の読み取り(自前で木と展開を組む) |
 | lexopt | 0.3.2 | cli | 引数の字句分け |
-| signal-hook | 0.4.6(`default-features = false`、`iterator`) | cli(UNIX) | シグナルの監視 |
-| ctrlc | 3.5.2 | cli(Windows) | Ctrl+C |
-| libc | 0.2 | runtime(UNIX) | `kill`、`pid_t`、シグナル番号 |
-| tempfile | 3.27.0 | dev(4 crate) | テスト |
+| signal-hook | 0.4.6(default-features 無効、`iterator`) | cli(UNIX) | シグナルの監視 |
+| ctrlc | 3.5.2 | cli(Windows) | Ctrl+C の監視 |
+| libc | 0.2(ロックは 0.2.191) | runtime(UNIX) | `kill`。`unsafe` はここ 1 か所 |
+| tempfile | 3.27.0 | 各クレートの dev-dependencies | テスト |
 
-- serde の derive は使わない(`toml` の `serde` 機能は有効だが、自前の走査で型付けする)。HTTP・非同期ランタイム・ログのライブラリ・時刻のライブラリはない。
-- CI が「C のビルドを要する依存(`cc`・`cmake`・`pkg-config`・`bindgen`)と `-sys` crate(`linux-raw-sys`・`windows-sys` を除く)が通常の依存にないこと」を検査する。
+serde のデータ形式はステートの書き込みに使う(runtime の `toml` の `serde`、`display` 機能)。環境変数の読み込み(`.env`)や、グラフの描画のための外部のクレートは、現在は無い。
 
-## 品質ツール・CI
+## 制約として守られていること(テストと CI で検査)
 
-| 項目 | 内容 |
-|------|------|
-| フォーマット | `cargo fmt --all -- --check`(`rustfmt` 既定) |
-| リント | `cargo clippy --workspace --all-targets --locked -- -D warnings` |
-| テスト | `cargo test --workspace --locked`(ubuntu-24.04、macos-latest、windows-2022)、MSRV 1.100 でも実行 |
-| カバレッジ | `cargo llvm-cov --workspace --locked --fail-under-lines 80`(テスト用バイナリは除外) |
-| 脆弱性 | `cargo audit`(週次と PR。警告のみ、マージはブロックしない) |
-| 起動時間 | `nfr_perf`(警告のみ。`STARTUP_BENCH_ENFORCE=true` で強制) |
-| リリース | タグ `v*` で `release.yml` が、タグが main 上にあり crate の版と一致することを確認し、3 OS の成果物と `SHA256SUMS` を作って下書きで公開 |
-| 文書の検査 | `docs-check`: README に `SHA-256`・`Gatekeeper`・`終了コードの表`・`ステートファイルの場所`・`at-least-once`・`シグナル`・`convert` が含まれること |
+- C のコンパイルを要する依存と `-sys` クレートを持たない(CI の `build-check` の Linux)。
+- `unsafe` は runtime の `platform/unix.rs` だけ。cli は `#![forbid(unsafe_code)]`(`nfr_source.rs`)。
+- `cfg(unix)` / `cfg(windows)` は `platform` の外に置かない。
+- `std::net` やネットワークのライブラリを使わない。
+- 標準ライブラリだけの待機(`wait_for`)。
 
-## 実行時の特性
+## 配布
 
-- 単一プロセス。ジョブは子プロセスとして直接起動(シェルなし)。待ちは 1 スレッドのポーリング(1 ms から 10 ms)、シグナルの監視は専用のスレッド 1 つ。
-- ファイルの上限: 定義・ステート・変換の入力は各 1 MiB。
-- 外部のサービス・ネットワークへの接続はなし。
+タグ `v*` で `release.yml` が動く。対象 4 つ: `x86_64-unknown-linux-musl`、`aarch64-apple-darwin`、`x86_64-apple-darwin`(クロスビルド。動作の確認なし)、`x86_64-pc-windows-msvc`。成果物は tar.gz(Windows は zip)と `SHA256SUMS`。下書きのリリースを作り、人が公開する。署名・公証はしない。
