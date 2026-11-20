@@ -58,11 +58,33 @@
 <!-- Format: - NEVER [behavior] (affirmed [date]) -->
 <!-- Example: - NEVER throw exceptions across service layer boundaries (affirmed 2026-05-17) -->
 
+- NEVER C のコンパイルを要する依存や `-sys` クレートを実行時の依存に加えない(CI の `build-check`)。 (affirmed 2026-11-20)
+
+- NEVER `unsafe` を runtime の `platform/unix.rs` の外に書かない。cli では `unsafe` を禁止する(`nfr_source.rs`)。 (affirmed 2026-11-20)
+
+- NEVER `cfg(unix)`/`cfg(windows)` を `platform` の外に置かない(`nfr_source.rs`)。 (affirmed 2026-11-20)
+
+- NEVER エラーの表示に入力の値を含めない。ステートに環境変数を書かない(`code-quality-assessment.md` の既存の性質)。 (affirmed 2026-11-20)
+
+- NEVER テスト専用の補助バイナリをリリースの成果物に含めない(`release.yml`)。 (affirmed 2026-11-20)
+
+- NEVER 今回の作業で新しい外部ライブラリ(依存)を追加しない。`.env` の読み込みとグラフの描画は自前で書く(インタビュー Q4)。 (affirmed 2026-11-20)
+
 ## Mandated
 
 <!-- Populated by practices-discovery affirmation gate. -->
 <!-- Format: - ALWAYS [behavior] (affirmed [date]) -->
 <!-- Example: - ALWAYS use Result<T,E> for fallible operations in service layer (affirmed 2026-05-17) -->
+
+- ALWAYS 行カバレッジ 80% 以上を保つ(CI の `coverage` ジョブ。`--fail-under-lines 80`)。 (affirmed 2026-11-20)
+
+- ALWAYS 最小の Rust(MSRV 1.100)でビルドとテストが通ることを保ち、引き上げるときは README の記載と一致させる(`build-check`、`msrv-test`、`msrv_consistency.rs`)。 (affirmed 2026-11-20)
+
+- ALWAYS リリースのタグは `main` の上に付け、`crates/cli/Cargo.toml` の版と一致させ、リリースは下書きとして作って人が確認してから公開する(`release.yml`)。 (affirmed 2026-11-20)
+
+- ALWAYS `cargo fmt` と `cargo clippy -D warnings` を通してからマージする(CI の `lint`)。 (affirmed 2026-11-20)
+
+- ALWAYS 変更は小さな単位に保ち、小さな単位でレビューする(チームの慣行)。 (affirmed 2026-11-20)
 
 ## Corrections
 

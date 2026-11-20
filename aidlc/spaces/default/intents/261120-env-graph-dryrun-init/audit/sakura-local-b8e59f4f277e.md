@@ -2310,3 +2310,743 @@
 **Stage**: reverse-engineering
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-11-20T15:54:05Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["まずは内容を確認したい。"]
+**Message Id**: d00d097d
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:54:05Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: Practices Discovery をどう進めますか。前回確定した team.md の内容(ブランチ、テスト、デプロイ、コードの書き方)があります。
+**Reply**: まずは内容を確認したい。
+**Options**: ["再実行する","省略する"]
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-20T15:54:35Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["再実行する"]
+**Message Id**: 9969efe9
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:54:36Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: 上の team.md の内容を見て、Practices Discovery をどう進めますか。
+**Reply**: 再実行する
+**Options**: ["省略する","再実行する"]
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-20T15:54:47Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-pipeline-deploy-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-20T15:54:50Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a15a2522cfb1d412d
+**Message**: 続けて
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-20T15:55:53Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-20T15:55:53Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-pipeline-deploy-agent
+**Agent ID**: a8e661516a7039ccd
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-20T15:56:13Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-20T15:56:14Z
+**Event**: DECISION_RECORDED
+**Stage**: practices-discovery
+**Decision**: Q1-Q4
+**Options**: Q1: A,B,C; Q2: A,B,C; Q3: A,B,C; Q4: A,B,C
+**Question Id**: 28c279fd
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:4ea5f3b6cd8614d2d0a498cfefc909c456c8d65b24f251dee0322ad80507c199
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-20T15:57:03Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A","A","A"]
+**Message Id**: c104c305
+**Open Questions**: 28c279fd
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"92071149f2d4583e","Q2":"05a891a0cdea99d5","Q3":"4f0603a1301533a4","Q4":"e9dc81106463ce2d","Q5":"c88aa38d8b44b45d","Q6":"998512a92d70349c","Q7":"1b36eb84f20ad1b5"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:57:04Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q1. 変更は、どう main に入れていますか。(履歴は 1 人の作者で、マージコミットがなく、main だけです)
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:57:04Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q2. 今の進め方は「機能を 1 つずつ順に作る」です(最初に、全体を端から端まで動かす最小の版を作って部品がつながることを確かめる「薄い縦切りの先行」はしていません)。今回の 4 つの機能でも、同じにしますか。
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:57:04Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [品質] Q3. 今は「実装してからテストを書く」で、行カバレッジ 80% を下限にし、単体テストと統合テストを書いています。今回も同じにしますか。
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:57:04Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q4. .env の読み込みや、graph の図の出力のために、新しい外部のライブラリを足してよいですか。(今は、C の部品のコンパイルを要する依存を禁止しています)
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-20T15:57:06Z
+**Event**: QUESTION_ANSWERED
+**Stage**: practices-discovery
+**Details**: Q1: A; Q2: A; Q3: A; Q4: A
+**Person Reply**: まずは内容を確認したい。\n再実行する\nA\nA\nA\nA
+**Message Id**: c104c305
+**Message Ids**: d00d097d,9969efe9,c104c305
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-20T15:57:07Z
+**Event**: DECISION_RECORDED
+**Stage**: practices-discovery
+**Decision**: Q5-Q7
+**Options**: Q5: A,B,C; Q6: A,B,C,D; Q7: A,B,C,D
+**Question Id**: 289eb757
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:3c5b513a5684908221eb1a1558823757fedbbb7822ad173348983fc420813435
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-20T15:58:39Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A","A"]
+**Message Id**: a3be9451
+**Open Questions**: 28c279fd, 289eb757
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"92071149f2d4583e","Q2":"05a891a0cdea99d5","Q3":"4f0603a1301533a4","Q4":"e9dc81106463ce2d","Q5":"c88aa38d8b44b45d","Q6":"998512a92d70349c","Q7":"1b36eb84f20ad1b5"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:58:39Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [リリース] Q5. 次の 4 つは、今は後回しです: (1) 配布物の署名と公証、(2) Intel Mac の動作確認、(3) 依存の脆弱性検査の強制、(4) 起動時間の計測の強制。今回も、同じにしますか。
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:58:39Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q6. 主に使っている開発の OS は、どれですか(その OS ではローカルでテストを実行し、ほかの OS は CI で確かめます)。
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:58:39Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [開発者] Q7. CI やテストですでに強制されている制約を、「規則」として確定しますか。必ず守る: カバレッジ 80% 以上、最小の Rust(1.100)で通ること(引き上げは README と一致)、タグは main 上で版と一致しリリースは下書きを人が公開、fmt と clippy を通す、変更は小さな単位。決してしない: C を要する依存や -sys クレート、unsafe を runtime の platform/unix.rs の外に書くこと(cli では禁止)、cfg(unix)/cfg(windows) を platform の外に置くこと、エラー表示に入力の値を含めることやステートに環境変数を書くこと、テスト専用の補助バイナリをリリースの成果物に含めること。
+**Reply**: A
+**Options**: ["A","B","C","D"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-20T15:58:42Z
+**Event**: QUESTION_ANSWERED
+**Stage**: practices-discovery
+**Details**: Q5: A; Q6: A; Q7: A
+**Person Reply**: A\nA\nA
+**Message Id**: a3be9451
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:43Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:44Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:45Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:46Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:47Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:48Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:58:49Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-20T15:58:54Z
+**Event**: DECISION_RECORDED
+**Stage**: practices-discovery
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Question Id**: ba16e515
+**Question Type**: summary-confirmation
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-20T15:59:05Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 1558b1e3
+**Open Questions**: 28c279fd, 289eb757, ba16e515
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"92071149f2d4583e","Q2":"05a891a0cdea99d5","Q3":"4f0603a1301533a4","Q4":"e9dc81106463ce2d","Q5":"c88aa38d8b44b45d","Q6":"998512a92d70349c","Q7":"1b36eb84f20ad1b5","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T15:59:05Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: 上の回答のまとめは、すべて正しいですか。成果物を仕上げる前の確認です。
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-20T15:59:08Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Context**: inception > practices-discovery > practices-discovery-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-20T15:59:09Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: practices-discovery
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md
+**Questions SHA-256**: f8d253bd3884b9decd72a5a8ddd5210c9c1152a4c46daf834388551a79eceef0
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 1558b1e3
+**Person Reply**: Looks correct
+**Summary Authorization Id**: ec00ea820c33df7cc069435fcf6957810d55b3150e471ee88b25829413544276
+**Git Name**: agwlvssainokuni
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-20T15:59:23Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-pipeline-deploy-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-20T15:59:25Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a015da5172db9fa1d
+**Message**: 続けて
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-20T15:59:45Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-20T15:59:45Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-pipeline-deploy-agent
+**Agent ID**: ad4f93a9adad3ee41
+
+---
+
+## Practices Discovered
+**Timestamp**: 2026-11-20T15:59:48Z
+**Event**: PRACTICES_DISCOVERED
+**Sources Scanned**: git history, .github/workflows, Cargo.toml, codekb artifacts, memory/team.md
+**Drafts**: team-practices.md, discovered-rules.md
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_FIRED
+**Fire id**: 33fcd69e
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_PASSED
+**Fire id**: 33fcd69e
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4783d866
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/discovered-rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4783d866
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/discovered-rules.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_FIRED
+**Fire id**: 13c1eb17
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/evidence.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_PASSED
+**Fire id**: 13c1eb17
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/evidence.md
+**Duration ms**: 72
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T15:59:55Z
+**Event**: SENSOR_FIRED
+**Fire id**: fb5fabd6
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-timestamp.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T15:59:56Z
+**Event**: SENSOR_PASSED
+**Fire id**: fb5fabd6
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-timestamp.md
+**Duration ms**: 72
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T15:59:56Z
+**Event**: SENSOR_FIRED
+**Fire id**: 36c072e0
+**Sensor ID**: upstream-coverage
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T15:59:56Z
+**Event**: SENSOR_PASSED
+**Fire id**: 36c072e0
+**Sensor ID**: upstream-coverage
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+**Duration ms**: 74
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-20T16:00:14Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+**Context**: inception > practices-discovery > team-practices.md
+**Summary Authorization Id**: ec00ea820c33df7cc069435fcf6957810d55b3150e471ee88b25829413544276
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-20T16:00:18Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/discovered-rules.md
+**Context**: inception > practices-discovery > discovered-rules.md
+**Summary Authorization Id**: ec00ea820c33df7cc069435fcf6957810d55b3150e471ee88b25829413544276
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-20T16:00:32Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/evidence.md
+**Context**: inception > practices-discovery > evidence.md
+**Summary Authorization Id**: ec00ea820c33df7cc069435fcf6957810d55b3150e471ee88b25829413544276
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-20T16:00:33Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-timestamp.md
+**Context**: inception > practices-discovery > practices-discovery-timestamp.md
+**Summary Authorization Id**: ec00ea820c33df7cc069435fcf6957810d55b3150e471ee88b25829413544276
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T16:00:35Z
+**Event**: SENSOR_FIRED
+**Fire id**: f8f528c6
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_PASSED
+**Fire id**: f8f528c6
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_FIRED
+**Fire id**: 65943fc4
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/discovered-rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_PASSED
+**Fire id**: 65943fc4
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/discovered-rules.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_FIRED
+**Fire id**: 43fa7c72
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/evidence.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_PASSED
+**Fire id**: 43fa7c72
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/evidence.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_FIRED
+**Fire id**: 34f28ab1
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-timestamp.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_PASSED
+**Fire id**: 34f28ab1
+**Sensor ID**: required-sections
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-timestamp.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_FIRED
+**Fire id**: 81d50704
+**Sensor ID**: upstream-coverage
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: SENSOR_PASSED
+**Fire id**: 81d50704
+**Sensor ID**: upstream-coverage
+**Stage slug**: practices-discovery
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md
+**Duration ms**: 73
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-20T16:00:36Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: practices-discovery
+**Next Stage**: requirements-analysis
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md=passed; required-sections@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/discovered-rules.md=passed; required-sections@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/evidence.md=passed; required-sections@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-timestamp.md=passed; upstream-coverage@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/team-practices.md=passed
+**Open Decisions**: 0
+**Question Id**: 03f00f49
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:9c52f05f30d5e2540376c428161a0214ee8855d049cac3d25d2eceb110f21aec
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-20T16:00:47Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 14f2129c
+**Open Questions**: 28c279fd, 289eb757, 03f00f49
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/practices-discovery/practices-discovery-questions.md","entries":{"Q1":"92071149f2d4583e","Q2":"05a891a0cdea99d5","Q3":"4f0603a1301533a4","Q4":"e9dc81106463ce2d","Q5":"c88aa38d8b44b45d","Q6":"998512a92d70349c","Q7":"1b36eb84f20ad1b5","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-20T16:00:47Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: 「プラクティスの確認」は完了しました。team.md と project.md に反映して、次の Requirements Analysis に進みますか。
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Practices Affirmed
+**Timestamp**: 2026-11-20T16:00:51Z
+**Event**: PRACTICES_AFFIRMED
+**Affirming User**: agwlvssainokuni
+**Sections Written**: Way of Working, Walking Skeleton, Testing Posture, Deployment, Code Style
+**Mandated Rules Appended**: 5
+**Forbidden Rules Appended**: 6
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-20T16:00:54Z
+**Event**: GATE_APPROVED
+**Stage**: practices-discovery
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: 14f2129c
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-20T16:00:54Z
+**Event**: STAGE_COMPLETED
+**Stage**: practices-discovery
+**Validation Basis**: {"graphContract":"sha256:886af627a0fea6d271a662e4a54b4c5993ecee715d6144d46d4a58c2bc3d19bb","inputs":[{"artifact":"architecture","contentHash":"sha256:ba15b22350f785b7f02eba45b25b37d0fb6cf4a2c399a7f894b4ab3413ba9b96","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:798b2ef2f76cd3c1b6494a9a63fedde5a0c235da161e40d77afd746d7defdc92"},{"artifact":"business-overview","contentHash":"sha256:359cbfb9b31ec654a08d7f54903911363a4f545e5e1da2f15653ca577c6160e9","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:4cc0678f8c1b21a4220634432a94f3c09e47490c6172038242f4af94224fff71"},{"artifact":"code-quality-assessment","contentHash":"sha256:91c24144824338dda0f9de539055128a7e42ff843823f0783507b58dd07e40f5","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:7a0de531c271ad899a2d37ea2727d1abb7b6ae539787041d3fd15b24a4a3f904"},{"artifact":"code-structure","contentHash":"sha256:06d03c2e2298754cd95ef4ee2278cf49d4bb414a22599fe8b4816cf324165064","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:b626c7dc297e330ec346c8396f30a877c113bd22ca2699ecf8e28b0cfee8d7f5"},{"artifact":"dependencies","contentHash":"sha256:37cff06c5ab28c270d6be3fd62e21d6239af2ea3c22566501584f00c92e16990","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:2bee89f8ff5432c96d0e22a940c8760bac585fc87cf78b7e4043adadef6961ca"},{"artifact":"technology-stack","contentHash":"sha256:d8666340d2814e2ad2d7a367acfa4e108db4cb70af76fa487ee87e63e74298a2","instanceCount":1,"presentCount":1,"producer":"reverse-engineering","required":false,"structureHash":"sha256:bc2d2a7dd2f8f674ebca95861b95e4b73dd189d01bc2f2472bfc03db436bcf49"}],"outputs":[{"artifact":"discovered-rules","contentHash":"sha256:ef2859e55ac2f5689c36b821ba77c8b0338e50082e09f0097b585ff1702f0351","instanceCount":1,"presentCount":1,"producer":"practices-discovery","required":true,"structureHash":"sha256:68b0fc52a25edea29a4dd59834f01d53b72afdd682f3f0660bdf0c2d70c51758"},{"artifact":"evidence","contentHash":"sha256:f2e07f569135df024b8b22521d0bee774f6110d227f38af8bab776de44f3f116","instanceCount":1,"presentCount":1,"producer":"practices-discovery","required":true,"structureHash":"sha256:31b59277089bf170281267839831012393de5c0ab775fcd73e45b5a65f04c773"},{"artifact":"practices-discovery-timestamp","contentHash":"sha256:e5a08950c86cc9563ba8bda5ea96161bf862e7e145f292b72dc531166f8ac242","instanceCount":1,"presentCount":1,"producer":"practices-discovery","required":true,"structureHash":"sha256:b67c01b8be048a256151a5a47ce36d6f0ba98c7866c2c4a91660fd6f90640da1"},{"artifact":"team-practices","contentHash":"sha256:ac1fd8aa3039be184233569e503d2c6e5923bc7c8d02e406ade13cfba3650d97","instanceCount":1,"presentCount":1,"producer":"practices-discovery","required":true,"structureHash":"sha256:a984617147cc13edb3f7e24df76b46196b3d238277d9950c16fa6cc72a047ffd"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Practices Discovery approved by gate
+**Tokens In**: 74
+**Tokens Out**: 39271
+**Cache Read**: 18601525
+**Cache Write**: 171625
+**Cost USD**: 2.76
+**By Model**: sonnet-5-5=2.76
+**By Agent**: main=2.31; aidlc-pipeline-deploy-agent=0.45
+**Tokens By Model**: sonnet-5-5=74/39.3k/18.6M/171.6k
+**Tokens By Agent**: main=58/27.7k/18.2M/52.1k; aidlc-pipeline-deploy-agent=16/11.6k/380.6k/119.6k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-20T16:00:54Z
+**Event**: STAGE_STARTED
+**Stage**: requirements-analysis
+**Agent**: aidlc-product-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-20T16:00:55Z
+**Event**: MEMORY_EMPTY
+**Stage**: practices-discovery
+
+---
