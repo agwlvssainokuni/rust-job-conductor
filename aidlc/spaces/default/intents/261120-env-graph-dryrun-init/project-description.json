@@ -1,0 +1,1 @@
+"v0.9.0 の機能拡張: (1) 環境変数の注入と .env ファイル(`[pipeline.env]`、`[job.env]`、`env_file`、組み込みの `CONDUCTOR_*`)、(2) `conductor graph`(`git log --graph` 風の text と Mermaid)、(3) `--dry-run`(ステートを読んで再開位置まで示す)、(4) `conductor init`(ひな形の作成、既にあるときは終了コード 69)。ユニットはこの順の 4 つ。決定事項の詳細は、メモリの project_v090_feature_plan.md を参照。"
