@@ -25,6 +25,7 @@ use conductor_core::{Classification, Decision, RunMode, classify_and_decide, dec
 use conductor_runtime::{Durability, apply_outcome, apply_skip, initial_state};
 
 use crate::ctx::Ctx;
+use crate::dry_run::{DryRunTarget, run_dry_run};
 use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_USAGE, exit_code_for};
 use crate::report::{DisplayEvent, StateContext};
 use crate::retry::run_job_with_retry;
@@ -37,6 +38,10 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         ctx.show(&DisplayEvent::Usage(&error));
         return EXIT_USAGE;
     };
+    // `--dry-run`: ジョブを実行せず、ステートに書かず、シグナルも準備せずに、計画を出す(U3)。
+    if cmd.dry_run.dry_run {
+        return run_dry_run(ctx, cmd, DryRunTarget::Run(job_id));
+    }
     let session = match ctx.prepare(cmd, None, Some(job_id)) {
         Ok(session) => session,
         Err(code) => return code,

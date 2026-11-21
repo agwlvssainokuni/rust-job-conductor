@@ -263,6 +263,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     f(&DisplayEvent::WatchTable(&state));
     f(&DisplayEvent::WatchEmpty);
     f(&DisplayEvent::Graph("* a\no @end\n"));
+    f(&DisplayEvent::Plan("plan\n"));
     f(&DisplayEvent::Help);
     f(&DisplayEvent::Version);
 }
@@ -322,9 +323,10 @@ fn 日本語の表示は日本語の文を含む() {
         let japanese = !text.is_ascii();
         // 固定の英語の文、または、トークンだけでできている行
         let token_only = match event {
-            DisplayEvent::SignalSetupFailed | DisplayEvent::Version | DisplayEvent::Graph(_) => {
-                true
-            }
+            DisplayEvent::SignalSetupFailed
+            | DisplayEvent::Version
+            | DisplayEvent::Graph(_)
+            | DisplayEvent::Plan(_) => true,
             DisplayEvent::Transition { skipped, .. } => skipped.is_empty(),
             _ => false,
         };
@@ -596,6 +598,23 @@ fn level_ごとに出力先が決まる() {
     // 標準エラーの失敗は無視する
     sink.fail_err = true;
     assert!(reporter.show(&mut sink, &DisplayEvent::OutputFailed));
+}
+
+#[test]
+fn 計画は標準出力に出て_使い方に_dry_run_と_assume_がある() {
+    for lang in [Language::En, Language::Ja] {
+        let env = env_for(lang);
+        let reporter = Reporter::new(&env, false);
+        let mut sink = FakeSink::default();
+        assert!(reporter.show(&mut sink, &DisplayEvent::Plan("plan\n")));
+        assert_eq!(sink.out_text(), "plan\n");
+        assert!(sink.err.is_empty());
+        let usage = reporter.render(&DisplayEvent::Help);
+        assert!(
+            usage.contains("--dry-run") && usage.contains("--assume"),
+            "{usage}"
+        );
+    }
 }
 
 #[test]

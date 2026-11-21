@@ -19,7 +19,10 @@
 //! `pending`・`job=`・`result=`)は、言語に関わらず英語のまま。
 
 use conductor_converter::ConversionErrorKind;
-use conductor_core::{DecisionReason, DefinitionErrorKind, EnvFileErrorKind};
+use conductor_core::{
+    Classification, DecisionReason, DefinitionErrorKind, EnvFileErrorKind, NextStepNote,
+    PlanDisposition, PlanEnd,
+};
 use conductor_runtime::{CommandErrorKind, MismatchKind, StateErrorKind};
 
 use crate::types::{Language, UsageErrorKind};
@@ -61,8 +64,8 @@ pub const SIGNAL_SETUP_FAILED: &str = "conductor: error: failed to set up signal
 pub const USAGE: Text = Text::new(
     "\
 Usage:
-  conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] <job-id>
-  conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] <pipeline-name>
+  conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]...] <job-id>
+  conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]...] <pipeline-name>
   conductor watch [--config <path>] [--run-id <id>]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
@@ -83,14 +86,17 @@ Options:
   --format <text|mermaid>
                       output format of graph (default: text)
   --state             overlay the state of the jobs on the graph (graph only; reads the state file, never writes it)
+  --dry-run           print the execution plan without running jobs, writing the state or setting up signals (run, pipeline)
+  --assume <job-id>=<code>
+                      assume the exit code (0-255) of a job in the plan; repeatable (with --dry-run only; default: 0)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
   -V, --version       print the version
 ",
     "\
 使い方:
-  conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <ジョブID>
-  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <パイプライン名>
+  conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]...] <ジョブID>
+  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]...] <パイプライン名>
   conductor watch [--config <パス>] [--run-id <ID>]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
@@ -110,6 +116,9 @@ Options:
   --format <text|mermaid>
                       graph の出力の形式(省略時: text)
   --state             ジョブの状態を図に重ねる(graph のみ。ステートファイルを読むだけで、書かない)
+  --dry-run           ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を表示する(run、pipeline)
+  --assume <ジョブID>=<終了コード>
+                      計画の中で、ジョブの終了コード(0〜255)を仮定する。複数回指定できる(--dry-run と一緒のときだけ。省略時: 0)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
   -V, --version       版を表示する
@@ -554,3 +563,148 @@ pub fn graph_edge_note(
 
 /// 辺の注記をつなぐ区切り(BR3.2)。
 pub const GRAPH_NOTE_SEPARATOR: Text = Text::new(", ", "、");
+
+// ---- `--dry-run` の計画(U3。BR3.1〜BR3.3、BR6.1)。語句の原本は functional-spec.md の例 P1〜P8、P2e、P4e ----
+
+/// 計画の 1 行目の前半(あとに、パイプライン名が続く)。
+pub const PLAN_HEADING: Text = Text::new(
+    "plan (--dry-run): pipeline ",
+    "計画(--dry-run): パイプライン ",
+);
+/// 再開位置の行の見出し。
+pub const PLAN_RESUME_LABEL: Text = Text::new("resume: ", "再開位置: ");
+/// 最初から(再開位置なし)。
+pub const PLAN_FROM_START: Text = Text::new("from the start", "最初から");
+/// `run` の、対象のジョブの行の見出し。
+pub const PLAN_TARGET_LABEL: Text = Text::new("target job: ", "対象のジョブ: ");
+/// 仮定の行の見出し。
+pub const PLAN_ASSUME_LABEL: Text = Text::new("assume: ", "仮定: ");
+/// 使われなかった仮定の行の見出し。
+pub const PLAN_UNUSED_LABEL: Text = Text::new("unused assumptions: ", "使われなかった仮定: ");
+/// 再開位置のジョブの行末の印。
+pub const PLAN_RESUME_HERE: Text = Text::new("  <- resume here", "  <- 再開位置");
+/// 詳細の行の見出し(コマンド、環境変数、リトライ)。
+pub const PLAN_DETAIL_COMMAND: Text = Text::new("command: ", "コマンド: ");
+pub const PLAN_DETAIL_ENV: Text = Text::new("env: ", "環境変数: ");
+pub const PLAN_DETAIL_RETRY: Text = Text::new("retry: ", "リトライ: ");
+/// 模擬の結果の行の見出し。
+pub const PLAN_RESULT_LABEL: Text = Text::new("result (simulated): ", "結果(模擬): ");
+/// 次の動きの行の見出し(`run`)。
+pub const PLAN_NEXT_LABEL: Text = Text::new("next step: ", "次の動き: ");
+
+/// 計画の 1 行目の run ID の部分(run ID は、`RunId` の規則で、表示に安全な文字だけ)。
+pub fn plan_run_id_suffix(lang: Language, run_id: &str) -> String {
+    match lang {
+        Language::En => format!(" (run ID: {run_id})"),
+        Language::Ja => format!("(run ID: {run_id})"),
+    }
+}
+
+/// 前回の停止からの再開位置(エスケープ済みのジョブ ID を渡す)。
+pub fn plan_resume_after_stop(lang: Language, escaped_job_id: &str) -> String {
+    match lang {
+        Language::En => format!("{escaped_job_id} (previous stop)"),
+        Language::Ja => format!("{escaped_job_id}(前回の停止)"),
+    }
+}
+
+/// ジョブの扱いの語(括弧の中の補足を除く)。
+pub fn plan_disposition(lang: Language, disposition: PlanDisposition) -> &'static str {
+    let text = match disposition {
+        PlanDisposition::WillRun => Text::new("run", "実行する"),
+        PlanDisposition::AlreadyExecuted => Text::new("already executed", "実行済み"),
+        PlanDisposition::SkippedByTransition => Text::new("skip (transition)", "スキップ(遷移)"),
+        PlanDisposition::SkippedAfterEnd => Text::new("skip (after @end)", "スキップ(@end のあと)"),
+        PlanDisposition::NotReached => {
+            Text::new("not run (after stop)", "実行されない(停止のあと)")
+        }
+    };
+    text.get(lang)
+}
+
+/// 結果の分類の語。
+pub fn plan_class_word(lang: Language, classification: Classification) -> &'static str {
+    let text = match classification {
+        Classification::Success => Text::new("success", "成功"),
+        Classification::Warning => Text::new("warning", "警告"),
+        Classification::Error => Text::new("error", "エラー"),
+    };
+    text.get(lang)
+}
+
+/// 仮定(指定、または既定の終了コード 0)の結果の補足(括弧の中。BR3.2)。
+/// `retry_target` が真なら、リトライの対象の注記を続ける。
+pub fn plan_assumed(
+    lang: Language,
+    assumed: bool,
+    exit_code: i32,
+    classification: Classification,
+    retry_target: bool,
+) -> String {
+    let class = plan_class_word(lang, classification);
+    match lang {
+        Language::En => {
+            let word = if assumed { "assumed" } else { "default" };
+            let mut text = format!("{word}: exit code {exit_code} -> {class}");
+            if retry_target {
+                text.push_str(", retry target");
+            }
+            text
+        }
+        Language::Ja => {
+            let word = if assumed { "仮定" } else { "既定" };
+            let mut text = format!("{word}: 終了コード {exit_code} → {class}");
+            if retry_target {
+                text.push_str("、リトライの対象");
+            }
+            text
+        }
+    }
+}
+
+/// 模擬の最後の語(エスケープ済みのジョブ ID を渡す)。
+pub fn plan_end(lang: Language, end: &PlanEnd, escaped_job_id: &str) -> String {
+    match (lang, end) {
+        (Language::En, PlanEnd::Completed) => "completed".to_string(),
+        (Language::Ja, PlanEnd::Completed) => "完了".to_string(),
+        (Language::En, PlanEnd::EndReached) => "reached @end (completed)".to_string(),
+        (Language::Ja, PlanEnd::EndReached) => "@end に到達(完了)".to_string(),
+        (Language::En, PlanEnd::StoppedAtError(_)) => {
+            format!("stopped (error: {escaped_job_id})")
+        }
+        (Language::Ja, PlanEnd::StoppedAtError(_)) => format!("停止(エラー: {escaped_job_id})"),
+    }
+}
+
+/// `run` の次の動きの語(BR1.6)。ジョブ ID は、エスケープ済みで渡す。
+pub fn plan_next_step(
+    lang: Language,
+    note: &NextStepNote,
+    escaped_next: Option<&str>,
+    escaped_skipped: &[String],
+) -> String {
+    if note.stopped {
+        return Text::new("stop", "停止").get(lang).to_string();
+    }
+    if note.end_reached && !note.completed {
+        return Text::new(
+            "reached @end (the rest are skipped when called)",
+            "@end に到達(残りのジョブは、呼ばれたときにスキップ)",
+        )
+        .get(lang)
+        .to_string();
+    }
+    if note.completed {
+        return Text::new("done", "完了").get(lang).to_string();
+    }
+    let next = escaped_next.unwrap_or_default();
+    match lang {
+        Language::En if escaped_skipped.is_empty() => format!("next job {next}"),
+        Language::En => format!("next job {next} (skipped: {})", escaped_skipped.join(", ")),
+        Language::Ja if escaped_skipped.is_empty() => format!("次のジョブ {next}"),
+        Language::Ja => format!(
+            "次のジョブ {next}(スキップ: {})",
+            escaped_skipped.join("、")
+        ),
+    }
+}

@@ -663,3 +663,101 @@ fn format_と_state_は_graph_以外では許されないオプション() {
         }
     }
 }
+
+// ---- `--dry-run` と `--assume`(U3。BR2.1、BR2.2、BR4.5) ----
+
+#[test]
+fn dry_run_と_assume_は_run_と_pipeline_で_複数回指定できる() {
+    for kind in ["run", "pipeline"] {
+        let cmd = command(&[
+            kind,
+            "x",
+            "--dry-run",
+            "--assume",
+            "a=3",
+            "--assume=b=255",
+            "--run-id",
+            "r1",
+            "--remove-on-complete",
+        ]);
+        assert!(cmd.dry_run.dry_run, "{kind}");
+        let pairs: Vec<(&str, i32)> = cmd
+            .dry_run
+            .assumptions
+            .iter()
+            .map(|a| (a.job_id.as_str(), a.exit_code))
+            .collect();
+        assert_eq!(pairs, [("a", 3), ("b", 255)], "{kind}");
+        assert_eq!(cmd.run_id.as_deref(), Some("r1"));
+        assert!(cmd.remove_on_complete);
+    }
+    // 指定がなければ、既定は偽で空。値の `=` は、最初の `=` で分ける(終了コードに `=` があれば誤り)。
+    let cmd = command(&["pipeline", "x"]);
+    assert!(!cmd.dry_run.dry_run && cmd.dry_run.assumptions.is_empty());
+    assert_eq!(
+        kind_of(&["pipeline", "x", "--dry-run", "--assume", "a=1=2"]),
+        UsageErrorKind::InvalidValue
+    );
+}
+
+#[test]
+fn assume_の不正な入力は_invalid_value_で_入力の値を含まない() {
+    for bad in [
+        "a",
+        "a=",
+        "a=x",
+        "a=1.5",
+        "a=-1",
+        "a=256",
+        "a=99999999999",
+        "a=1 ",
+    ] {
+        let e = parse(&["pipeline", "x", "--dry-run", "--assume", bad]).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad:?}");
+        assert_eq!(e.subject.as_deref(), Some("--assume"), "{bad:?}");
+    }
+    // 同じジョブ ID の重複。
+    let e = parse(&[
+        "run",
+        "x",
+        "--dry-run",
+        "--assume",
+        "job-secret-id=1",
+        "--assume",
+        "job-secret-id=2",
+    ])
+    .unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::InvalidValue);
+    assert_eq!(e.subject.as_deref(), Some("--assume"));
+    // 値の欠け。
+    assert_eq!(
+        kind_of(&["run", "x", "--dry-run", "--assume"]),
+        UsageErrorKind::MissingValue
+    );
+}
+
+#[test]
+fn assume_は_dry_run_なしでは使えず_dry_run_は_run_と_pipeline_だけ() {
+    let e = parse(&["run", "x", "--assume", "a=1"]).unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::OptionNotAllowed);
+    assert_eq!(e.subject.as_deref(), Some("--assume"));
+    for kind in ["watch", "reset", "validate", "graph", "convert"] {
+        let mut args = vec![kind];
+        if kind == "convert" {
+            args.extend(["f", "--to", "yaml"]);
+        }
+        args.push("--dry-run");
+        let e = parse(&args).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::OptionNotAllowed, "{args:?}");
+        assert_eq!(e.subject.as_deref(), Some("--dry-run"), "{args:?}");
+    }
+    // 重複と値つきの指定は誤り。
+    assert_eq!(
+        kind_of(&["run", "x", "--dry-run", "--dry-run"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["run", "x", "--dry-run=1"]),
+        UsageErrorKind::InvalidValue
+    );
+}

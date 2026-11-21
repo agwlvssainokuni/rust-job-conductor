@@ -28,6 +28,7 @@ pub mod escape;
 pub mod graph_mermaid;
 pub mod graph_text;
 pub mod messages;
+pub mod plan_text;
 pub mod watch;
 
 use std::cell::OnceCell;
@@ -170,6 +171,8 @@ pub enum DisplayEvent<'a> {
     WatchEmpty,
     /// `graph` の図(組み立て済みの text か Mermaid。そのまま出す。BR6.3)。
     Graph(&'a str),
+    /// `--dry-run` の計画(組み立て済み。そのまま出す。U3 の BR3.4)。
+    Plan(&'a str),
     /// 使い方(`--help`)。
     Help,
     /// 版(`--version`)。
@@ -204,6 +207,7 @@ impl DisplayEvent<'_> {
             Self::WatchTable(_)
             | Self::WatchEmpty
             | Self::Graph(_)
+            | Self::Plan(_)
             | Self::Help
             | Self::Version => Level::Output,
         }
@@ -414,7 +418,7 @@ impl<'a> Reporter<'a> {
                 watch::render_table(lang, state, self.color_enabled())
             }
             DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang)),
-            DisplayEvent::Graph(text) => (*text).to_string(),
+            DisplayEvent::Graph(text) | DisplayEvent::Plan(text) => (*text).to_string(),
             DisplayEvent::Help => messages::USAGE.get(lang).to_string(),
             // 上で返している。
             DisplayEvent::SignalSetupFailed | DisplayEvent::Version => String::new(),

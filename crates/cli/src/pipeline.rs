@@ -29,6 +29,7 @@ use conductor_runtime::{
 };
 
 use crate::ctx::Ctx;
+use crate::dry_run::{DryRunTarget, run_dry_run};
 use crate::exit::{
     EXIT_OK, EXIT_REJECTED, EXIT_STATE, EXIT_USAGE, exit_code_for, signal_exit_code,
 };
@@ -43,6 +44,10 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         ctx.show(&DisplayEvent::Usage(&error));
         return EXIT_USAGE;
     };
+    // `--dry-run`: ジョブを実行せず、ステートに書かず、シグナルも準備せずに、計画を出す(U3)。
+    if cmd.dry_run.dry_run {
+        return run_dry_run(ctx, cmd, DryRunTarget::Pipeline(name));
+    }
     let session = match ctx.prepare(cmd, Some(name), None) {
         Ok(session) => session,
         Err(code) => return code,
