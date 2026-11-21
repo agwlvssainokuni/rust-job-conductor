@@ -58,6 +58,8 @@ fn definition() -> PipelineDefinition {
                 )
             })
             .collect(),
+        env: vec![],
+        env_file: vec![],
     }
 }
 

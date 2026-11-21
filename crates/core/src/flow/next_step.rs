@@ -165,6 +165,8 @@ mod tests {
             success_exit_codes: None,
             transitions,
             retry: None,
+            env: Vec::new(),
+            env_file: Vec::new(),
         }
     }
 
@@ -182,6 +184,8 @@ mod tests {
                 job("j2", vec![]),
                 job("j3", vec![]),
             ],
+            env: Vec::new(),
+            env_file: Vec::new(),
         }
     }
 

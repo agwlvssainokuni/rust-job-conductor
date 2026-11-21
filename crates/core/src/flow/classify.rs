@@ -112,6 +112,8 @@ mod tests {
             success_exit_codes: success,
             transitions: vec![],
             retry: None,
+            env: Vec::new(),
+            env_file: Vec::new(),
         }
     }
 

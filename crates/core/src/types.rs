@@ -36,6 +36,28 @@ pub struct PipelineDefinition {
     pub format_version: u32,
     /// ジョブ。定義ファイルに書いた順を保つ(BR1.11)。1 つ以上。
     pub job: Vec<JobDefinition>,
+    /// `[pipeline.env]` の内容。書いた順を保つ(FR1.1)。
+    pub env: Vec<EnvVar>,
+    /// `[pipeline].env_file` の内容。書いた順を保つ。文字列 1 つは要素 1 つの並びにする(FR1.4)。
+    pub env_file: Vec<String>,
+}
+
+/// 定義の `env` の表の 1 項目(名前と値)。値は秘密として扱い、`Debug` は伏せ字にする(BR8.1)。
+#[derive(Clone, PartialEq, Eq)]
+pub struct EnvVar {
+    /// 環境変数の名前(名前の規則と予約名の検査は済んでいる。BR1.2〜BR1.4)。
+    pub name: String,
+    /// 値(NUL を含まない。BR1.5)。展開しない(BR1.1)。
+    pub value: String,
+}
+
+impl std::fmt::Debug for EnvVar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EnvVar")
+            .field("name", &self.name)
+            .field("value", &"***")
+            .finish()
+    }
 }
 
 impl PipelineDefinition {
@@ -91,6 +113,10 @@ pub struct JobDefinition {
     pub transitions: Vec<Transition>,
     /// リトライの設定。`[job.retry]` を書かなければ `None`(リトライしない。BR1.1、FR1.2)。
     pub retry: Option<RetryPolicy>,
+    /// `[job.env]` の内容。書いた順を保つ(FR1.1)。
+    pub env: Vec<EnvVar>,
+    /// `[job].env_file` の内容。書いた順を保つ(FR1.4)。
+    pub env_file: Vec<String>,
 }
 
 /// ジョブのリトライの設定(`[job.retry]`。BR1.1〜BR1.13、FR1.1〜FR1.9)。
@@ -317,6 +343,8 @@ mod tests {
             success_exit_codes: None,
             transitions: vec![],
             retry: None,
+            env: Vec::new(),
+            env_file: Vec::new(),
         }
     }
 
@@ -388,6 +416,8 @@ mod tests {
             remove_on_complete: false,
             format_version: 1,
             job: vec![job("a"), job("b")],
+            env: Vec::new(),
+            env_file: Vec::new(),
         };
         assert_eq!(def.job_index("b"), Some(1));
         assert_eq!(def.job_index("zz"), None);

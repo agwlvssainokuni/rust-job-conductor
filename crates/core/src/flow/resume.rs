@@ -70,8 +70,12 @@ mod tests {
                     success_exit_codes: None,
                     transitions: vec![],
                     retry: None,
+                    env: Vec::new(),
+                    env_file: Vec::new(),
                 })
                 .collect(),
+            env: Vec::new(),
+            env_file: Vec::new(),
         }
     }
 

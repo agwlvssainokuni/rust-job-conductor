@@ -25,15 +25,23 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
 use super::duration::parse_duration_secs;
+use crate::envfile::is_reserved_env_name;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::is_valid_env_name;
 use crate::types::{
-    Command, JobDefinition, PipelineDefinition, RetryPolicy, Transition, TransitionOn,
+    Command, EnvVar, JobDefinition, PipelineDefinition, RetryPolicy, Transition, TransitionOn,
     TransitionTarget,
 };
 
 const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "job"];
-const PIPELINE_KEYS: &[&str] = &["name", "description", "run_id_env", "remove_on_complete"];
+const PIPELINE_KEYS: &[&str] = &[
+    "name",
+    "description",
+    "run_id_env",
+    "remove_on_complete",
+    "env",
+    "env_file",
+];
 const JOB_KEYS: &[&str] = &[
     "id",
     "command",
@@ -41,6 +49,8 @@ const JOB_KEYS: &[&str] = &[
     "success_exit_codes",
     "transitions",
     "retry",
+    "env",
+    "env_file",
 ];
 /// `[job.retry]` に書けるキー(BR1.4)。
 const RETRY_KEYS: &[&str] = &[
@@ -61,6 +71,8 @@ struct PipelineHead {
     description: Option<String>,
     run_id_env: Option<String>,
     remove_on_complete: bool,
+    env: Vec<EnvVar>,
+    env_file: Vec<String>,
 }
 
 struct RawTransition {
@@ -87,6 +99,8 @@ struct RawJob {
     transitions: Vec<RawTransition>,
     /// `[job.retry]`。書かなければ `None`。
     retry: Option<RawRetry>,
+    env: Vec<EnvVar>,
+    env_file: Vec<String>,
     /// 構造の誤りがなく、定義に組み立てられるか。
     complete: bool,
 }
@@ -287,6 +301,8 @@ impl<'a> Walker<'a> {
             );
         }
         let remove_on_complete = self.boolean(table, "remove_on_complete");
+        let env = self.env_table(table);
+        let env_file = self.env_file(table);
         let (name, name_offset) = name?;
         if name.trim().is_empty() {
             self.push(name_offset, Kind::EmptyField, "`name` が空です");
@@ -304,7 +320,120 @@ impl<'a> Walker<'a> {
             description: description.map(|(d, _)| d),
             run_id_env: run_id_env.map(|(e, _)| e),
             remove_on_complete,
+            env,
+            env_file,
         })
+    }
+
+    /// `env` の表を読む(BR1.1〜BR1.5)。無ければ空。項目は、書いた順(キーの位置の順)に検査する。
+    ///
+    /// 誤りの理由は固定の文で、値を含めない。名前は `quote_key` を通す。
+    fn env_table(&mut self, parent: &DeTable<'_>) -> Vec<EnvVar> {
+        let Some(value) = parent.get("env") else {
+            return Vec::new();
+        };
+        let DeValue::Table(table) = value.get_ref() else {
+            self.type_error(value.span().start, "`env` は表で書きます");
+            return Vec::new();
+        };
+        let mut items: Vec<_> = table.iter().collect();
+        items.sort_by_key(|(k, _)| k.span().start);
+        let mut out = Vec::new();
+        let mut seen: Vec<String> = Vec::new();
+        for (key, val) in items {
+            let name = key.get_ref().as_ref();
+            let at = key.span().start;
+            if !is_valid_env_name(name) {
+                self.push(
+                    at,
+                    Kind::InvalidEnvName,
+                    format!(
+                        "`env` の名前 {} は、英字または `_` で始まり、英数字と `_` だけで書きます",
+                        quote_key(name)
+                    ),
+                );
+                continue;
+            }
+            if is_reserved_env_name(name) {
+                self.push(
+                    at,
+                    Kind::ReservedEnvName,
+                    format!(
+                        "`env` の名前 {} は、`CONDUCTOR_` で始まるため書けません",
+                        quote_key(name)
+                    ),
+                );
+                continue;
+            }
+            if seen.iter().any(|s| s.eq_ignore_ascii_case(name)) {
+                self.push(
+                    at,
+                    Kind::EnvNameCaseConflict,
+                    format!(
+                        "`env` の名前 {} は、大文字小文字だけが違う名前が、すでにあります",
+                        quote_key(name)
+                    ),
+                );
+                continue;
+            }
+            seen.push(name.to_string());
+            match val.get_ref() {
+                DeValue::String(s) => {
+                    if s.contains('\0') {
+                        self.push(
+                            val.span().start,
+                            Kind::InvalidEnvValue,
+                            format!("`env` の名前 {} の値に、NUL は書けません", quote_key(name)),
+                        );
+                    } else {
+                        out.push(EnvVar {
+                            name: name.to_string(),
+                            value: s.to_string(),
+                        });
+                    }
+                }
+                _ => self.type_error(
+                    val.span().start,
+                    format!("`env` の名前 {} の値は、文字列で書きます", quote_key(name)),
+                ),
+            }
+        }
+        out
+    }
+
+    /// `env_file` を読む(BR1.6)。文字列 1 つは、要素 1 つの並びにする。無ければ空。
+    fn env_file(&mut self, parent: &DeTable<'_>) -> Vec<String> {
+        let Some(value) = parent.get("env_file") else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        match value.get_ref() {
+            DeValue::String(s) => self.env_file_item(s, value.span().start, &mut out),
+            DeValue::Array(items) => {
+                for item in items.iter() {
+                    match item.get_ref() {
+                        DeValue::String(s) => self.env_file_item(s, item.span().start, &mut out),
+                        _ => self.type_error(
+                            item.span().start,
+                            "`env_file` の配列の要素は、文字列で書きます",
+                        ),
+                    }
+                }
+            }
+            _ => self.type_error(
+                value.span().start,
+                "`env_file` は、文字列、または文字列の配列で書きます",
+            ),
+        }
+        out
+    }
+
+    fn env_file_item(&mut self, s: &str, at: usize, out: &mut Vec<String>) {
+        if s.is_empty() {
+            self.push(at, Kind::EmptyField, "`env_file` に空の文字列は書けません");
+        } else {
+            out.push(s.to_string());
+        }
     }
 
     fn transitions(&mut self, job: &DeTable<'_>) -> Vec<RawTransition> {
@@ -528,6 +657,8 @@ impl<'a> Walker<'a> {
             success_declared: false,
             transitions: Vec::new(),
             retry: None,
+            env: Vec::new(),
+            env_file: Vec::new(),
             complete: false,
         };
         let DeValue::Table(table) = value.get_ref() else {
@@ -543,6 +674,8 @@ impl<'a> Walker<'a> {
         raw.success_declared = table.contains_key("success_exit_codes");
         raw.transitions = self.transitions(table);
         raw.retry = self.retry(table);
+        raw.env = self.env_table(table);
+        raw.env_file = self.env_file(table);
         raw.complete = self.errors.len() == errors_before;
         raw
     }
@@ -736,6 +869,8 @@ pub fn walk(
             remove_on_complete: head.remove_on_complete,
             format_version,
             job: jobs,
+            env: head.env,
+            env_file: head.env_file,
         });
     }
 
@@ -795,6 +930,8 @@ fn build_jobs(raw: &[RawJob]) -> Option<Vec<JobDefinition>> {
                 success_exit_codes: job.success.as_ref().map(|(c, _)| c.clone()),
                 transitions,
                 retry: build_retry(job.retry.as_ref()),
+                env: job.env.clone(),
+                env_file: job.env_file.clone(),
             })
         })
         .collect()

@@ -169,6 +169,18 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
                 "[job.retry]\nexit_codes = [7]\nmax = 1\ninterval = \"10s\"\nmultiplier = 2\nmax_interval = \"5s\"\n",
             ),
         ),
+        (
+            K::ReservedEnvName,
+            job(&format!("[job.env]\nCONDUCTOR_X = \"{SENTINEL}\"\n")),
+        ),
+        (
+            K::EnvNameCaseConflict,
+            job(&format!("[job.env]\nfoo = \"1\"\nFOO = \"{SENTINEL}\"\n")),
+        ),
+        (
+            K::InvalidEnvValue,
+            job(&format!("[job.env]\nFOO = \"{SENTINEL}\\u0000\"\n")),
+        ),
     ]
 }
 

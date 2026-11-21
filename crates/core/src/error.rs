@@ -99,6 +99,15 @@ pub enum DefinitionErrorKind {
     /// `retry.max_interval` が `retry.interval` より小さい(BR1.13)。
     #[error("retry の間隔の上限が、間隔より小さくなっています")]
     RetryMaxIntervalTooSmall,
+    /// `env` の名前が、予約名(`CONDUCTOR_` で始まる)(BR1.3)。
+    #[error("予約された環境変数の名前です")]
+    ReservedEnvName,
+    /// `env` の表の中に、大文字小文字だけが違う名前がある(BR1.4)。
+    #[error("大文字小文字だけが違う環境変数の名前があります")]
+    EnvNameCaseConflict,
+    /// `env` の値に NUL が含まれる(BR1.5)。
+    #[error("環境変数の値が正しくありません")]
+    InvalidEnvValue,
 }
 
 impl DefinitionErrorKind {
@@ -135,11 +144,14 @@ impl DefinitionErrorKind {
             Self::RetryBackoffIncomplete => "retryBackoffIncomplete",
             Self::RetryMultiplierInvalid => "retryMultiplierInvalid",
             Self::RetryMaxIntervalTooSmall => "retryMaxIntervalTooSmall",
+            Self::ReservedEnvName => "reservedEnvName",
+            Self::EnvNameCaseConflict => "envNameCaseConflict",
+            Self::InvalidEnvValue => "invalidEnvValue",
         }
     }
 
     /// すべての種類(網羅のテストと、表示の確認に使う)。
-    pub const ALL: [DefinitionErrorKind; 30] = [
+    pub const ALL: [DefinitionErrorKind; 33] = [
         Self::FileMissing,
         Self::Unreadable,
         Self::TooLarge,
@@ -170,6 +182,9 @@ impl DefinitionErrorKind {
         Self::RetryBackoffIncomplete,
         Self::RetryMultiplierInvalid,
         Self::RetryMaxIntervalTooSmall,
+        Self::ReservedEnvName,
+        Self::EnvNameCaseConflict,
+        Self::InvalidEnvValue,
     ];
 }
 
@@ -377,7 +392,7 @@ mod tests {
         let mut codes: Vec<_> = DefinitionErrorKind::ALL.iter().map(|k| k.code()).collect();
         codes.sort_unstable();
         codes.dedup();
-        assert_eq!(codes.len(), 30);
+        assert_eq!(codes.len(), 33);
         for k in DefinitionErrorKind::ALL {
             assert!(!k.to_string().is_empty());
         }

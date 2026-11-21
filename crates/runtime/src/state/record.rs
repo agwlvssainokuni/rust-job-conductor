@@ -213,8 +213,12 @@ mod tests {
                     success_exit_codes: None,
                     transitions: vec![],
                     retry: None,
+                    env: vec![],
+                    env_file: vec![],
                 })
                 .collect(),
+            env: vec![],
+            env_file: vec![],
         }
     }
 

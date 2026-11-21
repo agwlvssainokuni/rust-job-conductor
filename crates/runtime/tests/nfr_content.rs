@@ -124,6 +124,8 @@ fn definition() -> PipelineDefinition {
             "a",
             format!("prog --token={SECRET} 'with {SECRET}'"),
         )],
+        env: vec![],
+        env_file: vec![],
     }
 }
 

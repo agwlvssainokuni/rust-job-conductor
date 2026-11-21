@@ -90,6 +90,8 @@ impl Scene {
             remove_on_complete: false,
             format_version: 1,
             job: jobs,
+            env: vec![],
+            env_file: vec![],
         }
     }
 }

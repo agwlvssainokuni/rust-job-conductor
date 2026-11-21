@@ -64,12 +64,18 @@
 //!   解釈も起動もしない(NFR4.5)。
 
 pub mod definition;
+pub mod envfile;
 pub mod error;
 pub mod flow;
 pub mod run_id;
 pub mod types;
 
 pub use definition::{load_definition, parse_definition};
+pub use envfile::{
+    EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError,
+    EnvFileErrorKind, EnvOrigin, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs,
+    is_reserved_env_name, merge_env, parse_env_file, summarize_errors,
+};
 pub use error::*;
 pub use flow::{
     RetryDecision, classify_and_decide, decide_before_run, resume_point_on_interrupt,
