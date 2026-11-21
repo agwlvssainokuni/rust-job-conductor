@@ -14,7 +14,7 @@
 
 //! conductor-cli: `conductor` の実行ファイル(Unit conductor-cli)のライブラリ部分。
 //!
-//! コマンド(`run`・`pipeline`・`watch`・`reset`・`convert`)の受け付け、1 回の実行の流れの組み立て
+//! コマンド(`run`・`pipeline`・`watch`・`reset`・`validate`・`convert`・`graph`)の受け付け、1 回の実行の流れの組み立て
 //! (Orchestrator)、シグナル、表示(英語・日本語)、終了コードを受け持つ。ジョブの起動と
 //! ステートは `conductor-runtime`(conductor-runtime)、定義の検証と判断は `conductor-core`(conductor-core)、
 //! 定義ファイルの変換は `conductor-converter`(conductor-converter)が行い、この Unit は、それらを、
@@ -166,5 +166,6 @@ where
         CommandKind::Reset => aux_commands::run_reset(&mut ctx, &cmd),
         CommandKind::Validate => aux_commands::run_validate(&mut ctx, &cmd),
         CommandKind::Convert => aux_commands::run_convert(&mut ctx, &cmd),
+        CommandKind::Graph => graph::run_graph(&mut ctx, &cmd),
     }
 }

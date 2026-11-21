@@ -321,7 +321,7 @@ impl Ctx<'_> {
 }
 
 /// ステートを読んだときの表示の文脈。run ID があるときは、案内を `reset --run-id` にする。
-fn read_context(with_run_id: bool) -> StateContext {
+pub(crate) fn read_context(with_run_id: bool) -> StateContext {
     if with_run_id {
         StateContext::ReadRunId
     } else {
