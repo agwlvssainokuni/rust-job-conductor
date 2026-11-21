@@ -1,0 +1,28 @@
+{
+  "stage": "code-generation",
+  "unit": "u4-init",
+  "upstream_ids": ["FR4.1","FR4.2","FR4.3","FR4.4","FR4.5","FR5.1","FR5.2","BR1.1","BR1.2","BR1.3","BR1.4","BR1.5","BR1.6","BR3.2","BR2.1","BR2.2","BR2.3","BR2.4","BR3.1","BR4.1","BR4.2"],
+  "coverage": [
+    { "id": "FR4.1", "status": "OK", "target": "crates/cli/src/init.rs" },
+    { "id": "FR4.2", "status": "OK", "target": "crates/cli/src/init.rs" },
+    { "id": "FR4.3", "status": "OK", "target": "crates/runtime/src/file_create.rs" },
+    { "id": "FR4.4", "status": "OK", "target": "crates/cli/src/init.rs" },
+    { "id": "FR4.5", "status": "OK", "target": "crates/cli/src/report/init_template.rs" },
+    { "id": "FR5.1", "status": "OK", "target": "crates/cli/src/report/messages.rs" },
+    { "id": "FR5.2", "status": "OK", "target": "README.md" },
+    { "id": "BR1.1", "status": "OK", "target": "crates/cli/tests/flow_init.rs" },
+    { "id": "BR1.2", "status": "OK", "target": "crates/cli/tests/flow_init.rs" },
+    { "id": "BR1.3", "status": "OK", "target": "crates/runtime/tests/file_create.rs" },
+    { "id": "BR1.4", "status": "OK", "target": "crates/cli/tests/binary_init.rs" },
+    { "id": "BR1.5", "status": "OK", "target": "crates/cli/tests/flow_init.rs" },
+    { "id": "BR1.6", "status": "OK", "target": "crates/runtime/tests/file_create.rs" },
+    { "id": "BR2.1", "status": "OK", "target": "crates/cli/tests/init_template.rs" },
+    { "id": "BR2.2", "status": "OK", "target": "crates/cli/tests/init_template.rs" },
+    { "id": "BR2.3", "status": "OK", "target": "crates/cli/tests/init_template.rs" },
+    { "id": "BR2.4", "status": "OK", "target": "crates/cli/tests/init_template.rs" },
+    { "id": "BR3.1", "status": "OK", "target": "crates/cli/tests/flow_init.rs" },
+    { "id": "BR3.2", "status": "OK", "target": "crates/cli/tests/flow_init.rs" },
+    { "id": "BR4.1", "status": "OK", "target": "crates/cli/tests/report_messages.rs" },
+    { "id": "BR4.2", "status": "OK", "target": "crates/cli/tests/docs_init.rs" }
+  ]
+}
