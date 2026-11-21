@@ -1,0 +1,20 @@
+{
+  "stage": "functional-design",
+  "unit": "u2-graph",
+  "upstream_ids": ["FR1.12","FR2.1","FR2.2","FR2.3","FR2.4","FR2.5","FR2.6","FR2.7","FR5.1","FR5.2"],
+  "coverage": [
+    { "id": "FR1.12", "status": "OK", "target": "BR3.3, BR6.2, BR7.1" },
+    { "id": "FR2.1", "status": "OK", "target": "BR4.6, BR6.2, BR6.3, BR6.4" },
+    { "id": "FR2.2", "status": "OK", "target": "BR1.1, BR1.2, BR1.4, BR2.1, BR2.2, BR2.3, BR2.4, BR2.5, BR2.6, BR2.7, BR2.8" },
+    { "id": "FR2.3", "status": "OK", "target": "BR3.1, BR3.2, BR3.3" },
+    { "id": "FR2.4", "status": "OK", "target": "BR1.3, BR1.5" },
+    { "id": "FR2.5", "status": "OK", "target": "BR5.1, BR5.2, BR5.3, BR5.4, BR5.5" },
+    { "id": "FR2.6", "status": "OK", "target": "BR6.1" },
+    { "id": "FR2.7", "status": "OK", "target": "BR4.1, BR4.2, BR4.3, BR4.4, BR4.5" },
+    { "id": "FR5.1", "status": "OK", "target": "BR7.1" },
+    { "id": "FR5.2", "status": "OK", "target": "BR7.2" }
+  ],
+  "reverse": [
+    { "id": "BR2.7", "status": "N/A", "target": "NFR1(性能。ジョブ 1,000 個で 1 秒以内。最悪の 2 つの形を、BR2.7 に書いた)" }
+  ]
+}
