@@ -13,3 +13,16 @@
 // limitations under the License.
 
 //! 図の構造と状態の重ね合わせ(BR2.1、BR4.1、BR4.2)。
+
+use super::NodeState;
+use crate::types::JobStatus;
+
+/// ジョブの状態から、図の状態を決める(BR4.1)。成功と警告は `Ok` にまとめる。
+pub fn node_state_of(status: JobStatus) -> NodeState {
+    match status {
+        JobStatus::Success | JobStatus::Warning => NodeState::Ok,
+        JobStatus::Skipped => NodeState::Skipped,
+        JobStatus::Error => NodeState::Error,
+        JobStatus::Pending => NodeState::Pending,
+    }
+}
