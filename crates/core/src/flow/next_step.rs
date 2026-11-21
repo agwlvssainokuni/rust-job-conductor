@@ -55,6 +55,37 @@ pub fn classify_and_decide(
     (outcome, step)
 }
 
+/// 遷移の解決の結果(BR1.5、FR2.4)。次のジョブの判断と、図の辺の取り出しが、共有する。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransitionResolution {
+    /// `@end` への遷移。
+    End,
+    /// 記述順で後ろのジョブ(位置。元のジョブの位置より大きい)への遷移。
+    Job(usize),
+    /// 遷移がない(BR1.10)。検証済みの定義では起きないが、遷移先が後ろのジョブでないときも同じ。
+    /// 行き先は、記述順で次のジョブ(最後のジョブなら完了)。
+    Default,
+}
+
+/// 位置 `index` のジョブ `job` が、結果 `on` で終わったときの遷移を解決する(BR1.1、BR1.5)。
+///
+/// 純粋な関数。`classify_and_decide` と、図の辺の取り出しが、同じこの関数を呼ぶ。
+pub fn resolve_transition(
+    job: &JobDefinition,
+    on: TransitionOn,
+    definition: &PipelineDefinition,
+    index: usize,
+) -> TransitionResolution {
+    match job.transition_for(on).map(|t| &t.next) {
+        Some(TransitionTarget::End) => TransitionResolution::End,
+        Some(TransitionTarget::Job(target_id)) => match definition.job_index(target_id) {
+            Some(t) if t > index => TransitionResolution::Job(t),
+            _ => TransitionResolution::Default,
+        },
+        None => TransitionResolution::Default,
+    }
+}
+
 fn stop(job: &JobDefinition) -> NextStep {
     NextStep {
         job_id: job.id.clone(),
@@ -104,9 +135,8 @@ fn next_step(
             .collect()
     };
 
-    let target = job.transition_for(on).map(|t| &t.next);
-    match target {
-        Some(TransitionTarget::End) => {
+    match resolve_transition(job, on, definition, index) {
+        TransitionResolution::End => {
             step.end_reached = true;
             let pending = pending_ids(&jobs[index + 1..]);
             if !pending.is_empty() {
@@ -126,18 +156,15 @@ fn next_step(
                 }
             }
         }
-        Some(TransitionTarget::Job(target_id))
-            if definition.job_index(target_id).is_some_and(|t| t > index) =>
-        {
-            let t = definition.job_index(target_id).unwrap_or(index + 1);
+        TransitionResolution::Job(t) => {
             step.skipped_job_ids = pending_ids(&jobs[index + 1..t]);
             if !step.skipped_job_ids.is_empty() {
                 step.skip_reason_kind = Some(SkipReason::ByTransition);
             }
-            step.next_job_id = Some(target_id.clone());
+            step.next_job_id = Some(jobs[t].id.clone());
         }
         // 遷移がない(BR1.10)。検証済みの定義では起きないが、遷移先が後ろのジョブでないときも、同じ扱い。
-        _ => {
+        TransitionResolution::Default => {
             if is_last {
                 step.completed = true;
             } else {

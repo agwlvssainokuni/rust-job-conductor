@@ -26,7 +26,7 @@ pub mod retry;
 
 pub use classify::classify;
 pub use decide::decide_before_run;
-pub use next_step::classify_and_decide;
+pub use next_step::{TransitionResolution, classify_and_decide, resolve_transition};
 pub use resume::resume_point_on_interrupt;
 pub use retry::{RetryDecision, retry_decision};
 
