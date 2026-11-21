@@ -177,6 +177,9 @@ pub enum WriteFailure {
     OnDurability(Durability),
 }
 
+/// `run_job` に渡された、(ジョブID、足す環境の並び)。
+pub type RunEnv = (String, Vec<(String, String)>);
+
 /// ジョブの前後で呼ぶ関数(引数は、ジョブIDと、中断の合図)。
 pub type JobHook = Box<dyn Fn(&str, &InterruptSignal)>;
 
@@ -209,7 +212,7 @@ pub struct ScriptedRuntime {
     /// `.env` の読み取りの結果を、実際の読み取りの代わりに返す(誤りの注入)。
     pub env_override: RefCell<Option<Result<LoadedEnvFiles, Vec<EnvFileError>>>>,
     /// `run_job` に渡された、(ジョブID、足す環境の並び)。起動のたびに記録する。
-    pub run_envs: RefCell<Vec<(String, Vec<(String, String)>)>>,
+    pub run_envs: RefCell<Vec<RunEnv>>,
 }
 
 impl Default for ScriptedRuntime {
