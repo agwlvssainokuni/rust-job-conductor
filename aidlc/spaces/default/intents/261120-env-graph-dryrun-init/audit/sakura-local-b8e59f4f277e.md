@@ -5161,3 +5161,567 @@
 **Summary Authorization Id**: 9b3c02eec2bd9290dceca5f36d444861ca98e256d44d5546acaf3137824d25dd
 
 ---
+
+## Stage Output Amended
+**Timestamp**: 2026-11-21T11:16:27Z
+**Event**: STAGE_OUTPUT_AMENDED
+**Stage**: units-generation
+**Validation Basis**: {"graphContract":"sha256:baf39a0a351356930786ca985bbb7c5893e8db3e93715525a8e909b629765ee7","inputs":[{"artifact":"components","contentHash":"sha256:ac3d3bd10a2877844861812c5f76a19178d8ab44401ace9df19e43f24cb3ff43","instanceCount":1,"presentCount":1,"producer":"domain-design","required":true,"structureHash":"sha256:e68abe06ec71dca3cd5694d35da125f8ebbd5c27e3cff6d801784c3796873731"},{"artifact":"decisions","contentHash":"sha256:473561acc92a2bd4bbfedc7f58efe6a74cfd04f9701642cdb78727b309e7f401","instanceCount":1,"presentCount":1,"producer":"domain-design","required":false,"structureHash":"sha256:5bc1d9ab9355da44696e02b86cb2a465b425d62a0076d275617c7311bdac0c8f"},{"artifact":"requirements","contentHash":"sha256:b5f1ddf64ab29dd6b0d02e6edeab6e6369aca533968fec3befa1ecea871ae3bf","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:722f44e80db8ceab1193b2c1bc6bea080aac510275496a2fd1e28f4cdf09e358"}],"outputs":[{"artifact":"traceability","contentHash":"sha256:0bbf047ae77eb392b78a18206e0643115f9b843db321aa6e902e8ce0f24b952c","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:570065d5c2c86e2e6e8fff10ad347a83992dc9e7ad12a371c3c62fd388cbecb6"},{"artifact":"unit-of-work-dependency","contentHash":"sha256:b7599033951d86215c73ed9a317b56f07003d5230bc2e482f49d08954d37b36d","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:ec6071367c0fca8952a66a9cf9a58fb50e80de5c551e8615d28ba8868d529fd9"},{"artifact":"unit-of-work-story-map","contentHash":"sha256:1de5b3736b0fc5bcabe51261189ce9294093eae019f0c808afaa9290750f6663","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:a1470392a3ff31aa6769140da15f1454b7a88c5ef0c5d53f6d8c5cc5e1cdf765"},{"artifact":"unit-of-work","contentHash":"sha256:c77b5288d870bf56a3a42ed7f4531e3cb7f357ecc53d35f3e1c47397cedc6688","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:9ff09ab98e9b7a6bbdf524abbf2e81dc81cf4e6a240d06339952c1758062a311"}],"projectType":"brownfield","schema":3}
+**Message Id**: c5018482
+**Details**: changed before the person's next message after c5018482; receipt renewed
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T11:16:47Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Session Compacted
+**Timestamp**: 2026-11-21T11:16:48Z
+**Event**: SESSION_COMPACTED
+**Current Stage**: contract-design
+**State Validity**: valid
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-21T11:16:48Z
+**Event**: DECISION_RECORDED
+**Stage**: contract-design
+**Decision**: Q1-Q4
+**Options**: Q1: A,B,C; Q2: A,B,C; Q3: A,B,C; Q4: A,B,C
+**Question Id**: 89242797
+**Question Type**: stage-question
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:4ea5f3b6cd8614d2d0a498cfefc909c456c8d65b24f251dee0322ad80507c199
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T11:17:34Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a140bfe7dc9b88bc8
+**Message**: <analysis>\nChronological review of the segment after the earlier summary.\n\n1. Continuation: I reported CI success for demo commit 6e882de (retry scene 10 in UNIX/Windows demos). Work then moved to a l
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-21T11:33:12Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["A","A","A","A"]
+**Message Id**: 75ea82d1
+**Open Questions**: 89242797
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md","entries":{"Q1":"e90467138536ebad","Q2":"7454bd103df74dbf","Q3":"523f20f4d5fc76e3","Q4":"cf057711ac1ec5d0"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T11:33:13Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [アーキテクト] Q1. 利用者が使う面のうち、どこまでを「契約」として固定しますか。(固定したものを変えるときは、破壊的な変更として扱います)
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T11:33:13Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [アーキテクト] Q2. graph の text(git log --graph 風)と Mermaid の、見た目(記号、レーンの形、行の並び)を、どこまで固定しますか。
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T11:33:13Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [アーキテクト] Q3. 契約(コマンドライン、定義のキー、出力)を、これから変えるときの方針を決めます。
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T11:33:13Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: [アーキテクト] Q4. u1 が提供する「渡される環境変数の名前を返す関数」と、u2 が提供する「辺の判断の入口」(u3 が使う)の仕様は、誰が持ちますか。
+**Reply**: A
+**Options**: ["A","B","C"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-21T11:33:16Z
+**Event**: QUESTION_ANSWERED
+**Stage**: contract-design
+**Details**: Q1: A; Q2: A; Q3: A; Q4: A
+**Person Reply**: A\nA\nA\nA
+**Message Id**: 75ea82d1
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T11:33:17Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T11:33:17Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T11:33:18Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T11:33:20Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-21T11:33:24Z
+**Event**: DECISION_RECORDED
+**Stage**: contract-design
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Question Id**: d1ba103e
+**Question Type**: summary-confirmation
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:add12313f519d8f816e5f172792735cc79e22ca5f7b3d3a57286be4345787701
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-21T12:00:57Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 51756a19
+**Open Questions**: 89242797, d1ba103e
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md","entries":{"Q1":"e90467138536ebad","Q2":"7454bd103df74dbf","Q3":"523f20f4d5fc76e3","Q4":"cf057711ac1ec5d0","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T12:00:57Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: 上の回答のまとめは、すべて正しいですか。成果物(contract-summary.md)を作る前の確認です。
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T12:01:03Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-21T12:01:04Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: contract-design
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md
+**Questions SHA-256**: 5c77b3faa10cc7ea653505acb0fd167af904f61e0bc00787367717a7b671abad
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 51756a19
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T12:01:43Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T12:01:45Z
+**Event**: SENSOR_FIRED
+**Fire id**: 30d8d19d
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T12:01:45Z
+**Event**: SENSOR_PASSED
+**Fire id**: 30d8d19d
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Duration ms**: 83
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T12:01:45Z
+**Event**: SENSOR_FIRED
+**Fire id**: d3d8548d
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T12:01:45Z
+**Event**: SENSOR_PASSED
+**Fire id**: d3d8548d
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Duration ms**: 73
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-21T12:01:45Z
+**Event**: REVIEW_REQUESTED
+**Stage**: contract-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:6779b4db306c18ce5160d84322f4d74eac10df7bfc9e3442d95304538885a2cc
+**Request Id**: review:f6676fb3900826e6d5b2d9f579235435
+**Review File**: .aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.f6676fb3900826e6d5b2d9f579235435.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-21T12:01:54Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T12:01:57Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a7ca7b1ac5034a040
+**Message**: 承認して、直して
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T12:02:34Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/.aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.f6676fb3900826e6d5b2d9f579235435.review.md
+**Context**: .aidlc-engine > reviews > contract-design > stage > 0e9e5396c3c4c57c > 1.f6676fb3900826e6d5b2d9f579235435.review.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-21T12:02:38Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T12:02:38Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a135ff513410a9863
+**Review File Digest**: .aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.f6676fb3900826e6d5b2d9f579235435.review.md=81b049aaeef6dfa54cd71644a8d321ed5fa05d6686d995441b524412f429c231
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-21T12:02:40Z
+**Event**: REVIEW_COMPLETED
+**Stage**: contract-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:6779b4db306c18ce5160d84322f4d74eac10df7bfc9e3442d95304538885a2cc
+**Artifact Fingerprint**: sha256:6779b4db306c18ce5160d84322f4d74eac10df7bfc9e3442d95304538885a2cc
+**Request Id**: review:f6676fb3900826e6d5b2d9f579235435
+**Review Record**: .aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.json
+**Review Record Digest**: sha256:5b74b3cc14e6968f0bae1ac9d4c0450ad3a416b7afce0a1da259228755bccdda
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T12:02:47Z
+**Event**: SENSOR_FIRED
+**Fire id**: 85bbb137
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T12:02:47Z
+**Event**: SENSOR_PASSED
+**Fire id**: 85bbb137
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T12:02:47Z
+**Event**: SENSOR_FIRED
+**Fire id**: d149ef36
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T12:02:47Z
+**Event**: SENSOR_PASSED
+**Fire id**: d149ef36
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Duration ms**: 73
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-21T12:02:47Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: contract-design
+**Next Stage**: delivery-planning
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md=passed; upstream-coverage@aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md=passed
+**Open Decisions**: 0
+**Question Id**: 38863a4c
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:b1ae358c399504536fb84a950625996b0bbfd097300d9005b2c79f6333e4e75e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-21T12:12:54Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["推奨は？"]
+**Message Id**: d00c79b0
+**Open Questions**: 89242797, 38863a4c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md","entries":{"Q1":"e90467138536ebad","Q2":"7454bd103df74dbf","Q3":"523f20f4d5fc76e3","Q4":"cf057711ac1ec5d0","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T12:12:54Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: 「契約の設計」は完了しました。どう進めますか。レビューの指摘(R-01 から R-05)は、このまま受け入れることも、承認して直すことも、直してから進むこともできます。
+**Reply**: 推奨は？
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T12:13:02Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a8b5390b02c1e4d6a
+**Message**: 承認して、直して
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-21T14:31:57Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: typed
+**Message Id**: 8c79b9ed
+**Open Questions**: 89242797, 38863a4c
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-design-questions.md","entries":{"Q1":"e90467138536ebad","Q2":"7454bd103df74dbf","Q3":"523f20f4d5fc76e3","Q4":"cf057711ac1ec5d0","Consolidated Summary Confirmation":"afae546668e25e5a"}}
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-21T14:32:03Z
+**Event**: GATE_APPROVED
+**Stage**: contract-design
+**User Input**: Approve
+**Person Reply**: 推奨は？\n承認して、直して
+**Message Id**: 8c79b9ed
+**Message Ids**: d00c79b0,8c79b9ed
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md","id":"R-01","fingerprint":"sha256:62c56bdf73ed3a224415c2ed8d57594ee47b1fb2faad3c9f9b8652a6c0c44607","status":"Fix requested","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.json","digest":"sha256:5b74b3cc14e6968f0bae1ac9d4c0450ad3a416b7afce0a1da259228755bccdda"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md","id":"R-02","fingerprint":"sha256:db54c47a7317ad67817303abc54427673ae7e26e869021b92063637679a60d66","status":"Fix requested","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.json","digest":"sha256:5b74b3cc14e6968f0bae1ac9d4c0450ad3a416b7afce0a1da259228755bccdda"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md","id":"R-03","fingerprint":"sha256:fee070cd60333004e046a9a924e63c0d67422745c0cf5116c6622f54d1425f58","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.json","digest":"sha256:5b74b3cc14e6968f0bae1ac9d4c0450ad3a416b7afce0a1da259228755bccdda"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md","id":"R-04","fingerprint":"sha256:dece264e18943b908f41f50c09fb8c265f80040dde3ceaf5b0f72d65d55bb138","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.json","digest":"sha256:5b74b3cc14e6968f0bae1ac9d4c0450ad3a416b7afce0a1da259228755bccdda"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md","id":"R-05","fingerprint":"sha256:96b6a7c0d03374c44bec572aec36a8f02579b225a5d3206235aa47cfa60f9787","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/0e9e5396c3c4c57c/1.json","digest":"sha256:5b74b3cc14e6968f0bae1ac9d4c0450ad3a416b7afce0a1da259228755bccdda"}}]}
+**Brief Digest**: sha256:2cd08db3d9a6c18faa3f842d490e1301b093bfaf1cd083a122134157af9a9cad
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-21T14:32:03Z
+**Event**: STAGE_COMPLETED
+**Stage**: contract-design
+**Validation Basis**: {"graphContract":"sha256:ad5599bf4da38de3dec2bfb4bf705de33d27113e18b6a160549a97c4b694fea3","inputs":[{"artifact":"components","contentHash":"sha256:ac3d3bd10a2877844861812c5f76a19178d8ab44401ace9df19e43f24cb3ff43","instanceCount":1,"presentCount":1,"producer":"domain-design","required":false,"structureHash":"sha256:e68abe06ec71dca3cd5694d35da125f8ebbd5c27e3cff6d801784c3796873731"},{"artifact":"requirements","contentHash":"sha256:b5f1ddf64ab29dd6b0d02e6edeab6e6369aca533968fec3befa1ecea871ae3bf","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":false,"structureHash":"sha256:722f44e80db8ceab1193b2c1bc6bea080aac510275496a2fd1e28f4cdf09e358"},{"artifact":"unit-of-work-dependency","contentHash":"sha256:b7599033951d86215c73ed9a317b56f07003d5230bc2e482f49d08954d37b36d","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:ec6071367c0fca8952a66a9cf9a58fb50e80de5c551e8615d28ba8868d529fd9"},{"artifact":"unit-of-work","contentHash":"sha256:c77b5288d870bf56a3a42ed7f4531e3cb7f357ecc53d35f3e1c47397cedc6688","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:9ff09ab98e9b7a6bbdf524abbf2e81dc81cf4e6a240d06339952c1758062a311"}],"outputs":[{"artifact":"contract-summary","contentHash":"sha256:3ba6371e5e1ac475c41deeec2288d0f1b44b6ea6b1f83c99c17ccb2a6371ab0f","instanceCount":1,"presentCount":1,"producer":"contract-design","required":true,"structureHash":"sha256:54f967d585b1af2ac24f6760e8450fdc02435471ed1cfbfbf146c53f72a013cc"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Contract Design approved by gate
+**Tokens In**: 48
+**Tokens Out**: 25627
+**Cache Read**: 18546896
+**Cache Write**: 123877
+**Cost USD**: 2.49
+**By Model**: sonnet-5-5=2.49
+**By Agent**: main=2.22; aidlc-architecture-reviewer-agent=0.27
+**Tokens By Model**: sonnet-5-5=48/25.6k/18.5M/123.9k
+**Tokens By Agent**: main=42/20k/18.4M/44.4k; aidlc-architecture-reviewer-agent=6/5.6k/120k/79.5k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-21T14:32:03Z
+**Event**: STAGE_STARTED
+**Stage**: delivery-planning
+**Agent**: aidlc-delivery-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-21T14:32:03Z
+**Event**: MEMORY_EMPTY
+**Stage**: contract-design
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:23Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:31Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:34Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:39Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:44Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:51Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T14:32:52Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 1ef1080ffeb7f42aadd1016a6f1b2bfdb8cd743bfea4aade15453e112abd9ffb
+
+---
