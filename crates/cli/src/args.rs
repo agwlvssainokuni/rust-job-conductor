@@ -32,6 +32,11 @@
 //!
 //! - `graph` だけが、`--format <text|mermaid>`(値あり)と `--state`(値なし)を取る。どちらも 1 回だけ。
 //!   ほかのコマンドでは、許されないオプション。
+//! - `run` と `pipeline` だけが、`--dry-run`(値なし。1 回だけ)と、`--assume <ジョブID>=<終了コード>`
+//!   (複数回)を取る(U3。BR2.1、BR2.2)。`--assume` は、`--dry-run` と一緒のときだけ。ほかのコマンドでは、
+//!   許されないオプション。`--assume` の誤りは、`invalidValue`(対象は `--assume` で、入力の値は、誤りの文に含めない):
+//!   `=` がない、終了コードが整数でない、0〜255 の範囲外、同じジョブID の重複。ジョブID が定義にあるかは、
+//!   定義を読んだあとに、流れが検査する。
 //! - `--remove-on-complete` は、値を取らない。指定すると、完了のときにステートファイルを削除する(FR2.1)。
 //!   2 回以上の指定は、`-v` と同じく `invalidValue`。
 //! - `--config path` と `--config=path`(`--to`、`--run-id` も同じ)の両方を受け付ける。
@@ -44,7 +49,7 @@
 use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
-use conductor_core::RunId;
+use conductor_core::{Assumption, RunId};
 use lexopt::prelude::*;
 
 use crate::deps::Env;
@@ -67,6 +72,10 @@ enum Token {
     State,
     /// `--remove-on-complete`(値なし)。
     RemoveOnComplete,
+    /// `--dry-run`(値なし)。
+    DryRun,
+    /// `--assume <値>`(値は、組み立ての段階で検査する)。
+    Assume(OsString),
     /// 文法にないオプション(表示用の綴り)。
     Unknown(String),
     Positional(OsString),
@@ -143,6 +152,15 @@ where
                 }
             },
             Long("remove-on-complete") => tokens.push(Token::RemoveOnComplete),
+            Long("dry-run") => tokens.push(Token::DryRun),
+            Long("assume") => match parser.value() {
+                Ok(v) => tokens.push(Token::Assume(v)),
+                Err(_) => {
+                    lex_error
+                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--assume"));
+                    break;
+                }
+            },
             Long("to") => match parser.value() {
                 Ok(v) => tokens.push(Token::To(v)),
                 Err(_) => {
@@ -175,7 +193,7 @@ fn map_lex_error(e: &lexopt::Error) -> UsageError {
             // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
             let known = matches!(
                 option.as_str(),
-                "--verbose" | "-v" | "--all" | "--remove-on-complete" | "--state"
+                "--verbose" | "-v" | "--all" | "--remove-on-complete" | "--state" | "--dry-run"
             );
             if known {
                 UsageError::with_subject(Kind::InvalidValue, option.clone())
@@ -201,6 +219,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let mut run_ids: Vec<OsString> = Vec::new();
     let mut all_count = 0usize;
     let mut remove_count = 0usize;
+    let mut dry_run_count = 0usize;
+    let mut assume: Vec<OsString> = Vec::new();
     let mut format: Vec<OsString> = Vec::new();
     let mut state_count = 0usize;
     let mut unknown: Option<String> = None;
@@ -213,6 +233,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             Token::RunId(v) => run_ids.push(v),
             Token::All => all_count += 1,
             Token::RemoveOnComplete => remove_count += 1,
+            Token::DryRun => dry_run_count += 1,
+            Token::Assume(v) => assume.push(v),
             Token::Format(v) => format.push(v),
             Token::State => state_count += 1,
             Token::Unknown(name) => {
@@ -281,6 +303,19 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             "--remove-on-complete",
         ));
     }
+    // `--dry-run` は `run` と `pipeline` だけ。`--assume` は `--dry-run` と一緒のときだけ(BR2.2)。
+    if dry_run_count > 0 && !takes_remove {
+        return Err(UsageError::with_subject(
+            Kind::OptionNotAllowed,
+            "--dry-run",
+        ));
+    }
+    if !assume.is_empty() && dry_run_count == 0 {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--assume"));
+    }
+    if dry_run_count > 1 {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--dry-run"));
+    }
     let is_graph = kind == CommandKind::Graph;
     if !format.is_empty() && !is_graph {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--format"));
@@ -331,6 +366,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     command.config_path = config.into_iter().next();
     command.all = all_count == 1;
     command.remove_on_complete = remove_count == 1;
+    command.dry_run.dry_run = dry_run_count == 1;
+    command.dry_run.assumptions = parse_assumptions(assume)?;
     command.graph.with_state = state_count == 1;
     if let Some(value) = format.into_iter().next() {
         command.graph.format = parse_graph_format(&value)?;
@@ -376,6 +413,26 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         CommandKind::Watch | CommandKind::Reset => {}
     }
     Ok(ParsedArgs::Command(command))
+}
+
+/// `--assume` の値の検査(BR2.1)。`<ジョブID>=<終了コード>`。最初の `=` で分ける。
+/// 誤りの文には、入力の値を含めない(対象は `--assume` だけ)。
+fn parse_assumptions(values: Vec<OsString>) -> Result<Vec<Assumption>, UsageError> {
+    let invalid = || UsageError::with_subject(Kind::InvalidValue, "--assume");
+    let mut out: Vec<Assumption> = Vec::with_capacity(values.len());
+    for value in values {
+        let text = value.into_string().map_err(|_| invalid())?;
+        let (job_id, code) = text.split_once('=').ok_or_else(invalid)?;
+        let code: i32 = code.parse().map_err(|_| invalid())?;
+        if !Assumption::exit_code_in_range(code) {
+            return Err(invalid());
+        }
+        if out.iter().any(|a| a.job_id == job_id) {
+            return Err(invalid());
+        }
+        out.push(Assumption::new(job_id, code));
+    }
+    Ok(out)
 }
 
 /// `--format` の値の検査。`text` か `mermaid`。誤りの文に、値は含めない。

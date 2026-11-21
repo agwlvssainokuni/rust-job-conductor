@@ -20,6 +20,7 @@
 use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
+use conductor_core::Assumption;
 
 /// コマンドの種類(BR1.1)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +68,15 @@ pub struct GraphOptions {
     pub with_state: bool,
 }
 
+/// `--dry-run` のオプション(entities の DryRunOptions。U3)。
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct DryRunOptions {
+    /// `--dry-run`。`run` と `pipeline` のときのみ。ジョブを実行せず、ステートに書かず、計画を出す。
+    pub dry_run: bool,
+    /// `--assume <ジョブID>=<終了コード>`(複数回)。`--dry-run` と一緒のときだけ(指定順)。
+    pub assumptions: Vec<Assumption>,
+}
+
 /// 利用者が指定したコマンド(引数の解釈の結果。entities の CliCommand)。
 ///
 /// パス(`config_path`、`convert_input`)は、`OsString` のまま保つ(UTF-8 でないパスも使える。NFR4.6)。
@@ -94,6 +104,8 @@ pub struct CliCommand {
     pub remove_on_complete: bool,
     /// `graph` のときのみ。`--format` と `--state`。
     pub graph: GraphOptions,
+    /// `run`・`pipeline` のときのみ。`--dry-run` と `--assume`。
+    pub dry_run: DryRunOptions,
 }
 
 impl CliCommand {
@@ -111,6 +123,7 @@ impl CliCommand {
             all: false,
             remove_on_complete: false,
             graph: GraphOptions::default(),
+            dry_run: DryRunOptions::default(),
         }
     }
 }
