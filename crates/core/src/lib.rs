@@ -68,6 +68,7 @@ pub mod envfile;
 pub mod error;
 pub mod flow;
 pub mod graph;
+pub mod plan;
 pub mod run_id;
 pub mod types;
 
@@ -81,6 +82,11 @@ pub use error::*;
 pub use flow::{
     RetryDecision, TransitionResolution, classify_and_decide, decide_before_run,
     resolve_transition, resume_point_on_interrupt, retry_decision,
+};
+pub use plan::{
+    Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
+    PlanInput, PlanMode, PlanRejection, ResumeInfo, ResumeKind, SimulatedResult, plan_pipeline,
+    plan_run,
 };
 pub use run_id::{
     DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env,

@@ -17,6 +17,15 @@
 use super::{is_settled, record_of};
 use crate::types::{Decision, DecisionReason, JobState, JobStatus, PipelineDefinition, SkipReason};
 
+/// 記述順の位置 `index` のジョブの状態。記録が同じ位置にあれば、それを使い(ジョブの数に比例する
+/// 時間で済む。1,000 ジョブの計画の性能のため。U3 の BR6.3)、なければ [`record_of`] と同じに引く。
+fn status_at(job_states: &[JobState], index: usize, job_id: &str) -> JobStatus {
+    match job_states.get(index) {
+        Some(s) if s.job_id == job_id => s.status,
+        _ => record_of(job_states, job_id).0,
+    }
+}
+
 /// ジョブを起動する前に、実行・スキップ・拒否を決める(W2、BR3.5)。
 ///
 /// 次の順に、最初に当てはまるものを採る。
@@ -71,14 +80,16 @@ pub fn decide_before_run(
     let nothing_started = definition
         .job
         .iter()
-        .all(|j| record_of(job_states, &j.id).0 == JobStatus::Pending);
+        .enumerate()
+        .all(|(i, j)| status_at(job_states, i, &j.id) == JobStatus::Pending);
     if nothing_started && index == 0 {
         return Decision::Run;
     }
     // 6
     let predecessors_settled = definition.job[..index]
         .iter()
-        .all(|j| is_settled(record_of(job_states, &j.id).0));
+        .enumerate()
+        .all(|(i, j)| is_settled(status_at(job_states, i, &j.id)));
     if status == JobStatus::Pending && predecessors_settled {
         return Decision::Run;
     }
