@@ -21,7 +21,7 @@ use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
 
-/// コマンドの種類(BR1.1)。6つだけ。
+/// コマンドの種類(BR1.1)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandKind {
     Run,
@@ -30,6 +30,8 @@ pub enum CommandKind {
     Reset,
     Validate,
     Convert,
+    /// 図の出力(U2。BR6.4)。
+    Graph,
 }
 
 impl CommandKind {
@@ -42,8 +44,27 @@ impl CommandKind {
             Self::Reset => "reset",
             Self::Validate => "validate",
             Self::Convert => "convert",
+            Self::Graph => "graph",
         }
     }
+}
+
+/// `graph` の出力の形式(`--format`。既定は `text`)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum GraphFormat {
+    #[default]
+    Text,
+    Mermaid,
+}
+
+/// `graph` のオプション(entities の GraphOptions)。`-v` と `--run-id` は、`CliCommand` の
+/// `verbose` と `run_id` を使う。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct GraphOptions {
+    /// `--format`。`graph` のときのみ。
+    pub format: GraphFormat,
+    /// `--state`。`graph` のときのみ。ステートを読んで、状態を重ねる(BR4.1)。
+    pub with_state: bool,
 }
 
 /// 利用者が指定したコマンド(引数の解釈の結果。entities の CliCommand)。
@@ -54,7 +75,7 @@ pub struct CliCommand {
     pub kind: CommandKind,
     /// `run` のときのみ。
     pub job_id: Option<String>,
-    /// `pipeline` のとき(必須)と `validate` のとき(省略可)。
+    /// `pipeline` のとき(必須)と `validate`・`graph` のとき(省略可)。
     pub pipeline_name: Option<String>,
     /// `convert` のときのみ。変換する入力ファイルのパス。
     pub convert_input: Option<OsString>,
@@ -62,15 +83,17 @@ pub struct CliCommand {
     pub convert_target: Option<TargetFormat>,
     /// `--config <パス>`。run・pipeline・watch・reset のときのみ。
     pub config_path: Option<OsString>,
-    /// `-v` / `--verbose`。run・pipeline・validate のときのみ指定できる。
+    /// `-v` / `--verbose`。run・pipeline・validate・graph のときのみ指定できる。
     pub verbose: bool,
-    /// `--run-id <値>`。run・pipeline・watch・reset のときのみ。検査済み(空は「run ID なしに固定」)。
+    /// `--run-id <値>`。run・pipeline・watch・reset のときと、`--state` つきの graph のとき。検査済み(空は「run ID なしに固定」)。
     /// 指定がなければ `None`(環境変数を見る)。
     pub run_id: Option<String>,
     /// `--all`。reset のときのみ。
     pub all: bool,
     /// `--remove-on-complete`。run・pipeline のときのみ。指定があれば、完了でステートを削除する。
     pub remove_on_complete: bool,
+    /// `graph` のときのみ。`--format` と `--state`。
+    pub graph: GraphOptions,
 }
 
 impl CliCommand {
@@ -87,6 +110,7 @@ impl CliCommand {
             run_id: None,
             all: false,
             remove_on_complete: false,
+            graph: GraphOptions::default(),
         }
     }
 }

@@ -28,7 +28,10 @@
 //! | `reset` | なし | 不可 | 可 | 不可 | 可 | 可(`--run-id` とは併用不可) | 不可 |
 //! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 | 不可 |
 //! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 | 不可 |
+//! | `graph` | パイプライン名(0 か 1) | 可 | 可 | 不可 | `--state` と一緒のときだけ | 不可 | 不可 |
 //!
+//! - `graph` だけが、`--format <text|mermaid>`(値あり)と `--state`(値なし)を取る。どちらも 1 回だけ。
+//!   ほかのコマンドでは、許されないオプション。
 //! - `--remove-on-complete` は、値を取らない。指定すると、完了のときにステートファイルを削除する(FR2.1)。
 //!   2 回以上の指定は、`-v` と同じく `invalidValue`。
 //! - `--config path` と `--config=path`(`--to`、`--run-id` も同じ)の両方を受け付ける。
@@ -45,7 +48,9 @@ use conductor_core::RunId;
 use lexopt::prelude::*;
 
 use crate::deps::Env;
-use crate::types::{CliCommand, CommandKind, ParsedArgs, UsageError, UsageErrorKind as Kind};
+use crate::types::{
+    CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind as Kind,
+};
 
 /// 字句に分けた 1 つの引数。
 enum Token {
@@ -56,6 +61,10 @@ enum Token {
     RunId(OsString),
     /// `--all`。
     All,
+    /// `--format <値>`(値は、組み立ての段階で検査する)。
+    Format(OsString),
+    /// `--state`(値なし)。
+    State,
     /// `--remove-on-complete`(値なし)。
     RemoveOnComplete,
     /// 文法にないオプション(表示用の綴り)。
@@ -124,6 +133,15 @@ where
                 }
             },
             Long("all") => tokens.push(Token::All),
+            Long("state") => tokens.push(Token::State),
+            Long("format") => match parser.value() {
+                Ok(v) => tokens.push(Token::Format(v)),
+                Err(_) => {
+                    lex_error
+                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--format"));
+                    break;
+                }
+            },
             Long("remove-on-complete") => tokens.push(Token::RemoveOnComplete),
             Long("to") => match parser.value() {
                 Ok(v) => tokens.push(Token::To(v)),
@@ -157,7 +175,7 @@ fn map_lex_error(e: &lexopt::Error) -> UsageError {
             // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
             let known = matches!(
                 option.as_str(),
-                "--verbose" | "-v" | "--all" | "--remove-on-complete"
+                "--verbose" | "-v" | "--all" | "--remove-on-complete" | "--state"
             );
             if known {
                 UsageError::with_subject(Kind::InvalidValue, option.clone())
@@ -183,6 +201,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let mut run_ids: Vec<OsString> = Vec::new();
     let mut all_count = 0usize;
     let mut remove_count = 0usize;
+    let mut format: Vec<OsString> = Vec::new();
+    let mut state_count = 0usize;
     let mut unknown: Option<String> = None;
     let mut positionals: Vec<OsString> = Vec::new();
     for token in tokens {
@@ -193,6 +213,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             Token::RunId(v) => run_ids.push(v),
             Token::All => all_count += 1,
             Token::RemoveOnComplete => remove_count += 1,
+            Token::Format(v) => format.push(v),
+            Token::State => state_count += 1,
             Token::Unknown(name) => {
                 unknown.get_or_insert(name);
             }
@@ -217,13 +239,14 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         "reset" => CommandKind::Reset,
         "validate" => CommandKind::Validate,
         "convert" => CommandKind::Convert,
+        "graph" => CommandKind::Graph,
         _ => return Err(UsageError::with_subject(Kind::UnknownCommand, first)),
     };
 
     // 許されない場所のオプション。
     let takes_verbose = matches!(
         kind,
-        CommandKind::Run | CommandKind::Pipeline | CommandKind::Validate
+        CommandKind::Run | CommandKind::Pipeline | CommandKind::Validate | CommandKind::Graph
     );
     let takes_config = !matches!(kind, CommandKind::Convert);
     let takes_to = matches!(kind, CommandKind::Convert);
@@ -236,9 +259,14 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if !to.is_empty() && !takes_to {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--to"));
     }
+    // `graph` の `--run-id` は、`--state` と一緒のときだけ(BR4.5。下で検査する)。
     let takes_run_id = matches!(
         kind,
-        CommandKind::Run | CommandKind::Pipeline | CommandKind::Watch | CommandKind::Reset
+        CommandKind::Run
+            | CommandKind::Pipeline
+            | CommandKind::Watch
+            | CommandKind::Reset
+            | CommandKind::Graph
     );
     if !run_ids.is_empty() && !takes_run_id {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--run-id"));
@@ -253,7 +281,20 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             "--remove-on-complete",
         ));
     }
+    let is_graph = kind == CommandKind::Graph;
+    if !format.is_empty() && !is_graph {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--format"));
+    }
+    if state_count > 0 && !is_graph {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--state"));
+    }
     // 重複。
+    if format.len() > 1 {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--format"));
+    }
+    if state_count > 1 {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--state"));
+    }
     if verbose_count > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "-v"));
     }
@@ -280,11 +321,20 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
     }
 
+    // `graph` の `--run-id` は、`--state` と一緒のときだけ(BR4.5)。
+    if is_graph && !run_ids.is_empty() && state_count == 0 {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--run-id"));
+    }
+
     let mut command = CliCommand::new(kind);
     command.verbose = verbose_count == 1;
     command.config_path = config.into_iter().next();
     command.all = all_count == 1;
     command.remove_on_complete = remove_count == 1;
+    command.graph.with_state = state_count == 1;
+    if let Some(value) = format.into_iter().next() {
+        command.graph.format = parse_graph_format(&value)?;
+    }
     // 値の検査は、ここで行う。誤りの文に、値は含めない(対象は、オプションの名前だけ)。
     command.run_id = run_ids
         .into_iter()
@@ -295,7 +345,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     // `validate` の位置引数(パイプライン名)は、省略できる。
     let wants_positional = !matches!(
         kind,
-        CommandKind::Watch | CommandKind::Reset | CommandKind::Validate
+        CommandKind::Watch | CommandKind::Reset | CommandKind::Validate | CommandKind::Graph
     );
     let allows_operand = !matches!(kind, CommandKind::Watch | CommandKind::Reset);
     let operand = positionals.next();
@@ -313,7 +363,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
 
     match kind {
         CommandKind::Run => command.job_id = operand.map(to_text).transpose()?,
-        CommandKind::Pipeline | CommandKind::Validate => {
+        CommandKind::Pipeline | CommandKind::Validate | CommandKind::Graph => {
             command.pipeline_name = operand.map(to_text).transpose()?;
         }
         CommandKind::Convert => {
@@ -326,6 +376,15 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         CommandKind::Watch | CommandKind::Reset => {}
     }
     Ok(ParsedArgs::Command(command))
+}
+
+/// `--format` の値の検査。`text` か `mermaid`。誤りの文に、値は含めない。
+fn parse_graph_format(value: &OsString) -> Result<GraphFormat, UsageError> {
+    match value.to_str() {
+        Some("text") => Ok(GraphFormat::Text),
+        Some("mermaid") => Ok(GraphFormat::Mermaid),
+        _ => Err(UsageError::with_subject(Kind::InvalidValue, "--format")),
+    }
 }
 
 /// `--run-id` の値の検査。空は有効(run ID なしに固定する)。UTF-8 でない値、規則に反する値は、
