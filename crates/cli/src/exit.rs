@@ -28,6 +28,8 @@ pub const EXIT_REJECTED: i32 = 66;
 pub const EXIT_CONVERSION: i32 = 67;
 /// 使い方の誤り。
 pub const EXIT_USAGE: i32 = 68;
+/// `init` の作る先に、ファイルが既にある(`--force` なし。U4 の BR1.2)。
+pub const EXIT_EXISTS: i32 = 69;
 /// 内部の誤り(パニック、シグナルの準備の失敗)。
 pub const EXIT_INTERNAL: i32 = 70;
 

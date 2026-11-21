@@ -172,5 +172,6 @@ where
         CommandKind::Validate => aux_commands::run_validate(&mut ctx, &cmd),
         CommandKind::Convert => aux_commands::run_convert(&mut ctx, &cmd),
         CommandKind::Graph => graph::run_graph(&mut ctx, &cmd),
+        CommandKind::Init => init::run_init(&mut ctx, &cmd),
     }
 }

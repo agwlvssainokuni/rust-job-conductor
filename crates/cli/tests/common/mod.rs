@@ -29,8 +29,8 @@ use conductor_core::{
     PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
-    CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError,
-    StateErrorKind, WaitOutcome,
+    CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
+    ResetAllReport, StateError, StateErrorKind, WaitOutcome,
 };
 
 // ---- Env ----
@@ -213,7 +213,14 @@ pub struct ScriptedRuntime {
     pub env_override: RefCell<Option<Result<LoadedEnvFiles, Vec<EnvFileError>>>>,
     /// `run_job` に渡された、(ジョブID、足す環境の並び)。起動のたびに記録する。
     pub run_envs: RefCell<Vec<RunEnv>>,
+    /// `create_file` に渡された、(パス、内容、`force`)。呼び出しのたびに記録する(U4)。
+    pub create_calls: RefCell<Vec<CreateCall>>,
+    /// `create_file` の結果を、実際の作成の代わりに返す(`None` は実際に作る。U4)。
+    pub create_override: RefCell<Option<Result<CreateOutcome, CreateError>>>,
 }
+
+/// `create_file` に渡された、(パス、内容、`force`)。
+pub type CreateCall = (PathBuf, Vec<u8>, bool);
 
 impl Default for ScriptedRuntime {
     fn default() -> Self {
@@ -236,6 +243,8 @@ impl Default for ScriptedRuntime {
             env_loads: RefCell::new(Vec::new()),
             env_override: RefCell::new(None),
             run_envs: RefCell::new(Vec::new()),
+            create_calls: RefCell::new(Vec::new()),
+            create_override: RefCell::new(None),
         }
     }
 }
@@ -448,6 +457,22 @@ impl Runtime for ScriptedRuntime {
         match self.convert_result.borrow().clone() {
             Some(result) => result,
             None => self.inner.convert(input, target),
+        }
+    }
+
+    fn create_file(
+        &self,
+        path: &Path,
+        bytes: &[u8],
+        force: bool,
+    ) -> Result<CreateOutcome, CreateError> {
+        self.push("create");
+        self.create_calls
+            .borrow_mut()
+            .push((path.to_path_buf(), bytes.to_vec(), force));
+        match *self.create_override.borrow() {
+            Some(result) => result,
+            None => self.inner.create_file(path, bytes, force),
         }
     }
 }
@@ -808,6 +833,15 @@ impl Runtime for MemRuntime {
 
     fn convert(&self, _input: &Path, _target: TargetFormat) -> Result<String, ConversionError> {
         Ok("converted\n".to_string())
+    }
+
+    fn create_file(
+        &self,
+        _path: &Path,
+        _bytes: &[u8],
+        _force: bool,
+    ) -> Result<CreateOutcome, CreateError> {
+        Ok(CreateOutcome::Created)
     }
 }
 

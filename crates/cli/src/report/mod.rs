@@ -40,7 +40,7 @@ use conductor_core::{
     DecisionReason, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, PipelineState,
     summarize_errors,
 };
-use conductor_runtime::{CommandError, MismatchKind, StateError};
+use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
 
 use crate::deps::{Env, Sink};
 use crate::platform;
@@ -127,6 +127,17 @@ pub enum DisplayEvent<'a> {
     },
     /// シグナルの準備に失敗した(固定の英語の文。終了コード 70)。
     SignalSetupFailed,
+    /// `init` の作る先に、ファイルが既にある(終了コード 69。U4 の BR1.2)。
+    InitExists {
+        path: &'a Path,
+    },
+    /// `init` が、ファイルを作れなかった(`already_exists` 以外。終了コード 65。BR3.2)。
+    InitFailed {
+        path: &'a Path,
+        error: CreateError,
+    },
+    /// `init --config -` で、ひな形を標準出力に書けなかった(終了コード 65。BR1.5)。
+    InitStdoutFailed,
     // ---- notice(標準エラー。常に。エラーではない知らせ) ----
     /// リトライの前の知らせ(BR2.4、BR2.15)。待機の前に出す。
     RetryScheduled {
@@ -139,6 +150,14 @@ pub enum DisplayEvent<'a> {
         max: u32,
         /// 待ち時間(秒)。
         wait_secs: u64,
+    },
+    /// `init` が、ファイルを作った(BR1.4)。
+    InitCreated {
+        path: &'a Path,
+    },
+    /// `init --force` が、既にあったファイルを置き換えた(BR1.4)。
+    InitReplaced {
+        path: &'a Path,
     },
     // ---- verbose(標準エラー。`-v` のとき) ----
     JobResult {
@@ -174,6 +193,8 @@ pub enum DisplayEvent<'a> {
     Graph(&'a str),
     /// `--dry-run` の計画(組み立て済み。そのまま出す。U3 の BR3.4)。
     Plan(&'a str),
+    /// `init --config -` のひな形(組み立て済み。そのまま出す。BR1.5)。
+    InitTemplate(&'a str),
     /// 使い方(`--help`)。
     Help,
     /// 版(`--version`)。
@@ -198,8 +219,13 @@ impl DisplayEvent<'_> {
             | Self::Conversion(_)
             | Self::OutputFailed
             | Self::SignalSetupFailed
+            | Self::InitExists { .. }
+            | Self::InitFailed { .. }
+            | Self::InitStdoutFailed
             | Self::CompletionUndetermined { .. } => Level::Error,
-            Self::RetryScheduled { .. } => Level::Notice,
+            Self::RetryScheduled { .. } | Self::InitCreated { .. } | Self::InitReplaced { .. } => {
+                Level::Notice
+            }
             Self::JobResult { .. }
             | Self::JobSkipped { .. }
             | Self::Transition { .. }
@@ -209,6 +235,7 @@ impl DisplayEvent<'_> {
             | Self::WatchEmpty
             | Self::Graph(_)
             | Self::Plan(_)
+            | Self::InitTemplate(_)
             | Self::Help
             | Self::Version => Level::Output,
         }
@@ -419,12 +446,36 @@ impl<'a> Reporter<'a> {
                 watch::render_table(lang, state, self.color_enabled())
             }
             DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang)),
-            DisplayEvent::Graph(text) | DisplayEvent::Plan(text) => (*text).to_string(),
+            DisplayEvent::InitCreated { path } => {
+                format!("{}\n", messages::init_created(lang, &show_path(path)))
+            }
+            DisplayEvent::InitReplaced { path } => {
+                format!("{}\n", messages::init_replaced(lang, &show_path(path)))
+            }
+            DisplayEvent::InitExists { path } => format!(
+                "{ERROR_PREFIX}{}\n",
+                messages::init_exists(lang, &show_path(path))
+            ),
+            DisplayEvent::InitFailed { path, error } => format!(
+                "{ERROR_PREFIX}{}\n",
+                messages::init_cannot_create(lang, *error, &show_path(path))
+            ),
+            DisplayEvent::InitStdoutFailed => {
+                format!("{ERROR_PREFIX}{}\n", messages::INIT_STDOUT_FAILED.get(lang))
+            }
+            DisplayEvent::Graph(text)
+            | DisplayEvent::Plan(text)
+            | DisplayEvent::InitTemplate(text) => (*text).to_string(),
             DisplayEvent::Help => messages::USAGE.get(lang).to_string(),
             // 上で返している。
             DisplayEvent::SignalSetupFailed | DisplayEvent::Version => String::new(),
         }
     }
+}
+
+/// パスの表示(制御文字をエスケープする。切らない。定義ファイルのパスと同じ扱い)。
+fn show_path(path: &Path) -> String {
+    escape_path(&path.display().to_string())
 }
 
 /// 環境のロケールから、言語を決める(BR6.1)。

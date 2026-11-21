@@ -31,7 +31,8 @@ use conductor_core::{
     PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
-    CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError, WaitOutcome,
+    CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
+    ResetAllReport, StateError, WaitOutcome,
 };
 
 use crate::platform;
@@ -128,6 +129,13 @@ pub trait Runtime {
     fn run_id_env(&self, definition_path: &Path) -> Option<String>;
     /// 入力ファイルを、`target` の形式の文字列にする(`convert`)。
     fn convert(&self, input: &Path, target: TargetFormat) -> Result<String, ConversionError>;
+    /// ファイルを、排他的に作る(`create_file`。`init` が使う。U4 の BR1.3)。`force` なら、置き換える。
+    fn create_file(
+        &self,
+        path: &Path,
+        bytes: &[u8],
+        force: bool,
+    ) -> Result<CreateOutcome, CreateError>;
 }
 
 /// 流れに渡す、差し替え口の束。
@@ -226,6 +234,15 @@ impl Runtime for SystemRuntime {
             target_format: target,
         };
         conductor_converter::convert(&request).map(|converted| converted.text)
+    }
+
+    fn create_file(
+        &self,
+        path: &Path,
+        bytes: &[u8],
+        force: bool,
+    ) -> Result<CreateOutcome, CreateError> {
+        conductor_runtime::create_file(path, bytes, force)
     }
 }
 

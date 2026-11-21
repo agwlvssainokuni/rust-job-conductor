@@ -33,6 +33,8 @@ pub enum CommandKind {
     Convert,
     /// 図の出力(U2。BR6.4)。
     Graph,
+    /// 定義のひな形の作成(U4。BR1.1)。
+    Init,
 }
 
 impl CommandKind {
@@ -46,6 +48,7 @@ impl CommandKind {
             Self::Validate => "validate",
             Self::Convert => "convert",
             Self::Graph => "graph",
+            Self::Init => "init",
         }
     }
 }

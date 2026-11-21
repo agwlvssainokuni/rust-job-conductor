@@ -23,7 +23,7 @@ use conductor_core::{
     Classification, DecisionReason, DefinitionErrorKind, EnvFileErrorKind, NextStepNote,
     PlanDisposition, PlanEnd,
 };
-use conductor_runtime::{CommandErrorKind, MismatchKind, StateErrorKind};
+use conductor_runtime::{CommandErrorKind, CreateError, MismatchKind, StateErrorKind};
 
 use crate::types::{Language, UsageErrorKind};
 
@@ -70,13 +70,14 @@ Usage:
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
   conductor graph [-v] [--config <path>] [--format <text|mermaid>] [--state [--run-id <id>]] [<pipeline-name>]
+  conductor init [--config <path>] [--force] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
 
 Options:
   -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line);
                       graph prints the command, retry and skip details under each job
-  --config <path>     definition file (default: conductor.toml in the current directory)
+  --config <path>     definition file (default: conductor.toml in the current directory; init: - writes the template to standard output)
   --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset, graph --state; default: the environment variable
                       named by run_id_env in the definition, or CONDUCTOR_RUN_ID; an empty value means no run ID)
   --remove-on-complete
@@ -89,6 +90,7 @@ Options:
   --dry-run           print the execution plan without running jobs, writing the state or setting up signals (run, pipeline)
   --assume <job-id>=<code>
                       assume the exit code (0-255) of a job in the plan; repeatable (with --dry-run only; default: 0)
+  --force             overwrite the file that already exists (init only; default: leave it and exit with 69)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
   -V, --version       print the version
@@ -101,13 +103,14 @@ Options:
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
   conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+  conductor init [--config <パス>] [--force] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
 
 オプション:
   -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)。
                       graph は、ジョブごとに、コマンド、リトライ、飛び越しの詳細を表示する
-  --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml)
+  --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml。init: - なら、ひな形を標準出力に出す)
   --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset、graph --state。省略時: 定義の run_id_env の環境変数、
                       なければ CONDUCTOR_RUN_ID。空の値は run ID なし)
   --remove-on-complete
@@ -119,10 +122,64 @@ Options:
   --dry-run           ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を表示する(run、pipeline)
   --assume <ジョブID>=<終了コード>
                       計画の中で、ジョブの終了コード(0〜255)を仮定する。複数回指定できる(--dry-run と一緒のときだけ。省略時: 0)
+  --force             既にあるファイルを上書きする(init のみ。省略時: 何も変えず、終了コード 69)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
   -V, --version       版を表示する
 ",
+);
+
+// ---- init(U4。BR1.2、BR1.4、BR3.2、BR4.1) ----
+
+/// `init` が、ファイルを作った(パスはエスケープ済み)。
+pub fn init_created(lang: Language, path: &str) -> String {
+    match lang {
+        Language::En => format!("created {path}"),
+        Language::Ja => format!("{path} を作成しました"),
+    }
+}
+
+/// `init --force` が、既にあったファイルを置き換えた(パスはエスケープ済み)。
+pub fn init_replaced(lang: Language, path: &str) -> String {
+    match lang {
+        Language::En => format!("replaced {path}"),
+        Language::Ja => format!("{path} を置き換えました"),
+    }
+}
+
+/// `init` の作る先に、ファイルが既にある(パスはエスケープ済み)。
+pub fn init_exists(lang: Language, path: &str) -> String {
+    match lang {
+        Language::En => format!("{path} already exists (use --force to overwrite)"),
+        Language::Ja => format!("{path} は既にあります(上書きするには --force)"),
+    }
+}
+
+/// `init` が、ファイルを作れなかった(`already_exists` 以外。パスはエスケープ済み)。
+/// 種類ごとの固定の文と、パスだけ。OS のエラーの文は含めない(BR3.2)。
+pub fn init_cannot_create(lang: Language, kind: CreateError, path: &str) -> String {
+    let reason = match kind {
+        CreateError::ParentMissing => Text::new(
+            "the parent directory does not exist",
+            "親のディレクトリがありません",
+        ),
+        CreateError::IsDirectory => Text::new("it is a directory", "ディレクトリです"),
+        CreateError::PermissionDenied => Text::new("permission denied", "書く権限がありません"),
+        // `AlreadyExists` は、別の文(`init_exists`)で出す。ここでは、入出力の誤りと同じに扱う。
+        CreateError::OtherIo | CreateError::AlreadyExists => {
+            Text::new("I/O error", "入出力の誤りです")
+        }
+    };
+    match lang {
+        Language::En => format!("cannot create {path}: {}", reason.en),
+        Language::Ja => format!("{path} を作れません: {}", reason.ja),
+    }
+}
+
+/// `init --config -` で、ひな形を標準出力に書けなかった。
+pub const INIT_STDOUT_FAILED: Text = Text::new(
+    "cannot write the template to standard output",
+    "ひな形を標準出力に書けません",
 );
 
 /// `validate` が通ったときの 1 行の本文(`-v` のとき。先頭の `[conductor] ` は含まない)。

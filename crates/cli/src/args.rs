@@ -29,7 +29,11 @@
 //! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 | 不可 |
 //! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 | 不可 |
 //! | `graph` | パイプライン名(0 か 1) | 可 | 可 | 不可 | `--state` と一緒のときだけ | 不可 | 不可 |
+//! | `init` | パイプライン名(0 か 1) | 不可 | 可(`-` は標準出力) | 不可 | 不可 | 不可 | 不可 |
 //!
+//! - `init` だけが、`--force`(値なし。1 回だけ)を取る(U4。BR1.1、BR1.5、BR2.2、BR3.1)。`init` は、`--config` と
+//!   `--force` 以外のオプションを、すべて許さない(68)。名前が空、または空白だけなら `invalidValue`
+//!   (対象は固定で、名前の値は含めない)。`--config -` は標準出力(`InitTarget::Stdout`)。
 //! - `graph` だけが、`--format <text|mermaid>`(値あり)と `--state`(値なし)を取る。どちらも 1 回だけ。
 //!   ほかのコマンドでは、許されないオプション。
 //! - `run` と `pipeline` だけが、`--dry-run`(値なし。1 回だけ)と、`--assume <ジョブID>=<終了コード>`
@@ -54,7 +58,8 @@ use lexopt::prelude::*;
 
 use crate::deps::Env;
 use crate::types::{
-    CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind as Kind,
+    CliCommand, CommandKind, GraphFormat, InitTarget, ParsedArgs, UsageError,
+    UsageErrorKind as Kind,
 };
 
 /// 字句に分けた 1 つの引数。
@@ -74,6 +79,8 @@ enum Token {
     RemoveOnComplete,
     /// `--dry-run`(値なし)。
     DryRun,
+    /// `--force`(値なし)。
+    Force,
     /// `--assume <値>`(値は、組み立ての段階で検査する)。
     Assume(OsString),
     /// 文法にないオプション(表示用の綴り)。
@@ -153,6 +160,7 @@ where
             },
             Long("remove-on-complete") => tokens.push(Token::RemoveOnComplete),
             Long("dry-run") => tokens.push(Token::DryRun),
+            Long("force") => tokens.push(Token::Force),
             Long("assume") => match parser.value() {
                 Ok(v) => tokens.push(Token::Assume(v)),
                 Err(_) => {
@@ -193,7 +201,13 @@ fn map_lex_error(e: &lexopt::Error) -> UsageError {
             // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
             let known = matches!(
                 option.as_str(),
-                "--verbose" | "-v" | "--all" | "--remove-on-complete" | "--state" | "--dry-run"
+                "--verbose"
+                    | "-v"
+                    | "--all"
+                    | "--remove-on-complete"
+                    | "--state"
+                    | "--dry-run"
+                    | "--force"
             );
             if known {
                 UsageError::with_subject(Kind::InvalidValue, option.clone())
@@ -220,6 +234,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let mut all_count = 0usize;
     let mut remove_count = 0usize;
     let mut dry_run_count = 0usize;
+    let mut force_count = 0usize;
     let mut assume: Vec<OsString> = Vec::new();
     let mut format: Vec<OsString> = Vec::new();
     let mut state_count = 0usize;
@@ -234,6 +249,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             Token::All => all_count += 1,
             Token::RemoveOnComplete => remove_count += 1,
             Token::DryRun => dry_run_count += 1,
+            Token::Force => force_count += 1,
             Token::Assume(v) => assume.push(v),
             Token::Format(v) => format.push(v),
             Token::State => state_count += 1,
@@ -262,6 +278,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         "validate" => CommandKind::Validate,
         "convert" => CommandKind::Convert,
         "graph" => CommandKind::Graph,
+        "init" => CommandKind::Init,
         _ => return Err(UsageError::with_subject(Kind::UnknownCommand, first)),
     };
 
@@ -309,6 +326,13 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
             Kind::OptionNotAllowed,
             "--dry-run",
         ));
+    }
+    // `--force` は `init` だけ(BR3.1)。
+    if force_count > 0 && kind != CommandKind::Init {
+        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--force"));
+    }
+    if force_count > 1 {
+        return Err(UsageError::with_subject(Kind::InvalidValue, "--force"));
     }
     if !assume.is_empty() && dry_run_count == 0 {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--assume"));
@@ -363,6 +387,12 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
 
     let mut command = CliCommand::new(kind);
     command.verbose = verbose_count == 1;
+    if kind == CommandKind::Init {
+        if let Some(path) = config.first() {
+            command.init.target = InitTarget::from_path(path.clone());
+        }
+        command.init.force = force_count == 1;
+    }
     command.config_path = config.into_iter().next();
     command.all = all_count == 1;
     command.remove_on_complete = remove_count == 1;
@@ -382,7 +412,11 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     // `validate` の位置引数(パイプライン名)は、省略できる。
     let wants_positional = !matches!(
         kind,
-        CommandKind::Watch | CommandKind::Reset | CommandKind::Validate | CommandKind::Graph
+        CommandKind::Watch
+            | CommandKind::Reset
+            | CommandKind::Validate
+            | CommandKind::Graph
+            | CommandKind::Init
     );
     let allows_operand = !matches!(kind, CommandKind::Watch | CommandKind::Reset);
     let operand = positionals.next();
@@ -409,6 +443,18 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
                 return Err(UsageError::with_subject(Kind::MissingArgument, "--to"));
             };
             command.convert_target = Some(parse_target(target)?);
+        }
+        CommandKind::Init => {
+            if let Some(name) = operand.map(to_text).transpose()? {
+                // 定義の検査と同じ規則(空でない。空白だけでもない)。値は、誤りの文に含めない(BR2.2)。
+                if name.trim().is_empty() {
+                    return Err(UsageError::with_subject(
+                        Kind::InvalidValue,
+                        "pipeline name",
+                    ));
+                }
+                command.init.pipeline_name = name;
+            }
         }
         CommandKind::Watch | CommandKind::Reset => {}
     }
