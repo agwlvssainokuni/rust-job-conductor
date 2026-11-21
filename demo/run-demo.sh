@@ -207,4 +207,22 @@ printf 'A=1\nA=2\n' > dup.env
 printf 'format_version = 1\n\n[pipeline]\nname = "dup-env"\nenv_file = "dup.env"\n\n[[job]]\nid = "x"\ncommand = "sh scripts/show-env.sh"\n' > dup-env.toml
 cmd "$CONDUCTOR" validate --config dup-env.toml
 echo
+scene "12. 遷移を図にする: graph は、ジョブを実行せず、定義の遷移を図にする"
+echo "定義(conductor.toml)の遷移を図にする(extract が警告なら notify へ飛ぶ。右の線が、飛び越しを表す):"
+cmd "$CONDUCTOR" graph
+echo
+echo "-v で、ジョブごとに、コマンドと、飛び越しの注記を足す:"
+cmd "$CONDUCTOR" graph -v
+echo
+echo "--format mermaid は、Mermaid の図を出す(Markdown や Web ページに貼れる):"
+cmd "$CONDUCTOR" graph --format mermaid
+echo
+echo "--state で、ジョブの状態と再開位置を重ねる。まず、load で止める:"
+( DEMO_LOAD_EXIT=2; export DEMO_LOAD_EXIT; cmd "$CONDUCTOR" pipeline nightly )
+cmd "$CONDUCTOR" graph --state
+echo
+echo "graph は、ステートを読むだけ(書かない)。後片付け:"
+cmd "$CONDUCTOR" reset
+pause
+
 echo "デモは以上です。"

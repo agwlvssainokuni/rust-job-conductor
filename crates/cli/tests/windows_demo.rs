@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! Windows 向けデモ(`demo/windows`)のテスト(FR1.3、FR2.1、FR2.2、FR6.1)。
-//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜10 の終了コードと結果を確かめる。
+//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜12 の終了コードと結果を確かめる。
 #![cfg(windows)]
 
 mod bin_support;
@@ -413,6 +413,30 @@ fn 場面_11_env_が読めないと_64_で_validate_は重複キーを警告し�
         "{}",
         text(&dup.stderr)
     );
+}
+
+#[test]
+fn 場面_12_graph_は遷移を図にし_state_で状態と再開位置を重ねる() {
+    let demo = Demo::new();
+    let plain = demo.run(&["graph"], &[]);
+    assert_eq!(plain.status.code(), Some(0), "{}", text(&plain.stderr));
+    assert_eq!(
+        text(&plain.stdout).replace("\r\n", "\n"),
+        "*   extract\n|\\\n* | transform\n* | load\n|/\n* notify\no @end\n"
+    );
+    let verbose = demo.run(&["graph", "-v"], &[]);
+    let out = text(&verbose.stdout);
+    assert!(out.contains("success -> transform"), "{out}");
+    let mermaid = demo.run(&["graph", "--format", "mermaid"], &[]);
+    assert!(text(&mermaid.stdout).starts_with("flowchart TD"));
+    // load で止めて、状態を重ねる。
+    let failed = demo.run(&["pipeline", "nightly"], &[("DEMO_LOAD_EXIT", "2")]);
+    assert_eq!(failed.status.code(), Some(2), "{}", text(&failed.stderr));
+    let state = demo.run(&["graph", "--state"], &[]);
+    let out = text(&state.stdout);
+    assert!(out.contains("[OK] extract"), "{out}");
+    assert!(out.contains("[NG] load  <- resume here"), "{out}");
+    assert_eq!(demo.run(&["reset"], &[]).status.code(), Some(0));
 }
 
 #[test]

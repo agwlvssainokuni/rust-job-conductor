@@ -255,6 +255,27 @@ echo validate は、.env も検査する。同じ名前が 2 回あると、警�
 >> dup-env.toml echo command = 'scripts\show-env.cmd'
 call :runcmd validate --config dup-env.toml
 echo.
+call :scene "12. 遷移を図にする: graph は、ジョブを実行せず、定義の遷移を図にする"
+echo 定義^(conductor.toml^)の遷移を図にする^(extract が警告なら notify へ飛ぶ。右の線が、飛び越しを表す^):
+call :runcmd graph
+echo.
+echo -v で、ジョブごとに、コマンドと、飛び越しの注記を足す:
+call :runcmd graph -v
+echo.
+echo --format mermaid は、Mermaid の図を出す^(Markdown や Web ページに貼れる^):
+call :runcmd graph --format mermaid
+echo.
+echo --state で、ジョブの状態と再開位置を重ねる。まず、load で止める:
+setlocal
+set "DEMO_LOAD_EXIT=2"
+call :runcmd pipeline nightly
+endlocal
+call :runcmd graph --state
+echo.
+echo graph は、ステートを読むだけ^(書かない^)。後片付け:
+call :runcmd reset
+call :pause
+
 echo デモは以上です。
 
 REM 後片付け(一時ディレクトリを消し、コードページを戻す)

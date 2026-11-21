@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! UNIX 向けデモ(`demo/run-demo.sh`)のテスト(FR6.2)。
-//! スクリプトを `sh` で実行し、場面 0〜10 の見出しと要点の行が出て、0 で終わることを確かめる。
+//! スクリプトを `sh` で実行し、場面 0〜12 の見出しと要点の行が出て、0 で終わることを確かめる。
 #![cfg(unix)]
 
 mod bin_support;
@@ -58,7 +58,7 @@ fn assert_demo_output(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{err}");
     // `-v` の行やエラーは標準エラーに出るので、標準出力と合わせて見る。
     let out = format!("{}{err}", text(&output.stdout));
-    for n in 0..=11 {
+    for n in 0..=12 {
         assert!(out.contains(&format!("=== {n}. ")), "場面 {n}\n{out}");
     }
     // 場面 7: validate
@@ -114,10 +114,23 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("[show-env] CONDUCTOR_ATTEMPT=1"), "{out}");
     assert!(out.contains("missing.env"), "{out}");
     assert!(out.contains("duplicate key `A`"), "{out}");
+    // 場面 12: graph(遷移の図、-v、Mermaid、--state の状態と再開位置)
+    assert!(
+        out.contains("*   extract\n|\\\n* | transform\n* | load\n|/\n* notify\no @end\n"),
+        "{out}"
+    );
+    assert!(out.contains("command: sh scripts/extract.sh"), "{out}");
+    assert!(
+        out.contains("success -> transform"),
+        "-v の飛び越しの注記: {out}"
+    );
+    assert!(out.contains("flowchart TD"), "{out}");
+    assert!(out.contains("[NG] load  <- resume here"), "{out}");
+    assert!(out.contains("[OK] extract"), "{out}");
 }
 
 #[test]
-fn デモは_0_で完走し_場面_0_から_10_の要点の行が出る() {
+fn デモは_0_で完走し_場面_0_から_12_の要点の行が出る() {
     let tmp = tempfile::tempdir().expect("一時ディレクトリ");
     let output = run_demo(tmp.path(), &[]);
     assert_demo_output(&output);
