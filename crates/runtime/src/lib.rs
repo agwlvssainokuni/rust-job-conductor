@@ -115,6 +115,7 @@ mod wait;
 
 pub use envfile::load_env_files;
 pub use error::*;
+pub use file_create::{CreateError, CreateOutcome};
 pub use runner::run_job;
 pub use split::check_command;
 pub use state::consistency::check_consistency;

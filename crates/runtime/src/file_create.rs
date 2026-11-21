@@ -13,3 +13,39 @@
 // limitations under the License.
 
 //! 排他的なファイルの作成(RuntimeFileCreate。U4 の BR1.3、BR1.6)。
+
+/// ファイルの作成の成功の結果(BR1.4)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreateOutcome {
+    /// 新規に作った。
+    Created,
+    /// `--force` で、既にあったファイルを置き換えた。
+    Replaced,
+}
+
+/// ファイルを作れなかった理由(BR1.2、BR3.2)。表示は、種類の固定の文とパスだけで、OS の
+/// エラーの文は含めない。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreateError {
+    /// 既にある(`--force` なし)。終了コード 69。
+    AlreadyExists,
+    /// 親のディレクトリが無い(作らない。BR1.6)。
+    ParentMissing,
+    /// 作る先が、ディレクトリ。
+    IsDirectory,
+    /// 書く権限がない。
+    PermissionDenied,
+    /// そのほかの入出力の誤り。
+    OtherIo,
+}
+
+impl CreateError {
+    /// すべての種類(網羅のテストに使う)。
+    pub const ALL: [CreateError; 5] = [
+        Self::AlreadyExists,
+        Self::ParentMissing,
+        Self::IsDirectory,
+        Self::PermissionDenied,
+        Self::OtherIo,
+    ];
+}

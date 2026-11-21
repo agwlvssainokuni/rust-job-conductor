@@ -50,6 +50,52 @@ impl CommandKind {
     }
 }
 
+/// `init` のパイプライン名の既定(BR2.2)。
+pub const DEFAULT_INIT_PIPELINE_NAME: &str = "my-pipeline";
+
+/// `init` の定義のひな形の出力先の既定のパス(BR1.1)。
+pub const DEFAULT_INIT_PATH: &str = "conductor.toml";
+
+/// `conductor init` の出力先(entities の InitTarget)。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InitTarget {
+    /// ファイルを作る(既定は `conductor.toml`)。
+    File(OsString),
+    /// `--config -`: ファイルを作らず、標準出力にひな形だけを出す(BR1.5)。
+    Stdout,
+}
+
+impl InitTarget {
+    /// `--config` の値から、出力先を決める。`-` だけが標準出力で、それ以外はファイルのパス(BR1.5)。
+    pub fn from_path(path: OsString) -> Self {
+        if path == "-" {
+            Self::Stdout
+        } else {
+            Self::File(path)
+        }
+    }
+}
+
+/// `init` のオプション(entities の InitOptions。BR1.1、BR1.5、BR2.2)。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitOptions {
+    pub target: InitTarget,
+    /// `--force`。`Stdout` のときは、無視する(BR1.5)。
+    pub force: bool,
+    /// パイプライン名。省略したときは、固定の `my-pipeline`(BR2.2)。
+    pub pipeline_name: String,
+}
+
+impl Default for InitOptions {
+    fn default() -> Self {
+        Self {
+            target: InitTarget::File(OsString::from(DEFAULT_INIT_PATH)),
+            force: false,
+            pipeline_name: DEFAULT_INIT_PIPELINE_NAME.to_string(),
+        }
+    }
+}
+
 /// `graph` の出力の形式(`--format`。既定は `text`)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum GraphFormat {
@@ -106,6 +152,8 @@ pub struct CliCommand {
     pub graph: GraphOptions,
     /// `run`・`pipeline` のときのみ。`--dry-run` と `--assume`。
     pub dry_run: DryRunOptions,
+    /// `init` のときのみ。出力先、`--force`、パイプライン名。
+    pub init: InitOptions,
 }
 
 impl CliCommand {
@@ -124,6 +172,7 @@ impl CliCommand {
             remove_on_complete: false,
             graph: GraphOptions::default(),
             dry_run: DryRunOptions::default(),
+            init: InitOptions::default(),
         }
     }
 }
