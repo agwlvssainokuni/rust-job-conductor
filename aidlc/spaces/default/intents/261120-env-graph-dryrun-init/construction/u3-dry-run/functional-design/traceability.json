@@ -1,0 +1,17 @@
+{
+  "stage": "functional-design",
+  "unit": "u3-dry-run",
+  "upstream_ids": ["FR1.12","FR3.1","FR3.2","FR3.3","FR3.4","FR5.1","FR5.2"],
+  "coverage": [
+    { "id": "FR1.12", "status": "OK", "target": "BR3.3, BR5.1" },
+    { "id": "FR3.1", "status": "OK", "target": "BR1.1, BR3.4, BR4.4, BR4.5" },
+    { "id": "FR3.2", "status": "OK", "target": "BR1.2, BR1.3, BR1.4, BR1.5, BR1.6, BR1.7, BR3.1, BR3.2, BR3.3" },
+    { "id": "FR3.3", "status": "OK", "target": "BR4.1, BR4.2, BR4.3" },
+    { "id": "FR3.4", "status": "OK", "target": "BR2.1, BR2.2, BR2.3, BR2.4" },
+    { "id": "FR5.1", "status": "OK", "target": "BR6.1" },
+    { "id": "FR5.2", "status": "OK", "target": "BR6.2" }
+  ],
+  "reverse": [
+    { "id": "BR6.3", "status": "N/A", "target": "NFR1(性能。ジョブ 1,000 個で 1 秒以内)" }
+  ]
+}
