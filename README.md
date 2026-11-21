@@ -23,6 +23,7 @@
 - [終了コードの表](#終了コードの表)
 - [保証の範囲(at-least-once)](#保証の範囲at-least-once)
 - [シグナルの扱い](#シグナルの扱い)
+- [graph の使い方(v0.9.0 以降)](#graph-の使い方v090-以降)
 - [convert の使い方](#convert-の使い方)
 - [ロケールと言語](#ロケールと言語)
 - [ライセンス](#ライセンス)
@@ -221,6 +222,7 @@ conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complet
 conductor watch [--config <パス>] [--run-id <ID>]
 conductor reset [--config <パス>] [--run-id <ID> | --all]
 conductor validate [-v] [--config <パス>] [<パイプライン名>]
+conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
 conductor convert <ファイル> --to <yaml|toml>
 conductor --help | --version
 ```
@@ -232,13 +234,16 @@ conductor --help | --version
 | `watch` | ステートを、ジョブ・状態・補足の 3 列の表で、1 回だけ表示する。完了したステートには、表の下に完了を示す行を足す(v0.7.0 以降) |
 | `reset` | ステートを消して、最初からやり直す(壊れたステートの回復と、完了したステートの片づけにも使う) |
 | `validate [<パイプライン名>]` | 定義ファイルを検証し、全ジョブの `command` を検査する(v0.4.0 以降) |
+| `graph [<パイプライン名>]` | ジョブの流れ(遷移)を図にして、標準出力に書く。ジョブは実行しない(v0.9.0 以降)。「[graph の使い方](#graph-の使い方v090-以降)」を参照 |
 | `convert <ファイル> --to <形式>` | 定義ファイルを、YAML と TOML のあいだで変換し、結果を標準出力に書く |
 
 | オプション | 意味 |
 |------------|------|
-| `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`) |
-| `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階) |
-| `--run-id <ID>`(`--run-id=<ID>`) | ステートを分ける run ID(`run`・`pipeline`・`watch`・`reset` だけ)。規則は「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照 |
+| `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`・`graph`) |
+| `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階)。`graph` では、ジョブごとの詳細(コマンド、リトライ、飛び越し)を図に足す |
+| `--format <text\|mermaid>` | `graph` だけ(v0.9.0 以降)。図の形式。既定は `text` |
+| `--state` | `graph` だけ(v0.9.0 以降)。ステートを読んで、ジョブの状態を図に重ねる(書かない) |
+| `--run-id <ID>`(`--run-id=<ID>`) | ステートを分ける run ID(`run`・`pipeline`・`watch`・`reset` と、`--state` つきの `graph`)。規則は「[run ID でステートを分ける](#run-id-でステートを分けるv050-以降)」を参照 |
 | `--remove-on-complete` | `run`・`pipeline` だけ(v0.7.0 以降)。値は取りません。完了のときに、ステートファイルを消す。指定しなければ、定義の `[pipeline]` の `remove_on_complete`(既定は `false`)に従う。`watch`・`reset`・`validate`・`convert` に付けると、使い方の誤り(68) |
 | `--all` | `reset` だけ(v0.5.0 以降)。その定義のステートを、run ID の有無によらず、すべて消す |
 | `--to <yaml\|toml>` | `convert` の変換後の形式(必須) |
@@ -267,6 +272,9 @@ conductor reset --all                  # その定義のステートを、すべ
 conductor pipeline nightly --remove-on-complete   # 完了したら、ステートファイルを消す
 conductor validate                     # 定義を実行せずに検査する(成功は何も出さない)
 conductor validate -v nightly --config /etc/batch/conductor.toml   # 名前も照合し、結果を 1 行表示
+conductor graph                        # ジョブの流れを図(text)で見る
+conductor graph --format mermaid       # Mermaid の図にする
+conductor graph --state -v             # 状態と再開位置を重ね、詳細も出す
 conductor convert conductor.yaml --to toml > conductor.toml
 ```
 
@@ -523,6 +531,34 @@ run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state
 - ジョブを起動する前、または、`pipeline` のジョブのあいだに、シグナルを受け取ったときは、次のジョブを起動せず、再開位置をステートに記録して、128 + 番号で終わります(エラーとしては記録しません)。次の実行は、そのジョブから続きます。
 - リトライの待機中(v0.8.0 以降)にシグナルを受け取ったときは、すぐに待機をやめ、次の実行はせずに、再開位置をそのジョブとしてステートに記録して、128 + 番号で終わります(エラーとしては記録しません)。待機の打ち切りは、間隔の長さにかかわらず、シグナルを受けてから 1 秒以内です。次の実行は、そのジョブを、最初の実行から数え直して始めます。
 - 検査やステートの確認の途中でシグナルを受け取っても、検査は最後まで進めます。定義の誤り(64)や、ステートの誤り(65)、拒否(66)、スキップ(0)の終了コードが、中断の終了コードより優先します。
+
+## graph の使い方(v0.9.0 以降)
+
+`conductor graph` は、定義の遷移(成功と警告の行き先、`@end`)を図にして、標準出力に書きます。ジョブは実行しません。図の元になる辺は、`run`・`pipeline` が次のジョブを決めるときと同じ判断から取り出すので、図と実際の動きは食い違いません。
+
+```sh
+conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+```
+
+- **検査**: `validate` と同じ検査(定義、`command`、`.env` の読み取り)を行います。誤りは `validate` と同じ表示と終了コード(64)で止まり、図は出ません。`.env` の値は、図にも出力にも含めません。
+- **`--format text`(既定)**: ジョブを `*`、終点を `o`、線を `|`、分岐を `\`、合流を `/` で描きます(`git log --graph` と同じ見た目。すべて ASCII です)。例(`a` が成功で `d` へ飛ぶ場合):
+
+```text
+*   a
+|\
+* | b
+* | c
+|/
+* d
+* e
+o @end
+```
+
+- **辺の一覧に切り替わる形**: 飛び越しが交差する、同じ行き先へ飛ぶ辺が 2 つある、成功と警告のどちらも次のジョブを飛び越す、のいずれかの形は、レーンの図の代わりに、注記つきの「辺の一覧」を出します(Mermaid は、どの形でも図になります)。
+- **`--format mermaid`**: `flowchart TD` の図を出します。節の ID は連番で、ジョブ ID は引用符つきのラベルに書きます(`#`、`"`、`<`、`>`、`&`、バッククォートはエスケープします)。主線以外の辺には、成功か警告のラベルが付きます。
+- **`-v`**: ジョブごとに、コマンド、リトライの設定、飛び越しの注記を、詳細の行として足します(`--format mermaid` には影響しません)。環境変数は出しません。
+- **`--state`**: ステートを読んで(完了したものも含めて、書き込みも削除もしません)、状態を `[OK]`(成功・警告)、`[--]`(スキップ)、`[NG]`(エラー)、`[  ]`(未実行)で重ね、再開位置の行に `<- 再開位置`(英語は `<- resume here`)を添えます。完了したステートには、再開位置を示しません。ステートがなければ、すべて `[  ]` です。ステートが定義と食い違うときは、終了コード 65 で止まります。run ID は、`--run-id`、なければ定義の `run_id_env` の環境変数で決めます(`--run-id` は `--state` と一緒のときだけ使えます)。
+- **終了コード**: 成功は 0、定義と `.env` の誤りは 64、ステートの誤りと標準出力に書けないときは 65、使い方の誤り(`--format` の値の誤り、重複、`graph` 以外での `--format`・`--state`)は 68 です。
 
 ## convert の使い方
 
