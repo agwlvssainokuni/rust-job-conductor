@@ -23,8 +23,8 @@ use conductor_cli::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::{ConversionError, ConversionErrorKind};
 use conductor_core::{
-    DecisionReason, DefinitionError, DefinitionErrorKind, JobState, JobStatus, PipelineState,
-    SkipReason,
+    DecisionReason, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
+    EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, SkipReason,
 };
 use conductor_runtime::{CommandError, CommandErrorKind, MismatchKind, StateError, StateErrorKind};
 
@@ -91,6 +91,28 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         DefinitionErrorKind::FileMissing,
         "reason",
     )]));
+
+    // `.env` の誤りと警告(U1)。全種類と、20 件を超える打ち切り。
+    let env_errors: Vec<EnvFileError> = EnvFileErrorKind::ALL
+        .iter()
+        .map(|kind| EnvFileError::new("x.env", Some(3), *kind))
+        .collect();
+    f(&DisplayEvent::EnvFileErrors(&env_errors));
+    f(&DisplayEvent::EnvFileErrors(&[EnvFileError::new(
+        "x.env",
+        None,
+        EnvFileErrorKind::FileMissing,
+    )]));
+    let many: Vec<EnvFileError> = (1..=25)
+        .map(|i| EnvFileError::new("x.env", Some(i), EnvFileErrorKind::MissingEquals))
+        .collect();
+    f(&DisplayEvent::EnvFileErrors(&many));
+    f(&DisplayEvent::EnvWarnings(&[EnvWarning {
+        file: "x.env".into(),
+        line: 5,
+        name: "A".into(),
+        kind: EnvWarningKind::DuplicateKey,
+    }]));
 
     let command_errors = vec![
         (
@@ -268,7 +290,7 @@ fn エラーの行は_conductor_error_で始まり_場所を含む() {
     let env = env_for(Language::En);
     let reporter = Reporter::new(&env, false);
     with_all_events(|event| {
-        if event.level() != Level::Error {
+        if event.level() != Level::Error || matches!(event, DisplayEvent::EnvWarnings(_)) {
             return;
         }
         let text = reporter.render(event);
@@ -829,4 +851,40 @@ fn リトライの知らせの_job_id_はエスケープされ_64_文字で切�
     assert!(!has_control(text.trim_end_matches('\n')), "{text:?}");
     assert_eq!(text.matches('\n').count(), 1, "{text:?}");
     assert!(!text.contains(&"y".repeat(65)), "{text:?}");
+}
+
+#[test]
+fn env_の誤りは_20_件で打ち切り_警告は行と名前を持つ_日本語と英語() {
+    let many: Vec<EnvFileError> = (1..=25)
+        .map(|i| EnvFileError::new("x.env", Some(i), EnvFileErrorKind::MissingEquals))
+        .collect();
+    let warn = [EnvWarning {
+        file: "x.env".into(),
+        line: 5,
+        name: "A\nB".into(),
+        kind: EnvWarningKind::DuplicateKey,
+    }];
+    let en_env = env_for(Language::En);
+    let en = Reporter::new(&en_env, false);
+    let text = en.render(&DisplayEvent::EnvFileErrors(&many));
+    assert_eq!(text.lines().count(), 21, "{text}");
+    assert!(
+        text.lines().last().unwrap().ends_with("and 5 more"),
+        "{text}"
+    );
+    let text = en.render(&DisplayEvent::EnvWarnings(&warn));
+    assert!(
+        text.starts_with("conductor: warning: x.env:5: duplicate key `A\\nB`"),
+        "{text}"
+    );
+
+    let ja_env = env_for(Language::Ja);
+    let ja = Reporter::new(&ja_env, false);
+    let text = ja.render(&DisplayEvent::EnvFileErrors(&many));
+    assert!(
+        text.lines().last().unwrap().ends_with("ほか 5 件"),
+        "{text}"
+    );
+    let text = ja.render(&DisplayEvent::EnvWarnings(&warn));
+    assert!(text.contains("重複キー"), "{text}");
 }
