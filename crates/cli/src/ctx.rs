@@ -50,6 +50,16 @@ pub(crate) struct Ctx<'a> {
     pub reporter: Reporter<'a>,
 }
 
+/// シグナルの準備を除く、実行の前の検査を終えた材料(`prepare_checked` の結果)。
+pub(crate) struct Checked {
+    pub definition_path: PathBuf,
+    pub definition: PipelineDefinition,
+    pub run_id: Option<RunId>,
+    pub state: Option<PipelineState>,
+    pub remove_on_complete: bool,
+    pub env_files: LoadedEnvFiles,
+}
+
 /// 実行の前の検査を終えた、1 回の実行の材料。
 pub(crate) struct Session {
     pub definition_path: PathBuf,
@@ -99,12 +109,45 @@ impl Ctx<'_> {
             }
         }
 
+        let checked = self.prepare_checked(cmd, expected_pipeline, require_job, &[])?;
+        Ok(Session {
+            definition_path: checked.definition_path,
+            definition: checked.definition,
+            run_id: checked.run_id,
+            state: checked.state,
+            remove_on_complete: checked.remove_on_complete,
+            signal,
+            env_files: checked.env_files,
+        })
+    }
+
+    /// `prepare` の、シグナルの準備を除いた部分(定義の検査、ジョブの存在、run ID の決定、`.env` の
+    /// 読み取り、ステートの読み込みと照合。U3 の BR1.1、BR4.1、BR4.2)。`--dry-run` が共有する。
+    ///
+    /// `also_known_jobs` は、`require_job` と同じ位置(定義の検査のあと、run ID の決定の前)で、
+    /// 定義にあるかを確かめるジョブID(`--assume` の指定。ない値は使い方の誤り 68。誤りの表示に、
+    /// ジョブIDは含めない。BR2.1)。本番の `prepare` は、空を渡す。
+    pub(crate) fn prepare_checked(
+        &mut self,
+        cmd: &CliCommand,
+        expected_pipeline: Option<&str>,
+        require_job: Option<&str>,
+        also_known_jobs: &[&str],
+    ) -> Result<Checked, i32> {
         let (path, definition) = self.check_definition(cmd, expected_pipeline)?;
 
         if let Some(job_id) = require_job
             && definition.job_index(job_id).is_none()
         {
             let error = UsageError::with_subject(UsageErrorKind::UnknownJob, job_id);
+            self.show(&DisplayEvent::Usage(&error));
+            return Err(EXIT_USAGE);
+        }
+        if also_known_jobs
+            .iter()
+            .any(|id| definition.job_index(id).is_none())
+        {
+            let error = UsageError::new(UsageErrorKind::UnknownJob);
             self.show(&DisplayEvent::Usage(&error));
             return Err(EXIT_USAGE);
         }
@@ -145,13 +188,12 @@ impl Ctx<'_> {
         }
 
         let remove_on_complete = cmd.remove_on_complete || definition.remove_on_complete;
-        Ok(Session {
+        Ok(Checked {
             definition_path: path,
             definition,
             run_id,
             state,
             remove_on_complete,
-            signal,
             env_files,
         })
     }
