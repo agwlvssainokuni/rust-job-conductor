@@ -42,8 +42,19 @@ impl Demo {
         .expect("定義を写せる");
         std::fs::copy(src.join("retry.toml"), dir.path().join("retry.toml"))
             .expect("リトライの定義を写せる");
+        for name in ["env.toml", "demo.env"] {
+            std::fs::copy(src.join(name), dir.path().join(name))
+                .expect("環境変数の場面の定義を写せる");
+        }
         std::fs::create_dir(dir.path().join("scripts")).expect("scripts を作れる");
-        for name in ["extract", "transform", "load", "notify", "flaky"] {
+        for name in [
+            "extract",
+            "transform",
+            "load",
+            "notify",
+            "flaky",
+            "show-env",
+        ] {
             let file = format!("{name}.cmd");
             std::fs::copy(
                 src.join("scripts").join(&file),
@@ -347,6 +358,61 @@ fn 場面_10_リトライで_2_回失敗してから成功する() {
     assert_eq!(all.matches("conductor: retry: ").count(), 2, "{all}");
     assert!(all.contains("[flaky] 3 回目の実行"), "{all}");
     assert!(all.contains("job=flaky result=success"), "{all}");
+}
+
+#[test]
+fn 場面_11_環境変数が子に渡り_優先順位は_job_env_が最も強い() {
+    let demo = Demo::new();
+    let output = demo.run(&["pipeline", "-v", "--config", "env.toml", "env-demo"], &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    let all = all_text(&output);
+    assert!(
+        all.contains("[show-env] DEMO_GREETING=hello from [pipeline.env]"),
+        "{all}"
+    );
+    assert!(
+        all.contains("[show-env] DEMO_FROM_FILE=from demo.env"),
+        "{all}"
+    );
+    assert!(all.contains("[show-env] DEMO_QUOTED=two words"), "{all}");
+    assert!(all.contains("[show-env] DEMO_STAGE=job"), "{all}");
+    assert!(
+        all.contains("[show-env] CONDUCTOR_PIPELINE=env-demo"),
+        "{all}"
+    );
+    assert!(
+        all.contains("[show-env] CONDUCTOR_JOB_ID=show-env"),
+        "{all}"
+    );
+    assert!(all.contains("[show-env] CONDUCTOR_RUN_ID=(なし)"), "{all}");
+    assert!(all.contains("[show-env] CONDUCTOR_ATTEMPT=1"), "{all}");
+}
+
+#[test]
+fn 場面_11_env_が読めないと_64_で_validate_は重複キーを警告して_0() {
+    let demo = Demo::new();
+    std::fs::write(
+        demo.dir.path().join("bad-env.toml"),
+        "format_version = 1\n\n[pipeline]\nname = \"bad-env\"\nenv_file = \"missing.env\"\n\n[[job]]\nid = \"x\"\ncommand = 'scripts\\show-env.cmd'\n",
+    )
+    .expect("書ける");
+    let bad = demo.run(&["pipeline", "--config", "bad-env.toml", "bad-env"], &[]);
+    assert_eq!(bad.status.code(), Some(64), "{}", text(&bad.stderr));
+    assert!(!text(&bad.stdout).contains("[show-env]"));
+
+    std::fs::write(demo.dir.path().join("dup.env"), "A=1\nA=2\n").expect("書ける");
+    std::fs::write(
+        demo.dir.path().join("dup-env.toml"),
+        "format_version = 1\n\n[pipeline]\nname = \"dup-env\"\nenv_file = \"dup.env\"\n\n[[job]]\nid = \"x\"\ncommand = 'scripts\\show-env.cmd'\n",
+    )
+    .expect("書ける");
+    let dup = demo.run(&["validate", "--config", "dup-env.toml"], &[]);
+    assert_eq!(dup.status.code(), Some(0), "{}", text(&dup.stderr));
+    assert!(
+        text(&dup.stderr).contains("duplicate key `A`"),
+        "{}",
+        text(&dup.stderr)
+    );
 }
 
 #[test]

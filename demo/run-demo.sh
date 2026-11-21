@@ -40,6 +40,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 cp "$here/conductor.toml" "$work/"
 cp "$here/retry.toml" "$work/"
+cp "$here/env.toml" "$here/demo.env" "$work/"
 cp -R "$here/scripts" "$work/"
 cd "$work" || exit 1
 
@@ -185,4 +186,25 @@ rm -f flaky.count
 cmd "$CONDUCTOR" pipeline -v --config retry.toml retry-demo
 echo
 echo "(回数を使い切っても失敗するときは、通常のエラーと同じ: 最後の終了コードで止まり、同じコマンドで、そのジョブから再開できる)"
+pause
+
+scene "11. 環境変数: [pipeline.env]・[job.env]・.env(env_file)を、ジョブに足す"
+echo "定義(env.toml)と .env(demo.env)。env_file の相対パスは、定義ファイルのあるディレクトリが基準:"
+cat env.toml
+echo
+cat demo.env
+echo
+echo "ジョブには、引き継いだ環境に足した環境変数が渡る(優先順位: .env < [pipeline.env] < [job.env])。"
+echo "CONDUCTOR_* は、conductor が自動で渡す(run ID がなければ CONDUCTOR_RUN_ID は渡さない):"
+cmd "$CONDUCTOR" pipeline -v --config env.toml env-demo
+echo
+echo "値は、conductor 自身の出力(標準出力・標準エラー・ステート)には出ない。.env が読めないときは、ジョブを動かさずに 64 で止まる:"
+printf 'format_version = 1\n\n[pipeline]\nname = "bad-env"\nenv_file = "missing.env"\n\n[[job]]\nid = "x"\ncommand = "sh scripts/show-env.sh"\n' > bad-env.toml
+cmd "$CONDUCTOR" pipeline --config bad-env.toml bad-env
+echo
+echo "validate は、.env も検査する。同じ名前が 2 回あると、警告を出す(終了コードは 0):"
+printf 'A=1\nA=2\n' > dup.env
+printf 'format_version = 1\n\n[pipeline]\nname = "dup-env"\nenv_file = "dup.env"\n\n[[job]]\nid = "x"\ncommand = "sh scripts/show-env.sh"\n' > dup-env.toml
+cmd "$CONDUCTOR" validate --config dup-env.toml
+echo
 echo "デモは以上です。"

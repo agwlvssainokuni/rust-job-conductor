@@ -58,6 +58,8 @@ set "work=%TEMP%\conductor-demo-%RANDOM%%RANDOM%"
 mkdir "%work%"
 copy /y "%here%conductor.toml" "%work%\" >nul
 copy /y "%here%retry.toml" "%work%\" >nul
+copy /y "%here%env.toml" "%work%\" >nul
+copy /y "%here%demo.env" "%work%\" >nul
 xcopy /e /i /q /y "%here%scripts" "%work%\scripts" >nul
 cd /d "%work%"
 
@@ -215,6 +217,43 @@ if exist flaky.count del flaky.count
 call :runcmd pipeline -v --config retry.toml retry-demo
 echo.
 echo ^(回数を使い切っても失敗するときは、通常のエラーと同じ: 最後の終了コードで止まり、同じコマンドで、そのジョブから再開できる^)
+call :pause
+
+call :scene "11. 環境変数: [pipeline.env]・[job.env]・.env(env_file)を、ジョブに足す"
+echo 定義^(env.toml^)と .env^(demo.env^)。env_file の相対パスは、定義ファイルのあるディレクトリが基準:
+type env.toml
+echo.
+type demo.env
+echo.
+echo ジョブには、引き継いだ環境に足した環境変数が渡る^(優先順位: .env ^< [pipeline.env] ^< [job.env]^)。
+echo CONDUCTOR_* は、conductor が自動で渡す^(run ID がなければ CONDUCTOR_RUN_ID は渡さない^):
+call :runcmd pipeline -v --config env.toml env-demo
+echo.
+echo 値は、conductor 自身の出力^(標準出力・標準エラー・ステート^)には出ない。.env が読めないときは、ジョブを動かさずに 64 で止まる:
+> bad-env.toml echo format_version = 1
+>> bad-env.toml echo.
+>> bad-env.toml echo [pipeline]
+>> bad-env.toml echo name = "bad-env"
+>> bad-env.toml echo env_file = "missing.env"
+>> bad-env.toml echo.
+>> bad-env.toml echo [[job]]
+>> bad-env.toml echo id = "x"
+>> bad-env.toml echo command = 'scripts\show-env.cmd'
+call :runcmd pipeline --config bad-env.toml bad-env
+echo.
+echo validate は、.env も検査する。同じ名前が 2 回あると、警告を出す^(終了コードは 0^):
+> dup.env echo A=1
+>> dup.env echo A=2
+> dup-env.toml echo format_version = 1
+>> dup-env.toml echo.
+>> dup-env.toml echo [pipeline]
+>> dup-env.toml echo name = "dup-env"
+>> dup-env.toml echo env_file = "dup.env"
+>> dup-env.toml echo.
+>> dup-env.toml echo [[job]]
+>> dup-env.toml echo id = "x"
+>> dup-env.toml echo command = 'scripts\show-env.cmd'
+call :runcmd validate --config dup-env.toml
 echo.
 echo デモは以上です。
 

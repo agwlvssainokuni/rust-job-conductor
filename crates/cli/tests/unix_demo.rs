@@ -58,7 +58,7 @@ fn assert_demo_output(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{err}");
     // `-v` の行やエラーは標準エラーに出るので、標準出力と合わせて見る。
     let out = format!("{}{err}", text(&output.stdout));
-    for n in 0..=10 {
+    for n in 0..=11 {
         assert!(out.contains(&format!("=== {n}. ")), "場面 {n}\n{out}");
     }
     // 場面 7: validate
@@ -91,6 +91,29 @@ fn assert_demo_output(output: &Output) {
     );
     assert!(out.contains("[flaky] 3 回目の実行"), "{out}");
     assert!(out.contains("job=flaky result=success"), "{out}");
+    // 場面 11: 環境変数(優先順位は [job.env] が最も強く、自動の変数が渡り、値は conductor の出力に出ない)
+    assert!(
+        out.contains("[show-env] DEMO_GREETING=hello from [pipeline.env]"),
+        "{out}"
+    );
+    assert!(
+        out.contains("[show-env] DEMO_FROM_FILE=from demo.env"),
+        "{out}"
+    );
+    assert!(out.contains("[show-env] DEMO_QUOTED=two words"), "{out}");
+    assert!(out.contains("[show-env] DEMO_STAGE=job"), "{out}");
+    assert!(
+        out.contains("[show-env] CONDUCTOR_PIPELINE=env-demo"),
+        "{out}"
+    );
+    assert!(
+        out.contains("[show-env] CONDUCTOR_JOB_ID=show-env"),
+        "{out}"
+    );
+    assert!(out.contains("[show-env] CONDUCTOR_RUN_ID=(なし)"), "{out}");
+    assert!(out.contains("[show-env] CONDUCTOR_ATTEMPT=1"), "{out}");
+    assert!(out.contains("missing.env"), "{out}");
+    assert!(out.contains("duplicate key `A`"), "{out}");
 }
 
 #[test]
