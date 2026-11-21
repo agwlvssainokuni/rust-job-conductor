@@ -32,7 +32,10 @@ use std::cell::OnceCell;
 use std::path::Path;
 
 use conductor_converter::ConversionError;
-use conductor_core::{DecisionReason, DefinitionError, PipelineState};
+use conductor_core::{
+    DecisionReason, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, PipelineState,
+    summarize_errors,
+};
 use conductor_runtime::{CommandError, MismatchKind, StateError};
 
 use crate::deps::{Env, Sink};
@@ -41,8 +44,8 @@ use crate::types::{Language, Level, UsageError};
 use escape::{escape_name, escape_path};
 use messages::{
     ERROR_PREFIX, RETRY_PREFIX, VERBOSE_PREFIX, WARNING_PREFIX, command_kind, conversion_kind,
-    definition_kind, mismatch_kind, reject_reason, skip_reason, state_kind,
-    state_kind_suggests_reset, usage_kind,
+    definition_kind, env_duplicate_key, env_errors_more, env_file_kind, env_file_reason,
+    mismatch_kind, reject_reason, skip_reason, state_kind, state_kind_suggests_reset, usage_kind,
 };
 
 /// ステートの誤りを表示するときの文脈(原因に添える補足を決める)。
@@ -78,6 +81,10 @@ pub enum ResultDetail {
 pub enum DisplayEvent<'a> {
     // ---- error(標準エラー。常に) ----
     DefinitionErrors(&'a [DefinitionError]),
+    /// `.env` の誤り(20 件で打ち切り、残りは件数。値は含めない。BR2.8)。
+    EnvFileErrors(&'a [EnvFileError]),
+    /// `.env` の警告(重複キー。`validate` だけが出す。BR7.2)。
+    EnvWarnings(&'a [EnvWarning]),
     CommandErrors {
         definition: &'a Path,
         errors: &'a [(String, CommandError)],
@@ -170,6 +177,8 @@ impl DisplayEvent<'_> {
     pub fn level(&self) -> Level {
         match self {
             Self::DefinitionErrors(_)
+            | Self::EnvFileErrors(_)
+            | Self::EnvWarnings(_)
             | Self::CommandErrors { .. }
             | Self::Usage(_)
             | Self::State { .. }
@@ -268,6 +277,10 @@ impl<'a> Reporter<'a> {
         match event {
             DisplayEvent::DefinitionErrors(errors) => {
                 errors.iter().map(|e| definition_line(lang, e)).collect()
+            }
+            DisplayEvent::EnvFileErrors(errors) => env_file_lines(lang, errors),
+            DisplayEvent::EnvWarnings(warnings) => {
+                warnings.iter().map(|w| env_warning_line(lang, w)).collect()
             }
             DisplayEvent::CommandErrors { definition, errors } => {
                 let place = escape_path(&definition.display().to_string());
@@ -433,6 +446,39 @@ fn definition_line(lang: Language, e: &DefinitionError) -> String {
     };
     let reason = escape_path(&e.reason);
     error_line(&place, &definition_kind(lang, e.kind), Some(&reason))
+}
+
+/// `.env` の誤りの行(最大 20 件。残りは「ほか N 件」。値は含めない。BR2.8、BR8.1)。
+fn env_file_lines(lang: Language, errors: &[EnvFileError]) -> String {
+    let (shown, rest) = summarize_errors(errors);
+    let mut out = String::new();
+    for e in shown {
+        let file = escape_path(&e.file);
+        let place = match e.line {
+            Some(line) => format!("{file}:{line}"),
+            None => file,
+        };
+        out.push_str(&error_line(
+            &place,
+            &env_file_kind(lang, e.kind),
+            Some(&env_file_reason(lang, e.kind)),
+        ));
+    }
+    if rest > 0 {
+        out.push_str(&format!("{ERROR_PREFIX}{}\n", env_errors_more(lang, rest)));
+    }
+    out
+}
+
+/// `conductor: warning: <ファイル>:<行>: <文>` の 1 行。
+fn env_warning_line(lang: Language, w: &EnvWarning) -> String {
+    let EnvWarningKind::DuplicateKey = w.kind;
+    format!(
+        "{WARNING_PREFIX}{}:{}: {}\n",
+        escape_path(&w.file),
+        w.line,
+        env_duplicate_key(lang, &escape_name(&w.name))
+    )
 }
 
 fn command_line(lang: Language, definition: &str, job_id: &str, e: &CommandError) -> String {

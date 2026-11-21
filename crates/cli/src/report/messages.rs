@@ -19,7 +19,7 @@
 //! `pending`・`job=`・`result=`)は、言語に関わらず英語のまま。
 
 use conductor_converter::ConversionErrorKind;
-use conductor_core::{DecisionReason, DefinitionErrorKind};
+use conductor_core::{DecisionReason, DefinitionErrorKind, EnvFileErrorKind};
 use conductor_runtime::{CommandErrorKind, MismatchKind, StateErrorKind};
 
 use crate::types::{Language, UsageErrorKind};
@@ -205,8 +205,79 @@ pub fn definition_kind(lang: Language, kind: DefinitionErrorKind) -> String {
         }
         K::RetryMultiplierInvalid => "retry multiplier is invalid",
         K::RetryMaxIntervalTooSmall => "retry max_interval is smaller than interval",
+        K::ReservedEnvName => "reserved environment variable name",
+        K::EnvNameCaseConflict => "environment variable names differ only in letter case",
+        K::InvalidEnvValue => "invalid environment variable value",
     };
     text.to_string()
+}
+
+/// `.env` の誤りの種類の文。日本語は、conductor-core の表示(`Display`)と同じ。
+pub fn env_file_kind(lang: Language, kind: EnvFileErrorKind) -> String {
+    if lang == Language::Ja {
+        return kind.to_string();
+    }
+    use EnvFileErrorKind as K;
+    let text = match kind {
+        K::FileMissing => "environment file does not exist",
+        K::Unreadable => "cannot read environment file",
+        K::TooLarge => "environment file is too large",
+        K::NotUtf8 => "environment file is not UTF-8",
+        K::TooManyEntries => "environment file has too many entries",
+        K::InvalidName => "invalid environment variable name",
+        K::ReservedName => "reserved environment variable name",
+        K::CaseConflict => "environment variable names differ only in letter case",
+        K::MissingEquals => "not in KEY=VALUE form",
+        K::UnterminatedQuote => "unterminated quote",
+        K::InvalidEscape => "invalid escape sequence",
+        K::TrailingGarbage => "unexpected characters after the closing quote",
+        K::NulInValue => "value contains NUL",
+    };
+    text.to_string()
+}
+
+/// `.env` の誤りの理由(固定の文。値を含まない)。日本語は、conductor-core の理由と同じ。
+pub fn env_file_reason(lang: Language, kind: EnvFileErrorKind) -> String {
+    if lang == Language::Ja {
+        return kind.reason().to_string();
+    }
+    use EnvFileErrorKind as K;
+    let text = match kind {
+        K::FileMissing => "the file named in `env_file` was not found",
+        K::Unreadable => "the file named in `env_file` cannot be read",
+        K::TooLarge => "the file is larger than the limit (1 MiB)",
+        K::NotUtf8 => "write the file in UTF-8",
+        K::TooManyEntries => "the number of entries exceeds the limit (10,000)",
+        K::InvalidName => {
+            "a name starts with an ASCII letter or `_` and has only ASCII letters, digits and `_`"
+        }
+        K::ReservedName => "names starting with `CONDUCTOR_` cannot be written",
+        K::CaseConflict => "the file has names that differ only in letter case",
+        K::MissingEquals => "write a line as `KEY=VALUE`",
+        K::UnterminatedQuote => "the quote is not closed on the same line",
+        K::InvalidEscape => {
+            "only `\\n`, `\\r`, `\\t`, `\\\"` and `\\\\` can be escaped in double quotes"
+        }
+        K::TrailingGarbage => "only spaces and a comment can follow the closing quote",
+        K::NulInValue => "a value cannot contain NUL (U+0000)",
+    };
+    text.to_string()
+}
+
+/// 誤りの打ち切りの行(`.env` の誤りが 20 件を超えたとき。BR2.8)。
+pub fn env_errors_more(lang: Language, rest: usize) -> String {
+    match lang {
+        Language::En => format!("and {rest} more"),
+        Language::Ja => format!("ほか {rest} 件"),
+    }
+}
+
+/// 重複キーの警告の文(名前は、エスケープして入れる)。
+pub fn env_duplicate_key(lang: Language, escaped_name: &str) -> String {
+    match lang {
+        Language::En => format!("duplicate key `{escaped_name}` (the last one wins)"),
+        Language::Ja => format!("重複キー `{escaped_name}`(後ろの値を使います)"),
+    }
 }
 
 pub fn command_kind(kind: CommandErrorKind) -> Text {
