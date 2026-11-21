@@ -25,7 +25,8 @@ use std::sync::Arc;
 use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState, RunId,
+    Command, DefinitionError, EnvFileError, JobDefinition, JobExecution, LoadedEnvFiles,
+    PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError,
@@ -203,6 +204,12 @@ pub struct ScriptedRuntime {
     pub waits: RefCell<Vec<u64>>,
     /// `wait` の N 回目(0 始まり)で、合図(番号)を立てて `Interrupted` を返す。
     pub interrupt_wait: Cell<Option<(usize, i32)>>,
+    /// `load_env_files` に渡された `env_file` の記述(呼び出しごと)。
+    pub env_loads: RefCell<Vec<Vec<String>>>,
+    /// `.env` の読み取りの結果を、実際の読み取りの代わりに返す(誤りの注入)。
+    pub env_override: RefCell<Option<Result<LoadedEnvFiles, Vec<EnvFileError>>>>,
+    /// `run_job` に渡された、(ジョブID、足す環境の並び)。起動のたびに記録する。
+    pub run_envs: RefCell<Vec<(String, Vec<(String, String)>)>>,
 }
 
 impl Default for ScriptedRuntime {
@@ -223,6 +230,9 @@ impl Default for ScriptedRuntime {
             run_id_env_calls: Cell::new(0),
             waits: RefCell::new(Vec::new()),
             interrupt_wait: Cell::new(None),
+            env_loads: RefCell::new(Vec::new()),
+            env_override: RefCell::new(None),
+            run_envs: RefCell::new(Vec::new()),
         }
     }
 }
@@ -272,8 +282,32 @@ impl Runtime for ScriptedRuntime {
         self.inner.check_command(command)
     }
 
-    fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
+    fn load_env_files(
+        &self,
+        definition_path: &Path,
+        refs: &[String],
+    ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
+        self.push("load-env");
+        self.env_loads.borrow_mut().push(refs.to_vec());
+        if let Some(result) = self.env_override.borrow().as_ref() {
+            return result.clone();
+        }
+        self.inner.load_env_files(definition_path, refs)
+    }
+
+    fn run_job(
+        &self,
+        job: &JobDefinition,
+        env: &[(&str, &str)],
+        signal: &InterruptSignal,
+    ) -> JobExecution {
         self.run_calls.set(self.run_calls.get() + 1);
+        self.run_envs.borrow_mut().push((
+            job.id.clone(),
+            env.iter()
+                .map(|(n, v)| (n.to_string(), v.to_string()))
+                .collect(),
+        ));
         let mut execution = JobExecution {
             job_id: job.id.clone(),
             command: job.command.clone(),
@@ -653,7 +687,20 @@ impl Runtime for MemRuntime {
         conductor_runtime::check_command(command)
     }
 
-    fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
+    fn load_env_files(
+        &self,
+        _definition_path: &Path,
+        _refs: &[String],
+    ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
+        Ok(LoadedEnvFiles::new())
+    }
+
+    fn run_job(
+        &self,
+        job: &JobDefinition,
+        _env: &[(&str, &str)],
+        signal: &InterruptSignal,
+    ) -> JobExecution {
         let mut execution = JobExecution {
             job_id: job.id.clone(),
             command: job.command.clone(),

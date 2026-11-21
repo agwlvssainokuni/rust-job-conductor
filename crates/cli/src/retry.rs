@@ -19,10 +19,12 @@
 //! 結果の表示は、呼び出し側が、その最後の結果について、これまでどおり 1 回だけ行う(BR2.10、BR2.12)。
 //! リトライの回数と、直前の待ち時間は、この関数のローカルな値で、ステートファイルには書かない。
 
-use conductor_core::{JobDefinition, JobExecution, RetryDecision, retry_decision};
+use conductor_core::{
+    EnvContext, JobDefinition, JobExecution, RetryDecision, merge_env, retry_decision,
+};
 use conductor_runtime::{InterruptSignal, WaitOutcome};
 
-use crate::ctx::Ctx;
+use crate::ctx::{Ctx, Session};
 use crate::report::DisplayEvent;
 
 /// ジョブを実行し、リトライの対象なら、知らせて、待って、実行し直す。最後の実行結果を返す。
@@ -33,13 +35,27 @@ use crate::report::DisplayEvent;
 ///   扱いになる(BR2.5)。
 pub(crate) fn run_job_with_retry(
     ctx: &mut Ctx<'_>,
+    session: &Session,
     job: &JobDefinition,
-    signal: &InterruptSignal,
 ) -> JobExecution {
+    let signal: &InterruptSignal = &session.signal;
     let mut retries_done: u32 = 0;
     let mut last_wait_secs: u64 = 0;
     loop {
-        let execution = ctx.runtime.run_job(job, signal);
+        // 試行ごとに、足す環境を作り直す(`CONDUCTOR_ATTEMPT` は、この呼び出しのリトライの回数 + 1。
+        // 再開すると 1 に戻る。BR5.2、FR1.10)。
+        let env = merge_env(
+            &session.definition,
+            job,
+            &session.env_files,
+            &EnvContext {
+                pipeline_name: &session.definition.name,
+                job_id: &job.id,
+                run_id: session.run_id.as_ref().map(|r| r.as_str()),
+                attempt: retries_done + 1,
+            },
+        );
+        let execution = ctx.runtime.run_job(job, &env.additions(), signal);
         let RetryDecision::Retry { wait_secs } =
             retry_decision(job, &execution, retries_done, last_wait_secs)
         else {

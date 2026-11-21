@@ -101,13 +101,19 @@ fn base_execution(job: &JobDefinition) -> JobExecution {
 ///   `start_failure`(防御)。
 /// - 合図が、起動の前に立っていれば、起動せず、`started = false`、`interrupted = true`(BR1.6)。
 /// - 起動する(UNIX 系は新しいプロセスグループ)。作業ディレクトリ、環境変数、標準入出力は引き継ぐ。
+///   `env` の名前と値を、並びの順に足す(引き継いだ環境は残し、同じ名前は上書きする。同じ名前が
+///   並びに 2 回あれば、後ろが勝つ。U1 の BR4.3、BR4.4、FR1.3)。
 ///   起動できなければ `start_failure`(BR1.2〜BR1.4)。
 /// - 終了まで待つ。時間切れにしない。再試行しない(BR1.5)。実行中に合図が立てば、シグナルを
 ///   ジョブに 1 回だけ転送する(BR1.7)。
 /// - 終了の観測の直後に、合図が立っていれば、`interrupted = true` と `signal_number`(BR1.7)。
 ///
 /// 失敗は、すべて戻り値(`JobExecution`)で返し、パニックしない(NFR4.7)。
-pub fn run_job(job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
+pub fn run_job(
+    job: &JobDefinition,
+    env: &[(&str, &str)],
+    signal: &InterruptSignal,
+) -> JobExecution {
     let mut execution = base_execution(job);
 
     let line = match command_line(&job.command) {
@@ -127,6 +133,9 @@ pub fn run_job(job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
 
     let mut command = Command::new(&line.program);
     command.args(&line.args);
+    for (name, value) in env {
+        command.env(name, value);
+    }
     platform::configure_spawn(&mut command);
     let mut child = match command.spawn() {
         Ok(child) => child,
@@ -264,9 +273,9 @@ mod tests {
 
     #[test]
     fn 分けられない_command_は起動失敗() {
-        let e = run_job(&job("echo 'x"), &InterruptSignal::new());
+        let e = run_job(&job("echo 'x"), &[], &InterruptSignal::new());
         assert!(e.started && e.start_failure && !e.interrupted);
-        let e = run_job(&job("  "), &InterruptSignal::new());
+        let e = run_job(&job("  "), &[], &InterruptSignal::new());
         assert!(e.start_failure);
     }
 
@@ -274,7 +283,7 @@ mod tests {
     fn 起動前の合図は起動しない() {
         let s = InterruptSignal::new();
         s.raise(2);
-        let e = run_job(&job("definitely-not-run"), &s);
+        let e = run_job(&job("definitely-not-run"), &[], &s);
         assert!(!e.started && e.interrupted && !e.start_failure);
         assert_eq!(e.signal_number, Some(2));
         assert_eq!((e.exit_code, e.terminated_by_signal), (None, None));
@@ -284,6 +293,7 @@ mod tests {
     fn 存在しないコマンドは起動失敗() {
         let e = run_job(
             &job("conductor-no-such-command-zzz --flag"),
+            &[],
             &InterruptSignal::new(),
         );
         assert!(e.started && e.start_failure);

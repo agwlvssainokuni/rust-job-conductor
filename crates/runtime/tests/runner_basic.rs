@@ -23,7 +23,7 @@ use conductor_runtime::{InterruptSignal, run_job};
 fn run(command: impl Into<Command> + Send + 'static) -> conductor_core::JobExecution {
     run_with_limit(
         || {},
-        move || run_job(&job("j", command), &InterruptSignal::new()),
+        move || run_job(&job("j", command), &[], &InterruptSignal::new()),
     )
 }
 
@@ -166,7 +166,7 @@ fn 起動前の合図が立っていれば起動しない() {
         move || {
             let signal = InterruptSignal::new();
             signal.raise(2);
-            run_job(&job("j", command), &signal)
+            run_job(&job("j", command), &[], &signal)
         },
     );
     assert!(!e.started && e.interrupted && !e.start_failure);
@@ -205,7 +205,7 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
                 // 転送されない番号(Windows では、何も送らない)。ジョブは自分で終わる。
                 s.raise(10);
             });
-            let e = run_job(&job("j", command), &signal);
+            let e = run_job(&job("j", command), &[], &signal);
             let _ = t.join();
             e
         },

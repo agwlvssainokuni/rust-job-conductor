@@ -96,7 +96,20 @@ pub(crate) fn run_reset(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
 /// 成功は何も出さない(`-v` のときだけ、標準エラーに 1 行)。誤りは `run` と同じ表示で 64。
 pub(crate) fn run_validate(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     match ctx.check_definition(cmd, cmd.pipeline_name.as_deref()) {
-        Ok((_, definition)) => {
+        Ok((path, definition)) => {
+            // `pipeline` と同じ範囲の `.env` を読む(BR7.1)。重複キーの警告は、誤りでないので 0(BR7.2)。
+            let loaded = match ctx.load_env_files(&path, &definition, None) {
+                Ok(loaded) => loaded,
+                Err(code) => return code,
+            };
+            let warnings: Vec<_> = loaded
+                .files()
+                .iter()
+                .flat_map(|f| f.warnings.iter().cloned())
+                .collect();
+            if !warnings.is_empty() {
+                ctx.show(&DisplayEvent::EnvWarnings(&warnings));
+            }
             ctx.show(&DisplayEvent::DefinitionValid {
                 job_count: definition.job.len(),
             });

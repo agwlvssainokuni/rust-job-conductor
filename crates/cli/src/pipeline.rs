@@ -125,7 +125,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                     }
                 };
 
-                let execution = run_job_with_retry(ctx, job, &session.signal);
+                let execution = run_job_with_retry(ctx, &session, job);
                 let (outcome, next) = classify_and_decide(
                     job,
                     &execution,

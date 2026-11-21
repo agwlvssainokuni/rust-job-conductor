@@ -27,7 +27,8 @@ use std::sync::Arc;
 
 use conductor_converter::{ConversionError, ConversionRequest, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, JobDefinition, JobExecution, PipelineDefinition, PipelineState, RunId,
+    Command, DefinitionError, EnvFileError, JobDefinition, JobExecution, LoadedEnvFiles,
+    PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, Durability, InterruptSignal, ResetAllReport, StateError, WaitOutcome,
@@ -82,8 +83,19 @@ pub trait Runtime {
     ) -> Result<PipelineDefinition, Vec<DefinitionError>>;
     /// command を、起動せずに検査する(`check_command`)。
     fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError>;
-    /// ジョブを起動し、終了を待つ(`run_job`)。
-    fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution;
+    /// `env_file` の `.env` を読む(`load_env_files`。BR1.7、BR3.x、BR6.4)。
+    fn load_env_files(
+        &self,
+        definition_path: &Path,
+        refs: &[String],
+    ) -> Result<LoadedEnvFiles, Vec<EnvFileError>>;
+    /// ジョブを、`env` を足した環境で起動し、終了を待つ(`run_job`)。
+    fn run_job(
+        &self,
+        job: &JobDefinition,
+        env: &[(&str, &str)],
+        signal: &InterruptSignal,
+    ) -> JobExecution;
     /// リトライの前に `secs` 秒待つ(`wait_for`。BR2.13)。合図が立てば、すぐ `Interrupted` を返す。
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome;
     /// ステートを読む(`read_state`。`None` は空)。`run_id` は、ファイル名の run ID。
@@ -143,8 +155,21 @@ impl Runtime for SystemRuntime {
         conductor_runtime::check_command(command)
     }
 
-    fn run_job(&self, job: &JobDefinition, signal: &InterruptSignal) -> JobExecution {
-        conductor_runtime::run_job(job, signal)
+    fn load_env_files(
+        &self,
+        definition_path: &Path,
+        refs: &[String],
+    ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
+        conductor_runtime::load_env_files(definition_path, refs)
+    }
+
+    fn run_job(
+        &self,
+        job: &JobDefinition,
+        env: &[(&str, &str)],
+        signal: &InterruptSignal,
+    ) -> JobExecution {
+        conductor_runtime::run_job(job, env, signal)
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

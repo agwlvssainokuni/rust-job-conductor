@@ -22,8 +22,9 @@ use std::sync::Arc;
 
 use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
-    Classification, DefinitionError, JobDefinition, JobExecution, JobOutcome, NextStep,
-    PipelineDefinition, PipelineState, RunId, TransitionOn, TransitionTarget,
+    Classification, DefinitionError, JobDefinition, JobExecution, JobOutcome, LoadedEnvFiles,
+    NextStep, PipelineDefinition, PipelineState, RunId, TransitionOn, TransitionTarget,
+    env_file_refs,
 };
 use conductor_runtime::ConsistencyResult;
 use conductor_runtime::{
@@ -62,6 +63,8 @@ pub(crate) struct Session {
     pub remove_on_complete: bool,
     /// 中断の合図(シグナルの監視が書き、`run_job` が読む)。
     pub signal: Arc<InterruptSignal>,
+    /// 読み取った `.env`(この呼び出しの中だけで持つ。ステートには書かない。BR6.3、BR8.3)。
+    pub env_files: LoadedEnvFiles,
 }
 
 /// 定義ファイルの場所(BR1.4)。`--config` があればそのパス、なければ実行ディレクトリの `conductor.toml`。
@@ -80,7 +83,7 @@ impl Ctx<'_> {
     /// 実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを `Err` で返す。
     ///
     /// 順序: シグナルの準備(定義の検査より前。BR4.1)→ 定義(64)→ command(64)→ ジョブID(68)→
-    /// run ID の決定(68)→ ステートの読み込み(65)→ 照合(65)。`expected_pipeline` は、`pipeline` の名前の照合に渡す。
+    /// run ID の決定(68)→ `.env` の読み取り(64)→ ステートの読み込み(65)→ 照合(65)。`expected_pipeline` は、`pipeline` の名前の照合に渡す。
     pub(crate) fn prepare(
         &mut self,
         cmd: &CliCommand,
@@ -119,6 +122,9 @@ impl Ctx<'_> {
             }
         };
 
+        // `.env` の読み取り(BR6.1〜BR6.3)。誤りがあれば、ジョブを実行せず、ステートにも触れずに 64 で止まる。
+        let env_files = self.load_env_files(&path, &definition, require_job)?;
+
         let read_context = read_context(run_id.is_some());
         let state = match self.runtime.read_state(&path, run_id.as_ref()) {
             Ok(state) => state,
@@ -146,7 +152,29 @@ impl Ctx<'_> {
             state,
             remove_on_complete,
             signal,
+            env_files,
         })
+    }
+
+    /// 読む対象の `env_file`(`job_id` があればそのジョブの分、なければ全ジョブの分と
+    /// `[pipeline].env_file`)を、すべて読む(BR6.1、BR7.1)。誤りは表示して、64 を `Err` で返す(BR2.8)。
+    pub(crate) fn load_env_files(
+        &mut self,
+        definition_path: &Path,
+        definition: &PipelineDefinition,
+        job_id: Option<&str>,
+    ) -> Result<LoadedEnvFiles, i32> {
+        let refs = env_file_refs(definition, job_id);
+        if refs.is_empty() {
+            return Ok(LoadedEnvFiles::new());
+        }
+        match self.runtime.load_env_files(definition_path, &refs) {
+            Ok(loaded) => Ok(loaded),
+            Err(errors) => {
+                self.show(&DisplayEvent::EnvFileErrors(&errors));
+                Err(EXIT_DEFINITION)
+            }
+        }
     }
 
     /// 定義の読み込みと検証(64)、全ジョブの `command` の検査(64)。`prepare` と `validate` が共有する。

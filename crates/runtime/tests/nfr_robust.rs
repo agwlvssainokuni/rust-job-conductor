@@ -175,13 +175,13 @@ fn 起動できないコマンドや範囲外の番号でパニックしない()
         "/".to_string(),
     ];
     for command in cases {
-        let e = run_job(&common::job("j", command), &InterruptSignal::new());
+        let e = run_job(&common::job("j", command), &[], &InterruptSignal::new());
         assert!(e.start_failure, "{e:?}");
     }
     for number in [i32::MAX, i32::MIN, 0, -1, 1_000_000] {
         let s = InterruptSignal::new();
         s.raise(number);
-        let e = run_job(&common::job("j", "anything"), &s);
+        let e = run_job(&common::job("j", "anything"), &[], &s);
         assert!(!e.started && e.interrupted);
         assert!(e.signal_number.is_some());
     }

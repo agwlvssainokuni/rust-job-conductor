@@ -178,7 +178,7 @@ fn invoke_inner(
                 .iter()
                 .find(|j| j.id == job_id)
                 .expect("定義にある");
-            let execution = run_job(job, signal);
+            let execution = run_job(job, &[], signal);
             if stop_before_record {
                 return Ok(Done {
                     exit: -1,
