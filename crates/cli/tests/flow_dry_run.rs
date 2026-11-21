@@ -211,7 +211,8 @@ fn 計画の実行するジョブは_本番の流れが起動するジョブと�
         "command = \"echo a\"",
         "command = \"echo a\"\n[[job.transitions]]\non = \"success\"\nnext = \"@end\"",
     );
-    let cases: Vec<(&str, String, Vec<(&str, i32)>)> = vec![
+    type Case<'a> = (&'a str, String, Vec<(&'a str, i32)>);
+    let cases: Vec<Case> = vec![
         ("すべて成功", THREE_JOBS.to_string(), vec![]),
         ("b でエラー", THREE_JOBS.to_string(), vec![("b", 1)]),
         ("警告で c へ", WARNING_JUMPS.to_string(), vec![("a", 1)]),

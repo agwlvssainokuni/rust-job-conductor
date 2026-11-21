@@ -218,8 +218,8 @@ Windows では、`command` を `cmd /c` で動く形に書き換えてくださ�
 ## 使い方
 
 ```text
-conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]...] <ジョブID>
-conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]...] <パイプライン名>
+conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <ジョブID>
+conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <パイプライン名>
 conductor watch [--config <パス>] [--run-id <ID>]
 conductor reset [--config <パス>] [--run-id <ID> | --all]
 conductor validate [-v] [--config <パス>] [<パイプライン名>]

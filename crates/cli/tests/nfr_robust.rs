@@ -220,6 +220,7 @@ fn 空のジョブidや制御文字を含むジョブidでもパニックしな�
         let (code, sink) = run_mem(&runtime, &["run", id]);
         assert_eq!(code, 68, "{id:?}");
         assert!(!sink.err_text().contains('\x1b'));
-        assert!(sink.err_text().len() < 2_000, "長い入力は切って表示する");
+        // 使い方の一覧(機能が増えると長くなる)を含めても、1 万文字の入力は、そのまま出ない。
+        assert!(sink.err_text().len() < 3_000, "長い入力は切って表示する");
     }
 }
