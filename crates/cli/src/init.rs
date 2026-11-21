@@ -29,8 +29,9 @@ use crate::types::{CliCommand, InitTarget};
 
 /// `conductor init` を実行し、終了コードを返す。
 pub(crate) fn run_init(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
-    let text = render_template(ctx.reporter.language(), &cmd.init.pipeline_name);
-    match &cmd.init.target {
+    let options = cmd.init_options();
+    let text = render_template(ctx.reporter.language(), &options.pipeline_name);
+    match &options.target {
         InitTarget::Stdout => {
             // ひな形だけを 1 回で書く。`--force` は意味がないので、無視する(BR1.5)。
             if ctx.show(&DisplayEvent::InitTemplate(&text)) {
@@ -44,7 +45,7 @@ pub(crate) fn run_init(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             let path = Path::new(path);
             match ctx
                 .runtime
-                .create_file(path, text.as_bytes(), cmd.init.force)
+                .create_file(path, text.as_bytes(), options.force)
             {
                 Ok(CreateOutcome::Created) => {
                     ctx.show(&DisplayEvent::InitCreated { path });

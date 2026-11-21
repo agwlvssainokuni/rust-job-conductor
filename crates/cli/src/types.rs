@@ -155,11 +155,25 @@ pub struct CliCommand {
     pub graph: GraphOptions,
     /// `run`・`pipeline` のときのみ。`--dry-run` と `--assume`。
     pub dry_run: DryRunOptions,
-    /// `init` のときのみ。出力先、`--force`、パイプライン名。
-    pub init: InitOptions,
+    /// `--force`。`init` のときのみ(U4。BR1.4)。出力先は `config_path`、名前は `pipeline_name` を使う
+    /// ([`CliCommand::init_options`])。
+    pub force: bool,
 }
 
 impl CliCommand {
+    /// `init` のオプション(出力先、`--force`、パイプライン名)を、コマンドから取り出す(BR1.1、BR1.5、BR2.2)。
+    pub fn init_options(&self) -> InitOptions {
+        let defaults = InitOptions::default();
+        InitOptions {
+            target: match &self.config_path {
+                Some(path) => InitTarget::from_path(path.clone()),
+                None => defaults.target,
+            },
+            force: self.force,
+            pipeline_name: self.pipeline_name.clone().unwrap_or(defaults.pipeline_name),
+        }
+    }
+
     /// 指定のない値で、コマンドを作る(引数の解釈と、テストが使う)。
     pub fn new(kind: CommandKind) -> Self {
         Self {
@@ -175,7 +189,7 @@ impl CliCommand {
             remove_on_complete: false,
             graph: GraphOptions::default(),
             dry_run: DryRunOptions::default(),
-            init: InitOptions::default(),
+            force: false,
         }
     }
 }

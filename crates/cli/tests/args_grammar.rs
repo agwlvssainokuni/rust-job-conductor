@@ -369,32 +369,33 @@ fn コマンドの名前() {
 fn init_の既定は_conductor_toml_と_my_pipeline_で_force_なし() {
     let cmd = command(&["init"]);
     assert_eq!(cmd.kind, CommandKind::Init);
-    assert_eq!(cmd.init, InitOptions::default());
+    let options = cmd.init_options();
+    assert_eq!(options, InitOptions::default());
     assert_eq!(
-        cmd.init.target,
+        options.target,
         InitTarget::File(OsString::from("conductor.toml"))
     );
-    assert_eq!(cmd.init.pipeline_name, "my-pipeline");
-    assert!(!cmd.init.force);
+    assert_eq!(options.pipeline_name, "my-pipeline");
+    assert!(!options.force);
 }
 
 #[test]
 fn init_は_config_と_force_と名前を受け取り_ハイフンは標準出力() {
-    let cmd = command(&["init", "--config", "x.toml", "--force", "夜間バッチ"]);
-    assert_eq!(cmd.init.target, InitTarget::File(OsString::from("x.toml")));
-    assert!(cmd.init.force);
-    assert_eq!(cmd.init.pipeline_name, "夜間バッチ");
+    let options = command(&["init", "--config", "x.toml", "--force", "夜間バッチ"]).init_options();
+    assert_eq!(options.target, InitTarget::File(OsString::from("x.toml")));
+    assert!(options.force);
+    assert_eq!(options.pipeline_name, "夜間バッチ");
 
-    let cmd = command(&["--force", "init", "--config=x.toml"]);
-    assert!(cmd.init.force);
-    assert_eq!(cmd.init.target, InitTarget::File(OsString::from("x.toml")));
+    let options = command(&["--force", "init", "--config=x.toml"]).init_options();
+    assert!(options.force);
+    assert_eq!(options.target, InitTarget::File(OsString::from("x.toml")));
 
-    let cmd = command(&["init", "--config", "-", "--force"]);
-    assert_eq!(cmd.init.target, InitTarget::Stdout);
+    let options = command(&["init", "--config", "-", "--force"]).init_options();
+    assert_eq!(options.target, InitTarget::Stdout);
     // 標準出力のときの `--force` は、誤りにしない(流れが無視する)。
-    assert!(cmd.init.force);
+    assert!(options.force);
     assert_eq!(
-        command(&["init", "--config=-"]).init.target,
+        command(&["init", "--config=-"]).init_options().target,
         InitTarget::Stdout
     );
 }

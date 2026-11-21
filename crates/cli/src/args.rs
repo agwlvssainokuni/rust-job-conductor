@@ -58,8 +58,7 @@ use lexopt::prelude::*;
 
 use crate::deps::Env;
 use crate::types::{
-    CliCommand, CommandKind, GraphFormat, InitTarget, ParsedArgs, UsageError,
-    UsageErrorKind as Kind,
+    CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind as Kind,
 };
 
 /// 字句に分けた 1 つの引数。
@@ -387,12 +386,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
 
     let mut command = CliCommand::new(kind);
     command.verbose = verbose_count == 1;
-    if kind == CommandKind::Init {
-        if let Some(path) = config.first() {
-            command.init.target = InitTarget::from_path(path.clone());
-        }
-        command.init.force = force_count == 1;
-    }
+    command.force = force_count == 1;
     command.config_path = config.into_iter().next();
     command.all = all_count == 1;
     command.remove_on_complete = remove_count == 1;
@@ -453,7 +447,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
                         "pipeline name",
                     ));
                 }
-                command.init.pipeline_name = name;
+                command.pipeline_name = Some(name);
             }
         }
         CommandKind::Watch | CommandKind::Reset => {}

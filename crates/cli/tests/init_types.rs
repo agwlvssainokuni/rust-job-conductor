@@ -42,7 +42,7 @@ fn ハイフンだけが標準出力でそれ以外はファイル() {
 }
 
 #[test]
-fn コマンドの既定の_init_のオプションは_init_のオプションの既定と同じ() {
-    let cmd = CliCommand::new(CommandKind::Validate);
-    assert_eq!(cmd.init, InitOptions::default());
+fn コマンドから取り出した_init_のオプションの既定は_init_のオプションの既定と同じ() {
+    let cmd = CliCommand::new(CommandKind::Init);
+    assert_eq!(cmd.init_options(), InitOptions::default());
 }
