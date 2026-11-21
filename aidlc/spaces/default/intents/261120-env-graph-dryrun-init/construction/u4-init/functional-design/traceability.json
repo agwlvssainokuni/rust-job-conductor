@@ -1,0 +1,18 @@
+{
+  "stage": "functional-design",
+  "unit": "u4-init",
+  "upstream_ids": ["FR4.1","FR4.2","FR4.3","FR4.4","FR4.5","FR5.1","FR5.2"],
+  "coverage": [
+    { "id": "FR4.1", "status": "OK", "target": "BR1.1, BR2.2" },
+    { "id": "FR4.2", "status": "OK", "target": "BR1.2, BR1.4, BR3.1" },
+    { "id": "FR4.3", "status": "OK", "target": "BR1.3" },
+    { "id": "FR4.4", "status": "OK", "target": "BR1.5" },
+    { "id": "FR4.5", "status": "OK", "target": "BR2.1, BR2.3, BR2.4" },
+    { "id": "FR5.1", "status": "OK", "target": "BR4.1" },
+    { "id": "FR5.2", "status": "OK", "target": "BR4.2" }
+  ],
+  "reverse": [
+    { "id": "BR1.6", "status": "N/A", "target": "質問 Q4(親のディレクトリは作らない)" },
+    { "id": "BR3.2", "status": "N/A", "target": "質問 Q3(作れなかったときの終了コード 65)" }
+  ]
+}
