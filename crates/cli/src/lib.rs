@@ -86,6 +86,7 @@ mod aux_commands;
 mod ctx;
 pub mod deps;
 pub mod exit;
+mod graph;
 pub mod panic_hook;
 mod pipeline;
 pub mod platform;

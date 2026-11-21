@@ -67,6 +67,7 @@ pub mod definition;
 pub mod envfile;
 pub mod error;
 pub mod flow;
+pub mod graph;
 pub mod run_id;
 pub mod types;
 
