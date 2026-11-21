@@ -29,6 +29,10 @@ pub mod edges;
 pub mod layout;
 pub mod overlay;
 
+pub use edges::flow_edges;
+pub use layout::{is_lane_drawable, layout_graph};
+pub use overlay::{build_graph, node_state_of, overlay_from_state, pending_overlay};
+
 /// 辺が、どの結果のときに通るか。エラーには辺がない(ジョブが止まるため。BR1.3)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EdgeKind {
