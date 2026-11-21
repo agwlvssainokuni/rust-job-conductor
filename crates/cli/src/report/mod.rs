@@ -27,6 +27,7 @@
 pub mod escape;
 pub mod graph_mermaid;
 pub mod graph_text;
+pub mod init_template;
 pub mod messages;
 pub mod plan_text;
 pub mod watch;

@@ -88,6 +88,7 @@ pub mod deps;
 mod dry_run;
 pub mod exit;
 mod graph;
+mod init;
 pub mod panic_hook;
 mod pipeline;
 pub mod platform;
