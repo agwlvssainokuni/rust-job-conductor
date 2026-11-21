@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! UNIX 向けデモ(`demo/run-demo.sh`)のテスト(FR6.2)。
-//! スクリプトを `sh` で実行し、場面 0〜13 の見出しと要点の行が出て、0 で終わることを確かめる。
+//! スクリプトを `sh` で実行し、場面 0〜14 の見出しと要点の行が出て、0 で終わることを確かめる。
 #![cfg(unix)]
 
 mod bin_support;
@@ -58,7 +58,7 @@ fn assert_demo_output(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{err}");
     // `-v` の行やエラーは標準エラーに出るので、標準出力と合わせて見る。
     let out = format!("{}{err}", text(&output.stdout));
-    for n in 0..=13 {
+    for n in 0..=14 {
         assert!(out.contains(&format!("=== {n}. ")), "場面 {n}\n{out}");
     }
     // 場面 7: validate
@@ -148,10 +148,20 @@ fn assert_demo_output(output: &Output) {
     );
     assert!(out.contains("target job: extract\n"), "{out}");
     assert!(out.contains("next step: next job transform\n"), "{out}");
+    // 場面 14: init(作成、validate、2 回目は 69、--force で上書き、`--config -` で標準出力)
+    assert!(out.contains("created new.toml\n"), "{out}");
+    assert!(out.contains("name = \"starter\"\n"), "{out}");
+    assert!(
+        out.contains("already exists (use --force to overwrite)\n"),
+        "{out}"
+    );
+    assert!(out.contains("→ 終了コード 69"), "{out}");
+    assert!(out.contains("replaced new.toml\n"), "{out}");
+    assert!(out.contains("format_version = 1\n"), "{out}");
 }
 
 #[test]
-fn デモは_0_で完走し_場面_0_から_13_の要点の行が出る() {
+fn デモは_0_で完走し_場面_0_から_14_の要点の行が出る() {
     let tmp = tempfile::tempdir().expect("一時ディレクトリ");
     let output = run_demo(tmp.path(), &[]);
     assert_demo_output(&output);

@@ -242,4 +242,22 @@ echo "実際には何も実行されず、ステートも作られていない:"
 states
 pause
 
+scene "14. ひな形: init は、定義のひな形を作る(既にあるファイルは壊さない)"
+echo "init で、定義のひな形を作る(名前は省略すると my-pipeline。ここでは starter):"
+cmd "$CONDUCTOR" init --config new.toml starter
+echo
+echo "作ったひな形は、validate に通る:"
+cmd "$CONDUCTOR" validate --config new.toml starter
+echo
+echo "もう一度 init すると、既にあるので、何も変えず、終了コード 69 で終わる:"
+cmd "$CONDUCTOR" init --config new.toml starter
+echo
+echo "--force を付けると、上書きする:"
+cmd "$CONDUCTOR" init --config new.toml --force starter
+echo
+echo "--config - なら、ファイルを作らずに、ひな形を標準出力に出す:"
+cmd "$CONDUCTOR" init --config - starter
+rm -f new.toml
+pause
+
 echo "デモは以上です。"

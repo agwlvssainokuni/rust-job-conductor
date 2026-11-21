@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! Windows 向けデモ(`demo/windows`)のテスト(FR1.3、FR2.1、FR2.2、FR6.1)。
-//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜13 の終了コードと結果を確かめる。
+//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜14 の終了コードと結果を確かめる。
 #![cfg(windows)]
 
 mod bin_support;
@@ -479,6 +479,35 @@ fn 場面_13_dry_run_は計画を出し_何も実行せず_ステートも作ら
     let out = text(&single.stdout).replace("\r\n", "\n");
     assert!(out.contains("next step: next job transform\n"), "{out}");
     assert!(state_files(&demo).is_empty(), "ステートは作られない");
+}
+
+#[test]
+fn 場面_14_init_はひな形を作り_2_回目は_69_で_force_で上書きできる() {
+    let demo = Demo::new();
+    let created = demo.run(&["init", "--config", "new.toml", "starter"], &[]);
+    assert_eq!(created.status.code(), Some(0), "{}", text(&created.stderr));
+    assert!(text(&created.stderr).contains("created new.toml"));
+    let checked = demo.run(&["validate", "--config", "new.toml", "starter"], &[]);
+    assert_eq!(checked.status.code(), Some(0), "{}", text(&checked.stderr));
+    // 2 回目は、何も変えず、69 で終わる。
+    let before = std::fs::read(demo.dir.path().join("new.toml")).expect("できている");
+    let again = demo.run(&["init", "--config", "new.toml", "starter"], &[]);
+    assert_eq!(again.status.code(), Some(69));
+    assert!(text(&again.stderr).contains("already exists (use --force to overwrite)"));
+    assert_eq!(
+        std::fs::read(demo.dir.path().join("new.toml")).expect("読める"),
+        before
+    );
+    // --force で上書き。`--config -` は、ファイルの内容と同じひな形を出す。
+    let forced = demo.run(&["init", "--config", "new.toml", "--force", "starter"], &[]);
+    assert_eq!(forced.status.code(), Some(0), "{}", text(&forced.stderr));
+    assert!(text(&forced.stderr).contains("replaced new.toml"));
+    let shown = demo.run(&["init", "--config", "-", "starter"], &[]);
+    assert_eq!(shown.status.code(), Some(0), "{}", text(&shown.stderr));
+    assert_eq!(
+        shown.stdout,
+        std::fs::read(demo.dir.path().join("new.toml")).expect("読める")
+    );
 }
 
 #[test]

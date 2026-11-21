@@ -293,6 +293,24 @@ echo 実際には何も実行されず、ステートも作られていない:
 call :states
 call :pause
 
+call :scene "14. ひな形: init は、定義のひな形を作る(既にあるファイルは壊さない)"
+echo init で、定義のひな形を作る^(名前は省略すると my-pipeline。ここでは starter^):
+call :runcmd init --config new.toml starter
+echo.
+echo 作ったひな形は、validate に通る:
+call :runcmd validate --config new.toml starter
+echo.
+echo もう一度 init すると、既にあるので、何も変えず、終了コード 69 で終わる:
+call :runcmd init --config new.toml starter
+echo.
+echo --force を付けると、上書きする:
+call :runcmd init --config new.toml --force starter
+echo.
+echo --config - なら、ファイルを作らずに、ひな形を標準出力に出す:
+call :runcmd init --config - starter
+del /q new.toml >nul 2>&1
+call :pause
+
 echo デモは以上です。
 
 REM 後片付け(一時ディレクトリを消し、コードページを戻す)
