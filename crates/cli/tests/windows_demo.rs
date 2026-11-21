@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! Windows 向けデモ(`demo/windows`)のテスト(FR1.3、FR2.1、FR2.2、FR6.1)。
-//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜12 の終了コードと結果を確かめる。
+//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜13 の終了コードと結果を確かめる。
 #![cfg(windows)]
 
 mod bin_support;
@@ -437,6 +437,48 @@ fn 場面_12_graph_は遷移を図にし_state_で状態と再開位置を重ね
     assert!(out.contains("[OK] extract"), "{out}");
     assert!(out.contains("[NG] load  <- resume here"), "{out}");
     assert_eq!(demo.run(&["reset"], &[]).status.code(), Some(0));
+}
+
+#[test]
+fn 場面_13_dry_run_は計画を出し_何も実行せず_ステートも作らない() {
+    let demo = Demo::new();
+    let plan = demo.run(&["pipeline", "nightly", "--dry-run"], &[]);
+    assert_eq!(plan.status.code(), Some(0), "{}", text(&plan.stderr));
+    let out = text(&plan.stdout).replace("\r\n", "\n");
+    assert!(
+        out.starts_with(
+            "plan (--dry-run): pipeline nightly\nresume: from the start\n1. [run] extract\n"
+        ),
+        "{out}"
+    );
+    // extract の警告(終了コード 1)で、transform と load が飛ばされる。
+    let warned = demo.run(
+        &["pipeline", "nightly", "--dry-run", "--assume", "extract=1"],
+        &[],
+    );
+    let out = text(&warned.stdout).replace("\r\n", "\n");
+    assert!(out.contains("assume: extract=1\n"), "{out}");
+    assert!(
+        out.contains(
+            "2. [skip (transition)] transform\n3. [skip (transition)] load\n4. [run] notify\n"
+        ),
+        "{out}"
+    );
+    // load の失敗(終了コード 2)の仮定で、そこで停止する。
+    let stopped = demo.run(
+        &["pipeline", "nightly", "--dry-run", "--assume", "load=2"],
+        &[],
+    );
+    let out = text(&stopped.stdout).replace("\r\n", "\n");
+    assert!(
+        out.contains("result (simulated): stopped (error: load)\n"),
+        "{out}"
+    );
+    // run の次の動き。
+    let single = demo.run(&["run", "extract", "--dry-run"], &[]);
+    let out = text(&single.stdout).replace("\r\n", "\n");
+    assert!(out.contains("next step: next job transform\n"), "{out}");
+    assert!(state_files(&demo).is_empty(), "ステートは作られない");
 }
 
 #[test]

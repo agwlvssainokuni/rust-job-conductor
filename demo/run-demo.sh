@@ -225,4 +225,21 @@ echo "graph は、ステートを読むだけ(書かない)。後片付け:"
 cmd "$CONDUCTOR" reset
 pause
 
+scene "13. 実行計画: --dry-run は、ジョブを実行せず、実行したら何が起こるかを見せる"
+echo "--dry-run で、実行計画を出す(ジョブは実行されず、ステートも作られない):"
+cmd "$CONDUCTOR" pipeline nightly --dry-run
+echo
+echo "--assume で、ジョブの終了コードを仮定する(extract が警告=終了コード 1 なら、transform と load は飛ばされる):"
+cmd "$CONDUCTOR" pipeline nightly --dry-run --assume extract=1
+echo
+echo "load が終了コード 2 で失敗すると仮定すると、そこで停止する:"
+cmd "$CONDUCTOR" pipeline nightly --dry-run --assume load=2
+echo
+echo "run でも使える(次の動きを示す):"
+cmd "$CONDUCTOR" run extract --dry-run
+echo
+echo "実際には何も実行されず、ステートも作られていない:"
+states
+pause
+
 echo "デモは以上です。"

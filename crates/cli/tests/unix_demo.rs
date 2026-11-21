@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! UNIX 向けデモ(`demo/run-demo.sh`)のテスト(FR6.2)。
-//! スクリプトを `sh` で実行し、場面 0〜12 の見出しと要点の行が出て、0 で終わることを確かめる。
+//! スクリプトを `sh` で実行し、場面 0〜13 の見出しと要点の行が出て、0 で終わることを確かめる。
 #![cfg(unix)]
 
 mod bin_support;
@@ -58,7 +58,7 @@ fn assert_demo_output(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{err}");
     // `-v` の行やエラーは標準エラーに出るので、標準出力と合わせて見る。
     let out = format!("{}{err}", text(&output.stdout));
-    for n in 0..=12 {
+    for n in 0..=13 {
         assert!(out.contains(&format!("=== {n}. ")), "場面 {n}\n{out}");
     }
     // 場面 7: validate
@@ -127,10 +127,31 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("flowchart TD"), "{out}");
     assert!(out.contains("[NG] load  <- resume here"), "{out}");
     assert!(out.contains("[OK] extract"), "{out}");
+    // 場面 13: --dry-run(計画、--assume の仮定、run の次の動き。何も実行されず、ステートも作られない)
+    assert!(
+        out.contains(
+            "plan (--dry-run): pipeline nightly\nresume: from the start\n1. [run] extract\n"
+        ),
+        "{out}"
+    );
+    assert!(out.contains("assume: extract=1\n"), "{out}");
+    assert!(
+        out.contains(
+            "2. [skip (transition)] transform\n3. [skip (transition)] load\n4. [run] notify\n"
+        ),
+        "{out}"
+    );
+    assert!(out.contains("assume: load=2\n"), "{out}");
+    assert!(
+        out.contains("result (simulated): stopped (error: load)\n"),
+        "{out}"
+    );
+    assert!(out.contains("target job: extract\n"), "{out}");
+    assert!(out.contains("next step: next job transform\n"), "{out}");
 }
 
 #[test]
-fn デモは_0_で完走し_場面_0_から_12_の要点の行が出る() {
+fn デモは_0_で完走し_場面_0_から_13_の要点の行が出る() {
     let tmp = tempfile::tempdir().expect("一時ディレクトリ");
     let output = run_demo(tmp.path(), &[]);
     assert_demo_output(&output);

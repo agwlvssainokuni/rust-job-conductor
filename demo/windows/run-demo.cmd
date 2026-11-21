@@ -276,6 +276,23 @@ echo graph は、ステートを読むだけ^(書かない^)。後片付け:
 call :runcmd reset
 call :pause
 
+call :scene "13. 実行計画: --dry-run は、ジョブを実行せず、実行したら何が起こるかを見せる"
+echo --dry-run で、実行計画を出す^(ジョブは実行されず、ステートも作られない^):
+call :runcmd pipeline nightly --dry-run
+echo.
+echo --assume で、ジョブの終了コードを仮定する^(extract が警告=終了コード 1 なら、transform と load は飛ばされる^):
+call :runcmd pipeline nightly --dry-run --assume extract=1
+echo.
+echo load が終了コード 2 で失敗すると仮定すると、そこで停止する:
+call :runcmd pipeline nightly --dry-run --assume load=2
+echo.
+echo run でも使える^(次の動きを示す^):
+call :runcmd run extract --dry-run
+echo.
+echo 実際には何も実行されず、ステートも作られていない:
+call :states
+call :pause
+
 echo デモは以上です。
 
 REM 後片付け(一時ディレクトリを消し、コードページを戻す)
