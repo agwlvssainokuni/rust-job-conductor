@@ -26,7 +26,9 @@ use conductor_core::{
     DecisionReason, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
     EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, SkipReason,
 };
-use conductor_runtime::{CommandError, CommandErrorKind, MismatchKind, StateError, StateErrorKind};
+use conductor_runtime::{
+    CommandError, CommandErrorKind, CreateError, MismatchKind, StateError, StateErrorKind,
+};
 
 fn env_for(lang: Language) -> FakeEnv {
     match lang {
@@ -264,6 +266,18 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     f(&DisplayEvent::WatchEmpty);
     f(&DisplayEvent::Graph("* a\no @end\n"));
     f(&DisplayEvent::Plan("plan\n"));
+    f(&DisplayEvent::InitTemplate("template\n"));
+    let init_path = Path::new("dir/conductor.toml");
+    f(&DisplayEvent::InitCreated { path: init_path });
+    f(&DisplayEvent::InitReplaced { path: init_path });
+    f(&DisplayEvent::InitExists { path: init_path });
+    for error in CreateError::ALL {
+        f(&DisplayEvent::InitFailed {
+            path: init_path,
+            error,
+        });
+    }
+    f(&DisplayEvent::InitStdoutFailed);
     f(&DisplayEvent::Help);
     f(&DisplayEvent::Version);
 }
@@ -326,7 +340,8 @@ fn 日本語の表示は日本語の文を含む() {
             DisplayEvent::SignalSetupFailed
             | DisplayEvent::Version
             | DisplayEvent::Graph(_)
-            | DisplayEvent::Plan(_) => true,
+            | DisplayEvent::Plan(_)
+            | DisplayEvent::InitTemplate(_) => true,
             DisplayEvent::Transition { skipped, .. } => skipped.is_empty(),
             _ => false,
         };
@@ -911,4 +926,111 @@ fn env_の誤りは_20_件で打ち切り_警告は行と名前を持つ_日本�
     );
     let text = ja.render(&DisplayEvent::EnvWarnings(&warn));
     assert!(text.contains("重複キー"), "{text}");
+}
+
+// ---- init(U4。BR1.2、BR1.4、BR3.2、BR4.1) ----
+
+#[test]
+fn init_のメッセージは_仕様の表のとおり() {
+    let path = Path::new("a/conductor.toml");
+    let cases = [
+        (
+            DisplayEvent::InitCreated { path },
+            "created a/conductor.toml\n",
+            "a/conductor.toml を作成しました\n",
+        ),
+        (
+            DisplayEvent::InitReplaced { path },
+            "replaced a/conductor.toml\n",
+            "a/conductor.toml を置き換えました\n",
+        ),
+        (
+            DisplayEvent::InitExists { path },
+            "conductor: error: a/conductor.toml already exists (use --force to overwrite)\n",
+            "conductor: error: a/conductor.toml は既にあります(上書きするには --force)\n",
+        ),
+        (
+            DisplayEvent::InitFailed {
+                path,
+                error: CreateError::ParentMissing,
+            },
+            "conductor: error: cannot create a/conductor.toml: the parent directory does not exist\n",
+            "conductor: error: a/conductor.toml を作れません: 親のディレクトリがありません\n",
+        ),
+        (
+            DisplayEvent::InitFailed {
+                path,
+                error: CreateError::IsDirectory,
+            },
+            "conductor: error: cannot create a/conductor.toml: it is a directory\n",
+            "conductor: error: a/conductor.toml を作れません: ディレクトリです\n",
+        ),
+        (
+            DisplayEvent::InitFailed {
+                path,
+                error: CreateError::PermissionDenied,
+            },
+            "conductor: error: cannot create a/conductor.toml: permission denied\n",
+            "conductor: error: a/conductor.toml を作れません: 書く権限がありません\n",
+        ),
+        (
+            DisplayEvent::InitFailed {
+                path,
+                error: CreateError::OtherIo,
+            },
+            "conductor: error: cannot create a/conductor.toml: I/O error\n",
+            "conductor: error: a/conductor.toml を作れません: 入出力の誤りです\n",
+        ),
+        (
+            DisplayEvent::InitStdoutFailed,
+            "conductor: error: cannot write the template to standard output\n",
+            "conductor: error: ひな形を標準出力に書けません\n",
+        ),
+    ];
+    for (event, en, ja) in cases {
+        for (lang, expected) in [(Language::En, en), (Language::Ja, ja)] {
+            let env = env_for(lang);
+            let reporter = Reporter::new(&env, false);
+            assert_eq!(reporter.render(&event), expected, "{event:?} {lang:?}");
+        }
+    }
+}
+
+#[test]
+fn init_のパスは_制御文字をエスケープして表示する() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let path = Path::new("a\nb\u{1b}[31m.toml");
+    for event in [
+        DisplayEvent::InitCreated { path },
+        DisplayEvent::InitExists { path },
+        DisplayEvent::InitFailed {
+            path,
+            error: CreateError::OtherIo,
+        },
+    ] {
+        let text = reporter.render(&event);
+        assert_eq!(text.matches('\n').count(), 1, "{text:?}");
+        assert!(!text.contains('\u{1b}'), "{text:?}");
+    }
+}
+
+#[test]
+fn init_の水準は_成功が通知_誤りがエラー_ひな形が標準出力() {
+    let path = Path::new("c.toml");
+    assert_eq!(DisplayEvent::InitCreated { path }.level(), Level::Notice);
+    assert_eq!(DisplayEvent::InitReplaced { path }.level(), Level::Notice);
+    assert_eq!(DisplayEvent::InitExists { path }.level(), Level::Error);
+    assert_eq!(DisplayEvent::InitStdoutFailed.level(), Level::Error);
+    assert_eq!(DisplayEvent::InitTemplate("x").level(), Level::Output);
+}
+
+#[test]
+fn 使い方に_init_と_force_がある() {
+    for lang in [Language::En, Language::Ja] {
+        let env = env_for(lang);
+        let usage = Reporter::new(&env, false).render(&DisplayEvent::Help);
+        assert!(usage.contains("conductor init"), "{usage}");
+        assert!(usage.contains("--force"), "{usage}");
+    }
 }

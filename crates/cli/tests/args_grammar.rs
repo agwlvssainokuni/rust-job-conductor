@@ -17,7 +17,8 @@
 use std::ffi::OsString;
 
 use conductor_cli::{
-    CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind, parse_args,
+    CliCommand, CommandKind, GraphFormat, InitOptions, InitTarget, ParsedArgs, UsageError,
+    UsageErrorKind, parse_args,
 };
 use conductor_converter::TargetFormat;
 
@@ -356,9 +357,109 @@ fn コマンドの名前() {
         (CommandKind::Validate, "validate"),
         (CommandKind::Convert, "convert"),
         (CommandKind::Graph, "graph"),
+        (CommandKind::Init, "init"),
     ] {
         assert_eq!(kind.name(), name);
     }
+}
+
+// ---- init(U4。BR1.1、BR1.5、BR2.2、BR3.1) ----
+
+#[test]
+fn init_の既定は_conductor_toml_と_my_pipeline_で_force_なし() {
+    let cmd = command(&["init"]);
+    assert_eq!(cmd.kind, CommandKind::Init);
+    assert_eq!(cmd.init, InitOptions::default());
+    assert_eq!(
+        cmd.init.target,
+        InitTarget::File(OsString::from("conductor.toml"))
+    );
+    assert_eq!(cmd.init.pipeline_name, "my-pipeline");
+    assert!(!cmd.init.force);
+}
+
+#[test]
+fn init_は_config_と_force_と名前を受け取り_ハイフンは標準出力() {
+    let cmd = command(&["init", "--config", "x.toml", "--force", "夜間バッチ"]);
+    assert_eq!(cmd.init.target, InitTarget::File(OsString::from("x.toml")));
+    assert!(cmd.init.force);
+    assert_eq!(cmd.init.pipeline_name, "夜間バッチ");
+
+    let cmd = command(&["--force", "init", "--config=x.toml"]);
+    assert!(cmd.init.force);
+    assert_eq!(cmd.init.target, InitTarget::File(OsString::from("x.toml")));
+
+    let cmd = command(&["init", "--config", "-", "--force"]);
+    assert_eq!(cmd.init.target, InitTarget::Stdout);
+    // 標準出力のときの `--force` は、誤りにしない(流れが無視する)。
+    assert!(cmd.init.force);
+    assert_eq!(
+        command(&["init", "--config=-"]).init.target,
+        InitTarget::Stdout
+    );
+}
+
+#[test]
+fn init_の名前が空か空白だけなら_invalid_value_で_値を含めない() {
+    for name in ["", " ", "  \t "] {
+        let e = parse(&["init", name]).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{name:?}");
+        assert_eq!(e.subject.as_deref(), Some("pipeline name"), "{name:?}");
+    }
+}
+
+#[test]
+fn init_の位置引数が_2_つ以上なら_unexpected_argument() {
+    assert_eq!(
+        kind_of(&["init", "a", "b"]),
+        UsageErrorKind::UnexpectedArgument
+    );
+}
+
+#[test]
+fn init_は_config_と_force_以外のオプションをすべて許さない() {
+    for args in [
+        &["init", "-v"][..],
+        &["init", "--dry-run"],
+        &["init", "--assume", "a=1"],
+        &["init", "--format", "text"],
+        &["init", "--state"],
+        &["init", "--run-id", "r"],
+        &["init", "--remove-on-complete"],
+        &["init", "--all"],
+        &["init", "--to", "yaml"],
+    ] {
+        assert_eq!(kind_of(args), UsageErrorKind::OptionNotAllowed, "{args:?}");
+    }
+}
+
+#[test]
+fn force_は_init_だけで使え_重複と値つきは誤り() {
+    for kind in ["run", "pipeline", "watch", "reset", "validate", "graph"] {
+        let mut args = vec![kind, "--force"];
+        if matches!(kind, "run" | "pipeline") {
+            args.push("x");
+        }
+        let e = parse(&args).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::OptionNotAllowed, "{args:?}");
+        assert_eq!(e.subject.as_deref(), Some("--force"), "{args:?}");
+    }
+    let e = parse(&["convert", "f", "--to", "yaml", "--force"]).unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::OptionNotAllowed);
+    let e = parse(&["init", "--force", "--force"]).unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::InvalidValue);
+    assert_eq!(e.subject.as_deref(), Some("--force"));
+    let e = parse(&["init", "--force=1"]).unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::InvalidValue);
+}
+
+#[test]
+fn init_の_config_の重複と値なしは誤り() {
+    assert_eq!(
+        kind_of(&["init", "--config", "a", "--config", "b"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(kind_of(&["init", "--config"]), UsageErrorKind::MissingValue);
 }
 
 #[test]
