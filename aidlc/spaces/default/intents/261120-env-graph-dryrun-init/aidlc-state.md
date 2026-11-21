@@ -46,6 +46,16 @@
 
 - **Construction Verification Command**: cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only
 
+- **Unit Ownership**: solo
+
+- **Skeleton Stance**: off
+
+
+
+
+
+
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -106,7 +116,9 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-21T17:58:53Z
+- **Last Updated**: 2026-11-21T18:41:37Z
+
+- **Construction Autonomy Mode**: autonomous
 
 ## Session Resume Point
 - **Last Completed Stage**: delivery-planning
