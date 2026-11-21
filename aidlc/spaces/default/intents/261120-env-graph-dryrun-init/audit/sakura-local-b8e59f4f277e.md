@@ -10478,3 +10478,571 @@
 **Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
 
 ---
+
+## Unit Skipped
+**Timestamp**: 2026-11-21T21:47:11Z
+**Event**: UNIT_SKIPPED
+**Stage**: nfr-requirements
+**Unit**: u3-dry-run
+**Reason**: U3 の非機能要件(NFR1 性能、NFR5 新しい依存なし、NFR6 構造の制約)は、要件で決まっていて、機能の設計の BR6.3(1,000 ジョブで 1 秒以内。.env 付きの定義を含む)、BR5.1 で具体化済み。新しく決めることがない
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+
+---
+
+## Unit Skipped
+**Timestamp**: 2026-11-21T21:47:14Z
+**Event**: UNIT_SKIPPED
+**Stage**: nfr-design
+**Unit**: u3-dry-run
+**Reason**: 非機能要件の段階を省略した(要件と機能の設計で具体化済み)ため、設計する対象がない。単一の実行ファイルの CLI で、NFR のパターンは該当しない
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+
+---
+
+## Unit Skipped
+**Timestamp**: 2026-11-21T21:47:18Z
+**Event**: UNIT_SKIPPED
+**Stage**: infrastructure-design
+**Unit**: u3-dry-run
+**Reason**: 単一の実行ファイルの CLI で、クラウドのインフラを使わない。CI とリリースの仕組みは既にあり、この変更で変えない
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T21:48:14Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md
+**Context**: construction > u3-dry-run > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T21:48:24Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/unit-test-instructions.md
+**Context**: construction > u3-dry-run > code-generation > unit-test-instructions.md
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-21T21:48:28Z
+**Event**: QUESTION_ASKED
+**Question Id**: 08db16db
+**Question Type**: plan-approval
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:84e567e4b9a0fe34078abff9b3532da5718483fd6231608de7260cda48989a90
+**Stage**: code-generation
+**Unit**: u3-dry-run
+**Ask Id**: 039a45cdf4ba67cba1f7663288861588
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: 83b3876a8734b05d95661c473cb77e68982d39efb95e29d45abc2904eb8d6f4b
+**Questions File**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-questions.md
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-21T22:02:29Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve Plan"]
+**Message Id**: a80a1b7a
+**Open Questions**: 13b95584, e87330af, 1560f20c, 08db16db
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-questions.md","entries":{"Plan Approval":"dad9a6dd69c58519"}}
+
+---
+
+## Plan Approval Recorded
+**Timestamp**: 2026-11-21T22:02:29Z
+**Event**: PLAN_APPROVAL_RECORDED
+**Stage**: code-generation
+**Details**: Approve Plan
+**Checkpoint**: plan-approval
+**Plan Target**: unit:u3-dry-run
+**Intent**: 01a1f92e-fb2d-7804-bba2-c2cc030929f8
+**Directive Epoch**: sha256:18678b546df1f5b643073d5eb322a0ea8be25f7770ee8cc892f8d6078f4e3569
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+**Approval Fingerprint**: sha256:v3:3f889667cfbe41440a3fe437af02c05fe74ee6e336579f799ab6f1673b149cfc
+**Questions File**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-questions.md
+**Questions SHA-256**: b62fd0dc23dcef2492c5531d0802743fc473a0d001ce3c6512f1f90d9eab4c85
+**Prompt SHA-256**: f7552b4855b3f1db46330039a0773cb33fd824a02bd2acb32f33ff863a59f03d
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Asked By**: engine
+**Person Reply**: Approve Plan
+**Message Id**: a80a1b7a
+**Unit**: u3-dry-run
+**Git Name**: agwlvssainokuni
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-21T22:02:30Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: U3(u3-dry-run)のコード生成の計画を、承認しますか。
+**Reply**: Approve Plan
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-21T22:03:51Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-developer-agent
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T22:21:20Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md
+**Context**: construction > u3-dry-run > code-generation > code-generation-plan.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-21T22:21:47Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:21:47Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a6e09af7d892f9401
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T22:23:01Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/source-manifest.json
+**Context**: construction > u3-dry-run > code-generation > source-manifest.json
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T22:23:15Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md
+**Context**: construction > u3-dry-run > code-generation > code-summary.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T22:23:27Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/traceability.json
+**Context**: construction > u3-dry-run > code-generation > traceability.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T22:23:28Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4157e80f
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4157e80f
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_FIRED
+**Fire id**: ceb03940
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/unit-test-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_PASSED
+**Fire id**: ceb03940
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/unit-test-instructions.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_FIRED
+**Fire id**: abf04d2c
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_PASSED
+**Fire id**: abf04d2c
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_FIRED
+**Fire id**: 3f7d5405
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_PASSED
+**Fire id**: 3f7d5405
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/traceability.json
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_FIRED
+**Fire id**: e2e813be
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-21T22:23:29Z
+**Event**: SENSOR_PASSED
+**Fire id**: e2e813be
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Unit**: u3-dry-run
+**Output path**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/traceability.json
+**Duration ms**: 84
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-21T22:23:30Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Unit**: u2-graph
+**Checkpoint**: review-receipt
+**Changed**: README.md, crates/cli/src/args.rs, crates/cli/src/ctx.rs, crates/cli/src/lib.rs, crates/cli/src/report/messages.rs, crates/cli/src/report/mod.rs, crates/cli/src/types.rs, crates/cli/tests/args_grammar.rs, crates/cli/tests/report_messages.rs, crates/cli/tests/unix_demo.rs (and 5 more)
+**Recorded**: sha256:29834f4ae41caeed1d50ab2468c28f54ad861d7ce36de24c0e8bfb2516dcbd51
+**Current**: sha256:d48e29c706ef464557cf7c699abf506b10d1ae93ad1a0ac2755dbce28d366c31
+**Details**: README.md, crates/cli/src/args.rs, crates/cli/src/ctx.rs, crates/cli/src/lib.rs, crates/cli/src/report/messages.rs, crates/cli/src/report/mod.rs, crates/cli/src/types.rs, crates/cli/tests/args_grammar.rs, crates/cli/tests/report_messages.rs, crates/cli/tests/unix_demo.rs (and 5 more) changed after the graph Unit was reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-21T22:23:30Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Unit**: u1-env-injection
+**Checkpoint**: review-receipt
+**Changed**: crates/cli/src/pipeline.rs, crates/cli/src/run.rs, crates/core/src/flow/decide.rs
+**Recorded**: sha256:ecf6492769be09ef198baf27d1aa962930829ecdfa9e3de2785e67e42b028f2d
+**Current**: sha256:39f58a8bddeb517c692ba1a635017972e4b604c780cb0a830b40a5101bd69460
+**Details**: crates/cli/src/pipeline.rs, crates/cli/src/run.rs, crates/core/src/flow/decide.rs changed after the env injection Unit was reviewed; carrying on.
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-21T22:23:30Z
+**Event**: REVIEW_REQUESTED
+**Stage**: code-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-dry-run
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:5b12181b5add1fbf18e5137744e656287b02f24072f63c09bea27a02965b2d8f
+**Request Id**: review:0b8aee099a79aae9bb5e7bde6f4e233a
+**Source Fingerprint**: 68c65321fb2c14d922f8f1372f73c504864202c79c002a7bc36132ca16bed013
+**Unit Source Fingerprint**: sha256:459a40590e5bd47d69d314080dd6a488547f4b7b151868bd063bd8e6208b38b0
+**Review File**: .aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.0b8aee099a79aae9bb5e7bde6f4e233a.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-21T22:23:51Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:23:58Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a7543e44deeaf6fa1
+**Message**: 推奨で進めて
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:03Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a70f3771ae9098a8b
+**Message**: 承認して進めて
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:07Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: af825edd530958981
+**Message**: 進めて
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:12Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: ab35bc3329537d5fe
+**Message**: こまめにコミットして
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:16Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: ab300d546edf73430
+**Message**: おすすめで
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:21Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: abdda781fcacbce1d
+**Message**: push しました
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:25Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a8d03b01fb344b8fb
+**Message**: 続けて
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:24:30Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: af2f8b27c70b046da
+**Message**: 推奨で
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-21T22:26:22Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/.aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.0b8aee099a79aae9bb5e7bde6f4e233a.review.md
+**Context**: .aidlc-engine > reviews > code-generation > units > u3-dry-run > b12ee9a4d321b72a > 1.0b8aee099a79aae9bb5e7bde6f4e233a.review.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-21T22:26:27Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude task notification
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-21T22:26:32Z
+**Event**: REVIEW_COMPLETED
+**Stage**: code-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-dry-run
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:5b12181b5add1fbf18e5137744e656287b02f24072f63c09bea27a02965b2d8f
+**Artifact Fingerprint**: sha256:5b12181b5add1fbf18e5137744e656287b02f24072f63c09bea27a02965b2d8f
+**Request Id**: review:0b8aee099a79aae9bb5e7bde6f4e233a
+**Request Source Fingerprint**: 68c65321fb2c14d922f8f1372f73c504864202c79c002a7bc36132ca16bed013
+**Source Fingerprint**: 68c65321fb2c14d922f8f1372f73c504864202c79c002a7bc36132ca16bed013
+**Source Listing**: sha256:fc678a6673b33cec73707bb0463c9f665caf6e6eca1fb14112a074e520623b70
+**Unit Source Fingerprint**: sha256:459a40590e5bd47d69d314080dd6a488547f4b7b151868bd063bd8e6208b38b0
+**Review Record**: .aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.json
+**Review Record Digest**: sha256:eb5809db74e6b37e8ec60fc31c68c4300ff6cefd9d1c07eb06b0dd97240d016f
+**Testing Contract**: sha256:0ca5a7b0baee94a8a8284941eb581edfac09ab7108c711149824fd0b57d005b4
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-21T22:26:33Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a5204945f7ef484a0
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u2-graph/b12ee9a4d321b72a/2.f1d474727db3f5fdbe5e95f0536536bf.review.md=c2578bf759ce3222802fb09defdb945df1a2bd6bb91e1659a2645fc74f205622
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-21T22:26:35Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: review-freeze
+**Authority**: instruction
+**Grant**: none
+**Actor**: main
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-21T22:26:35Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md
+**Context**: construction > u3-dry-run > code-generation > code-summary.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-21T22:26:37Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Unit Started
+**Timestamp**: 2026-11-21T22:26:48Z
+**Event**: UNIT_STARTED
+**Stage**: code-generation
+**Unit**: u3-dry-run
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-21T22:26:49Z
+**Event**: UNIT_COMPLETED
+**Stage**: code-generation
+**Unit**: u3-dry-run
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-21T22:26:52Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: functional-design
+**Unit**: u3-dry-run
+**Checkpoint**: review-receipt
+**Changed**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/entities.md, aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/rules.md, aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md
+**Recorded**: sha256:d984fb140b86cf459ed89309f723f9d74e4096e8d0d752f8d5a8f1b42ea8d054
+**Current**: sha256:eb3e6222b1d4f5c32471648a5d3834db70b748c0be65eaf9b866c174003bb678
+**Details**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/entities.md, aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/rules.md, aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md changed after the dry run Unit was reviewed; carrying on.
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-21T22:26:52Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Unit**: u3-dry-run
+**Checkpoint**: review-receipt
+**Changed**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md
+**Recorded**: sha256:5b12181b5add1fbf18e5137744e656287b02f24072f63c09bea27a02965b2d8f
+**Current**: sha256:cd39e9a4e3ac765f1a015a70ea3d0ea55481bef37609ee256d17a6f60c0ed318
+**Details**: aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-summary.md changed after the dry run Unit was reviewed; carrying on.
+
+---
+
+## Checkpoint Verification Recorded
+**Timestamp**: 2026-11-21T22:27:58Z
+**Event**: CHECKPOINT_VERIFICATION_RECORDED
+**Unit**: u3-dry-run
+**Kind**: unit
+**Stage**: code-generation
+**Stages**: functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation
+**Verification Id**: 8f52add4-a0fe-4d03-9093-206c7219eecb
+**Fingerprint**: sha256:5b4afa65b492a3a7c93fc40451ba3069a534bfa66a65e53f7b2135dce8b3e973
+**Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Exit Code**: 0
+**Verified**: true
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-21T22:28:00Z
+**Event**: GATE_APPROVED
+**Unit**: u3-dry-run
+**Stage**: code-generation
+**Stages**: functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation
+**Gate Stages**: functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation
+**Gate Scope**: unit-end
+**Checkpoint**: construction-unit
+**Fingerprint**: sha256:5b4afa65b492a3a7c93fc40451ba3069a534bfa66a65e53f7b2135dce8b3e973
+**Run floor**: WORKFLOW_STARTED:2026-11-20T13:39:29Z#1
+**Run floors**: {"functional-design":"WORKFLOW_STARTED:2026-11-20T13:39:29Z#1","nfr-requirements":"WORKFLOW_STARTED:2026-11-20T13:39:29Z#1","nfr-design":"WORKFLOW_STARTED:2026-11-20T13:39:29Z#1","infrastructure-design":"WORKFLOW_STARTED:2026-11-20T13:39:29Z#1","code-generation":"WORKFLOW_STARTED:2026-11-20T13:39:29Z#1"}
+**Verification Command SHA-256**: cb67349faaa1b89a8b19c6e0c2421d2d2ad77f630259486551daeca0eb056d03
+**Verification Id**: 8f52add4-a0fe-4d03-9093-206c7219eecb
+**Approved Evidence**: {"functional-design":["sha256:d984fb140b86cf459ed89309f723f9d74e4096e8d0d752f8d5a8f1b42ea8d054",null],"code-generation":["sha256:5b12181b5add1fbf18e5137744e656287b02f24072f63c09bea27a02965b2d8f","sha256:459a40590e5bd47d69d314080dd6a488547f4b7b151868bd063bd8e6208b38b0",{"\u0000README.md":"100644 02fefbc30b8fdcf83254628dbaa7e756b4d6a9aaea8110a23898dbbc6f90bf1b","\u0000crates/cli/src/args.rs":"100644 0ed1a32e03ed5096933783391094d135fbbfeb5b124bf1b35b0a3fdf3f54b55c","\u0000crates/cli/src/ctx.rs":"100644 57bba7114f45bb0c2f450ff9fdf171dc9104fc5151332356c2f72f65fe9efa18","\u0000crates/cli/src/dry_run.rs":"100644 e1310b6dc1830a4ce9614f9906fc5b80645df30b5ca1ebad6d1302d64131e600","\u0000crates/cli/src/lib.rs":"100644 2bd54e2f587b3e8ceb178ef9a31ec66dec60151081b73e0e618d963682808b77","\u0000crates/cli/src/pipeline.rs":"100644 71b0ead83f1aaf4e4e9f25982614e2b32093253c0b382f9fc69511a829635b2f","\u0000crates/cli/src/report/messages.rs":"100644 d801eff6127961fbc3a5454fb615f63b25013da49599edf20828555fb2113b9d","\u0000crates/cli/src/report/mod.rs":"100644 7a59d658cf5ce006d63c0b7b0946cfe45e0966359180e87901d3d35698b0347d","\u0000crates/cli/src/report/plan_text.rs":"100644 eb550c9aa2d412db95649affc9221093f902e48e7292e4fcdfe52ce6bedcc3f7","\u0000crates/cli/src/run.rs":"100644 1f85cea68a568d99ff37f84917e62ede7c5fc0b50f4d5b48c2245846b84c41a7","\u0000crates/cli/src/types.rs":"100644 60b27dc6cb15748a22d2c04b224d53f7f4784a09fe3091febd81d971746a3d8d","\u0000crates/cli/tests/args_grammar.rs":"100644 c5389f721686e0c0005eecf242f57b0c39f07677ed476a7806caea8e64961b92","\u0000crates/cli/tests/binary_dry_run.rs":"100644 72f13dfdd51c184630b59773468f42e36418dff63ba85011bd1e60bf29fbdb51","\u0000crates/cli/tests/docs_dry_run.rs":"100644 47f69b1f092396a63dd4ccbdce1f58ac4df5caefc53a8d09445cfd9f74ee3d8f","\u0000crates/cli/tests/flow_dry_run.rs":"100644 acf1b2b584f919ba125b53901473785ab4c63a70680e41ac5f17daa72f81283d","\u0000crates/cli/tests/nfr_robust.rs":"100644 d701cb7b9b1e53bb2cb571c2315ed68654446b021055aa820cf65ad7b6cdedfb","\u0000crates/cli/tests/plan_report.rs":"100644 0928683e1a6e9c17df920718f33462f55c8f56994a3ff787f916e75a6235a4dd","\u0000crates/cli/tests/report_messages.rs":"100644 50c0d54279b520915295344682642235c0a8d47f763d9b0402fdc81dc0d3ad40","\u0000crates/cli/tests/unix_demo.rs":"100644 36763dfc9bcdfbe0318ee57031b6303936a1ba26f8a6338badcaadb5da25a74b","\u0000crates/cli/tests/windows_demo.rs":"100644 3b14cedad26bc7a530e68235c64a820d5c36d65b2a4c5ecf644908c14d103042","\u0000crates/core/src/flow/decide.rs":"100644 89f46f3c128957b581af2e704136b1fe892ecf58672f81f4c3005a584f2663c0","\u0000crates/core/src/lib.rs":"100644 3bfd2f5e6d7e3b2b154e356e7db87172c076a68d7f0576569fddb4c95c55317b","\u0000crates/core/src/plan/mod.rs":"100644 35a7302ad3c2b75bfe4a421330e7a677c8ebea92b8309df3f3c719c56519a991","\u0000crates/core/src/plan/simulate.rs":"100644 69ade398989f42c14b0521e39c561bbcbae87a1ac0a7ba7533b21cbf7f46f34d","\u0000crates/core/tests/plan_assume.rs":"100644 1dea37efb4d848e6dfd4be486a30b37cc7b173c92e0695a80dfe2b6a420e90ad","\u0000crates/core/tests/plan_perf.rs":"100644 b41b5acc8122fe1077c63960495f81374b8ca50baf860fa1faac6cf6ea7f8c5e","\u0000crates/core/tests/plan_pipeline.rs":"100644 a6f3dffbaa55c6a65310476efc223ff0e938eadf6bbdd68ecbae7f8606b1aba0","\u0000crates/core/tests/plan_run.rs":"100644 da6629aaaff654bbbeb48f1c959bfe80f07b8a291bece5e297340171c2ce92a3","\u0000crates/core/tests/plan_types.rs":"100644 375c0924db51a3620e8991881feed7a560c33675bd3408d952c68963a3e7936a","\u0000demo/README.md":"100644 246bd07d607ab3a04ff77c686a9ba856a04cc381ba91db274a6a4fd77e82eebf","\u0000demo/run-demo.sh":"100755 40ad460492ee8049e92ba8c0efd377b4321ddb9ace67ecc7a9332179af62b5b8","\u0000demo/windows/run-demo.cmd":"100644 19f10a735c4a77d94b38468ec6eb69f87a107a07990244827c23b69a47ba64e8"}]}
+**Autonomous**: true
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:2457e51631112527942d5a5f7cab9d0d9feb2262dcf7df81817c92b3a67f3a60","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:eb5809db74e6b37e8ec60fc31c68c4300ff6cefd9d1c07eb06b0dd97240d016f"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md","id":"R-02","fingerprint":"sha256:c3f4ab46b3088b0a9a72a5e42d622393c4d9ab0d75aef2eaa3283123f21e8ea0","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:eb5809db74e6b37e8ec60fc31c68c4300ff6cefd9d1c07eb06b0dd97240d016f"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md","id":"R-03","fingerprint":"sha256:34e7bb8921d67ffcf2f60ce5823639c393c8e326541c17f68d920d3397e8428b","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:eb5809db74e6b37e8ec60fc31c68c4300ff6cefd9d1c07eb06b0dd97240d016f"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/code-generation/code-generation-plan.md","id":"R-04","fingerprint":"sha256:0625b5a80beb459d9cf81a5a7c720568f5d597c2fbcdefa65ffce0996fbd8673","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:eb5809db74e6b37e8ec60fc31c68c4300ff6cefd9d1c07eb06b0dd97240d016f"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:0adafd7c8026955a9b86823f3097a333b54b9c93cc10346d52b4fe7c65da96ef","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:d0815232002ea2e776457fcb32805623960d7c6bcd9a1e625775da4f2cdc6a6e","status":"Changed after review","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:dcbc42eba2f6c2b60fbb75026a114a78af3b808f37ff87217fc26ec9671ff7e6","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-04","fingerprint":"sha256:b6618cdb5885c48cc13ad83988694c326c2745c6141735aff2d01838e1f564c2","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:40d3a691f0f515d17c223fea3eff6a2cb07d3aa311f594e6bcecef7ca5eee0fa","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-06","fingerprint":"sha256:c5d6957428650037471b792261dfafda6ac33145f948c62baaa10b88173c5261","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-07","fingerprint":"sha256:456faf966149c5fadaf254d08dbc61875ddca1c098e87e56a071e1182d8f7b2d","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-08","fingerprint":"sha256:88e2a1c1582c1955c9f7664d04fb65d61378828267d13746cf342b5bba6ddd47","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-09","fingerprint":"sha256:3d25ab57c96d91e06de2d8e4d546ad89659cf213766ce68ddedbf83a8dcff1cb","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}},{"artifact":"aidlc/spaces/default/intents/261120-env-graph-dryrun-init/construction/u3-dry-run/functional-design/functional-spec.md","id":"R-10","fingerprint":"sha256:0e7f515129fe2e16ed861dd5f3bad7c312515b93772645801e41c1a2f70e6d88","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u3-dry-run/b12ee9a4d321b72a/1.json","digest":"sha256:565bab50715698cc26217d2690b9bdbba250f2f3c1a4558d4b4caf19de4e55c4"}}]}
+
+---
