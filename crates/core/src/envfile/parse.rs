@@ -30,6 +30,8 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
     let mut warnings: Vec<EnvWarning> = Vec::new();
     let mut errors: Vec<EnvFileError> = Vec::new();
     let mut taken = 0usize;
+    // 小文字にした名前 → 綴り(大文字小文字だけが違う名前と、完全な重複を見分ける)。
+    let mut seen: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 
     for (i, raw) in text.split('\n').enumerate() {
         let line_no = i + 1;
@@ -72,17 +74,25 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
             break;
         }
 
-        if let Some(pos) = entries.iter().position(|e| e.name == key) {
-            entries.remove(pos);
-            warnings.push(EnvWarning {
-                file: file.to_string(),
-                line: line_no,
-                name: key.to_string(),
-                kind: EnvWarningKind::DuplicateKey,
-            });
-        } else if entries.iter().any(|e| e.name.eq_ignore_ascii_case(key)) {
-            errors.push(err(Kind::CaseConflict));
-            continue;
+        match seen.get(&key.to_ascii_lowercase()) {
+            Some(exact) if exact == key => {
+                if let Some(pos) = entries.iter().position(|e| e.name == key) {
+                    entries.remove(pos);
+                }
+                warnings.push(EnvWarning {
+                    file: file.to_string(),
+                    line: line_no,
+                    name: key.to_string(),
+                    kind: EnvWarningKind::DuplicateKey,
+                });
+            }
+            Some(_) => {
+                errors.push(err(Kind::CaseConflict));
+                continue;
+            }
+            None => {
+                seen.insert(key.to_ascii_lowercase(), key.to_string());
+            }
         }
         entries.push(EnvEntry {
             name: key.to_string(),
