@@ -66,18 +66,23 @@ Usage:
   conductor watch [--config <path>] [--run-id <id>]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
+  conductor graph [-v] [--config <path>] [--format <text|mermaid>] [--state [--run-id <id>]] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
 
 Options:
-  -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line)
+  -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line);
+                      graph prints the command, retry and skip details under each job
   --config <path>     definition file (default: conductor.toml in the current directory)
-  --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset; default: the environment variable
+  --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset, graph --state; default: the environment variable
                       named by run_id_env in the definition, or CONDUCTOR_RUN_ID; an empty value means no run ID)
   --remove-on-complete
                       remove the state file when the run completes (run, pipeline; default: keep it, or the
                       remove_on_complete setting of the definition)
   --all               remove every state file of the definition, with or without a run ID (reset only)
+  --format <text|mermaid>
+                      output format of graph (default: text)
+  --state             overlay the state of the jobs on the graph (graph only; reads the state file, never writes it)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
   -V, --version       print the version
@@ -89,17 +94,22 @@ Options:
   conductor watch [--config <パス>] [--run-id <ID>]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
+  conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
 
 オプション:
-  -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)
+  -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)。
+                      graph は、ジョブごとに、コマンド、リトライ、飛び越しの詳細を表示する
   --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml)
-  --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset。省略時: 定義の run_id_env の環境変数、
+  --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset、graph --state。省略時: 定義の run_id_env の環境変数、
                       なければ CONDUCTOR_RUN_ID。空の値は run ID なし)
   --remove-on-complete
                       完了のときにステートファイルを消す(run、pipeline。省略時: 残す。定義の remove_on_complete に従う)
   --all               定義のステートファイルを、run ID の有無によらず、すべて消す(reset のみ)
+  --format <text|mermaid>
+                      graph の出力の形式(省略時: text)
+  --state             ジョブの状態を図に重ねる(graph のみ。ステートファイルを読むだけで、書かない)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
   -V, --version       版を表示する
@@ -454,3 +464,93 @@ pub const HEADER_STATUS: Text = Text::new("STATUS", "状態");
 pub const HEADER_NOTE: Text = Text::new("NOTE", "補足");
 pub const NOTE_BY_TRANSITION: Text = Text::new("skipped by a transition", "遷移によりスキップ");
 pub const NOTE_BY_END: Text = Text::new("skipped after @end", "@end の後ろのためスキップ");
+
+// ---- graph(U2。BR2.8、BR3.1〜BR3.3、BR4.2、BR5.3、BR7.1) ----
+
+/// 辺の一覧に切り替えたときの、先頭の注記の行(BR2.8)。
+pub const GRAPH_EDGE_LIST_NOTE: Text = Text::new(
+    "note: the skip edges cross or share a target, so the lane diagram is replaced by a list of edges.",
+    "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。",
+);
+/// 辺の一覧の「ジョブ」の見出し(BR2.8)。
+pub const GRAPH_JOBS_HEADING: Text = Text::new("Jobs:", "ジョブ:");
+/// 辺の一覧の「辺」の見出し(BR2.8)。
+pub const GRAPH_EDGES_HEADING: Text = Text::new("Edges:", "辺:");
+/// 辺の種類(成功)。
+pub const GRAPH_KIND_SUCCESS: Text = Text::new("success", "成功");
+/// 辺の種類(警告)。
+pub const GRAPH_KIND_WARNING: Text = Text::new("warning", "警告");
+/// 辺の種類(成功と警告の両方)。
+pub const GRAPH_KIND_BOTH: Text = Text::new("success, warning", "成功・警告");
+/// 再開位置の注記(ジョブの行の末尾。先頭の 2 つの空白を含む。BR4.2)。
+pub const GRAPH_RESUME_HERE: Text = Text::new("  <- resume here", "  <- 再開位置");
+/// `-v` の詳細の行の見出し(コマンド。BR3.1)。
+pub const GRAPH_DETAIL_COMMAND: Text = Text::new("command: ", "コマンド: ");
+/// `-v` の詳細の行の見出し(リトライ。BR3.1)。
+pub const GRAPH_DETAIL_RETRY: Text = Text::new("retry: ", "リトライ: ");
+
+/// リトライの要約(`-v`。BR3.1)。例: 「終了コード 75、76 を最大 3 回、間隔 5 秒(倍率 2、上限 60 秒)」。
+pub fn graph_retry_summary(lang: Language, retry: &conductor_core::RetryPolicy) -> String {
+    let codes = |sep: &str| {
+        retry
+            .exit_codes
+            .iter()
+            .map(i32::to_string)
+            .collect::<Vec<_>>()
+            .join(sep)
+    };
+    match lang {
+        Language::En => {
+            let mut text = format!(
+                "exit codes {}, up to {} times, every {} s",
+                codes(", "),
+                retry.max,
+                retry.interval_secs
+            );
+            if let (Some(m), Some(max)) = (retry.multiplier, retry.max_interval_secs) {
+                text.push_str(&format!(" (x{m}, max {max} s)"));
+            }
+            text
+        }
+        Language::Ja => {
+            let mut text = format!(
+                "終了コード {} を最大 {} 回、間隔 {} 秒",
+                codes("、"),
+                retry.max,
+                retry.interval_secs
+            );
+            if let (Some(m), Some(max)) = (retry.multiplier, retry.max_interval_secs) {
+                text.push_str(&format!("(倍率 {m}、上限 {max} 秒)"));
+            }
+            text
+        }
+    }
+}
+
+/// 辺の注記の 1 つ(`<種類> → <行き先>` と、飛び越すジョブ。BR3.2)。入力の値は、エスケープ済みで渡す。
+pub fn graph_edge_note(
+    lang: Language,
+    kind_label: &str,
+    target: &str,
+    skipped: &[String],
+) -> String {
+    match lang {
+        Language::En => {
+            if skipped.is_empty() {
+                format!("{kind_label} -> {target}")
+            } else {
+                format!("{kind_label} -> {target} (skips {})", skipped.join(", "))
+            }
+        }
+        Language::Ja => {
+            if skipped.is_empty() {
+                format!("{kind_label} → {target}")
+            } else {
+                format!("{kind_label} → {target}({} を飛び越す)", skipped.join("、"))
+            }
+        }
+    }
+}
+
+/// 辺の注記をつなぐ区切り(BR3.2)。
+pub const GRAPH_NOTE_SEPARATOR: Text = Text::new(", ", "、");

@@ -25,6 +25,8 @@
 //! - 標準エラーへの書き込みの失敗は、無視する(本筋を止めない)。標準出力の失敗は、値で返す。
 
 pub mod escape;
+pub mod graph_mermaid;
+pub mod graph_text;
 pub mod messages;
 pub mod watch;
 
@@ -166,6 +168,8 @@ pub enum DisplayEvent<'a> {
     // ---- output(標準出力) ----
     WatchTable(&'a PipelineState),
     WatchEmpty,
+    /// `graph` の図(組み立て済みの text か Mermaid。そのまま出す。BR6.3)。
+    Graph(&'a str),
     /// 使い方(`--help`)。
     Help,
     /// 版(`--version`)。
@@ -197,7 +201,11 @@ impl DisplayEvent<'_> {
             | Self::Transition { .. }
             | Self::Interrupted { .. }
             | Self::DefinitionValid { .. } => Level::Verbose,
-            Self::WatchTable(_) | Self::WatchEmpty | Self::Help | Self::Version => Level::Output,
+            Self::WatchTable(_)
+            | Self::WatchEmpty
+            | Self::Graph(_)
+            | Self::Help
+            | Self::Version => Level::Output,
         }
     }
 }
@@ -406,6 +414,7 @@ impl<'a> Reporter<'a> {
                 watch::render_table(lang, state, self.color_enabled())
             }
             DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang)),
+            DisplayEvent::Graph(text) => (*text).to_string(),
             DisplayEvent::Help => messages::USAGE.get(lang).to_string(),
             // 上で返している。
             DisplayEvent::SignalSetupFailed | DisplayEvent::Version => String::new(),
