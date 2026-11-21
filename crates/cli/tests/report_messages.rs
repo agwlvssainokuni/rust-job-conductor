@@ -262,6 +262,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     let state = pipeline_state();
     f(&DisplayEvent::WatchTable(&state));
     f(&DisplayEvent::WatchEmpty);
+    f(&DisplayEvent::Graph("* a\no @end\n"));
     f(&DisplayEvent::Help);
     f(&DisplayEvent::Version);
 }
@@ -321,7 +322,9 @@ fn 日本語の表示は日本語の文を含む() {
         let japanese = !text.is_ascii();
         // 固定の英語の文、または、トークンだけでできている行
         let token_only = match event {
-            DisplayEvent::SignalSetupFailed | DisplayEvent::Version => true,
+            DisplayEvent::SignalSetupFailed | DisplayEvent::Version | DisplayEvent::Graph(_) => {
+                true
+            }
             DisplayEvent::Transition { skipped, .. } => skipped.is_empty(),
             _ => false,
         };
@@ -791,7 +794,9 @@ fn 使い方は種類ごとの固定の文と使い方の一覧() {
         "start",
     )));
     assert!(text.starts_with("conductor: error: unknown command: 'start'\n\nUsage:\n"));
-    for command in ["run", "pipeline", "watch", "reset", "validate", "convert"] {
+    for command in [
+        "run", "pipeline", "watch", "reset", "validate", "convert", "graph",
+    ] {
         assert!(text.contains(&format!("conductor {command}")), "{command}");
     }
 }

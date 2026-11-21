@@ -16,7 +16,9 @@
 
 use std::ffi::OsString;
 
-use conductor_cli::{CliCommand, CommandKind, ParsedArgs, UsageError, UsageErrorKind, parse_args};
+use conductor_cli::{
+    CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind, parse_args,
+};
 use conductor_converter::TargetFormat;
 
 fn os(args: &[&str]) -> Vec<OsString> {
@@ -353,6 +355,7 @@ fn コマンドの名前() {
         (CommandKind::Reset, "reset"),
         (CommandKind::Validate, "validate"),
         (CommandKind::Convert, "convert"),
+        (CommandKind::Graph, "graph"),
     ] {
         assert_eq!(kind.name(), name);
     }
@@ -576,4 +579,87 @@ fn resolve_run_id_の環境変数の値の違反は_invalid_value_で値を含�
     }
     let e = resolved(Some("a/b"), &[]).unwrap_err();
     assert_eq!(e.subject.as_deref(), Some("--run-id"));
+}
+
+// ---- graph(U2。BR4.5、BR6.4) ----
+
+#[test]
+fn graph_は_全オプションを受け取り_既定は_text_で_状態なし() {
+    let cmd = command(&["graph"]);
+    assert_eq!(cmd.kind, CommandKind::Graph);
+    assert_eq!(cmd.graph.format, GraphFormat::Text);
+    assert!(!cmd.graph.with_state && !cmd.verbose && cmd.pipeline_name.is_none());
+    let cmd = command(&[
+        "graph", "-v", "--config", "c.toml", "--format", "mermaid", "--state", "--run-id", "r1",
+        "nightly",
+    ]);
+    assert_eq!(cmd.graph.format, GraphFormat::Mermaid);
+    assert!(cmd.graph.with_state && cmd.verbose);
+    assert_eq!(cmd.run_id.as_deref(), Some("r1"));
+    assert_eq!(cmd.pipeline_name.as_deref(), Some("nightly"));
+    // `--format=text` の形も受け付ける。
+    assert_eq!(
+        command(&["graph", "--format=text"]).graph.format,
+        GraphFormat::Text
+    );
+}
+
+#[test]
+fn graph_の_run_id_は_state_と一緒のときだけ() {
+    for args in [
+        &["graph", "--run-id", "r1"][..],
+        &["graph", "--run-id", ""][..],
+    ] {
+        let e = parse(args).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::OptionNotAllowed, "{args:?}");
+        assert_eq!(e.subject.as_deref(), Some("--run-id"));
+    }
+    // 形の誤りは、既存の誤り。
+    assert_eq!(
+        kind_of(&["graph", "--state", "--run-id", ".bad"]),
+        UsageErrorKind::InvalidValue
+    );
+}
+
+#[test]
+fn graph_の_format_は_text_か_mermaid_だけで_重複と値の欠けは誤り() {
+    assert_eq!(
+        kind_of(&["graph", "--format", "dot"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["graph", "--format", "text", "--format", "mermaid"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["graph", "--format"]),
+        UsageErrorKind::MissingValue
+    );
+    assert_eq!(
+        kind_of(&["graph", "--state", "--state"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(
+        kind_of(&["graph", "--state=x"]),
+        UsageErrorKind::InvalidValue
+    );
+    assert_eq!(kind_of(&["graph", "-vv"]), UsageErrorKind::InvalidValue);
+    assert_eq!(
+        kind_of(&["graph", "a", "b"]),
+        UsageErrorKind::UnexpectedArgument
+    );
+}
+
+#[test]
+fn format_と_state_は_graph_以外では許されないオプション() {
+    for kind in ["run", "pipeline", "watch", "reset", "validate", "convert"] {
+        for option in [&["--format", "text"][..], &["--state"][..]] {
+            let mut args = vec![kind];
+            if matches!(kind, "run" | "pipeline" | "convert") {
+                args.push("x");
+            }
+            args.extend_from_slice(option);
+            assert_eq!(kind_of(&args), UsageErrorKind::OptionNotAllowed, "{args:?}");
+        }
+    }
 }

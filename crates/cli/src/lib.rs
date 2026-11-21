@@ -103,7 +103,10 @@ pub use deps::{
     SystemSignals,
 };
 pub use panic_hook::{install_panic_hook, install_panic_hook_with, on_panic};
-pub use types::{CliCommand, CommandKind, Language, Level, ParsedArgs, UsageError, UsageErrorKind};
+pub use types::{
+    CliCommand, CommandKind, GraphFormat, GraphOptions, Language, Level, ParsedArgs, UsageError,
+    UsageErrorKind,
+};
 
 use ctx::Ctx;
 use exit::{EXIT_OK, EXIT_USAGE};
