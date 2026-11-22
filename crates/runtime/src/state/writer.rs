@@ -30,8 +30,8 @@ use conductor_core::JobStatus;
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
-use crate::state::dir_or_current;
 use crate::state::reader::FORMAT_VERSION;
+use crate::temp_file::dir_or_current;
 use crate::types::{Durability, StateLocation};
 
 /// 一時ファイルの名前が重なったとき、連番を進めて作り直す回数の上限。

@@ -31,7 +31,7 @@ pub(crate) fn termination_signal(status: &ExitStatus) -> Option<i32> {
 
 /// ディレクトリを同期する(置き換えの記録を、ディスクに確かめる)。失敗しても、エラーにしない。
 pub(crate) fn sync_dir(dir: &Path) {
-    let dir = crate::state::dir_or_current(dir);
+    let dir = crate::temp_file::dir_or_current(dir);
     let _ = File::open(dir).and_then(|f| f.sync_all());
 }
 

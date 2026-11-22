@@ -119,6 +119,7 @@ mod platform;
 mod runner;
 mod split;
 mod state;
+mod temp_file;
 pub mod types;
 mod wait;
 

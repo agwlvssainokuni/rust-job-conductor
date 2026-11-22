@@ -30,9 +30,9 @@ use std::path::Path;
 use conductor_core::RunId;
 
 use crate::error::{StateError, StateErrorKind, reason};
-use crate::state::dir_or_current;
 use crate::state::reader::{Inspected, inspect_run_state};
 use crate::state::writer::remove_state_file;
+use crate::temp_file::dir_or_current;
 use crate::types::StateLocation;
 
 /// `reset --all` の結果。

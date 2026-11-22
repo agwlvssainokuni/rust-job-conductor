@@ -21,15 +21,3 @@ pub(crate) mod consistency;
 pub(crate) mod reader;
 pub(crate) mod reset_all;
 pub(crate) mod writer;
-
-use std::path::Path;
-
-/// ディレクトリのパスが空なら、実行ディレクトリ(`.`)にする。ステートファイルと `init` の出力先の
-/// 親のディレクトリを開くとき、置き換えの同期と古い一時ファイルの後始末に使う 1 か所(BR2.8)。
-pub(crate) fn dir_or_current(dir: &Path) -> &Path {
-    if dir.as_os_str().is_empty() {
-        Path::new(".")
-    } else {
-        dir
-    }
-}
