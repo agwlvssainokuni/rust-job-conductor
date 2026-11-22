@@ -445,5 +445,5 @@ fn layout_lanes(plan: &SkipPlan) -> LaneLayout {
         }
         after_fork = new_lane;
     }
-    LaneLayout { rows }
+    LaneLayout { rows, main_line }
 }

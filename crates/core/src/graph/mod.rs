@@ -139,6 +139,10 @@ pub struct LaneRow {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LaneLayout {
     pub rows: Vec<LaneRow>,
+    /// ノードごと(`FlowGraph.nodes` の位置)の、主線の列 0 の記号(BR1.4)。ノードの下の行(分岐の行、
+    /// 合流の行、寄せの行、`-v` の詳細の行)の列 0 に使う。そのジョブが実行されうる(先頭のジョブから
+    /// 辺をたどって着ける)、かつ次のジョブへの辺を持つときだけ `Line`、それ以外(終点を含む)は `Empty`。
+    pub main_line: Vec<LaneGlyph>,
 }
 
 /// 図の配置。「対応する形」(BR2.4)ならレーンの図、そうでなければ、辺の一覧(BR2.8)。

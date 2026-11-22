@@ -203,9 +203,18 @@ fn render_lanes(
             push_line(&mut out, &fork);
             i += 1;
         }
-        // 列の数だけ `|` を描き、(列の数 × 2)の位置に、詳細の文を置く。
+        // 列の数だけ `|` を描き、(列の数 × 2)の位置に、詳細の文を置く。列 0 は、配置が決めた主線の記号
+        // (実行されないジョブや、次のジョブへの辺がないジョブの下は空白。BR1.4)。
         let columns = row.glyphs.len() / 2;
-        let prefix = "| ".repeat(columns);
+        let column0 = lanes
+            .main_line
+            .get(node_index)
+            .map_or(LaneGlyph::Line, |g| *g);
+        let prefix = format!(
+            "{} {}",
+            glyph_char(&column0),
+            "| ".repeat(columns.saturating_sub(1))
+        );
         if let Some(job) = definition.job.get(node_index) {
             for sentence in detail_sentences(lang, job, graph) {
                 push_line(&mut out, &format!("{prefix}{sentence}"));

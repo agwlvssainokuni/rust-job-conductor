@@ -79,8 +79,13 @@ fn レーンの配置は行の並びで_配置の結果はレーンか辺の一�
         glyphs: vec![LaneGlyph::Node, LaneGlyph::Empty],
         node_index: Some(0),
     };
-    let layout = GraphLayout::Lanes(LaneLayout { rows: vec![row] });
-    assert!(matches!(layout, GraphLayout::Lanes(ref l) if l.rows.len() == 1));
+    let layout = GraphLayout::Lanes(LaneLayout {
+        rows: vec![row],
+        main_line: vec![LaneGlyph::Line, LaneGlyph::Empty],
+    });
+    assert!(
+        matches!(layout, GraphLayout::Lanes(ref l) if l.rows.len() == 1 && l.main_line.len() == 2)
+    );
     assert_ne!(layout, GraphLayout::EdgeList);
 }
 
