@@ -40,6 +40,10 @@ pub const MAX_ENV_FILE_BYTES: usize = 1_048_576;
 pub const MAX_ENV_ENTRIES: usize = 10_000;
 /// 誤りを表示する件数の上限(BR2.8)。
 pub const MAX_REPORTED_ERRORS: usize = 20;
+
+// 理由の文([`EnvFileErrorKind::reason`])の「1 MiB」「10,000」と、上限の定数を結ぶ(BR3.1、BR3.2)。
+const _: () = assert!(MAX_ENV_FILE_BYTES == 1_048_576);
+const _: () = assert!(MAX_ENV_ENTRIES == 10_000);
 /// 予約名の接頭辞(BR1.3)。
 pub const RESERVED_ENV_PREFIX: &str = "CONDUCTOR_";
 

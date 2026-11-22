@@ -121,6 +121,9 @@ fn read_bounded(reader: impl Read, limit: u64) -> std::io::Result<Option<Vec<u8>
     }
 }
 
+// 次の理由の文の「1 MiB」と、上限の定数を結ぶ(NFR4.4)。
+const _: () = assert!(MAX_DEFINITION_BYTES == 1024 * 1024);
+
 fn too_large(file: &str) -> DefinitionError {
     error(
         file,

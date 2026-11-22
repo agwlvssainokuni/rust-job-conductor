@@ -27,6 +27,9 @@ pub const VERSION_KEY: &str = "format_version";
 /// この `conductor` が対応する書式の版。
 pub const SUPPORTED_FORMAT_VERSION: u32 = 1;
 
+// 理由の文の「対応する版は 1 です」と、この定数を結ぶ。
+const _: () = assert!(SUPPORTED_FORMAT_VERSION == 1);
+
 /// 版を確認し、対応する版の値を返す。
 pub fn check_version(
     root: &DeTable<'_>,
