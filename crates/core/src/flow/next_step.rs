@@ -86,7 +86,8 @@ pub fn resolve_transition(
     }
 }
 
-fn stop(job: &JobDefinition) -> NextStep {
+/// 何も決まっていない次の動き(次のジョブなし、スキップなし、完了でなく、再開位置なし)。
+fn empty_step(job: &JobDefinition) -> NextStep {
     NextStep {
         job_id: job.id.clone(),
         next_job_id: None,
@@ -94,7 +95,15 @@ fn stop(job: &JobDefinition) -> NextStep {
         skip_reason_kind: None,
         end_reached: false,
         completed: false,
+        resume_job_id: None,
+    }
+}
+
+/// そのジョブで止まる次の動き(再開位置はそのジョブ)。
+fn stop(job: &JobDefinition) -> NextStep {
+    NextStep {
         resume_job_id: Some(job.id.clone()),
+        ..empty_step(job)
     }
 }
 
@@ -118,15 +127,7 @@ fn next_step(
     let jobs = &definition.job;
     let is_last = index + 1 == jobs.len();
 
-    let mut step = NextStep {
-        job_id: job.id.clone(),
-        next_job_id: None,
-        skipped_job_ids: Vec::new(),
-        skip_reason_kind: None,
-        end_reached: false,
-        completed: false,
-        resume_job_id: None,
-    };
+    let mut step = empty_step(job);
 
     let pending_ids = |range: &[JobDefinition]| -> Vec<String> {
         range
