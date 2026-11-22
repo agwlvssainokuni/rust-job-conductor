@@ -108,7 +108,7 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 |------|----|------------|
 | `INTERNAL_ERROR`(想定外の内部失敗) | `conductor: error: internal error` | 70 |
 | `SIGNAL_SETUP_FAILED` | `conductor: error: failed to set up signal handling` | 70 |
-| `--version` | `conductor {版}`(v0.8.0 では `conductor 0.8.0`) | 0 |
+| `--version` | `conductor {版}`(v0.9.0 では `conductor 0.9.0`) | 0 |
 
 ### 4.2 使い方の誤り
 

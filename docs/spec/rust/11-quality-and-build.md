@@ -20,12 +20,12 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 
 | クレート | 種別 | 依存する内部クレート | 配布物 |
 |----------|------|----------------------|--------|
-| `conductor-core`(0.8.0) | lib | なし | 含まれる(`conductor` に静的に入る) |
-| `conductor-runtime`(0.8.0) | lib + テスト補助 bin | core | 同上。補助 bin は配布しない |
-| `conductor-converter`(0.8.0) | lib | なし | 同上 |
-| `conductor-cli`(0.8.0) | lib + bin `conductor` + テスト補助 bin | core、runtime、converter | bin `conductor` だけ |
+| `conductor-core`(0.9.0) | lib | なし | 含まれる(`conductor` に静的に入る) |
+| `conductor-runtime`(0.9.0) | lib + テスト補助 bin | core | 同上。補助 bin は配布しない |
+| `conductor-converter`(0.9.0) | lib | なし | 同上 |
+| `conductor-cli`(0.9.0) | lib + bin `conductor` + テスト補助 bin | core、runtime、converter | bin `conductor` だけ |
 
-4 つのクレートの版は同じ 0.8.0。版の上げ方は手動(すべての `Cargo.toml` を書き換えるコミット)。リリースの検査が見るのは `crates/cli/Cargo.toml` の版だけ(7 章)。
+4 つのクレートの版は同じ 0.9.0。版の上げ方は手動(すべての `Cargo.toml` を書き換えるコミット)。リリースの検査が見るのは `crates/cli/Cargo.toml` の版だけ(7 章)。
 `publish = false`(crates.io には公開しない)。
 
 ### 1.1 ワークスペース共通の設定(ルートの `Cargo.toml`)
@@ -351,8 +351,8 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 
 ### 7.1 手順(人の操作)
 
-1. すべての `Cargo.toml`(4 クレート)の版を新しい版に上げて、`main` にマージする(例: `0.8.0`)。`Cargo.lock` も更新する。
-2. `main` のそのコミットに、タグ `v<版>`(例: `v0.8.0`)を付けて push する。タグは `main` の上にあること。
+1. すべての `Cargo.toml`(4 クレート)の版を新しい版に上げて、`main` にマージする(例: `0.9.0`)。`Cargo.lock` も更新する。
+2. `main` のそのコミットに、タグ `v<版>`(例: `v0.9.0`)を付けて push する。タグは `main` の上にあること。
 3. ワークフローが、下書き(draft)のリリースを作る。人が内容を確認して、公開する(自動では公開しない)。
 
 タグの規則: パターン `v*`。`v` を除いた文字列が `crates/cli/Cargo.toml` の版と**完全に一致**すること。版に `-` を含む(例: `0.9.0-rc.1`)と、プレリリース。
@@ -500,7 +500,7 @@ cargo audit                                               # 警告のみ(マー�
 | 項目 | README | 実装・CI |
 |------|--------|----------|
 | テストの案内 | 「ビルドしたあとの確認には、テストが使える」として `cargo test --workspace --locked` | 一致。ただし CI は 3 OS + MSRV。README は CI、カバレッジ、clippy、`startup-bench` を説明しない(開発者向けの情報は README にない) |
-| リリース | 成果物の名前・`SHA256SUMS`・Intel macOS はクロスビルドで動作未確認 | 一致(`release.yml`)。README の `<版>` の例が `0.7.0`(現行は 0.8.0。例なので誤りではない) |
+| リリース | 成果物の名前・`SHA256SUMS`・Intel macOS はクロスビルドで動作未確認 | 一致(`release.yml`)。README の `<版>` の例が `0.7.0`(現行は 0.9.0。例なので誤りではない) |
 | MSRV | `Rust(1.100 以降)` | 一致(`msrv_consistency.rs` が強制) |
 | 性能の測定の表示 | 記載なし | `nfr_perf.rs` の出力文言は「debug ビルド」だが、CI の `startup-bench` は `--release`(文言と実態の差。基準の判定には影響しない) |
 | カバレッジ・clippy・audit | 記載なし | CI で強制/警告(6 章)。README に書かれていない |
