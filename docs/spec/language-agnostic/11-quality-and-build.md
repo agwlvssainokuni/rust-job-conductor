@@ -1,14 +1,14 @@
 # 11 品質・受け入れテスト・デモ・リリース
 
-対象: `conductor` v0.8.0 の振る舞い。この文書は、実装言語やビルドの仕組みを問わず、`conductor` の実装が満たすべき品質の基準を定める。
+対象: `conductor` v0.9.0 までの振る舞い。この文書は、実装言語やビルドの仕組みを問わず、`conductor` の実装が満たすべき品質の基準を定める。
 
 | 章 | 内容 |
 |----|------|
 | 1 | この文書の位置づけ |
 | 2 | 非機能要件(性能、堅牢性、セキュリティ、保守性)の基準値と、強制か目安かの区別 |
 | 3 | 受け入れテストの共通事項(実行環境、テスト用ジョブ、定義とステートの略記、判定の書き方) |
-| 4 | 受け入れテスト一覧(機能ごと。ID は `AC-xxx`) |
-| 5 | デモの仕様(構成、場面 0〜10、UNIX 系と Windows) |
+| 4 | 受け入れテスト一覧(機能ごと。ID は `AC-xxx`。4.17〜4.20 は v0.9.0 の機能) |
+| 5 | デモの仕様(構成、場面 0〜14、UNIX 系と Windows) |
 | 6 | リリース物の要件(対応 OS、配布の形) |
 | 7 | 品質ゲートの要件(言語中立) |
 | 8 | 未確認の事項 |
@@ -49,6 +49,8 @@ p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は
 | ジョブの実行中(約 3 秒)の `conductor` の CPU 時間(UNIX 系) | 100 ms 以下 | **強制**(CPU 時間を読めない環境ではスキップ) | AC-403 |
 | 同じ定義への 2 つの `run` を同時に | 両方が実行され、どちらもジョブの終了コードで終わり、ステートは読み戻せる(排他制御はしない) | **強制** | AC-404 |
 | リトライの待機の中断 | 合図から 1 秒以内に返る。確認の間隔は 50 ms 以下 | **強制**(1 秒)/ 目安(50 ms) | AC-275 |
+| 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置。最悪の 2 つの形(入れ子が最大の形、交差する形) | 1 秒以内 | **強制** | AC-486 |
+| 計画の生成(v0.9.0 以降)。ジョブ 1,000 個がすべて `env` と `env_file` を持ち、すべて実行する計画 | 1 秒以内 | **強制** | AC-501 |
 | ジョブの終了の確認の間隔 | 1・2・4・8・10 ms、以降 10 ms(上限 10 ms) | 目安 | 07 章 5 章 |
 
 測定のしかた:
@@ -86,6 +88,7 @@ p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は
 | 検証は副作用を持たない | 定義の検証は、コマンドを解釈・展開・起動しない。定義ファイルのディレクトリは変わらない | AC-415 |
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示 | AC-416 |
 | ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | AC-417 |
+| 環境変数の値を出さない(v0.9.0 以降) | `env`・`.env` の値が、標準出力、標準エラー(`-v` を含む)、ステートファイルに現れない。`graph`・`--dry-run` の出力にも現れず、名前だけが出る(`graph` は名前も出さない)。`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` の表示にも値が現れない | AC-468、AC-482、AC-492 |
 | 表示のエスケープ | 制御文字・方向制御文字を無効化する(4.14 節の表)。定義・ステート・変換の各部が、同じ入力に同じ結果を返す | 4.14 節 |
 | ネットワークに接続しない | 実行中に外向きの通信をしない。実装に、HTTP・TLS などの通信の部品を含めない | AC-419(点検) |
 | 安全でない呼び出しの隔離 | 型・境界の検査を外す呼び出しは、シグナル送信の 1 か所だけ(それがある言語では)。ほかでは使わない | AC-420(点検) |
@@ -686,7 +689,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-294 | 実行中の中断の記録(注入) | 同上 | 実行中に合図(2 つ来ても最初の番号) | ジョブを `error` として記録、終了 `128 + 最初の番号` | `flow_run::ジョブの実行中の合図は エラーとして記録して 128 足す番号 / 2 つの合図が来ても 最初の番号が残る`。区分: 注入 |
 | AC-295 | ジョブのあいだの中断(pipeline、注入) | 同上 | 1 つ目のジョブが成功した直後に合図 | 次のジョブを起動せず、再開位置を記録して `128 + 番号`。-v で `[conductor] interrupted by signal N` | `flow_pipeline::ジョブのあいだの合図は 再開位置を記録して 128 足す番号`。区分: 注入 |
 | AC-296 | 検査中の合図より誤りが優先 | 同上 | 定義の検査中に合図が立つ。定義の誤り / 順序外 / スキップ | 64 / 66 / 0(中断の終了コードにならない) | `flow_run::検査中の合図より 定義の誤りの終了コードが優先する / 検査中の合図より reject と skip が優先する`。区分: 注入 |
-| AC-297 | シグナルの準備は検査の前 | 同上 | `run` / `pipeline`、`validate`・`watch`・`reset`・`convert`・引数の誤り | `run`・`pipeline` だけが、定義の検査より前にシグナルを準備する。ほかは準備しない | `flow_run::シグナルの準備は定義の検査より前に行う`、`flow_pipeline::個別実行と一括実行だけがシグナルを準備する`、`flow_run::使い方の誤りでは 何も実行せず シグナルも準備しない`。区分: 注入 |
+| AC-297 | シグナルの準備は検査の前 | 同上 | `run` / `pipeline`、`validate`・`watch`・`reset`・`convert`・引数の誤り | `run`・`pipeline` だけが、定義の検査より前にシグナルを準備する。ほかは準備しない(v0.9.0 以降の `graph`・`init`、`--dry-run` も準備しない) | `flow_run::シグナルの準備は定義の検査より前に行う`、`flow_pipeline::個別実行と一括実行だけがシグナルを準備する`、`flow_run::使い方の誤りでは 何も実行せず シグナルも準備しない`。区分: 注入 |
 | AC-298 | シグナルの準備の失敗は 70 | 同上 | 準備が失敗する | 70。ERR = `conductor: error: failed to set up signal handling`。定義の検査もジョブの起動もしない | `flow_run::シグナルの準備に失敗したら 70 で 固定の英語の文`。区分: 注入 |
 | AC-299 | 登録済みでも続ける | 同上 | 準備が「すでに登録済み」を返す | 流れは成功と同様に続く | `flow_run::すでに登録済みでも 流れは成功と同様に続ける`。区分: 注入 |
 | AC-300 | 標準エラーが閉じていても本来の終了コード | 同上 | 標準エラーへの書き込みが失敗する | 本来の終了コードで終わる | `flow_run::標準エラーが閉じていても 本来の終了コードで終わる`。区分: 注入 |
@@ -772,7 +775,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-352 | `LC_MESSAGES`、`LANG` の順 | `LC_MESSAGES=ja_JP`、`LANG=C` / `LANG=ja_JP`(ほか未設定) | `bogus` | 日本語 / 日本語 | 同上 |
 | AC-353 | 空の値は飛ばす | `LC_ALL=`(空)、`LANG=ja_JP.UTF-8` | `bogus` | 日本語(空の `LC_ALL` は無視) | 同上 |
 | AC-354 | 大文字小文字を区別する | `LANG=JA` / 未設定 | `bogus` | 英語 | 同上 |
-| AC-355 | 標準出力と標準エラーの使い分け | `P(p; a:0)` | `run -v a` ほか | `run`・`pipeline`・`reset`・`validate` は、OUT に何も書かない。OUT に書くのは `watch`、`--help`、`--version`、`convert` だけ。ジョブ本体の出力は、そのまま流れる | `binary_basic`、`report_messages::level ごとに出力先が決まる` |
+| AC-355 | 標準出力と標準エラーの使い分け | `P(p; a:0)` | `run -v a` ほか | `run`・`pipeline`・`reset`・`validate` は、OUT に何も書かない。OUT に書くのは `watch`、`--help`、`--version`、`convert` と、v0.9.0 以降の `graph`、`--dry-run`、`init --config -` だけ。ジョブ本体の出力は、そのまま流れる | `binary_basic`、`report_messages::level ごとに出力先が決まる` |
 | AC-356 | 成功・スキップで表示なし | `P(p; a:0)`、`LANG` に不正な値 | `run a` | OUT・ERR 空(表示がなければ言語も色も判定しない) | `flow_run::成功は何も表示せず ロケールも判定しない`、`report_messages::言語と色の判定は 最初に必要になるまで行われない` |
 | AC-357 | -v のトークンは言語によらず英語 | `LANG=ja_JP.UTF-8`、`P(p; a:1{w=[1]})` | `run -v a` | ERR = `[conductor] job=a result=warning (終了コード 1)`(`job=`、`result=`、`warning` は英語) | `flow_run::v は日本語のロケールで日本語になる` |
 | AC-358 | -v の補足: 起動できない | 存在しないプログラム、`-v` | `run -v a` | ERR に `[conductor] job=a result=error (could not start)` と、続いて `conductor: error: job 'a': cannot start command '…'`。日本語は `起動できませんでした` | `report_messages::v の文言`、08 章 2.1 節 |
@@ -850,7 +853,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-392 | 終了コードの範囲合わせ(関数の検査) | 報告する値 `reported`、`is_error` | 範囲合わせの関数 | `0..255` はそのまま。`259`→3、`511`→255、`-1`→255、`-2`→254、`0xC0000005`(32 ビット符号つき)→5。`256`・`512`・`-256`・32 ビットの最小値は、エラーなら 1、エラーでなければ 0 | `exit_codes::範囲内の値はそのまま / 範囲外の値は下位 8 ビット / エラーで 0 になる場合は 1 / エラーでなければ 0 のまま`。区分: 単体 |
 | AC-393 | 中断の終了コード(関数の検査) | シグナル番号 n | `128 + n` を範囲合わせ(エラー扱い) | 15→143、2→130、1→129、3→131、300→172(範囲を超えない) | `exit_codes::中断の終了コードは 128 足す番号 / 中断の終了コードは範囲を超えない`。区分: 単体 |
 | AC-394 | 分類の全 10 項目(関数の検査) | 07 章 4.4 節の表の各行 | 分類の関数 | 順 1: 起動前の中断 → 分類なし、`128 + n`。順 2: 起動なし・中断でもない → エラー 127。順 3: 起動済みの中断 → `128 + n`(ジョブの終了コードを見ない)。順 4: 起動失敗 → 127。順 5: シグナル終了 n → `128 + n`。順 6: 終了コードなし → 1(`conductor` のエラー)。順 7: 成功コード → 0。順 8: 警告コード → 0。順 9: 0 で成功コードにない → 1(`conductor` のエラー)。順 10: そのまま。優先順位は上の行ほど高い | `core::flow_sequences::優先順位 中断と起動失敗とシグナル`、`flow_run`。区分: 単体 |
-| AC-395 | 終了コードの決定順序 | 複数の誤りを同時に持つ入力 | `run` | 検査の順(引数 68 → 準備 70 → 定義 64 → `command` 64 → ジョブID 68 → run ID 68 → ステートの読み込み 65 → 照合 65 → 起動前の判断 66/0 → 初期ステート 65 → ジョブ → 結果の書き込み 65 → 削除 65)で、最初の誤りだけが採られる。具体例は 4.3 節(定義の誤り > ジョブID)、4.8 節(定義 64 > run ID 68 > ステート 65) | `flow_run`、`flow_run_id::run id の決定は…`(10 章 2 節) |
+| AC-395 | 終了コードの決定順序 | 複数の誤りを同時に持つ入力 | `run` | 検査の順(引数 68 → 準備 70 → 定義 64 → `command` 64 → ジョブID 68 → run ID 68 → `.env` の読み取り 64(v0.9.0 以降)→ ステートの読み込み 65 → 照合 65 → 起動前の判断 66/0 → 初期ステート 65 → ジョブ → 結果の書き込み 65 → 削除 65)で、最初の誤りだけが採られる。具体例は 4.3 節(定義の誤り > ジョブID)、4.8 節(定義 64 > run ID 68 > ステート 65) | `flow_run`、`flow_run_id::run id の決定は…`(10 章 2 節) |
 | AC-396 | 128 + 番号の例 | ジョブが SIGKILL / 実行中に SIGTERM(UNIX 系) | `run a` | 137 / 143 | `flow_run::シグナルで終了したジョブは 128 足す番号`、`binary_signal` |
 
 ### 4.16 非機能要件の検証
@@ -887,6 +890,99 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-422 | テスト専用の経路を持たない | ソース、配布物 | 点検 | 入口に、異常終了を起こす経路がない。テスト用の実行ファイル以外に、テスト専用のコードがない。配布物にテスト用ジョブが入っていない | `cli::nfr_source`、6 章。区分: 点検 |
 | AC-423 | 著作権表示 | ソース | 点検 | 各ソースの先頭に Apache License 2.0 のヘッダがある | (規約)。区分: 点検 |
 
+
+### 4.17 環境変数の注入と `.env`(v0.9.0 以降)
+
+特に記さない限り、ジョブ `show` は `cmd="TJ env <名前>..."`(子の環境を、標準出力に `env[NAME]=set:q(値)` / `env[NAME]=unset` の行として出す)で、定義は `[pipeline] name = "p"` の下に `show` 1 つを置く。「環境」の欄は、被試験体に渡す環境変数(親の環境)。`CONDUCTOR_RUN_ID` は特に記さない限り未設定。「`.env` の誤り」の期待の「64」は、終了 64、ジョブを 1 つも起動しない、ステートファイルを作らない、を含む。値(秘密のつもりの文字列 `SECRET`)が、OUT・ERR のどこにも現れないことも、すべての項目で確かめる。
+
+| ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
+|----|------|------|------|------|------|
+| AC-450 | 層の優先順位と配列の順 | `[pipeline] env_file = "p.env"`、`[pipeline.env]` に `LAYER = "pipeline-env"`、`T_PENV = "pe"`。`show` に `env_file = ["j1.env", "j2.env"]`、`[job.env]` に `LAYER = "job-env"`、`T_JENV = "je w"`。`p.env` = `LAYER=pipeline-file⏎T_PFILE=pf⏎T_SHARED=from-p⏎T_OVERRIDDEN=from-env-file`、`j1.env` = `LAYER=j1⏎T_J1=one⏎T_SHARED=from-j1`、`j2.env` = `export T_J2=two⏎T_SHARED=from-j2⏎T_QUOTED="a b\n"`。環境: `T_INHERITED=from-parent`、`T_OVERRIDDEN=from-parent`。`show` は `LAYER T_PFILE T_PENV T_J1 T_J2 T_JENV T_SHARED T_QUOTED T_NONE T_INHERITED T_OVERRIDDEN` を出す | `run show` | 終了 0。OUT: `LAYER` = `"job-env"`、`T_PFILE` = `"pf"`、`T_PENV` = `"pe"`、`T_J1` = `"one"`、`T_J2` = `"two"`、`T_JENV` = `"je w"`、`T_SHARED` = `"from-j2"`(配列は後ろが勝つ)、`T_QUOTED` = `"a b\n"`(値は、`a`、空白、`b`、LF)、`T_NONE` = unset、`T_INHERITED` = `"from-parent"`(引き継いだ環境は残る)、`T_OVERRIDDEN` = `"from-env-file"`(`.env` が引き継いだ値を上書きする) | `binary_env::env と env_file の値と優先順位が子のプロセスの環境に見える` |
+| AC-451 | 自動の変数 | `show` が `CONDUCTOR_PIPELINE CONDUCTOR_JOB_ID CONDUCTOR_RUN_ID CONDUCTOR_ATTEMPT` を出す | `pipeline p --run-id r-42` / `run show` | 前者の OUT: `CONDUCTOR_PIPELINE` = `"p"`、`CONDUCTOR_JOB_ID` = `"show"`、`CONDUCTOR_RUN_ID` = `"r-42"`、`CONDUCTOR_ATTEMPT` = `"1"`。後者(run ID なし): `CONDUCTOR_JOB_ID` = `"show"`、`CONDUCTOR_RUN_ID` = unset、`CONDUCTOR_ATTEMPT` = `"1"` | `binary_env::自動の変数が run id の有無で渡る` |
+| AC-452 | run ID がないとき、引き継いだ `CONDUCTOR_RUN_ID` はそのまま | `show` が `CONDUCTOR_RUN_ID` を出す。環境: `CONDUCTOR_RUN_ID=zzz` | `run show --run-id ""`(run ID なしに固定) | 終了 0。OUT: `CONDUCTOR_RUN_ID` = `"zzz"`(`conductor` は足さず、取り除かない) | 05 章 14.3(派生) |
+| AC-453 | `CONDUCTOR_ATTEMPT` はリトライごとに増え、再開で 1 に戻る | `show` に `[job.retry] exit_codes = [75], max = 2, interval = "1s"`。起動の部品の差し替えで、1・2 回目は終了コード 75、3 回目は 0 を返す | `run show`。続けて、リトライを使い切るジョブ(常に 75)を `run`、再び `run` | 起動のたびに渡された環境の `CONDUCTOR_ATTEMPT` は `1`、`2`、`3`。使い切って停止したあとの再実行では、また `1` から数える(リトライの回数はステートに書かれない) | `flow_env::リトライで attempt が 1 2 3 と増え再開で 1 に戻る`。区分: 注入 |
+| AC-454 | `.env` の誤りで、何も実行せず 64 | `[pipeline] env_file = ["ok.env", "bad.env", "missing.env"]`。`ok.env` = `GOOD=SECRET`、`bad.env` = `NOEQ SECRET⏎T_OK=1⏎1BAD=SECRET⏎Q="SECRET\q"`(`missing.env` は無い) | `pipeline p` / `run show` / `validate` | すべて 64。OUT 空(ジョブが動かない)。ERR に、`bad.env:1`(missingEquals)、`bad.env:3`(invalidName)、`bad.env:4`(invalidEscape)、`missing.env`(fileMissing)の行がある。ERR に `SECRET` が現れない。ステートファイルがない | `binary_env::env の誤りは 64 で値が出力に無くジョブもステートも作らない` |
+| AC-455 | 誤りは 20 件で打ち切る | `.env` に、`=` のない行が 25 行 | `validate` | 64。ERR は 21 行。最後の行 = `conductor: error: and 5 more`(日本語 `ほか 5 件`)。先頭の 20 行は、行番号 1〜20 の `missingEquals` | `flow_env::誤りは 20 件で打ち切り残りの件数を示す`、`report_messages::env の誤りは 20 件で打ち切り…` |
+| AC-456 | `validate` の重複キーの警告 | `[pipeline] env_file = "p.env"`、`p.env` = `A=1⏎B=SECRET⏎A=2` | `validate` | 終了 0。OUT 空。ERR に `conductor: warning: ` で始まり、`p.env:3: duplicate key` と `` `A` `` を含む行(英語。日本語は `重複キー`)がある。`SECRET` が現れない。ステートを作らない | `binary_env::validate は重複キーの警告を標準エラーに出して 0` |
+| AC-457 | `run` は自分のジョブの分だけ読む | `[pipeline]` に `env_file` なし。ジョブ `a`(`env_file` なし)と `b`(`env_file = "nofile.env"`。ファイルなし) | `run a` / `pipeline p` / `run b` | `run a` は 0(`b` の `.env` を読まない)。`pipeline p` と `run b` は 64(`pipeline` は全ジョブ分を読む) | `flow_env::run は pipeline の env_file とそのジョブの分だけを読む` |
+| AC-458 | 再開でも読み直す | `[pipeline] env_file = "p.env"`。`b` がエラーで止まったステート | `p.env` を壊して、再度 `pipeline p` | 64。ジョブを起動せず、ステートは変わらない(`.env` を、呼び出しごとに読み直す) | `flow_env::再開でも env を読み直す` |
+| AC-459 | 使い方の誤り(68)が `.env` の誤り(64)より先 | `.env` が無い定義 | `run nojob`(定義にないジョブID)/ `run a --run-id 'a b'` | どちらも 68 | `flow_env::使い方の誤りの 68 が env の誤りの 64 より先に勝つ` |
+| AC-460 | `env`・`env_file` の定義の誤り | 各行の定義(`[job.env]` に書く)。ヘッダは `B0` | `validate` | 64。種類の文(`LANG=C`): `CONDUCTOR_X = "1"` と `conductor_x = "1"` → `reserved environment variable name`。`foo = "1"` と `FOO = "2"` → `environment variable names differ only in letter case`(2 つ目のキーの行)。`"1A" = "x"`、`"A B" = "x"` → `invalid environment variable name`。`A = "a\u0000b"` → `invalid environment variable value`。`A = 1` → `wrong value type`。`env = 5` → `wrong value type`。`env_file = ""`(空)→ `required value is empty`。`env_file = ["a", 3]`、`env_file = 5` → `wrong value type` | `env_definition`(各誤りと、予約名の大文字小文字、NUL、順序) |
+| AC-461 | 予約名は `.env` でも拒否 | `.env` に `CONDUCTOR_X=1` / `conductor_x=1` / `Conductor_X=1` | `validate` | 64。ERR = `conductor: error: <.env>:1: reserved environment variable name: ` に続く理由(英語: ``names starting with `CONDUCTOR_` cannot be written``)。`foo=1⏎FOO=2` は `caseConflict`(`environment variable names differ only in letter case`、行 2) | `env_file_parse`(予約名、名前の誤り) |
+| AC-462 | `.env` の書式(値) | `.env` の 1 行と、`show` が出す値(`run show`) | — | `A=1` → `"1"`。`export A=1`、`A = 1` → `"1"`。`A=x=y` → `"x=y"`。`A=x #y` → `"x"`、`A=x#y` → `"x#y"`。`A= "x"` → `"x"`。`A='no $expansion'` → `"no $expansion"`。`A="a\nb"` → `"a⏎b"`(LF)、`A="q\"\\"` → `q"\`。`A=` → `""`。`A=  # c` → `""`。`A=$HOME` → `"$HOME"`(展開しない)。先頭の BOM と CRLF の改行は受理(値に `\r` が入らない) | `env_file_parse`(各引用符、エスケープ、BOM、CRLF、`export`)。区分: 自動(値は子の環境で確かめる) |
+| AC-463 | `.env` の書式(誤り) | `.env` の 1 行(`validate`) | — | 64。`A` → `missingEquals`。`=1`、`1A=x` → `invalidName`。`A='x` → `unterminatedQuote`。`A="x\q"` → `invalidEscape`。`A="x" y` → `trailingGarbage`。`A='x' # c`、`A="x" # c` は受理。値に NUL(U+0000)→ `nulInValue`。引用符が行をまたぐ書き方 → `unterminatedQuote` | 同上 |
+| AC-464 | `.env` の上限と文字コード | `.env` を作る | `validate` | 大きさ 1,048,576 バイトちょうど → 0。1,048,577 バイト → 64(`tooLarge`。中身を読まず、行なし)。項目 10,000 個 → 0、10,001 個 → 64(`tooManyEntries`、10,001 個目の行)。UTF-8 でない → 64(`notUtf8`)。ディレクトリ / 権限 000(UNIX 系、非 root)→ 64(`unreadable`)。空のファイルは 0 | `env_loader::ちょうど 1 mib は通り 1 mib 足す 1 は誤りで…`、`utf8 でないファイルは誤り`、`無い ディレクトリ 読めないファイルは誤りで中身を読まない`、`env_file_parse::項目の上限` |
+| AC-465 | パスの基準は定義ファイルのディレクトリ | `T/sub/c.toml`(`env_file = "x.env"`)、`T/sub/x.env` = `V=sub`、`T/x.env` = `V=cwd`。`show` は `V` を出す | `T` で `run show --config sub/c.toml` | 0。`V` = `"sub"`(実行ディレクトリの `x.env` は読まない)。絶対パス、`../x.env` も使える。`~` と変数は展開しない(`~/x.env` は、その名前のファイルを探して、無ければ `fileMissing`) | `env_loader::相対パスは定義ファイルのディレクトリが基準で絶対パスと dotdot も使える` |
+| AC-466 | 同じ名前を 2 回書いた `.env` は後ろが勝つ | `.env` = `A=1⏎A=2` | `run show`(`A` を出す) | `A` = `"2"`。`validate` は警告(AC-456) | `env_file_parse`(重複) |
+| AC-467 | 層をまたぐ大文字小文字だけが違う名前 | `[pipeline.env] foo = "p"`、`[job.env] FOO = "j"`。`show` は `foo FOO` を出す | `run show` | Linux・macOS: `foo` = `"p"`、`FOO` = `"j"`(両方が見える)。Windows: `FOO` = `"j"` だけ(OS が名前の大文字小文字を区別しない)。完全に同じ名前の優先順位は、どの OS でも同じ(後ろの層が勝つ) | `env_merge::層をまたぐ大文字小文字だけが違う名前は両方が並びに残り後ろが後`。区分: OS による差 |
+| AC-468 | 環境変数の値がどこにも出ない | `[pipeline] env_file = "p.env"`(`T_TOKEN=SECRET`)、`[pipeline.env] T_PENV = "SECRET"`、`quiet`(`TJ exit 3`)に `[job.env] T_JENV = "SECRET"` | `pipeline -v p` / `run -v quiet` / `validate -v` | OUT・ERR のどこにも `SECRET` が現れない。失敗(終了 3)で書かれたステートファイルに、`SECRET`、`T_TOKEN`、`T_PENV` が現れない | `binary_env::秘密の値は標準出力 標準エラー ステートファイルに含まれない`、`flow_env::値は標準出力 標準エラー ステートのどこにも出ない` |
+| AC-469 | 実行時に渡す環境の並び | 起動の部品の差し替え | `pipeline` | 起動に渡される足す環境変数の並びは、層の順(`[pipeline].env_file`、`[pipeline.env]`、`[job].env_file`、`[job.env]`、`CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(run ID があるとき)、`CONDUCTOR_ATTEMPT`)。完全に同じ名前は 1 つ(後ろの層の位置) | `flow_env::run job に渡る環境の並びは層の順`、`env_merge`。区分: 注入 |
+| AC-470 | README の環境変数の説明 | README | (検査) | 見出し、版の表記(`v0.9.0 以降`)、必須の語句があり、載っている TOML と `.env` の例が実際の読み取りと解析に通る | `docs_env`。区分: 点検 |
+
+### 4.18 `graph`(v0.9.0 以降)
+
+特に記さない限り、実行は `graph`(`LANG=C`)、期待は終了 0、OUT = 示した図、ERR 空、ステートファイルを作らない、ジョブを起動しない。定義は `P(p; ...)`(ジョブのコマンドは `TJ exit 0`)で、`on=success->X` は成功の遷移。
+
+| ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
+|----|------|------|------|------|------|
+| AC-471 | レーンの図: 飛び越しなし(G1) | `P(p; a:0, b:0, c:0)` | `graph` | OUT = `* a⏎* b⏎* c⏎o @end⏎` | `graph_report::レーンの図の例 g1 から g4 と g6` |
+| AC-472 | レーンの図: 1 本の飛び越し(G2) | `P(p; a:0{on=success->d}, b:0, c:0, d:0, e:0)` | `graph` | OUT = `*   a`⏎`\|\`⏎`* \| b`⏎`* \| c`⏎`\|/`⏎`* d`⏎`* e`⏎`o @end`(各行の末尾は改行)。8 章 11.1 の G2 と同じ | 同上、`binary_graph::text と mermaid の出力が例と一致しジョブは動かない` |
+| AC-473 | レーンの図: `@end` への飛び越し(G3)、入れ子(G4)、続く 2 本(G6) | G3: `P(p; a:0{on=success->@end}, b:0, c:0)`。G4: `P(p; a:0{on=success->f}, b:0{on=success->e}, c:0, d:0, e:0, f:0)`。G6: `P(p; a:0{on=success->c}, b:0, c:0, d:0{on=success->f}, e:0, f:0, g:0)` | `graph` | OUT は、8 章 11.1 の G3、G4、G6 と 1 文字も違わず一致する | `graph_report::レーンの図の例 g1 から g4 と g6` |
+| AC-474 | 辺の一覧に切り替わる形(E1、E2) | E1: `P(p; a:0{on=success->d}, b:0{on=success->e}, c:0, d:0, e:0, f:0)`(飛び越しが交差)。E2: `P(p; a:0{on=success->d, on=warning->d}, b:0, c:0, d:0)`(成功と警告のどちらも飛び越す。`--state` は `a`・`d` 成功、`b`・`c` スキップ) | `graph`(E2 は `graph --state`)。`LANG=ja_JP.UTF-8` | OUT は、8 章 11.4 の E1、E2 と 1 文字も違わず一致する。同じ行き先へ飛ぶ辺が 2 つの形も、辺の一覧になる | `graph_report::辺の一覧の例 e1 交差と e2 状態つき`、`graph_drawable` |
+| AC-475 | 「対応する形」の判定(単体) | 辺の集合 | 判定 | 各ジョブが次の節への辺を持ち、飛び越しが多くて 1 つ、行き先が重ならず、区間が交差しない形だけが、レーンの図。入れ子と続く飛び越しはレーンの図。交差、同じ行き先に 2 本、1 つのジョブから飛び越しが 2 つは、辺の一覧 | `graph_drawable`。区分: 単体 |
+| AC-476 | 配置の正解データ(単体) | 参照実装の正解データ(8,461 行。ジョブの数と飛び越しの形ごとの期待) | 配置 | 全例で、行の並び(記号と、ラベルを置く位置)が一致する | `graph_layout_oracle`。区分: 単体 |
+| AC-477 | `--state` の重ね合わせ | `P(p; a:0{on=success->d}, b:0, c:0, d:1, e:0)` で `pipeline p`(`d` が終了 1 でエラー。`b`・`c` はスキップ、`a` は成功) | `graph --state` | OUT = `*   [OK] a`⏎`\|\`⏎`* \| [--] b`⏎`* \| [--] c`⏎`\|/`⏎`* [NG] d  <- resume here`⏎`* [  ] e`⏎`o @end`。ステートファイルのバイト列は変わらない。`--format mermaid` を足すと、`n3["[NG] d"]` を含み、末尾が `  classDef resume stroke-width:3px⏎  class n3 resume⏎` | `binary_graph::state は 実際に作ったステートの状態と再開位置を重ねる` |
+| AC-478 | `--state` の例外 | (1) ステートなし。(2) 完了したステート。(3) 定義と食い違うステート | `graph --state` | (1) すべて `[  ]`、再開位置なし。(2) 状態の記号は重ねる(`[OK]`、`[--]`)が、再開位置の注記(`<- resume here`)はない。(3) 終了 65、OUT 空、ERR に `state does not match the definition` | `flow_graph::state でステートがなければ すべて 未実行 / state は ステートの状態と再開位置を重ね 完了したステートには再開位置がない / state のステートが定義と食い違えば 65…` |
+| AC-479 | Mermaid | G2 の定義 | `graph --format mermaid` | OUT は、8 章 11.5 のとおり(`flowchart TD`、節 `n0`〜`n4` と `nend`、辺。主線の辺はラベルなし、それ以外は `-->\|"warning"\|` / `-->\|"success"\|`)。`-v` を足しても同じ。ジョブIDに `<`、`>`、`&`、`#`、`"`、`` ` `` を含むと、`#lt;`、`#gt;`、`#amp;`、`#35;`、`#quot;`、`#96;` にエスケープされ、図が壊れない | `graph_report::mermaid の例と state の再開位置 / mermaid のラベルは 特別な文字をエスケープし id を壊さない` |
+| AC-480 | `-v` の詳細 | G2 の定義(`LANG=C`。ジョブの command は `TJ exit 0`) | `graph -v` | 各ジョブの行(と、続く分岐の行)のあとに、列の数だけ `\| ` を重ねた詳細の行が付く。`a` の分岐の行の次に `\| \| command: <a の command>` と `\| \| success -> d (skips b, c), warning -> b`。`[job.retry]` があれば `retry: exit codes 75, 76, up to 3 times, every 5 s (x2, max 60 s)` の行。配列の `command` は、空・空白を含む要素だけ二重引用符で囲む。辺の一覧のときは、ジョブの行の下に 4 つの空白で字下げ。日本語は `コマンド: `、`リトライ: `、`成功 → d(b、c を飛び越す)、警告 → b` | `graph_report::v の詳細は g2 と g4 の例のとおり…`、`v は リトライと配列のコマンドと英語の文を出し…` |
+| AC-481 | `validate` と同じ検査 | `env_file = ["missing.env"]` の定義 / `env_file` が指す `.env` に `DUP=one⏎DUP=SECRET` | `validate`、`graph` | 前者: どちらも 64。`graph` の OUT 空。ERR は `validate` と同じ。後者: `graph` は 0 で図を出し、ERR に重複キーの警告(`conductor: warning:`)。`SECRET` は現れない | `binary_graph::validate と同じ検査をする env の誤りは 64 で 重複キーは警告で 0`、`flow_graph::validate が 64 になる定義は graph も 64…` |
+| AC-482 | 環境変数は図に出ない | `[pipeline]` と `[job]` に `env`、`env_file`(値 `SECRET`) | `graph`、`graph -v`、`graph --format mermaid`、`graph --state -v` | すべて 0。OUT・ERR に、`SECRET` も、環境変数の名前(`env` のキー、`.env` の名前)も現れない。`-v` は、コマンドだけを出す | `binary_graph::環境変数の値は どの出力にも出ない` |
+| AC-483 | 使い方の誤り | — | `graph --format json` / `graph --format text --format mermaid` / `graph --run-id x` / `graph --state --state` / `graph -vv` / `watch --state` / `run --format text a` / `graph a b` | すべて 68。順に `invalid value: '--format'`、`invalid value: '--format'`、`option not allowed for this command: '--run-id'`、`invalid value: '--state'`、`invalid value: '-v'`、`option not allowed for this command: '--state'`、`option not allowed for this command: '--format'`、`unexpected argument: 'b'`。`graph --state --run-id x` は文法として正しい。ジョブを起動しない | `args_grammar`、`flow_graph::使い方の誤りは 68 で ジョブを起動しない` |
+| AC-484 | 名前の不一致と標準出力の失敗 | `graph other`(定義の名前は `p`)/ 標準出力に書けない状態(注入) | `graph` | 前者は 64(`pipeline name does not match the definition`)。後者は 65、ERR = `conductor: error: cannot write to standard output` | `flow_graph::パイプライン名の不一致は 64 / 標準出力に書けなければ 65`。後者の区分: 注入 |
+| AC-485 | ジョブを起動せず、ステートに触れず、1 回で書く | 起動の部品・ステートの部品・出力先の差し替え | `graph`、`graph --state` | ジョブは 1 つも起動されない。ステートは書かれず、消されず(読むだけ)。シグナルの準備はしない。標準出力への書き込みは 1 回で、図の全体 | `flow_graph::graph はジョブを起動せず ステートに触れず 標準出力に図だけを 1 回で書く`。区分: 注入 |
+| AC-486 | 1,000 ジョブの性能 | 入れ子が最大の形(前半の各ジョブ `i` が `N-1-i` へ飛ぶ)/ 交差する形(`j(i)` → `j(i+2)`)。ジョブ 1,000 個 | 図の構造と配置 | どちらも 1 秒以内(強制)。前者はレーンの図、後者は辺の一覧 | `graph_perf`。区分: 計測(強制) |
+| AC-487 | README の `graph` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている図の例が、実際の出力と一致する | `docs_graph`。区分: 点検 |
+
+### 4.19 `--dry-run` と `--assume`(v0.9.0 以降)
+
+特に記さない限り、期待は終了 0、ERR 空、ステートファイルを作らない、ジョブを起動しない(ジョブが書くはずのファイルができない)。`ENV3` は `CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT`。`C` は、ジョブの分割後のコマンド(例: `["<TJ のパス>", "exit", "0"]`)。定義 `ABC` = パイプライン `demo`、`a:0`、`b:0{w=[3]}`、`c:0`。
+
+| ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
+|----|------|------|------|------|------|
+| AC-488 | `pipeline` の計画 | `ABC` | `pipeline demo --dry-run` | OUT = `plan (--dry-run): pipeline demo`⏎`resume: from the start`⏎`1. [run] a`⏎(5 つの空白)`command: C`⏎(5 つの空白)`env: ENV3`⏎`2. [run] b`(同じ 2 行)⏎`3. [run] c`(同じ 2 行)⏎`result (simulated): completed`。日本語は 8 章 11.6 の P1 | `binary_dry_run::pipeline の計画と assume の出力が例と一致し 何も作られない`、`plan_report::例 p1 から p4…` |
+| AC-489 | `--assume` | `ABC` | `pipeline demo --dry-run --assume b=3` | OUT に `assume: b=3`、`2. [run (assumed: exit code 3 -> warning)] b`、最後の行 `result (simulated): completed`。`run a --dry-run --assume a=1` は、OUT = `plan (--dry-run): pipeline demo`⏎`target job: a`⏎`assume: a=1`⏎`1. [run (assumed: exit code 1 -> error)] a`(+ command、env の行)⏎`next step: (assumed: exit code 1 -> error) stop` | 同上 |
+| AC-490 | 再開位置と本番の判断との一致 | `a:0, b:1, c:0` で `pipeline demo` を実行(`b` で停止、終了 1) | `pipeline demo --dry-run` / `run b --dry-run` | 前者の OUT に `resume: b (previous stop)`、`1. [already executed] a`、`2. [run] b  <- resume here`、`3. [run] c`。後者は `target job: b` を示し、最後の行が `next step: next job c`(再開位置の代わりに、対象と次の動き)。ステートファイルのバイト列は、どちらでも変わらない | `binary_dry_run::実際に作ったステートから再開位置が出て ステートのバイト列は変わらない` |
+| AC-491 | 何も実行されない | `a`・`b` が、記録のファイルに書く(`TJ --out O run a 0`、`run b 0`) | `pipeline demo --dry-run` / `run a --dry-run` | どちらも 0。`O` ができない。ステートがない。(`--dry-run` なしの `pipeline demo` なら、`O` ができる) | `binary_dry_run::何も実行されない ジョブが書くはずのファイルができない` |
+| AC-492 | 環境変数は名前だけ | `[pipeline] env_file = "p.env"`(`T_TOKEN=SECRET`)、`[pipeline.env] T_PENV = "SECRET"`、`a` の `[job.env] T_JENV = "SECRET"` | `pipeline demo --dry-run -v` / `run a --dry-run -v` / `run a --dry-run --assume a=1 --run-id r1` | OUT の `a` の項目に `env: T_TOKEN, T_PENV, T_JENV, CONDUCTOR_PIPELINE, …`(層の順。run ID があれば `CONDUCTOR_RUN_ID` を含む)。OUT・ERR に `SECRET` が現れない | `binary_dry_run::env と dotenv の値は 標準出力と標準エラーのどこにも無く 名前だけが出る`、`plan_report::環境変数の名前は 層の順で 最後に conductor の変数` |
+| AC-493 | 遷移・`@end`・使われなかった仮定 | `P(p; a:0{on=success->c}, b:0, c:0)`、`--assume b=1` / `a:0{w=[3], on=warning->@end}, b, c`、`--assume a=3` | `pipeline p --dry-run …` | 前者: `assume: b=1`、`unused assumptions: b`、`2. [skip (transition)] b`、`result (simulated): completed`。後者: `1. [run (assumed: exit code 3 -> warning)] a`、`2. [skip (after @end)] b`、`3. [skip (after @end)] c`、`result (simulated): reached @end (completed)`(8 章 11.6 の P3、P4、P4e) | `plan_report`、`plan_assume::実行されないジョブの仮定は 使われなかった仮定になる 指定順` |
+| AC-494 | 既定の 0 がエラーになるジョブ、`run` の次の動き | `a` が `s=[10]`、`b` / `a:0{on=success->c}, b, c, d`、`@end` への遷移 | `pipeline … --dry-run` / `run a --dry-run` | `1. [run (default: exit code 0 -> error)] a`、`2. [not run (after stop)] b`、`result (simulated): stopped (error: a)`。`run a` は、最後の行が `next step: next job c (skipped: b)`、`@end` なら `next step: reached @end (the rest are skipped when called)`、エラーなら `next step: stop`。実行済みの対象は次の動きの行を出さない(8 章 11.6、11.7) | `plan_report`、`plan_assume::成功コードに 0 を含まないジョブは 既定の 0 でエラーになる`、`plan_run` |
+| AC-495 | リトライの対象の注記 | `a` に `[job.retry] exit_codes=[75,76], max=3, interval="5s"`、`--assume a=75` | `pipeline … --dry-run` | `[run (assumed: exit code 75 -> error, retry target)] a` と、`retry: exit codes 75, 76, up to 3 times, every 5 s` の行。模擬は、リトライを繰り返さない(1 つの終了コードを最終の結果として進める) | `plan_assume::リトライの対象の終了コードを仮定すると 注記される`、`plan_report::例 p2` |
+| AC-496 | 完了したステートは「ステートなし」 | 完了したステート | `pipeline demo --dry-run` | `resume: from the start`、全ジョブ `[run]`(本番の `pipeline` と同じ扱い。`graph --state` は完了したステートの状態を重ねる。意図した違い) | `plan_pipeline`、`flow_dry_run` |
+| AC-497 | `.env`・定義・ステートの誤り、拒否 | 各状況 | `pipeline demo --dry-run` / `run c --dry-run`(`a` が未実行) | `.env` が無い、定義の誤り、`command` の誤り → 64(計画は出ない、OUT 空)。ステートが壊れている、定義と食い違う → 65。`run c --dry-run` は 66、ERR = `conductor: error: job 'c': cannot run this job now: earlier jobs have not finished (out of order)`、OUT 空(本番と同じ表示) | `flow_dry_run::定義と command と env の誤りは 64 で 計画を出さない / ステートの食い違いと読めないステートは 65 / 順序外の run は 66 で 本番と同じ表示` |
+| AC-498 | `--assume` と `--dry-run` の使い方の誤り | — | `pipeline demo --dry-run --assume b=300` / `--assume b` / `--assume b=x` / `--assume b=1 --assume b=2` / `--assume nojob=1` / `pipeline demo --assume b=1` / `watch --dry-run` / `pipeline demo --dry-run --dry-run` | すべて 68。順に `invalid value: '--assume'`(4 つ)、`job is not defined in the definition file`(対象なし。ジョブIDを表示しない)、`option not allowed for this command: '--assume'`、`option not allowed for this command: '--dry-run'`、`invalid value: '--dry-run'`。入力の値(`300`、`x`、`nojob`)が ERR に現れない。ジョブを起動しない | `flow_dry_run::assume の不正な入力は 68 で 誤りの表示に入力の値を含まない / assume だけと dry run の付ける場所の誤りは 68` |
+| AC-499 | 本番の流れとの一致(注入) | 起動の部品の差し替え | 同じ定義・ステートで、`pipeline --dry-run` と、(すべて成功する)`pipeline` | 計画の `[run]` のジョブ = 本番が起動したジョブ(順序も)。新規と再開(エラーで止まったあと)の両方 | `flow_dry_run::計画の実行するジョブは 本番の流れが起動するジョブと一致する / 前回の停止からの再開も…`。区分: 注入 |
+| AC-500 | シグナルの準備・ステート・出力 | 差し替え | `--dry-run`、`--run-id r1 --remove-on-complete --dry-run` | シグナルを準備しない。ステートは読むだけ(書かない、消さない。`--remove-on-complete` は効果なし)。計画の全体を、標準出力に 1 回で書く。書けなければ 65 | `flow_dry_run::dry run はジョブを起動せず ステートに書かず 消さず シグナルも準備しない / run id と remove on complete は併用でき ステートは読むだけ / 計画を出せたら エラーで停止する模擬でも 0 で 出力できなければ 65`。区分: 注入 |
+| AC-501 | 1,000 ジョブの計画の性能 | すべてのジョブが `env` と `env_file` を持つ、ジョブ 1,000 個 | 計画の生成 | 1 秒以内(強制)。全ジョブが `[run]`、結果は `completed` | `plan_perf`。区分: 計測(強制) |
+| AC-502 | README の `--dry-run` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている計画の例が、実際の出力と一致する | `docs_dry_run`。区分: 点検 |
+
+### 4.20 `init`(v0.9.0 以降)
+
+特に記さない限り、実行は、空のディレクトリ `T` で(`T` が実行ディレクトリ)。ひな形の全文は 8 章 12 章。
+
+| ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
+|----|------|------|------|------|------|
+| AC-503 | 既定の作成 | `T` が空 | `init` | 終了 0。ERR = `created conductor.toml`⏎。OUT 空。`T/conductor.toml` ができ、UTF-8、改行は LF(CR を含まない)、`name = "my-pipeline"` を含む。続く `validate` は 0。続く `pipeline my-pipeline --dry-run` は 0 で、計画の先頭が `plan (--dry-run): pipeline my-pipeline`、`[run] hello` と `[run] flaky` を含む。ステートを作らない | `binary_init::空のディレクトリで init すると validate に通り dry run の計画が出る`、`flow_init::既定の名前とパスで ひな形が書かれ 標準エラーに作成の 1 行` |
+| AC-504 | 既存のファイルは壊さない | `T/conductor.toml` = `# 利用者の定義⏎` | `init` | 終了 69。ERR = `conductor: error: conductor.toml already exists (use --force to overwrite)`⏎。OUT 空。ファイルは変わらない。日本語は `conductor: error: conductor.toml は既にあります(上書きするには --force)` | `binary_init::もう一度 init すると 69 でファイルは変わらない`、`flow_init::既にあるときは 69 と 既にありますの 1 行で 標準出力は空` |
+| AC-505 | `--force` | 同上 | `init --force nightly` | 終了 0。ERR = `replaced conductor.toml`⏎(日本語 `conductor.toml を置き換えました`)。`name = "nightly"`。続く `validate nightly` は 0 | `binary_init::force で上書きされ validate に通る` |
+| AC-506 | `--config -`(標準出力) | `T` が空 | `init --config -` | 終了 0。OUT = ひな形の全文(AC-503 で作られるファイルと同じ内容)。ERR 空。ファイルを作らない。`--force` を足しても同じ | `binary_init::config ハイフンの出力は ファイルの内容と同じで ファイルを作らない`、`flow_init::config ハイフンは標準出力にひな形だけを出し force を無視し ファイルを作らない` |
+| AC-507 | 名前のエスケープ | `T` が空 | `init --config d<i>.toml '<名前>'`、続けて `validate --config d<i>.toml '<名前>'`(名前: `a"b`、`a\b`、`夜間 バッチ`、`# x`) | すべて 0(TOML として正しい名前になる)。名前は、コメントには書かれない。`init --config missing/conductor.toml` は 65、ERR = `conductor: error: cannot create missing/conductor.toml: the parent directory does not exist`(親のディレクトリを作らない) | `binary_init::特殊な文字の名前で init したファイルも validate を通る`、`init_template::名前は toml の基本文字列としてエスケープされる / 名前は コメントに書かれない` |
+| AC-508 | ひな形の全文(単体) | 言語、名前 | ひな形の生成 | 日本語と英語の全文(8 章 12 章)と、1 文字も違わず一致する。UTF-8、LF、末尾に改行 1 つ。どの言語でも、定義として読め、`command` も分けられる。`[pipeline.env]` と `[job.retry]` の例は、有効な行。名前以外の利用者の値は入らない | `init_template::日本語と英語のひな形は 原本と 1 文字も違わず一致する / ひな形は utf8 で lf だけで 末尾に改行が 1 つ / どのひな形も 定義として読め command も分けられる / ひな形に 名前以外の利用者の値は入らない`。区分: 単体 |
+| AC-509 | 作れないときの表示(注入) | ファイル作成の部品の差し替え | `init` | `parentMissing` → 終了 65、ERR = `conductor: error: cannot create conductor.toml: the parent directory does not exist`。`isDirectory` → `…: it is a directory`。`permissionDenied` → `…: permission denied`。`otherIo` → `…: I/O error`。日本語は `conductor: error: conductor.toml を作れません: 親のディレクトリがありません` / `ディレクトリです` / `書く権限がありません` / `入出力の誤りです`。OS のエラーの文は含まない。`--config -` で標準出力に書けない → 65、ERR = `conductor: error: cannot write the template to standard output` | `flow_init::作れないときは 65 と 種類ごとの固定の文で os の文を含まない / 標準出力に書けないときは 65`、`report_messages::init のメッセージは 仕様の表のとおり`。区分: 注入 |
+| AC-510 | ファイルの作成の規則(単体) | 一時ディレクトリ | ファイルの作成 | 新規: 内容がそのまま(LF のまま)。既存は壊さず `alreadyExists`。宙に浮いたシンボリックリンクは `alreadyExists`(`force` ならリンクそのものを置き換える)。`force`: 内容が新しくなり、一時ファイルが残らない。親が無い → `parentMissing`(作らない)。作る先がディレクトリ → `isDirectory`。書く権限がないディレクトリ → `permissionDenied`(UNIX 系、非 root)。同時に作る 2 つのうち、ちょうど 1 つだけが `created`(もう 1 つは `alreadyExists`) | `file_create::新規に作る 内容は書いたとおりで 改行は lf のまま / 既にあるファイルは壊さない / force で置き換える… / 同時に作る 2 つのうち ちょうど 1 つだけが created になる`。区分: 単体 |
+| AC-511 | 引数の文法 | — | `init -v` / `init --run-id x` / `init --all` / `init a b` / `validate --force` / `init --force --force` / `init ''` / `init '  '` | すべて 68。順に `option not allowed for this command: '-v'`、`'--run-id'`、`'--all'`、`unexpected argument: 'b'`、`option not allowed for this command: '--force'`(`validate`)、`invalid value: '--force'`、`invalid value: 'pipeline name'`(2 つ)。ファイルに触れない(引数の誤りは、ファイルを作る前に返る) | `args_grammar`、`flow_init::引数の誤りは ファイルに触れる前に 68` |
+| AC-512 | 何も読まず、シグナルも準備しない(注入) | 差し替え | `init` | 定義、`.env`、ステートを読まない。シグナルを準備しない。成功は標準エラーの 1 行だけ | `flow_init::定義と環境ファイルとステートを読まず シグナルも準備しない`。区分: 注入 |
+| AC-513 | README の `init` の説明 | README | (検査) | 見出し、版の表記、終了コード 69 の記述、必須の語句があり、載っているひな形の例が、実際の日本語のひな形と一致する | `docs_init`。区分: 点検 |
+
 ---
 
 ## 5. デモ
@@ -899,10 +995,11 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 demo/README.md                 使い方と各場面の説明
 demo/conductor.toml            UNIX 系の定義(パイプライン nightly)
 demo/retry.toml                UNIX 系のリトライの定義(パイプライン retry-demo)。場面 10 だけが使う
+demo/env.toml, demo/demo.env   UNIX 系の環境変数の定義(パイプライン env-demo)と `.env`。場面 11 だけが使う(v0.9.0 以降)
 demo/run-demo.sh               UNIX 系のスクリプト(シェル)
-demo/scripts/{extract,transform,load,notify,flaky}.sh   UNIX 系のジョブ
-demo/windows/conductor.toml, retry.toml, run-demo.cmd   Windows 版(コマンドプロンプトのバッチ)
-demo/windows/scripts/{extract,transform,load,notify,flaky}.cmd   Windows 版のジョブ
+demo/scripts/{extract,transform,load,notify,flaky,show-env}.sh   UNIX 系のジョブ(show-env は v0.9.0 以降)
+demo/windows/conductor.toml, retry.toml, env.toml, demo.env, run-demo.cmd   Windows 版(コマンドプロンプトのバッチ)
+demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Windows 版のジョブ
 ```
 
 ### 5.2 実行の仕方(UNIX 系と Windows の差)
@@ -962,6 +1059,8 @@ command = ["sh", "scripts/notify.sh"]
 `flaky` の仕様: カレントディレクトリの `flaky.count` の回数を 1 増やす(なければ 0 から)→ `  [flaky] <n> 回目の実行...` を表示する → 待つ → `n` が `DEMO_FLAKY_FAILS`(既定 2)以下なら `  [flaky] 終了コード 75 で終わります(一時的な失敗)` を表示して 75 で終わる。超えたら `  [flaky] 終了コード 0 で終わります` を表示して 0 で終わる。
 (Windows 版のジョブは、待ちに `ping` を使うなど、実現の仕方が違ってよい。表示の文言は同じ。)
 
+`demo/env.toml`(v0.9.0 以降。場面 11): `[pipeline]` の `name = "env-demo"`、`description = "環境変数のデモ"`、`env_file = "demo.env"`、`[pipeline.env]` に `DEMO_GREETING = "hello from [pipeline.env]"` と `DEMO_STAGE = "pipeline"`、ジョブ `show-env`(`command = "sh scripts/show-env.sh"`)の `[job.env]` に `DEMO_STAGE = "job"`。`demo/demo.env`: `DEMO_FROM_FILE=from demo.env`、`export DEMO_QUOTED="two words"`(コメントつき)、`DEMO_STAGE=dotenv`(コメントで、優先順位の例を説明)。`show-env` の仕様: `DEMO_GREETING`、`DEMO_FROM_FILE`、`DEMO_QUOTED`、`DEMO_STAGE`、`CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(なければ `(なし)`)、`CONDUCTOR_ATTEMPT` を、`  [show-env] <名前>=<値>` の形で 1 行ずつ表示する。
+
 ### 5.4 場面
 
 | 場面 | 見せること | 実行するコマンド(UNIX 系。Windows も同じ引数) |
@@ -977,6 +1076,10 @@ command = ["sh", "scripts/notify.sh"]
 | 8 | run ID ごとに別のステートファイル(`conductor.toml.<run ID>.state`)。同じ run ID で再開。完了後もステートは残り、`reset --run-id` で片づける | `pipeline -v --run-id build-1 nightly`(`load` で失敗)、環境変数 `DEMO_RUN_ID=build-2` で `pipeline -v nightly`、一覧、`watch --run-id build-1`、`pipeline -v --run-id build-1 nightly`(再開)、一覧、`watch --run-id build-1`、`reset --run-id build-1`、`reset --run-id build-2`、一覧 |
 | 9 | `--run-id` は環境変数に勝つ。`--run-id ""` は run ID なしに固定。`reset --run-id` は 1 つ、`reset --all` は全部。最後の `watch` は `no state` | `DEMO_RUN_ID=env-1` で `pipeline`(`load` で失敗)、`DEMO_RUN_ID=env-1` と `--run-id opt-1`、`--run-id ""`、`--run-id opt-2`、一覧、`reset --run-id opt-1`、一覧、`reset --all`、一覧、`watch` |
 | 10 | `flaky` が 2 回、終了コード 75 で失敗し、`conductor` は 1 秒待つたびに標準エラーへ `conductor: retry: job 'flaky' exited with code 75; retry <n> of 3 in 1 seconds` を出して実行し直し、3 回目で成功(`job=flaky result=success`) | `rm -f flaky.count`(Windows は `del`)、`pipeline -v --config retry.toml retry-demo` |
+| 11(v0.9.0 以降) | 環境変数。`show-env` が、`.env` < `[pipeline.env]` < `[job.env]` の優先順位で足された環境変数(`DEMO_STAGE=job`)と、自動の `CONDUCTOR_*`(run ID がなければ `CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`)を表示する。`.env` が無いと、ジョブを動かさずに 64。`validate` は、重複キーを警告して 0。値は `conductor` 自身の出力に出ない | `cat env.toml`、`cat demo.env`、`pipeline -v --config env.toml env-demo`。`env_file = "missing.env"` の定義 `bad-env.toml` で `pipeline`。`A=1`・`A=2` の `dup.env` を指す定義 `dup-env.toml` で `validate` |
+| 12(同) | 遷移の図。`extract` が警告なら `notify` へ飛ぶ遷移の図(右の線が飛び越し)、`-v` の詳細、Mermaid、`--state` の `[OK]`・`[NG]`・`[  ]` と再開位置。`graph` はステートを読むだけ | `graph`、`graph -v`、`graph --format mermaid`、`DEMO_LOAD_EXIT=2` で `pipeline nightly`(`load` で止める)、`graph --state`、`reset` |
+| 13(同) | 実行計画。計画(ジョブは実行されない)、`extract` が警告で `transform`・`load` が遷移でスキップされ `notify` へ、`load` で停止、`run` の次の動き。ステートは作られない | `pipeline nightly --dry-run`、`--assume extract=1`、`--assume load=2`、`run extract --dry-run`、ステートの一覧 |
+| 14(同) | ひな形。`created new.toml`、ひな形が `validate` に通る、2 回目は終了コード 69、`--force` で `replaced new.toml`、`--config -` は標準出力にひな形 | `init --config new.toml starter`、`validate --config new.toml starter`、もう一度 `init`、`init --config new.toml --force starter`、`init --config - starter` |
 
 最後に `デモは以上です。`(Windows 版も同じ)を出す。
 
@@ -986,7 +1089,7 @@ command = ["sh", "scripts/notify.sh"]
 
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-424 | UNIX 系: スクリプトが全部通る | 上の設定 | `sh demo/run-demo.sh` | 終了 0。見出し `=== 0. ` から `=== 10. ` までが順に出る | `unix_demo`。区分: UNIX 系 |
+| AC-424 | UNIX 系: スクリプトが全部通る | 上の設定 | `sh demo/run-demo.sh` | 終了 0。見出し `=== 0. ` から `=== 14. ` までが順に出る | `unix_demo`。区分: UNIX 系 |
 | AC-425 | UNIX 系: 場面 7(検査) | 同上 | 同上 | 出力に `definition is valid`、`command has an unclosed quote`、`→ 終了コード 64` が現れる。誤りの定義の検査のあと、ステートの一覧が `(なし)` | 同上 |
 | AC-426 | UNIX 系: 場面 4(再開・完了) | 同上 | 同上 | `completed` の行、`skipped (already executed)` が現れる | 同上 |
 | AC-427 | UNIX 系: 場面 8(run ID) | 同上 | 同上 | `conductor.toml.build-1.state` が一覧に現れる。再開のあと `completed`。`reset` のあと一覧は `(なし)` | 同上 |
@@ -1001,6 +1104,11 @@ command = ["sh", "scripts/notify.sh"]
 | AC-436 | Windows 版: 場面 8〜9 | 同上 | run ID を使う一連(場面 8、9) | run ID ごとにステートが分かれる。`--run-id` が環境変数に勝つ。`reset --run-id` と `--all` が働く | 同上 |
 | AC-437 | Windows 版: 場面 10 | 同上 | `pipeline --config retry.toml retry-demo` | 2 回失敗してから成功する | 同上 |
 | AC-438 | Windows 版: 利用者の run ID に影響されない | 利用者の run ID の環境変数を設定 | 同上 | 結果が変わらない | 同上 |
+| AC-514 | UNIX 系: 場面 11(環境変数。v0.9.0 以降) | 上の設定 | `sh demo/run-demo.sh` | `[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1` の行と、`missing.env`(`.env` が無い誤り)、``duplicate key `A` ``(警告)が現れる | `unix_demo`(場面 11)。区分: UNIX 系 |
+| AC-515 | UNIX 系: 場面 12(`graph`) | 同上 | 同上 | `*   extract`⏎`\|\`⏎`* \| transform`⏎`* \| load`⏎`\|/`⏎`* notify`⏎`o @end` の図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract` が現れる | 同上(場面 12) |
+| AC-516 | UNIX 系: 場面 13(`--dry-run`) | 同上 | 同上 | `plan (--dry-run): pipeline nightly`⏎`resume: from the start`⏎`1. [run] extract` で始まる計画、`assume: extract=1`、`2. [skip (transition)] transform`、`3. [skip (transition)] load`、`4. [run] notify`、`assume: load=2`、`result (simulated): stopped (error: load)`、`target job: extract`、`next step: next job transform` が現れ、続くステートの一覧は `(なし)` | 同上(場面 13) |
+| AC-517 | UNIX 系: 場面 14(`init`) | 同上 | 同上 | `created new.toml`、`name = "starter"`、`already exists (use --force to overwrite)`、`→ 終了コード 69`、`replaced new.toml`、`format_version = 1`(`--config -` の出力)が現れる | 同上(場面 14) |
+| AC-518 | Windows 版: 場面 11〜14 | 一時ディレクトリに定義とスクリプトを写す | 場面 11〜14 の一連 | 場面 11: 環境変数が子に渡り、優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0。場面 12: `graph` の図と `--state`。場面 13: `--dry-run` は何も実行せずステートも作らない。場面 14: `init` は 2 回目に 69、`--force` で上書き | `windows_demo`(場面 11〜14)。区分: Windows |
 
 ---
 
@@ -1079,4 +1187,7 @@ command = ["sh", "scripts/notify.sh"]
 - 4.2 節以降の「派生」の項目(根拠に「派生」とあるもの)は、参照実装に同じ形のテストがなく、規定から導いた。参照実装で通るかどうかは、この調査では実行していない。
 - テスト用ジョブの `flaky` モードは、参照実装の補助の実行ファイルにはない(デモのスクリプトに同じ役のものがある)。他の言語の実装は、この仕様どおりに作る必要がある。
 - ほぼ同時に届いた複数のシグナルのどれが「最初」になるかは規定していない(07 章)。
+- (v0.9.0 以降)統合した環境変数の全体の大きさが OS の上限を超えたときの、起動の失敗(127)の実機の挙動は未確認。層をまたぐ、大文字小文字だけが違う環境変数の名前の、Windows と UNIX 系の違い(AC-467)は、許容として README に書かれている(Windows の実機は未確認)。
+- (v0.9.0 以降)`graph` のレーンの配置の規則(05 の 15.5)は、参照実装の正解データ(AC-476)の例から導いたもので、正解データが原本。他の実装は、正解データと同じ結果を返すこと。
+- (v0.9.0 以降)AC-452(引き継いだ `CONDUCTOR_RUN_ID`)と AC-496(完了したステートの計画)の一部、AC-453 の「再開で 1 に戻る」の外からの確認は、参照実装に同じ形のテストがなく、規定(05 の 14 章、16 章)から導いた。
 - この調査では、テストやビルドは実行していない(ソースとテストの読み取りに基づく)。
