@@ -31,7 +31,7 @@
 //! (BR1.2)。
 
 use conductor_core::{
-    Classification, Decision, JobDefinition, JobExecution, JobOutcome, NextStep,
+    Classification, Decision, ExecutionResult, JobDefinition, JobExecution, JobOutcome, NextStep,
     PipelineDefinition, PipelineState, RunMode, SkipCause, classify_and_decide, decide_before_run,
 };
 use conductor_runtime::{CommandLine, Durability, apply_outcome, apply_skip, initial_state};
@@ -145,11 +145,11 @@ pub(crate) fn run_step(
     report_execution(ctx, job, command, &execution, &outcome, &next);
 
     let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
-    // 起動前の中断(started = false)は、ジョブが実行されていない。
-    let after = if execution.started {
-        StateContext::JobExecuted
-    } else {
+    // 起動前の中断(`NotStarted`)は、ジョブが実行されていない。
+    let after = if matches!(execution.result, ExecutionResult::NotStarted { .. }) {
         StateContext::JobNotStarted
+    } else {
+        StateContext::JobExecuted
     };
     ctx.write(path, run_id, &recorded, Durability::Durable, after)?;
     Ok(StepResult {
@@ -216,36 +216,47 @@ fn report_execution(
             skipped: &next.skipped_job_ids,
         });
     }
-    if execution.interrupted {
-        ctx.show(&DisplayEvent::Interrupted {
-            signal: execution.signal_number.unwrap_or(0),
-        });
+    if let Some(signal) = interrupted_signal(execution) {
+        ctx.show(&DisplayEvent::Interrupted { signal });
     }
 }
 
 /// 実行の結果の補足(`classify` の判定の順序と同じ)。
 fn result_detail(execution: &JobExecution) -> ResultDetail {
-    if !execution.started {
-        return if execution.interrupted {
-            ResultDetail::Interrupted {
-                signal: execution.signal_number.unwrap_or(0),
-                started: false,
-            }
-        } else {
-            ResultDetail::StartFailure
-        };
-    }
-    if execution.interrupted {
-        return ResultDetail::Interrupted {
-            signal: execution.signal_number.unwrap_or(0),
+    match execution.result {
+        ExecutionResult::NotStarted { signal } => ResultDetail::Interrupted {
+            signal,
+            started: false,
+        },
+        ExecutionResult::Exited {
+            interrupted_by: Some(signal),
+            ..
+        } => ResultDetail::Interrupted {
+            signal,
             started: true,
-        };
+        },
+        ExecutionResult::StartFailed => ResultDetail::StartFailure,
+        ExecutionResult::Exited {
+            terminated_by_signal: Some(signal),
+            interrupted_by: None,
+            ..
+        } => ResultDetail::Signal(signal),
+        ExecutionResult::Exited {
+            exit_code,
+            terminated_by_signal: None,
+            interrupted_by: None,
+        } => ResultDetail::ExitCode(exit_code.unwrap_or(0)),
     }
-    if execution.start_failure {
-        return ResultDetail::StartFailure;
+}
+
+/// 中断の合図の番号(起動しなかった中断と、終了の観測の直後に合図が立っていた実行のときだけ)。
+fn interrupted_signal(execution: &JobExecution) -> Option<i32> {
+    match execution.result {
+        ExecutionResult::NotStarted { signal }
+        | ExecutionResult::Exited {
+            interrupted_by: Some(signal),
+            ..
+        } => Some(signal),
+        _ => None,
     }
-    if let Some(signal) = execution.terminated_by_signal {
-        return ResultDetail::Signal(signal);
-    }
-    ResultDetail::ExitCode(execution.exit_code.unwrap_or(0))
 }

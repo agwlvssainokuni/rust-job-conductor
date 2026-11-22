@@ -25,7 +25,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use common::*;
-use conductor_core::JobExecution;
+use conductor_core::{ExecutionResult, JobExecution};
 use conductor_runtime::{InterruptSignal, run_job};
 
 /// ジョブを別のスレッドで動かし、起動して準備ができたところで合図を立て、結果を受け取る。
@@ -64,20 +64,28 @@ fn out_file() -> (tempfile::TempDir, PathBuf) {
 fn 実行中の合図は_sigterm_として届く() {
     let (_dir, out) = out_file();
     let e = run_and_raise(helper_command(&out, "sleep 25"), &out, 15);
-    assert!(e.started && !e.start_failure);
-    assert_eq!(e.terminated_by_signal, Some(15));
-    assert_eq!(e.exit_code, None);
-    assert!(e.interrupted);
-    assert_eq!(e.signal_number, Some(15));
+    assert_eq!(
+        e.result,
+        ExecutionResult::Exited {
+            exit_code: None,
+            terminated_by_signal: Some(15),
+            interrupted_by: Some(15),
+        }
+    );
 }
 
 #[test]
 fn sigint_も転送される() {
     let (_dir, out) = out_file();
     let e = run_and_raise(helper_command(&out, "sleep 25"), &out, 2);
-    assert_eq!(e.terminated_by_signal, Some(2));
-    assert!(e.interrupted);
-    assert_eq!(e.signal_number, Some(2));
+    assert!(matches!(
+        e.result,
+        ExecutionResult::Exited {
+            terminated_by_signal: Some(2),
+            interrupted_by: Some(2),
+            ..
+        }
+    ));
 }
 
 #[test]
@@ -86,10 +94,14 @@ fn 転送しない番号の合図では送られず_interrupted_だけが立つ(
     // SIGUSR1 は、転送してよい集合にない。ジョブは、自分の時間(1 秒)で終わる。
     let usr1 = if cfg!(target_os = "macos") { 30 } else { 10 };
     let e = run_and_raise(helper_command(&out, "sleep 1"), &out, usr1);
-    assert_eq!(e.terminated_by_signal, None);
-    assert_eq!(e.exit_code, Some(99));
-    assert!(e.interrupted);
-    assert_eq!(e.signal_number, Some(usr1));
+    assert_eq!(
+        e.result,
+        ExecutionResult::Exited {
+            exit_code: Some(99),
+            terminated_by_signal: None,
+            interrupted_by: Some(usr1),
+        }
+    );
 }
 
 #[test]
@@ -160,8 +172,14 @@ fn シグナルは_1回だけ転送される() {
         }
     };
     assert_eq!(lines(&hits), ["x"], "転送は 1 回だけ");
-    assert!(e.interrupted);
-    assert_eq!(e.exit_code, Some(0));
+    assert!(matches!(
+        e.result,
+        ExecutionResult::Exited {
+            exit_code: Some(0),
+            interrupted_by: Some(_),
+            ..
+        }
+    ));
 }
 
 /// 終了済みのジョブにも、安全に動く(送信の判断は、回収の前だけ)。
@@ -177,9 +195,15 @@ fn 先に終わったジョブは転送なしで観測される() {
             e
         }
     });
-    assert_eq!(e.exit_code, Some(4));
     assert!(
-        !e.interrupted,
+        matches!(
+            e.result,
+            ExecutionResult::Exited {
+                exit_code: Some(4),
+                interrupted_by: None,
+                ..
+            }
+        ),
         "観測の後に立った合図は、次の呼び出しの前のものとして扱う"
     );
 }

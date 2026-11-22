@@ -27,9 +27,9 @@ use std::sync::Arc;
 
 use common::*;
 use conductor_core::{
-    Classification, Decision, JobDefinition, JobOutcome, JobStatus, NextStep, PipelineDefinition,
-    PipelineState, RunMode, SkipCause, Transition, TransitionOn, TransitionTarget,
-    classify_and_decide, decide_before_run,
+    Classification, Decision, ExecutionResult, JobDefinition, JobOutcome, JobStatus, NextStep,
+    PipelineDefinition, PipelineState, RunMode, SkipCause, Transition, TransitionOn,
+    TransitionTarget, classify_and_decide, decide_before_run,
 };
 use conductor_runtime::{
     ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateError, StateErrorKind,
@@ -231,7 +231,7 @@ fn run_step(
         recorded,
         outcome,
         next,
-        started: execution.started,
+        started: !matches!(execution.result, ExecutionResult::NotStarted { .. }),
     }))
 }
 

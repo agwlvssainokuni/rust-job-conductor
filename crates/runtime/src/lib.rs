@@ -23,7 +23,7 @@
 //!
 //! | 関数 | 役割 | 入出力 | 失敗 |
 //! |------|------|--------|------|
-//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `start_failure` の値) |
+//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `StartFailed` の値) |
 //! | [`load_env_files`] | `env_file` の `.env` を読む(U1。BR1.7、BR3.x、BR6.4) | 定義ファイルのパス、`env_file` の記述 → `LoadedEnvFiles` | `EnvFileError` の並び(複数) |
 //! | [`wait_for`] | リトライの前の待機。中断の合図を短い間隔で確かめる(BR2.13、NFR7) | 秒数、[`InterruptSignal`] → [`WaitOutcome`] | なし |
 //! | [`check_command`] | command を、起動せずに検査する(BR1.1) | [`Command`](文字列または配列) → [`CommandLine`] | [`CommandError`] |
@@ -97,7 +97,7 @@
 //! # 守る性質
 //!
 //! - 外部の入力(command、ステートファイル、OS の結果)に対して、パニックしない。失敗は、
-//!   戻り値のエラー(`JobExecution` の `start_failure`、[`StateError`]、[`CommandError`])で返す(NFR4.7)。
+//!   戻り値のエラー(`JobExecution` の `StartFailed`、[`StateError`]、[`CommandError`])で返す(NFR4.7)。
 //! - エラーの表示に、入力の値、ライブラリのエラー文を含めない。ステートファイルに、command、
 //!   引数、環境変数、標準出力の内容を書かない(NFR4.5)。
 //! - シグナルは、ジョブの子プロセスの pid だけに、回収の前に、1 回だけ、`SIGHUP`・`SIGINT`・

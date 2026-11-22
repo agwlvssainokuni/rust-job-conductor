@@ -18,7 +18,7 @@ mod graph_common;
 
 use conductor_core::graph::{EdgeKind, EdgeTarget, FlowEdge, flow_edges};
 use conductor_core::{
-    JobExecution, PipelineDefinition, RunMode, TransitionOn, classify_and_decide,
+    ExecutionResult, JobExecution, PipelineDefinition, RunMode, TransitionOn, classify_and_decide,
 };
 use graph_common::{Spec, definition};
 
@@ -159,12 +159,11 @@ fn exec(job_id: &str, code: i32) -> JobExecution {
     JobExecution {
         job_id: job_id.into(),
         command: "c".into(),
-        started: true,
-        exit_code: Some(code),
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
+        result: ExecutionResult::Exited {
+            exit_code: Some(code),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        },
     }
 }
 

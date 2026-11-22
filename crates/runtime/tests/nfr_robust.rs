@@ -17,6 +17,7 @@
 
 mod common;
 
+use conductor_core::ExecutionResult;
 use conductor_runtime::{InterruptSignal, check_command, read_state, run_job};
 
 /// 小さな疑似乱数(xorshift64)。
@@ -176,13 +177,12 @@ fn 起動できないコマンドや範囲外の番号でパニックしない()
     ];
     for command in cases {
         let e = run_job(&common::job("j", command), &[], &InterruptSignal::new());
-        assert!(e.start_failure, "{e:?}");
+        assert_eq!(e.result, ExecutionResult::StartFailed, "{e:?}");
     }
     for number in [i32::MAX, i32::MIN, 0, -1, 1_000_000] {
         let s = InterruptSignal::new();
         s.raise(number);
         let e = run_job(&common::job("j", "anything"), &[], &s);
-        assert!(!e.started && e.interrupted);
-        assert!(e.signal_number.is_some());
+        assert!(matches!(e.result, ExecutionResult::NotStarted { .. }));
     }
 }

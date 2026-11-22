@@ -15,7 +15,8 @@
 //! リトライの判断 `retry_decision` のテスト(U2。BR2.1〜BR2.3、BR2.9、BR2.16。FR1.2、FR2.1、FR2.2、FR3.1、FR3.2、FR3.6)。
 
 use conductor_core::{
-    JobDefinition, JobExecution, RetryDecision, RetryPolicy, parse_definition, retry_decision,
+    ExecutionResult, JobDefinition, JobExecution, RetryDecision, RetryPolicy, parse_definition,
+    retry_decision,
 };
 
 const WITH_RETRY: &str = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n[job.retry]\nexit_codes = [75, 127]\nmax = 3\ninterval = \"30s\"\n";
@@ -39,18 +40,21 @@ fn exec(j: &JobDefinition) -> JobExecution {
     JobExecution {
         job_id: j.id.clone(),
         command: j.command.clone(),
-        started: true,
-        exit_code: None,
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
+        result: ExecutionResult::Exited {
+            exit_code: None,
+            terminated_by_signal: None,
+            interrupted_by: None,
+        },
     }
 }
 
 fn exited(j: &JobDefinition, code: i32) -> JobExecution {
     JobExecution {
-        exit_code: Some(code),
+        result: ExecutionResult::Exited {
+            exit_code: Some(code),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        },
         ..exec(j)
     }
 }
@@ -101,9 +105,9 @@ fn 成功と警告の終了コードは_停止する() {
 #[test]
 fn 起動の失敗は_停止する() {
     let j = job(WITH_RETRY);
+    // 起動の失敗は終了コードを持てない(一覧の 127 より優先することは、型で決まる)。
     let e = JobExecution {
-        start_failure: true,
-        exit_code: Some(127),
+        result: ExecutionResult::StartFailed,
         ..exec(&j)
     };
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
@@ -113,7 +117,11 @@ fn 起動の失敗は_停止する() {
 fn シグナルでの終了は_停止する() {
     let j = job(WITH_RETRY);
     let e = JobExecution {
-        terminated_by_signal: Some(9),
+        result: ExecutionResult::Exited {
+            exit_code: None,
+            terminated_by_signal: Some(9),
+            interrupted_by: None,
+        },
         ..exec(&j)
     };
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
@@ -123,9 +131,11 @@ fn シグナルでの終了は_停止する() {
 fn 中断された実行は_停止する() {
     let j = job(WITH_RETRY);
     let e = JobExecution {
-        interrupted: true,
-        signal_number: Some(2),
-        exit_code: Some(75),
+        result: ExecutionResult::Exited {
+            exit_code: Some(75),
+            terminated_by_signal: None,
+            interrupted_by: Some(2),
+        },
         ..exec(&j)
     };
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
@@ -135,9 +145,7 @@ fn 中断された実行は_停止する() {
 fn 起動前に中断された実行は_停止する() {
     let j = job(WITH_RETRY);
     let e = JobExecution {
-        started: false,
-        interrupted: true,
-        signal_number: Some(15),
+        result: ExecutionResult::NotStarted { signal: 15 },
         ..exec(&j)
     };
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);

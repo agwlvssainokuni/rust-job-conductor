@@ -46,16 +46,7 @@ fn a2_千個のジョブで終点に着いたときの残りの列挙を_100_回
     }
     let def = parse_definition(&text, "t.toml", None).expect("正しい定義");
     let state = initial_state(&def, Path::new("t.toml"), None);
-    let execution = JobExecution {
-        job_id: "j0".into(),
-        command: def.job[0].command.clone(),
-        started: true,
-        exit_code: Some(0),
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
-    };
+    let execution = JobExecution::exited(&def.job[0], 0);
 
     // 結果の中身: 残りの 999 個が記述順に `ByEnd` で並び、完了する。
     let (_, next) = classify_and_decide(

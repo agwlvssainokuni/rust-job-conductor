@@ -19,7 +19,8 @@ mod common;
 use std::path::Path;
 
 use conductor_core::{
-    Classification, JobExecution, JobOutcome, NextStep, PipelineDefinition, PipelineState,
+    Classification, ExecutionResult, JobExecution, JobOutcome, NextStep, PipelineDefinition,
+    PipelineState,
 };
 use conductor_runtime::{
     CommandErrorKind, Durability, StateError, StateErrorKind, apply_outcome, check_command,
@@ -138,12 +139,11 @@ fn ステートファイルに_command_と環境変数の値が現れない() {
     let execution = JobExecution {
         job_id: "a".into(),
         command: d.job[0].command.clone(),
-        started: true,
-        exit_code: Some(3),
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
+        result: ExecutionResult::Exited {
+            exit_code: Some(3),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        },
     };
     let outcome = JobOutcome {
         job_id: "a".into(),

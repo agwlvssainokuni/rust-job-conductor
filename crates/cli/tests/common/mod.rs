@@ -25,8 +25,8 @@ use std::sync::Arc;
 use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, EnvFileError, JobDefinition, JobExecution, LoadedEnvFiles,
-    PipelineDefinition, PipelineState, RunId,
+    Command, DefinitionError, EnvFileError, ExecutionResult, JobDefinition, JobExecution,
+    LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
@@ -344,17 +344,9 @@ impl Runtime for ScriptedRuntime {
                 .map(|(n, v)| (n.to_string(), v.to_string()))
                 .collect(),
         ));
-        // 土台は「起動した」結果。終了コードは、台本で決める。
-        let mut execution = JobExecution {
-            exit_code: None,
-            ..JobExecution::exited(job, 0)
-        };
         if let Some(number) = signal.signal_number() {
-            execution.started = false;
-            execution.interrupted = true;
-            execution.signal_number = Some(number);
             self.push(format!("skip-run:{}", job.id));
-            return execution;
+            return JobExecution::not_started(job, number);
         }
         self.push(format!("run:{}", job.id));
         if let Some(hook) = self.during_job.borrow().as_ref() {
@@ -366,15 +358,22 @@ impl Runtime for ScriptedRuntime {
             .get_mut(&job.id)
             .and_then(VecDeque::pop_front)
             .unwrap_or(Exec::Exit(0));
-        match spec {
-            Exec::Exit(code) => execution.exit_code = Some(code),
-            Exec::KilledBy(n) => execution.terminated_by_signal = Some(n),
-            Exec::StartFailure => execution.start_failure = true,
-        }
-        if let Some(number) = signal.signal_number() {
-            execution.interrupted = true;
-            execution.signal_number = Some(number);
-        }
+        // 結果は台本で決める。実行中の合図は、本物と同じく `Exited` のときだけ足す。
+        let interrupted_by = signal.signal_number();
+        let result = match spec {
+            Exec::Exit(code) => ExecutionResult::Exited {
+                exit_code: Some(code),
+                terminated_by_signal: None,
+                interrupted_by,
+            },
+            Exec::KilledBy(n) => ExecutionResult::Exited {
+                exit_code: None,
+                terminated_by_signal: Some(n),
+                interrupted_by,
+            },
+            Exec::StartFailure => ExecutionResult::StartFailed,
+        };
+        let execution = JobExecution::new(job, result);
         if let Some(hook) = self.after_job.borrow().as_ref() {
             hook(&job.id, signal);
         }
@@ -737,15 +736,12 @@ impl Runtime for MemRuntime {
         _env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        let mut execution =
+        let execution =
             JobExecution::exited(job, self.exit_codes.borrow_mut().pop_front().unwrap_or(0));
-        if let Some(n) = signal.signal_number() {
-            execution.started = false;
-            execution.exit_code = None;
-            execution.interrupted = true;
-            execution.signal_number = Some(n);
+        match signal.signal_number() {
+            Some(n) => JobExecution::not_started(job, n),
+            None => execution,
         }
-        execution
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

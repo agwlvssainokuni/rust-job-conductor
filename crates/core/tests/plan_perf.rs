@@ -88,16 +88,7 @@ fn 終点の後に千個近いジョブをスキップする計画は_1秒以内
     }
     let def = parse_definition(&text, "t.toml", None).expect("正しい定義");
     let s0 = initial_state(&def, Path::new("t.toml"), None);
-    let execution = JobExecution {
-        job_id: "j0".into(),
-        command: def.job[0].command.clone(),
-        started: true,
-        exit_code: Some(0),
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
-    };
+    let execution = JobExecution::exited(&def.job[0], 0);
     let (outcome, next) = classify_and_decide(
         &def.job[0],
         &execution,

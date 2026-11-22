@@ -208,66 +208,64 @@ pub struct Transition {
     pub next: TransitionTarget,
 }
 
-/// 1 回のジョブの起動の結果(契約 C1。生成は conductor-runtime)。
+/// 1 回のジョブの起動の結果(契約 C1。生成は conductor-runtime と、cli のリトライの待機)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobExecution {
     pub job_id: String,
     pub command: Command,
-    /// 合図が呼び出しの前に立っていて起動しなかったときだけ `false`。
-    pub started: bool,
-    /// 終了コード(`started` が `true` で、終了コードがあるときのみ)。
-    pub exit_code: Option<i32>,
-    /// シグナルで終了したときの、シグナル番号。
-    pub terminated_by_signal: Option<i32>,
-    /// 起動に失敗した。
-    pub start_failure: bool,
-    /// conductor がシグナルを受け取り、中断の合図が立った。
-    pub interrupted: bool,
-    /// `interrupted` のとき、受け取ったシグナルの番号。
-    pub signal_number: Option<i32>,
+    /// 起動の結果(あり得る 3 つの場合だけを表す)。
+    pub result: ExecutionResult,
+}
+
+/// 起動の結果の場合分け(BR1.1)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExecutionResult {
+    /// 起動しなかった。合図が起動の前に立っていた(`run_job`)か、リトライの待機中に立った(cli)。
+    /// `signal` は、最初に受け取ったシグナルの番号。
+    NotStarted { signal: i32 },
+    /// 起動に失敗した(`spawn` の失敗、終了の状態を取得できない、空のプログラム名)。
+    StartFailed,
+    /// 起動して、終了を観測した。
+    Exited {
+        /// 終了コード(UNIX でシグナルで終わったときは `None`)。
+        exit_code: Option<i32>,
+        /// シグナルで終わったときの番号(UNIX のみ。Windows は常に `None`)。
+        terminated_by_signal: Option<i32>,
+        /// 終了の観測の直後に中断の合図が立っていたら、最初に受け取ったシグナルの番号。
+        interrupted_by: Option<i32>,
+    },
 }
 
 impl JobExecution {
-    /// ジョブが起動し、終了コード `exit_code` で終わった実行結果(シグナル、起動の失敗、中断なし)。
+    /// ジョブ `job` の、結果 `result` の実行結果(BR1.1)。`job_id` と `command` は `job` から写す。
+    pub fn new(job: &JobDefinition, result: ExecutionResult) -> Self {
+        Self {
+            job_id: job.id.clone(),
+            command: job.command.clone(),
+            result,
+        }
+    }
+
+    /// ジョブが起動し、終了コード `exit_code` で終わった実行結果(シグナル、中断なし)。
     pub fn exited(job: &JobDefinition, exit_code: i32) -> Self {
-        Self {
-            job_id: job.id.clone(),
-            command: job.command.clone(),
-            started: true,
-            exit_code: Some(exit_code),
-            terminated_by_signal: None,
-            start_failure: false,
-            interrupted: false,
-            signal_number: None,
-        }
+        Self::new(
+            job,
+            ExecutionResult::Exited {
+                exit_code: Some(exit_code),
+                terminated_by_signal: None,
+                interrupted_by: None,
+            },
+        )
     }
 
-    /// 合図(シグナル番号 `signal`)が立っていて、ジョブを起動しなかった実行結果(BR1.6)。
+    /// 合図(シグナル番号 `signal`)が立っていて、ジョブを起動しなかった実行結果(BR1.1)。
     pub fn not_started(job: &JobDefinition, signal: i32) -> Self {
-        Self {
-            job_id: job.id.clone(),
-            command: job.command.clone(),
-            started: false,
-            exit_code: None,
-            terminated_by_signal: None,
-            start_failure: false,
-            interrupted: true,
-            signal_number: Some(signal),
-        }
+        Self::new(job, ExecutionResult::NotStarted { signal })
     }
 
-    /// 起動に失敗した実行結果(BR1.2〜BR1.4)。
+    /// 起動に失敗した実行結果(BR1.1)。
     pub fn start_failed(job: &JobDefinition) -> Self {
-        Self {
-            job_id: job.id.clone(),
-            command: job.command.clone(),
-            started: true,
-            exit_code: None,
-            terminated_by_signal: None,
-            start_failure: true,
-            interrupted: false,
-            signal_number: None,
-        }
+        Self::new(job, ExecutionResult::StartFailed)
     }
 }
 

@@ -185,7 +185,7 @@ fn next_step(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{JobStatus, Transition};
+    use crate::types::{ExecutionResult, JobStatus, Transition};
 
     fn tr(on: TransitionOn, next: TransitionTarget) -> Transition {
         Transition { on, next }
@@ -227,12 +227,11 @@ mod tests {
         JobExecution {
             job_id: job_id.into(),
             command: "c".into(),
-            started: true,
-            exit_code: Some(code),
-            terminated_by_signal: None,
-            start_failure: false,
-            interrupted: false,
-            signal_number: None,
+            result: ExecutionResult::Exited {
+                exit_code: Some(code),
+                terminated_by_signal: None,
+                interrupted_by: None,
+            },
         }
     }
 
@@ -354,25 +353,27 @@ mod tests {
         let j = &d.job[1];
         let variants = [
             JobExecution {
-                exit_code: None,
-                start_failure: true,
+                result: ExecutionResult::StartFailed,
                 ..exec("j1", 0)
             },
             JobExecution {
-                exit_code: None,
-                terminated_by_signal: Some(9),
+                result: ExecutionResult::Exited {
+                    exit_code: None,
+                    terminated_by_signal: Some(9),
+                    interrupted_by: None,
+                },
                 ..exec("j1", 0)
             },
             JobExecution {
-                interrupted: true,
-                signal_number: Some(2),
+                result: ExecutionResult::Exited {
+                    exit_code: Some(0),
+                    terminated_by_signal: None,
+                    interrupted_by: Some(2),
+                },
                 ..exec("j1", 0)
             },
             JobExecution {
-                started: false,
-                exit_code: None,
-                interrupted: true,
-                signal_number: Some(2),
+                result: ExecutionResult::NotStarted { signal: 2 },
                 ..exec("j1", 0)
             },
         ];

@@ -24,8 +24,8 @@ use std::path::Path;
 use super::status_at;
 use crate::run_id::RunId;
 use crate::types::{
-    Classification, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition,
-    PipelineState, ResumePoint, SkipCause, SkipReason,
+    Classification, ExecutionResult, JobExecution, JobOutcome, JobState, JobStatus, NextStep,
+    PipelineDefinition, PipelineState, ResumePoint, SkipCause, SkipReason,
 };
 
 /// 空のステートを、定義から作る(`initial_state`)。
@@ -71,7 +71,8 @@ fn find_mut<'a>(state: &'a mut PipelineState, job_id: &str) -> Option<&'a mut Jo
 /// ジョブの結果を記録する(`apply_outcome`。BR2.8)。
 ///
 /// - そのジョブの `status` は、分類のとおり(分類が無い、起動しなかった中断のときは、変えない)。
-///   `exit_code` は、`JobExecution` の `exit_code` そのまま(無ければ、以前の値を消す)。
+///   `exit_code` は、`JobExecution` の結果が `Exited` ならその `exit_code` そのまま、
+///   ほか(`NotStarted`、`StartFailed`)は無し(無ければ、以前の値を消す。BR1.4)。
 /// - `NextStep` の `skipped_job_ids` の各ジョブを `skipped` にし、`skip_reason` に
 ///   `skip_reason_kind` を書く。
 /// - `resume_job_id` と `completed` は、`NextStep` のとおり。`end_reached` は、一度 `true` に
@@ -92,7 +93,10 @@ pub fn apply_outcome(
             job.status = <JobStatus as From<Classification>>::from(classification);
             job.skip_reason = None;
         }
-        job.exit_code = execution.exit_code;
+        job.exit_code = match execution.result {
+            ExecutionResult::Exited { exit_code, .. } => exit_code,
+            ExecutionResult::NotStarted { .. } | ExecutionResult::StartFailed => None,
+        };
         if !has_result(job.status) {
             // 状態の整合(結果の無い状態には、終了コードを持たせない)。
             job.exit_code = None;
@@ -224,12 +228,11 @@ mod tests {
         JobExecution {
             job_id: job.into(),
             command: "echo".into(),
-            started: true,
-            exit_code: code,
-            terminated_by_signal: None,
-            start_failure: false,
-            interrupted: false,
-            signal_number: None,
+            result: ExecutionResult::Exited {
+                exit_code: code,
+                terminated_by_signal: None,
+                interrupted_by: None,
+            },
         }
     }
 
@@ -388,8 +391,7 @@ mod tests {
         let d = definition(&["a"]);
         let s0 = initial_state(&d, Path::new("c.toml"));
         let mut e = exec("a", None);
-        e.started = false;
-        e.interrupted = true;
+        e.result = ExecutionResult::NotStarted { signal: 2 };
         let s = apply_outcome(&s0, "a", &e, &outcome("a", None), &step("a"));
         assert_eq!(s.job_states[0], JobState::pending("a"));
     }

@@ -20,7 +20,8 @@
 //! リトライの回数と、直前の待ち時間は、この関数のローカルな値で、ステートファイルには書かない。
 
 use conductor_core::{
-    EnvContext, JobDefinition, JobExecution, RetryDecision, merge_env, retry_decision,
+    EnvContext, ExecutionResult, JobDefinition, JobExecution, RetryDecision, merge_env,
+    retry_decision,
 };
 use conductor_runtime::{InterruptSignal, WaitOutcome};
 
@@ -30,7 +31,8 @@ use crate::report::DisplayEvent;
 /// ジョブを実行し、リトライの対象なら、知らせて、待って、実行し直す。最後の実行結果を返す。
 ///
 /// - リトライの設定がない、または対象外の結果なら、1 回実行して、その結果を返す(従来どおり。BR2.9)。
-/// - 待機中に中断の合図が立てば、待機を打ち切り、「起動していない、中断された」実行結果を返す。
+/// - 待機中に中断の合図が立てば、待機を打ち切り、「起動していない、中断された」実行結果
+///   (`NotStarted`)を返す。
 ///   既存の分類で、分類なし・終了コード 128 + 番号・再開位置はそのジョブ、エラーとして記録しない
 ///   扱いになる(BR2.5)。
 pub(crate) fn run_job_with_retry(
@@ -67,7 +69,13 @@ pub(crate) fn run_job_with_retry(
         let max = job.retry.as_ref().map_or(0, |policy| policy.max);
         ctx.show(&DisplayEvent::RetryScheduled {
             job_id: &job.id,
-            last_exit_code: execution.exit_code.unwrap_or_default(),
+            last_exit_code: match execution.result {
+                ExecutionResult::Exited {
+                    exit_code: Some(code),
+                    ..
+                } => code,
+                _ => 0,
+            },
             retry_number: retries_done + 1,
             max,
             wait_secs,

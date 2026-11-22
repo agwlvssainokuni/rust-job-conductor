@@ -16,7 +16,7 @@
 //!
 //! 引数だけから結果を決める純粋な関数。待つことも、起動することも、表示することもしない。
 
-use crate::types::{JobDefinition, JobExecution, RetryPolicy};
+use crate::types::{ExecutionResult, JobDefinition, JobExecution, RetryPolicy};
 
 /// リトライするかの判断(BR2.1〜BR2.3)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,17 +29,18 @@ pub enum RetryDecision {
 
 /// 1 回の実行結果が、リトライの対象か(BR2.1、BR2.16)。
 ///
-/// 起動した、conductor の中断でない、起動の失敗でない、シグナルで終了していない、
+/// 起動して終了を観測し(`Exited`)、conductor の中断でない、シグナルで終了していない、
 /// 終了コードが設定の集合に含まれる、の全部が成り立つときだけ真。
-/// ジョブ自身が返した 127 は、一覧にあれば対象になる(起動の失敗は対象にならない)。
+/// ジョブ自身が返した 127 は、一覧にあれば対象になる(起動の失敗は終了コードを持たないので、対象にならない)。
 fn is_retry_target(policy: &RetryPolicy, execution: &JobExecution) -> bool {
-    execution.started
-        && !execution.interrupted
-        && !execution.start_failure
-        && execution.terminated_by_signal.is_none()
-        && execution
-            .exit_code
-            .is_some_and(|code| policy.exit_codes.contains(&code))
+    match execution.result {
+        ExecutionResult::Exited {
+            exit_code: Some(code),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        } => policy.exit_codes.contains(&code),
+        _ => false,
+    }
 }
 
 /// `retries_done` 回目まで実行し直した後の、k = `retries_done + 1` 回目のリトライの待ち時間(BR2.3)。

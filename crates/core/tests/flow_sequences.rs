@@ -18,9 +18,9 @@
 //! `parse_definition` で作った定義と、手元の `Vec<JobState>` だけを使う。
 
 use conductor_core::{
-    Classification, Decision, JobExecution, JobState, JobStatus, NextStep, PipelineDefinition,
-    RejectReason, ResumePoint, RunMode, SkipCause, SkipReason, classify_and_decide,
-    decide_before_run, parse_definition, resume_point_on_interrupt,
+    Classification, Decision, ExecutionResult, JobExecution, JobState, JobStatus, NextStep,
+    PipelineDefinition, RejectReason, ResumePoint, RunMode, SkipCause, SkipReason,
+    classify_and_decide, decide_before_run, parse_definition, resume_point_on_interrupt,
 };
 
 fn definition(extra_transitions: &str) -> PipelineDefinition {
@@ -47,12 +47,11 @@ fn exited(job: &str, code: i32) -> JobExecution {
     JobExecution {
         job_id: job.into(),
         command: "c".into(),
-        started: true,
-        exit_code: Some(code),
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
+        result: ExecutionResult::Exited {
+            exit_code: Some(code),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        },
     }
 }
 
@@ -113,7 +112,11 @@ impl Sim {
                     Some(Classification::Error) => JobStatus::Error,
                     None => JobStatus::Pending,
                 };
-                self.set(id, status, exec.exit_code, None);
+                let exit_code = match exec.result {
+                    ExecutionResult::Exited { exit_code, .. } => exit_code,
+                    _ => None,
+                };
+                self.set(id, status, exit_code, None);
                 self.apply_step(&step);
                 (decision, Some(outcome.reported_exit_code))
             }
@@ -257,17 +260,23 @@ fn 成功コードを書いたジョブの_0_はエラーで_conductor_のエラ
 fn 優先順位_中断と起動失敗とシグナル() {
     let def = definition("");
     let job = &def.job[0];
+    // 起動失敗と中断・シグナルは、型の上で同時に作れない(起動失敗の優先は型で決まる)。
     let mut e = exited("a", 0);
-    e.start_failure = true;
-    e.terminated_by_signal = Some(9);
-    e.interrupted = true;
-    e.signal_number = Some(2);
+    e.result = ExecutionResult::Exited {
+        exit_code: Some(0),
+        terminated_by_signal: Some(9),
+        interrupted_by: Some(2),
+    };
     let (o, _) = classify_and_decide(job, &e, &[], &def, RunMode::Pipeline);
     assert_eq!(o.reported_exit_code, 130, "中断が最優先");
-    e.interrupted = false;
+    e.result = ExecutionResult::StartFailed;
     let (o, _) = classify_and_decide(job, &e, &[], &def, RunMode::Pipeline);
     assert_eq!(o.reported_exit_code, 127, "起動失敗がシグナル終了より先");
-    e.start_failure = false;
+    e.result = ExecutionResult::Exited {
+        exit_code: Some(0),
+        terminated_by_signal: Some(9),
+        interrupted_by: None,
+    };
     let (o, _) = classify_and_decide(job, &e, &[], &def, RunMode::Pipeline);
     assert_eq!(o.reported_exit_code, 137);
 }
@@ -291,12 +300,7 @@ fn 起動しなかった中断は再開位置になり_128_足す番号を返す
     let e = JobExecution {
         job_id: "a".into(),
         command: "c".into(),
-        started: false,
-        exit_code: None,
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: true,
-        signal_number: Some(15),
+        result: ExecutionResult::NotStarted { signal: 15 },
     };
     let (o, step) = classify_and_decide(job, &e, &[], &def, RunMode::Pipeline);
     assert_eq!(o.classification, None);

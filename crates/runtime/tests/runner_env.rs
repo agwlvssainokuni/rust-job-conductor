@@ -18,6 +18,7 @@
 mod common;
 
 use common::*;
+use conductor_core::ExecutionResult;
 use conductor_runtime::{InterruptSignal, run_job};
 
 /// 子で `env <names...>` を実行し、出力の行を返す。
@@ -26,8 +27,13 @@ fn child_env(env: &[(&str, &str)], names: &[&str]) -> Vec<String> {
     let out = dir.path().join("out.txt");
     let command = helper_command(&out, &format!("env {}", names.join(" ")));
     let e = run_job(&job("j", command), env, &InterruptSignal::new());
-    assert!(e.started && !e.start_failure);
-    assert_eq!(e.exit_code, Some(0));
+    assert!(matches!(
+        e.result,
+        ExecutionResult::Exited {
+            exit_code: Some(0),
+            ..
+        }
+    ));
     lines(&out)
 }
 
