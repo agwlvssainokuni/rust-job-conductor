@@ -323,7 +323,7 @@ impl<'a> Reporter<'a> {
                 warnings.iter().map(|w| env_warning_line(lang, w)).collect()
             }
             DisplayEvent::CommandErrors { definition, errors } => {
-                let place = escape_path(&definition.display().to_string());
+                let place = show_path(definition);
                 errors
                     .iter()
                     .map(|(job_id, error)| command_line(lang, &place, job_id, error))
@@ -343,7 +343,7 @@ impl<'a> Reporter<'a> {
                 kind,
                 with_run_id,
             } => {
-                let place = escape_path(&state_path.display().to_string());
+                let place = show_path(state_path);
                 let hint = if *with_run_id {
                     messages::RESET_HINT_RUN_ID.get(lang)
                 } else {
@@ -382,7 +382,7 @@ impl<'a> Reporter<'a> {
                 format!("{ERROR_PREFIX}{}\n", messages::OUTPUT_FAILED.get(lang))
             }
             DisplayEvent::CompletionUndetermined { state_path } => {
-                let place = escape_path(&state_path.display().to_string());
+                let place = show_path(state_path);
                 error_line(&place, messages::COMPLETION_UNDETERMINED.get(lang), None)
             }
             DisplayEvent::RetryScheduled {
@@ -504,12 +504,17 @@ fn error_line(place: &str, sentence: &str, cause: Option<&str>) -> String {
     }
 }
 
-fn definition_line(lang: Language, e: &DefinitionError) -> String {
-    let file = escape_path(&e.file);
-    let place = match e.line {
+/// `<ファイル>[:<行>]`(ファイル名はエスケープする。切らない)。
+fn place_of(file: &str, line: Option<usize>) -> String {
+    let file = escape_path(file);
+    match line {
         Some(line) => format!("{file}:{line}"),
         None => file,
-    };
+    }
+}
+
+fn definition_line(lang: Language, e: &DefinitionError) -> String {
+    let place = place_of(&e.file, e.line);
     let reason = escape_path(&e.reason);
     error_line(&place, &definition_kind(lang, e.kind), Some(&reason))
 }
@@ -519,11 +524,7 @@ fn env_file_lines(lang: Language, errors: &[EnvFileError]) -> String {
     let (shown, rest) = summarize_errors(errors);
     let mut out = String::new();
     for e in shown {
-        let file = escape_path(&e.file);
-        let place = match e.line {
-            Some(line) => format!("{file}:{line}"),
-            None => file,
-        };
+        let place = place_of(&e.file, e.line);
         out.push_str(&error_line(
             &place,
             &env_file_kind(lang, e.kind),
@@ -540,9 +541,8 @@ fn env_file_lines(lang: Language, errors: &[EnvFileError]) -> String {
 fn env_warning_line(lang: Language, w: &EnvWarning) -> String {
     let EnvWarningKind::DuplicateKey = w.kind;
     format!(
-        "{WARNING_PREFIX}{}:{}: {}\n",
-        escape_path(&w.file),
-        w.line,
+        "{WARNING_PREFIX}{}: {}\n",
+        place_of(&w.file, Some(w.line)),
         env_duplicate_key(lang, &escape_name(&w.name))
     )
 }
@@ -565,7 +565,7 @@ fn usage_text(lang: Language, e: &UsageError) -> String {
 }
 
 fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
-    let place = escape_path(&e.path.display().to_string());
+    let place = show_path(&e.path);
     let mut cause = escape_path(e.reason);
     match context {
         StateContext::Read => {
@@ -590,11 +590,7 @@ fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
 }
 
 fn conversion_line(lang: Language, e: &ConversionError) -> String {
-    let file = escape_path(&e.file);
-    let place = match e.line {
-        Some(line) => format!("{file}:{line}"),
-        None => file,
-    };
+    let place = place_of(&e.file, e.line);
     let mut cause = escape_path(&e.reason);
     if let Some(path) = &e.key_path {
         cause.push_str(&format!(
