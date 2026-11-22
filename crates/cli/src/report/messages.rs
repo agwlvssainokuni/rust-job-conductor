@@ -47,8 +47,16 @@ impl Text {
     }
 }
 
+/// エラーの行の先頭の文字列のリテラル。`&str` の定数どうしは `const` で連結できないため、
+/// 固定の文に `concat!` でつなぐときは、このマクロを使う。
+macro_rules! error_prefix {
+    () => {
+        "conductor: error: "
+    };
+}
+
 /// エラーの行の先頭(言語に関わらず同じ)。
-pub const ERROR_PREFIX: &str = "conductor: error: ";
+pub const ERROR_PREFIX: &str = error_prefix!();
 /// 警告の行の先頭(言語に関わらず同じ)。
 pub const WARNING_PREFIX: &str = "conductor: warning: ";
 /// リトライの知らせの行の先頭(言語に関わらず同じ。エラーではない。BR2.4)。
@@ -56,8 +64,8 @@ pub const RETRY_PREFIX: &str = "conductor: retry: ";
 /// `-v` の行の先頭。
 pub const VERBOSE_PREFIX: &str = "[conductor] ";
 /// パニックのフックと、シグナルの準備の失敗の、固定の英語の文(ロケールを判定しない)。
-pub const INTERNAL_ERROR: &str = "conductor: error: internal error";
-pub const SIGNAL_SETUP_FAILED: &str = "conductor: error: failed to set up signal handling";
+pub const INTERNAL_ERROR: &str = concat!(error_prefix!(), "internal error");
+pub const SIGNAL_SETUP_FAILED: &str = concat!(error_prefix!(), "failed to set up signal handling");
 
 // ---- 使い方 ----
 
