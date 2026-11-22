@@ -105,7 +105,7 @@
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
-| `run_job` | `(job: &JobDefinition, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution` | シェルを介さず直接起動し、終了を待つ。`env` を、並びの順に、引き継いだ環境へ足す(v0.9.0 以降。v0.8.0 以前は `env` 引数なし)。パニックしない。シグナルを子へ 1 回転送。07 の 4 章 |
+| `run_job` | `(job: &JobDefinition, line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution` | 分割済みのコマンド `line`(`check_command` の結果)で、シェルを介さず直接起動し、終了を待つ。中で `command` を分け直さない(`line.program` が空・空白だけなら起動せず `StartFailed`)。`env` を、並びの順に、引き継いだ環境へ足す(v0.9.0 以降。v0.8.0 以前は `env` 引数なし)。パニックしない。シグナルを子へ 1 回転送。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。07 の 4 章 |
 | `load_env_files`(v0.9.0 以降) | `(definition_path: &Path, refs: &[String]) -> Result<LoadedEnvFiles, Vec<EnvFileError>>` | `env_file` の `.env` を、すべて読む(パスの解決、1 MiB の上限、UTF-8、解析)。誤りは全ファイル分を集めて返す。03 の 6.7 |
 | `create_file`(v0.9.0 以降) | `(path: &Path, bytes: &[u8], force: bool) -> Result<CreateOutcome, CreateError>` | 排他的な作成(`force` なら一時ファイルから置き換え)。`CreateOutcome::{Created, Replaced}`、`CreateError::{AlreadyExists, ParentMissing, IsDirectory, PermissionDenied, OtherIo}`(`ALL: [CreateError; 5]`)。04 の 7.8 |
 | `check_command` | `(command: &Command) -> Result<CommandLine, CommandError>` | 起動せずに `command` を検査(分割)する。07 の 3 章 |
@@ -202,8 +202,8 @@ cli::pipeline::run_pipeline
       │    │           → 表示 → 完了なら finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
       │    └─ Run    → step::run_step:
       │         ├─ 状態が空なら runtime::initial_state → Runtime::write_state(Fast)
-      │         ├─ retry::run_job_with_retry
-      │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(job, 足す環境, signal) → core::retry_decision
+      │         ├─ retry::run_job_with_retry(job, command)   # command は検査で分割済み。分け直さない
+      │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(job, command, 足す環境, signal) → core::retry_decision
       │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
       │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
       │         ├─ step::report_execution: 表示(-v のときの結果行・遷移行。常時のエラー行)
@@ -252,7 +252,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 
 | trait | 本番の実装 | 責務(メソッド) |
 |-------|-----------|----------------|
-| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(job, env, signal)`(`env` は v0.9.0 以降)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
+| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(job, line, env, signal)`(`env` は v0.9.0 以降。v0.9.5 までは分割済みの `line` なし)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
 | `Sink` | `StdSink` | `write_out(bytes)`、`write_err(bytes)`(書くたびに flush) |
 | `Env` | `SystemEnv` | `var(name) -> Option<String>`(UTF-8 でない値・未設定は `None`)、`stdout_is_terminal() -> bool` |
 | `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`AlreadyRegistered` / `Failed`) |
@@ -315,7 +315,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `types.rs` | `CommandLine`、`InterruptSignal`、`StateLocation`、`Durability`。`MismatchKind`、`ConsistencyResult` は `conductor_core` の再公開 |
 | `error.rs` | `CommandError`、`StateError`(種類の文、理由の固定の日本語の文) |
 | `split.rs` | `command` の分割(状態機械)、`check_command` |
-| `runner.rs` | `run_job`(起動・待ち・シグナルの転送。v0.9.0 以降は環境変数を足す)、`wait_loop` |
+| `runner.rs` | `run_job`(分割済みのコマンドでの起動・待ち・シグナルの転送。分け直さない。v0.9.0 以降は環境変数を足す)、`wait_loop` |
 | `envfile.rs`(v0.9.0 以降) | `load_env_files`(パスの解決、大きさの検査、上限 + 1 バイトの読み取り、UTF-8、`parse_env_file` への委譲、同じパスの 1 回だけの読み取り) |
 | `file_create.rs`(同) | `create_file`、`CreateOutcome`、`CreateError`(排他的な作成、`--force` の置き換え) |
 | `wait.rs` | `wait_for`(リトライの待機) |
@@ -357,7 +357,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `step.rs` | 1 つのジョブの共通の手順(`decide`、`record_skip`、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)。`run` と `pipeline` が呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
 | `run.rs` | `run_individual`(個別実行)。`prepare_run` が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
 | `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
-| `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`) |
+| `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`。どの試行も、検査で分割した同じコマンドを渡す) |
 | `aux_commands.rs` | `watch`・`reset`・`validate`・`convert` |
 | `graph.rs`(v0.9.0 以降) | `run_graph` |
 | `dry_run.rs`(同) | `run_dry_run`(`FlowTarget::{Pipeline, Run}`)、`run` と `pipeline` の共通の入口 `enter_flow`(位置引数の欠けは 68、`--dry-run` なら計画へ) |

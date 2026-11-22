@@ -133,7 +133,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 壊れた TOML・ランダムなバイト列のステート | `read_state` が失敗を返し、パニックしない。正しいステートを壊した入力、巨大な値のステートも同様 | `runtime/tests/nfr_robust.rs` |
 | ランダムな `command` | 文字集合 `ab ⇥⏎'"\;|&$*あ` から長さ 0〜39 の文字列を 2,000 件。分割が成功したら `program` は空でない | 同上 |
 | 大きな `command` | 約 30 万引数(`prog ` + `'a b' "c\"d" e ` を 10 万回)が分割できる。閉じない引用符は誤り。再帰がないのでスタックを使わない | 同上 |
-| 起動できない `command` | 空文字列、`'`、`''`、存在しない名前、ディレクトリのパス、`/` は、すべて起動失敗(`StartFailed`)。範囲外のシグナル番号(`i32::MAX`、`i32::MIN`、0、-1、1,000,000)の合図でも、起動しない(`NotStarted`) | 同上 |
+| 起動できない `command` | 分けられない空文字列、`'`、`''` は `check_command` の誤り(パニックしない)。存在しない名前、ディレクトリのパス、`/` は、すべて起動失敗(`StartFailed`)。範囲外のシグナル番号(`i32::MAX`、`i32::MIN`、0、-1、1,000,000)の合図でも、起動しない(`NotStarted`) | 同上 |
 | 入れ子の深い TOML | 深さ 1,000 の入力で異常終了せず失敗を返す(テストのスレッドの標準のスタック約 2 MiB で) | `core/tests/library_capability.rs`、`runtime/tests/toml_depth.rs` |
 | 製品のコードの書き方 | runtime の製品のコードに `.unwrap()`、`.expect(`、`panic!(`、`unreachable!(`、`todo!(`、`unimplemented!(` がない。converter も入力経路で `unwrap`/`panic` を使わない | `runtime/tests/nfr_source.rs`、`converter/tests/nfr_security.rs` |
 | 内部の誤り | パニックのフックが、固定の英語 `conductor: error: internal error` を標準エラーに書き、終了コード 70。標準エラーが閉じていても 70 | `cli/tests/panic_hook.rs` |
@@ -211,7 +211,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 
 | ファイル | 目的 |
 |----------|------|
-| `runner_basic.rs` | `run_job` の統合テスト(補助の実行ファイルを実際に起動)。メタ文字、配列、環境変数と作業ディレクトリの引き継ぎ、起動失敗、終了コード、起動前の合図。Windows 専用の `cmd` 注入 3 件 |
+| `runner_basic.rs` | `run_job` の統合テスト(補助の実行ファイルを実際に起動)。メタ文字、配列、環境変数と作業ディレクトリの引き継ぎ、起動失敗(空の `program` を含む)、渡した分割済みのコマンドで起動し `command` を分け直さないこと、終了コード、起動前の合図。Windows 専用の `cmd` 注入 3 件 |
 | `runner_env.rs` | v0.9.0 以降。`run_job` の `env` 引数(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ) |
 | `env_loader.rs` | v0.9.0 以降。`load_env_files`(無い、読めない、大きすぎる、UTF-8 でない、相対と絶対のパス、同じパスの 1 回だけの読み取り、すべての誤りを集める) |
 | `file_create.rs` | v0.9.0 以降。`create_file`(新規で内容がそのまま、既存は壊さない、`--force` の置き換えと一時ファイルが残らない、親が無い、ディレクトリ、宙に浮いたシンボリックリンク、権限がない、同時に作る 2 つのうち 1 つだけが `Created`) |

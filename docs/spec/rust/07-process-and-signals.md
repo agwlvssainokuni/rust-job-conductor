@@ -166,7 +166,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 利用者への表示(標準エラー) | `conductor: error: <定義ファイルのパス>: job '<ジョブID>': <文>`。文は表示言語に従う。英語は `command has an unclosed quote` / `command is empty`、日本語は `command の引用符が閉じていません` / `command が空です` |
 | 検査の時点 | `run` / `pipeline` / `validate` は、定義の読み込みと検証のあと、**全ジョブ**の `command` を `check_command` で検査し、誤りのあるジョブをすべて報告して、終了コード 64 で終わる。ジョブは 1 つも起動せず、ステートにも触れない。分割は、この検査(`Ctx::check_definition`)の 1 回だけで、結果(`CommandLine` の並び)を、起動の失敗の表示(`report_execution` のコマンド名)と `--dry-run` の計画が使い回す |
 | 順序 | シグナルの準備(`run`/`pipeline` のみ)→ 定義の読み込み(64)→ `command` の検査(64)→ ジョブID(68)→ run ID(68)→ ステートの読み込み(65)→ 照合(65) |
-| 防御 | `run_job` の内側でも分割し直す。万一失敗したら、結果が `StartFailed` の `JobExecution` を返す(通常は到達しない) |
+| 防御 | `run_job` は分割済みの `CommandLine` を受け取り、分け直さない(分けられない `command` は、型の上で `run_job` に届かない)。残る防御は 1 つ: `line.program` が空(空白だけを含む)なら、起動せず `StartFailed` を返す(`CommandLine` のフィールドは公開なので、呼び出し側が直接作れるため)。v0.9.5 までは `run_job` の内側でも分割し直し、失敗したら起動失敗を返した |
 
 ---
 
@@ -174,10 +174,10 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 ### 4.1 手順(時系列)
 
-`run_job(job, env, signal) -> JobExecution`(v0.9.0 以降。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
+`run_job(job, line, env, signal) -> JobExecution`(`line: &CommandLine` は、実行の前の検査で `check_command` が分割したコマンド。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数(v0.9.0 以降)。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
 
 1. 返す `JobExecution` の `job_id` と `command` は、`job` から写す。結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。
-2. `command` を分割する(文字列は 3 章、配列は 3.5 節)。失敗なら `StartFailed` で返す。
+2. `line.program` が空(空白だけを含む)なら、`StartFailed` で返す(分割はしない。この確認は、次の合図の確認より先)。
 3. **起動の前**に合図が立っていれば、起動せずに返す: `NotStarted { signal: 番号 }`。
    (ジョブは実行されない。)
 4. `std::process::Command::new(program)` に `args` を渡して作り、`env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足し
@@ -212,7 +212,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | `job_id`, `command` | 定義のジョブIDと `command` |
 | `result` | 起動の結果(`ExecutionResult`)。下の 3 つの場合のどれか 1 つ |
 | `NotStarted { signal }` | 起動の前に合図が立っていた(リトライの待機中に立ったときも、cli がこの場合を作る)。`signal` は**最初に受け取った**シグナルの番号 |
-| `StartFailed` | 分割の失敗、`spawn` の失敗、`try_wait` の失敗のいずれか |
+| `StartFailed` | 空のプログラム名(`line.program` が空・空白だけ)、`spawn` の失敗、`try_wait` の失敗のいずれか(v0.9.5 までは、空のプログラム名の代わりに分割の失敗) |
 | `Exited { exit_code, .. }` | `status.code()`。UNIX でシグナルによって終了したときは `None`。Windows は常に値がある。UNIX の終了コードは下位 8 ビット(300 を返すと 44)、Windows は 32 ビットのまま(300 のまま) |
 | `Exited { terminated_by_signal, .. }` | UNIX のシグナル終了の番号。Windows は常に `None` |
 | `Exited { interrupted_by, .. }` | 終了の観測の直後に合図が立っていたとき、**最初に受け取った**シグナルの番号 |
@@ -443,7 +443,7 @@ README の「command の書き方」「シグナルの扱い」と実装は、�
 | 区切りの文字 | 「空白」 | スペース、タブ、LF、CR の 4 つだけ。ほかの空白(U+00A0 など)は普通の文字 |
 | 二重引用符の中のバックスラッシュ | 「中の `\"` だけが二重引用符 1 つになる」 | 左から読む状態機械。`\\` は、1 つ目を出力して 2 つ目を保留にするため、`\\"` は「`\` + エスケープされた `"`」。`\\` の連続は 1 つに縮まらない(そのまま 2 つ) |
 | 引用符の外・一重引用符の中のバックスラッシュ | 記載なし | 普通の文字 |
-| 配列の先頭の要素 | 「空または空白だけは定義の誤り」 | 起動の側(`check_command`/`run_job`)も二重に検査する。空白を含む先頭の要素(`"my prog"`)は、そのままファイル名として起動する |
+| 配列の先頭の要素 | 「空または空白だけは定義の誤り」 | 起動の側も二重に検査する(`check_command` は `Empty` の誤り。`run_job` は空・空白だけの `program` を起動失敗)。空白を含む先頭の要素(`"my prog"`)は、そのままファイル名として起動する |
 | シグナルの転送先 | 「実行中のジョブ(の子プロセス)」 | ジョブの子プロセスの pid だけ。プロセスグループ全体や孫には送らない(README は孫に届かないことを明記しない) |
 | 起動できなかった場合の 127 | 「ジョブを起動できなかった」 | `spawn` の失敗に加え、`try_wait` の失敗(終了の状態を取得できない)も、起動失敗として 127 にする |
 | 許可外の番号 | 記載なし | `run_job` に許可外の番号の合図が来ても送信しない。ただし `conductor` 本体は 4 つのシグナルだけを受けるため、通常は起こらない |

@@ -33,13 +33,13 @@
 | `started` | 真偽 | 起動した(子プロセスの生成に成功した)か。「中断の合図が起動の前に立っていたため起動しなかった」ときだけ `false`。ほかの起動失敗でも `started` は `true` のまま(`start_failure` を見る) |
 | `exit_code` | 32 ビット符号付き整数、または無し | プロセスの終了コード。取れないとき(シグナル終了、起動失敗)は無し |
 | `terminated_by_signal` | 整数、または無し | ジョブがシグナルで終了したときの番号(UNIX 系のみ) |
-| `start_failure` | 真偽 | 起動に失敗した。command を引数に分けられない、プロセス生成の失敗、終了状態を取得できない、のいずれか |
+| `start_failure` | 真偽 | 起動に失敗した。プログラム名が空、プロセス生成の失敗、終了状態を取得できない、のいずれか(分けられない command は実行の前の検査で 64 になり、起動に届かない) |
 | `interrupted` | 真偽 | conductor がシグナルを受け取り、中断の合図が立っている(ジョブの終了を観測した直後に立っていた場合を含む) |
 | `signal_number` | 整数、または無し | `interrupted` のとき、最初に受け取ったシグナルの番号 |
 
 ジョブの起動手順(`run_job`):
 
-1. command を引数に分ける(規則は [07-process-and-signals.md](07-process-and-signals.md))。失敗なら `start_failure = true`(`started = true`)で終わる。
+1. 実行の前の検査で引数に分けたコマンド(規則は [07-process-and-signals.md](07-process-and-signals.md))を受け取る。ここでは分け直さない。プログラム名が空(空白だけを含む)なら `start_failure = true`(`started = true`)で終わる。v0.9.5 までは、ここで command を引数に分け直し、失敗なら `start_failure = true` で終わった。
 2. 中断の合図が立っていれば、`started = false, interrupted = true, signal_number = 番号` で終わる(起動しない)。
 3. 子プロセスを生成する。失敗なら `start_failure = true` で終わる。
 4. 終了まで待つ。待機中に合図が立てば、子プロセスに同じシグナルを**1 回だけ**転送して、終了を待ち続ける。
@@ -521,7 +521,7 @@ retries_done = 0; last_wait_secs = 0
 loop:
     # v0.9.0 以降: 試行ごとに、足す環境を作り直す(§14)。attempt = retries_done + 1
     env  = merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: retries_done + 1 })
-    exec = run_job(job, env の名前と値の並び, signal)       # v0.8.0 以前は run_job(job, signal)
+    exec = run_job(job, 分割したコマンド, env の名前と値の並び, signal)   # 分割したコマンドは検査で作ったもの(どの試行も同じ)。v0.9.5 までは run_job(job, env の名前と値の並び, signal) で、中で分け直した。v0.8.0 以前は run_job(job, signal)
     match retry_decision(job, exec, retries_done, last_wait_secs):
         Stop: return exec                          # 最後の結果
         Retry{wait_secs}:
