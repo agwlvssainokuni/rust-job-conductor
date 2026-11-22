@@ -225,15 +225,14 @@ mod tests {
     }
 
     fn exec(job: &str, code: Option<i32>) -> JobExecution {
-        JobExecution {
-            job_id: job.into(),
-            command: "echo".into(),
-            result: ExecutionResult::Exited {
+        JobExecution::new(
+            &definition(&[job]).job[0],
+            ExecutionResult::Exited {
                 exit_code: code,
                 terminated_by_signal: None,
                 interrupted_by: None,
             },
-        }
+        )
     }
 
     fn outcome(job: &str, c: Option<Classification>) -> JobOutcome {

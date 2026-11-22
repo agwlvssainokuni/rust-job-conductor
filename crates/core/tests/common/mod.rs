@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! core の統合テストの共通の補助(秘密の値、定義の検査の結果、計った時間の中央値、ステート)。
+//! core の統合テストの共通の補助(秘密の値、定義の検査の結果、計った時間の中央値、ステート、
+//! ジョブと実行結果)。
 #![allow(dead_code)]
 
 use std::time::Duration;
 
 use conductor_core::DefinitionErrorKind as K;
-use conductor_core::{JobState, JobStatus, PipelineState, SkipReason, parse_definition};
+use conductor_core::{
+    JobDefinition, JobExecution, JobState, JobStatus, PipelineState, SkipReason, parse_definition,
+};
 
 /// 誤りの文やステートに現れてはいけない、秘密の値(NFR4.6)。
 pub const SECRET: &str = "s3cr3t-VALUE-do-not-print";
@@ -40,6 +43,25 @@ pub fn kinds(text: &str) -> Vec<K> {
 pub fn median(mut samples: Vec<Duration>) -> Duration {
     samples.sort();
     samples[samples.len() / 2]
+}
+
+/// ID `id`、コマンド `c` のジョブの定義(ほかは既定)。
+pub fn job(id: &str) -> JobDefinition {
+    JobDefinition {
+        id: id.to_string(),
+        command: "c".into(),
+        warning_exit_codes: vec![],
+        success_exit_codes: None,
+        transitions: vec![],
+        retry: None,
+        env: vec![],
+        env_file: vec![],
+    }
+}
+
+/// ジョブ `job_id`([`job`])が、終了コード `code` で終わった実行結果。
+pub fn exited(job_id: &str, code: i32) -> JobExecution {
+    JobExecution::exited(&job(job_id), code)
 }
 
 /// パイプライン `p` のステート(定義のキーとパスは `t.toml`)。`jobs` はジョブ ID と状態の並び

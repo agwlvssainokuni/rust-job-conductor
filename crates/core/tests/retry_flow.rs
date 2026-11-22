@@ -37,26 +37,18 @@ fn job_with_policy(policy: RetryPolicy) -> JobDefinition {
 }
 
 fn exec(j: &JobDefinition) -> JobExecution {
-    JobExecution {
-        job_id: j.id.clone(),
-        command: j.command.clone(),
-        result: ExecutionResult::Exited {
+    JobExecution::new(
+        j,
+        ExecutionResult::Exited {
             exit_code: None,
             terminated_by_signal: None,
             interrupted_by: None,
         },
-    }
+    )
 }
 
 fn exited(j: &JobDefinition, code: i32) -> JobExecution {
-    JobExecution {
-        result: ExecutionResult::Exited {
-            exit_code: Some(code),
-            terminated_by_signal: None,
-            interrupted_by: None,
-        },
-        ..exec(j)
-    }
+    JobExecution::exited(j, code)
 }
 
 fn retry(wait_secs: u64) -> RetryDecision {
@@ -106,48 +98,42 @@ fn 成功と警告の終了コードは_停止する() {
 fn 起動の失敗は_停止する() {
     let j = job(WITH_RETRY);
     // 起動の失敗は終了コードを持てない(一覧の 127 より優先することは、型で決まる)。
-    let e = JobExecution {
-        result: ExecutionResult::StartFailed,
-        ..exec(&j)
-    };
+    let e = JobExecution::start_failed(&j);
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
 }
 
 #[test]
 fn シグナルでの終了は_停止する() {
     let j = job(WITH_RETRY);
-    let e = JobExecution {
-        result: ExecutionResult::Exited {
+    let e = JobExecution::new(
+        &j,
+        ExecutionResult::Exited {
             exit_code: None,
             terminated_by_signal: Some(9),
             interrupted_by: None,
         },
-        ..exec(&j)
-    };
+    );
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
 }
 
 #[test]
 fn 中断された実行は_停止する() {
     let j = job(WITH_RETRY);
-    let e = JobExecution {
-        result: ExecutionResult::Exited {
+    let e = JobExecution::new(
+        &j,
+        ExecutionResult::Exited {
             exit_code: Some(75),
             terminated_by_signal: None,
             interrupted_by: Some(2),
         },
-        ..exec(&j)
-    };
+    );
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
 }
 
 #[test]
 fn 起動前に中断された実行は_停止する() {
     let j = job(WITH_RETRY);
-    let e = JobExecution {
-        result: ExecutionResult::NotStarted { signal: 15 },
-        ..exec(&j)
-    };
+    let e = JobExecution::not_started(&j, 15);
     assert_eq!(retry_decision(&j, &e, 0, 0), RetryDecision::Stop);
 }
 

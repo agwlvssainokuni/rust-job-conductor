@@ -17,9 +17,7 @@
 mod common;
 
 use common::without_run_id::{initial_state, read_state, reset_state, write_state};
-use conductor_core::{
-    Classification, ExecutionResult, JobExecution, JobOutcome, NextStep, PipelineDefinition,
-};
+use conductor_core::{Classification, JobExecution, JobOutcome, NextStep, PipelineDefinition};
 use conductor_runtime::{
     CommandErrorKind, Durability, StateErrorKind, apply_outcome, check_command,
 };
@@ -112,15 +110,7 @@ fn ステートファイルに_command_と環境変数の値が現れない() {
     let def_path = dir.path().join("conductor.toml");
     let d = definition();
     let state = initial_state(&d, &def_path);
-    let execution = JobExecution {
-        job_id: "a".into(),
-        command: d.job[0].command.clone(),
-        result: ExecutionResult::Exited {
-            exit_code: Some(3),
-            terminated_by_signal: None,
-            interrupted_by: None,
-        },
-    };
+    let execution = JobExecution::exited(&d.job[0], 3);
     let outcome = JobOutcome {
         job_id: "a".into(),
         classification: Some(Classification::Error),

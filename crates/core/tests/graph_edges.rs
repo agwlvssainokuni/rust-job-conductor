@@ -18,7 +18,7 @@ mod graph_common;
 
 use conductor_core::graph::{EdgeKind, EdgeTarget, FlowEdge, flow_edges};
 use conductor_core::{
-    ExecutionResult, JobExecution, PipelineDefinition, RunMode, TransitionOn, classify_and_decide,
+    JobExecution, PipelineDefinition, RunMode, TransitionOn, classify_and_decide,
 };
 use graph_common::{Spec, definition};
 
@@ -155,25 +155,18 @@ fn ジョブが1個なら_終点への辺が1つだけ() {
     );
 }
 
-fn exec(job_id: &str, code: i32) -> JobExecution {
-    JobExecution {
-        job_id: job_id.into(),
-        command: "c".into(),
-        result: ExecutionResult::Exited {
-            exit_code: Some(code),
-            terminated_by_signal: None,
-            interrupted_by: None,
-        },
-    }
-}
-
 /// 実行の判断(`classify_and_decide`)の次のジョブと、図の辺の行き先が、同じになること(BR1.5)。
 fn assert_same_as_execution(def: &PipelineDefinition) {
     let edges = flow_edges(def);
     for job in &def.job {
         for (kind, code) in [(Success, 0), (Warning, 3)] {
-            let (_, step) =
-                classify_and_decide(job, &exec(&job.id, code), &[], def, RunMode::Pipeline);
+            let (_, step) = classify_and_decide(
+                job,
+                &JobExecution::exited(job, code),
+                &[],
+                def,
+                RunMode::Pipeline,
+            );
             let from_edges: Vec<&FlowEdge> = edges
                 .iter()
                 .filter(|e| e.from_job == job.id && e.kinds.contains(&kind))

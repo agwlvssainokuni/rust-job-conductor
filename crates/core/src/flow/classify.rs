@@ -145,11 +145,7 @@ mod tests {
     }
 
     fn exec(result: ExecutionResult) -> JobExecution {
-        JobExecution {
-            job_id: "a".into(),
-            command: "c".into(),
-            result,
-        }
+        JobExecution::new(&job(None, Vec::new()), result)
     }
 
     fn code(c: i32) -> JobExecution {

@@ -17,6 +17,9 @@
 //! Flow は、引数だけで試せる(ファイルにもプロセスにも触れない)。ここでは、
 //! `parse_definition` で作った定義と、手元の `Vec<JobState>` だけを使う。
 
+mod common;
+
+use common::exited;
 use conductor_core::{
     Classification, Decision, ExecutionResult, JobExecution, JobState, JobStatus, NextStep,
     PipelineDefinition, RejectReason, ResumePoint, RunMode, SkipCause, SkipReason,
@@ -41,18 +44,6 @@ struct Sim {
     resume: Option<String>,
     end_reached: bool,
     completed: bool,
-}
-
-fn exited(job: &str, code: i32) -> JobExecution {
-    JobExecution {
-        job_id: job.into(),
-        command: "c".into(),
-        result: ExecutionResult::Exited {
-            exit_code: Some(code),
-            terminated_by_signal: None,
-            interrupted_by: None,
-        },
-    }
 }
 
 impl Sim {
@@ -297,11 +288,7 @@ fn ジョブのあいだの中断の再開位置() {
 fn 起動しなかった中断は再開位置になり_128_足す番号を返す() {
     let def = definition("");
     let job = &def.job[0];
-    let e = JobExecution {
-        job_id: "a".into(),
-        command: "c".into(),
-        result: ExecutionResult::NotStarted { signal: 15 },
-    };
+    let e = JobExecution::not_started(job, 15);
     let (o, step) = classify_and_decide(job, &e, &[], &def, RunMode::Pipeline);
     assert_eq!(o.classification, None);
     assert_eq!(o.reported_exit_code, 143);
