@@ -19,9 +19,9 @@
 use toml::de::{DeTable, DeValue};
 
 use super::Walker;
-use crate::envfile::is_reserved_env_name;
+use crate::envfile::{is_reserved_env_name, reserved_env_prefix};
 use crate::error::{DefinitionErrorKind as Kind, quote_key};
-use crate::run_id::is_valid_env_name;
+use crate::run_id::{env_name_rule, is_valid_env_name};
 use crate::types::EnvVar;
 
 impl Walker<'_> {
@@ -48,7 +48,7 @@ impl Walker<'_> {
                     at,
                     Kind::InvalidEnvName,
                     format!(
-                        "`env` の名前 {} は、英字または `_` で始まり、英数字と `_` だけで書きます",
+                        concat!("`env` の名前 {} は、", env_name_rule!(), "で書きます"),
                         quote_key(name)
                     ),
                 );
@@ -59,7 +59,11 @@ impl Walker<'_> {
                     at,
                     Kind::ReservedEnvName,
                     format!(
-                        "`env` の名前 {} は、`CONDUCTOR_` で始まるため書けません",
+                        concat!(
+                            "`env` の名前 {} は、`",
+                            reserved_env_prefix!(),
+                            "` で始まるため書けません"
+                        ),
                         quote_key(name)
                     ),
                 );

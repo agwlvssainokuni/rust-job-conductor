@@ -70,6 +70,15 @@ impl RunId {
     }
 }
 
+/// [`is_valid_env_name`] の規則を言う句(誤りの理由の文に `concat!` で組み込む文字列のリテラル)。
+/// 3 か所の文(`env` の名前、`run_id_env`、`.env` の名前)が使う。
+macro_rules! env_name_rule {
+    () => {
+        "英字または `_` で始まり、英数字と `_` だけ"
+    };
+}
+pub(crate) use env_name_rule;
+
 /// 環境変数の名前の形(`A-Za-z_` で始まり、`A-Za-z0-9_` が続く。1 文字以上)か。
 pub fn is_valid_env_name(name: &str) -> bool {
     let mut bytes = name.bytes();

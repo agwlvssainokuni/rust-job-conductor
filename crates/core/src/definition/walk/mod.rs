@@ -31,7 +31,7 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
-use crate::run_id::is_valid_env_name;
+use crate::run_id::{env_name_rule, is_valid_env_name};
 use crate::types::{
     Classification, Command, EnvVar, JobDefinition, PipelineDefinition, Transition, TransitionOn,
     TransitionTarget,
@@ -282,7 +282,7 @@ impl<'a> Walker<'a> {
             self.push(
                 *offset,
                 Kind::InvalidEnvName,
-                "`run_id_env` は、英字または `_` で始まり、英数字と `_` だけの名前で書きます",
+                concat!("`run_id_env` は、", env_name_rule!(), "の名前で書きます"),
             );
         }
         let remove_on_complete = self.boolean(table, "remove_on_complete");

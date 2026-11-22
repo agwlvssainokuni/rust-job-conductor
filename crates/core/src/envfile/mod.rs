@@ -29,6 +29,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::error::{MAX_FILE_DISPLAY_CHARS, sanitize};
+use crate::run_id::env_name_rule;
 use crate::types::PipelineDefinition;
 
 pub use merge::merge_env;
@@ -44,8 +45,16 @@ pub const MAX_REPORTED_ERRORS: usize = 20;
 // 理由の文([`EnvFileErrorKind::reason`])の「1 MiB」「10,000」と、上限の定数を結ぶ(BR3.1、BR3.2)。
 const _: () = assert!(MAX_ENV_FILE_BYTES == 1_048_576);
 const _: () = assert!(MAX_ENV_ENTRIES == 10_000);
+/// 予約名の接頭辞の文字列のリテラル(誤りの理由の文に `concat!` で組み込む。BR1.3)。
+macro_rules! reserved_env_prefix {
+    () => {
+        "CONDUCTOR_"
+    };
+}
+pub(crate) use reserved_env_prefix;
+
 /// 予約名の接頭辞(BR1.3)。
-pub const RESERVED_ENV_PREFIX: &str = "CONDUCTOR_";
+pub const RESERVED_ENV_PREFIX: &str = reserved_env_prefix!();
 
 /// 予約名(ASCII の大文字にして `CONDUCTOR_` で始まる名前)か(BR1.3)。
 pub fn is_reserved_env_name(name: &str) -> bool {
@@ -130,8 +139,10 @@ impl EnvFileErrorKind {
             Self::TooLarge => "ファイルの大きさが、上限(1 MiB)を超えています",
             Self::NotUtf8 => "ファイルは UTF-8 で書きます",
             Self::TooManyEntries => "項目の数が、上限(10,000)を超えています",
-            Self::InvalidName => "名前は、英字または `_` で始まり、英数字と `_` だけで書きます",
-            Self::ReservedName => "`CONDUCTOR_` で始まる名前は、書けません",
+            Self::InvalidName => concat!("名前は、", env_name_rule!(), "で書きます"),
+            Self::ReservedName => {
+                concat!("`", reserved_env_prefix!(), "` で始まる名前は、書けません")
+            }
             Self::CaseConflict => "大文字小文字だけが違う名前が、同じファイルにあります",
             Self::MissingEquals => "`KEY=VALUE` の形で書きます",
             Self::UnterminatedQuote => "引用符が、同じ行で閉じていません",
