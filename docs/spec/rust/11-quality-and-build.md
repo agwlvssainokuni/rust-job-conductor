@@ -111,7 +111,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | ジョブの実行中(約 3 秒)の `conductor` の CPU 時間(`ps -o time=`、UNIX のみ) | 100 ms 以下 | **強制**(`ps` で読めなければスキップ) | 同上 |
 | 同じ定義への 2 つの `run` を同時に | 両方が実行され(ジョブが 2 回始まる)、どちらもジョブの終了コード(99)で終わり、ステートは読み戻せる(排他制御はしない) | **強制** | 同上 |
 | 待ちの間隔 | `try_wait` を 1・2・4・8・10・10... ms(上限 10 ms)。リトライの待機は 50 ms 以下の間隔で合図を確かめ、合図から 1 秒以内に返る | 強制 | `runner.rs` の単体、`wait_interruptible.rs` |
-| 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置(`build_graph` + `layout_graph`)。最悪の 4 つの形(入れ子が最大の形 = 前半の各ジョブ `i` が `N-1-i` へ飛ぶ。交差する形 = 全ジョブ `j(i)` → `j(i+2)`。幅の広い交差の形 = 前半の各ジョブ `i` が `i+N/2` へ飛ぶ。同じ行き先が離れて重なる形 = 前半の各ジョブ `i` が `N/2 + i % 250` へ飛ぶ。後の 3 つは通常の飛び越しだけのグラフで、レーンの図になる) | 1 秒以内 | **強制**(`elapsed < 1s`) | `core/tests/graph_perf.rs` |
+| 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置(`build_graph` + `layout_graph`)。最悪の 4 つの形(入れ子が最大の形 = 前半の各ジョブ `i` が `N-1-i` へ飛ぶ。交差する形 = 全ジョブ `j(i)` → `j(i+2)`。幅の広い交差の形 = 前半の各ジョブ `i` が `i+N/2` へ飛ぶ。同じ行き先が離れて重なる形 = 前半の各ジョブ `i` が `N/2 + i % 250` へ飛ぶ)と、「両方の飛び越し」と分岐を含む 2 つの形(入れ子 = 前半の偶数のジョブ `i` が `N-1-i` へ両方の飛び越し、奇数のジョブが `N-2-i` と `N-1-i` へ分岐。幅広い交差 = 前半のジョブ `i` を 3 つおきに、`i+N/2` と `i+N/2+1` への分岐、`i+N/2` への両方の飛び越し、通常の飛び越しにする)。すべてレーンの図になる | 1 秒以内 | **強制**(`elapsed < 1s`) | `core/tests/graph_perf.rs` |
 | 計画の生成(v0.9.0 以降)。ジョブ 1,000 個がすべて `env` と `env_file` を持ち、すべて実行する計画(`plan_pipeline`) | 1 秒以内 | **強制** | `core/tests/plan_perf.rs` |
 
 測定のしくみ: p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は `[bench] <行>` として標準エラーに出し、環境変数 `GITHUB_STEP_SUMMARY`
@@ -198,9 +198,9 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `env_file_parse.rs`(10) | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
 | `env_merge.rs`(8) | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
 | `env_types.rs`(5) | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
-| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(13)、`graph_lane_polish.rs`(14)、`graph_layout_oracle.rs`(8)、`graph_branch_lanes.rs`(8)、`graph_crossing_lanes.rs`(9)、`graph_mixed_shapes.rs`(6)、`graph_perf.rs`(4) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、537 例と、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例と、分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例。規則から導いた図で、git の出力ではない。交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例。ジョブ 3〜7 個。git の出力と、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。ジョブ 4〜6 個。git の出力)と照合、分岐の例 B1〜B4(`graph_branch_lanes.rs`)、分岐の判定(図にできる形、できない形)、「両方の飛び越し」の例 D1〜D7(通常の飛び越しの図と、主線の `|` を除いて一致することの照合を含む)と辺の一覧に残る形(交差する両方の飛び越し、分岐の線への合流、遠い行き先が最も内側の線以上の分岐を含む)、交差の例 C1〜C3 と、辺の一覧に残る混ざった形(`graph_crossing_lanes.rs`)、交差に同じ行き先が混ざる例 M2〜M4 と辺の一覧に残る形(交差する両方の飛び越し、分岐)(`graph_mixed_shapes.rs`)、1,000 ジョブの性能(幅の広い交差を含む。05 の 15 章)。`graph_common/mod.rs` は補助 |
+| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(16)、`graph_lane_polish.rs`(14)、`graph_layout_oracle.rs`(11)、`graph_branch_lanes.rs`(9)、`graph_crossing_lanes.rs`(9)、`graph_mixed_shapes.rs`(6)、`graph_layout_unify.rs`(10)、`graph_perf.rs`(6) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定(4 つの種類。定義から作れる形はすべて対応する形で、範囲の外の形は図の構造を直接作って確かめる)、配置を正解データと 1 文字単位で照合(git の出力: `fixtures/graph_layout_oracle.md`、537 例、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例、交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。規則から導いた図で、git の出力ではない: 分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例(主線の列 0 の規則で作り直した第 2 版)、「両方の飛び越し」か分岐を含むジョブ 3〜5 個の全形 `fixtures/graph_layout_oracle_offmain.md`、2,748 例、ジョブ 6〜7 個の `fixtures/graph_layout_oracle_offmain_67.md`、300 例)、分岐の例 B1〜B4 と、交差・同じ行き先との組み合わせ(`graph_branch_lanes.rs`)、「両方の飛び越し」の例 D1〜D7 と組み合わせ(`graph_lane_polish.rs`)、交差の例 C1〜C3(`graph_crossing_lanes.rs`)、交差に同じ行き先が混ざる例 M2〜M4(`graph_mixed_shapes.rs`)、組み合わせの例 N1〜N5、B1、D1 の全文と主線の列 0 の記号(`graph_layout_unify.rs`)、1,000 ジョブの性能(幅の広い交差、「両方の飛び越し」と分岐の入れ子・交差を含む。05 の 15 章)。`graph_common/mod.rs` は補助 |
 | `plan_types.rs`(3)、`plan_pipeline.rs`(9)、`plan_run.rs`(5)、`plan_assume.rs`(5)、`plan_perf.rs`(1) | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
-| `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle.md` | 入力例、配置の正解データ(後者は v0.9.0 以降) |
+| `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
 
 #### conductor-runtime(`crates/runtime/tests/`)
 
@@ -237,14 +237,14 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `exit_codes.rs`(7) | 終了コードの決定(純粋な関数の全項目) |
 | `escape_table.rs`(4) | `escape_display` の入力と期待値の表(core・runtime・converter と揃える) |
 | `report_messages.rs`(35) | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
-| `graph_report.rs`(22) | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1、E2(交差する両方の飛び越しの辺の一覧)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
+| `graph_report.rs`(28) | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
 | `plan_report.rs`(7) | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs`(7)、`init_types.rs`(3) | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)、`InitOptions`・`InitTarget` |
 | `flow_env.rs`(10)、`flow_graph.rs`(8)、`flow_dry_run.rs`(10)、`flow_init.rs`(9) | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |
 | `flow_run.rs`(51)、`flow_pipeline.rs`(31)、`flow_retry.rs`(18)、`flow_run_id.rs`(24)、`flow_aux.rs`(33)、`flow_validate.rs`(12) | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
 | `binary_basic.rs`(19)、`binary_run_id.rs`(5) | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
-| `binary_env.rs`(5)、`binary_graph.rs`(9)、`binary_dry_run.rs`(4)、`binary_init.rs`(5) | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
-| `docs_env.rs`(2)、`docs_graph.rs`(7)、`docs_dry_run.rs`(2)、`docs_init.rs`(2) | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
+| `binary_env.rs`(5)、`binary_graph.rs`(10)、`binary_dry_run.rs`(4)、`binary_init.rs`(5) | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
+| `docs_env.rs`(2)、`docs_graph.rs`(8)、`docs_dry_run.rs`(2)、`docs_init.rs`(2) | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
 | `binary_signal.rs`(2、UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
 | `signals_real.rs`(1)、`signals_order.rs`(1)(UNIX) | 本番のシグナル監視(最初の番号が残る、2 回目の登録は `AlreadyRegistered`、時間を空けた INT のあとの HUP) |
 | `panic_hook.rs`(3) | パニックのフック |
