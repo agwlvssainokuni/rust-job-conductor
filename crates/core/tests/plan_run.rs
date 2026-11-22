@@ -15,9 +15,9 @@
 //! `run <job> --dry-run` の計画の生成(U3。BR1.6、BR4.3)。
 
 use conductor_core::{
-    Assumption, DecisionReason, ExecutionPlan, JobState, JobStatus, LoadedEnvFiles, PipelineState,
-    PlanDisposition as D, PlanInput, PlanMode, PlanRejection, ResumeKind, parse_definition,
-    plan_run,
+    Assumption, ExecutionPlan, JobState, JobStatus, LoadedEnvFiles, PipelineState,
+    PlanDisposition as D, PlanInput, PlanMode, PlanRejection, RejectReason, ResumeKind,
+    parse_definition, plan_run,
 };
 
 const THREE: &str = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\nwarning_exit_codes = [3]\n[[job]]\nid = \"b\"\ncommand = \"echo b\"\n[[job]]\nid = \"c\"\ncommand = \"echo c\"\n";
@@ -145,7 +145,7 @@ fn run_で順序外のジョブは_拒否になる() {
         rejection,
         PlanRejection {
             job_id: "b".into(),
-            reason: DecisionReason::OutOfOrder
+            reason: RejectReason::OutOfOrder
         }
     );
     // 定義にないジョブも、パニックせず拒否。

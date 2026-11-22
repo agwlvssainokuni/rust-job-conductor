@@ -37,8 +37,8 @@ use std::path::Path;
 
 use conductor_converter::ConversionError;
 use conductor_core::{
-    Classification, DecisionReason, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind,
-    PipelineState, TransitionOn, TransitionTarget, summarize_errors,
+    Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, PipelineState,
+    RejectReason, SkipCause, TransitionOn, TransitionTarget, summarize_errors,
 };
 use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
 
@@ -110,7 +110,7 @@ pub enum DisplayEvent<'a> {
     },
     Rejected {
         job_id: &'a str,
-        reason: DecisionReason,
+        reason: RejectReason,
     },
     StartFailure {
         job_id: &'a str,
@@ -170,7 +170,7 @@ pub enum DisplayEvent<'a> {
     },
     JobSkipped {
         job_id: &'a str,
-        reason: DecisionReason,
+        reason: SkipCause,
     },
     Transition {
         /// 遷移を引いた結果(表示は `success` か `warning`)。

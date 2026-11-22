@@ -339,16 +339,21 @@ pub struct PipelineState {
     pub run_id: Option<String>,
 }
 
-/// 起動前の判断の理由。
+/// 起動前の判断でスキップする理由(BR3.5 の 1〜3)。ステートに書く [`SkipReason`] とは別の型。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DecisionReason {
-    /// 遷移によるスキップ対象(skip)。
+pub enum SkipCause {
+    /// 遷移によるスキップ対象(BR3.5 の 1)。
     SkipTarget,
-    /// `@end` より後ろ(skip)。
+    /// `@end` より後ろ(BR3.5 の 2)。
     AfterEnd,
-    /// 成功・警告で実行済み(skip)。
+    /// 成功・警告で実行済み(BR3.5 の 3)。
     AlreadyExecuted,
-    /// 順序外の呼び出し(reject のみ)。
+}
+
+/// 起動前の判断で拒否する理由(BR3.5 の 7、BR3.8)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RejectReason {
+    /// 順序外の呼び出し(終了コード 66)。
     OutOfOrder,
 }
 
@@ -358,9 +363,9 @@ pub enum Decision {
     /// ジョブを実行する。
     Run,
     /// 実行せず、終了コード 0 で終わる。
-    Skip(DecisionReason),
+    Skip(SkipCause),
     /// 実行せず、ステートも変えない。呼び出し側は理由を表示し、終了コード 66 で終わる(BR3.8)。
-    Reject(DecisionReason),
+    Reject(RejectReason),
 }
 
 /// 結果の分類。

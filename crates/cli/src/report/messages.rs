@@ -20,8 +20,8 @@
 
 use conductor_converter::ConversionErrorKind;
 use conductor_core::{
-    Classification, DecisionReason, DefinitionErrorKind, EnvFileErrorKind, NextStepNote,
-    PlanDisposition, PlanEnd,
+    Classification, DefinitionErrorKind, EnvFileErrorKind, NextStepNote, PlanDisposition, PlanEnd,
+    RejectReason, SkipCause,
 };
 use conductor_runtime::{CommandErrorKind, CreateError, MismatchKind, StateErrorKind};
 
@@ -472,15 +472,12 @@ pub const REJECTED: Text = Text::new(
     "このジョブは、いま実行できません",
 );
 
-pub fn reject_reason(reason: DecisionReason) -> Text {
+pub fn reject_reason(reason: RejectReason) -> Text {
     match reason {
-        DecisionReason::OutOfOrder => Text::new(
+        RejectReason::OutOfOrder => Text::new(
             "earlier jobs have not finished (out of order)",
             "前のジョブが終わっていません(順序外)",
         ),
-        DecisionReason::SkipTarget => Text::new("skip target", "スキップの対象です"),
-        DecisionReason::AfterEnd => Text::new("after @end", "@end より後ろです"),
-        DecisionReason::AlreadyExecuted => Text::new("already executed", "実行済みです"),
     }
 }
 
@@ -509,12 +506,11 @@ pub const NOT_STARTED: Text = Text::new("not started", "起動せず");
 pub const SKIPPED_WORD: Text = Text::new("skipped", "スキップ");
 pub const SKIPPED_LIST: Text = Text::new("skipped", "スキップ");
 
-pub fn skip_reason(reason: DecisionReason) -> Text {
+pub fn skip_reason(reason: SkipCause) -> Text {
     match reason {
-        DecisionReason::SkipTarget => Text::new("skipped by a transition", "遷移によりスキップ"),
-        DecisionReason::AfterEnd => Text::new("skipped after @end", "@end の後ろのためスキップ"),
-        DecisionReason::AlreadyExecuted => Text::new("already executed", "実行済み"),
-        DecisionReason::OutOfOrder => Text::new("out of order", "順序外"),
+        SkipCause::SkipTarget => Text::new("skipped by a transition", "遷移によりスキップ"),
+        SkipCause::AfterEnd => Text::new("skipped after @end", "@end の後ろのためスキップ"),
+        SkipCause::AlreadyExecuted => Text::new("already executed", "実行済み"),
     }
 }
 

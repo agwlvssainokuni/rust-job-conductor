@@ -31,8 +31,8 @@ use crate::flow::{
     apply_outcome, apply_skip, classify_and_decide, decide_before_run, initial_state,
 };
 use crate::types::{
-    Classification, Decision, DecisionReason, JobDefinition, JobExecution, JobOutcome, JobState,
-    NextStep, PipelineDefinition, PipelineState, RunMode,
+    Classification, Decision, JobDefinition, JobExecution, JobOutcome, JobState, NextStep,
+    PipelineDefinition, PipelineState, RejectReason, RunMode, SkipCause,
 };
 
 /// 模擬の初期ステートに入れる定義ファイルのパス。模擬の中だけで使い、出力にも保存にも使わない。
@@ -168,7 +168,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
 pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejection> {
     let def = input.definition;
     let Some(index) = def.job_index(job_id) else {
-        return Err(rejection(job_id, DecisionReason::OutOfOrder));
+        return Err(rejection(job_id, RejectReason::OutOfOrder));
     };
     let job = &def.job[index];
     let (states, resume, end_reached): (&[JobState], Option<&str>, bool) = match active_state(input)
@@ -232,7 +232,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
     })
 }
 
-fn rejection(job_id: &str, reason: DecisionReason) -> PlanRejection {
+fn rejection(job_id: &str, reason: RejectReason) -> PlanRejection {
     PlanRejection {
         job_id: job_id.to_string(),
         reason,
@@ -240,13 +240,11 @@ fn rejection(job_id: &str, reason: DecisionReason) -> PlanRejection {
 }
 
 /// 起動前の判断(スキップ)から、扱いを決める(BR1.3)。
-fn skip_disposition(reason: DecisionReason) -> PlanDisposition {
+fn skip_disposition(reason: SkipCause) -> PlanDisposition {
     match reason {
-        DecisionReason::AlreadyExecuted => PlanDisposition::AlreadyExecuted,
-        DecisionReason::AfterEnd => PlanDisposition::SkippedAfterEnd,
-        DecisionReason::SkipTarget | DecisionReason::OutOfOrder => {
-            PlanDisposition::SkippedByTransition
-        }
+        SkipCause::AlreadyExecuted => PlanDisposition::AlreadyExecuted,
+        SkipCause::AfterEnd => PlanDisposition::SkippedAfterEnd,
+        SkipCause::SkipTarget => PlanDisposition::SkippedByTransition,
     }
 }
 

@@ -31,8 +31,8 @@
 //! (BR1.2)。
 
 use conductor_core::{
-    Classification, Decision, DecisionReason, JobDefinition, JobExecution, JobOutcome, NextStep,
-    PipelineDefinition, PipelineState, RunMode, classify_and_decide, decide_before_run,
+    Classification, Decision, JobDefinition, JobExecution, JobOutcome, NextStep,
+    PipelineDefinition, PipelineState, RunMode, SkipCause, classify_and_decide, decide_before_run,
 };
 use conductor_runtime::{CommandLine, Durability, apply_outcome, apply_skip, initial_state};
 
@@ -81,7 +81,7 @@ pub(crate) fn record_skip(
     session: &Session,
     base: Option<&PipelineState>,
     job_id: &str,
-    reason: DecisionReason,
+    reason: SkipCause,
 ) -> Result<(PipelineState, bool), i32> {
     let definition = &session.checked.definition;
     let path = &session.checked.definition_path;

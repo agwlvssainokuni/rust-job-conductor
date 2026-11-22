@@ -18,9 +18,9 @@
 //! `parse_definition` で作った定義と、手元の `Vec<JobState>` だけを使う。
 
 use conductor_core::{
-    Classification, Decision, DecisionReason, JobExecution, JobState, JobStatus, NextStep,
-    PipelineDefinition, ResumePoint, RunMode, SkipReason, classify_and_decide, decide_before_run,
-    parse_definition, resume_point_on_interrupt,
+    Classification, Decision, JobExecution, JobState, JobStatus, NextStep, PipelineDefinition,
+    RejectReason, ResumePoint, RunMode, SkipCause, SkipReason, classify_and_decide,
+    decide_before_run, parse_definition, resume_point_on_interrupt,
 };
 
 fn definition(extra_transitions: &str) -> PipelineDefinition {
@@ -166,7 +166,7 @@ fn 個別実行_エラーから再実行して完了までの流れ() {
     let (d, code) = sim.call("c", exited("c", 0), RunMode::Individual);
     assert_eq!(
         (d, code),
-        (Decision::Reject(DecisionReason::OutOfOrder), None)
+        (Decision::Reject(RejectReason::OutOfOrder), None)
     );
     assert_eq!(sim.states, before);
     // b を再実行して成功。再開位置は解除される。
@@ -177,7 +177,7 @@ fn 個別実行_エラーから再実行して完了までの流れ() {
     let (d, code) = sim.call("a", exited("a", 0), RunMode::Individual);
     assert_eq!(
         (d, code),
-        (Decision::Skip(DecisionReason::AlreadyExecuted), Some(0))
+        (Decision::Skip(SkipCause::AlreadyExecuted), Some(0))
     );
     // c、d を順に実行して完了。
     sim.call("c", exited("c", 0), RunMode::Individual);
@@ -205,7 +205,7 @@ fn 個別実行_end_のあとはスケジューラの呼び出しでスキップ
         let (d, code) = sim.call(id, exited(id, 0), RunMode::Individual);
         assert_eq!(
             (d, code),
-            (Decision::Skip(DecisionReason::AfterEnd), Some(0)),
+            (Decision::Skip(SkipCause::AfterEnd), Some(0)),
             "{id}"
         );
         assert!(!sim.completed, "{id} の記録のあとは、まだ完了しない");
@@ -213,10 +213,7 @@ fn 個別実行_end_のあとはスケジューラの呼び出しでスキップ
     }
     assert_eq!(sim.resume.as_deref(), Some("d"), "次の未呼び出しのジョブ");
     let (d, code) = sim.call("d", exited("d", 0), RunMode::Individual);
-    assert_eq!(
-        (d, code),
-        (Decision::Skip(DecisionReason::AfterEnd), Some(0))
-    );
+    assert_eq!((d, code), (Decision::Skip(SkipCause::AfterEnd), Some(0)));
     assert!(sim.completed, "最後のジョブがスキップされた時点で完了");
     assert!(sim.resume.is_none());
 }

@@ -23,9 +23,9 @@ use conductor_cli::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::{ConversionError, ConversionErrorKind};
 use conductor_core::{
-    Classification, DecisionReason, DefinitionError, DefinitionErrorKind, EnvFileError,
-    EnvFileErrorKind, EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, SkipReason,
-    TransitionOn, TransitionTarget,
+    Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
+    EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, RejectReason, SkipCause,
+    SkipReason, TransitionOn, TransitionTarget,
 };
 use conductor_runtime::{
     CommandError, CommandErrorKind, CreateError, MismatchKind, StateError, StateErrorKind,
@@ -178,16 +178,15 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
             with_run_id: false,
         });
     }
+    f(&DisplayEvent::Rejected {
+        job_id: "b",
+        reason: RejectReason::OutOfOrder,
+    });
     for reason in [
-        DecisionReason::OutOfOrder,
-        DecisionReason::SkipTarget,
-        DecisionReason::AfterEnd,
-        DecisionReason::AlreadyExecuted,
+        SkipCause::SkipTarget,
+        SkipCause::AfterEnd,
+        SkipCause::AlreadyExecuted,
     ] {
-        f(&DisplayEvent::Rejected {
-            job_id: "b",
-            reason,
-        });
         f(&DisplayEvent::JobSkipped {
             job_id: "b",
             reason,
@@ -441,7 +440,7 @@ fn 入力に由来する文字列は_エスケープされる() {
     let texts = [
         reporter.render(&DisplayEvent::Rejected {
             job_id: evil,
-            reason: DecisionReason::OutOfOrder,
+            reason: RejectReason::OutOfOrder,
         }),
         reporter.render(&DisplayEvent::StartFailure {
             job_id: evil,
@@ -450,7 +449,7 @@ fn 入力に由来する文字列は_エスケープされる() {
         reporter.render(&DisplayEvent::SuccessCodeNotListed { job_id: evil }),
         reporter.render(&DisplayEvent::JobSkipped {
             job_id: evil,
-            reason: DecisionReason::AfterEnd,
+            reason: SkipCause::AfterEnd,
         }),
         reporter.render(&DisplayEvent::Usage(&UsageError::with_subject(
             UsageErrorKind::UnknownCommand,
@@ -560,7 +559,7 @@ fn v_の文言() {
     assert_eq!(
         reporter.render(&DisplayEvent::JobSkipped {
             job_id: "transform",
-            reason: DecisionReason::SkipTarget,
+            reason: SkipCause::SkipTarget,
         }),
         "[conductor] job=transform skipped (skipped by a transition)\n"
     );

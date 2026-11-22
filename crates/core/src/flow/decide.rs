@@ -15,7 +15,9 @@
 //! 起動前の判断(`decide_before_run`)。BR3.5、BR3.8。
 
 use super::{is_settled, record_of, status_at};
-use crate::types::{Decision, DecisionReason, JobState, JobStatus, PipelineDefinition, SkipReason};
+use crate::types::{
+    Decision, JobState, JobStatus, PipelineDefinition, RejectReason, SkipCause, SkipReason,
+};
 
 /// ジョブを起動する前に、実行・スキップ・拒否を決める(W2、BR3.5)。
 ///
@@ -47,23 +49,23 @@ pub fn decide_before_run(
     end_reached: bool,
 ) -> Decision {
     let Some(index) = definition.job_index(job_id) else {
-        return Decision::Reject(DecisionReason::OutOfOrder);
+        return Decision::Reject(RejectReason::OutOfOrder);
     };
     let (status, skip_reason) = record_of(job_states, job_id);
 
     // 1, 2
     if status == JobStatus::Skipped {
         return match skip_reason {
-            Some(SkipReason::ByEnd) => Decision::Skip(DecisionReason::AfterEnd),
-            _ => Decision::Skip(DecisionReason::SkipTarget),
+            Some(SkipReason::ByEnd) => Decision::Skip(SkipCause::AfterEnd),
+            _ => Decision::Skip(SkipCause::SkipTarget),
         };
     }
     if end_reached && status == JobStatus::Pending {
-        return Decision::Skip(DecisionReason::AfterEnd);
+        return Decision::Skip(SkipCause::AfterEnd);
     }
     // 3
     if matches!(status, JobStatus::Success | JobStatus::Warning) {
-        return Decision::Skip(DecisionReason::AlreadyExecuted);
+        return Decision::Skip(SkipCause::AlreadyExecuted);
     }
     // 4
     if status == JobStatus::Error || resume_job_id == Some(job_id) {
@@ -87,7 +89,7 @@ pub fn decide_before_run(
         return Decision::Run;
     }
     // 7
-    Decision::Reject(DecisionReason::OutOfOrder)
+    Decision::Reject(RejectReason::OutOfOrder)
 }
 
 #[cfg(test)]
@@ -131,7 +133,8 @@ mod tests {
     #[test]
     fn 規則ごとの判断() {
         use Decision::*;
-        use DecisionReason::*;
+        use RejectReason::*;
+        use SkipCause::*;
         let d = def(4);
         let skipped_t = |id| st(id, Skipped, Some(SkipReason::ByTransition));
         let skipped_e = |id| st(id, Skipped, Some(SkipReason::ByEnd));
@@ -273,7 +276,7 @@ mod tests {
     fn 定義にないジョブは順序外() {
         assert_eq!(
             decide_before_run("zz", &def(2), &[], None, false),
-            Decision::Reject(DecisionReason::OutOfOrder)
+            Decision::Reject(RejectReason::OutOfOrder)
         );
     }
 
@@ -292,7 +295,7 @@ mod tests {
     fn スキップの理由がないスキップは遷移のスキップ扱い() {
         assert_eq!(
             decide_before_run("j1", &def(2), &[st("j1", Skipped, None)], None, false),
-            Decision::Skip(DecisionReason::SkipTarget)
+            Decision::Skip(SkipCause::SkipTarget)
         );
     }
 }

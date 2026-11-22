@@ -23,7 +23,7 @@
 pub mod simulate;
 
 use crate::envfile::EnvOrigin;
-use crate::types::{Classification, DecisionReason, RetryPolicy};
+use crate::types::{Classification, RejectReason, RetryPolicy};
 
 pub use simulate::{PlanInput, plan_pipeline, plan_run};
 
@@ -184,5 +184,5 @@ pub struct ExecutionPlan {
 pub struct PlanRejection {
     /// 拒否されたジョブの ID。
     pub job_id: String,
-    pub reason: DecisionReason,
+    pub reason: RejectReason,
 }

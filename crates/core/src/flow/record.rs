@@ -24,8 +24,8 @@ use std::path::Path;
 use super::status_at;
 use crate::run_id::RunId;
 use crate::types::{
-    Classification, DecisionReason, JobExecution, JobOutcome, JobState, JobStatus, NextStep,
-    PipelineDefinition, PipelineState, ResumePoint, SkipReason,
+    Classification, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition,
+    PipelineState, ResumePoint, SkipCause, SkipReason,
 };
 
 /// 空のステートを、定義から作る(`initial_state`)。
@@ -120,7 +120,7 @@ pub fn apply_outcome(
 
 /// スキップを記録する(`apply_skip`。BR2.8)。
 ///
-/// - [`DecisionReason::AlreadyExecuted`](と、スキップでない理由)は、何も変えない。
+/// - [`SkipCause::AlreadyExecuted`] は、何も変えない。
 /// - `SkipTarget`(`byTransition`)と `AfterEnd`(`byEnd`)は、そのジョブを `skipped` にする。
 ///   そのあと、`error` のジョブがあれば、`resume_job_id` と `completed` を変えない(エラーの再開位置を
 ///   守る)。なければ、`completed` を「いま `skipped` にしたジョブが、定義の順で最後であり、かつ
@@ -129,13 +129,13 @@ pub fn apply_outcome(
 pub fn apply_skip(
     state: &PipelineState,
     job_id: &str,
-    reason: DecisionReason,
+    reason: SkipCause,
     definition: &PipelineDefinition,
 ) -> PipelineState {
     let skip_reason = match reason {
-        DecisionReason::SkipTarget => SkipReason::ByTransition,
-        DecisionReason::AfterEnd => SkipReason::ByEnd,
-        DecisionReason::AlreadyExecuted | DecisionReason::OutOfOrder => return state.clone(),
+        SkipCause::SkipTarget => SkipReason::ByTransition,
+        SkipCause::AfterEnd => SkipReason::ByEnd,
+        SkipCause::AlreadyExecuted => return state.clone(),
     };
     let mut out = state.clone();
     match find_mut(&mut out, job_id) {
@@ -146,7 +146,7 @@ pub fn apply_skip(
         }
         None => return out,
     }
-    if reason == DecisionReason::AfterEnd {
+    if reason == SkipCause::AfterEnd {
         out.end_reached = true;
     }
 
@@ -451,7 +451,7 @@ mod tests {
             &step("zz"),
         );
         assert_eq!(s, s0);
-        assert_eq!(apply_skip(&s0, "zz", DecisionReason::SkipTarget, &d), s0);
+        assert_eq!(apply_skip(&s0, "zz", SkipCause::SkipTarget, &d), s0);
     }
 
     #[test]
@@ -460,8 +460,7 @@ mod tests {
         let mut s = initial_state(&d, Path::new("c.toml"));
         s.job_states[0].status = JobStatus::Success;
         s.job_states[0].exit_code = Some(0);
-        assert_eq!(apply_skip(&s, "a", DecisionReason::AlreadyExecuted, &d), s);
-        assert_eq!(apply_skip(&s, "a", DecisionReason::OutOfOrder, &d), s);
+        assert_eq!(apply_skip(&s, "a", SkipCause::AlreadyExecuted, &d), s);
     }
 
     #[test]
@@ -471,7 +470,7 @@ mod tests {
         s.job_states[0].status = JobStatus::Error;
         s.job_states[0].exit_code = Some(1);
         s.resume_job_id = Some("a".into());
-        let s2 = apply_skip(&s, "c", DecisionReason::SkipTarget, &d);
+        let s2 = apply_skip(&s, "c", SkipCause::SkipTarget, &d);
         assert_eq!(status(&s2, "c"), JobStatus::Skipped);
         assert_eq!(
             (s2.resume_job_id.as_deref(), s2.completed),
@@ -485,7 +484,7 @@ mod tests {
         let mut s = initial_state(&d, Path::new("c.toml"));
         s.job_states[0].status = JobStatus::Success;
         s.job_states[0].exit_code = Some(0);
-        let s2 = apply_skip(&s, "b", DecisionReason::SkipTarget, &d);
+        let s2 = apply_skip(&s, "b", SkipCause::SkipTarget, &d);
         assert!(s2.completed);
         assert_eq!(s2.resume_job_id, None);
         assert_eq!(s2.job_states[1].skip_reason, Some(SkipReason::ByTransition));
@@ -496,7 +495,7 @@ mod tests {
     fn 最後でないジョブのスキップでは再開位置が最初の_pending() {
         let d = definition(&["a", "b", "c"]);
         let s = initial_state(&d, Path::new("c.toml"));
-        let s2 = apply_skip(&s, "a", DecisionReason::SkipTarget, &d);
+        let s2 = apply_skip(&s, "a", SkipCause::SkipTarget, &d);
         assert!(!s2.completed);
         assert_eq!(s2.resume_job_id.as_deref(), Some("b"));
     }
@@ -505,7 +504,7 @@ mod tests {
     fn 最後のジョブが先にスキップされ_前が_pending_なら完了しない() {
         let d = definition(&["a", "b", "c"]);
         let s = initial_state(&d, Path::new("c.toml"));
-        let s2 = apply_skip(&s, "c", DecisionReason::SkipTarget, &d);
+        let s2 = apply_skip(&s, "c", SkipCause::SkipTarget, &d);
         assert!(!s2.completed);
         assert_eq!(s2.resume_job_id.as_deref(), Some("a"));
     }
@@ -527,13 +526,13 @@ mod tests {
         assert!(s.end_reached && !s.completed);
         assert_eq!(status(&s, "b"), JobStatus::Pending);
 
-        let s = apply_skip(&s, "b", DecisionReason::AfterEnd, &d);
+        let s = apply_skip(&s, "b", SkipCause::AfterEnd, &d);
         assert!(!s.completed, "C が残っている");
         assert_eq!(s.resume_job_id.as_deref(), Some("c"));
         assert_eq!(s.job_states[1].skip_reason, Some(SkipReason::ByEnd));
         assert!(s.end_reached);
 
-        let s = apply_skip(&s, "c", DecisionReason::AfterEnd, &d);
+        let s = apply_skip(&s, "c", SkipCause::AfterEnd, &d);
         assert!(s.completed);
         assert_eq!(s.resume_job_id, None);
     }
