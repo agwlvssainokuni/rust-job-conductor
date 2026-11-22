@@ -25,7 +25,6 @@ use conductor_core::graph::{
     StateOverlay, build_graph, layout_graph, overlay_from_state, pending_overlay,
 };
 
-use crate::aux_commands::check_definition_and_env;
 use crate::ctx::{Ctx, StateRead};
 use crate::exit::{EXIT_OK, EXIT_STATE};
 use crate::report::DisplayEvent;
@@ -35,8 +34,8 @@ use crate::types::{CliCommand, GraphFormat};
 
 /// `conductor graph` を実行し、終了コードを返す。
 pub(crate) fn run_graph(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
-    let (path, definition) = match check_definition_and_env(ctx, cmd) {
-        Ok(checked) => checked,
+    let (path, definition) = match ctx.check_definition_and_env(cmd) {
+        Ok(checked) => (checked.path, checked.definition),
         Err(code) => return code,
     };
     let overlay = if cmd.graph.with_state {

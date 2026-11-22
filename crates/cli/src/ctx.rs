@@ -308,6 +308,29 @@ impl Ctx<'_> {
         })
     }
 
+    /// `validate` と `graph` が共有する検査(BR6.1): 定義の検証(64)、全ジョブの `command` の検査(64)、
+    /// `.env` の読み取り(64)。重複キーの警告は、誤りでないので、標準エラーに出して続ける(BR7.2)。
+    ///
+    /// ジョブは実行しない。シグナルの準備、ステートの読み書き、リセットもしない。値は、どこにも出さない。
+    /// 誤りは、`run` と同じ表示で、終了コードを `Err` で返す。
+    pub(crate) fn check_definition_and_env(
+        &mut self,
+        cmd: &CliCommand,
+    ) -> Result<CheckedDefinition, i32> {
+        let checked = self.check_definition(cmd, cmd.pipeline_name.as_deref())?;
+        // `pipeline` と同じ範囲の `.env` を読む(BR7.1)。重複キーの警告は、誤りでないので 0(BR7.2)。
+        let loaded = self.load_env_files(&checked.path, &checked.definition, None)?;
+        let warnings: Vec<_> = loaded
+            .files()
+            .iter()
+            .flat_map(|f| f.warnings.iter().cloned())
+            .collect();
+        if !warnings.is_empty() {
+            self.show(&DisplayEvent::EnvWarnings(&warnings));
+        }
+        Ok(checked)
+    }
+
     pub(crate) fn definition_errors(&mut self, errors: &[DefinitionError]) -> i32 {
         self.show(&DisplayEvent::DefinitionErrors(errors));
         EXIT_DEFINITION

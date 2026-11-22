@@ -16,10 +16,7 @@
 //!
 //! シグナルの準備は行わない(既定の動作で終わる。BR4.1)。
 
-use std::path::PathBuf;
-
 use conductor_converter::TargetFormat;
-use conductor_core::PipelineDefinition;
 
 use crate::ctx::{Ctx, aux_run_id, definition_path, read_context};
 use crate::exit::{EXIT_CONVERSION, EXIT_OK, EXIT_STATE, EXIT_USAGE};
@@ -89,39 +86,15 @@ pub(crate) fn run_reset(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     }
 }
 
-/// `validate` と `graph` が共有する検査(BR6.1): 定義の検証(64)、全ジョブの `command` の検査(64)、
-/// `.env` の読み取り(64)。重複キーの警告は、誤りでないので、標準エラーに出して続ける(BR7.2)。
-///
-/// ジョブは実行しない。シグナルの準備、ステートの読み書き、リセットもしない。値は、どこにも出さない。
-/// 誤りは、`run` と同じ表示で、終了コードを `Err` で返す。
-pub(crate) fn check_definition_and_env(
-    ctx: &mut Ctx<'_>,
-    cmd: &CliCommand,
-) -> Result<(PathBuf, PipelineDefinition), i32> {
-    let checked = ctx.check_definition(cmd, cmd.pipeline_name.as_deref())?;
-    let (path, definition) = (checked.path, checked.definition);
-    // `pipeline` と同じ範囲の `.env` を読む(BR7.1)。重複キーの警告は、誤りでないので 0(BR7.2)。
-    let loaded = ctx.load_env_files(&path, &definition, None)?;
-    let warnings: Vec<_> = loaded
-        .files()
-        .iter()
-        .flat_map(|f| f.warnings.iter().cloned())
-        .collect();
-    if !warnings.is_empty() {
-        ctx.show(&DisplayEvent::EnvWarnings(&warnings));
-    }
-    Ok((path, definition))
-}
-
 /// `conductor validate [<name>]`: 定義の検証と、全ジョブの `command` の検査だけを行う。
 ///
 /// ジョブは実行しない。シグナルの準備、ステートの読み書き、リセットもしない。
 /// 成功は何も出さない(`-v` のときだけ、標準エラーに 1 行)。誤りは `run` と同じ表示で 64。
 pub(crate) fn run_validate(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
-    match check_definition_and_env(ctx, cmd) {
-        Ok((_, definition)) => {
+    match ctx.check_definition_and_env(cmd) {
+        Ok(checked) => {
             ctx.show(&DisplayEvent::DefinitionValid {
-                job_count: definition.job.len(),
+                job_count: checked.definition.job.len(),
             });
             EXIT_OK
         }
