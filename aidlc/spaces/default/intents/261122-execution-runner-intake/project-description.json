@@ -1,0 +1,1 @@
+"残りの整理を 1 つの intent で: (1) JobExecution の列挙型化(動きを変えない。ステートファイルの書式は変えない)、(2) F: run_job(crates/runtime/src/runner.rs)に分割済みのコマンドを渡す(動きを変えない。Runtime トレイトと仕様書の 4 つの章)、(3) B3: core の定義ファイルの読み込みの順序(crates/core/src/definition/intake.rs の read_definition。利用者から見える変更で、仕様書と版の更新を伴う)。段はこの順で、B3 を最後に置く"
