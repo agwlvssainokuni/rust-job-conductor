@@ -1,0 +1,17 @@
+{
+  "stage": "functional-design",
+  "upstream_ids": ["SM1", "SM2", "SM3", "SM4"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "BR1.2, BR1.1" },
+    { "id": "SM2", "status": "OK", "target": "BR3.1" },
+    { "id": "SM3", "status": "OK", "target": "BR2.1, BR1.3, BR1.4" },
+    { "id": "SM4", "status": "OK", "target": "BR4.2" }
+  ],
+  "reverse": [
+    { "id": "BR1.1", "status": "N/A", "target": "intent-statement.md: 判定(Q2: A)" },
+    { "id": "BR1.3", "status": "N/A", "target": "layout-oracle-offmain.md: 線の開き方" },
+    { "id": "BR1.4", "status": "N/A", "target": "functional-design-questions.md Q1: B(主線の列 0)" },
+    { "id": "BR4.1", "status": "N/A", "target": "functional-design-questions.md Q2: A(正解データ)" },
+    { "id": "BR5.1", "status": "N/A", "target": "前回までの intent の確認(git のソースを読まない)" }
+  ]
+}
