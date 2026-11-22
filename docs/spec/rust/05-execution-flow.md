@@ -216,7 +216,7 @@ return low
 | 2 | `end_reached` かつ `st = pending` | `Skip(AfterEnd)` |
 | 3 | `st` が success または warning | `Skip(AlreadyExecuted)` |
 | 4 | `st = error`、または `resume_job_id` がこのジョブID | `Run` |
-| 5 | 全ジョブが pending(または記録なし)で、このジョブが記述順で最初 | `Run` |
+| 5 | 全ジョブが pending(または記録なし)で、このジョブが記述順で最初(規則 6 に含まれる。前のジョブが無いので、6 が `Run` を返す。実装は 6 で判定する) | `Run` |
 | 6 | `st = pending` で、記述順で前のジョブがすべて success / warning / skipped | `Run` |
 | 7 | 上のどれでもない | `Reject(OutOfOrder)` |
 

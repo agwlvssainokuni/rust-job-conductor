@@ -27,7 +27,8 @@ use crate::types::{
 /// 2. `skipped(byEnd)` の記録、または `end_reached` で未実行 → `Skip(AfterEnd)`
 /// 3. `success` / `warning` で記録済み → `Skip(AlreadyExecuted)`
 /// 4. `error` で記録済み、または `resume_job_id` と一致 → `Run`
-/// 5. 記録がすべて pending(または空)で、記述順で最初 → `Run`
+/// 5. 記録がすべて pending(または空)で、記述順で最初 → `Run`。規則 6 に含まれる(前のジョブが
+///    無いので、規則 6 が `Run` を返す)。コードは規則 6 で判定する。
 /// 6. 記述順で前のジョブがすべて、成功・警告・スキップで、このジョブが pending → `Run`
 /// 7. それ以外 → `Reject(OutOfOrder)`
 ///
@@ -71,15 +72,7 @@ pub fn decide_before_run(
     if status == JobStatus::Error || resume_job_id == Some(job_id) {
         return Decision::Run;
     }
-    // 5
-    let nothing_started = definition
-        .job
-        .iter()
-        .enumerate()
-        .all(|(i, j)| status_at(job_states, i, &j.id) == JobStatus::Pending);
-    if nothing_started && index == 0 {
-        return Decision::Run;
-    }
+    // 5 は 6 に含まれる(ここまでで `status` は pending。`index == 0` なら前のジョブが無い)。
     // 6
     let predecessors_settled = definition.job[..index]
         .iter()
