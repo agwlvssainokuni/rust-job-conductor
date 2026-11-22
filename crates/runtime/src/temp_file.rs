@@ -136,4 +136,29 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(calls.get(), 1);
     }
+
+    #[test]
+    fn 対象の隣に接頭辞つきの一時ファイルを作り_続けて呼ぶと別の名前() {
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        let (first, first_file) = create_temp_beside(dir.path(), "c.toml.state").expect("作れる");
+        let (second, second_file) = create_temp_beside(dir.path(), "c.toml.state").expect("作れる");
+        drop((first_file, second_file));
+
+        for path in [&first, &second] {
+            assert_eq!(path.parent(), Some(dir.path()), "dir に作る");
+            let name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .expect("名前がある");
+            assert!(name.starts_with(".c.toml.state.tmp."), "接頭辞: {name}");
+            assert!(path.is_file(), "新しいファイルがある");
+        }
+        assert_ne!(first, second, "連番が進み、別の名前になる");
+
+        let missing = dir.path().join("no-such-dir");
+        assert!(
+            create_temp_beside(&missing, "c.toml.state").is_err(),
+            "存在しないディレクトリでは失敗する"
+        );
+    }
 }
