@@ -14,8 +14,9 @@
 
 //! `escape_display` の、同じ入力と期待値の表(conductor-core・conductor-converter と揃える。NFR4.2)。
 //!
-//! conductor-core の `sanitize` は公開されているため、同じ入力に同じ結果を返すことを直接確かめる。
-//! conductor-converter の同じ規則の関数は、非公開のため、converter の単体テストにある、同じ期待値の表で揃える。
+//! cli の `escape_display` は conductor-core の本体の再公開で、core の `sanitize` も同じ関数を使う。
+//! このテストは期待値の表を固定する。conductor-converter の同じ規則の写しは、非公開のため、
+//! converter の単体テストにある、同じ期待値の表で揃える。
 
 use conductor_cli::report::escape::{escape_display, escape_name, escape_path};
 
