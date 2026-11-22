@@ -752,3 +752,594 @@
 **Stage**: intent-capture
 
 ---
+
+## Stage Skip
+**Timestamp**: 2026-11-22T10:14:46Z
+**Event**: STAGE_SKIPPED
+**Stage**: reverse-engineering
+**Reason**: リファクタリングの対象は、直前の 2 回の全体調査で読み済みで、既存のコードの全体の書き起こしは要らない
+**Skip Kind**: conditional-runtime
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-22T10:14:46Z
+**Event**: PHASE_COMPLETED
+**From phase**: inception
+**To phase**: construction
+**Stages completed**: 4
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-22T10:14:46Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: inception → construction
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-22T10:14:46Z
+**Event**: PHASE_STARTED
+**Phase**: construction
+**Scope**: refactor
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-22T10:14:46Z
+**Event**: STAGE_STARTED
+**Stage**: functional-design
+**Agent**: aidlc-architect-agent
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-22T10:15:11Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: general-purpose
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-22T10:15:19Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: aac6a4c2ac868a2dd
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-22T10:20:12Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: state-transition
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Tool**: Bash
+**Details**: dynamic shell command beyond guard inspection
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-22T10:23:01Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: state-transition
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Tool**: Bash
+**Details**: dynamic shell command beyond guard inspection
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-22T10:26:29Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-22T10:26:29Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: general-purpose
+**Agent ID**: ad2eb91d4e7d52b27
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T10:27:28Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T10:27:51Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T10:28:15Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T10:28:19Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T10:28:23Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+**Context**: construction > functional-design > traceability.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6c2d0251
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6c2d0251
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+**Duration ms**: 81
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: 8c690ce5
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: 8c690ce5
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/rules.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: 8598f27a
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: 8598f27a
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+**Duration ms**: 86
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:28:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: ebd1e0af
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:28:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: ebd1e0af
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:28:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: f0fd48af
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:28:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: f0fd48af
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:28:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 28b95bc1
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:28:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 28b95bc1
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+**Duration ms**: 84
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-22T10:28:26Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:7e85191cb0115093540856b42094f472c4fda44a52e5bbad7916e6250394dfb0
+**Request Id**: review:a1797fd6448afd2d20b3baf69ddbb35a
+**Review File**: .aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.a1797fd6448afd2d20b3baf69ddbb35a.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-22T10:28:39Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-22T10:28:50Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: ad689d18cf16cd4a4
+**Message**: 確認の完了待ち
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T10:30:10Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/.aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.a1797fd6448afd2d20b3baf69ddbb35a.review.md
+**Context**: .aidlc-engine > reviews > functional-design > stage > 4ebba5608af34b77 > 1.a1797fd6448afd2d20b3baf69ddbb35a.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-22T10:30:17Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a2e2a00ae286d18ab
+**Review File Digest**: .aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.a1797fd6448afd2d20b3baf69ddbb35a.review.md=593f7c5c0f7c13e527a2225b173f732bdded210d64cce74b8bd420fb44f47c2a
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-22T10:30:18Z
+**Event**: HOST_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T10:30:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-22T10:30:30Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:7e85191cb0115093540856b42094f472c4fda44a52e5bbad7916e6250394dfb0
+**Artifact Fingerprint**: sha256:7e85191cb0115093540856b42094f472c4fda44a52e5bbad7916e6250394dfb0
+**Request Id**: review:a1797fd6448afd2d20b3baf69ddbb35a
+**Review Record**: .aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.json
+**Review Record Digest**: sha256:9c96e0f2859825848bdb6dfa1ff14c3e3345a925b63edc9e1dcd2b28db2ef11d
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-22T10:30:30Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: functional-design
+**Checkpoint**: review-receipt
+**Changed**: (paths unavailable)
+**Recorded**: sha256:7e85191cb0115093540856b42094f472c4fda44a52e5bbad7916e6250394dfb0
+**Current**: sha256:5328882cda8d2c3c05bc6803d36c703a1dee2eecbed5ed0d1b05e4c4a20a8cd4
+**Details**: The Functional Design documents changed after they were reviewed; carrying on.
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:30:30Z
+**Event**: SENSOR_FIRED
+**Fire id**: c1d4f7ae
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: c1d4f7ae
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 5bec41b1
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 5bec41b1
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/rules.md
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 53ce25bf
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 53ce25bf
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 8b59b007
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 8b59b007
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_FIRED
+**Fire id**: 23a8adc6
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:30:31Z
+**Event**: SENSOR_PASSED
+**Fire id**: 23a8adc6
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-22T10:30:32Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7bda837a
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-22T10:30:32Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7bda837a
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json
+**Duration ms**: 80
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-22T10:30:32Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: functional-design
+**Next Stage**: code-generation
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md=passed; required-sections@aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/rules.md=passed; required-sections@aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md=passed; required-sections@aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json=passed; upstream-coverage@aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/entities.md=passed; traceability@aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/traceability.json=passed
+**Open Decisions**: 0
+**Question Id**: ce7e32e4
+**Question Type**: gate
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:e929258920c9554c4b212eaa68d565aa473eeff2a5b5ca5e08fb9ec74dd75235
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-22T10:30:45Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a425411d72b23e324
+**Message**: 承認
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-22T10:35:17Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: typed
+**Message Id**: d94cb09b
+**Open Questions**: ce7e32e4
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T10:35:23Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-22T10:35:27Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: functional-design
+**Checkpoint**: review-receipt
+**Changed**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md
+**Recorded**: sha256:7e85191cb0115093540856b42094f472c4fda44a52e5bbad7916e6250394dfb0
+**Current**: sha256:1499b97f8af40d0678d0170000c13636021518c91d4b7cd47e607bed89a657a8
+**Details**: aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md changed after the Functional Design review; carrying on.
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-22T10:35:27Z
+**Event**: GATE_APPROVED
+**Stage**: functional-design
+**User Input**: 承認(report_messages.rs の組み立ての値の変更も認める)
+**Person Reply**: 承認
+**Message Id**: d94cb09b
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:84c992fde0315d187ec6d57f7974f9c8d4c5a63eca6d2121d665c18102240006","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.json","digest":"sha256:9c96e0f2859825848bdb6dfa1ff14c3e3345a925b63edc9e1dcd2b28db2ef11d"}},{"artifact":"aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:dfb6bb18179bfd8eec664e1b33c9ecad2e09be5cc111883ad41d73e7a55ffafa","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.json","digest":"sha256:9c96e0f2859825848bdb6dfa1ff14c3e3345a925b63edc9e1dcd2b28db2ef11d"}},{"artifact":"aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:ec107982313140cd742b2e60b6cc264434401a212591bde94372816aa3b1df47","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.json","digest":"sha256:9c96e0f2859825848bdb6dfa1ff14c3e3345a925b63edc9e1dcd2b28db2ef11d"}},{"artifact":"aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md","id":"R-04","fingerprint":"sha256:57344620efee5b3dd1c68536ad0070dd01f1e125153122db5c829b24487858c7","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.json","digest":"sha256:9c96e0f2859825848bdb6dfa1ff14c3e3345a925b63edc9e1dcd2b28db2ef11d"}},{"artifact":"aidlc/spaces/default/intents/261122-internal-cleanup/construction/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:2c8d81a361a0756152aab6f37f5e81a95995094e886880d2dcdc8038d041f482","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/4ebba5608af34b77/1.json","digest":"sha256:9c96e0f2859825848bdb6dfa1ff14c3e3345a925b63edc9e1dcd2b28db2ef11d"}}]}
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-22T10:35:27Z
+**Event**: STAGE_COMPLETED
+**Stage**: functional-design
+**Validation Basis**: {"graphContract":"sha256:9bcda5bd8a06c0847db3e05cd9c841a992450b498f36fead53d3737b78517a4e","inputs":[{"artifact":"components","contentHash":"sha256:c90748b2466c88c8da8806f79c4d3866a54d0def4dc49df3de2a0461ec2ac47d","instanceCount":1,"presentCount":0,"producer":"domain-design","required":true,"structureHash":"sha256:1e48582014c622a99e1ccb5d0e8fb570404da0f70770e73a6c3ea2199ccbe7bf"},{"artifact":"requirements","contentHash":"sha256:98be2b17771a4bdc453e00d078315f3fb6df6f15f6be93c4ea753b462f1eb5b7","instanceCount":1,"presentCount":0,"producer":"requirements-analysis","required":true,"structureHash":"sha256:c20f70094d9a7adabcf5d9ea4da90ef21f49de442857db1bd7796f8083b259a9"},{"artifact":"unit-of-work","contentHash":"sha256:665c07d4e2d625b9b9f1247eff50a7562e3caec99793dc0af3becbc6f04337e8","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:df2fcb91c7baaec3c89e2dda85caeeb9416d4676101f09e3e256a2f15ca98b04"}],"outputs":[{"artifact":"entities","contentHash":"sha256:fa0a26d6d613d6ece61e8f2fb49b7cb58a39fb4d0f6e887e0db6c744c35ee3ac","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:53d05bc0fa1ebb227f38c258742df2100700b62d5ab892c33690d12f58162c26"},{"artifact":"functional-spec","contentHash":"sha256:49c87ee734b4fefa25bfd75b93e5276d6c4a8ab49d97c5188820e23ca8e171ed","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:cd0025b44c188febbfdc6b8c08171f20a4512bf480c0c62fb14d243cac0c3c04"},{"artifact":"rules","contentHash":"sha256:459cdb78cb0e96ba33f0684cf9f76bd0375042591dfd25488aa02226e67b3bbb","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:dd0184e2123236c1745773f2849fd533c837302155d8b35a5757901f4d15b8eb"},{"artifact":"traceability","contentHash":"sha256:3757c4083e284e73f342a614fdd997364a433034ceb83232230121a609f6576d","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:d559091700ae40a686a94057efa6bc2d67e35af27e9f73fbd7bf9e32d2bf6a77"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Functional Design approved by gate
+**Tokens In**: 188
+**Tokens Out**: 83938
+**Cache Read**: 17536520
+**Cache Write**: 412923
+**Cost USD**: 6.91
+**By Model**: opus-5-5=6.44; sonnet-5-5=0.46
+**By Agent**: main=1.48; general-purpose=4.96; aidlc-architecture-reviewer-agent=0.46
+**Tokens By Model**: opus-5-5=158/73.7k/16.4M/313.9k; sonnet-5-5=30/10.3k/1.1M/99k
+**Tokens By Agent**: main=18/20.2k/3.8M/39.9k; general-purpose=140/53.5k/12.6M/274k; aidlc-architecture-reviewer-agent=30/10.3k/1.1M/99k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-22T10:35:27Z
+**Event**: STAGE_STARTED
+**Stage**: code-generation
+**Agent**: aidlc-developer-agent
+**Source Baseline**: sha256:22de61d51e3089d1041c760761f7211c0b77161ba5c3b54294eef902c797db78
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-22T10:35:28Z
+**Event**: MEMORY_EMPTY
+**Stage**: functional-design
+
+---
