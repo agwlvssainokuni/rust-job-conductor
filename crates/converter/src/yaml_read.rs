@@ -292,14 +292,14 @@ mod tests {
     }
 
     #[test]
-    fn syntax_error_has_line() {
+    fn 文法の誤りは行を持つ() {
         let (k, line) = kind_of("a: 1\nb: [1, 2\nc: 3\n");
         assert_eq!(k, ConversionErrorKind::Syntax);
         assert!(line.is_some());
     }
 
     #[test]
-    fn duplicate_key_is_syntax_with_line() {
+    fn 重複するキーは行つきの文法の誤り() {
         let (k, line) = kind_of("a: 1\nb: 2\na: 3\n");
         assert_eq!((k, line), (ConversionErrorKind::Syntax, Some(3)));
         // 引用符の有無が違っても、同じ文字列のキーは重複
@@ -311,7 +311,7 @@ mod tests {
     }
 
     #[test]
-    fn recursive_anchor_is_syntax() {
+    fn 再帰するアンカーは文法の誤り() {
         let (k, _) = kind_of("a: &r [*r]\n");
         assert_eq!(k, ConversionErrorKind::Syntax);
         let (k, _) = kind_of("a: &r\n  b: *r\n");
@@ -321,12 +321,12 @@ mod tests {
     }
 
     #[test]
-    fn unknown_alias_is_syntax() {
+    fn 知らないエイリアスは文法の誤り() {
         assert_eq!(kind_of("a: *nothing\n").0, ConversionErrorKind::Syntax);
     }
 
     #[test]
-    fn depth_32_ok_and_33_syntax() {
+    fn 深さ32は受理し_33は文法の誤り() {
         // 最上位のマップを 1 として、32 段(マップ 1 + 配列 31)
         let ok = format!("a: {}", deep_flow(31));
         assert!(read(&ok, "t").is_ok());
@@ -341,7 +341,7 @@ mod tests {
     }
 
     #[test]
-    fn very_deep_inputs_fail_without_abort() {
+    fn とても深い入力は_異常終了せずに失敗する() {
         let handle = std::thread::spawn(|| {
             let mut results = Vec::new();
             for n in [1000usize, 100_000] {
@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn counts_documents_and_keeps_first_tree() {
+    fn 文書の数を数え_最初の木を残す() {
         let r = read("a: 1\n", "t").unwrap();
         assert_eq!(r.documents, 1);
         assert!(r.tree.is_some());
@@ -386,7 +386,7 @@ mod tests {
     }
 
     #[test]
-    fn scalars_keep_text_style_and_tags() {
+    fn スカラーは文字と書き方とタグを保つ() {
         let r = read(
             "a: yes\nb: 'x'\nc: !!str 1\nd: !foo 2\ne: !!binary aGk=\n",
             "t",
@@ -432,7 +432,7 @@ mod tests {
     }
 
     #[test]
-    fn anchors_and_aliases_are_kept_unexpanded() {
+    fn アンカーとエイリアスは展開せずに残す() {
         let r = read("a: &x [1]\nb: *x\n", "t").unwrap();
         let tree = r.tree.unwrap();
         let RawKind::Map { pairs, .. } = &tree.nodes[tree.root].kind else {
