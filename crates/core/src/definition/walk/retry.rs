@@ -75,9 +75,9 @@ impl Walker<'_> {
         }
         Some(RawRetry {
             exit_codes,
-            max: max.and_then(|m| u32::try_from(m).ok()),
+            max,
             interval,
-            multiplier: multiplier.and_then(|m| u32::try_from(m).ok()),
+            multiplier,
             max_interval,
         })
     }
@@ -144,16 +144,19 @@ impl Walker<'_> {
         key: &'static str,
         parent: usize,
         required: bool,
-        range: std::ops::RangeInclusive<i64>,
+        range: std::ops::RangeInclusive<u32>,
         kind: Kind,
-    ) -> Option<i64> {
+    ) -> Option<u32> {
         let Some(value) = table.get(key) else {
             if required {
                 self.retry_missing(key, parent);
             }
             return None;
         };
-        match integer_of(value).filter(|v| range.contains(v)) {
+        match integer_of(value)
+            .and_then(|v| u32::try_from(v).ok())
+            .filter(|v| range.contains(v))
+        {
             Some(v) => Some(v),
             None => {
                 self.push(
