@@ -179,3 +179,64 @@ fn validate_と同じ検査をする_env_の誤りは_64_で_重複キーは警�
     assert!(err.contains("conductor: warning: "), "{err}");
     assert!(err.contains("DUP") && !err.contains(SECRET), "{err}");
 }
+
+/// 同じ行き先(a→d、b→d。例 S1)の定義の text が、合流の行で出る。
+#[test]
+fn 同じ行き先の定義は_合流の行のレーンの図で出る() {
+    let ok = helper_command("exit 0");
+    let jobs = [
+        job_block("a", &ok, A_TO_D),
+        job_block("b", &ok, A_TO_D),
+        job_block("c", &ok, ""),
+        job_block("d", &ok, ""),
+        job_block("e", &ok, ""),
+    ];
+    let project = Project::new(&definition("p", &jobs));
+    let out = project.run(&["graph"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(
+        text(&out.stdout),
+        "*   a\n|\\\n* | b\n|\\|\n* | c\n|/\n* d\n* e\no @end\n"
+    );
+    assert_eq!(text(&out.stderr), "");
+}
+
+/// 成功と警告の両方が飛び越す定義(例 D1)の text が、線なしの行で出る。交差は、辺の一覧に残る。
+#[test]
+fn 両方の飛び越しの定義は_線なしの図で出て_交差は辺の一覧のまま() {
+    let ok = helper_command("exit 0");
+    let both = "[[job.transitions]]\non = \"warning\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"c\"\n";
+    let jobs = [
+        job_block("a", &ok, both),
+        job_block("b", &ok, ""),
+        job_block("c", &ok, ""),
+        job_block("d", &ok, ""),
+    ];
+    let project = Project::new(&definition("p", &jobs));
+    let out = project.run(&["graph"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(text(&out.stdout), "* a\n* b\n* c\n* d\no @end\n");
+
+    // 交差する形(a→d、b→e)は、辺の一覧と、広い言い方の注記。
+    let crossing = [
+        job_block("a", &ok, A_TO_D),
+        job_block(
+            "b",
+            &ok,
+            "[[job.transitions]]\non = \"success\"\nnext = \"e\"\n",
+        ),
+        job_block("c", &ok, ""),
+        job_block("d", &ok, ""),
+        job_block("e", &ok, ""),
+    ];
+    let project = Project::new(&definition("p", &crossing));
+    let out = project.run(&["graph"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stdout).starts_with(
+            "note: the skip edges cross or form a shape the lane diagram cannot draw, so it is replaced by a list of edges.\nJobs:\n"
+        ),
+        "{}",
+        text(&out.stdout)
+    );
+}
