@@ -15,7 +15,8 @@
 //! レーンの配置の正解データとの一致(BR2.3、BR4.1)。
 //!
 //! 行き先がすべて違う形(`fixtures/graph_layout_oracle.md`。537 個)と、
-//! 同じ行き先を含む形(`fixtures/graph_layout_oracle_same_target.md`。1,517 個)。
+//! 同じ行き先を含む形(`fixtures/graph_layout_oracle_same_target.md`。1,517 個)と、
+//! 分岐を含む形(`fixtures/graph_layout_oracle_branch.md`。871 個。規則から導いた図で、git の出力ではない)。
 
 mod graph_common;
 
@@ -25,11 +26,13 @@ use graph_common::{definition, lanes_text, letters};
 
 const ORACLE: &str = include_str!("fixtures/graph_layout_oracle.md");
 const ORACLE_SAME_TARGET: &str = include_str!("fixtures/graph_layout_oracle_same_target.md");
+const ORACLE_BRANCH: &str = include_str!("fixtures/graph_layout_oracle_branch.md");
 
 struct Example {
     heading: String,
     ids: Vec<String>,
-    skips: Vec<(String, Option<String>)>,
+    /// `(元のジョブ、行き先、分岐の遠いほうか)`。分岐(`b>d,f`)は、近いほうに成功、遠いほうに警告を割り当てる。
+    skips: Vec<(String, Option<String>, bool)>,
     expected: String,
 }
 
@@ -44,19 +47,21 @@ fn parse(source: &str) -> Vec<Example> {
         let rest = heading.strip_prefix("jobs=").expect("見出しの形");
         let (count, skips) = rest.split_once(" skips=").expect("見出しの形");
         let count: usize = count.parse().expect("ジョブの数");
-        let skips: Vec<(String, Option<String>)> = if skips == "-" {
+        let to_target = |to: &str| (to != "END").then(|| to.to_string());
+        let skips: Vec<(String, Option<String>, bool)> = if skips == "-" {
             Vec::new()
         } else {
             skips
                 .split(' ')
-                .map(|s| {
+                .flat_map(|s| {
                     let (from, to) = s.split_once('>').expect("飛び越しの形");
-                    let to = if to == "END" {
-                        None
-                    } else {
-                        Some(to.to_string())
-                    };
-                    (from.to_string(), to)
+                    match to.split_once(',') {
+                        Some((near, far)) => vec![
+                            (from.to_string(), to_target(near), false),
+                            (from.to_string(), to_target(far), true),
+                        ],
+                        None => vec![(from.to_string(), to_target(to), false)],
+                    }
                 })
                 .collect()
         };
@@ -84,7 +89,14 @@ fn build(example: &Example) -> conductor_core::PipelineDefinition {
     let transitions: Vec<_> = example
         .skips
         .iter()
-        .map(|(from, to)| (from.as_str(), TransitionOn::Success, to.as_deref()))
+        .map(|(from, to, far)| {
+            let on = if *far {
+                TransitionOn::Warning
+            } else {
+                TransitionOn::Success
+            };
+            (from.as_str(), on, to.as_deref())
+        })
         .collect();
     definition(&ids, &transitions)
 }
@@ -92,6 +104,7 @@ fn build(example: &Example) -> conductor_core::PipelineDefinition {
 fn all() -> Vec<Example> {
     let mut examples = parse(ORACLE);
     examples.extend(parse(ORACLE_SAME_TARGET));
+    examples.extend(parse(ORACLE_BRANCH));
     examples
 }
 
@@ -103,6 +116,11 @@ fn 正解データの例の数は_537_個() {
 #[test]
 fn 同じ行き先の正解データの例の数は_1517_個() {
     assert_eq!(parse(ORACLE_SAME_TARGET).len(), 1517);
+}
+
+#[test]
+fn 分岐の正解データの例の数は_871_個() {
+    assert_eq!(parse(ORACLE_BRANCH).len(), 871);
 }
 
 #[test]
