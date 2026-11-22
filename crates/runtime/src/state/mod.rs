@@ -13,11 +13,10 @@
 // limitations under the License.
 
 //! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer`、`reset_all` だけである。照合
-//! (`check_consistency`)は `conductor-core` の `consistency` にあり、`consistency` はその単体テストを
-//! 持つ。ステートの更新(`initial_state`、`apply_*`)は、`conductor-core` の `flow::record` にある
-//! (どちらも `lib.rs` で再公開する)。
+//! (`check_consistency`)と、その単体テストは `conductor-core` の `consistency` にある。ステートの更新
+//! (`initial_state`、`apply_*`)は、`conductor-core` の `flow::record` にある(どちらも `lib.rs` で
+//! 再公開する)。
 
-pub(crate) mod consistency;
 pub(crate) mod reader;
 pub(crate) mod reset_all;
 pub(crate) mod writer;

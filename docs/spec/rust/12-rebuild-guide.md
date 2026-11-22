@@ -55,7 +55,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `wait_for`(50 ms 以下の間隔)、`state/reader.rs`(14 項目の検査順、1 MiB、未知のキーの拒否、`format_version` の先行検査、完了は空)、`state/writer.rs`(一時ファイル → 書き込み → Durable のとき同期 → 閉じる → rename → ディレクトリの同期 → 24 時間以上古い一時ファイルの掃除)、`flow/record.rs`(core に置く。`initial_state`・`apply_*`。`apply_skip` は状態を定義の位置で引き、1 回がジョブの数に比例する時間。runtime の `lib.rs` は `conductor_core` から同じ名前で再公開する)、照合(core の `consistency.rs` に `check_consistency`・`ConsistencyResult`・`MismatchKind` を置き、runtime は再公開する。単体テストは runtime の `state/consistency.rs`)、`state/reset_all.rs`、`StateLocation`。上限つきの読み取りは `state/reader.rs` の `read_bounded` の 1 か所、状態の語は `JobStatus`・`SkipReason` の `as_str`・`parse` |
+| 作るもの | `wait_for`(50 ms 以下の間隔)、`state/reader.rs`(14 項目の検査順、1 MiB、未知のキーの拒否、`format_version` の先行検査、完了は空)、`state/writer.rs`(一時ファイル → 書き込み → Durable のとき同期 → 閉じる → rename → ディレクトリの同期 → 24 時間以上古い一時ファイルの掃除)、`flow/record.rs`(core に置く。`initial_state`・`apply_*`。`apply_skip` は状態を定義の位置で引き、1 回がジョブの数に比例する時間。runtime の `lib.rs` は `conductor_core` から同じ名前で再公開する)、照合(core の `consistency.rs` に `check_consistency`・`ConsistencyResult`・`MismatchKind` を置き、runtime は再公開する。単体テストも core の `consistency.rs`)、`state/reset_all.rs`、`StateLocation`。上限つきの読み取りは `state/reader.rs` の `read_bounded` の 1 か所、状態の語は `JobStatus`・`SkipReason` の `as_str`・`parse` |
 | 完了条件 | 書いたステートを読み戻すと等しい。06 の 2.4 の矛盾がすべて `corrupt`(65 になる)。書き込みの失敗でステートファイルが直前のまま。`reset --all` の実測の例(06 の 7.2)が再現する。`apply_*` の純粋な更新が 05 の 3.3〜3.5 のとおり |
 | 確認の観点 | 理由文は日本語の固定文(22 種)。ステートに `command`・環境変数・出力が書かれない。キーは辞書順で、`[[job]]` が最後。`reset`(個別)はリンクそのものを消し、`reset --all` はリンクを消さない |
 | 参照 | 06 章、05 の 3 章、10 の 7.2 |

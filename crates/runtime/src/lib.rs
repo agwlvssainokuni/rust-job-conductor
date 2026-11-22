@@ -63,7 +63,6 @@
 //! | `state::reader` | ステートの読み込み(StateReader) | 上限 + 1 バイトの読み取り、版の確認(先)、走査、矛盾の検査 |
 //! | `state::writer` | ステートの書き込み(StateWriter)、初期化(Reset) | 一時ファイルの新規作成、同期、置き換え、後始末 |
 //! | `state::reset_all` | すべてのステートの初期化(ResetAll) | その定義のステート(run ID の有無によらない)を探して消す |
-//! | `state::consistency` | 照合(Consistency)の単体テスト | 照合の本体は `conductor-core` の `consistency`(再公開) |
 //! | `envfile` | `.env` の読み込み(EnvFileLoader) | `env_file` の場所の決定と読み取り。解析は `conductor-core` の `envfile` |
 //! | `file_create` | ファイルの作成(RuntimeFileCreate) | `init` の出力先を、排他的に作る、または置き換える |
 //! | `temp_file` | 一時ファイル(TempFile) | 一時ファイルの名前と新規作成、連番(1 つ)、親のディレクトリの扱い。`state`・`file_create`・`platform` が共有する |

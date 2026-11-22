@@ -62,3 +62,89 @@ pub fn check_consistency(
         ConsistencyResult::Mismatch(MismatchKind::JobIds)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{JobDefinition, JobState};
+
+    fn definition(name: &str, ids: &[&str]) -> PipelineDefinition {
+        PipelineDefinition {
+            name: name.into(),
+            description: None,
+            run_id_env: None,
+            remove_on_complete: false,
+            format_version: 1,
+            job: ids
+                .iter()
+                .map(|id| JobDefinition {
+                    id: (*id).into(),
+                    command: "echo".into(),
+                    warning_exit_codes: vec![],
+                    success_exit_codes: None,
+                    transitions: vec![],
+                    retry: None,
+                    env: vec![],
+                    env_file: vec![],
+                })
+                .collect(),
+            env: vec![],
+            env_file: vec![],
+        }
+    }
+
+    fn state(name: &str, ids: &[&str]) -> PipelineState {
+        PipelineState {
+            definition_key: "other/place.toml".into(),
+            pipeline_name: name.into(),
+            definition_path: "other/place.toml".into(),
+            job_order: ids.iter().map(|s| s.to_string()).collect(),
+            job_states: ids.iter().map(|s| JobState::pending(*s)).collect(),
+            resume_job_id: None,
+            end_reached: false,
+            completed: false,
+            run_id: None,
+        }
+    }
+
+    #[test]
+    fn 一致すれば_ok_で_パスの違いは見ない() {
+        assert_eq!(
+            check_consistency(&state("p", &["a", "b"]), &definition("p", &["a", "b"])),
+            ConsistencyResult::Ok
+        );
+    }
+
+    #[test]
+    fn パイプライン名の違い() {
+        assert_eq!(
+            check_consistency(&state("p", &["a"]), &definition("q", &["a"])),
+            ConsistencyResult::Mismatch(MismatchKind::PipelineName)
+        );
+        // 名前が違えば、IDも違っていても、名前が先に報告される。
+        assert_eq!(
+            check_consistency(&state("p", &["a"]), &definition("q", &["z"])),
+            ConsistencyResult::Mismatch(MismatchKind::PipelineName)
+        );
+    }
+
+    #[test]
+    fn ジョブidの追加_削除_改名() {
+        let d = definition("p", &["a", "b"]);
+        for ids in [&["a"][..], &["a", "b", "c"], &["a", "x"]] {
+            assert_eq!(
+                check_consistency(&state("p", ids), &d),
+                ConsistencyResult::Mismatch(MismatchKind::JobIds),
+                "{ids:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn 並びだけの違い() {
+        assert_eq!(
+            check_consistency(&state("p", &["b", "a"]), &definition("p", &["a", "b"])),
+            ConsistencyResult::Mismatch(MismatchKind::JobOrder)
+        );
+    }
+}

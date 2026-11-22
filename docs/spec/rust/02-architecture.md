@@ -282,7 +282,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 |----------|------|
 | `lib.rs` | 公開の再公開 |
 | `types.rs` | 共有する型(2.1)。型と語の対応(`as_str`、`parse`)、`DEFAULT_SUCCESS_EXIT_CODES`、`JobExecution` の組み立ての関数と `ExecutionResult` |
-| `consistency.rs` | ステートと定義の照合 `check_consistency`、`ConsistencyResult`、`MismatchKind`(純粋。`conductor-runtime` が再公開する) |
+| `consistency.rs` | ステートと定義の照合 `check_consistency`、`ConsistencyResult`、`MismatchKind`(純粋。`conductor-runtime` が再公開する)。照合の単体テストも持つ |
 | `error.rs` | `DefinitionErrorKind`(33 種)、`DefinitionError`、`escape_display`、`sanitize`、`quote_key`、`Locate`(位置→行番号)、ファイル名の表示の上限 `MAX_FILE_DISPLAY_CHARS`(256。`envfile` と共通) |
 | `envfile/mod.rs`(v0.9.0 以降) | `.env` の型(`EnvFileErrorKind` 13 種、`EnvFileError`、`EnvWarning`、`EnvEntry`、`EnvFileContent`、`LoadedEnvFiles`、`EnvContext`、`EnvOrigin`、`EffectiveEntry`、`EffectiveEnv`)、定数(`MAX_ENV_FILE_BYTES = 1_048_576`、`MAX_ENV_ENTRIES = 10_000`、`MAX_REPORTED_ERRORS = 20`、`RESERVED_ENV_PREFIX`)、`is_reserved_env_name`、`env_file_refs`、`summarize_errors` |
 | `envfile/parse.rs`(同) | `parse_env_file`(`.env` の解析) |
@@ -324,7 +324,6 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `state/mod.rs` | 下位モジュールの束ね |
 | `state/reader.rs` | ステートの読み込み、検査、`read_state`/`read_state_raw`、`inspect_run_state`(`reset --all` 用)。上限つきの読み取りは `read_bounded` の 1 か所 |
 | `state/writer.rs` | 原子的な書き込み(一時ファイル、同期、rename、古い一時ファイルの掃除)、`reset_state`、TOML への書き出し(状態の語は `JobStatus::as_str` など) |
-| `state/consistency.rs` | 定義との照合の単体テスト(照合の本体は `conductor_core` の `consistency.rs`) |
 | `state/reset_all.rs` | `reset --all` の対象の判定と削除 |
 | `bin/conductor-test-helper.rs` | テスト補助の実行ファイル |
 
