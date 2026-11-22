@@ -711,11 +711,12 @@ impl Runtime for MemRuntime {
         _env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        let execution =
-            JobExecution::exited(job, self.exit_codes.borrow_mut().pop_front().unwrap_or(0));
+        // 合図を先に見て、起動するときだけ台本を消費する(`ScriptedRuntime` と同じ順)。
         match signal.signal_number() {
             Some(n) => JobExecution::not_started(job, n),
-            None => execution,
+            None => {
+                JobExecution::exited(job, self.exit_codes.borrow_mut().pop_front().unwrap_or(0))
+            }
         }
     }
 
