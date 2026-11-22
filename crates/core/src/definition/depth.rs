@@ -19,6 +19,7 @@
 //! [`MAX_NESTING_DEPTH`](32)段を超えたら `syntax` で拒否する(NFR4.7、D4)。
 //! 走査は、上限を超えた時点で打ち切るため、再帰の深さは上限 + 1 までである。
 
+use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
 use crate::error::{DefinitionError, DefinitionErrorKind, Locate};
@@ -42,30 +43,28 @@ fn walk_table(table: &DeTable<'_>, depth: usize) -> Option<usize> {
 
 fn walk_value(start: usize, value: &DeValue<'_>, depth: usize) -> Option<usize> {
     match value {
-        DeValue::Table(t) => {
-            if depth + 1 > MAX_NESTING_DEPTH {
-                return Some(start);
-            }
-            for (_, v) in t.iter() {
-                if let Some(pos) = walk_value(v.span().start, v.get_ref(), depth + 1) {
-                    return Some(pos);
-                }
-            }
-            None
-        }
-        DeValue::Array(a) => {
-            if depth + 1 > MAX_NESTING_DEPTH {
-                return Some(start);
-            }
-            for v in a.iter() {
-                if let Some(pos) = walk_value(v.span().start, v.get_ref(), depth + 1) {
-                    return Some(pos);
-                }
-            }
-            None
-        }
+        DeValue::Table(t) => walk_children(start, depth, t.iter().map(|(_, v)| v)),
+        DeValue::Array(a) => walk_children(start, depth, a.iter()),
         _ => None,
     }
+}
+
+/// テーブルか配列(位置 `start`、深さ `depth` の 1 段下)の子を走査する。深さの検査は子の走査より先に
+/// 行う(空のテーブル・配列でも検査する)。
+fn walk_children<'a, 'de: 'a>(
+    start: usize,
+    depth: usize,
+    children: impl Iterator<Item = &'a Spanned<DeValue<'de>>>,
+) -> Option<usize> {
+    if depth + 1 > MAX_NESTING_DEPTH {
+        return Some(start);
+    }
+    for v in children {
+        if let Some(pos) = walk_value(v.span().start, v.get_ref(), depth + 1) {
+            return Some(pos);
+        }
+    }
+    None
 }
 
 /// 深さの検査。超えていれば `syntax`(理由「深すぎる入れ子」。上限は [`MAX_NESTING_DEPTH`] から作る)を返す。
