@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer` だけで、
-//! `consistency` は、入出力のない純粋な処理である。ステートの更新(`initial_state`、`apply_*`)は、
-//! `conductor-core` の `flow::record` にある(`lib.rs` で再公開する)。
+//! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer` だけである。照合
+//! (`check_consistency`)は `conductor-core` の `consistency` にあり、`consistency` はその単体テストを
+//! 持つ。ステートの更新(`initial_state`、`apply_*`)は、`conductor-core` の `flow::record` にある
+//! (どちらも `lib.rs` で再公開する)。
 
 pub(crate) mod consistency;
 pub(crate) mod reader;

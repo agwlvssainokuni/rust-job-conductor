@@ -12,38 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! ステートと定義の照合(Consistency。BR2.5)。純粋な関数。
+//! ステートと定義の照合(Consistency。BR2.5)。
+//!
+//! 照合の関数と型は conductor-core の `consistency` に置き、`lib.rs` が再エクスポートする。
+//! このファイルは、照合の単体テストをこの場所に残すため、テストが使う名前だけを取り込む。
 
-use conductor_core::{PipelineDefinition, PipelineState};
-
+// 単体テスト(`mod tests` の `use super::*`)が使う。
+#[cfg(test)]
 use crate::types::{ConsistencyResult, MismatchKind};
-
-/// ステートと定義の食い違いを検知する(契約 C3 の `check_consistency`。W4)。
-///
-/// パイプライン名 → ジョブIDの集合 → 並び、の順に比べる。`definition_key` と `definition_path` は、
-/// 照合に使わない(定義ファイルの置き場所の移動で、食い違いにしないため)。
-pub fn check_consistency(
-    state: &PipelineState,
-    definition: &PipelineDefinition,
-) -> ConsistencyResult {
-    if state.pipeline_name != definition.name {
-        return ConsistencyResult::Mismatch(MismatchKind::PipelineName);
-    }
-    let defined: Vec<&str> = definition.job.iter().map(|j| j.id.as_str()).collect();
-    let recorded: Vec<&str> = state.job_order.iter().map(String::as_str).collect();
-    if defined == recorded {
-        return ConsistencyResult::Ok;
-    }
-    let mut a = defined;
-    let mut b = recorded;
-    a.sort_unstable();
-    b.sort_unstable();
-    if a == b {
-        ConsistencyResult::Mismatch(MismatchKind::JobOrder)
-    } else {
-        ConsistencyResult::Mismatch(MismatchKind::JobIds)
-    }
-}
+#[cfg(test)]
+use conductor_core::{PipelineDefinition, PipelineState, check_consistency};
 
 #[cfg(test)]
 mod tests {

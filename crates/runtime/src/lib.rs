@@ -39,7 +39,8 @@
 //! | [`apply_interrupt`] | 中断を記録する(BR2.8) | ステート、`ResumePoint` → ステート | なし(純粋) |
 //!
 //! `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt` は、`conductor-core` の
-//! `flow::record` にある(`--dry-run` の模擬と共に使う)。この Unit は、同じ名前で再公開する。
+//! `flow::record` にある(`--dry-run` の模擬と共に使う)。`check_consistency` と [`ConsistencyResult`]、
+//! [`MismatchKind`] は、`conductor-core` の `consistency` にある。この Unit は、同じ名前で再公開する。
 //!
 //! `read_state`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
 //! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
@@ -59,7 +60,7 @@
 //! | `platform` | 送信(platform::signal)ほか | OS 固有のコードは、ここだけ。`unsafe` は、UNIX 系の `kill` の呼び出し 1 か所だけ |
 //! | `state::reader` | ステートの読み込み(StateReader) | 上限 + 1 バイトの読み取り、版の確認(先)、走査、矛盾の検査 |
 //! | `state::writer` | ステートの書き込み(StateWriter)、初期化(Reset) | 一時ファイルの新規作成、同期、置き換え、後始末 |
-//! | `state::consistency` | 照合(Consistency) | パイプライン名、ジョブIDの集合、並び(純粋) |
+//! | `state::consistency` | 照合(Consistency)の単体テスト | 照合の本体は `conductor-core` の `consistency`(再公開) |
 //! | `src/bin/conductor-test-helper.rs` | テスト専用の補助の実行ファイル | 引数・環境変数・終了コード・シグナルの受信を出力する。配布には使わない |
 //!
 //! # 呼び出しの順序(契約 C2 の順序の続き)
@@ -115,13 +116,13 @@ mod state;
 pub mod types;
 mod wait;
 
+pub use conductor_core::check_consistency;
 pub use conductor_core::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub use envfile::load_env_files;
 pub use error::*;
 pub use file_create::{CreateError, CreateOutcome, create_file};
 pub use runner::run_job;
 pub use split::check_command;
-pub use state::consistency::check_consistency;
 pub use state::reader::{read_state, read_state_raw};
 pub use state::reset_all::{ResetAllReport, reset_all_states};
 pub use state::writer::{reset_state, write_state};

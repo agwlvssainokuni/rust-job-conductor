@@ -134,23 +134,9 @@ impl StateLocation {
     }
 }
 
-/// ステートと定義の食い違いの種類(BR2.5)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MismatchKind {
-    /// パイプライン名の違い。
-    PipelineName,
-    /// ジョブIDの追加・削除・改名。
-    JobIds,
-    /// 記述順だけの違い。
-    JobOrder,
-}
-
-/// ステートと定義の照合の結果(契約 C3 の `check_consistency`)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConsistencyResult {
-    Ok,
-    Mismatch(MismatchKind),
-}
+/// ステートと定義の照合の結果と、食い違いの種類(BR2.5)。定めるのは conductor-core で、
+/// これまでの道(`conductor_runtime::ConsistencyResult` など)を保つために再エクスポートする。
+pub use conductor_core::{ConsistencyResult, MismatchKind};
 
 /// ステートの書き込みの耐久性の指定(BR2.4 の差分)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
