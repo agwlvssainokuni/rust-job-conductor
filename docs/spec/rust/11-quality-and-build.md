@@ -198,7 +198,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `env_file_parse.rs`(10) | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
 | `env_merge.rs`(8) | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
 | `env_types.rs`(5) | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
-| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(8)、`graph_lane_polish.rs`(10)、`graph_layout_oracle.rs`(5)、`graph_perf.rs`(2) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、537 例と、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例)と照合、「両方の飛び越し」の例 D1〜D6 と辺の一覧に残る形、1,000 ジョブの性能(05 の 15 章)。`graph_common/mod.rs` は補助 |
+| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(9)、`graph_lane_polish.rs`(13)、`graph_layout_oracle.rs`(5)、`graph_perf.rs`(2) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、537 例と、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例)と照合、「両方の飛び越し」の例 D1〜D7(通常の飛び越しの図と、主線の `|` を除いて一致することの照合を含む)と辺の一覧に残る形(交差する両方の飛び越しを含む)、1,000 ジョブの性能(05 の 15 章)。`graph_common/mod.rs` は補助 |
 | `plan_types.rs`(3)、`plan_pipeline.rs`(9)、`plan_run.rs`(5)、`plan_assume.rs`(5)、`plan_perf.rs`(1) | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle.md` | 入力例、配置の正解データ(後者は v0.9.0 以降) |
 
