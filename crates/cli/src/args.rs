@@ -58,7 +58,8 @@ use lexopt::prelude::*;
 
 use crate::types::CommandKind as C;
 use crate::types::{
-    CliCommand, CommandKind, GraphFormat, ParsedArgs, RunIdArg, UsageError, UsageErrorKind as Kind,
+    CliCommand, CommandKind, GraphFormat, ParsedArgs, RUN_ID_OPTION, RunIdArg, UsageError,
+    UsageErrorKind as Kind,
 };
 
 /// オプションの識別子(`-h`・`--help`・`-V`・`--version` を除く。BR1.1)。
@@ -190,6 +191,29 @@ const _: () = {
         i += 1;
     }
 };
+
+/// `full` が `--` と `long` をつないだ綴りか(コンパイル時の検査用)。
+const fn is_long_spelling(full: &str, long: &str) -> bool {
+    let full = full.as_bytes();
+    let long = long.as_bytes();
+    if full.len() != long.len() + 2 || full[0] != b'-' || full[1] != b'-' {
+        return false;
+    }
+    let mut i = 0;
+    while i < long.len() {
+        if full[i + 2] != long[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+// `types` の `RUN_ID_OPTION`(`RunIdArg::parse` の誤りの対象)は、表の `--run-id` の綴りと同じ。
+const _: () = assert!(is_long_spelling(
+    RUN_ID_OPTION,
+    OPTIONS[Opt::RunId as usize].long
+));
 
 /// 識別子から、表の行を引く。
 fn spec(opt: Opt) -> &'static OptSpec {
@@ -496,7 +520,10 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         CommandKind::Convert => {
             command.convert_input = operand;
             let Some(target) = to.into_iter().next() else {
-                return Err(UsageError::with_subject(Kind::MissingArgument, "--to"));
+                return Err(UsageError::with_subject(
+                    Kind::MissingArgument,
+                    Opt::To.subject(),
+                ));
             };
             command.convert_target = Some(parse_target(target)?);
         }
@@ -520,7 +547,7 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
 /// `--assume` の値の検査(BR2.1)。`<ジョブID>=<終了コード>`。最初の `=` で分ける。
 /// 誤りの文には、入力の値を含めない(対象は `--assume` だけ)。
 fn parse_assumptions(values: Vec<OsString>) -> Result<Vec<Assumption>, UsageError> {
-    let invalid = || UsageError::with_subject(Kind::InvalidValue, "--assume");
+    let invalid = || UsageError::with_subject(Kind::InvalidValue, Opt::Assume.subject());
     let mut out: Vec<Assumption> = Vec::with_capacity(values.len());
     for value in values {
         let text = value.into_string().map_err(|_| invalid())?;
@@ -542,7 +569,10 @@ fn parse_graph_format(value: &OsString) -> Result<GraphFormat, UsageError> {
     match value.to_str() {
         Some("text") => Ok(GraphFormat::Text),
         Some("mermaid") => Ok(GraphFormat::Mermaid),
-        _ => Err(UsageError::with_subject(Kind::InvalidValue, "--format")),
+        _ => Err(UsageError::with_subject(
+            Kind::InvalidValue,
+            Opt::Format.subject(),
+        )),
     }
 }
 
@@ -551,7 +581,7 @@ fn parse_graph_format(value: &OsString) -> Result<GraphFormat, UsageError> {
 fn parse_run_id_option(value: OsString) -> Result<RunIdArg, UsageError> {
     let text = value
         .into_string()
-        .map_err(|_| UsageError::with_subject(Kind::InvalidValue, "--run-id"))?;
+        .map_err(|_| UsageError::with_subject(Kind::InvalidValue, Opt::RunId.subject()))?;
     RunIdArg::parse(&text)
 }
 

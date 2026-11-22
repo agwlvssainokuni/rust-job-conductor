@@ -22,6 +22,10 @@ use std::ffi::OsString;
 use conductor_converter::TargetFormat;
 use conductor_core::{Assumption, RunId};
 
+/// `--run-id` の綴り(誤りの対象)。`args` のオプションの表の綴りと、コンパイル時に結ぶ
+/// (`args.rs` の `const` の検査)。
+pub(crate) const RUN_ID_OPTION: &str = "--run-id";
+
 /// `--run-id` の指定(検査済み。FR1.2〜FR1.4)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunIdArg {
@@ -40,7 +44,7 @@ impl RunIdArg {
         }
         RunId::parse(text)
             .map(Self::Id)
-            .map_err(|_| UsageError::with_subject(UsageErrorKind::InvalidValue, "--run-id"))
+            .map_err(|_| UsageError::with_subject(UsageErrorKind::InvalidValue, RUN_ID_OPTION))
     }
 
     /// 書かれた値(`Empty` は空文字)。
