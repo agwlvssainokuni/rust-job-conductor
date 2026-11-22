@@ -182,5 +182,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "624d6190"
+  },
+  {
+    "uuid": "01a20501-9aaa-7a9e-afe5-1cbe17593c6b",
+    "slug": "tidy-and-test-helpers",
+    "dirName": "261122-tidy-and-test-helpers",
+    "scope": "refactor",
+    "status": "in-flight",
+    "request": "6efee91f"
   }
 ]
