@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 1,000 ジョブでの性能(BR2.7、NFR1)。最悪の形で、1 秒以内(交差する形を含む)。
+//! 1,000 ジョブでの性能(BR2.7、NFR1)。最悪の形で、1 秒以内(交差する形と、「両方の飛び越し」・分岐を含む形)。
 
 mod graph_common;
 
 use std::time::{Duration, Instant};
 
-use conductor_core::TransitionOn::Success;
+use conductor_core::TransitionOn::{Success, Warning};
 use conductor_core::graph::{GraphLayout, build_graph, layout_graph};
 use graph_common::definition;
 
@@ -96,6 +96,59 @@ fn 同じ行き先が離れて重なる形は_レーンの図になり_1000_ジ�
     match layout {
         GraphLayout::Lanes(l) => assert!(l.rows.len() > N),
         GraphLayout::EdgeList => panic!("同じ行き先が重なる形は、レーンの図になる"),
+    }
+    assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
+}
+
+#[test]
+fn 両方の飛び越しと分岐の入れ子は_レーンの図になり_1000_ジョブでも_1秒以内() {
+    let ids = ids();
+    let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+    // 前半の偶数のジョブ i は、j(N-1-i) へ両方の飛び越し、奇数のジョブは、j(N-2-i) と j(N-1-i) へ分岐する。
+    // 入れ子が深く、同じ行き先の線が重なる(BR1.3、BR2.1)。
+    let mut transitions = Vec::new();
+    for i in 0..N / 2 - 1 {
+        if i % 2 == 0 {
+            transitions.push((refs[i], Success, Some(refs[N - 1 - i])));
+            transitions.push((refs[i], Warning, Some(refs[N - 1 - i])));
+        } else {
+            transitions.push((refs[i], Success, Some(refs[N - 2 - i])));
+            transitions.push((refs[i], Warning, Some(refs[N - 1 - i])));
+        }
+    }
+    let (layout, elapsed) = timed(&definition(&refs, &transitions));
+    match layout {
+        GraphLayout::Lanes(l) => assert!(l.rows.len() > N),
+        GraphLayout::EdgeList => panic!("両方の飛び越しと分岐の入れ子は、レーンの図になる"),
+    }
+    assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
+}
+
+#[test]
+fn 両方の飛び越しと分岐が幅広く交差する形は_1000_ジョブでも_1秒以内() {
+    let ids = ids();
+    let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+    // 前半のジョブ i を、3 つおきに、分岐(j(i+N/2) と j(i+N/2+1))、両方の飛び越し(j(i+N/2))、
+    // 通常の飛び越し(j(i+N/2))にする。線が同時に多く開き、交差と同じ行き先の寄せが続く(BR2.1)。
+    let mut transitions = Vec::new();
+    for i in 0..N / 2 {
+        let near = refs[i + N / 2];
+        match i % 3 {
+            0 => {
+                transitions.push((refs[i], Success, Some(near)));
+                transitions.push((refs[i], Warning, Some(refs[i + N / 2 + 1])));
+            }
+            1 => {
+                transitions.push((refs[i], Success, Some(near)));
+                transitions.push((refs[i], Warning, Some(near)));
+            }
+            _ => transitions.push((refs[i], Success, Some(near))),
+        }
+    }
+    let (layout, elapsed) = timed(&definition(&refs, &transitions));
+    match layout {
+        GraphLayout::Lanes(l) => assert!(l.rows.len() > N),
+        GraphLayout::EdgeList => panic!("幅広く交差する形は、レーンの図になる"),
     }
     assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
 }
