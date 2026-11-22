@@ -43,7 +43,7 @@ fn src_files() -> Vec<(PathBuf, String)> {
 // ---- NFR4.5 ----
 
 #[test]
-fn source_has_no_process_net_or_env_access() {
+fn ソースはプロセスとネットワークと環境変数に触れない() {
     // 検索の語は、分けて組み立てる(このファイル自身は、検索の対象外)
     let banned = [
         ["std::", "process"].concat(),
@@ -83,7 +83,7 @@ fn source_has_no_process_net_or_env_access() {
 }
 
 #[test]
-fn source_has_no_static_initialization() {
+fn ソースは静的な初期化を持たない() {
     let banned = [
         "lazy_static",
         "once_cell",
@@ -119,7 +119,7 @@ fn source_has_no_static_initialization() {
 }
 
 #[test]
-fn source_does_not_use_unwrap_or_panic_on_input_paths() {
+fn ソースは入力の経路で_unwrap_や_panic_を使わない() {
     // テストのモジュール(`#[cfg(test)]` 以降)を除いて、`unwrap()` `panic!` `expect(` を使わない
     for (path, text) in src_files() {
         let production = text.split("#[cfg(test)]").next().unwrap_or("");
@@ -148,7 +148,7 @@ fn listing(dir: &Path) -> BTreeSet<String> {
 }
 
 #[test]
-fn convert_creates_no_files_outside_input_and_ignores_cwd_changes() {
+fn 変換はファイルを作らず_カレントディレクトリの変更に左右されない() {
     let temp = tempfile::tempdir().unwrap();
     let input = temp.path().join("in.yaml");
     std::fs::write(&input, "a: 1\nb: [x, y]\n").unwrap();
@@ -187,8 +187,8 @@ fn convert_creates_no_files_outside_input_and_ignores_cwd_changes() {
 
 /// 子プロセスとして動く(環境変数を変えた実行の結果を、親が比べる)。
 #[test]
-#[ignore = "env_independence から、子プロセスとして動かす"]
-fn env_probe_child() {
+#[ignore = "環境変数に左右されない から、子プロセスとして動かす"]
+fn 環境を調べる子プロセス() {
     let yaml = "a: &x [1, 2]\nb: *x\nc: yes\nd: 1.0\n";
     let toml = "a = [1, 2]\nb = \"yes\"\nc = 1.0\n";
     let r1 = convert_text(yaml, TargetFormat::Toml, "t").map(|o| o.text);
@@ -197,14 +197,14 @@ fn env_probe_child() {
 }
 
 #[test]
-fn env_independence() {
+fn 環境変数に左右されない() {
     let exe = std::env::current_exe().expect("実行ファイル");
     let run = |envs: &[(&str, &str)]| -> String {
         let mut cmd = std::process::Command::new(&exe);
         cmd.args([
             "--ignored",
             "--exact",
-            "env_probe_child",
+            "環境を調べる子プロセス",
             "--nocapture",
             "--test-threads=1",
         ]);
@@ -237,7 +237,7 @@ fn env_independence() {
 }
 
 #[test]
-fn tags_do_not_construct_values() {
+fn タグは値を組み立てない() {
     for text in [
         "a: !!binary aGVsbG8=\n",
         "a: !mytag value\n",
@@ -308,7 +308,7 @@ fn all_kind_errors() -> Vec<ConversionError> {
 }
 
 #[test]
-fn display_never_contains_input_values_for_every_kind() {
+fn 表示は_どの種類でも入力の値を含まない() {
     let errors = all_kind_errors();
     let kinds: BTreeSet<&str> = errors.iter().map(|e| e.kind.code()).collect();
     for kind in K::ALL {
@@ -330,7 +330,7 @@ fn display_never_contains_input_values_for_every_kind() {
 }
 
 #[test]
-fn library_error_text_never_appears() {
+fn ライブラリの誤りの文は現れない() {
     // ライブラリのエラー文の語(YAML パーサー、TOML パーサー)が、表示に現れない
     let toml_err = convert_text("a = = 1\n", TargetFormat::Yaml, "t")
         .unwrap_err()
@@ -353,7 +353,7 @@ fn library_error_text_never_appears() {
 }
 
 #[test]
-fn key_names_are_escaped_and_truncated_in_key_path() {
+fn キーの場所のキー名は_エスケープし切り詰める() {
     let long = "k".repeat(100);
     let e = convert_text(&format!("\"{long}\": ~\n"), TargetFormat::Toml, "t").unwrap_err();
     let path = e.key_path.unwrap();
@@ -382,7 +382,7 @@ fn key_names_are_escaped_and_truncated_in_key_path() {
 // ---- NFR4.7 ----
 
 #[test]
-fn out_of_range_empty_and_broken_inputs_do_not_panic() {
+fn 範囲外と空と壊れた入力で_パニックしない() {
     let cases: Vec<(&str, TargetFormat, K)> = vec![
         (
             "a: 9223372036854775808\n",
@@ -436,7 +436,7 @@ impl Lcg {
 }
 
 #[test]
-fn random_and_truncated_inputs_never_panic() {
+fn ランダムな入力と切り詰めた入力で_パニックしない() {
     let alphabet: Vec<&str> = vec![
         "a",
         "b",
@@ -520,7 +520,7 @@ fn random_and_truncated_inputs_never_panic() {
 }
 
 #[test]
-fn successful_random_structures_roundtrip() {
+fn 変換できたランダムな構造は往復する() {
     // 往復の確認(BR1.11)を、組み合わせの入力にも広げる
     let keys = ["a", "yes", "1", "null", "<<", "", "x y", "on", "true", "~"];
     let vals = [
