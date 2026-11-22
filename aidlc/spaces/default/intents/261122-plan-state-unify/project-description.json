@@ -1,0 +1,1 @@
+"--dry-run の模擬の重複をなくすリファクタリング: crates/core/src/plan/simulate.rs の apply_result が、runtime の state/record.rs の apply_outcome とほぼ同じ文で、ステートの更新を写している(コメントに「本番と同じ結果になるよう書く」とある)。更新の関数を core に移し、本番と模擬の両方から呼ぶ。本番は終点の後のスキップなどを apply_skip で記録するが、模擬はスキップで状態を変えない違いがあり、その扱いを決める。"

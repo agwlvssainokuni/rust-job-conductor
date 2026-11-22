@@ -142,5 +142,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "f829f5c2"
+  },
+  {
+    "uuid": "01a2028e-afc0-7515-9a48-57f8c67239a9",
+    "slug": "plan-state-unify",
+    "dirName": "261122-plan-state-unify",
+    "scope": "refactor",
+    "status": "in-flight",
+    "request": "dd7cecee"
   }
 ]
