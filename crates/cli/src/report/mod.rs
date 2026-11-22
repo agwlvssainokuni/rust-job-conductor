@@ -316,34 +316,33 @@ impl<'a> Reporter<'a> {
 
     /// 文言を組み立てる(最後の改行を含む。複数の誤りは 1 行ずつ)。
     pub fn render(&self, event: &DisplayEvent<'_>) -> String {
-        // ロケールを判定しない、固定の文(パニックのフックと同じ。BR6.1 の差分)。
+        // 言語は、必要な枝だけで判定する(`language` は 1 回だけ判定して保つ)。
+        let lang = || self.language();
         match event {
-            DisplayEvent::SignalSetupFailed => {
-                return format!("{}\n", messages::SIGNAL_SETUP_FAILED);
-            }
-            DisplayEvent::Version => return format!("conductor {}\n", env!("CARGO_PKG_VERSION")),
-            _ => {}
-        }
-        let lang = self.language();
-        match event {
+            // ロケールを判定しない、固定の文(パニックのフックと同じ。BR6.1 の差分)。
+            DisplayEvent::SignalSetupFailed => format!("{}\n", messages::SIGNAL_SETUP_FAILED),
+            DisplayEvent::Version => format!("conductor {}\n", env!("CARGO_PKG_VERSION")),
             DisplayEvent::DefinitionErrors(errors) => {
+                let lang = lang();
                 errors.iter().map(|e| definition_line(lang, e)).collect()
             }
-            DisplayEvent::EnvFileErrors(errors) => env_file_lines(lang, errors),
+            DisplayEvent::EnvFileErrors(errors) => env_file_lines(lang(), errors),
             DisplayEvent::EnvWarnings(warnings) => {
+                let lang = lang();
                 warnings.iter().map(|w| env_warning_line(lang, w)).collect()
             }
             DisplayEvent::CommandErrors { definition, errors } => {
+                let lang = lang();
                 let place = show_path(definition);
                 errors
                     .iter()
                     .map(|(job_id, error)| command_line(lang, &place, job_id, error))
                     .collect()
             }
-            DisplayEvent::Usage(error) => usage_text(lang, error),
-            DisplayEvent::State { error, context } => state_line(lang, error, *context),
+            DisplayEvent::Usage(error) => usage_text(lang(), error),
+            DisplayEvent::State { error, context } => state_line(lang(), error, *context),
             DisplayEvent::ResetAllKept { names } => {
-                let mut out = format!("{WARNING_PREFIX}{}\n", messages::RESET_ALL_KEPT.get(lang));
+                let mut out = format!("{WARNING_PREFIX}{}\n", messages::RESET_ALL_KEPT.get(lang()));
                 for name in names.iter() {
                     out.push_str(&format!("  {}\n", escape_path(name)));
                 }
@@ -354,6 +353,7 @@ impl<'a> Reporter<'a> {
                 kind,
                 with_run_id,
             } => {
+                let lang = lang();
                 let place = show_path(state_path);
                 let hint = messages::reset_hint(*with_run_id).get(lang);
                 let what = mismatch_kind(*kind).get(lang);
@@ -364,6 +364,7 @@ impl<'a> Reporter<'a> {
                 )
             }
             DisplayEvent::Rejected { job_id, reason } => {
+                let lang = lang();
                 let place = job_place(job_id);
                 error_line(
                     &place,
@@ -375,22 +376,22 @@ impl<'a> Reporter<'a> {
                 let place = job_place(job_id);
                 let sentence = format!(
                     "{} '{}'",
-                    messages::CANNOT_START.get(lang),
+                    messages::CANNOT_START.get(lang()),
                     escape_name(command)
                 );
                 error_line(&place, &sentence, None)
             }
             DisplayEvent::SuccessCodeNotListed { job_id } => {
                 let place = job_place(job_id);
-                error_line(&place, messages::SUCCESS_CODE_NOT_LISTED.get(lang), None)
+                error_line(&place, messages::SUCCESS_CODE_NOT_LISTED.get(lang()), None)
             }
-            DisplayEvent::Conversion(error) => conversion_line(lang, error),
+            DisplayEvent::Conversion(error) => conversion_line(lang(), error),
             DisplayEvent::OutputFailed => {
-                format!("{ERROR_PREFIX}{}\n", messages::OUTPUT_FAILED.get(lang))
+                format!("{ERROR_PREFIX}{}\n", messages::OUTPUT_FAILED.get(lang()))
             }
             DisplayEvent::CompletionUndetermined { state_path } => {
                 let place = show_path(state_path);
-                error_line(&place, messages::COMPLETION_UNDETERMINED.get(lang), None)
+                error_line(&place, messages::COMPLETION_UNDETERMINED.get(lang()), None)
             }
             DisplayEvent::RetryScheduled {
                 job_id,
@@ -401,7 +402,7 @@ impl<'a> Reporter<'a> {
             } => format!(
                 "{RETRY_PREFIX}{}\n",
                 messages::retry_scheduled(
-                    lang,
+                    lang(),
                     &escape_name(job_id),
                     *last_exit_code,
                     *retry_number,
@@ -414,12 +415,12 @@ impl<'a> Reporter<'a> {
                 result,
                 detail,
                 conductor_exit,
-            } => job_result_line(lang, job_id, *result, *detail, *conductor_exit),
+            } => job_result_line(lang(), job_id, *result, *detail, *conductor_exit),
             DisplayEvent::JobSkipped { job_id, reason } => format!(
                 "{VERBOSE_PREFIX}job={} {} ({})\n",
                 escape_name(job_id),
-                messages::SKIPPED_WORD.get(lang),
-                skip_reason(*reason).get(lang)
+                messages::SKIPPED_WORD.get(lang()),
+                skip_reason(*reason).get(lang())
             ),
             DisplayEvent::Transition {
                 on,
@@ -435,7 +436,7 @@ impl<'a> Reporter<'a> {
                     let ids: Vec<String> = skipped.iter().map(|s| escape_name(s)).collect();
                     line.push_str(&format!(
                         " ({}: {})",
-                        messages::SKIPPED_WORD.get(lang),
+                        messages::SKIPPED_WORD.get(lang()),
                         ids.join(", ")
                     ));
                 }
@@ -444,39 +445,40 @@ impl<'a> Reporter<'a> {
             }
             DisplayEvent::Interrupted { signal } => format!(
                 "{VERBOSE_PREFIX}{} {signal}\n",
-                messages::INTERRUPTED_BY_SIGNAL.get(lang)
+                messages::INTERRUPTED_BY_SIGNAL.get(lang())
             ),
             DisplayEvent::DefinitionValid { job_count } => format!(
                 "{VERBOSE_PREFIX}{}\n",
-                messages::definition_valid(lang, *job_count)
+                messages::definition_valid(lang(), *job_count)
             ),
             DisplayEvent::WatchTable(state) => {
-                watch::render_table(lang, state, self.color_enabled())
+                watch::render_table(lang(), state, self.color_enabled())
             }
-            DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang)),
+            DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang())),
             DisplayEvent::InitCreated { path } => {
-                format!("{}\n", messages::init_created(lang, &show_path(path)))
+                format!("{}\n", messages::init_created(lang(), &show_path(path)))
             }
             DisplayEvent::InitReplaced { path } => {
-                format!("{}\n", messages::init_replaced(lang, &show_path(path)))
+                format!("{}\n", messages::init_replaced(lang(), &show_path(path)))
             }
             DisplayEvent::InitExists { path } => format!(
                 "{ERROR_PREFIX}{}\n",
-                messages::init_exists(lang, &show_path(path))
+                messages::init_exists(lang(), &show_path(path))
             ),
             DisplayEvent::InitFailed { path, error } => format!(
                 "{ERROR_PREFIX}{}\n",
-                messages::init_cannot_create(lang, *error, &show_path(path))
+                messages::init_cannot_create(lang(), *error, &show_path(path))
             ),
             DisplayEvent::InitStdoutFailed => {
-                format!("{ERROR_PREFIX}{}\n", messages::INIT_STDOUT_FAILED.get(lang))
+                format!(
+                    "{ERROR_PREFIX}{}\n",
+                    messages::INIT_STDOUT_FAILED.get(lang())
+                )
             }
             DisplayEvent::Graph(text)
             | DisplayEvent::Plan(text)
             | DisplayEvent::InitTemplate(text) => (*text).to_string(),
-            DisplayEvent::Help => messages::USAGE.get(lang).to_string(),
-            // 上で返している。
-            DisplayEvent::SignalSetupFailed | DisplayEvent::Version => String::new(),
+            DisplayEvent::Help => messages::USAGE.get(lang()).to_string(),
         }
     }
 }
