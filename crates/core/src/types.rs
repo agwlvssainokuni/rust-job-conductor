@@ -206,6 +206,22 @@ pub struct JobExecution {
     pub signal_number: Option<i32>,
 }
 
+impl JobExecution {
+    /// ジョブが起動し、終了コード `exit_code` で終わった実行結果(シグナル、起動の失敗、中断なし)。
+    pub fn exited(job: &JobDefinition, exit_code: i32) -> Self {
+        Self {
+            job_id: job.id.clone(),
+            command: job.command.clone(),
+            started: true,
+            exit_code: Some(exit_code),
+            terminated_by_signal: None,
+            start_failure: false,
+            interrupted: false,
+            signal_number: None,
+        }
+    }
+}
+
 /// ジョブの状態。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum JobStatus {

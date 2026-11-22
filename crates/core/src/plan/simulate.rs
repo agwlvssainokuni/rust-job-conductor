@@ -279,16 +279,7 @@ fn simulate_job(
     assumed: bool,
     mode: RunMode,
 ) -> (SimulatedResult, JobExecution, JobOutcome, NextStep) {
-    let execution = JobExecution {
-        job_id: job.id.clone(),
-        command: job.command.clone(),
-        started: true,
-        exit_code: Some(exit_code),
-        terminated_by_signal: None,
-        start_failure: false,
-        interrupted: false,
-        signal_number: None,
-    };
+    let execution = JobExecution::exited(job, exit_code);
     let (outcome, next) = classify_and_decide(job, &execution, states, definition, mode);
     // 起動したので、分類は必ずある。念のため、無ければエラーとして扱う。
     let classification = outcome.classification.unwrap_or(Classification::Error);
