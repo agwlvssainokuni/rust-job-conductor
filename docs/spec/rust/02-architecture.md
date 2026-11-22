@@ -95,7 +95,7 @@
 | `DefinitionError` | `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>` |
 | `RunIdError` | `Empty`・`TooLong`・`InvalidChar`・`LeadingDot` |
 | `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`ALL: [EnvFileErrorKind; 13]`。`code()`、`reason()`)/ `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>`。03 の 6.7、10 の 7.1 |
-| 補助 | `sanitize(input, max_chars)`(制御文字・書式文字のエスケープと切り詰め)、`quote_key`、`Locate`(位置→行番号。`line_of(offset)`)、`MAX_KEY_DISPLAY_CHARS = 64` |
+| 補助 | `escape_display(input, limit)`(制御文字・書式文字のエスケープ。上限なしも選べる。表示のエスケープの本体)、`sanitize(input, max_chars)`(`escape_display` の上限つき)、`quote_key`、`Locate`(位置→行番号。`line_of(offset)`)、`MAX_KEY_DISPLAY_CHARS = 64` |
 
 ### 2.2 `conductor-runtime`
 
@@ -148,7 +148,7 @@
 | `signal_exit_code` | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
 | `resolve_run_id`(`args`) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
 | `render_table`(`report::watch`) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
-| `escape_display`(`report::escape`) | `(input: &str, limit: Option<usize>) -> String` | 入力由来の文字列のエスケープ。08 の 9 章 |
+| `escape_display`(`report::escape`。conductor-core の本体の再公開) | `(input: &str, limit: Option<usize>) -> String` | 入力由来の文字列のエスケープ。08 の 9 章 |
 
 終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
 
@@ -280,7 +280,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `lib.rs` | 公開の再公開 |
 | `types.rs` | 共有する型(2.1)。型と語の対応(`as_str`、`parse`)、`DEFAULT_SUCCESS_EXIT_CODES`、`JobExecution::exited` |
 | `consistency.rs` | ステートと定義の照合 `check_consistency`、`ConsistencyResult`、`MismatchKind`(純粋。`conductor-runtime` が再公開する) |
-| `error.rs` | `DefinitionErrorKind`(33 種)、`DefinitionError`、`sanitize`、`quote_key`、`Locate`(位置→行番号)、ファイル名の表示の上限 `MAX_FILE_DISPLAY_CHARS`(256。`envfile` と共通) |
+| `error.rs` | `DefinitionErrorKind`(33 種)、`DefinitionError`、`escape_display`、`sanitize`、`quote_key`、`Locate`(位置→行番号)、ファイル名の表示の上限 `MAX_FILE_DISPLAY_CHARS`(256。`envfile` と共通) |
 | `envfile/mod.rs`(v0.9.0 以降) | `.env` の型(`EnvFileErrorKind` 13 種、`EnvFileError`、`EnvWarning`、`EnvEntry`、`EnvFileContent`、`LoadedEnvFiles`、`EnvContext`、`EnvOrigin`、`EffectiveEntry`、`EffectiveEnv`)、定数(`MAX_ENV_FILE_BYTES = 1_048_576`、`MAX_ENV_ENTRIES = 10_000`、`MAX_REPORTED_ERRORS = 20`、`RESERVED_ENV_PREFIX`)、`is_reserved_env_name`、`env_file_refs`、`summarize_errors` |
 | `envfile/parse.rs`(同) | `parse_env_file`(`.env` の解析) |
 | `envfile/merge.rs`(同) | `merge_env`(層の統合と自動の変数) |
@@ -367,7 +367,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |
 | `report/plan_text.rs`(同) | `render_plan` |
 | `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
-| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display`、`escape_name`、`escape_path`) |
+| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display` は conductor-core の再公開。`escape_name`、`escape_path` は包み) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
 
 ## 6. 設計上の要点(実装から読み取れること)

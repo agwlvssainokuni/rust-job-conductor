@@ -113,6 +113,8 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 待ちの間隔 | `try_wait` を 1・2・4・8・10・10... ms(上限 10 ms)。リトライの待機は 50 ms 以下の間隔で合図を確かめ、合図から 1 秒以内に返る | 強制 | `runner.rs` の単体、`wait_interruptible.rs` |
 | 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置(`build_graph` + `layout_graph`)。最悪の 4 つの形(入れ子が最大の形 = 前半の各ジョブ `i` が `N-1-i` へ飛ぶ。交差する形 = 全ジョブ `j(i)` → `j(i+2)`。幅の広い交差の形 = 前半の各ジョブ `i` が `i+N/2` へ飛ぶ。同じ行き先が離れて重なる形 = 前半の各ジョブ `i` が `N/2 + i % 250` へ飛ぶ)と、「両方の飛び越し」と分岐を含む 2 つの形(入れ子 = 前半の偶数のジョブ `i` が `N-1-i` へ両方の飛び越し、奇数のジョブが `N-2-i` と `N-1-i` へ分岐。幅広い交差 = 前半のジョブ `i` を 3 つおきに、`i+N/2` と `i+N/2+1` への分岐、`i+N/2` への両方の飛び越し、通常の飛び越しにする)。すべてレーンの図になる | 1 秒以内 | **強制**(`elapsed < 1s`) | `core/tests/graph_perf.rs` |
 | 計画の生成(v0.9.0 以降)。ジョブ 1,000 個がすべて `env` と `env_file` を持ち、すべて実行する計画(`plan_pipeline`) | 1 秒以内 | **強制** | `core/tests/plan_perf.rs` |
+| `@end` に着いたときの残りのジョブの列挙。ジョブ 1,000 個、先頭のジョブの成功で `@end`(`classify_and_decide`、`RunMode::Pipeline`)を 100 回 | 5 回の中央値が 50 ms 以内 | **強制** | `core/tests/flow_perf.rs` |
+| `.env` の層の統合(`merge_env`)。1 ファイル 10,000 項目(すべて別の名前)/ 2 ファイル 10,000 項目ずつ(同じ名前。後ろが勝つ) | 5 回の中央値が 50 ms / 100 ms 以内 | **強制** | `core/tests/env_merge_perf.rs` |
 
 測定のしくみ: p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は `[bench] <行>` として標準エラーに出し、環境変数 `GITHUB_STEP_SUMMARY`
 があれば、そのファイルに `- <行>` として追記する。基準を超えたときは `警告: ...` を出す。環境変数 `STARTUP_BENCH_ENFORCE` が文字列 `true` のときだけ、
@@ -148,7 +150,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示 | `core/tests/nfr_security.rs`、`runtime/tests/nfr_content.rs`、`converter/tests/nfr_security.rs` |
 | ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | `runtime/tests/nfr_content.rs` |
 | 環境変数の値を出さない(v0.9.0 以降) | `env`・`.env` の値(秘密のつもりの文字列)が、標準出力、標準エラー(`-v` を含む)、ステートファイルに現れない。`graph`・`--dry-run` の出力にも現れず、名前だけが出る。`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` の表示にも値が現れない。値を持つ型の `Debug` は値を `"***"` にする | `cli/tests/binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`core/tests/nfr_security.rs`、`env_types.rs` |
-| 表示のエスケープの表 | `escape_display` が、core・converter と同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/tests/escape_table.rs` |
+| 表示のエスケープの表 | `escape_display`(本体は core)が期待値の表のとおりで、core の `sanitize`・converter の写しと同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/tests/escape_table.rs` |
 | ネットワークに接続しない | `src/` に `std::net` などがない。依存に HTTP・TLS のライブラリがない | `cli/tests/nfr_source.rs` |
 | `unsafe` | runtime は `platform/unix.rs` の 1 回(`libc::kill`)だけ。cli は禁止(`#![forbid(unsafe_code)]`)。`low_level` を使わない | `runtime/tests/nfr_source.rs`、`cli/tests/nfr_source.rs` |
 | シグナルの送信 | ジョブの子プロセスの pid だけ(0 以下にならない)、許可した 4 つのシグナルだけ、1 回だけ | `runtime/src/platform/unix.rs` の単体、`runner_signal.rs` |
@@ -202,6 +204,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `env_types.rs` | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
 | `graph_types.rs`、`graph_edges.rs`、`graph_overlay.rs`、`graph_drawable.rs`、`graph_layout_oracle.rs`、`graph_shape_skip.rs`、`graph_shape_same_target.rs`、`graph_shape_both.rs`、`graph_shape_branch.rs`、`graph_perf.rs` | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定(4 つの種類。定義から作れる形はすべて対応する形で、範囲の外の形は図の構造を直接作って確かめる)、配置を正解データと 1 文字単位で照合(git の出力: `fixtures/graph_layout_oracle.md`、537 例、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例、交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。規則から導いた図で、git の出力ではない: 分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例(主線の列 0 の規則で作り直した第 2 版)、「両方の飛び越し」か分岐を含むジョブ 3〜5 個の全形 `fixtures/graph_layout_oracle_offmain.md`、2,748 例、ジョブ 6〜7 個の `fixtures/graph_layout_oracle_offmain_67.md`、300 例)、形ごとの図の全文: 通常の飛び越しと交差の例 C1〜C3(`graph_shape_skip.rs`)、同じ行き先と交差に同じ行き先が混ざる例 M2〜M4(`graph_shape_same_target.rs`)、「両方の飛び越し」の例 D1〜D7 と組み合わせ N1、N3、N4(`graph_shape_both.rs`)、分岐の例 B1〜B4 と組み合わせ N2、N5(`graph_shape_branch.rs`)、辺の一覧に残る形と主線の列 0 の記号(`graph_drawable.rs`)、1,000 ジョブの性能(幅の広い交差、「両方の飛び越し」と分岐の入れ子・交差を含む。`graph_perf.rs`。05 の 15 章)。`graph_common/mod.rs` は補助(`definition`、`letters`、`letter_definition`、`lanes`、`both` など) |
 | `plan_types.rs`、`plan_pipeline.rs`、`plan_run.rs`、`plan_assume.rs`、`plan_perf.rs` | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
+| `flow_perf.rs`、`env_merge_perf.rs` | `@end` に着いたときの残りのジョブの列挙(ジョブ 1,000 個)と、`merge_env`(`.env` 10,000 項目)の性能(3.1 節の表)。結果の中身(並び、出どころ)も確かめる |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
 
 #### conductor-runtime(`crates/runtime/tests/`)
@@ -237,9 +240,10 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 |----------|------|
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
-| `escape_table.rs` | `escape_display` の入力と期待値の表(core・converter と揃える) |
+| `escape_table.rs` | `escape_display` の入力と期待値の表(本体は core。converter の写しは converter の単体テストの同じ表で揃える) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
+| `graph_long_id.rs` | `graph` の text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_path` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs`、`init_types.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)、`InitOptions`・`InitTarget` |
 | `flow_env.rs`、`flow_graph.rs`、`flow_dry_run.rs`、`flow_init.rs` | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |

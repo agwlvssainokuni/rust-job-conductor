@@ -188,7 +188,7 @@ return low
   - `first_pending` = 定義の順で最初の `pending`(無ければ無し)
   - `completed` = 「いまスキップしたジョブが定義の最後のジョブ、かつ `first_pending` が無い」
   - `resume_job_id = first_pending`
-- `first_pending` の探索では、各ジョブの状態を定義の位置で引く(記録が同じ位置にあればそれを使い、なければ id で探す。無ければ `pending`。`decide_before_run` の `status_at` と同じ考え)。1 回の `apply_skip` はジョブの数に比例する時間で済む(`@end` の後に多くのジョブをスキップする計画と本番の性能のため。挙動は変わらない)。
+- `first_pending` の探索では、各ジョブの状態を定義の位置で引く(記録が同じ位置にあればそれを使い、なければ id で探す。無ければ `pending`。`flow` の `status_at`。`decide_before_run`、`classify_and_decide` の残りのジョブの列挙、`resume_point_on_interrupt` も同じ関数を使う)。1 回の `apply_skip` はジョブの数に比例する時間で済む(`@end` の後に多くのジョブをスキップする計画と本番の性能のため。挙動は変わらない)。
 
 ### 3.5 `apply_interrupt`(中断の記録。メモリ上)
 
@@ -660,21 +660,23 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 純粋な関数。次の手順で、結果の並び(`entries`)を作る。
 
 ```text
-entries = []
-put(name, value, origin):        # 同じ名前があれば取り除き、末尾に足す
-    entries から name が完全に同じ項目を取り除く
-    entries の末尾に { name, value, origin } を足す
+items = []                       # 層の順の (name, value, origin)。同じ名前を重ねて含む
+for ref in def.env_file:  (files.get(ref) があれば) for e in その entries: items に (e.name, e.value, PipelineEnvFile)
+for v   in def.env:                                               items に (v.name, v.value, PipelineEnv)
+for ref in job.env_file:  (files.get(ref) があれば) for e in その entries: items に (e.name, e.value, JobEnvFile)
+for v   in job.env:                                               items に (v.name, v.value, JobEnv)
+items に ("CONDUCTOR_PIPELINE", ctx.pipeline_name, Builtin)
+items に ("CONDUCTOR_JOB_ID",   ctx.job_id,        Builtin)
+if ctx.run_id がある: items に ("CONDUCTOR_RUN_ID", run_id, Builtin)
+items に ("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  Builtin)
 
-for ref in def.env_file:  (files.get(ref) があれば) for e in その entries: put(e.name, e.value, PipelineEnvFile)
-for v   in def.env:                                               put(v.name, v.value, PipelineEnv)
-for ref in job.env_file:  (files.get(ref) があれば) for e in その entries: put(e.name, e.value, JobEnvFile)
-for v   in job.env:                                               put(v.name, v.value, JobEnv)
-put("CONDUCTOR_PIPELINE", ctx.pipeline_name, Builtin)
-put("CONDUCTOR_JOB_ID",   ctx.job_id,        Builtin)
-if ctx.run_id がある: put("CONDUCTOR_RUN_ID", run_id, Builtin)
-put("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  Builtin)
-return EffectiveEnv { job_id: job.id, entries }
+keep_last(items):                # 名前ごとの最後の位置を表で引き、最後の位置の項目だけを並びの順に残す
+    last = { name → items の中で最後に現れた位置 }
+    entries = [ items[i] for i in 0..len(items) if last[items[i].name] == i ]
+return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
 ```
+
+項目の数に比例する時間で済む(上限の `.env` 10,000 項目でも、二乗の時間にならない。性能のテストは `core/tests/env_merge_perf.rs`)。
 
 - 完全に同じ名前は、後ろの層が勝って 1 つになる(並びでは、後ろの層の位置に移る)。**大文字小文字だけが違う名前は、別の名前として**、層の順に並べる(`foo` と `FOO` は両方が残る)。
 - `files.get(ref)` で引けない記述は、何も足さない(読み取りは、実行の前に済んでいる前提。誤りは返さない)。
