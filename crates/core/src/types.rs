@@ -136,12 +136,15 @@ pub struct RetryPolicy {
     pub max_interval_secs: Option<u64>,
 }
 
+/// `success_exit_codes` を省略したときの、成功の終了コード(BR1.11、BR2.1)。
+pub(crate) const DEFAULT_SUCCESS_EXIT_CODES: &[i32] = &[0];
+
 impl JobDefinition {
-    /// 実際に成功として扱う終了コード。省略時は `[0]`(BR1.11、BR2.1)。
+    /// 実際に成功として扱う終了コード。省略時は `DEFAULT_SUCCESS_EXIT_CODES`(`[0]`。BR1.11、BR2.1)。
     pub fn effective_success_codes(&self) -> &[i32] {
         match &self.success_exit_codes {
             Some(codes) => codes,
-            None => &[0],
+            None => DEFAULT_SUCCESS_EXIT_CODES,
         }
     }
 

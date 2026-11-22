@@ -22,7 +22,7 @@ use toml::de::{DeTable, DeValue};
 use super::{RawJob, Walker, integer_of};
 use crate::definition::duration::parse_duration_secs;
 use crate::error::DefinitionErrorKind as Kind;
-use crate::types::RetryPolicy;
+use crate::types::{DEFAULT_SUCCESS_EXIT_CODES, RetryPolicy};
 
 /// `[job.retry]` に書けるキー(BR1.4)。
 const RETRY_KEYS: &[&str] = &[
@@ -210,7 +210,7 @@ impl Walker<'_> {
             // 成功の終了コードは、省略時は 0 だけ。書いて誤りだったときは、重なりを調べない。
             let success: Option<&[i32]> = match &job.success {
                 Some((c, _)) => Some(c),
-                None if !job.success_declared => Some(&[0]),
+                None if !job.success_declared => Some(DEFAULT_SUCCESS_EXIT_CODES),
                 None => None,
             };
             let overlaps_success = success.is_some_and(|s| codes.iter().any(|c| s.contains(c)));
