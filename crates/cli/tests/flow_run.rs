@@ -729,3 +729,39 @@ fn config_を省くと_実行ディレクトリの_conductor_toml_を読む() {
     assert!(out.err.contains("conductor.toml"), "{}", out.err);
     assert_eq!(h.runtime.log(), ["load"]);
 }
+
+// ---- 分割済みのコマンド(cli は分け直さない) ----
+
+#[test]
+fn 分割済みのコマンドを分け直さずに起動へ渡す() {
+    use conductor_runtime::CommandLine;
+    let line = |program: &str, args: &[&str]| CommandLine {
+        program: program.to_string(),
+        args: args.iter().map(|a| a.to_string()).collect(),
+    };
+
+    // 配列: 1 要素が 1 引数で、空白を含む要素も分けない。
+    let mut h = Harness::new(
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = [\"prog\", \"a b\"]\n",
+    );
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(
+        *h.runtime.run_lines.borrow(),
+        [("a".to_string(), line("prog", &["a b"]))]
+    );
+
+    // 文字列: 引用符の中の空白は分けない(`check_command` の分け方のとおり)。
+    let mut h = Harness::new(
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"prog 'x y' z\"\n",
+    );
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(
+        *h.runtime.run_lines.borrow(),
+        [("a".to_string(), line("prog", &["x y", "z"]))]
+    );
+    assert_ne!(
+        h.runtime.run_lines.borrow()[0].1,
+        line("prog", &["'x", "y'", "z"]),
+        "空白で分け直さない"
+    );
+}

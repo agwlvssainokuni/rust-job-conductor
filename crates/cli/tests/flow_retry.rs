@@ -359,3 +359,33 @@ fn メモリの_runtime_でも_同じ流れで待たずに試せる() {
     assert_eq!(code, 130);
     assert_eq!(*runtime.waits.borrow(), [30]);
 }
+
+#[test]
+fn リトライのたびに同じ分割済みのコマンドを渡す() {
+    let first = conductor_runtime::CommandLine {
+        program: "echo".to_string(),
+        args: vec!["a".to_string()],
+    };
+
+    // 2 回リトライして成功: 試行の数(3)だけ記録され、すべて最初の分割と等しい。
+    let mut h = Harness::new(RETRY_A);
+    h.runtime
+        .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    let lines = h.runtime.run_lines.borrow().clone();
+    assert_eq!(lines.len(), 3, "試行の数だけ渡す");
+    assert!(
+        lines.iter().all(|(id, line)| id == "a" && *line == first),
+        "{lines:?}"
+    );
+
+    // 合図で起動しないときも、同じ分割を渡したことが記録される。
+    let mut h = Harness::new(RETRY_A);
+    h.signals = FakeSignals::new(SignalMode::RaiseOnStart(15));
+    assert_eq!(h.run(&["run", "a"]).code, 143);
+    assert_eq!(h.runtime.ran(), Vec::<String>::new(), "起動しない");
+    assert_eq!(
+        *h.runtime.run_lines.borrow(),
+        [("a".to_string(), first.clone())]
+    );
+}

@@ -181,6 +181,9 @@ pub enum WriteFailure {
 /// `run_job` に渡された、(ジョブID、足す環境の並び)。
 pub type RunEnv = (String, Vec<(String, String)>);
 
+/// `run_job` に渡された、(ジョブID、分割済みのコマンドの写し)。
+pub type RunLine = (String, CommandLine);
+
 /// ジョブの前後で呼ぶ関数(引数は、ジョブIDと、中断の合図)。
 pub type JobHook = Box<dyn Fn(&str, &InterruptSignal)>;
 
@@ -215,6 +218,9 @@ pub struct ScriptedRuntime {
     pub env_override: RefCell<Option<Result<LoadedEnvFiles, Vec<EnvFileError>>>>,
     /// `run_job` に渡された、(ジョブID、足す環境の並び)。起動のたびに記録する。
     pub run_envs: RefCell<Vec<RunEnv>>,
+    /// `run_job` に渡された、(ジョブID、分割済みのコマンド)。起動のたびに記録する
+    /// (合図で起動しないときも、`run_envs` と同じく記録する)。
+    pub run_lines: RefCell<Vec<RunLine>>,
     /// `create_file` に渡された、(パス、内容、`force`)。呼び出しのたびに記録する(U4)。
     pub create_calls: RefCell<Vec<CreateCall>>,
     /// `create_file` の結果を、実際の作成の代わりに返す(`None` は実際に作る。U4)。
@@ -309,7 +315,7 @@ impl Runtime for ScriptedRuntime {
     fn run_job(
         &self,
         job: &JobDefinition,
-        _line: &CommandLine,
+        line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
@@ -320,6 +326,9 @@ impl Runtime for ScriptedRuntime {
                 .map(|(n, v)| (n.to_string(), v.to_string()))
                 .collect(),
         ));
+        self.run_lines
+            .borrow_mut()
+            .push((job.id.clone(), line.clone()));
         if let Some(number) = signal.signal_number() {
             self.push(format!("skip-run:{}", job.id));
             return JobExecution::not_started(job, number);
