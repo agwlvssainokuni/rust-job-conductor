@@ -139,9 +139,7 @@ impl Ctx<'_> {
         job_id: &str,
     ) -> Result<(Session, usize), i32> {
         let signal = self.start_signals()?;
-        let checked = self.check_definition(cmd, None)?;
-        let index = self.require_job(&checked.definition, job_id)?;
-        let checked = self.check_run_inputs(cmd, checked, Some(job_id))?;
+        let (checked, index) = self.check_job(cmd, job_id, &[])?;
         Ok((Session { checked, signal }, index))
     }
 
@@ -153,8 +151,7 @@ impl Ctx<'_> {
         name: &str,
     ) -> Result<Session, i32> {
         let signal = self.start_signals()?;
-        let checked = self.check_definition(cmd, Some(name))?;
-        let checked = self.check_run_inputs(cmd, checked, None)?;
+        let checked = self.check_pipeline(cmd, name, &[])?;
         Ok(Session { checked, signal })
     }
 
@@ -171,18 +168,41 @@ impl Ctx<'_> {
         also_known_jobs: &[&str],
     ) -> Result<Checked, i32> {
         match target {
-            FlowTarget::Pipeline(name) => {
-                let checked = self.check_definition(cmd, Some(name))?;
-                self.require_known(&checked.definition, also_known_jobs)?;
-                self.check_run_inputs(cmd, checked, None)
-            }
-            FlowTarget::Run(job_id) => {
-                let checked = self.check_definition(cmd, None)?;
-                self.require_job(&checked.definition, job_id)?;
-                self.require_known(&checked.definition, also_known_jobs)?;
-                self.check_run_inputs(cmd, checked, Some(job_id))
-            }
+            FlowTarget::Pipeline(name) => self.check_pipeline(cmd, name, also_known_jobs),
+            FlowTarget::Run(job_id) => self
+                .check_job(cmd, job_id, also_known_jobs)
+                .map(|(checked, _)| checked),
         }
+    }
+
+    /// `run <job-id>` の検査(定義 64 → command 64 → ジョブID 68 → `--assume` 68 → run ID 68 →
+    /// `.env` 64 → ステート 65)。材料と、定義の中のそのジョブの位置を返す。
+    ///
+    /// `also_known_jobs` が空なら、`--assume` の検査は何もしない(表示もしない)。
+    fn check_job(
+        &mut self,
+        cmd: &CliCommand,
+        job_id: &str,
+        also_known_jobs: &[&str],
+    ) -> Result<(Checked, usize), i32> {
+        let checked = self.check_definition(cmd, None)?;
+        let index = self.require_job(&checked.definition, job_id)?;
+        self.require_known(&checked.definition, also_known_jobs)?;
+        let checked = self.check_run_inputs(cmd, checked, Some(job_id))?;
+        Ok((checked, index))
+    }
+
+    /// `pipeline <name>` の検査([`Ctx::check_job`] からジョブIDの検査を除いた同じ順)。`name` は、
+    /// 定義のパイプライン名の照合に渡す。
+    fn check_pipeline(
+        &mut self,
+        cmd: &CliCommand,
+        name: &str,
+        also_known_jobs: &[&str],
+    ) -> Result<Checked, i32> {
+        let checked = self.check_definition(cmd, Some(name))?;
+        self.require_known(&checked.definition, also_known_jobs)?;
+        self.check_run_inputs(cmd, checked, None)
     }
 
     /// シグナルの監視を始める(BR4.1)。すでに登録済みなら、そのまま使う。失敗は表示して、70 を `Err` で返す。
