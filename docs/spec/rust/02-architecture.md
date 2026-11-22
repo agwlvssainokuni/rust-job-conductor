@@ -130,7 +130,7 @@
 | `convert(request: &ConversionRequest) -> Result<ConvertedText, ConversionError>` | 入力ファイルを読み、変換する |
 | `convert_text(text: &str, target: TargetFormat, file_label: &str) -> Result<ConvertedText, ConversionError>` | 文字列を変換する(ファイルに触れない) |
 | `ConversionRequest { input_path: PathBuf, target_format: TargetFormat }` | 要求 |
-| `TargetFormat { Yaml, Toml }` | 変換**後**の形式。入力の形式は、その反対とみなす |
+| `TargetFormat { Yaml, Toml }` | 変換**後**の形式。入力の形式は、その反対とみなす(`opposite()`) |
 | `ConvertedText { text: String }` | 結果 |
 | `ConversionError { file, line, key_path, kind, reason }` / `ConversionErrorKind`(6 種) | 10 の 7.3 |
 | `testing::{Value, read_tree}`(`#[doc(hidden)]`) | 往復テスト用に、途中の表現 `Value` へ読む |

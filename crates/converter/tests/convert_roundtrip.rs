@@ -34,10 +34,7 @@ fn read(text: &str, format: TargetFormat) -> Value {
 /// `text`(`from` の形式)を、反対の形式へ変換し、読み戻した木が等しいことを確かめる。
 /// さらに、元の形式へ戻した結果も、等しいことを確かめる。変換後の文字列を返す。
 fn assert_roundtrip(text: &str, from: TargetFormat) -> String {
-    let to = match from {
-        TargetFormat::Yaml => TargetFormat::Toml,
-        TargetFormat::Toml => TargetFormat::Yaml,
-    };
+    let to = from.opposite();
     let original = read(text, from);
     let converted =
         convert_text(text, to, "in").unwrap_or_else(|e| panic!("変換できない: {e}\n{text}"));

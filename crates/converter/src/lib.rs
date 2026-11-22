@@ -174,10 +174,6 @@ pub mod testing {
         file: &str,
     ) -> Result<Value, ConversionError> {
         // `read_value` の `target` は「変換後の形式」なので、反対の形式を渡す
-        let target = match format {
-            TargetFormat::Yaml => TargetFormat::Toml,
-            TargetFormat::Toml => TargetFormat::Yaml,
-        };
-        read_value(text, target, file)
+        read_value(text, format.opposite(), file)
     }
 }
