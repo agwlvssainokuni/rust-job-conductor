@@ -428,7 +428,7 @@ impl<'a> Reporter<'a> {
                     let ids: Vec<String> = skipped.iter().map(|s| escape_name(s)).collect();
                     line.push_str(&format!(
                         " ({}: {})",
-                        messages::SKIPPED_LIST.get(lang),
+                        messages::SKIPPED_WORD.get(lang),
                         ids.join(", ")
                     ));
                 }

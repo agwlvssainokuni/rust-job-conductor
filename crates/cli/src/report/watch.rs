@@ -21,7 +21,7 @@ use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 
 use super::escape::escape_name;
 use super::messages::{
-    EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, NOTE_BY_END, NOTE_BY_TRANSITION,
+    EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, SKIPPED_AFTER_END, SKIPPED_BY_TRANSITION,
     WATCH_COMPLETED, WATCH_PIPELINE, WATCH_RUN_ID,
 };
 use crate::types::Language;
@@ -49,8 +49,8 @@ fn note(lang: Language, job: &JobState) -> String {
             None => String::new(),
         },
         JobStatus::Skipped => match job.skip_reason {
-            Some(SkipReason::ByEnd) => NOTE_BY_END.get(lang).to_string(),
-            Some(SkipReason::ByTransition) => NOTE_BY_TRANSITION.get(lang).to_string(),
+            Some(SkipReason::ByEnd) => SKIPPED_AFTER_END.get(lang).to_string(),
+            Some(SkipReason::ByTransition) => SKIPPED_BY_TRANSITION.get(lang).to_string(),
             None => String::new(),
         },
         JobStatus::Pending => String::new(),

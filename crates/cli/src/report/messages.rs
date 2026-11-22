@@ -503,14 +503,20 @@ pub const KILLED_BY_SIGNAL: Text = Text::new("terminated by signal", "シグナ�
 pub const COULD_NOT_START: Text = Text::new("could not start", "起動できませんでした");
 pub const INTERRUPTED_BY_SIGNAL: Text = Text::new("interrupted by signal", "シグナルで中断");
 pub const NOT_STARTED: Text = Text::new("not started", "起動せず");
+/// スキップ行の語と、遷移行の `(…: ID, …)` の語。
 pub const SKIPPED_WORD: Text = Text::new("skipped", "スキップ");
-pub const SKIPPED_LIST: Text = Text::new("skipped", "スキップ");
+/// 遷移によるスキップの語(`-v` のスキップ行の理由と、watch の補足)。
+pub const SKIPPED_BY_TRANSITION: Text = Text::new("skipped by a transition", "遷移によりスキップ");
+/// `@end` の後ろのスキップの語(`-v` のスキップ行の理由と、watch の補足)。
+pub const SKIPPED_AFTER_END: Text = Text::new("skipped after @end", "@end の後ろのためスキップ");
+/// 実行済みの語(`-v` のスキップ行の理由と、計画のジョブの扱い)。
+pub const ALREADY_EXECUTED: Text = Text::new("already executed", "実行済み");
 
 pub fn skip_reason(reason: SkipCause) -> Text {
     match reason {
-        SkipCause::SkipTarget => Text::new("skipped by a transition", "遷移によりスキップ"),
-        SkipCause::AfterEnd => Text::new("skipped after @end", "@end の後ろのためスキップ"),
-        SkipCause::AlreadyExecuted => Text::new("already executed", "実行済み"),
+        SkipCause::SkipTarget => SKIPPED_BY_TRANSITION,
+        SkipCause::AfterEnd => SKIPPED_AFTER_END,
+        SkipCause::AlreadyExecuted => ALREADY_EXECUTED,
     }
 }
 
@@ -528,8 +534,6 @@ pub const WATCH_COMPLETED: Text = Text::new("completed", "完了");
 pub const HEADER_JOB: Text = Text::new("JOB", "ジョブ");
 pub const HEADER_STATUS: Text = Text::new("STATUS", "状態");
 pub const HEADER_NOTE: Text = Text::new("NOTE", "補足");
-pub const NOTE_BY_TRANSITION: Text = Text::new("skipped by a transition", "遷移によりスキップ");
-pub const NOTE_BY_END: Text = Text::new("skipped after @end", "@end の後ろのためスキップ");
 
 // ---- graph(U2。BR2.8、BR3.1〜BR3.3、BR4.2、BR5.3、BR7.1) ----
 
@@ -669,7 +673,7 @@ pub fn plan_resume_after_stop(lang: Language, escaped_job_id: &str) -> String {
 pub fn plan_disposition(lang: Language, disposition: PlanDisposition) -> &'static str {
     let text = match disposition {
         PlanDisposition::WillRun => Text::new("run", "実行する"),
-        PlanDisposition::AlreadyExecuted => Text::new("already executed", "実行済み"),
+        PlanDisposition::AlreadyExecuted => ALREADY_EXECUTED,
         PlanDisposition::SkippedByTransition => Text::new("skip (transition)", "スキップ(遷移)"),
         PlanDisposition::SkippedAfterEnd => Text::new("skip (after @end)", "スキップ(@end のあと)"),
         PlanDisposition::NotReached => {

@@ -309,8 +309,7 @@ conductor: warning: <RESET_ALL_KEPT>
 | `COULD_NOT_START` | `could not start` | `起動できませんでした` |
 | `INTERRUPTED_BY_SIGNAL` | `interrupted by signal` | `シグナルで中断` |
 | `NOT_STARTED` | `not started` | `起動せず` |
-| `SKIPPED_WORD`(スキップ行の語) | `skipped` | `スキップ` |
-| `SKIPPED_LIST`(遷移行の `(…: ID, …)`) | `skipped` | `スキップ` |
+| `SKIPPED_WORD`(スキップ行の語と、遷移行の `(…: ID, …)`) | `skipped` | `スキップ` |
 
 ### 4.12 `.env` の誤りと警告(v0.9.0 以降)
 
