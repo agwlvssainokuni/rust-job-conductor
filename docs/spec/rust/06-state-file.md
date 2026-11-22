@@ -53,9 +53,9 @@
 | キー | 型 | 必須 | 意味・値 |
 |---|---|---|---|
 | `id` | 文字列 | 必須 | ジョブID |
-| `status` | 文字列 | 必須 | `"pending"` / `"success"` / `"warning"` / `"error"` / `"skipped"`(これ以外は `corrupt`) |
+| `status` | 文字列 | 必須 | `"pending"` / `"success"` / `"warning"` / `"error"` / `"skipped"`(これ以外は `corrupt`。語と型の対応は `JobStatus::as_str`・`JobStatus::parse` の 1 か所) |
 | `exit_code` | 整数(`i32` の範囲) | 任意 | ジョブの終了コード。`status` が success / warning / error のときだけ持てる。終了コードが無い結果(起動失敗・シグナル終了)の error には書かない。負数も許す(例 `-1`)。`i32` を超える整数は `corrupt` |
-| `skip_reason` | 文字列 | 条件付き | `"byTransition"`(遷移によるスキップ)/ `"byEnd"`(`@end` によるスキップ)。**`status = "skipped"` のときだけ必須、そのほかの `status` では書いてはならない** |
+| `skip_reason` | 文字列 | 条件付き | `"byTransition"`(遷移によるスキップ)/ `"byEnd"`(`@end` によるスキップ)。**`status = "skipped"` のときだけ必須、そのほかの `status` では書いてはならない**(語と型の対応は `SkipReason::as_str`・`SkipReason::parse`) |
 
 ### 2.4 内容の矛盾(読み込み時に `corrupt` になる条件)
 
@@ -215,7 +215,7 @@ status = "error"
 
 ### 5.1 手順
 
-入力: 定義ファイルのパス、run ID(ファイル名側の期待値)。上から順に、最初に当てはまる結果で終わる。
+入力: 定義ファイルのパス、run ID(ファイル名側の期待値)。上から順に、最初に当てはまる結果で終わる。1〜3 の上限つきの読み取りは、`crates/runtime/src/state/reader.rs` の `read_bounded` の 1 か所で、`reset --all` の `inspect_run_state`(8 章)も同じ関数で読む。
 
 | 順 | 処理 | 結果 |
 |---|---|---|
@@ -287,7 +287,7 @@ conductor: error: c2.toml.r3.state: state file is corrupt: run_id がファイ�
 
 ## 6. 定義との整合性検査(`check_consistency`)
 
-空でない(完了していない)ステートを読んだ後、`run`・`pipeline` の `prepare` で、定義と照合する。純粋な関数。
+空でない(完了していない)ステートを読んだ後、`run`・`pipeline` の前処理(`Ctx::read_checked_state`)で、定義と照合する。純粋な関数(`crates/core/src/consistency.rs`。`conductor-runtime` が同じ名前で再公開する)。
 
 ```text
 if state.pipeline_name != definition.name:              Mismatch(PipelineName)

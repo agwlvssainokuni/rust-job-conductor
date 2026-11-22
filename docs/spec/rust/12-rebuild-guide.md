@@ -55,7 +55,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `wait_for`(50 ms 以下の間隔)、`state/reader.rs`(14 項目の検査順、1 MiB、未知のキーの拒否、`format_version` の先行検査、完了は空)、`state/writer.rs`(一時ファイル → 書き込み → Durable のとき同期 → 閉じる → rename → ディレクトリの同期 → 24 時間以上古い一時ファイルの掃除)、`flow/record.rs`(core に置く。`initial_state`・`apply_*`。`apply_skip` は状態を定義の位置で引き、1 回がジョブの数に比例する時間。runtime の `lib.rs` は `conductor_core` から同じ名前で再公開する)、`state/consistency.rs`、`state/reset_all.rs`、`StateLocation` |
+| 作るもの | `wait_for`(50 ms 以下の間隔)、`state/reader.rs`(14 項目の検査順、1 MiB、未知のキーの拒否、`format_version` の先行検査、完了は空)、`state/writer.rs`(一時ファイル → 書き込み → Durable のとき同期 → 閉じる → rename → ディレクトリの同期 → 24 時間以上古い一時ファイルの掃除)、`flow/record.rs`(core に置く。`initial_state`・`apply_*`。`apply_skip` は状態を定義の位置で引き、1 回がジョブの数に比例する時間。runtime の `lib.rs` は `conductor_core` から同じ名前で再公開する)、照合(core の `consistency.rs` に `check_consistency`・`ConsistencyResult`・`MismatchKind` を置き、runtime は再公開する。単体テストは runtime の `state/consistency.rs`)、`state/reset_all.rs`、`StateLocation`。上限つきの読み取りは `state/reader.rs` の `read_bounded` の 1 か所、状態の語は `JobStatus`・`SkipReason` の `as_str`・`parse` |
 | 完了条件 | 書いたステートを読み戻すと等しい。06 の 2.4 の矛盾がすべて `corrupt`(65 になる)。書き込みの失敗でステートファイルが直前のまま。`reset --all` の実測の例(06 の 7.2)が再現する。`apply_*` の純粋な更新が 05 の 3.3〜3.5 のとおり |
 | 確認の観点 | 理由文は日本語の固定文(22 種)。ステートに `command`・環境変数・出力が書かれない。キーは辞書順で、`[[job]]` が最後。`reset`(個別)はリンクそのものを消し、`reset --all` はリンクを消さない |
 | 参照 | 06 章、05 の 3 章、10 の 7.2 |
@@ -82,7 +82,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `ctx.rs`(`prepare`: シグナル → 定義(64)→ `command`(64)→ ジョブID(68)→ run ID(68)→ ステートの読み込み(65)→ 照合(65)→ 削除の実効値)、`retry.rs`、`run.rs`、`pipeline.rs`、`aux_commands.rs`(`watch`・`reset`・`validate`・`convert`)、`platform/`(UNIX: `signal-hook` の専用スレッド。Windows: `ctrlc`)、`main.rs`、`lib.rs`(`run_cli`・`run_cli_with`) |
+| 作るもの | `ctx.rs`(`prepare_run`・`prepare_pipeline`: シグナル → 定義(64)→ `command`(64。分割したコマンドを `Session` が持つ)→ ジョブID(68。`prepare_run` は位置を返す)→ run ID(68)→ ステートの読み込み(65)→ 照合(65)→ 削除の実効値。run ID の決定は `definition_run_id`、ステートの読み込みと照合は `read_checked_state`)、`retry.rs`、`run.rs`、`pipeline.rs`、`aux_commands.rs`(`watch`・`reset`・`validate`・`convert`)、`platform/`(UNIX: `signal-hook` の専用スレッド。Windows: `ctrlc`)、`main.rs`、`lib.rs`(`run_cli`・`run_cli_with`) |
 | 完了条件 | 偽の `Runtime`・`Env`・`Sink`・`Signals` で、05 の状態遷移の例(`a → b → c`)、`@end` の例、リトライの例、中断の表(05 の 8 章)が再現する。実ファイルと実プロセスで、`run`・`pipeline`・`watch`・`reset`・`validate`・`convert` が、04・05・06 の挙動と終了コード(10 の 1 章の全件)を返す |
 | 確認の観点 | 検査の順序(10 の 2 章の 13 段)。ステートの書き込みの失敗は、ジョブの終了コードより優先して 65 で、「ジョブは実行されました」を表示。完了の判定は、中断の合図の判定より先。リトライの知らせは `-v` によらず常に標準エラー |
 | 参照 | 04、05、06、07 の 7 章、10 章 |
@@ -102,9 +102,9 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの(core) | `types.rs` に `EnvVar`、`PipelineDefinition`・`JobDefinition` の `env`・`env_file`(`Debug` は値を `"***"`)。`error.rs` に `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue`(33 種)。`definition/walk.rs` の `PIPELINE_KEYS`・`JOB_KEYS` に `env`・`env_file` を足し、`env_table`・`env_file` を、03 の 7 章の順序(`remove_on_complete` のあと、`retry` のあと)で呼ぶ。`envfile/{mod,parse,merge}.rs`(型、`parse_env_file`、`merge_env`、`env_file_refs`、`is_reserved_env_name`、`summarize_errors`、定数)。`lib.rs` の再公開 |
+| 作るもの(core) | `types.rs` に `EnvVar`、`PipelineDefinition`・`JobDefinition` の `env`・`env_file`(`Debug` は値を `"***"`)。`error.rs` に `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue`(33 種)。`definition/walk/mod.rs` の `PIPELINE_KEYS`・`JOB_KEYS` に `env`・`env_file` を足し、`definition/walk/env.rs` の `env_table`・`env_file` を、03 の 7 章の順序(`remove_on_complete` のあと、`retry` のあと)で呼ぶ。`envfile/{mod,parse,merge}.rs`(型、`parse_env_file`、`merge_env`、`env_file_refs`、`is_reserved_env_name`、`summarize_errors`、定数)。`lib.rs` の再公開 |
 | 作るもの(runtime) | `envfile.rs`(`load_env_files`)、`runner.rs` の `run_job(job, env, signal)`(`Command::env` を並びの順に) |
-| 作るもの(cli) | `deps.rs` の `Runtime::load_env_files`・`run_job` の `env`、`ctx.rs` の `load_env_files`(`prepare` の run ID のあと)、`retry.rs`(試行ごとに `merge_env`、`attempt = retries_done + 1`)、`aux_commands.rs` の `check_definition_and_env`(`validate`。重複キーの警告)、`report`(`EnvFileErrors`・`EnvWarnings`、日本語・英語の 13 種の文と理由、「ほか N 件」) |
+| 作るもの(cli) | `deps.rs` の `Runtime::load_env_files`・`run_job` の `env`、`ctx.rs` の `load_env_files`(前処理の run ID のあと)、`retry.rs`(試行ごとに `merge_env`、`attempt = retries_done + 1`)、`ctx.rs` の `check_definition_and_env`(`validate`。重複キーの警告)、`report`(`EnvFileErrors`・`EnvWarnings`、日本語・英語の 13 種の文と理由、「ほか N 件」) |
 | 完了条件 | 03 の 6.6 の受理・拒否の例、6.7 の受理・拒否の例が同じ結果になる。`merge_env` が 05 の 14.3 の優先順位と自動の変数のとおり。`.env` の誤りで、ジョブが 1 つも起動されず、ステートに触れず 64。`run` は `[pipeline]` とそのジョブの分だけ、`pipeline` は全ジョブ分を読む。リトライで `CONDUCTOR_ATTEMPT` が 1、2、3 と増え、再開で 1 に戻る。実バイナリで、`env`・`.env` の値が子の環境に見え、標準出力・標準エラー・ステートのどこにも値が出ない |
 | 確認の観点 | 値の展開をしない。予約名は大文字小文字を区別せず拒否(`env` は `reservedEnvName`、`.env` は `reservedName`)。同じ表の中の大文字小文字だけが違う名前は拒否。`.env` の相対パスは、**定義ファイルのあるディレクトリ**が基準。同じ解決済みのパスは 1 回だけ読む。誤りは全ファイル分を集め、20 件で打ち切る。使い方の誤り(68)が `.env` の誤り(64)より先。新しい外部の依存を足さない |
 | 参照 | 03 の 6.6・6.7、05 の 14 章、07 の 4 章、08 の 4.12 |
@@ -124,7 +124,7 @@
 | 項目 | 内容 |
 |------|------|
 | 作るもの(core) | `plan/{mod,simulate}.rs`(型、`plan_pipeline`、`plan_run`、`simulate_job`。`plan_pipeline` は `PipelineState` を 1 つ持ち、本番と同じ `apply_skip`・`apply_outcome` で更新する。更新の写しを作らない)。`decide_before_run` の探索を、位置の一致を先に見る `status_at` にする(挙動は同じ) |
-| 作るもの(cli) | `args.rs`(`--dry-run`、`--assume` の検査)、`ctx.rs` の `prepare_checked`(`prepare` の、シグナルを除く部分。`--assume` のジョブID の検査を含む)、`dry_run.rs`(`run_dry_run`)、`report/plan_text.rs`、メッセージ |
+| 作るもの(cli) | `args.rs`(`--dry-run`、`--assume` の検査)、`ctx.rs` の `prepare_checked`(本番の前処理の、シグナルを除く部分。`--assume` のジョブID の検査 `require_known` を含む。対象は `FlowTarget`)、`dry_run.rs`(`run_dry_run`、入口 `enter_flow`。計画には定義の検査で分割したコマンドを渡す)、`report/plan_text.rs`、メッセージ |
 | 完了条件 | 08 の 11 章の例 P1〜P8、P2e、P4e が 1 文字も違わず一致する。ジョブを起動せず、ステートを書かず・消さず、シグナルを準備しない。計画の「実行する」ジョブが、本番の流れが起動するジョブと一致する(新規と再開の両方)。1,000 ジョブの計画が 1 秒以内 |
 | 確認の観点 | 完了したステートは「ステートなし」。使われなかった仮定は誤りにしない。定義にないジョブIDの仮定は 68(ジョブIDを表示しない)。`.env` は本番と同じ範囲で読み、64。環境変数は名前と出どころだけを計画に持つ(値を持たない) |
 | 参照 | 04 の 7.9、05 の 16 章、08 の 11 章 |

@@ -192,7 +192,7 @@ conductor --help | --version
 - 成功: 何も出さず 0。`-v` のとき、標準エラーに `[conductor] definition is valid (<N> job|jobs)`(英語。`N == 1` のとき `job`)/ `[conductor] 定義は正しいです(ジョブ <N> 個)`。
 - 失敗: `run` と同じ表示で 64。
 - 名前を渡すと定義の名前と照合する(不一致は 64)。省略すると照合しない。`--run-id` は 68。
-- (v0.9.0 以降)定義と `command` の検査が通ったあと、`pipeline` と同じ範囲の `.env`(`[pipeline].env_file` とすべてのジョブの `env_file`)も読んで検査する。誤りは `run` と同じ表示で 64。重複キーの警告(`conductor: warning: <ファイル>:<行>: duplicate key ...`)は標準エラーに出すが、誤りではないので、警告だけなら 0(`-v` の 1 行は、警告のあとに出る)。`pipeline`・`run` は、警告を表示しない。実装は `aux_commands::check_definition_and_env`(`graph` と共有)。
+- (v0.9.0 以降)定義と `command` の検査が通ったあと、`pipeline` と同じ範囲の `.env`(`[pipeline].env_file` とすべてのジョブの `env_file`)も読んで検査する。誤りは `run` と同じ表示で 64。重複キーの警告(`conductor: warning: <ファイル>:<行>: duplicate key ...`)は標準エラーに出すが、誤りではないので、警告だけなら 0(`-v` の 1 行は、警告のあとに出る)。`pipeline`・`run` は、警告を表示しない。実装は `ctx.rs` の `Ctx::check_definition_and_env`(`graph` と共有)。
 
 ### 7.6 `convert <file> --to <yaml|toml>`
 
@@ -204,8 +204,8 @@ conductor --help | --version
 
 順序(誤りの終了コードを括弧に示す):
 
-1. `check_definition_and_env`(`validate` と同じ検査): 定義の読み込みと検証(64)→ 全ジョブの `command` の検査(64)→ `pipeline` と同じ範囲の `.env` の読み取り(64)。名前を渡すと定義の名前と照合する(不一致は 64)。`.env` の重複キーの警告は標準エラーに出す(誤りではない)。`.env` の値は、図にも出力にも含めない(名前も出さない)。
-2. `--state` のときだけ: run ID の決定(`--run-id`、なければ定義の `run_id_env` の環境変数。違反は 68)→ ステートを、**完了したものも含めて**読む(`read_state_raw`。読めない・壊れている・版の不一致は 65。ファイルなし・長さ 0 は、ステートなし)→ 定義との照合(食い違いは 65)。ステートがなければ、すべてのジョブが未実行(`[  ]`)。ステートがあれば `overlay_from_state` で重ね合わせを作る(05 の 15 章)。
+1. `Ctx::check_definition_and_env`(`validate` と同じ検査): 定義の読み込みと検証(64)→ 全ジョブの `command` の検査(64)→ `pipeline` と同じ範囲の `.env` の読み取り(64)。名前を渡すと定義の名前と照合する(不一致は 64)。`.env` の重複キーの警告は標準エラーに出す(誤りではない)。`.env` の値は、図にも出力にも含めない(名前も出さない)。
+2. `--state` のときだけ: run ID の決定(`Ctx::definition_run_id`。`--run-id`、なければ定義の `run_id_env` の環境変数。違反は 68)→ ステートを、**完了したものも含めて**読む(`Ctx::read_checked_state` の `StateRead::Raw`、つまり `read_state_raw`。読めない・壊れている・版の不一致は 65。ファイルなし・長さ 0 は、ステートなし)→ 定義との照合(食い違いは 65)。ステートがなければ、すべてのジョブが未実行(`[  ]`)。ステートがあれば `overlay_from_state` で重ね合わせを作る(05 の 15 章)。
 3. 図の構造を作り(`build_graph`)、`--format text`(既定)なら配置を決めて(`layout_graph`)`render_text`、`--format mermaid` なら `render_mermaid` で、文字列を組み立てる。`-v` は text にだけ効く(Mermaid には影響しない)。
 4. 組み立て終えた文字列を、標準出力に 1 回で書く。書けなければ(閉じたパイプなど)`cannot write to standard output` を標準エラーに出して 65(`watch` と同じ)。
 
@@ -231,12 +231,12 @@ conductor --help | --version
 
 ### 7.9 `run`・`pipeline` の `--dry-run`(v0.9.0 以降)
 
-ジョブを実行せずに、実行計画を標準出力に出す。ジョブを起動せず、ステートに書かず・消さず(読むだけ)、シグナルの準備もしない。`--remove-on-complete` は、何も消さないので効果がない。実装は `crates/cli/src/dry_run.rs` の `run_dry_run`。`run_individual`・`run_pipeline` の先頭で、ジョブID(`run`)・パイプライン名(`pipeline`)を取り出したあとに呼ばれ、`--dry-run` なら、通常の準備(`prepare`)の代わりにこの流れに入る。
+ジョブを実行せずに、実行計画を標準出力に出す。ジョブを起動せず、ステートに書かず・消さず(読むだけ)、シグナルの準備もしない。`--remove-on-complete` は、何も消さないので効果がない。実装は `crates/cli/src/dry_run.rs` の `run_dry_run`。`run_individual`・`run_pipeline` の先頭の共通の入口 `enter_flow` で、ジョブID(`run`)・パイプライン名(`pipeline`)を取り出したあとに呼ばれ、`--dry-run` なら、通常の準備(`prepare_run`・`prepare_pipeline`)の代わりにこの流れに入る。
 
 順序(誤りの終了コードを括弧に示す):
 
-1. `Ctx::prepare_checked`(`prepare` の、シグナルの準備を除いた部分): 定義の読み込みと検証(64。`pipeline` は名前の照合)→ 全ジョブの `command` の検査(64)→ `run` の対象のジョブが定義にあるか(68)→ **`--assume` のジョブIDが定義にあるか**(なければ 68。誤りの表示は `job is not defined in the definition file` に固定で、ジョブIDを含めない)→ run ID の決定(68)→ `.env` の読み取り(64。`pipeline` は全ジョブ分、`run` は対象のジョブ分。**本番と同じ範囲**)→ ステートの読み込み(65。完了したステートは「ステートなし」)→ 定義との照合(65)。
-2. 各ジョブの `command` を `check_command` で分割する(定義の検査で済んでいるので、誤りは起きない。起きれば本番と同じ表示で 64)。
+1. `Ctx::prepare_checked`(本番の準備の、シグナルの準備を除いた部分。対象は `FlowTarget::{Pipeline, Run}`): 定義の読み込みと検証(64。`pipeline` は名前の照合)→ 全ジョブの `command` の検査と分割(64)→ `run` の対象のジョブが定義にあるか(68)→ **`--assume` のジョブIDが定義にあるか**(なければ 68。誤りの表示は `job is not defined in the definition file` に固定で、ジョブIDを含めない)→ run ID の決定(68)→ `.env` の読み取り(64。`pipeline` は全ジョブ分、`run` は対象のジョブ分。**本番と同じ範囲**)→ ステートの読み込み(65。完了したステートは「ステートなし」)→ 定義との照合(65)。
+2. 定義の検査で分割した各ジョブのコマンド(`Checked.commands`)を、コマンド名と引数の並びにして計画に渡す(分割し直さない)。
 3. `plan_pipeline` / `plan_run` で計画を作る(05 の 16 章)。**本番なら順序外として拒否される**(`Reject`)ときは、本番と同じ表示(`rejected: ...`。08 の 4.7)で 66。
 4. `render_plan(言語, 計画)` で文字列を組み立て、標準出力に 1 回で書く。書けなければ `cannot write to standard output` を標準エラーに出して 65。
 

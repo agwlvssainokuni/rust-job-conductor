@@ -254,15 +254,15 @@ return low
 
 ## 5. 実行の流れ
 
-### 5.1 共通の前処理 `prepare`(`run`・`pipeline`)
+### 5.1 共通の前処理(`run` は `prepare_run`、`pipeline` は `prepare_pipeline`)
 
-順序は固定。最初に誤りがあった時点で、その終了コードで終わる(以降は行わない)。
+順序は固定。最初に誤りがあった時点で、その終了コードで終わる(以降は行わない)。どちらも `crates/cli/src/ctx.rs` の部品(1 は `start_signals`、2〜3 は `check_definition`、4 は `require_job`、5〜7 は `check_run_inputs`。5 は `definition_run_id`、6〜7 は `read_checked_state`)を、この順に呼ぶ。`prepare_run` は、4 で確かめたジョブの位置も返す。
 
 | 順 | 処理 | 誤りのときの終了コード |
 |---|---|---|
 | 1 | 中断の合図(`InterruptSignal`)を作り、シグナルの監視を開始(定義の検査より前)。すでに登録済みは無視して続行 | 準備の失敗: 70(`conductor: error: failed to set up signal handling`) |
 | 2 | 定義ファイルの読み込みと検証。`pipeline` は、引数の名前と定義の `[pipeline].name` を照合 | 64 |
-| 3 | 全ジョブの `command` の検査(引用符の閉じ忘れ・空) | 64 |
+| 3 | 全ジョブの `command` の検査(引用符の閉じ忘れ・空)。誤りは全ジョブ分を集めて表示する。分割したコマンドは、ジョブと同じ並びで持ち、実行(起動の失敗の表示)と `--dry-run` の計画が使い回す | 64 |
 | 4 | `run` のとき、ジョブIDが定義にあるか | 68(`unknown job`) |
 | 5 | run ID の決定(§6) | 68 |
 | 5a | (v0.9.0 以降)`.env` の読み取り(14 章)。`pipeline` は `[pipeline].env_file` とすべてのジョブの `env_file`、`run` は `[pipeline].env_file` とそのジョブの `env_file`。誤りが 1 つでもあれば、ジョブを実行せず、ステートに触れずに止まる | 64 |
@@ -270,7 +270,7 @@ return low
 | 7 | 空でなければ、定義との照合(06 §6) | 65 |
 | 8 | 実効の `remove_on_complete` = `--remove-on-complete` があれば true、なければ定義の `[pipeline].remove_on_complete`(省略時 false)。環境変数は見ない | - |
 
-定義ファイルは `--config <パス>`、なければ実行ディレクトリの `conductor.toml`。使い方の誤り(4 と 5 の 68)と `.env` の誤り(5a の 64)が同時にあるときは、先に検出する 68 が勝つ(5a は 5 のあと)。`--dry-run` は、この `prepare` の 1〜(シグナルを除く)7 を共有する(`prepare_checked`。16 章)。シグナルを受け取っても、1〜7 は最後まで進む。64・65・66・スキップ(0)の終了コードが、中断の終了コードに優先する。
+定義ファイルは `--config <パス>`、なければ実行ディレクトリの `conductor.toml`。使い方の誤り(4 と 5 の 68)と `.env` の誤り(5a の 64)が同時にあるときは、先に検出する 68 が勝つ(5a は 5 のあと)。`--dry-run` は、この前処理の 1〜(シグナルを除く)7 を共有する(`prepare_checked`。16 章)。シグナルを受け取っても、1〜7 は最後まで進む。64・65・66・スキップ(0)の終了コードが、中断の終了コードに優先する。
 
 ### 5.1a 1 つのジョブの共通の手順(`crates/cli/src/step.rs`。`run`・`pipeline`)
 
@@ -289,7 +289,7 @@ record_skip(session, base, job_id, r):       # base は Option
   if changed: write(rec, Durable)            # 失敗: 65、文脈=ジョブ起動前
   return (rec, changed)
 
-run_step(session, base, job, mode):          # base は Option(値で受ける)
+run_step(session, base, job, command, mode): # base は Option(値で受ける)。command は分割済み(5.1 の 3)
   b = base か、(空なら) initial_state を Fast で書いたもの   # 書けなければ 65、ジョブは起動しない
   exec = run_job_with_retry(job)             # §7。ステートは書かない
   (outcome, next) = classify_and_decide(job, exec, b.job_states, def, mode)
@@ -308,7 +308,7 @@ remove_if_requested(session, context):
 ### 5.2 `conductor run <job-id>` の擬似アルゴリズム
 
 ```text
-session = prepare(...)                      # 5.1。誤りなら終了
+(session, index) = prepare_run(...)         # 5.1。誤りなら終了。index はジョブの位置
 match decide(job_id, def, session.state):   # 5.1a
   Reject(r):  表示、return 66
   Skip(r):
@@ -318,8 +318,8 @@ match decide(job_id, def, session.state):   # 5.1a
     -v なら skipped 表示
     return 0
   Run:
-    job = 定義の中の job_id のジョブ          # 検査済み(5.1 の 4)
-    step = run_step(session, session.state, job, Individual)            # 5.1a
+    job = def.job[index]                     # 検査済み(5.1 の 4)
+    step = run_step(session, session.state, job, session.commands[index], Individual)   # 5.1a
     if step.next.completed:
         remove_if_requested(文脈=step.after)
     return exit_code_for(step.outcome.reported_exit_code, step.outcome.classification == Error)
@@ -341,9 +341,9 @@ match decide(job_id, def, session.state):   # 5.1a
 `pipeline` は、「次のジョブ」を `NextStep.next_job_id` で決めない。定義の記述順に全ジョブを 1 つずつ見て、`decide_before_run` で決める(遷移先・スキップは、ステートが運ぶ)。
 
 ```text
-session = prepare(...)                       # 引数の名前が無ければ 68
+session = prepare_pipeline(...)              # 引数の名前が無ければ 68(入口の enter_flow)
 current = session.state                      # 空なら None
-for job in def.job (記述順):
+for (job, command) in def.job と session.commands (記述順):
   match decide(job.id, def, current):        # 5.1a
     Reject(r): 表示、return 66
     Skip(r):
@@ -352,7 +352,7 @@ for job in def.job (記述順):
       current = rec
       if rec.completed: return finish(文脈=ジョブ起動前)    # 表示のあとで消す。記録が変わらなくても
     Run:
-      step = run_step(session, current.take(), job, Pipeline)   # 5.1a
+      step = run_step(session, current.take(), job, command, Pipeline)   # 5.1a
       rec = step.recorded
       if step.outcome は error、または分類なし:
           return exit_code_for(step.outcome.reported_exit_code, classification == Error)   # エラーで停止
@@ -423,7 +423,7 @@ run ID は、同じ定義を別々の実行単位で並行して使うときに�
 
 有効: `1`, `r1`, `12345`, `build-2026.11_a`, `a.b`, 64 文字ちょうど。無効: `""`(ただし §6.2 の規則で空は「なし」)、65 文字、`a/b`、`a b`、`.x`、`..`、`日本語`。
 
-### 6.2 決定(`resolve_run_id`、`prepare` の 5)
+### 6.2 決定(`resolve_run_id`、前処理の 5。`Ctx::definition_run_id`)
 
 ```text
 env_name = 定義の [pipeline].run_id_env があればそれ、なければ "CONDUCTOR_RUN_ID"
@@ -592,7 +592,7 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 
 - 完了(`completed = true`)になるのは: 最後のジョブが success / warning で終わった、`@end` に到達した(Pipeline、または Individual で後ろに未完了が無い)、スキップの記録で最後のジョブまで済んだ(§3.4)。
 - 完了のステートは `completed = true` のまま**残る**(`remove_on_complete` が真でない限り)。書式は変わらない。
-- 完了のステートは、読み込み(`run`・`pipeline` の `prepare`)では「空」として扱う(定義との照合もしない)。次の `pipeline`・`run <最初のジョブ>` は先頭から始まり、初期ステートで上書きする。先頭以外のジョブを `run` で単独に呼ぶと順序外(66)。
+- 完了のステートは、読み込み(`run`・`pipeline` の前処理)では「空」として扱う(定義との照合もしない)。次の `pipeline`・`run <最初のジョブ>` は先頭から始まり、初期ステートで上書きする。先頭以外のジョブを `run` で単独に呼ぶと順序外(66)。
 - `remove_on_complete` が真のとき、完了のステートを書いた後に `reset_state` で削除する(失敗は 65。完了のステートは残る)。偽のときは削除を試みず、0 で終わる。
 - `watch` は完了のステートも表示する(表の下に `completed`/`完了` の行)。
 
@@ -630,7 +630,7 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 
 ## 14. 環境変数の注入(`env`、`env_file`、`.env`。v0.9.0 以降)
 
-ジョブを起動するとき、引き継いだ環境(`conductor` が親から受け取った環境変数)に、定義で決めた変数を**足す**。書式は 03 の 6.6(`env`、`env_file`)と 6.7(`.env`)。取り除く書き方(`unset`)はない。ステートには、環境変数(名前も値も)を書かない(`PipelineState` の型は変えない)。実装は、型と純粋な処理が `crates/core/src/envfile/{mod,parse,merge}.rs`、ファイルの読み取りが `crates/runtime/src/envfile.rs`、起動への反映が `crates/runtime/src/runner.rs`、流れが `crates/cli/src/{ctx,retry,aux_commands}.rs`。
+ジョブを起動するとき、引き継いだ環境(`conductor` が親から受け取った環境変数)に、定義で決めた変数を**足す**。書式は 03 の 6.6(`env`、`env_file`)と 6.7(`.env`)。取り除く書き方(`unset`)はない。ステートには、環境変数(名前も値も)を書かない(`PipelineState` の型は変えない)。実装は、型と純粋な処理が `crates/core/src/envfile/{mod,parse,merge}.rs`、ファイルの読み取りが `crates/runtime/src/envfile.rs`、起動への反映が `crates/runtime/src/runner.rs`、流れが `crates/cli/src/{ctx,retry}.rs`(`validate` と `graph` の検査 `check_definition_and_env` も `ctx.rs`)。
 
 ### 14.1 型(`conductor_core::envfile`)
 

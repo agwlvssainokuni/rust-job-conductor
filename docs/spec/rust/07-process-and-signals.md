@@ -39,7 +39,7 @@ OS ごとの分岐(`cfg(unix)` / `cfg(windows)`)と OS 固有の呼び出しは�
 | 文字列形式 | `command = "sh scripts/x.sh"` | `Command::Line(String)` | 3 章の規則で、コマンド名と引数に分ける |
 | 配列形式(v0.2.0 以降) | `command = ["sh", "-c", "echo hi"]` | `Command::Argv(Vec<String>)` | 要素をそのまま使う(分割・引用符の処理・展開をしない) |
 
-定義の読み込み時の検査(`definition/walk.rs`。誤りは定義の誤り、終了コード 64):
+定義の読み込み時の検査(`definition/walk/mod.rs`。誤りは定義の誤り、終了コード 64):
 
 | 入力 | 判定 |
 |------|------|
@@ -164,7 +164,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | エラー型 | `CommandError { kind, reason }`。`kind` は `UnclosedQuote` か `Empty` |
 | `Display` の文 | 固定の文(`reason`)。`UnclosedQuote` は `引用符が閉じていません`、`Empty` は `コマンド名がありません`。**入力の値を含めない**(秘密の値が `command` に入っていても表示に出ない) |
 | 利用者への表示(標準エラー) | `conductor: error: <定義ファイルのパス>: job '<ジョブID>': <文>`。文は表示言語に従う。英語は `command has an unclosed quote` / `command is empty`、日本語は `command の引用符が閉じていません` / `command が空です` |
-| 検査の時点 | `run` / `pipeline` / `validate` は、定義の読み込みと検証のあと、**全ジョブ**の `command` を `check_command` で検査し、誤りのあるジョブをすべて報告して、終了コード 64 で終わる。ジョブは 1 つも起動せず、ステートにも触れない |
+| 検査の時点 | `run` / `pipeline` / `validate` は、定義の読み込みと検証のあと、**全ジョブ**の `command` を `check_command` で検査し、誤りのあるジョブをすべて報告して、終了コード 64 で終わる。ジョブは 1 つも起動せず、ステートにも触れない。分割は、この検査(`Ctx::check_definition`)の 1 回だけで、結果(`CommandLine` の並び)を、起動の失敗の表示(`report_execution` のコマンド名)と `--dry-run` の計画が使い回す |
 | 順序 | シグナルの準備(`run`/`pipeline` のみ)→ 定義の読み込み(64)→ `command` の検査(64)→ ジョブID(68)→ run ID(68)→ ステートの読み込み(65)→ 照合(65) |
 | 防御 | `run_job` の内側でも分割し直す。万一失敗したら、`start_failure = true` の `JobExecution` を返す(通常は到達しない) |
 
@@ -283,9 +283,9 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 ### 7.1 準備(両 OS 共通)
 
-- `run` と `pipeline` だけが、**定義の検査より前**に、シグナルの監視を始める(`Ctx::prepare` の最初)。
+- `run` と `pipeline` だけが、**定義の検査より前**に、シグナルの監視を始める(`Ctx::prepare_run`・`Ctx::prepare_pipeline` の最初の `start_signals`)。
   `watch`・`reset`・`validate`・`convert` は監視せず、OS の既定の動作で終わる。v0.9.0 以降の `graph`・`init` も監視しない。
-  `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare` の代わりに、シグナルを除く `prepare_checked` を呼ぶ)。
+  `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare_run`・`prepare_pipeline` の代わりに、シグナルを除く `prepare_checked` を呼ぶ)。
 - `InterruptSignal` を 1 つ作り、`Arc` で SignalWatcher に渡す。
 - 監視の登録は **プロセスで 1 回だけ**。2 回目の呼び出しは `AlreadyRegistered` になり、流れは成功と同様に続ける
   (2 回目に渡した合図には配線されない)。登録に失敗したとき(`Failed`)は、標準エラーに
