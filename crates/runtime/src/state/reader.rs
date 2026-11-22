@@ -143,7 +143,10 @@ pub(crate) fn inspect_run_state(path: &Path, run_id: &RunId) -> Inspected {
         // 空のファイルは、中身の run_id がなく、だれのものか分からない。
         Ok(None) if bytes.is_empty() => Inspected::NotOurs,
         Ok(_) => Inspected::Ours,
-        Err(e) if e.reason == reason::RUN_ID_MISMATCH => Inspected::NotOurs,
+        Err(ParseFailure {
+            cause: FailureCause::RunIdMismatch,
+            ..
+        }) => Inspected::NotOurs,
         Err(_) => Inspected::Broken,
     }
 }
@@ -161,12 +164,32 @@ pub(crate) fn read_limited<R: Read>(reader: R, limit: u64) -> io::Result<Vec<u8>
 struct ParseFailure {
     kind: StateErrorKind,
     reason: &'static str,
+    /// 失敗の原因(`reset --all` の見分けに使う。理由の文では比べない)。
+    cause: FailureCause,
+}
+
+/// 解釈の失敗の原因。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FailureCause {
+    /// ファイル名の run ID と中身の `run_id` が違う(FR3.2)。
+    RunIdMismatch,
+    /// そのほか。
+    Other,
 }
 
 fn corrupt(reason: &'static str) -> ParseFailure {
     ParseFailure {
         kind: StateErrorKind::Corrupt,
         reason,
+        cause: FailureCause::Other,
+    }
+}
+
+/// ファイル名の run ID と中身の `run_id` の食い違い(`corrupt`。FR3.2)。
+fn run_id_mismatch() -> ParseFailure {
+    ParseFailure {
+        cause: FailureCause::RunIdMismatch,
+        ..corrupt(reason::RUN_ID_MISMATCH)
     }
 }
 
@@ -201,6 +224,7 @@ fn parse_state_raw_for(
             return Err(ParseFailure {
                 kind: StateErrorKind::VersionMismatch,
                 reason: reason::UNSUPPORTED_VERSION,
+                cause: FailureCause::Other,
             });
         }
         Some(_) => return Err(corrupt(reason::BAD_VERSION_TYPE)),
@@ -259,7 +283,7 @@ fn walk(
         Some(v) => Some(as_string(v)?),
     };
     if run_id.as_deref() != expected_run_id.map(RunId::as_str) {
-        return Err(corrupt(reason::RUN_ID_MISMATCH));
+        return Err(run_id_mismatch());
     }
 
     let definition_key = as_string(required(table, "definition_key")?)?;
