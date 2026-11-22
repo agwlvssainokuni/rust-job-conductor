@@ -82,3 +82,76 @@ fn readme_の図の例は_実際の出力と一致する() {
     );
     assert_eq!(example, actual);
 }
+
+/// 「graph の使い方」の節の `n` 番目(0 始まり)の ```text の例。
+fn graph_example(text: &str, n: usize) -> String {
+    let start = text.find("## graph の使い方").expect("節がある");
+    let end = text[start..]
+        .find("## dry-run の使い方")
+        .map_or(text.len(), |i| start + i);
+    let section = &text[start..end];
+    let mut rest = section;
+    let mut found = None;
+    for _ in 0..=n {
+        let open = rest.find("```text\n").expect("例がある") + "```text\n".len();
+        let body = &rest[open..];
+        let close = body.find("```").expect("閉じている");
+        found = Some(body[..close].to_string());
+        rest = &body[close..];
+    }
+    found.unwrap()
+}
+
+fn render(definition_text: &str) -> String {
+    let def =
+        conductor_core::parse_definition(definition_text, "c.toml", None).expect("正しい定義");
+    let graph = conductor_core::graph::build_graph(&def, None);
+    let layout = conductor_core::graph::layout_graph(&graph);
+    conductor_cli::report::graph_text::render_text(
+        conductor_cli::Language::En,
+        &def,
+        &graph,
+        &layout,
+        false,
+    )
+}
+
+fn jobs(ids: &[&str], extra_for: &[(&str, &str)]) -> String {
+    let mut definition = String::from("format_version = 1\n\n[pipeline]\nname = \"p\"\n");
+    for id in ids {
+        definition.push_str(&format!(
+            "\n[[job]]\nid = \"{id}\"\ncommand = \"echo {id}\"\n"
+        ));
+        for (from, extra) in extra_for {
+            if from == id {
+                definition.push_str(extra);
+            }
+        }
+    }
+    definition
+}
+
+#[test]
+fn readme_の同じ行き先と両方の飛び越しの例は_実際の出力と一致する() {
+    let text = readme();
+    let to_d = "\n[[job.transitions]]\non = \"success\"\nnext = \"d\"\n";
+    let same_target = jobs(&["a", "b", "c", "d", "e"], &[("a", to_d), ("b", to_d)]);
+    assert_eq!(graph_example(&text, 1), render(&same_target));
+
+    let both = "\n[[job.transitions]]\non = \"warning\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"c\"\n";
+    let both_skip = jobs(&["a", "b", "c", "d"], &[("a", both)]);
+    assert_eq!(graph_example(&text, 2), render(&both_skip));
+}
+
+#[test]
+fn readme_の辺の一覧に切り替わる形は_交差と異なる行き先の_2_つだけを述べる() {
+    let text = readme();
+    let line = text
+        .lines()
+        .find(|l| l.starts_with("- **辺の一覧に切り替わる形**"))
+        .expect("記述がある");
+    assert!(line.contains("交差"));
+    assert!(line.contains("異なる行き先"));
+    assert!(!line.contains("同じ行き先へ飛ぶ辺が 2 つある"));
+    assert!(text.contains("`|\\|` の行"));
+}
