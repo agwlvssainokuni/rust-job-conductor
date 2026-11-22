@@ -190,5 +190,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "6efee91f"
+  },
+  {
+    "uuid": "01a2058f-bf38-7bcd-989f-1c5fc6490944",
+    "slug": "types-perf-visible",
+    "dirName": "261122-types-perf-visible",
+    "scope": "refactor",
+    "status": "in-flight",
+    "request": "890c7b53"
   }
 ]
