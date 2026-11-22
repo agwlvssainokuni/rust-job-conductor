@@ -23,7 +23,7 @@
 pub mod simulate;
 
 use crate::envfile::EnvOrigin;
-use crate::types::{Classification, RejectReason, RetryPolicy};
+use crate::types::{Classification, RejectReason, RetryPolicy, RunMode};
 
 pub use simulate::{PlanInput, plan_pipeline, plan_run};
 
@@ -109,14 +109,9 @@ pub struct PlanEntry {
     pub result: Option<SimulatedResult>,
 }
 
-/// 計画の方式。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlanMode {
-    /// `pipeline <name> --dry-run`。
-    Pipeline,
-    /// `run <job> --dry-run`。
-    Individual,
-}
+/// 計画の方式(`Pipeline` は `pipeline <name> --dry-run`、`Individual` は `run <job> --dry-run`)。
+/// 実行の方式 [`RunMode`](crate::types::RunMode) の別名(同じ意味の型を 1 つにする。BR4.3)。
+pub use crate::types::RunMode as PlanMode;
 
 /// 再開位置の種類(BR1.4)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,7 +160,7 @@ pub struct NextStepNote {
 pub struct ExecutionPlan {
     pub pipeline_name: String,
     pub run_id: Option<String>,
-    pub mode: PlanMode,
+    pub mode: RunMode,
     pub resume: ResumeInfo,
     /// 指定された仮定(指定順)。
     pub assumptions: Vec<Assumption>,

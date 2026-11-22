@@ -33,21 +33,13 @@ pub use edges::flow_edges;
 pub use layout::{is_lane_drawable, layout_graph};
 pub use overlay::{build_graph, node_state_of, overlay_from_state, pending_overlay};
 
-/// 辺が、どの結果のときに通るか。エラーには辺がない(ジョブが止まるため。BR1.3)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EdgeKind {
-    Success,
-    Warning,
-}
+/// 辺が、どの結果のときに通るか(`Success`、`Warning`)。エラーには辺がない(ジョブが止まるため。BR1.3)。
+/// 遷移の結果 [`TransitionOn`](crate::types::TransitionOn) の別名(同じ意味の型を 1 つにする。BR4.3)。
+pub use crate::types::TransitionOn as EdgeKind;
 
-/// 辺の行き先。最後のジョブが完了したときの行き先も `End`。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EdgeTarget {
-    /// ジョブ(ID)。
-    Job(String),
-    /// 終点(`@end`)。
-    End,
-}
+/// 辺の行き先(`Job(ID)`、または終点 `End` = `@end`)。最後のジョブが完了したときの行き先も `End`。
+/// 遷移の行き先 [`TransitionTarget`](crate::types::TransitionTarget) の別名(BR4.3)。
+pub use crate::types::TransitionTarget as EdgeTarget;
 
 /// 1 つのジョブから出る、1 つの辺(契約 C2 の edges。BR1.1〜BR1.4)。
 ///

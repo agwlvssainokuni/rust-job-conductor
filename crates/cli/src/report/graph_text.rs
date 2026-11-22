@@ -89,11 +89,9 @@ pub(crate) fn is_main_edge(edge: &FlowEdge) -> bool {
 }
 
 /// 行き先の表示(ジョブ ID はエスケープ。終点は `@end`)。
+/// 64 文字で切らない `escape_path` を使う(遷移の表示の `escape_name` とは使い分ける)。`@end` はエスケープしても同じ。
 fn target_text(to: &EdgeTarget) -> String {
-    match to {
-        EdgeTarget::Job(id) => escape_path(id),
-        EdgeTarget::End => TransitionTarget::END_LABEL.to_string(),
-    }
+    escape_path(to.label())
 }
 
 /// 飛び越しの注記(BR3.2)。辺が 2 つあるとき、または飛び越すジョブがあるときだけ。

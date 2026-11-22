@@ -24,7 +24,7 @@ use std::path::Path;
 
 use super::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
-    PlanMode, PlanRejection, ResumeInfo, ResumeKind, SimulatedResult,
+    PlanRejection, ResumeInfo, ResumeKind, SimulatedResult,
 };
 use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env};
 use crate::flow::{
@@ -150,7 +150,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
     Ok(ExecutionPlan {
         pipeline_name: def.name.clone(),
         run_id: input.run_id.map(str::to_string),
-        mode: PlanMode::Pipeline,
+        mode: RunMode::Pipeline,
         resume: resume_info,
         assumptions: input.assumptions.to_vec(),
         unused_assumptions: unused,
@@ -219,7 +219,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
     Ok(ExecutionPlan {
         pipeline_name: def.name.clone(),
         run_id: input.run_id.map(str::to_string),
-        mode: PlanMode::Individual,
+        mode: RunMode::Individual,
         resume: ResumeInfo {
             kind: ResumeKind::Individual,
             job_id: Some(job_id.to_string()),
