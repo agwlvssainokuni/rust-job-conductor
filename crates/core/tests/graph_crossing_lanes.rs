@@ -14,7 +14,8 @@
 
 //! 交差する飛び越しのレーンの図(BR1.1〜BR1.5、BR2.1)。
 //!
-//! 図の例 C1〜C3(`git log --graph` の出力と一致を確かめた形)と、辺の一覧に残る混ざった形、性能。
+//! 図の例 C1〜C3(`git log --graph` の出力と一致を確かめた形)と、「両方の飛び越し」・分岐が混ざった形
+//! (今回から図になる。BR2.1)、性能。
 
 mod graph_common;
 
@@ -130,21 +131,48 @@ fn 交差を含まない図は_交差の行を持たない() {
 }
 
 #[test]
-fn 辺の一覧に残る形_交差と離れた別のジョブの両方の飛び越し() {
+fn 交差と離れた別のジョブの両方の飛び越しは_レーンの図になる() {
+    // 交差の部分は、通常の飛び越しだけのグラフと同じ。g の両方の飛び越しの下は、列 0 が空白(BR1.4、BR2.1)。
     let mut transitions: Vec<Spec<'_>> = vec![("a", Success, Some("d")), ("b", Success, Some("e"))];
     transitions.extend([("g", Success, Some("i")), ("g", Warning, Some("i"))]);
-    assert_eq!(lanes(10, &transitions), None);
+    assert_eq!(
+        lanes(10, &transitions).as_deref(),
+        Some(
+            "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* | | c
+| |/
+|/|
+* | d
+|/
+* e
+* f
+*   g
+ \\
+* | h
+ /
+* i
+* j
+o @end
+"
+        )
+    );
 }
 
 #[test]
-fn 辺の一覧に残る形_交差と離れた別のジョブの分岐() {
+fn 交差と離れた別のジョブの分岐は_レーンの図になる() {
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("d")),
         ("b", Success, Some("e")),
         ("f", Success, Some("h")),
         ("f", Warning, None),
     ];
-    assert_eq!(lanes(9, &transitions), None);
+    let text = lanes(9, &transitions).expect("分岐を含む交差も、図になる(BR2.1)");
+    assert!(text.starts_with("*   a\n|\\\n* \\   b\n|\\ \\\n"), "{text}");
+    assert!(text.contains("*     f\n \\ \\\n* | | g\n / /\n"), "{text}");
 }
 
 #[test]
@@ -161,15 +189,36 @@ fn 交差と離れた別のジョブの同じ行き先は_レーンの図にな�
 }
 
 #[test]
-fn 辺の一覧に残る形_次のジョブへの辺を持たないジョブがある交差() {
-    // c は、成功も警告も終点へ飛ぶ(次のジョブへの辺がない)。
+fn 次のジョブへの辺を持たないジョブがある交差は_レーンの図になる() {
+    // c は、成功も警告も終点へ飛ぶ(次のジョブへの辺がない)。c の下の行の列 0 は空白。
+    // d、e は(a、b の飛び越しで)実行されうる、かつ次の節への辺を持つので、その下の行の列 0 は `|`(BR1.4)。
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("d")),
         ("b", Success, Some("e")),
         ("c", Success, None),
         ("c", Warning, None),
     ];
-    assert_eq!(lanes(5, &transitions), None);
+    assert_eq!(
+        lanes(5, &transitions).as_deref(),
+        Some(
+            "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* \\ \\   c
+ \\ \\ \\
+  |_|/
+ /| |
+* | | d
+| |/
+|/|
+* | e
+|/
+o @end
+"
+        )
+    );
 }
 
 #[test]

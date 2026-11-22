@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 「対応する形」の判定(BR2.4)のテスト。
+//! 「対応する形」の判定(BR1.1)のテスト。
 
 mod graph_common;
 
 use conductor_core::TransitionOn::{Success, Warning};
-use conductor_core::graph::{GraphLayout, build_graph, is_lane_drawable, layout_graph};
-use graph_common::{Spec, definition, lanes_text};
+use conductor_core::graph::{EdgeKind, GraphLayout, build_graph, is_lane_drawable, layout_graph};
+use graph_common::{Spec, definition, graph_with_extra_edge, lanes_text};
 
 fn drawable(ids: &[&str], transitions: &[Spec<'_>]) -> bool {
     is_lane_drawable(&build_graph(&definition(ids, transitions), None))
@@ -89,18 +89,18 @@ fn 対応する形_成功と警告の両方が飛び越す() {
 }
 
 #[test]
-fn 対応しない形_両方の飛び越しが交差する() {
-    // a の両方が d へ、b の成功が e へ。通常の飛び越しと同じく交差する。
+fn 対応する形_両方の飛び越しが交差する() {
+    // a の両方が d へ、b の成功が e へ。通常の飛び越しの交差と同じく、レーンの図で描く(BR2.1)。
     let crossing = [
         ("a", Success, Some("d")),
         ("a", Warning, Some("d")),
         ("b", Success, Some("e")),
     ];
-    assert!(!drawable(&IDS, &crossing));
-    assert_eq!(
+    assert!(drawable(&IDS, &crossing));
+    assert!(matches!(
         layout_graph(&build_graph(&definition(&IDS, &crossing), None)),
-        GraphLayout::EdgeList
-    );
+        GraphLayout::Lanes(_)
+    ));
 }
 
 #[test]
@@ -127,8 +127,8 @@ fn 対応する形_交差に同じ行き先が混ざる() {
 }
 
 #[test]
-fn 対応しない形_交差に同じ行き先が混ざり_両方の飛び越しがある() {
-    // 同じ形に、「両方の飛び越し」(d が成功も警告も e へ)が加わると、範囲の外(辺の一覧。BR2.1)。
+fn 対応する形_交差に同じ行き先が混ざり_両方の飛び越しがある() {
+    // 同じ形に、「両方の飛び越し」(d が成功も警告も f へ)が加わっても、図にする(BR2.1)。
     let ids = ["a", "b", "c", "d", "e", "f", "g"];
     let transitions = [
         ("a", Success, Some("e")),
@@ -136,7 +136,7 @@ fn 対応しない形_交差に同じ行き先が混ざり_両方の飛び越し
         ("d", Success, Some("f")),
         ("d", Warning, Some("f")),
     ];
-    assert!(!drawable(&ids, &transitions));
+    assert!(drawable(&ids, &transitions));
 }
 
 #[test]
@@ -158,9 +158,9 @@ fn 対応する形_異なる行き先が_2つの分岐() {
 }
 
 #[test]
-fn 対応しない形_分岐が積み上げの上の線より遠い() {
-    // b→d の線が開いている間に、c が e と f へ分岐する。t2 が最も内側の線以上なので、交差する(BR2.1)。
-    assert!(!drawable(
+fn 対応する形_分岐が開いている線より遠い行き先を持つ() {
+    // b→d の線が開いている間に、c が e と f へ分岐する。交差するが、図にする(BR2.1)。
+    assert!(drawable(
         &IDS,
         &[
             ("b", Success, Some("d")),
@@ -171,9 +171,9 @@ fn 対応しない形_分岐が積み上げの上の線より遠い() {
 }
 
 #[test]
-fn 対応しない形_分岐の線を別の飛び越しが越える() {
-    // a→c,e の分岐と、b→e。b の飛び越しは、分岐の線(内側の c)を越えるので、交差する。
-    assert!(!drawable(
+fn 対応する形_分岐の線を別の飛び越しが越える() {
+    // a→c,e の分岐と、b→e。b の飛び越しは、分岐の線(内側の c)を越え、外側の線(e)と同じ行き先(BR2.1)。
+    assert!(drawable(
         &IDS,
         &[
             ("a", Success, Some("c")),
@@ -181,4 +181,44 @@ fn 対応しない形_分岐の線を別の飛び越しが越える() {
             ("b", Success, Some("e"))
         ]
     ));
+}
+
+#[test]
+fn 定義から作れる形は_すべて対応する形() {
+    // 各ジョブの結果は成功と警告の 2 つなので、辺は 1 本か 2 本。どの組み合わせも 4 つの種類のどれか(BR1.1)。
+    let targets = [Some("c"), Some("d"), Some("e"), None];
+    for s in targets {
+        for w in targets {
+            for (s2, w2) in [(Some("d"), Some("e")), (Some("f"), None), (None, Some("e"))] {
+                let mut transitions = vec![("a", Success, s), ("a", Warning, w)];
+                transitions.push(("b", Success, s2));
+                transitions.push(("b", Warning, w2));
+                assert!(drawable(&IDS, &transitions), "{transitions:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn 対応しない形_辺が3本のジョブ() {
+    // 図の構造を直接作る(定義からは作れない)。a に、次のジョブ、d、@end への 3 本の辺(BR1.1)。
+    let def = definition(&IDS, &[("a", Success, Some("d"))]);
+    let graph = graph_with_extra_edge(&def, "a", None);
+    assert!(!is_lane_drawable(&graph));
+    assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
+}
+
+#[test]
+fn 対応しない形_次のジョブへの辺がなく_成功だけの辺が1本() {
+    // 両方の飛び越し(a が c へ)の辺から、警告を除く(図の構造を直接作る。BR1.1)。
+    let mut graph = build_graph(
+        &definition(
+            &IDS,
+            &[("a", Success, Some("c")), ("a", Warning, Some("c"))],
+        ),
+        None,
+    );
+    graph.edges[0].kinds = vec![EdgeKind::Success];
+    assert!(!is_lane_drawable(&graph));
+    assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
 }

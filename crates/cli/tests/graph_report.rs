@@ -18,7 +18,7 @@ use conductor_cli::Language;
 use conductor_cli::report::graph_mermaid::{escape_label, render_mermaid};
 use conductor_cli::report::graph_text::render_text;
 use conductor_core::graph::{
-    NodeState, StateOverlay, build_graph, layout_graph, overlay_from_state,
+    GraphLayout, NodeState, StateOverlay, build_graph, layout_graph, overlay_from_state,
 };
 use conductor_core::{PipelineDefinition, parse_definition};
 
@@ -52,9 +52,21 @@ fn text_of(
     render_text(lang, def, &graph, &layout, verbose)
 }
 
+/// 辺の一覧の整形(BR1.1 の範囲の外の形)。定義から作れる形は、すべてレーンの図になるので、
+/// 整形の関数に、辺の一覧の配置を直接渡す。
+fn edge_list_of(
+    lang: Language,
+    def: &PipelineDefinition,
+    overlay: Option<&StateOverlay>,
+    verbose: bool,
+) -> String {
+    let graph = build_graph(def, overlay);
+    render_text(lang, def, &graph, &GraphLayout::EdgeList, verbose)
+}
+
 const A_TO_D: &[(&str, &str)] = &[("a", "d")];
 const IDS5: [&str; 5] = ["a", "b", "c", "d", "e"];
-/// 交差し、かつ「両方の飛び越し」(a が成功も警告も e へ)を含む形(辺の一覧になる)。
+/// 交差し、かつ「両方の飛び越し」(a が成功も警告も e へ)を含む形(前回までは辺の一覧、今回からレーンの図)。
 const E1_IDS: [&str; 7] = ["a", "b", "c", "d", "e", "f", "g"];
 const E1_SKIPS: [(&str, &str); 2] = [("b", "f"), ("c", "e")];
 
@@ -101,11 +113,22 @@ fn レーンの図の例_g1_から_g4_と_g6() {
 }
 
 #[test]
-fn 辺の一覧の例_e1_交差と_状態つき() {
-    // 交差し、さらに「両方の飛び越し」(a が成功も警告も e へ)を含む形は、範囲の外なので辺の一覧(BR2.1)。
+fn e1_の形は_レーンの図になる() {
+    // 交差し、さらに「両方の飛び越し」(a が成功も警告も e へ)を含む形も、今回から図にする(BR2.1)。
+    // a は次のジョブへの辺がなく、b、c、d は実行されないので、その下の行の列 0 は空白(BR1.4)。
     let e1 = e1_definition();
     assert_eq!(
         text_of(Language::Ja, &e1, None, false),
+        "*   a\n \\\n* \\   b\n \\ \\\n* \\ \\   c\n \\ \\ \\\n  | |/\n  |/|\n* / | d\n / /\n* / e\n|/\n* f\n* g\no @end\n"
+    );
+}
+
+#[test]
+fn 辺の一覧の例_e1_交差と_状態つき() {
+    // 辺の一覧の整形は、前回までのとおり(範囲の外の形で使う。BR1.1)。
+    let e1 = e1_definition();
+    assert_eq!(
+        edge_list_of(Language::Ja, &e1, None, false),
         "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
          ジョブ:\n  a\n  b\n  c\n  d\n  e\n  f\n  g\n\
          辺:\n  a -> e (成功・警告)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
@@ -119,7 +142,7 @@ fn 辺の一覧の例_e1_交差と_状態つき() {
         resume_job_id: None,
     };
     assert_eq!(
-        text_of(Language::Ja, &e1, Some(&overlay), false),
+        edge_list_of(Language::Ja, &e1, Some(&overlay), false),
         "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
          ジョブ:\n  [  ] a\n  [  ] b\n  [  ] c\n  [  ] d\n  [  ] e\n  [  ] f\n  [  ] g\n\
          辺:\n  a -> e (成功・警告)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
@@ -180,8 +203,8 @@ fn v_の詳細は_合流の行のあとにも_分岐の行と同じように置�
     let d1 = definition(&["a", "b", "c", "d"], &[], &both_skip_extra("c"));
     assert_eq!(
         text_of(Language::En, &d1, None, true),
-        "*   a\n \\\n| | command: echo a\n| | success, warning -> c (skips b)\n\
-         * | b\n| | command: echo b\n /\n* c\n| command: echo c\n* d\n| command: echo d\no @end\n"
+        "*   a\n \\\n  | command: echo a\n  | success, warning -> c (skips b)\n\
+         * | b\n  | command: echo b\n /\n* c\n| command: echo c\n* d\n| command: echo d\no @end\n"
     );
 }
 
@@ -192,11 +215,12 @@ fn branch_extra(near: &str, far: &str) -> String {
     )
 }
 
-const B1_TEXT: &str = "*     a\n \\ \\\n* | | b\n / /\n* / c\n /\n* d\n* e\no @end\n";
+const B1_TEXT: &str = "*     a\n \\ \\\n* | | b\n / /\n* / c\n|/\n* d\n* e\no @end\n";
 
 #[test]
 fn 分岐の図_b1_の全文() {
-    // B1: a の成功が c、警告が d。2 本の線を同時に開き、主線の線を省く。
+    // B1: a の成功が c、警告が d。2 本の線を同時に開く。a、b の下の行の列 0 は空白で、
+    // 実行されうる c の下の合流の行は `|/`(BR1.4)。
     let b1 = definition(&IDS5, &[], &branch_extra("c", "d"));
     assert_eq!(text_of(Language::Ja, &b1, None, false), B1_TEXT);
     // 近い行き先が警告でも、同じ図になる。
@@ -209,8 +233,8 @@ fn 分岐の図に_v_の詳細と_state_を重ねる() {
     let b1 = definition(&IDS5, &[], &branch_extra("c", "d"));
     assert_eq!(
         text_of(Language::En, &b1, None, true),
-        "*     a\n \\ \\\n| | | command: echo a\n| | | success -> c (skips b), warning -> d (skips b, c)\n\
-         * | | b\n| | | command: echo b\n / /\n* / c\n| | command: echo c\n /\n* d\n| command: echo d\n* e\n| command: echo e\no @end\n"
+        "*     a\n \\ \\\n  | | command: echo a\n  | | success -> c (skips b), warning -> d (skips b, c)\n\
+         * | | b\n  | | command: echo b\n / /\n* / c\n| | command: echo c\n|/\n* d\n| command: echo d\n* e\n| command: echo e\no @end\n"
     );
     let overlay = StateOverlay {
         states: vec![
@@ -224,14 +248,14 @@ fn 分岐の図に_v_の詳細と_state_を重ねる() {
     };
     assert_eq!(
         text_of(Language::Ja, &b1, Some(&overlay), false),
-        "*     [OK] a\n \\ \\\n* | | [--] b\n / /\n* / [OK] c\n /\n* [  ] d  <- 再開位置\n* [  ] e\no @end\n"
+        "*     [OK] a\n \\ \\\n* | | [--] b\n / /\n* / [OK] c\n|/\n* [  ] d  <- 再開位置\n* [  ] e\no @end\n"
     );
 }
 
 #[test]
 fn 英語の注記は_レーンの図で描けない形を含む言い方() {
     let e1 = e1_definition();
-    let text = text_of(Language::En, &e1, None, false);
+    let text = edge_list_of(Language::En, &e1, None, false);
     assert!(
         text.starts_with(
             "note: the skip edges cross or form a shape the lane diagram cannot draw, so it is replaced by a list of edges.\nJobs:\n"
@@ -349,9 +373,9 @@ fn v_は_リトライと配列のコマンドと英語の文を出し_辺の一�
         "{ja}"
     );
 
-    // 辺の一覧(交差と同じ行き先)の `-v` は、ジョブの行の下に、4 つの空白で字下げした詳細。
+    // 辺の一覧の `-v` は、ジョブの行の下に、4 つの空白で字下げした詳細。
     let crossing = e1_definition();
-    let list = text_of(Language::En, &crossing, None, true);
+    let list = edge_list_of(Language::En, &crossing, None, true);
     assert!(
         list.contains(
             "Jobs:\n  a\n    command: echo a\n    success, warning -> e (skips b, c, d)\n  b\n"

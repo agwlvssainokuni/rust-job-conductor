@@ -14,7 +14,8 @@
 
 //! 通常の飛び越しだけのグラフの、交差と同じ行き先が混ざる形(BR1.1〜BR1.5、BR2.1)。
 //!
-//! 図の例 M2〜M4(`git log --graph` の出力と一致を確かめた形)と、辺の一覧に残る形。
+//! 図の例 M2〜M4(`git log --graph` の出力と一致を確かめた形)と、「両方の飛び越し」・分岐が混ざる形
+//! (今回から図になる。規則から導いた図で、git の出力ではない)。
 
 mod graph_common;
 
@@ -124,8 +125,9 @@ o @end
 }
 
 #[test]
-fn 辺の一覧に残る形_交差に_両方の飛び越しが混ざる() {
-    // d は成功も警告も f へ飛ぶ(次のジョブへの辺がない)。交差と同じ行き先があっても、前回までのとおり(BR2.1)。
+fn 交差に_両方の飛び越しが混ざる形は_レーンの図になる() {
+    // d は成功も警告も f へ飛ぶ(次のジョブへの辺がない)。d の線は、b の線(f へ)と同じ行き先で、
+    // 次のノードの手前で寄せる。d の下の行の列 0 は空白(BR1.4、BR2.1)。
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("e")),
         ("b", Success, Some("f")),
@@ -133,12 +135,36 @@ fn 辺の一覧に残る形_交差に_両方の飛び越しが混ざる() {
         ("d", Success, Some("f")),
         ("d", Warning, Some("f")),
     ];
-    assert_eq!(lanes(7, &transitions), None);
+    assert_eq!(
+        lanes(7, &transitions).as_deref(),
+        Some(
+            "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* \\ \\   c
+|\\ \\ \\
+| | |/
+| |/|
+* | |   d
+ \\ \\ \\
+  |/ /
+ /| /
+  |/
+* / e
+|/
+* f
+* g
+o @end
+"
+        )
+    );
 }
 
 #[test]
-fn 辺の一覧に残る形_交差に_分岐が混ざる() {
-    // e は h と終点へ分岐する(次のジョブへの辺がない)。
+fn 交差と同じ行き先に_分岐が混ざる形は_レーンの図になる() {
+    // f は h と終点へ分岐する(次のジョブへの辺がない)。c→d は記述順の次なので、飛び越しではない。
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("d")),
         ("b", Success, Some("e")),
@@ -146,17 +172,59 @@ fn 辺の一覧に残る形_交差に_分岐が混ざる() {
         ("f", Success, Some("h")),
         ("f", Warning, None),
     ];
-    assert_eq!(lanes(9, &transitions), None);
+    assert_eq!(
+        lanes(9, &transitions).as_deref(),
+        Some(
+            "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* | | c
+| |/
+|/|
+* | d
+|/
+* e
+*     f
+ \\ \\
+* | | g
+ / /
+* | h
+* | i
+|/
+o @end
+"
+        )
+    );
 }
 
 #[test]
-fn 辺の一覧に残る形_次のジョブへの辺がないジョブを含む同じ行き先() {
-    // c は成功も警告も終点へ飛ぶ。a と b も終点へ飛ぶので、同じ行き先と交差があっても、範囲の外。
+fn 次のジョブへの辺がないジョブを含む同じ行き先は_レーンの図になる() {
+    // c は成功も警告も終点へ飛ぶ。b の線(終点へ)に、合流の行で重なる。c の下の行の列 0 は空白(BR1.4)。
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("d")),
         ("b", Success, None),
         ("c", Success, None),
         ("c", Warning, None),
     ];
-    assert_eq!(lanes(5, &transitions), None);
+    assert_eq!(
+        lanes(5, &transitions).as_deref(),
+        Some(
+            "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* | | c
+ \\| |
+  |/
+ /|
+* | d
+* | e
+|/
+o @end
+"
+        )
+    );
 }

@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 「両方の飛び越し」(BR2.1)の図の例 D1〜D7 と、辺の一覧に残る形(BR1.5、BR3.1)のテスト。
+//! 「両方の飛び越し」(BR1.3、BR1.4)の図の例 D1〜D7 と、交差・同じ行き先との組み合わせ(BR2.1)、
+//! 辺の一覧に残る形(BR1.1)のテスト。
 
 mod graph_common;
 
@@ -21,7 +22,7 @@ use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, is_lane_drawable,
     layout_graph,
 };
-use graph_common::{Spec, definition, lanes_text, letters};
+use graph_common::{Spec, definition, graph_with_extra_edge, lanes_text, letters};
 
 /// `n` 個のジョブ(`a`、`b`、…)の図。辺の一覧になるときは `None`。
 fn lanes(n: usize, transitions: &[Spec<'_>]) -> Option<String> {
@@ -68,10 +69,15 @@ fn d2_別の線の内側の両方の飛び越しは_通常の飛び越しと同�
 }
 
 #[test]
-fn d3_別の線の行き先を越える両方の飛び越しは_交差で辺の一覧() {
+fn d3_別の線の行き先を越える両方の飛び越しは_交差の行で描く() {
+    // b は実行されうるが、次のジョブへの辺がないので、b の下の行の列 0 は空白(BR1.4)。
+    // c、d は実行されないので、e の手前の交差の行の列 0 も空白。
     let mut transitions = vec![("a", Success, Some("e"))];
     transitions.extend(both("b", Some("g")));
-    assert_eq!(lanes(7, &transitions), None);
+    assert_eq!(
+        lanes(7, &transitions).unwrap(),
+        "*   a\n|\\\n* \\   b\n \\ \\\n* | | c\n* | | d\n  |/\n /|\n* | e\n* | f\n|/\n* g\no @end\n"
+    );
 }
 
 #[test]
@@ -94,12 +100,13 @@ fn d5_飛び越し先のジョブが_両方の飛び越しを持つ() {
 
 #[test]
 fn d6_同じ行き先への合流は_両方の飛び越しでも合流の線になる() {
-    // a、b は通常の飛び越しで e へ。c は両方の飛び越しで e へ合流する。線は通常の辺を含むので、合流の行は `|/`。
+    // a、b は通常の飛び越しで e へ。c は両方の飛び越しで e へ合流する。d は実行されない(c は d へ進まない)ので、
+    // e の手前の合流の行の列 0 は空白(BR1.4)。
     let mut transitions = vec![("a", Success, Some("e")), ("b", Success, Some("e"))];
     transitions.extend(both("c", Some("e")));
     assert_eq!(
         lanes(6, &transitions).unwrap(),
-        "*   a\n|\\\n* | b\n|\\|\n* | c\n \\|\n* | d\n|/\n* e\n* f\no @end\n"
+        "*   a\n|\\\n* | b\n|\\|\n* | c\n \\|\n* | d\n /\n* e\n* f\no @end\n"
     );
 }
 
@@ -141,23 +148,15 @@ fn 両方の飛び越しの図は_同じ飛び越しの通常の図と_主線の
 }
 
 #[test]
-fn 両方の飛び越しが交差する形は_通常の飛び越しが交差する形と同じく辺の一覧() {
-    let skips = [("a", "d"), ("b", "e")];
+fn 両方の飛び越しが交差する形は_通常の飛び越しが交差する形と同じくレーンの図になる() {
     let transitions: Vec<Spec<'_>> = both("a", Some("d"))
         .into_iter()
         .chain([("b", Success, Some("e"))])
         .collect();
-    assert_eq!(lanes(6, &transitions), None);
-    // 通常の飛び越しだけなら、交差してもレーンの図になる(BR1.1)。
-    assert!(
-        lanes(
-            6,
-            &skips
-                .iter()
-                .map(|(f, t)| (*f, Success, Some(*t)))
-                .collect::<Vec<_>>()
-        )
-        .is_some()
+    // b、c は実行されないので、その下の行の列 0 は空白。d は実行されうる(BR1.4)。
+    assert_eq!(
+        lanes(6, &transitions).unwrap(),
+        "*   a\n \\\n* \\   b\n \\ \\\n* | | c\n  |/\n /|\n* | d\n|/\n* e\n* f\no @end\n"
     );
 }
 
@@ -170,19 +169,18 @@ fn 交差する通常の飛び越しは_レーンの図になる() {
 }
 
 #[test]
-fn 辺の一覧に残る形_分岐の線へ後のジョブが同じ行き先で合流する() {
-    // a は c と f へ分岐し、d が f へ飛ぶ。分岐が開いた線への合流なので、辺の一覧にする(BR2.2)。
-    assert_eq!(
-        lanes(
-            7,
-            &[
-                ("a", Success, Some("c")),
-                ("a", Warning, Some("f")),
-                ("d", Success, Some("f")),
-            ]
-        ),
-        None
-    );
+fn 辺の一覧に残る形_両方の飛び越しのジョブに辺を足して3本にする() {
+    // 両方の飛び越し(a が c へ)に、次のジョブ(b)と @end への辺を足す。辺が 3 本で、種類が 4 つの
+    // どれでもない(BR1.1。図の構造を直接作る)。
+    let ids = letters(4);
+    let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+    let mut graph = graph_with_extra_edge(&definition(&ids, &both("a", Some("c"))), "a", None);
+    let extra = graph_with_extra_edge(&definition(&ids, &[]), "a", Some("b"));
+    graph
+        .edges
+        .push(extra.edges.last().cloned().expect("足した辺"));
+    assert!(!is_lane_drawable(&graph));
+    assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
 }
 
 #[test]
@@ -202,8 +200,9 @@ fn 同じ行き先を含んで交差する形は_レーンの図になる() {
 }
 
 #[test]
-fn 辺の一覧に残る形_交差と同じ行き先に_両方の飛び越しが混ざる() {
-    // 交差と同じ行き先に、「両方の飛び越し」(d が成功も警告も f へ)が加わると、辺の一覧のまま(BR2.1)。
+fn 交差と同じ行き先に_両方の飛び越しが混ざる形は_レーンの図になる() {
+    // 交差と同じ行き先に、「両方の飛び越し」(d が成功も警告も f へ)が加わる(BR2.1)。
+    // d の線は、次のノードの手前で、同じ行き先の線に寄せる。
     assert_eq!(
         lanes(
             7,
@@ -214,8 +213,9 @@ fn 辺の一覧に残る形_交差と同じ行き先に_両方の飛び越しが
                 ("d", Success, Some("f")),
                 ("d", Warning, Some("f")),
             ]
-        ),
-        None
+        )
+        .unwrap(),
+        "*   a\n|\\\n* \\   b\n|\\ \\\n* \\ \\   c\n|\\ \\ \\\n| | |/\n| |/|\n* | |   d\n \\ \\ \\\n  |/ /\n /| /\n  |/\n* / e\n|/\n* f\n* g\no @end\n"
     );
 }
 

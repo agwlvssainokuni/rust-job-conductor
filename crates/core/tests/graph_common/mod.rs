@@ -16,7 +16,10 @@
 
 #![allow(dead_code)]
 
-use conductor_core::graph::{GraphLayout, LaneGlyph, LaneLayout, build_graph, layout_graph};
+use conductor_core::graph::{
+    EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, LaneGlyph, LaneLayout, build_graph,
+    layout_graph,
+};
 use conductor_core::{
     JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget,
 };
@@ -92,6 +95,25 @@ pub fn render_lanes(layout: &LaneLayout, labels: &[String]) -> String {
         out.push('\n');
     }
     out
+}
+
+/// 定義から作った図の構造に、`from` から `to`(`None` は `@end`)への成功の辺を 1 本足す。
+///
+/// ジョブの結果は成功と警告の 2 つなので、定義からは、辺が 3 本以上のジョブを作れない。
+/// レーンの図の範囲の外(辺の一覧。BR1.1)の形を確かめるために、図の構造を直接作る。
+pub fn graph_with_extra_edge(def: &PipelineDefinition, from: &str, to: Option<&str>) -> FlowGraph {
+    let mut graph = build_graph(def, None);
+    graph.edges.push(FlowEdge {
+        from_job: from.to_string(),
+        to: match to {
+            Some(id) => EdgeTarget::Job(id.to_string()),
+            None => EdgeTarget::End,
+        },
+        kinds: vec![EdgeKind::Success],
+        skipped_jobs: Vec::new(),
+        explicit: true,
+    });
+    graph
 }
 
 /// 定義から、レーンの図の文字列を作る(辺の一覧になるときは `None`)。

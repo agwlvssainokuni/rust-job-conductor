@@ -201,9 +201,10 @@ fn 同じ行き先の定義は_合流の行のレーンの図で出る() {
     assert_eq!(text(&out.stderr), "");
 }
 
-/// 成功と警告の両方が飛び越す定義(例 D1)の text が、通常の飛び越しと同じ線(主線の線だけ省く)で出る。交差と「両方の飛び越し」が混ざる形は、辺の一覧に残る。
+/// 成功と警告の両方が飛び越す定義(例 D1)の text が、通常の飛び越しと同じ線(主線の線だけ省く)で出る。
+/// 交差と「両方の飛び越し」が混ざる形も、今回からレーンの図で出る(BR2.1)。
 #[test]
-fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_交差と同じ行き先は辺の一覧のまま() {
+fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_交差と混ざる形もレーンの図で出る() {
     let ok = helper_command("exit 0");
     let both = "[[job.transitions]]\non = \"warning\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"c\"\n";
     let jobs = [
@@ -220,7 +221,8 @@ fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_
         "*   a\n \\\n* | b\n /\n* c\n* d\no @end\n"
     );
 
-    // 交差し、かつ「両方の飛び越し」(a が成功も警告も e へ)を含む形は、辺の一覧と、広い言い方の注記。
+    // 交差し、かつ「両方の飛び越し」(a が成功も警告も e へ)を含む形。b、c、d は実行されないので、
+    // その下の行の列 0 は空白(BR1.4)。
     let both_to_e = "[[job.transitions]]\non = \"warning\"\nnext = \"e\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"e\"\n";
     let to_e = "[[job.transitions]]\non = \"success\"\nnext = \"e\"\n";
     let to_f = "[[job.transitions]]\non = \"success\"\nnext = \"f\"\n";
@@ -235,13 +237,11 @@ fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_
     let project = Project::new(&definition("p", &crossing));
     let out = project.run(&["graph"]);
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
-    assert!(
-        text(&out.stdout).starts_with(
-            "note: the skip edges cross or form a shape the lane diagram cannot draw, so it is replaced by a list of edges.\nJobs:\n"
-        ),
-        "{}",
-        text(&out.stdout)
+    assert_eq!(
+        text(&out.stdout),
+        "*   a\n \\\n* \\   b\n \\ \\\n* \\ \\   c\n \\ \\ \\\n  | |/\n  |/|\n* / | d\n / /\n* / e\n|/\n* f\no @end\n"
     );
+    assert_eq!(text(&out.stderr), "");
 }
 
 /// 交差する飛び越し(a→d、b→e。例 C1)の定義の text が、交差の行を含むレーンの図で出る。
@@ -305,7 +305,7 @@ fn 分岐の定義は_2本の線を同時に開くレーンの図で出る() {
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
     assert_eq!(
         text(&out.stdout),
-        "*     a\n \\ \\\n* | | b\n / /\n* / c\n /\n* d\n* e\no @end\n"
+        "*     a\n \\ \\\n* | | b\n / /\n* / c\n|/\n* d\n* e\no @end\n"
     );
     assert_eq!(text(&out.stderr), "");
 }
