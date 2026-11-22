@@ -1,4 +1,4 @@
-# 04. コマンドライン(`conductor` v0.9.4)
+# 04. コマンドライン(`conductor` v0.9.5)
 
 実装: `crates/cli/src/{main,lib,args,types,ctx,run,pipeline,aux_commands,graph,dry_run,init}.rs`。
 引数の解釈は `lexopt` で字句に分け、コマンドごとの文法の表で検査する。引数はシェルを介さず、解釈も展開もしない。
@@ -70,7 +70,7 @@ conductor --help | --version
 | `--run-id <id>` | ステートファイルを分ける run ID。空文字は「run ID なしに固定」 | 未指定(環境変数を見る。5 章) |
 | `--remove-on-complete` | 完了時にステートファイルを削除する | 指定なし(定義の `[pipeline].remove_on_complete`、さらに既定は `false`) |
 | `--all` | 定義のステートを、run ID の有無によらず全部消す(`reset` のみ) | なし |
-| `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象 `--to`。値は含めない) | なし(必須) |
+| `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象 `--to`。値は含めない。v0.9.4 までは、対象は値そのもの) | なし(必須) |
 | `--format <text\|mermaid>`(v0.9.0 以降) | `graph` の出力形式。大文字小文字を区別し、それ以外は `invalid value`(対象 `--format`。値は含めない) | `text` |
 | `--state`(同) | `graph` で、ステートを読み、状態を図に重ねる(読むだけ) | 重ねない |
 | `--dry-run`(同) | `run`・`pipeline` で、ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を標準出力に出す | 実行する |
@@ -108,7 +108,7 @@ conductor --help | --version
 8b. (v0.9.0 以降)値の検査。`--assume` の各値(指定順に): `=` がない、終了コードが整数でない、0〜255 の範囲外、同じジョブID の重複 → `invalid value`(対象 `--assume`。値は含めない)。`--format` の値が `text`・`mermaid` 以外 → `invalid value`(対象 `--format`)。ジョブID が定義にあるかは、ここでは調べない(定義を読んだあとに、流れが調べる。7.9)。
 9. `--run-id` の値の検査(下の 5.2)。違反は `invalid value`(対象 `--run-id`。値は含めない)。
 10. 位置引数の過不足: `run`/`pipeline`/`convert` で入力なし → `missing argument`。`watch`/`reset` でコマンド名の後ろに位置引数あり → `unexpected argument`(対象はその語)。それ以外のコマンドで、コマンド名を除く 2 個目の位置引数があれば `unexpected argument`(対象は 2 個目の語。`run a b` なら `b`)。`validate`・`graph`・`init` の位置引数(パイプライン名)は省略できる。`init` の名前が `trim` して空なら `invalid value`(対象 `pipeline name`。値は含めない)。
-11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む)→ `invalid value`(対象 `--to`。値は含めない)。
+11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む)→ `invalid value`(対象 `--to`。値は含めない。v0.9.4 までは、対象は値そのもの)。
 
 使い方の誤りの種類と文言は 08 章のカタログ(`usage_kind`)を参照。表示形式は「`conductor: error: <文>: '<対象>'`(対象があるとき)、空行、使い方全文」。
 
@@ -247,13 +247,13 @@ conductor --help | --version
 ## 8. ヘルプとバージョン
 
 - `-h`/`--help`: 使い方全文を標準出力に出して 0。言語はロケールに従う。全文は 08 章に掲載。
-- `-V`/`--version`: 標準出力に `conductor <版>\n`(版は `CARGO_PKG_VERSION`。v0.9.4 では `conductor 0.9.4`。このリポジトリの 4 クレートの `Cargo.toml` の版は `0.9.4` である)。ロケールを判定しない。終了コード 0。
+- `-V`/`--version`: 標準出力に `conductor <版>\n`(版は `CARGO_PKG_VERSION`。v0.9.5 では `conductor 0.9.5`。このリポジトリの 4 クレートの `Cargo.toml` の版は `0.9.5` である)。ロケールを判定しない。終了コード 0。
 
 実際の出力:
 
 ```text
 $ conductor --version
-conductor 0.9.4
+conductor 0.9.5
 ```
 
 ## 9. 実際の実行例(`LANG=C`)
