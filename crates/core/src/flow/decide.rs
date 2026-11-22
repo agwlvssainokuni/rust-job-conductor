@@ -14,17 +14,8 @@
 
 //! 起動前の判断(`decide_before_run`)。BR3.5、BR3.8。
 
-use super::{is_settled, record_of};
+use super::{is_settled, record_of, status_at};
 use crate::types::{Decision, DecisionReason, JobState, JobStatus, PipelineDefinition, SkipReason};
-
-/// 記述順の位置 `index` のジョブの状態。記録が同じ位置にあれば、それを使い(ジョブの数に比例する
-/// 時間で済む。1,000 ジョブの計画の性能のため。U3 の BR6.3)、なければ [`record_of`] と同じに引く。
-fn status_at(job_states: &[JobState], index: usize, job_id: &str) -> JobStatus {
-    match job_states.get(index) {
-        Some(s) if s.job_id == job_id => s.status,
-        _ => record_of(job_states, job_id).0,
-    }
-}
 
 /// ジョブを起動する前に、実行・スキップ・拒否を決める(W2、BR3.5)。
 ///

@@ -14,7 +14,7 @@
 
 //! ジョブのあいだの中断の再開位置(`resume_point_on_interrupt`)。BR3.7。
 
-use super::{has_end_skip, record_of};
+use super::{has_end_skip, status_at};
 use crate::types::{JobState, JobStatus, PipelineDefinition, ResumePoint};
 
 /// ジョブとジョブのあいだで中断されたときの、再開位置を決める(W4、BR3.7)。
@@ -35,13 +35,14 @@ pub fn resume_point_on_interrupt(
     let resume = definition
         .job
         .iter()
-        .find(|j| {
+        .enumerate()
+        .find(|(i, j)| {
             matches!(
-                record_of(job_states, &j.id).0,
+                status_at(job_states, *i, &j.id),
                 JobStatus::Pending | JobStatus::Error
             )
         })
-        .map(|j| j.id.clone());
+        .map(|(_, j)| j.id.clone());
     ResumePoint {
         completed: resume.is_none(),
         resume_job_id: resume,

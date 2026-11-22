@@ -44,6 +44,18 @@ pub(crate) fn record_of(states: &[JobState], job_id: &str) -> (JobStatus, Option
         .unwrap_or((JobStatus::Pending, None))
 }
 
+/// 記述順の位置 `index` のジョブ `job_id` の状態。記録が同じ位置にあればそれを使い(O(1))、
+/// なければ [`record_of`] と同じに引く(記録が無ければ pending)。
+///
+/// ステートの記録は、ふつう定義の記述順に並ぶので、位置で引けばジョブの数に比例する時間で
+/// 全ジョブを見られる(1,000 ジョブの計画の性能のため。U3 の BR6.3、BR2.3)。
+pub(crate) fn status_at(states: &[JobState], index: usize, job_id: &str) -> JobStatus {
+    match states.get(index) {
+        Some(s) if s.job_id == job_id => s.status,
+        _ => record_of(states, job_id).0,
+    }
+}
+
 /// 成功・警告・スキップのいずれか(「済んだ」状態)か。
 pub(crate) fn is_settled(status: JobStatus) -> bool {
     matches!(

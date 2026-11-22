@@ -21,6 +21,7 @@
 
 use std::path::Path;
 
+use super::status_at;
 use crate::run_id::RunId;
 use crate::types::{
     Classification, DecisionReason, JobExecution, JobOutcome, JobState, JobStatus, NextStep,
@@ -149,16 +150,8 @@ pub fn apply_skip(
         out.end_reached = true;
     }
 
-    // 状態は、定義の位置で引く(位置が一致すれば O(1)、一致しなければ探す。`decide.rs` の
-    // `status_at` と同じ考え)。これで 1 回の `apply_skip` は O(n) になる(BR2.3)。
-    let status_at = |index: usize, id: &str| match out.job_states.get(index) {
-        Some(j) if j.job_id == id => j.status,
-        _ => out
-            .job_states
-            .iter()
-            .find(|j| j.job_id == id)
-            .map_or(JobStatus::Pending, |j| j.status),
-    };
+    // 状態は、定義の位置で引く([`status_at`]。位置が一致すれば O(1)、一致しなければ探す)。
+    // これで 1 回の `apply_skip` は O(n) になる(BR2.3)。
     if out.job_states.iter().any(|j| j.status == JobStatus::Error) {
         return out;
     }
@@ -166,7 +159,7 @@ pub fn apply_skip(
         .job
         .iter()
         .enumerate()
-        .find(|(i, j)| status_at(*i, &j.id) == JobStatus::Pending)
+        .find(|(i, j)| status_at(&out.job_states, *i, &j.id) == JobStatus::Pending)
         .map(|(_, j)| j.id.clone());
     let is_last = definition.job.last().is_some_and(|j| j.id == job_id);
     out.completed = is_last && first_pending.is_none();
