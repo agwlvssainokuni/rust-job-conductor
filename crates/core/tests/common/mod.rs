@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! core の統合テストの共通の補助(秘密の値、定義の検査の結果、計った時間の中央値)。
+//! core の統合テストの共通の補助(秘密の値、定義の検査の結果、計った時間の中央値、ステート)。
 #![allow(dead_code)]
 
 use std::time::Duration;
 
 use conductor_core::DefinitionErrorKind as K;
-use conductor_core::parse_definition;
+use conductor_core::{JobState, JobStatus, PipelineState, SkipReason, parse_definition};
 
 /// 誤りの文やステートに現れてはいけない、秘密の値(NFR4.6)。
 pub const SECRET: &str = "s3cr3t-VALUE-do-not-print";
@@ -40,4 +40,28 @@ pub fn kinds(text: &str) -> Vec<K> {
 pub fn median(mut samples: Vec<Duration>) -> Duration {
     samples.sort();
     samples[samples.len() / 2]
+}
+
+/// パイプライン `p` のステート(定義のキーとパスは `t.toml`)。`jobs` はジョブ ID と状態の並び
+/// (終了コードは無し。`Skipped` の理由は `ByTransition`)。
+pub fn state(jobs: &[(&str, JobStatus)], resume: Option<&str>, completed: bool) -> PipelineState {
+    PipelineState {
+        definition_key: "t.toml".into(),
+        pipeline_name: "p".into(),
+        definition_path: "t.toml".into(),
+        job_order: jobs.iter().map(|(id, _)| id.to_string()).collect(),
+        job_states: jobs
+            .iter()
+            .map(|(id, status)| JobState {
+                job_id: id.to_string(),
+                status: *status,
+                exit_code: None,
+                skip_reason: (*status == JobStatus::Skipped).then_some(SkipReason::ByTransition),
+            })
+            .collect(),
+        resume_job_id: resume.map(str::to_string),
+        end_reached: false,
+        completed,
+        run_id: None,
+    }
 }

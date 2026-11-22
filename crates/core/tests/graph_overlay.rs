@@ -14,33 +14,13 @@
 
 //! 状態の重ね合わせ(BR4.1〜BR4.3)と、図の構造(BR2.1)のテスト。
 
+mod common;
 mod graph_common;
 
+use common::state;
+use conductor_core::JobStatus;
 use conductor_core::graph::{NodeState, build_graph, overlay_from_state, pending_overlay};
-use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 use graph_common::definition;
-
-fn state(statuses: &[(&str, JobStatus)], resume: Option<&str>, completed: bool) -> PipelineState {
-    PipelineState {
-        definition_key: "k".into(),
-        pipeline_name: "p".into(),
-        definition_path: "conductor.toml".into(),
-        job_order: statuses.iter().map(|(id, _)| id.to_string()).collect(),
-        job_states: statuses
-            .iter()
-            .map(|(id, status)| JobState {
-                job_id: id.to_string(),
-                status: *status,
-                exit_code: None,
-                skip_reason: (*status == JobStatus::Skipped).then_some(SkipReason::ByTransition),
-            })
-            .collect(),
-        resume_job_id: resume.map(str::to_string),
-        end_reached: false,
-        completed,
-        run_id: None,
-    }
-}
 
 #[test]
 fn 図の節は記述順で最後に終点で_状態を重ねない図には状態がない() {

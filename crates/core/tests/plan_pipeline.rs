@@ -14,8 +14,11 @@
 
 //! `pipeline --dry-run` の計画の生成(U3。BR1.2〜BR1.4、BR1.8)。
 
+mod common;
+
+use common::state;
 use conductor_core::{
-    Assumption, Classification, ExecutionPlan, JobState, JobStatus, LoadedEnvFiles, PipelineState,
+    Assumption, Classification, ExecutionPlan, JobStatus, LoadedEnvFiles, PipelineState,
     PlanDisposition as D, PlanEnd, PlanInput, ResumeKind, SkipReason, parse_definition,
     plan_pipeline,
 };
@@ -53,28 +56,6 @@ fn plan_with(
 
 fn dispositions(plan: &ExecutionPlan) -> Vec<D> {
     plan.entries.iter().map(|e| e.disposition).collect()
-}
-
-fn state(jobs: &[(&str, JobStatus)], resume: Option<&str>, completed: bool) -> PipelineState {
-    PipelineState {
-        definition_key: "t.toml".into(),
-        pipeline_name: "p".into(),
-        definition_path: "t.toml".into(),
-        job_order: jobs.iter().map(|(id, _)| id.to_string()).collect(),
-        job_states: jobs
-            .iter()
-            .map(|(id, status)| JobState {
-                job_id: id.to_string(),
-                status: *status,
-                exit_code: None,
-                skip_reason: None,
-            })
-            .collect(),
-        resume_job_id: resume.map(str::to_string),
-        end_reached: false,
-        completed,
-        run_id: None,
-    }
 }
 
 #[test]

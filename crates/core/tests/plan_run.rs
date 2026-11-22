@@ -14,10 +14,12 @@
 
 //! `run <job> --dry-run` の計画の生成(U3。BR1.6、BR4.3)。
 
+mod common;
+
+use common::state;
 use conductor_core::{
-    Assumption, ExecutionPlan, JobState, JobStatus, LoadedEnvFiles, PipelineState,
-    PlanDisposition as D, PlanInput, PlanMode, PlanRejection, RejectReason, ResumeKind,
-    parse_definition, plan_run,
+    Assumption, ExecutionPlan, JobStatus, LoadedEnvFiles, PipelineState, PlanDisposition as D,
+    PlanInput, PlanMode, PlanRejection, RejectReason, ResumeKind, parse_definition, plan_run,
 };
 
 const THREE: &str = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\nwarning_exit_codes = [3]\n[[job]]\nid = \"b\"\ncommand = \"echo b\"\n[[job]]\nid = \"c\"\ncommand = \"echo c\"\n";
@@ -50,35 +52,17 @@ fn run_plan(
     )
 }
 
-fn state_with(statuses: &[(&str, JobStatus)]) -> PipelineState {
-    PipelineState {
-        definition_key: "t.toml".into(),
-        pipeline_name: "p".into(),
-        definition_path: "t.toml".into(),
-        job_order: statuses.iter().map(|(id, _)| id.to_string()).collect(),
-        job_states: statuses
-            .iter()
-            .map(|(id, status)| JobState {
-                job_id: id.to_string(),
-                status: *status,
-                exit_code: None,
-                skip_reason: None,
-            })
-            .collect(),
-        resume_job_id: None,
-        end_reached: false,
-        completed: false,
-        run_id: None,
-    }
-}
-
 #[test]
 fn run_の計画は_対象の_1_ジョブと次の動きを持ち_再開位置は示さない() {
-    let s = state_with(&[
-        ("a", JobStatus::Success),
-        ("b", JobStatus::Pending),
-        ("c", JobStatus::Pending),
-    ]);
+    let s = state(
+        &[
+            ("a", JobStatus::Success),
+            ("b", JobStatus::Pending),
+            ("c", JobStatus::Pending),
+        ],
+        None,
+        false,
+    );
     let plan = run_plan(THREE, "b", Some(&s), &[]).expect("計画");
     assert_eq!(plan.mode, PlanMode::Individual);
     assert_eq!(plan.entries.len(), 1);
@@ -109,18 +93,26 @@ fn run_の次の動きは_遷移のスキップ_end_完了_停止を区別する
     assert!(note.end_reached && !note.completed);
     assert!(note.skipped_job_ids.is_empty() && note.next_job_id.is_none());
     // 最後のジョブの成功は、完了。
-    let s = state_with(&[
-        ("a", JobStatus::Success),
-        ("b", JobStatus::Success),
-        ("c", JobStatus::Pending),
-    ]);
+    let s = state(
+        &[
+            ("a", JobStatus::Success),
+            ("b", JobStatus::Success),
+            ("c", JobStatus::Pending),
+        ],
+        None,
+        false,
+    );
     let note = run_plan(THREE, "c", Some(&s), &[])
         .expect("計画")
         .next_step_note
         .expect("次の動き");
     assert!(note.completed && note.next_job_id.is_none());
     // 仮定でエラーなら、停止。
-    let s = state_with(&[("a", JobStatus::Success), ("b", JobStatus::Pending)]);
+    let s = state(
+        &[("a", JobStatus::Success), ("b", JobStatus::Pending)],
+        None,
+        false,
+    );
     let note = run_plan(THREE, "b", Some(&s), &[Assumption::new("b", 1)])
         .expect("計画")
         .next_step_note
@@ -130,7 +122,11 @@ fn run_の次の動きは_遷移のスキップ_end_完了_停止を区別する
 
 #[test]
 fn run_で実行済みのジョブは_実行済みで_次の動きを持たない() {
-    let s = state_with(&[("a", JobStatus::Success), ("b", JobStatus::Pending)]);
+    let s = state(
+        &[("a", JobStatus::Success), ("b", JobStatus::Pending)],
+        None,
+        false,
+    );
     let plan = run_plan(THREE, "a", Some(&s), &[]).expect("計画");
     assert_eq!(plan.entries[0].disposition, D::AlreadyExecuted);
     assert!(plan.entries[0].result.is_none());
