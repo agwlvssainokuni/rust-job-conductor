@@ -16,6 +16,8 @@
 //!
 //! 終了コードは、どの OS でも、0〜255 の範囲に合わせる(BR5.2)。
 
+use conductor_core::{Classification, JobOutcome};
+
 /// 成功、警告、スキップ。
 pub const EXIT_OK: i32 = 0;
 /// 定義の誤り(ファイルがない・読めない・検証の誤り・command の誤り)。
@@ -44,6 +46,15 @@ pub fn exit_code_for(reported: i32, is_error: bool) -> i32 {
     }
     let low = reported & 0xFF;
     if low == 0 && is_error { 1 } else { low }
+}
+
+/// ジョブの結果(分類と `reported_exit_code`)から、プロセスの終了コードを決める(BR5.2)。
+/// エラーの分類のときだけ、下位 8 ビットの 0 を 1 にする([`exit_code_for`])。
+pub fn outcome_exit_code(outcome: &JobOutcome) -> i32 {
+    exit_code_for(
+        outcome.reported_exit_code,
+        outcome.classification == Some(Classification::Error),
+    )
 }
 
 /// 中断(シグナル)の終了コード: 128 + 番号。0〜255 に合わせる。

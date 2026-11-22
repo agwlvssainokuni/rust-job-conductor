@@ -19,7 +19,7 @@
 use conductor_converter::TargetFormat;
 
 use crate::ctx::{Ctx, aux_run_id, definition_path, read_context};
-use crate::exit::{EXIT_CONVERSION, EXIT_OK, EXIT_STATE, EXIT_USAGE};
+use crate::exit::{EXIT_CONVERSION, EXIT_OK};
 use crate::report::{DisplayEvent, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
@@ -30,10 +30,7 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     let path = definition_path(cmd);
     let run_id = match aux_run_id(ctx, cmd, &path) {
         Ok(run_id) => run_id,
-        Err(error) => {
-            ctx.show(&DisplayEvent::Usage(&error));
-            return EXIT_USAGE;
-        }
+        Err(error) => return ctx.usage_error(&error),
     };
     let context = read_context(run_id.is_some());
     // 完了のステートも読む(FR3.1)。`WatchEmpty` は、ファイルなし・長さ 0 のときだけ。
@@ -41,17 +38,12 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(state) => state,
         Err(error) => return ctx.state_error(&error, context),
     };
-    let written = match &state {
-        Some(state) => ctx.show(&DisplayEvent::WatchTable(state)),
-        None => ctx.show(&DisplayEvent::WatchEmpty),
+    let output = match &state {
+        Some(state) => DisplayEvent::WatchTable(state),
+        None => DisplayEvent::WatchEmpty,
     };
-    if written {
-        EXIT_OK
-    } else {
-        // 標準出力に書けない(閉じたパイプなど)。パニックにせず、65 で終わる(security-design の差分)。
-        ctx.show(&DisplayEvent::OutputFailed);
-        EXIT_STATE
-    }
+    // 標準出力に書けない(閉じたパイプなど)。パニックにせず、65 で終わる(security-design の差分)。
+    ctx.show_output(&output, &DisplayEvent::OutputFailed)
 }
 
 /// `conductor reset`: ステートを消す(BR7.2)。読み込みも検査も迂回する。ステートがなくても成功。
@@ -75,10 +67,7 @@ pub(crate) fn run_reset(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     }
     let run_id = match aux_run_id(ctx, cmd, &path) {
         Ok(run_id) => run_id,
-        Err(error) => {
-            ctx.show(&DisplayEvent::Usage(&error));
-            return EXIT_USAGE;
-        }
+        Err(error) => return ctx.usage_error(&error),
     };
     match ctx.runtime.reset_state(&path, run_id.as_ref()) {
         Ok(()) => EXIT_OK,
@@ -106,8 +95,7 @@ pub(crate) fn run_validate(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
 pub(crate) fn run_convert(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     let (Some(input), Some(target)) = (&cmd.convert_input, cmd.convert_target) else {
         let error = UsageError::new(UsageErrorKind::MissingArgument);
-        ctx.show(&DisplayEvent::Usage(&error));
-        return EXIT_USAGE;
+        return ctx.usage_error(&error);
     };
     let target: TargetFormat = target;
     match ctx.runtime.convert(std::path::Path::new(input), target) {

@@ -29,7 +29,7 @@ use conductor_runtime::{Durability, StateLocation, apply_interrupt};
 
 use crate::ctx::{Ctx, FlowTarget, Session};
 use crate::dry_run::enter_flow;
-use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE, exit_code_for, signal_exit_code};
+use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE, outcome_exit_code, signal_exit_code};
 use crate::report::{DisplayEvent, StateContext};
 use crate::step::{StepResult, decide, record_skip, remove_if_requested, run_step};
 use crate::types::CliCommand;
@@ -98,7 +98,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 let is_error = outcome.classification == Some(Classification::Error);
                 if is_error || outcome.classification.is_none() {
                     // エラーで停止する(再試行しない)。中断で起動しなかった場合も、ここで終える。
-                    return exit_code_for(outcome.reported_exit_code, is_error);
+                    return outcome_exit_code(&outcome);
                 }
                 if next.completed {
                     return finish(ctx, &session, after);

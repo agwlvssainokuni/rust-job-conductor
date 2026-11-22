@@ -22,7 +22,7 @@
 use conductor_core::{PlanInput, plan_pipeline, plan_run};
 
 use crate::ctx::{Ctx, FlowTarget};
-use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE, EXIT_USAGE};
+use crate::exit::EXIT_REJECTED;
 use crate::report::DisplayEvent;
 use crate::report::plan_text::render_plan;
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
@@ -40,8 +40,7 @@ pub(crate) fn enter_flow<'c>(
 ) -> Result<&'c str, i32> {
     let Some(arg) = arg else {
         let error = UsageError::new(UsageErrorKind::MissingArgument);
-        ctx.show(&DisplayEvent::Usage(&error));
-        return Err(EXIT_USAGE);
+        return Err(ctx.usage_error(&error));
     };
     // `--dry-run`: ジョブを実行せず、ステートに書かず、シグナルも準備せずに、計画を出す(U3)。
     if cmd.dry_run.dry_run {
@@ -98,10 +97,5 @@ pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: FlowTarge
 
     // 計画の全体を作ってから、標準出力に 1 回で書く(BR3.4)。
     let text = render_plan(ctx.reporter.language(), &plan);
-    if ctx.show(&DisplayEvent::Plan(&text)) {
-        EXIT_OK
-    } else {
-        ctx.show(&DisplayEvent::OutputFailed);
-        EXIT_STATE
-    }
+    ctx.show_output(&DisplayEvent::Plan(&text), &DisplayEvent::OutputFailed)
 }

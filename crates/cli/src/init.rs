@@ -34,12 +34,10 @@ pub(crate) fn run_init(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     match &options.target {
         InitTarget::Stdout => {
             // ひな形だけを 1 回で書く。`--force` は意味がないので、無視する(BR1.5)。
-            if ctx.show(&DisplayEvent::InitTemplate(&text)) {
-                EXIT_OK
-            } else {
-                ctx.show(&DisplayEvent::InitStdoutFailed);
-                EXIT_STATE
-            }
+            ctx.show_output(
+                &DisplayEvent::InitTemplate(&text),
+                &DisplayEvent::InitStdoutFailed,
+            )
         }
         InitTarget::File(path) => {
             let path = Path::new(path);

@@ -32,7 +32,9 @@ use conductor_runtime::{
 
 use crate::args::resolve_run_id;
 use crate::deps::{Env, Runtime, SignalError, Signals, Sink};
-use crate::exit::{EXIT_DEFINITION, EXIT_INTERNAL, EXIT_STATE, EXIT_USAGE, exit_code_for};
+use crate::exit::{
+    EXIT_DEFINITION, EXIT_INTERNAL, EXIT_OK, EXIT_STATE, EXIT_USAGE, outcome_exit_code,
+};
 use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
@@ -130,6 +132,27 @@ impl Ctx<'_> {
         self.reporter.show(&mut *self.sink, event)
     }
 
+    /// 使い方の誤りを表示して、68 を返す。
+    pub(crate) fn usage_error(&mut self, error: &UsageError) -> i32 {
+        self.show(&DisplayEvent::Usage(error));
+        EXIT_USAGE
+    }
+
+    /// 標準出力に `output` を書く。書けたら 0、書けなければ(閉じたパイプなど。パニックにしない)
+    /// `failed` を表示して 65 を返す(`watch`・`graph`・`--dry-run`・`init`。BR6.3)。
+    pub(crate) fn show_output(
+        &mut self,
+        output: &DisplayEvent<'_>,
+        failed: &DisplayEvent<'_>,
+    ) -> i32 {
+        if self.show(output) {
+            EXIT_OK
+        } else {
+            self.show(failed);
+            EXIT_STATE
+        }
+    }
+
     /// `run <job-id>` の実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを `Err` で返す。
     /// 材料と、定義の中のそのジョブの位置を返す。
     ///
@@ -205,8 +228,7 @@ impl Ctx<'_> {
             Some(index) => Ok(index),
             None => {
                 let error = UsageError::with_subject(UsageErrorKind::UnknownJob, job_id);
-                self.show(&DisplayEvent::Usage(&error));
-                Err(EXIT_USAGE)
+                Err(self.usage_error(&error))
             }
         }
     }
@@ -220,8 +242,7 @@ impl Ctx<'_> {
     ) -> Result<(), i32> {
         if job_ids.iter().any(|id| definition.job_index(id).is_none()) {
             let error = UsageError::new(UsageErrorKind::UnknownJob);
-            self.show(&DisplayEvent::Usage(&error));
-            return Err(EXIT_USAGE);
+            return Err(self.usage_error(&error));
         }
         Ok(())
     }
@@ -273,10 +294,7 @@ impl Ctx<'_> {
             .unwrap_or(DEFAULT_RUN_ID_ENV);
         match resolve_run_id(cmd.run_id.as_deref(), env_name, self.env) {
             Ok(run_id) => Ok(run_id),
-            Err(error) => {
-                self.show(&DisplayEvent::Usage(&error));
-                Err(EXIT_USAGE)
-            }
+            Err(error) => Err(self.usage_error(&error)),
         }
     }
 
@@ -443,8 +461,7 @@ impl Ctx<'_> {
         outcome: &JobOutcome,
         next: &NextStep,
     ) {
-        let is_error = outcome.classification == Some(Classification::Error);
-        let conductor_exit = exit_code_for(outcome.reported_exit_code, is_error);
+        let conductor_exit = outcome_exit_code(outcome);
         let detail = result_detail(execution);
         self.show(&DisplayEvent::JobResult {
             job_id: &job.id,

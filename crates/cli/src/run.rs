@@ -24,11 +24,11 @@
 //! 1 つのジョブの手順(判断、スキップの記録、実行と記録、削除)は、`pipeline` と共通の
 //! `crate::step` を呼ぶ(BR1.1)。いつ消すかと、終了コードの決め方は、ここに残す(BR1.2)。
 
-use conductor_core::{Classification, Decision, RunMode};
+use conductor_core::{Decision, RunMode};
 
 use crate::ctx::{Ctx, FlowTarget};
 use crate::dry_run::enter_flow;
-use crate::exit::{EXIT_OK, EXIT_REJECTED, exit_code_for};
+use crate::exit::{EXIT_OK, EXIT_REJECTED, outcome_exit_code};
 use crate::report::{DisplayEvent, StateContext};
 use crate::step::{decide, record_skip, remove_if_requested, run_step};
 use crate::types::CliCommand;
@@ -86,8 +86,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             {
                 return code;
             }
-            let is_error = step.outcome.classification == Some(Classification::Error);
-            exit_code_for(step.outcome.reported_exit_code, is_error)
+            outcome_exit_code(&step.outcome)
         }
     }
 }

@@ -26,7 +26,6 @@ use conductor_core::graph::{
 };
 
 use crate::ctx::{Ctx, StateRead};
-use crate::exit::{EXIT_OK, EXIT_STATE};
 use crate::report::DisplayEvent;
 use crate::report::graph_mermaid::render_mermaid;
 use crate::report::graph_text::render_text;
@@ -57,13 +56,8 @@ pub(crate) fn run_graph(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         // `-v` は、Mermaid には影響しない(BR3.1)。
         GraphFormat::Mermaid => render_mermaid(lang, &graph),
     };
-    if ctx.show(&DisplayEvent::Graph(&text)) {
-        EXIT_OK
-    } else {
-        // 標準出力に書けない(閉じたパイプなど)。`watch` と同じに、65 で終わる(BR6.3)。
-        ctx.show(&DisplayEvent::OutputFailed);
-        EXIT_STATE
-    }
+    // 標準出力に書けない(閉じたパイプなど)。`watch` と同じに、65 で終わる(BR6.3)。
+    ctx.show_output(&DisplayEvent::Graph(&text), &DisplayEvent::OutputFailed)
 }
 
 /// `--state`: run ID を決め、ステートを(完了したものも含めて)読み、定義と照合して、重ね合わせにする
