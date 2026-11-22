@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! `escape_display` の、同じ入力と期待値の表(conductor-core・conductor-runtime・conductor-converter と揃える。NFR4.2)。
+//! `escape_display` の、同じ入力と期待値の表(conductor-core・conductor-converter と揃える。NFR4.2)。
 //!
 //! conductor-core の `sanitize` は公開されているため、同じ入力に同じ結果を返すことを直接確かめる。
-//! conductor-runtime・conductor-converter の同じ規則の関数は、非公開のため、各 Unit のテストにある、同じ期待値の表で揃える。
+//! conductor-converter の同じ規則の関数は、非公開のため、converter の単体テストにある、同じ期待値の表で揃える。
 
 use conductor_cli::report::escape::{escape_display, escape_name, escape_path};
 

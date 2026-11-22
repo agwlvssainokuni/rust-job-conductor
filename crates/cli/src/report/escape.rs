@@ -14,9 +14,9 @@
 
 //! 表示の安全(Escape。NFR4.2)。入力に由来する文字列を、端末に出せる形にする。
 //!
-//! conductor-core(`sanitize`)・conductor-runtime・conductor-converter の、同じ規則の関数と、同じ入力に同じ結果を返す
-//! (`tests/escape_table.rs` が、同じ入力と期待値の表で揃えを確かめる)。同じ規則の関数が
-//! 4 つの Unit に重複している。共通のクレートへまとめることは、将来の検討事項である。
+//! conductor-core(`sanitize`)・conductor-converter(`sanitize`。非公開)の、同じ規則の関数と、同じ入力に同じ結果を返す
+//! (`tests/escape_table.rs` が、同じ入力と期待値の表で揃えを確かめる)。同じ規則の関数は、
+//! core・converter・cli の 3 つにある(conductor-runtime には無い)。
 
 /// ジョブID・キー名などを表示するときの最大の文字数(NFR4.2)。
 pub const MAX_DISPLAY_CHARS: usize = 64;
