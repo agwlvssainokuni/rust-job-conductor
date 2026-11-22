@@ -70,7 +70,7 @@ conductor --help | --version
 | `--run-id <id>` | ステートファイルを分ける run ID。空文字は「run ID なしに固定」 | 未指定(環境変数を見る。5 章) |
 | `--remove-on-complete` | 完了時にステートファイルを削除する | 指定なし(定義の `[pipeline].remove_on_complete`、さらに既定は `false`) |
 | `--all` | 定義のステートを、run ID の有無によらず全部消す(`reset` のみ) | なし |
-| `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象は値そのもの) | なし(必須) |
+| `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象 `--to`。値は含めない) | なし(必須) |
 | `--format <text\|mermaid>`(v0.9.0 以降) | `graph` の出力形式。大文字小文字を区別し、それ以外は `invalid value`(対象 `--format`。値は含めない) | `text` |
 | `--state`(同) | `graph` で、ステートを読み、状態を図に重ねる(読むだけ) | 重ねない |
 | `--dry-run`(同) | `run`・`pipeline` で、ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を標準出力に出す | 実行する |
@@ -87,7 +87,7 @@ conductor --help | --version
 | 短縮形の連結 | lexopt の標準どおり。`-vh` は `-v` と `-h`(`-h` が勝つ)。`-vv` は `-v` が 2 回 |
 | `--` | オプションの終わり。以降はすべて位置引数(`-v` や `--help` も位置引数)。例: `run -- -weird` はジョブID `-weird`。`-- --help` は先頭の位置引数 `--help` がコマンド名として未知になり `unknown command` |
 | 値を取らないオプションに `=値` | `--verbose=x`, `--all=x`, `--remove-on-complete=x`, `--state=x`, `--dry-run=x`, `--force=x` は `invalid value`(対象はオプション名)。文法にない `--bogus=x` は `unknown option`(対象 `--bogus`) |
-| 非 UTF-8 | 位置引数(コマンド名、ジョブID、パイプライン名、`--to` の値)が UTF-8 でないと `invalid value`(対象は lossy 変換した文字列)。`--config` と convert の入力パスは `OsString` のまま通す。`--run-id` の値が非 UTF-8 だと `invalid value`(対象 `--run-id`) |
+| 非 UTF-8 | 位置引数(コマンド名、ジョブID、パイプライン名)が UTF-8 でないと `invalid value`(対象は lossy 変換した文字列)。`--config` と convert の入力パスは `OsString` のまま通す。`--run-id` の値が非 UTF-8 だと `invalid value`(対象 `--run-id`)。`--to` の値が非 UTF-8 なら `invalid value`(対象 `--to`) |
 | `-h`/`-V` に `=値` | `--help=x`、`--version=x`、`-h=x`、`-V=1`、`-vh=x` のように `=値` が付いていても、help / version が優先され、誤りにならない(`-v=1` は `invalid value`、対象 `-v`) |
 | 単独の `-` | 位置引数。`run -` はジョブID `-` として扱われる |
 | `--` の直後のコマンド名 | `-- run` は、`run` がコマンド名(先頭の位置引数)になり、ジョブIDがないので `missing argument`(68)。`-- run a` はジョブID `a` の `run` |
@@ -108,7 +108,7 @@ conductor --help | --version
 8b. (v0.9.0 以降)値の検査。`--assume` の各値(指定順に): `=` がない、終了コードが整数でない、0〜255 の範囲外、同じジョブID の重複 → `invalid value`(対象 `--assume`。値は含めない)。`--format` の値が `text`・`mermaid` 以外 → `invalid value`(対象 `--format`)。ジョブID が定義にあるかは、ここでは調べない(定義を読んだあとに、流れが調べる。7.9)。
 9. `--run-id` の値の検査(下の 5.2)。違反は `invalid value`(対象 `--run-id`。値は含めない)。
 10. 位置引数の過不足: `run`/`pipeline`/`convert` で入力なし → `missing argument`。`watch`/`reset` でコマンド名の後ろに位置引数あり → `unexpected argument`(対象はその語)。それ以外のコマンドで、コマンド名を除く 2 個目の位置引数があれば `unexpected argument`(対象は 2 個目の語。`run a b` なら `b`)。`validate`・`graph`・`init` の位置引数(パイプライン名)は省略できる。`init` の名前が `trim` して空なら `invalid value`(対象 `pipeline name`。値は含めない)。
-11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外 → `invalid value`(対象は値)。
+11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む)→ `invalid value`(対象 `--to`。値は含めない)。
 
 使い方の誤りの種類と文言は 08 章のカタログ(`usage_kind`)を参照。表示形式は「`conductor: error: <文>: '<対象>'`(対象があるとき)、空行、使い方全文」。
 
@@ -288,7 +288,7 @@ conductor: error: missing argument: '--to'
 [68]
 
 $ conductor convert conductor.toml --to json
-conductor: error: invalid value: 'json'
+conductor: error: invalid value: '--to'
 [68]
 
 $ conductor run nojob          # 定義にないジョブID

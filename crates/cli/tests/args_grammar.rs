@@ -1100,3 +1100,36 @@ fn 値を取らないオプションに値を付けると対象はその綴り()
         assert_error(&["run", "x", &arg], UsageErrorKind::InvalidValue, option);
     }
 }
+
+// ---- `--to` の値の誤りの対象(BR3.1) ----
+
+#[test]
+fn to_の値の誤りの対象は_to_で値を含まない() {
+    for bad in ["json", "YAML", ""] {
+        assert_error(
+            &["convert", "f", "--to", bad],
+            UsageErrorKind::InvalidValue,
+            "--to",
+        );
+        assert_error(
+            &["convert", &format!("--to={bad}"), "f"],
+            UsageErrorKind::InvalidValue,
+            "--to",
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn utf8_でない_to_の値は_invalid_value_で対象は_to() {
+    use std::os::unix::ffi::OsStringExt;
+    let args = vec![
+        OsString::from("convert"),
+        OsString::from("f"),
+        OsString::from("--to"),
+        OsString::from_vec(vec![b'y', 0xff]),
+    ];
+    let e = parse_args(args).unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::InvalidValue);
+    assert_eq!(e.subject.as_deref(), Some("--to"));
+}

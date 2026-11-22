@@ -613,13 +613,15 @@ fn unexpected_argument(value: &OsString) -> UsageError {
     )
 }
 
+/// `--to` の値の検査。`yaml` か `toml`(大文字小文字を区別する)。UTF-8 でない値、ほかの値は、
+/// `invalidValue`(対象は `--to` で、入力の値は含めない。BR3.1)。
 fn parse_target(value: OsString) -> Result<TargetFormat, UsageError> {
     match value.to_str() {
         Some("yaml") => Ok(TargetFormat::Yaml),
         Some("toml") => Ok(TargetFormat::Toml),
         _ => Err(UsageError::with_subject(
             Kind::InvalidValue,
-            value.to_string_lossy().into_owned(),
+            Opt::To.subject(),
         )),
     }
 }

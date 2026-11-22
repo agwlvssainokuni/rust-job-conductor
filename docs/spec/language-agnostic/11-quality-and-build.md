@@ -608,7 +608,7 @@ job:
 | AC-234 | 数値の往復 | 整数の端(`i64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`inf`、`nan`)、空の配列・マップ | 往復 | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別) | `convert_roundtrip::i64_の端は往復する / 浮動小数は両方向に往復する / スカラーの境界は往復する_*` |
 | AC-235 | ファイルを作らず環境に左右されない | `T` に入力のみ | `convert` を、別のカレントディレクトリ・異なる環境変数で実行 | `T` のファイル一覧が実行の前後で同じ。結果が同じ | `converter::nfr_security`、`flow_aux::convert は定義もステートも読まず シグナルも準備しない` |
 | AC-236 | 標準出力に書けない(注入) | 正しい入力 | `convert`(標準出力を書き込み失敗にする) | 67。ERR = `conductor: error: cannot write to standard output` | `flow_aux::convert の標準出力が閉じていたら 67`。区分: 注入 |
-| AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to json` / `convert f --to YAML` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: 'json'` / `invalid value: 'YAML'` / `option not allowed for this command: '--config'` | `args_grammar::to は convert だけで必須 / to の値は yaml か toml だけ / config は convert に付けられない` |
+| AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to json` / `convert f --to YAML` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: '--to'` / `invalid value: '--to'` / `option not allowed for this command: '--config'` | `args_grammar::to は convert だけで必須 / to の値は yaml か toml だけ / to の値の誤りの対象は to で値を含まない / config は convert に付けられない` |
 | AC-238 | 変換結果の全体を 1 回で書く | 失敗する入力 | `convert` | 失敗のとき、標準出力に 1 バイトも書かれない | `flow_aux::convert の失敗は 67 で標準出力は空`、`convert は変換結果を全部 1 回で標準出力に書く` |
 
 ### 4.8 run ID
@@ -749,7 +749,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-334 | 重複 | `run -vv a`、`run -v -v a`、`run -v --verbose a`、`run a --config x --config y`、`run a --run-id x --run-id y`、`reset --all --all`、`run a --remove-on-complete --remove-on-complete`、`convert f --to yaml --to toml` | 68。`invalid value: '<オプション名>'`(`-vv` は `'-v'`) | `args_grammar::v はちょうど 1 回 / 重複する config と to は誤り / fr2_5 remove_on_complete は値を取らず 2 回の指定は誤り` |
 | AC-335 | `--all` と `--run-id` | `reset --all --run-id x` | 68。`invalid value: '--all'` | `args_grammar::all と run_id の併用と重複と値の欠落は誤り` |
 | AC-336 | 値を取らないオプションに `=値` | `run --verbose=x a`、`reset --all=x`、`run a --remove-on-complete=x` | 68。`invalid value: '--verbose'` / `'--all'` / `'--remove-on-complete'` | `args_grammar`(04 章 4 節) |
-| AC-337 | `--to` の値 | `convert f --to json` / `YAML` / `Toml` | 68。`invalid value: 'json'` など(値そのもの) | `args_grammar::to の値は yaml か toml だけ` |
+| AC-337 | `--to` の値 | `convert f --to json` / `YAML` / `Toml` | 68。`invalid value: '--to'`(値は含めない。非 UTF-8 の値も同じ) | `args_grammar::to の値は yaml か toml だけ / to の値の誤りの対象は to で値を含まない / utf8 でない to の値は invalid value で対象は to` |
 | AC-338 | `--to` がない | `convert f` | 68。`missing argument: '--to'` | `args_grammar::to は convert だけで必須` |
 | AC-339 | `--run-id` の値の検査 | `run a --run-id 'a b'` | 68。`invalid value: '--run-id'`(値を含めない) | `args_grammar::run_id の無効な値は 68 で誤りの文に値を含めない` |
 | AC-340 | 空の `--config` | `run a --config=` | 64。`definition file does not exist`(空のパスとして受理され、後で誤りになる) | `args_grammar::config は空白と等号の両方の形を受け付ける`(04 章 4 節) |

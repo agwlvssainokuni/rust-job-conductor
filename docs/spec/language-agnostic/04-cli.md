@@ -76,7 +76,7 @@ conductor --help | --version
 | `--run-id <id>` | ステートファイルを分ける run ID。空文字は「run ID なしに固定」(環境変数を見ない) | 未指定(環境変数を見る。5 章) |
 | `--remove-on-complete` | 完了時にステートファイルを削除する | 指定なし(その場合は定義の `[pipeline].remove_on_complete`、それも無ければ `false`) |
 | `--all` | 定義のステートファイルを、run ID の有無によらずすべて消す(`reset` のみ) | なし |
-| `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象は値そのもの) | なし(必須) |
+| `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象 `--to`。値は含めない) | なし(必須) |
 | `--format <text\|mermaid>`(v0.9.0 以降) | `graph` の出力形式。大文字小文字を区別し、それ以外は `invalid value`(対象 `--format`。値は含めない) | `text` |
 | `--state`(同) | `graph` で、ステートを読み、状態を図に重ねる(読むだけ) | 重ねない |
 | `--dry-run`(同) | `run`・`pipeline` で、ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を標準出力に出す | 実行する |
@@ -131,7 +131,7 @@ conductor --help | --version
     - コマンドが取れる個数を超える(2 個目の位置引数がある)→ `unexpected argument`(対象は 2 個目の語。`run a b` なら `b`)。
     - (v0.9.0 以降)`validate`・`graph`・`init` の位置引数(パイプライン名)は省略できる。`init` の名前が trim して空なら `invalid value`(対象 `pipeline name`。値は含めない)。
     - 位置引数(ジョブID、パイプライン名)が非 UTF-8 → `invalid value`(対象は可能な限り読める形に変換した文字列)。`convert` の入力ファイルは、非 UTF-8 でもパスとしてそのまま通す。
-11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む)→ `invalid value`(対象は値)。
+11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む)→ `invalid value`(対象 `--to`。値は含めない)。
 
 誤りの文言は [08-output-and-i18n.md](08-output-and-i18n.md) 4.2、表示形式は「`conductor: error: <文>: '<対象>'`(対象があるとき)、空行、使い方全文」。対象は、制御文字をエスケープし、64 文字で切る(08 章 9 章)。
 
@@ -324,7 +324,7 @@ conductor: error: missing argument: '--to'
 [68]
 
 $ conductor convert conductor.toml --to json
-conductor: error: invalid value: 'json'
+conductor: error: invalid value: '--to'
 [68]
 
 $ conductor run nojob          # 定義にないジョブID

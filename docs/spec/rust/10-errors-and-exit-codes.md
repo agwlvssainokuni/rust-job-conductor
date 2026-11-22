@@ -230,7 +230,7 @@ conductor: error: internal error
 | 重複、`--verbose=x` など、`--all` と `--run-id` の併用、`--run-id` の値の規則違反 | `InvalidValue` | オプション名(`-v`, `--config`, …、併用は `--all`。v0.9.0 以降は `--dry-run`, `--force`, `--format`, `--state` も) |
 | `--assume` の値の誤り(`=` がない、整数でない、範囲外、ジョブID の重複)、`--format` の値の誤り(v0.9.0 以降) | `InvalidValue` | `--assume`、`--format`(値は含めない) |
 | `init` のパイプライン名が空・空白だけ(v0.9.0 以降) | `InvalidValue` | `pipeline name`(値は含めない) |
-| `--to` の値が `yaml`/`toml` 以外 | `InvalidValue` | その値 |
+| `--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む) | `InvalidValue` | `--to`(値は含めない) |
 | 非 UTF-8 の位置引数 | `InvalidValue` | lossy 変換した文字列 |
 | 環境変数の run ID の規則違反 | `InvalidValue` | `run ID (environment variable)` |
 | 余分な位置引数 | `UnexpectedArgument` | その語 |
