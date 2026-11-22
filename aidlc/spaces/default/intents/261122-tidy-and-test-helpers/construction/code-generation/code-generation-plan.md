@@ -15,37 +15,37 @@
 
 ## 段 1: 説明のずれと使われないもの(コミット 1〜5)
 
-- [ ] Step 1: 生成元の説明(1a)、`sanitize` の説明とテストの注記(1b、T40、D1)、`args.rs` の文法の表(1c)、仕様書 08・05 章(1d)、`program_name` とその単体テストの削除(1e、T38)。段の後の件数を記録(見込み 1,141)。
+- [x] Step 1: 生成元の説明(1a)、`sanitize` の説明とテストの注記(1b、T40、D1)、`args.rs` の文法の表(1c)、仕様書 08・05 章(1d)、`program_name` とその単体テストの削除(1e、T38)。段の後の件数を記録(見込み 1,141)。
 
 ## 段 2: 文言の定数(コミット 6〜11)
 
-- [ ] Step 2: cli の `messages.rs` の文言の対をまとめる(2a)、`error_prefix!`(2a)、core の `env_name_rule!`・`reserved_env_prefix!`(2b、2c)、`ROOT_KEYS` の `VERSION_KEY` と間隔の定数の `assert`(2d、2e)、`CONDUCTOR_RUN_ID` の注記(2f、D2)。段の後の件数は 1,141 のまま。
+- [x] Step 2: cli の `messages.rs` の文言の対をまとめる(2a)、`error_prefix!`(2a)、core の `env_name_rule!`・`reserved_env_prefix!`(2b、2c)、`ROOT_KEYS` の `VERSION_KEY` と間隔の定数の `assert`(2d、2e)、`CONDUCTOR_RUN_ID` の注記(2f、D2)。段の後の件数は 1,141 のまま。
 
 ## 段 3: 処理の重複と境界(コミット 12〜19)
 
-- [ ] Step 3: runtime の `temp_file` モジュール(`dir_or_current`、`temp_name`・`create_temp`・`temp_prefix` と単体テスト 4 件の移動 T22、`create_temp_beside` と連番 1 つ D5、`lib.rs` の表、仕様書 02・06 章)、N4。cli の `push_line`・`job_place`(3b、3c)、`reset_hint`・`StateContext::for_read`(3d)、`plan_end`(3e)、`graph_mermaid.rs` の let-else(3f)。段の後の件数を記録(見込み 1,142)。
+- [x] Step 3: runtime の `temp_file` モジュール(`dir_or_current`、`temp_name`・`create_temp`・`temp_prefix` と単体テスト 4 件の移動 T22、`create_temp_beside` と連番 1 つ D5、`lib.rs` の表、仕様書 02・06 章)、N4。cli の `push_line`・`job_place`(3b、3c)、`reset_hint`・`StateContext::for_read`(3d)、`plan_end`(3e)、`graph_mermaid.rs` の let-else(3f)。段の後の件数を記録(見込み 1,142)。
 
 ## 段 4: 到達しない分岐と効かない処理(コミット 20〜26)
 
-- [ ] Step 4: decide の規則 5(4a)、lexopt の枝を 1 つの守りにまとめて注記(4b、D3)、`render` の `match`(4c)、`retry.rs` の既定値(4d)、`ExitCodeClass` を返す `classify_exit_code` と `is_retry_target` の共有(4e、D4)、`retry_integer` の `u32`(4f)、`duration.rs` の `n >= 1`(4g)。段の後の件数は 1,142 のまま。
+- [x] Step 4: decide の規則 5(4a)、lexopt の枝を 1 つの守りにまとめて注記(4b、D3)、`render` の `match`(4c)、`retry.rs` の既定値(4d)、`ExitCodeClass` を返す `classify_exit_code` と `is_retry_target` の共有(4e、D4)、`retry_integer` の `u32`(4f)、`duration.rs` の `n >= 1`(4g)。段の後の件数は 1,142 のまま。
 
 ## 段 5: 文字列での比較(コミット 27〜31)
 
-- [ ] Step 5: `CommandKind::ALL`・`from_name`(5a)と N1、`Operand`(5b)、誤りの対象を `Opt::subject` と `RUN_ID_OPTION` に(5c。`RUN_ID_OPTION` は `args.rs` の `const` の検査で `OPTIONS` と結ぶ)、runtime の `FailureCause`(5d)。段の後の件数を記録(見込み 1,143)。
+- [x] Step 5: `CommandKind::ALL`・`from_name`(5a)と N1、`Operand`(5b)、誤りの対象を `Opt::subject` と `RUN_ID_OPTION` に(5c。`RUN_ID_OPTION` は `args.rs` の `const` の検査で `OPTIONS` と結ぶ)、runtime の `FailureCause`(5d)。段の後の件数を記録(見込み 1,143)。
 
 ## 段 6: walk の整理(コミット 32〜35)
 
-- [ ] Step 6: `SuccessCodes`(6a)、`build_jobs` の所有権(6b)、`integer_value`(6c)、`walk_children`(6d)。段の後の件数は 1,143 のまま。
+- [x] Step 6: `SuccessCodes`(6a)、`build_jobs` の所有権(6b)、`integer_value`(6c)、`walk_children`(6d)。段の後の件数は 1,143 のまま。
 
 ## 段 7: テストの補助(コミット 36〜48)
 
-- [ ] Step 7: cli の `docs_support`(T1〜T6)、`status_of`・`status_in`(T7〜T9、T20)、`signal_support`(T10〜T13)、`args_grammar.rs` の `MapEnv`(T14)、偽物の `Default`・`writes`(T15、T16、T18)、台本の消費の順(T19)、`run_lines`(T17)と N2・N3。runtime の包みと `definition`(T21、T23〜T27)、`consistency` の単体テストを core へ(T28、T29)。core の `tests/common`(T30〜T37)、`JobExecution` の組み立ての関数(T39、T41〜T45)。converter の `TargetFormat::opposite` と N5(T46)。段の後の件数を記録(見込み 1,146)。
+- [x] Step 7: cli の `docs_support`(T1〜T6)、`status_of`・`status_in`(T7〜T9、T20)、`signal_support`(T10〜T13)、`args_grammar.rs` の `MapEnv`(T14)、偽物の `Default`・`writes`(T15、T16、T18)、台本の消費の順(T19)、`run_lines`(T17)と N2・N3。runtime の包みと `definition`(T21、T23〜T27)、`consistency` の単体テストを core へ(T28、T29)。core の `tests/common`(T30〜T37)、`JobExecution` の組み立ての関数(T39、T41〜T45)。converter の `TargetFormat::opposite` と N5(T46)。段の後の件数を記録(見込み 1,146)。
 
 ## 最後
 
-- [ ] Step 8: 仕様書 11 章のテストのファイルの表と、02 章の偽物の表(コミット 49)。
-- [ ] Step 9: 確かめ方(`functional-spec.md` §7)の検索を実装の後に走らせて結果を記録し、`cargo test --locked --workspace -- --list` の前後の差がテスト名の約束どおりであることを確かめる。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 10: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更の一覧、確かめ方の検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 8: 仕様書 11 章のテストのファイルの表と、02 章の偽物の表(コミット 49)。
+- [x] Step 9: 確かめ方(`functional-spec.md` §7)の検索を実装の後に走らせて結果を記録し、`cargo test --locked --workspace -- --list` の前後の差がテスト名の約束どおりであることを確かめる。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 10: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更の一覧、確かめ方の検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
