@@ -477,24 +477,12 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     command.run_id = run_id.map(parse_run_id_option).transpose()?;
     let to = given.take(Opt::To);
 
-    // `validate` の位置引数(パイプライン名)は、省略できる。
-    let wants_positional = !matches!(
-        kind,
-        CommandKind::Watch
-            | CommandKind::Reset
-            | CommandKind::Validate
-            | CommandKind::Graph
-            | CommandKind::Init
-    );
-    let allows_operand = !matches!(kind, CommandKind::Watch | CommandKind::Reset);
     let operand = positionals.next();
     let extra = positionals.next();
-    if wants_positional {
-        if operand.is_none() {
-            return Err(UsageError::new(Kind::MissingArgument));
-        }
-    } else if !allows_operand && let Some(unexpected) = &operand {
-        return Err(unexpected_argument(unexpected));
+    match (operand_rule(kind), &operand) {
+        (Operand::Required, None) => return Err(UsageError::new(Kind::MissingArgument)),
+        (Operand::Forbidden, Some(unexpected)) => return Err(unexpected_argument(unexpected)),
+        _ => {}
     }
     if let Some(unexpected) = &extra {
         return Err(unexpected_argument(unexpected));
@@ -565,6 +553,26 @@ fn parse_run_id_option(value: OsString) -> Result<RunIdArg, UsageError> {
         .into_string()
         .map_err(|_| UsageError::with_subject(Kind::InvalidValue, "--run-id"))?;
     RunIdArg::parse(&text)
+}
+
+/// 位置引数(オペランド)の扱い(BR1.1。文法の表の「位置引数」の列)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Operand {
+    /// 必須(無ければ `missingArgument`)。
+    Required,
+    /// 省略できる。
+    Optional,
+    /// 書けない(書けば `unexpectedArgument`)。
+    Forbidden,
+}
+
+/// コマンドごとの位置引数の扱い。新しいコマンドを足したら、ここで決める(網羅の `match`)。
+fn operand_rule(kind: CommandKind) -> Operand {
+    match kind {
+        CommandKind::Run | CommandKind::Pipeline | CommandKind::Convert => Operand::Required,
+        CommandKind::Validate | CommandKind::Graph | CommandKind::Init => Operand::Optional,
+        CommandKind::Watch | CommandKind::Reset => Operand::Forbidden,
+    }
 }
 
 fn unexpected_argument(value: &OsString) -> UsageError {
