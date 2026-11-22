@@ -20,37 +20,18 @@ mod common;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use std::path::Path;
-
-use conductor_core::{PipelineDefinition, PipelineState};
-use conductor_runtime::{
-    ConsistencyResult, Durability, StateError, check_command, check_consistency,
-    initial_state as initial_state_with, read_state as read_state_with,
-    write_state as write_state_with,
-};
-
 // run ID なしの呼び出し(この測定は run ID を使わない)。
-fn read_state(def: &Path) -> Result<Option<PipelineState>, StateError> {
-    read_state_with(def, None)
-}
-fn initial_state(d: &PipelineDefinition, def: &Path) -> PipelineState {
-    initial_state_with(d, def, None)
-}
-fn write_state(def: &Path, s: &PipelineState, dur: Durability) -> Result<(), StateError> {
-    write_state_with(def, None, s, dur)
-}
+use common::without_run_id::{initial_state, read_state, write_state};
+use conductor_core::PipelineDefinition;
+use conductor_runtime::{ConsistencyResult, Durability, check_command, check_consistency};
 
 const RUNS: usize = 100;
 const TARGET: Duration = Duration::from_millis(20);
 
 fn definition() -> PipelineDefinition {
-    PipelineDefinition {
-        name: "bench".into(),
-        description: None,
-        run_id_env: None,
-        remove_on_complete: false,
-        format_version: 1,
-        job: (0..10)
+    common::definition(
+        "bench",
+        (0..10)
             .map(|i| {
                 common::job(
                     &format!("job{i}"),
@@ -58,9 +39,7 @@ fn definition() -> PipelineDefinition {
                 )
             })
             .collect(),
-        env: vec![],
-        env_file: vec![],
-    }
+    )
 }
 
 fn p95(samples: &mut [Duration]) -> Duration {

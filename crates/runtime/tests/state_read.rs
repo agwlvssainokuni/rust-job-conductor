@@ -18,14 +18,9 @@ mod common;
 
 use std::path::{Path, PathBuf};
 
+use common::without_run_id::read_state;
 use conductor_core::JobStatus;
-use conductor_core::PipelineState;
-use conductor_runtime::{StateError, StateErrorKind, read_state as read_state_with};
-
-// run ID なしで読む。
-fn read_state(def: &Path) -> Result<Option<PipelineState>, StateError> {
-    read_state_with(def, None)
-}
+use conductor_runtime::StateErrorKind;
 
 const VALID: &str = r#"format_version = 1
 definition_key = "conductor.toml"

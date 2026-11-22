@@ -21,22 +21,9 @@ use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use common::without_run_id::{read_state, reset_state, write_state};
 use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
-use conductor_runtime::{
-    Durability, StateError, StateErrorKind, read_state as read_state_with,
-    reset_state as reset_state_with, write_state as write_state_with,
-};
-
-// run ID なしの呼び出し。
-fn read_state(def: &Path) -> Result<Option<PipelineState>, StateError> {
-    read_state_with(def, None)
-}
-fn reset_state(def: &Path) -> Result<(), StateError> {
-    reset_state_with(def, None)
-}
-fn write_state(def: &Path, s: &PipelineState, dur: Durability) -> Result<(), StateError> {
-    write_state_with(def, None, s, dur)
-}
+use conductor_runtime::{Durability, StateErrorKind};
 
 fn paths(dir: &Path) -> (PathBuf, PathBuf) {
     (dir.join("conductor.toml"), dir.join("conductor.toml.state"))

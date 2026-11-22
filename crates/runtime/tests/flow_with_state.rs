@@ -25,36 +25,18 @@ mod common;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use common::without_run_id::{initial_state, read_state, reset_state, write_state};
 use common::*;
 use conductor_core::{
     Classification, Decision, ExecutionResult, JobDefinition, JobOutcome, JobStatus, NextStep,
     PipelineDefinition, PipelineState, RunMode, SkipCause, Transition, TransitionOn,
     TransitionTarget, classify_and_decide, decide_before_run,
 };
+// run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)は、`common::without_run_id`。
 use conductor_runtime::{
     ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateError, StateErrorKind,
-    apply_outcome, apply_skip, check_command, check_consistency,
-    initial_state as initial_state_with, read_state as read_state_with,
-    reset_state as reset_state_with, run_job, write_state as write_state_with,
+    apply_outcome, apply_skip, check_command, check_consistency, run_job,
 };
-
-// run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)。
-fn read_state(def: &std::path::Path) -> Result<Option<conductor_core::PipelineState>, StateError> {
-    read_state_with(def, None)
-}
-fn reset_state(def: &std::path::Path) -> Result<(), StateError> {
-    reset_state_with(def, None)
-}
-fn initial_state(d: &PipelineDefinition, def: &std::path::Path) -> conductor_core::PipelineState {
-    initial_state_with(d, def, None)
-}
-fn write_state(
-    def: &std::path::Path,
-    s: &conductor_core::PipelineState,
-    dur: Durability,
-) -> Result<(), StateError> {
-    write_state_with(def, None, s, dur)
-}
 
 /// 試験用の場面: 一時ディレクトリ、定義ファイルのパス、ジョブの起動の記録のファイル。
 struct Scene {

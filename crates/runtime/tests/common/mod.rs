@@ -19,7 +19,7 @@ use std::path::Path;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use conductor_core::{Command, JobDefinition};
+use conductor_core::{Command, JobDefinition, PipelineDefinition};
 
 /// プロセスを起動するテストの、時間の上限。
 pub const LIMIT: Duration = Duration::from_secs(30);
@@ -54,6 +54,46 @@ pub fn job(id: &str, command: impl Into<Command>) -> JobDefinition {
         retry: None,
         env: vec![],
         env_file: vec![],
+    }
+}
+
+/// 名前 `name` とジョブ `jobs` だけを持つ定義(ほかは既定。版は 1)。
+pub fn definition(name: &str, jobs: Vec<JobDefinition>) -> PipelineDefinition {
+    PipelineDefinition {
+        name: name.to_string(),
+        description: None,
+        run_id_env: None,
+        remove_on_complete: false,
+        format_version: 1,
+        job: jobs,
+        env: vec![],
+        env_file: vec![],
+    }
+}
+
+/// run ID なしで、ステートを読む・消す・作る・書く(run ID を使わないテストの呼び出し)。
+///
+/// `use common::*` をするファイルで、別名の import と衝突しないように、下位のモジュールに置く。
+pub mod without_run_id {
+    use std::path::Path;
+
+    use conductor_core::{PipelineDefinition, PipelineState};
+    use conductor_runtime::{Durability, StateError};
+
+    pub fn read_state(def: &Path) -> Result<Option<PipelineState>, StateError> {
+        conductor_runtime::read_state(def, None)
+    }
+
+    pub fn reset_state(def: &Path) -> Result<(), StateError> {
+        conductor_runtime::reset_state(def, None)
+    }
+
+    pub fn initial_state(d: &PipelineDefinition, def: &Path) -> PipelineState {
+        conductor_runtime::initial_state(d, def, None)
+    }
+
+    pub fn write_state(def: &Path, s: &PipelineState, dur: Durability) -> Result<(), StateError> {
+        conductor_runtime::write_state(def, None, s, dur)
     }
 }
 
