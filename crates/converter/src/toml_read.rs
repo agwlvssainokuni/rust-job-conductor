@@ -147,7 +147,7 @@ mod tests {
     }
 
     #[test]
-    fn syntax_error_has_line() {
+    fn 文法の誤りは行を持つ() {
         let e = read("a = 1\nb = [1,\nc = 3\n", "t.toml").unwrap_err();
         assert_eq!(e.kind, ConversionErrorKind::Syntax);
         assert!(e.line.is_some());
@@ -156,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_toml_is_empty_map() {
+    fn 空の_toml_は空のマップ() {
         let tree = read("", "t").unwrap();
         assert!(
             matches!(&tree.nodes[tree.root].kind, RawKind::Map { pairs, .. } if pairs.is_empty())
@@ -165,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn datetime_is_marked() {
+    fn 日時は印をつける() {
         let tree = read("d = 1979-05-27T07:32:00Z\ns = \"x\"\n", "t").unwrap();
         let has_datetime = tree.nodes.iter().any(|n| {
             matches!(
@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    fn depth_32_ok_and_33_syntax() {
+    fn 深さ32は受理し_33は文法の誤り() {
         // 最上位のテーブルを 1 として、32 段(テーブル 1 + 配列 31)
         assert!(read(&nested_arrays(31), "t").is_ok());
         let e = read(&nested_arrays(32), "t").unwrap_err();
@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn nested_tables_depth() {
+    fn 入れ子のテーブルの深さ() {
         let key = |n: usize| vec!["a"; n].join(".");
         // ドットのキー `a.a. ... = 1`: キーが n 個のとき、表は、最上位 + (n - 1) 段
         assert!(read(&format!("{} = 1\n", key(32)), "t").is_ok());
@@ -204,7 +204,7 @@ mod tests {
     }
 
     #[test]
-    fn very_deep_inputs_fail_without_abort() {
+    fn とても深い入力は_異常終了せずに失敗する() {
         let handle = std::thread::spawn(|| {
             let mut failed = Vec::new();
             for n in [1000usize, 100_000] {
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn i64_range_is_handled_by_the_library() {
+    fn i64_の範囲はライブラリが扱う() {
         assert!(read("n = 9223372036854775807\nm = -9223372036854775808\n", "t").is_ok());
         let e = read("n = 9223372036854775808\n", "t").unwrap_err();
         assert_eq!(e.kind, ConversionErrorKind::Syntax);
