@@ -188,25 +188,27 @@ cli::pipeline::run_pipeline
  │    ├─ Runtime::read_state(path, run_id)            → runtime::read_state     → 失敗 65(完了のものは None)
  │    └─ check_consistency(state, definition)         → 食い違い 65
  └─ for job in definition.job (記述順):
-      ├─ core::decide_before_run(...)                 → Run / Skip / Reject
+      ├─ step::decide → core::decide_before_run(...)  → Run / Skip / Reject
       │    ├─ Reject → 表示、return 66
-      │    ├─ Skip   → runtime::apply_skip → 変化があれば Runtime::write_state(Durable)、続行(完了なら finish)
-      │    └─ Run:
+      │    ├─ Skip   → step::record_skip(runtime::apply_skip → 変化があれば Runtime::write_state(Durable))
+      │    │           → 表示 → 完了なら finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
+      │    └─ Run    → step::run_step:
       │         ├─ 状態が空なら runtime::initial_state → Runtime::write_state(Fast)
       │         ├─ retry::run_job_with_retry
       │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(job, 足す環境, signal) → core::retry_decision
       │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
       │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
       │         ├─ 表示(-v のときの結果行・遷移行。常時のエラー行)
-      │         ├─ runtime::apply_outcome → Runtime::write_state(Durable)
+      │         └─ runtime::apply_outcome → Runtime::write_state(Durable) → StepResult
+      │       (ここから pipeline)
       │         ├─ error または分類なし → return exit_code_for(...)
-      │         ├─ completed → finish(remove_on_complete なら Runtime::reset_state)、return 0
+      │         ├─ completed → finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
       │         └─ 中断の合図が立っている → core::resume_point_on_interrupt → runtime::apply_interrupt
       │                                      → Runtime::write_state(Durable)、return 128 + n
  └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
 ```
 
-`run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて同じ「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
+`run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて、同じ `step` の関数(`decide`、`record_skip`、`run_step`、`remove_if_requested`)で「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。いつ消すかと終了コードの決め方は、`run` と `pipeline` で違い、それぞれに残る(05 §5.1a〜§5.3)。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
 
 v0.9.0 以降の 3 つの流れ(05 の 15〜17 章、04 の 7.7〜7.9):
 
@@ -337,8 +339,9 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
 | `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare`。v0.9.0 以降は、シグナルを除く部分を `prepare_checked` に分け、`Checked` を返す)、`check_definition`、`load_env_files`、表示・書き込み・削除の補助、`aux_run_id` |
-| `run.rs` | `run_individual`(個別実行) |
-| `pipeline.rs` | `run_pipeline`(一括実行)、`finish` |
+| `step.rs` | 1 つのジョブの共通の手順(`decide`、`record_skip`、`run_step`、`remove_if_requested`、`StepResult`)。`run` と `pipeline` が呼ぶ |
+| `run.rs` | `run_individual`(個別実行)。いつ消すかと終了コードの決定 |
+| `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
 | `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`) |
 | `aux_commands.rs` | `watch`・`reset`・`validate`・`convert`、`check_definition_and_env`(`validate` と `graph` が共有) |
 | `graph.rs`(v0.9.0 以降) | `run_graph` |

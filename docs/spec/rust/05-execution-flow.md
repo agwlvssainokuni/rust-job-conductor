@@ -269,36 +269,63 @@ return low
 
 定義ファイルは `--config <パス>`、なければ実行ディレクトリの `conductor.toml`。使い方の誤り(4 と 5 の 68)と `.env` の誤り(5a の 64)が同時にあるときは、先に検出する 68 が勝つ(5a は 5 のあと)。`--dry-run` は、この `prepare` の 1〜(シグナルを除く)7 を共有する(`prepare_checked`。16 章)。シグナルを受け取っても、1〜7 は最後まで進む。64・65・66・スキップ(0)の終了コードが、中断の終了コードに優先する。
 
+### 5.1a 1 つのジョブの共通の手順(`crates/cli/src/step.rs`。`run`・`pipeline`)
+
+`run`(§5.2)と `pipeline`(§5.3)は、1 つのジョブを処理する手順を、次の 4 つの関数で共有する。書く順序、`Durability`、誤りの表示の文脈は、ここに 1 回だけ書く。書き込み・削除の失敗は、誤りを表示して 65 を返し、呼び出し側はそれで終わる。
+
+```text
+decide(job_id, def, state):                  # state は Option(空なら None)
+  (states, resume, end_reached) = state の job_states / resume_job_id / end_reached
+                                  (空なら [], None, false)
+  return decide_before_run(job_id, def, states, resume, end_reached)
+
+record_skip(session, base, job_id, r):       # base は Option
+  b   = base か initial_state(...)
+  rec = apply_skip(b, job_id, r, def)
+  changed = (rec != b)
+  if changed: write(rec, Durable)            # 失敗: 65、文脈=ジョブ起動前
+  return (rec, changed)
+
+run_step(session, base, job, mode):          # base は Option(値で受ける)
+  b = base か、(空なら) initial_state を Fast で書いたもの   # 書けなければ 65、ジョブは起動しない
+  exec = run_job_with_retry(job)             # §7。ステートは書かない
+  (outcome, next) = classify_and_decide(job, exec, b.job_states, def, mode)
+  表示(§5.5)
+  rec = apply_outcome(b, job.id, exec, outcome, next)
+  after = exec.started なら「ジョブは実行されました」、そうでなければ「起動していません」
+  write(rec, Durable)                        # 失敗: 65、文脈=after
+  return StepResult { recorded: rec, outcome, next, after }
+
+remove_if_requested(session, context):
+  if remove_on_complete: reset_state()       # 失敗: 65、文脈=context
+```
+
+- いつ `remove_if_requested` を呼ぶか(完了の扱い)と、終了コードの決め方は、`run` と `pipeline` で違うため、それぞれの節に残す。
+
 ### 5.2 `conductor run <job-id>` の擬似アルゴリズム
 
 ```text
 session = prepare(...)                      # 5.1。誤りなら終了
-(states, resume, end_reached) = session.state の job_states / resume_job_id / end_reached
-                                (state が空なら [], None, false)
-d = decide_before_run(job_id, def, states, resume, end_reached)
-
-match d:
+match decide(job_id, def, session.state):   # 5.1a
   Reject(r):  表示、return 66
   Skip(r):
-    base = session.state か initial_state(...)
-    rec  = apply_skip(base, job_id, r, def)
-    if rec != base:
-        write(rec, Durable)                  # 失敗: 65、文脈=ジョブ起動前
-        if rec.completed and remove_on_complete:
-            reset_state()                    # 失敗: 65
+    (rec, changed) = record_skip(session, session.state, job_id, r)     # 5.1a
+    if changed and rec.completed:
+        remove_if_requested(文脈=ジョブ起動前)                            # 表示の前に消す
     -v なら skipped 表示
     return 0
   Run:
-    base = session.state か、(空なら) initial_state を Fast で書いたもの   # 書けなければ 65、ジョブは起動しない
-    exec = run_job_with_retry(job)           # §7。ステートは書かない
-    (outcome, next) = classify_and_decide(job, exec, base.job_states, def, Individual)
-    表示(§5.5)
-    rec = apply_outcome(base, job_id, exec, outcome, next)
-    write(rec, Durable)                      # 失敗: 65、文脈=exec.started なら「ジョブは実行されました」、そうでなければ「起動していません」
-    if next.completed and remove_on_complete:
-        reset_state()                        # 失敗: 65
-    return exit_code_for(outcome.reported_exit_code, outcome.classification == Error)
+    job = 定義の中の job_id のジョブ          # 検査済み(5.1 の 4)
+    step = run_step(session, session.state, job, Individual)            # 5.1a
+    if step.next.completed:
+        remove_if_requested(文脈=step.after)
+    return exit_code_for(step.outcome.reported_exit_code, step.outcome.classification == Error)
 ```
+
+`pipeline` との違い:
+
+- Skip で消すのは、記録が変わり(`changed`)、かつ完了したときだけで、`skipped` の表示の**前**。
+- Run のあとは、分類によらず、完了なら消してから、常に `exit_code_for` で終わる。
 
 注意:
 
@@ -314,26 +341,19 @@ match d:
 session = prepare(...)                       # 引数の名前が無ければ 68
 current = session.state                      # 空なら None
 for job in def.job (記述順):
-  d = decide_before_run(job.id, def, current の状態一覧 (空なら []), current.resume_job_id, current.end_reached)
-  match d:
+  match decide(job.id, def, current):        # 5.1a
     Reject(r): 表示、return 66
     Skip(r):
-      base = current か initial_state(...)
-      rec  = apply_skip(base, job.id, r, def)
-      if rec != base: write(rec, Durable)    # 失敗: 65
+      (rec, _) = record_skip(session, current, job.id, r)   # 5.1a。changed は使わない
       -v なら skipped 表示
       current = rec
-      if rec.completed: return finish(...)   # 下記
+      if rec.completed: return finish(文脈=ジョブ起動前)    # 表示のあとで消す。記録が変わらなくても
     Run:
-      base = current、無ければ initial_state を Fast で書いたもの   # 失敗: 65
-      exec = run_job_with_retry(job)
-      (outcome, next) = classify_and_decide(job, exec, base.job_states, def, Pipeline)
-      表示
-      rec = apply_outcome(base, job.id, exec, outcome, next)
-      write(rec, Durable)                    # 失敗: 65
-      if outcome は error、または分類なし:
-          return exit_code_for(outcome.reported_exit_code, classification == Error)   # エラーで停止
-      if next.completed: return finish(...)
+      step = run_step(session, current.take(), job, Pipeline)   # 5.1a
+      rec = step.recorded
+      if step.outcome は error、または分類なし:
+          return exit_code_for(step.outcome.reported_exit_code, classification == Error)   # エラーで停止
+      if step.next.completed: return finish(文脈=step.after)
       if 中断の合図が立っている(番号 n):      # ジョブのあいだの中断
           point = resume_point_on_interrupt(def, rec.job_states)
           write(apply_interrupt(rec, point), Durable)     # 失敗: 65
@@ -343,9 +363,13 @@ for job in def.job (記述順):
 # ループを抜けた(完了していない。起こらない想定)
 表示 "cannot determine whether the pipeline is complete"; return 65   # ステートは初期化しない
 
-finish: if not remove_on_complete: return 0
-        reset_state() が成功 → 0、失敗 → 65
+finish(context): remove_if_requested(context)(5.1a)が成功 → 0、失敗 → 65
 ```
+
+`run` との違い:
+
+- Skip で完了したときは、`skipped` の表示の**あと**で、記録が変わったかによらず `finish` へ進む。
+- Run のあとは、エラーか分類なしなら、消さずに `exit_code_for` で止まる。完了なら `finish`(0)。そうでなければ、ジョブのあいだの中断を確かめ、次のジョブへ進む。
 
 - 完了のステートは、`finish` の前に必ず Durable で書き込み済み。`remove_on_complete` が真のときだけ削除する(06 §9)。
 - 「完了を判定できない」(`CompletionUndetermined`)は、全ジョブが `AlreadyExecuted` などで通過し、どこでも `completed` が真にならなかったとき。`conductor: error: <state_path>: cannot determine whether the pipeline is complete`(日本語: `パイプラインが完了したかを判定できません`)、終了コード 65。
