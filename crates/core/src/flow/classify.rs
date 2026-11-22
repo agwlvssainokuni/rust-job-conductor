@@ -240,4 +240,55 @@ mod tests {
         });
         assert_eq!(classify(&j, &huge).reported_exit_code, i32::MAX);
     }
+
+    /// 3 つの場合の、分類・返す終了コード・`conductor_error`(BR1.3。同値の表の 6 行)。
+    #[test]
+    fn 三つの場合の分類は表のとおり() {
+        let j = job(None, vec![3]);
+        let exited = |exit_code, terminated_by_signal, interrupted_by| ExecutionResult::Exited {
+            exit_code,
+            terminated_by_signal,
+            interrupted_by,
+        };
+        // (結果, 分類, 返す値, conductorError)
+        let cases = [
+            (ExecutionResult::NotStarted { signal: 2 }, None, 130, false),
+            (
+                ExecutionResult::StartFailed,
+                Some(Classification::Error),
+                127,
+                false,
+            ),
+            (
+                exited(Some(0), Some(9), Some(15)),
+                Some(Classification::Error),
+                143,
+                false,
+            ),
+            (
+                exited(None, Some(9), None),
+                Some(Classification::Error),
+                137,
+                false,
+            ),
+            (
+                exited(None, None, None),
+                Some(Classification::Error),
+                1,
+                true,
+            ),
+            (
+                exited(Some(3), None, None),
+                Some(Classification::Warning),
+                0,
+                false,
+            ),
+        ];
+        for (result, class, reported, ce) in cases {
+            let o = classify(&j, &exec(result));
+            assert_eq!(o.classification, class, "{result:?}");
+            assert_eq!(o.reported_exit_code, reported, "{result:?}");
+            assert_eq!(o.conductor_error, ce, "{result:?}");
+        }
+    }
 }
