@@ -29,10 +29,10 @@ use conductor_runtime::{
     CommandLine, Durability, InterruptSignal, StateError, StateLocation, check_consistency,
 };
 
-use crate::args::resolve_run_id;
 use crate::deps::{Env, Runtime, SignalError, Signals, Sink};
 use crate::exit::{EXIT_DEFINITION, EXIT_INTERNAL, EXIT_OK, EXIT_STATE, EXIT_USAGE};
 use crate::report::{DisplayEvent, Reporter, StateContext};
+use crate::run_id::resolve_run_id;
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// 流れが使う、差し替え口と表示の束。
@@ -454,24 +454,4 @@ pub(crate) fn read_context(with_run_id: bool) -> StateContext {
     } else {
         StateContext::Read
     }
-}
-
-/// `watch`・`reset` が使う run ID を決める(FR4.3)。
-///
-/// `--run-id` があれば、定義を読まない。なければ、定義の `[pipeline].run_id_env` だけをゆるく読み
-/// (読めない・キーがない・型や形が違う、のときは既定の名前)、その環境変数を見る。
-pub(crate) fn aux_run_id(
-    ctx: &Ctx<'_>,
-    cmd: &CliCommand,
-    path: &Path,
-) -> Result<Option<RunId>, UsageError> {
-    if cmd.run_id.is_some() {
-        return resolve_run_id(cmd.run_id.as_deref(), DEFAULT_RUN_ID_ENV, ctx.env);
-    }
-    let env_name = ctx.runtime.run_id_env(path);
-    resolve_run_id(
-        None,
-        env_name.as_deref().unwrap_or(DEFAULT_RUN_ID_ENV),
-        ctx.env,
-    )
 }

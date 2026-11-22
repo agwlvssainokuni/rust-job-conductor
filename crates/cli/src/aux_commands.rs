@@ -18,9 +18,10 @@
 
 use std::path::Path;
 
-use crate::ctx::{Ctx, aux_run_id, definition_path, read_context};
+use crate::ctx::{Ctx, definition_path, read_context};
 use crate::exit::{EXIT_CONVERSION, EXIT_OK};
 use crate::report::{DisplayEvent, StateContext};
+use crate::run_id::aux_run_id;
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// `conductor watch`: ステートを 1 回だけ一覧にして終わる(BR7.1)。

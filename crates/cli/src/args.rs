@@ -56,7 +56,6 @@ use conductor_converter::TargetFormat;
 use conductor_core::{Assumption, RunId};
 use lexopt::prelude::*;
 
-use crate::deps::Env;
 use crate::types::CommandKind as C;
 use crate::types::{
     CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind as Kind,
@@ -582,29 +581,9 @@ fn parse_run_id_option(value: OsString) -> Result<String, UsageError> {
     Ok(text)
 }
 
-/// run ID を決める(FR1.2〜FR1.4)。
-///
-/// - `option` が `Some`(`--run-id` あり): 環境変数は見ない。空なら run ID なし(固定)。
-/// - `option` が `None`: 環境変数 `env_name` を読み、未定義と空は run ID なし。
-///
-/// `--run-id` の値は、引数の段階で検査済みだが、ここでも検査する(環境変数の値と同じ関数)。
-/// 規則に反する値は、`invalidValue`(対象は、どこから来たか=オプションか環境変数かだけ。値は含めない)。
-pub fn resolve_run_id(
-    option: Option<&str>,
-    env_name: &str,
-    env: &dyn Env,
-) -> Result<Option<RunId>, UsageError> {
-    let (value, subject) = match option {
-        Some(v) => (Some(v.to_string()), "--run-id"),
-        None => (env.var(env_name), "run ID (environment variable)"),
-    };
-    match value.as_deref() {
-        None | Some("") => Ok(None),
-        Some(v) => RunId::parse(v)
-            .map(Some)
-            .map_err(|_| UsageError::with_subject(Kind::InvalidValue, subject)),
-    }
-}
+/// 置き場所を [`crate::run_id`] に移した。段 4 で `CliCommand.run_id` の型と一緒に、テストの呼ぶ道を
+/// 移すまでの、移行のための再公開。
+pub use crate::run_id::resolve_run_id;
 
 fn unexpected_argument(value: &OsString) -> UsageError {
     UsageError::with_subject(
