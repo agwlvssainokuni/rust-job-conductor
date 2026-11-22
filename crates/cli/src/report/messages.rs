@@ -20,7 +20,7 @@
 
 use conductor_converter::ConversionErrorKind;
 use conductor_core::{
-    Classification, DefinitionErrorKind, EnvFileErrorKind, NextStepNote, PlanDisposition, PlanEnd,
+    Classification, DefinitionErrorKind, EnvFileErrorKind, NextStepNote, PlanDisposition,
     RejectReason, SkipCause,
 };
 use conductor_runtime::{CommandErrorKind, CreateError, MismatchKind, StateErrorKind};
@@ -733,16 +733,14 @@ pub fn plan_assumed(
     }
 }
 
-/// 模擬の最後の語(エスケープ済みのジョブ ID を渡す)。
-pub fn plan_end(lang: Language, end: &PlanEnd, escaped_job_id: &str) -> String {
-    match (lang, end) {
-        (_, PlanEnd::Completed) => COMPLETED.get(lang).to_string(),
-        (Language::En, PlanEnd::EndReached) => "reached @end (completed)".to_string(),
-        (Language::Ja, PlanEnd::EndReached) => "@end に到達(完了)".to_string(),
-        (Language::En, PlanEnd::StoppedAtError(_)) => {
-            format!("stopped (error: {escaped_job_id})")
-        }
-        (Language::Ja, PlanEnd::StoppedAtError(_)) => format!("停止(エラー: {escaped_job_id})"),
+/// 模擬の最後の語(`@end` に到達して完了)。完了は [`COMPLETED`]。
+pub const PLAN_END_REACHED: Text = Text::new("reached @end (completed)", "@end に到達(完了)");
+
+/// 模擬の最後の語(エラーで停止。エスケープ済みのジョブ ID を渡す)。
+pub fn plan_stopped_at_error(lang: Language, escaped_job_id: &str) -> String {
+    match lang {
+        Language::En => format!("stopped (error: {escaped_job_id})"),
+        Language::Ja => format!("停止(エラー: {escaped_job_id})"),
     }
 }
 

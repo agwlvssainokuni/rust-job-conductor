@@ -19,16 +19,17 @@
 //! エスケープして出す。環境変数は、名前だけを出す(値は、計画の型が持たない。BR5.1、FR1.12)。
 
 use conductor_core::{
-    Assumption, Classification, ExecutionPlan, NextStepNote, PlanDisposition, PlanEntry, PlanMode,
-    ResumeKind,
+    Assumption, Classification, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
+    PlanMode, ResumeKind,
 };
 
 use super::escape::escape_path;
 use super::messages::{
-    DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, PLAN_ASSUME_LABEL, PLAN_FROM_START, PLAN_HEADING,
-    PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_LABEL, PLAN_TARGET_LABEL, PLAN_UNUSED_LABEL,
-    RESUME_HERE, graph_retry_summary, plan_assumed, plan_disposition, plan_end, plan_next_step,
-    plan_resume_after_stop, plan_run_id_suffix,
+    COMPLETED, DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, PLAN_ASSUME_LABEL, PLAN_END_REACHED,
+    PLAN_FROM_START, PLAN_HEADING, PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_LABEL,
+    PLAN_TARGET_LABEL, PLAN_UNUSED_LABEL, RESUME_HERE, graph_retry_summary, plan_assumed,
+    plan_disposition, plan_next_step, plan_resume_after_stop, plan_run_id_suffix,
+    plan_stopped_at_error,
 };
 use super::push_line;
 use crate::types::Language;
@@ -101,18 +102,12 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
 
     match plan.mode {
         PlanMode::Pipeline => {
-            let stopped = match &plan.end {
-                conductor_core::PlanEnd::StoppedAtError(id) => escape_path(id),
-                _ => String::new(),
+            let end = match &plan.end {
+                PlanEnd::Completed => COMPLETED.get(lang).to_string(),
+                PlanEnd::EndReached => PLAN_END_REACHED.get(lang).to_string(),
+                PlanEnd::StoppedAtError(id) => plan_stopped_at_error(lang, &escape_path(id)),
             };
-            push_line(
-                &mut out,
-                &format!(
-                    "{}{}",
-                    PLAN_RESULT_LABEL.get(lang),
-                    plan_end(lang, &plan.end, &stopped)
-                ),
-            );
+            push_line(&mut out, &format!("{}{end}", PLAN_RESULT_LABEL.get(lang)));
         }
         PlanMode::Individual => {
             if let (Some(note), Some(entry)) = (&plan.next_step_note, plan.entries.first()) {
