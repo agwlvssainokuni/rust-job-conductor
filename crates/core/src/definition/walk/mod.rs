@@ -479,14 +479,9 @@ impl<'a> Walker<'a> {
     }
 }
 
+/// 終了コードの値を `i32` で取り出す(整数でない、または `i32` に収まらなければ `None`)。
 fn exit_code_of(item: &Spanned<DeValue<'_>>) -> Option<i32> {
-    match item.get_ref() {
-        DeValue::Integer(i) => {
-            let v = i64::from_str_radix(i.as_str(), i.radix()).ok()?;
-            i32::try_from(v).ok()
-        }
-        _ => None,
-    }
+    integer_of(item).and_then(|v| i32::try_from(v).ok())
 }
 
 /// 整数の値を `i64` で取り出す(整数でない、または `i64` に収まらなければ `None`)。

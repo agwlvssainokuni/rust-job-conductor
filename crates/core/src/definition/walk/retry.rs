@@ -19,7 +19,7 @@
 
 use toml::de::{DeTable, DeValue};
 
-use super::{RawJob, Walker, integer_of};
+use super::{RawJob, Walker, exit_code_of, integer_of};
 use crate::definition::duration::parse_duration_secs;
 use crate::error::DefinitionErrorKind as Kind;
 use crate::types::{DEFAULT_SUCCESS_EXIT_CODES, RetryPolicy};
@@ -120,7 +120,7 @@ impl Walker<'_> {
         let mut codes = Vec::with_capacity(items.len());
         let mut ok = true;
         for item in items.iter() {
-            match integer_of(item).and_then(|v| i32::try_from(v).ok()) {
+            match exit_code_of(item) {
                 Some(c) if (1..=255).contains(&c) => codes.push(c),
                 _ => {
                     ok = false;
