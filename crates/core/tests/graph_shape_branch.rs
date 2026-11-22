@@ -12,21 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 分岐(成功と警告が、異なる、どちらも次でない行き先へ進む形)の図の例 B1〜B4(BR1.3、BR1.4)と、
-//! 分岐が同じ行き先・交差と組み合わさる形(BR2.1)、辺の一覧に残る形(BR1.1)のテスト。
+//! 形ごとの図: 分岐(成功と警告が、異なる、どちらも次でない行き先へ進む形。BR1.3、BR1.4)と、分岐が
+//! 同じ行き先・交差と組み合わさる形(BR2.1)。
+//!
+//! 図の例 B1〜B4、N2、N5。
 
 mod graph_common;
 
 use conductor_core::TransitionOn::{Success, Warning};
-use conductor_core::graph::{GraphLayout, layout_graph};
-use graph_common::{Spec, definition, graph_with_extra_edge, lanes_text, letters};
-
-/// `n` 個のジョブ(`a`、`b`、…)の図。辺の一覧になるときは `None`。
-fn lanes(n: usize, transitions: &[Spec<'_>]) -> Option<String> {
-    let ids = letters(n);
-    let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
-    lanes_text(&definition(&ids, transitions))
-}
+use graph_common::{Spec, lanes};
 
 #[test]
 fn b1_分岐は_2本の線を同時に開き_実行されうるジョブの下だけ主線を描く() {
@@ -157,14 +151,107 @@ fn 分岐と交差する飛び越しは_交差の行で描く() {
 }
 
 #[test]
-fn 辺の一覧に残る形_辺が3本のジョブがある() {
-    // 分岐のジョブ a に、3 本目の辺(@end へ)を足す。定義からは作れない、範囲の外の形(BR1.1)。
-    let ids = letters(5);
-    let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
-    let def = definition(
-        &ids,
-        &[("a", Success, Some("c")), ("a", Warning, Some("d"))],
+fn n2_分岐と通常の飛び越しの交差() {
+    let transitions = [
+        ("a", Success, Some("c")),
+        ("a", Warning, Some("e")),
+        ("b", Success, Some("d")),
+    ];
+    assert_eq!(
+        lanes(6, &transitions).as_deref(),
+        Some(
+            "\
+*     a
+ \\ \\
+* \\ \\   b
+ \\ \\ \\
+  |/ /
+ /| |
+* | | c
+|/ /
+* / d
+|/
+* e
+* f
+o @end
+"
+        )
     );
-    let graph = graph_with_extra_edge(&def, "a", None);
-    assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
+}
+
+#[test]
+fn n5_分岐の線に後のジョブが同じ行き先で合流する() {
+    let transitions = [
+        ("a", Success, Some("c")),
+        ("a", Warning, Some("e")),
+        ("c", Success, Some("e")),
+    ];
+    assert_eq!(
+        lanes(6, &transitions).as_deref(),
+        Some(
+            "\
+*     a
+ \\ \\
+* | | b
+ / /
+* | c
+|\\|
+* | d
+|/
+* e
+* f
+o @end
+"
+        )
+    );
+}
+
+#[test]
+fn 交差と離れた別のジョブの分岐は_レーンの図になる() {
+    let transitions: Vec<Spec<'_>> = vec![
+        ("a", Success, Some("d")),
+        ("b", Success, Some("e")),
+        ("f", Success, Some("h")),
+        ("f", Warning, None),
+    ];
+    let text = lanes(9, &transitions).expect("分岐を含む交差も、図になる(BR2.1)");
+    assert!(text.starts_with("*   a\n|\\\n* \\   b\n|\\ \\\n"), "{text}");
+    assert!(text.contains("*     f\n \\ \\\n* | | g\n / /\n"), "{text}");
+}
+
+#[test]
+fn 交差と同じ行き先に_分岐が混ざる形は_レーンの図になる() {
+    // f は h と終点へ分岐する(次のジョブへの辺がない)。c→d は記述順の次なので、飛び越しではない。
+    let transitions: Vec<Spec<'_>> = vec![
+        ("a", Success, Some("d")),
+        ("b", Success, Some("e")),
+        ("c", Success, Some("d")),
+        ("f", Success, Some("h")),
+        ("f", Warning, None),
+    ];
+    assert_eq!(
+        lanes(9, &transitions).as_deref(),
+        Some(
+            "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* | | c
+| |/
+|/|
+* | d
+|/
+* e
+*     f
+ \\ \\
+* | | g
+ / /
+* | h
+* | i
+|/
+o @end
+"
+        )
+    );
 }

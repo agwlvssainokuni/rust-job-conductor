@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 図のテストの共通の部品(定義の組み立てと、レーンの最小の文字化)。
+//! 図のテストの共通の部品(定義の組み立て、レーンの最小の文字化、`a`、`b`、… のジョブの図、
+//! 両方の飛び越しの遷移の組)。
 
 #![allow(dead_code)]
 
@@ -69,6 +70,26 @@ pub fn letters(n: usize) -> Vec<String> {
     (0..n)
         .map(|i| ((b'a' + i as u8) as char).to_string())
         .collect()
+}
+
+/// `n` 個のジョブ(`a`、`b`、…)と遷移から、定義を作る。
+pub fn letter_definition(n: usize, transitions: &[Spec<'_>]) -> PipelineDefinition {
+    let ids = letters(n);
+    let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+    definition(&ids, transitions)
+}
+
+/// `n` 個のジョブ(`a`、`b`、…)の図。辺の一覧になるときは `None`。
+pub fn lanes(n: usize, transitions: &[Spec<'_>]) -> Option<String> {
+    lanes_text(&letter_definition(n, transitions))
+}
+
+/// `from` が、成功でも警告でも `to` へ飛ぶ遷移の組(両方の飛び越し)。
+pub fn both<'a>(from: &'a str, to: Option<&'a str>) -> [Spec<'a>; 2] {
+    [
+        (from, TransitionOn::Success, to),
+        (from, TransitionOn::Warning, to),
+    ]
 }
 
 /// レーンの行を、文字にする(テスト側の最小の整形。cli の整形と同じ規則)。

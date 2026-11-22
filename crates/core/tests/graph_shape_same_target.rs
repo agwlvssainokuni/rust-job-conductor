@@ -12,21 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 通常の飛び越しだけのグラフの、交差と同じ行き先が混ざる形(BR1.1〜BR1.5、BR2.1)。
+//! 形ごとの図: 同じ行き先(合流)と、それが交差と混ざる形(BR1.1〜BR1.5、BR2.1)。
 //!
-//! 図の例 M2〜M4(`git log --graph` の出力と一致を確かめた形)と、「両方の飛び越し」・分岐が混ざる形
-//! (今回から図になる。規則から導いた図で、git の出力ではない)。
+//! 図の例 M2〜M4(`git log --graph` の出力と一致を確かめた形)と、次のジョブへの辺がないジョブを含む形、
+//! 交差と離れた同じ行き先。
 
 mod graph_common;
 
 use conductor_core::TransitionOn::{Success, Warning};
-use graph_common::{Spec, definition, lanes_text, letters};
-
-fn lanes(n: usize, transitions: &[Spec<'_>]) -> Option<String> {
-    let ids = letters(n);
-    let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
-    lanes_text(&definition(&ids, transitions))
-}
+use graph_common::{Spec, lanes};
 
 #[test]
 fn m2_離れて同じ行き先を持つ線が_別の線と交差する() {
@@ -125,78 +119,32 @@ o @end
 }
 
 #[test]
-fn 交差に_両方の飛び越しが混ざる形は_レーンの図になる() {
-    // d は成功も警告も f へ飛ぶ(次のジョブへの辺がない)。d の線は、b の線(f へ)と同じ行き先で、
-    // 次のノードの手前で寄せる。d の下の行の列 0 は空白(BR1.4、BR2.1)。
-    let transitions: Vec<Spec<'_>> = vec![
-        ("a", Success, Some("e")),
-        ("b", Success, Some("f")),
-        ("c", Success, Some("e")),
-        ("d", Success, Some("f")),
-        ("d", Warning, Some("f")),
-    ];
-    assert_eq!(
-        lanes(7, &transitions).as_deref(),
-        Some(
-            "\
-*   a
-|\\
-* \\   b
-|\\ \\
-* \\ \\   c
-|\\ \\ \\
-| | |/
-| |/|
-* | |   d
- \\ \\ \\
-  |/ /
- /| /
-  |/
-* / e
-|/
-* f
-* g
-o @end
-"
-        )
-    );
+fn 同じ行き先を含んで交差する形は_レーンの図になる() {
+    // a→e と c→e は同じ行き先で、b→f が a→e の線の行き先を越えて交差する。通常の飛び越しだけなので図にする(BR1.1)。
+    let text = lanes(
+        7,
+        &[
+            ("a", Success, Some("e")),
+            ("b", Success, Some("f")),
+            ("c", Success, Some("e")),
+        ],
+    )
+    .expect("通常の飛び越しだけのグラフは、レーンの図になる");
+    assert!(text.starts_with("*   a\n|\\\n* \\   b\n"), "{text}");
+    assert!(text.ends_with("o @end\n"), "{text}");
 }
 
 #[test]
-fn 交差と同じ行き先に_分岐が混ざる形は_レーンの図になる() {
-    // f は h と終点へ分岐する(次のジョブへの辺がない)。c→d は記述順の次なので、飛び越しではない。
+fn 交差と離れた別のジョブの同じ行き先は_レーンの図になる() {
+    // g→i と f→i が同じ行き先(合流)。通常の飛び越しだけなので、図にする(BR1.1)。
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("d")),
         ("b", Success, Some("e")),
-        ("c", Success, Some("d")),
-        ("f", Success, Some("h")),
-        ("f", Warning, None),
+        ("f", Success, Some("i")),
+        ("g", Success, Some("i")),
     ];
-    assert_eq!(
-        lanes(9, &transitions).as_deref(),
-        Some(
-            "\
-*   a
-|\\
-* \\   b
-|\\ \\
-* | | c
-| |/
-|/|
-* | d
-|/
-* e
-*     f
- \\ \\
-* | | g
- / /
-* | h
-* | i
-|/
-o @end
-"
-        )
-    );
+    let text = lanes(10, &transitions).expect("通常の飛び越しだけのグラフは、図になる");
+    assert!(text.ends_with("o @end\n"), "{text}");
 }
 
 #[test]
