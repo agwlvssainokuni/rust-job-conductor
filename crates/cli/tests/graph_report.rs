@@ -93,7 +93,7 @@ fn レーンの図の例_g1_から_g4_と_g6() {
 }
 
 #[test]
-fn 辺の一覧の例_e1_交差と_e2_状態つき() {
+fn 辺の一覧の例_e1_交差と_状態つき() {
     let e1 = definition(
         &["a", "b", "c", "d", "e", "f"],
         &[("a", "d"), ("b", "e")],
@@ -105,26 +105,90 @@ fn 辺の一覧の例_e1_交差と_e2_状態つき() {
          ジョブ:\n  a\n  b\n  c\n  d\n  e\n  f\n\
          辺:\n  a -> b (警告)\n  a -> d (成功)\n  b -> c (警告)\n  b -> e (成功)\n  c -> d\n  d -> e\n  e -> f\n  f -> @end\n"
     );
-    // E2: a の成功と警告が、どちらも d へ飛ぶ。
-    let e2 = definition(
-        &["a", "b", "c", "d"],
-        &[],
-        "\n[[job.transitions]]\non = \"warning\"\nnext = \"d\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"d\"\n",
+    // E2: 交差する形に、状態を重ねる。
+    let overlay = StateOverlay {
+        states: ["a", "b", "c", "d", "e", "f"]
+            .iter()
+            .map(|id| (id.to_string(), NodeState::Pending))
+            .collect(),
+        resume_job_id: None,
+    };
+    assert_eq!(
+        text_of(Language::Ja, &e1, Some(&overlay), false),
+        "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
+         ジョブ:\n  [  ] a\n  [  ] b\n  [  ] c\n  [  ] d\n  [  ] e\n  [  ] f\n\
+         辺:\n  a -> b (警告)\n  a -> d (成功)\n  b -> c (警告)\n  b -> e (成功)\n  c -> d\n  d -> e\n  e -> f\n  f -> @end\n"
     );
+}
+
+/// a の成功と警告が、どちらも `to` へ飛ぶ(両方の飛び越し)。
+fn both_skip_extra(to: &str) -> String {
+    format!(
+        "\n[[job.transitions]]\non = \"warning\"\nnext = \"{to}\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"{to}\"\n"
+    )
+}
+
+#[test]
+fn 同じ行き先の図_s1_と_両方の飛び越しの図_d1() {
+    // S1: a→d と b→d が、同じ線に合流する。
+    let s1 = definition(&IDS5, &[("a", "d"), ("b", "d")], "");
+    assert_eq!(
+        text_of(Language::Ja, &s1, None, false),
+        "*   a\n|\\\n* | b\n|\\|\n* | c\n|/\n* d\n* e\no @end\n"
+    );
+    // D1: a の成功と警告が、どちらも c へ飛ぶ。線なし。
+    let d1 = definition(&["a", "b", "c", "d"], &[], &both_skip_extra("c"));
+    assert_eq!(
+        text_of(Language::Ja, &d1, None, false),
+        "* a\n* b\n* c\n* d\no @end\n"
+    );
+}
+
+#[test]
+fn 同じ行き先と両方の飛び越しに_state_を重ねても_行の形は変わらない() {
+    let d1 = definition(&["a", "b", "c", "d"], &[], &both_skip_extra("c"));
     let overlay = StateOverlay {
         states: vec![
             ("a".into(), NodeState::Ok),
             ("b".into(), NodeState::Skipped),
-            ("c".into(), NodeState::Skipped),
-            ("d".into(), NodeState::Ok),
+            ("c".into(), NodeState::Ok),
+            ("d".into(), NodeState::Pending),
         ],
-        resume_job_id: None,
+        resume_job_id: Some("d".into()),
     };
     assert_eq!(
-        text_of(Language::Ja, &e2, Some(&overlay), false),
-        "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
-         ジョブ:\n  [OK] a\n  [--] b\n  [--] c\n  [OK] d\n\
-         辺:\n  a -> d (成功・警告)\n  b -> c\n  c -> d\n  d -> @end\n"
+        text_of(Language::Ja, &d1, Some(&overlay), false),
+        "* [OK] a\n* [--] b\n* [OK] c\n* [  ] d  <- 再開位置\no @end\n"
+    );
+}
+
+#[test]
+fn v_の詳細は_合流の行のあとにも_分岐の行と同じように置く() {
+    let s1 = definition(&IDS5, &[("a", "d"), ("b", "d")], "");
+    assert_eq!(
+        text_of(Language::En, &s1, None, true),
+        "*   a\n|\\\n| | command: echo a\n| | success -> d (skips b, c), warning -> b\n\
+         * | b\n|\\|\n| | command: echo b\n| | success -> d (skips c), warning -> c\n\
+         * | c\n| | command: echo c\n|/\n\
+         * d\n| command: echo d\n* e\n| command: echo e\no @end\n"
+    );
+    let d1 = definition(&["a", "b", "c", "d"], &[], &both_skip_extra("c"));
+    assert_eq!(
+        text_of(Language::En, &d1, None, true),
+        "* a\n| command: echo a\n| success, warning -> c (skips b)\n\
+         * b\n| command: echo b\n* c\n| command: echo c\n* d\n| command: echo d\no @end\n"
+    );
+}
+
+#[test]
+fn 英語の注記は_レーンの図で描けない形を含む言い方() {
+    let e1 = definition(&IDS5, &[("a", "d"), ("b", "e")], "");
+    let text = text_of(Language::En, &e1, None, false);
+    assert!(
+        text.starts_with(
+            "note: the skip edges cross or form a shape the lane diagram cannot draw, so it is replaced by a list of edges.\nJobs:\n"
+        ),
+        "{text}"
     );
 }
 
