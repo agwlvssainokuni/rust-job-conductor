@@ -243,3 +243,25 @@ fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_
         text(&out.stdout)
     );
 }
+
+/// 分岐(a の成功が c、警告が d。例 B1)の定義の text が、2 本の線を同時に開くレーンの図で出る。
+#[test]
+fn 分岐の定義は_2本の線を同時に開くレーンの図で出る() {
+    let ok = helper_command("exit 0");
+    let branch = "[[job.transitions]]\non = \"success\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"warning\"\nnext = \"d\"\n";
+    let jobs = [
+        job_block("a", &ok, branch),
+        job_block("b", &ok, ""),
+        job_block("c", &ok, ""),
+        job_block("d", &ok, ""),
+        job_block("e", &ok, ""),
+    ];
+    let project = Project::new(&definition("p", &jobs));
+    let out = project.run(&["graph"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(
+        text(&out.stdout),
+        "*     a\n \\ \\\n* | | b\n / /\n* | c\n /\n* d\n* e\no @end\n"
+    );
+    assert_eq!(text(&out.stderr), "");
+}
