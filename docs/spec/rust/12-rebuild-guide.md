@@ -55,7 +55,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `wait_for`(50 ms 以下の間隔)、`state/reader.rs`(14 項目の検査順、1 MiB、未知のキーの拒否、`format_version` の先行検査、完了は空)、`state/writer.rs`(一時ファイル → 書き込み → Durable のとき同期 → 閉じる → rename → ディレクトリの同期 → 24 時間以上古い一時ファイルの掃除)、`state/record.rs`(`initial_state`・`apply_*`)、`state/consistency.rs`、`state/reset_all.rs`、`StateLocation` |
+| 作るもの | `wait_for`(50 ms 以下の間隔)、`state/reader.rs`(14 項目の検査順、1 MiB、未知のキーの拒否、`format_version` の先行検査、完了は空)、`state/writer.rs`(一時ファイル → 書き込み → Durable のとき同期 → 閉じる → rename → ディレクトリの同期 → 24 時間以上古い一時ファイルの掃除)、`flow/record.rs`(core に置く。`initial_state`・`apply_*`。`apply_skip` は状態を定義の位置で引き、1 回がジョブの数に比例する時間。runtime の `lib.rs` は `conductor_core` から同じ名前で再公開する)、`state/consistency.rs`、`state/reset_all.rs`、`StateLocation` |
 | 完了条件 | 書いたステートを読み戻すと等しい。06 の 2.4 の矛盾がすべて `corrupt`(65 になる)。書き込みの失敗でステートファイルが直前のまま。`reset --all` の実測の例(06 の 7.2)が再現する。`apply_*` の純粋な更新が 05 の 3.3〜3.5 のとおり |
 | 確認の観点 | 理由文は日本語の固定文(22 種)。ステートに `command`・環境変数・出力が書かれない。キーは辞書順で、`[[job]]` が最後。`reset`(個別)はリンクそのものを消し、`reset --all` はリンクを消さない |
 | 参照 | 06 章、05 の 3 章、10 の 7.2 |
@@ -123,7 +123,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの(core) | `plan/{mod,simulate}.rs`(型、`plan_pipeline`、`plan_run`、`simulate_job`、`apply_result`)。`decide_before_run` の探索を、位置の一致を先に見る `status_at` にする(挙動は同じ) |
+| 作るもの(core) | `plan/{mod,simulate}.rs`(型、`plan_pipeline`、`plan_run`、`simulate_job`。`plan_pipeline` は `PipelineState` を 1 つ持ち、本番と同じ `apply_skip`・`apply_outcome` で更新する。更新の写しを作らない)。`decide_before_run` の探索を、位置の一致を先に見る `status_at` にする(挙動は同じ) |
 | 作るもの(cli) | `args.rs`(`--dry-run`、`--assume` の検査)、`ctx.rs` の `prepare_checked`(`prepare` の、シグナルを除く部分。`--assume` のジョブID の検査を含む)、`dry_run.rs`(`run_dry_run`)、`report/plan_text.rs`、メッセージ |
 | 完了条件 | 08 の 11 章の例 P1〜P8、P2e、P4e が 1 文字も違わず一致する。ジョブを起動せず、ステートを書かず・消さず、シグナルを準備しない。計画の「実行する」ジョブが、本番の流れが起動するジョブと一致する(新規と再開の両方)。1,000 ジョブの計画が 1 秒以内 |
 | 確認の観点 | 完了したステートは「ステートなし」。使われなかった仮定は誤りにしない。定義にないジョブIDの仮定は 68(ジョブIDを表示しない)。`.env` は本番と同じ範囲で読み、64。環境変数は名前と出どころだけを計画に持つ(値を持たない) |

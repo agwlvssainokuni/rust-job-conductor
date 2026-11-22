@@ -2,7 +2,7 @@
 
 対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。この文書は、実装とテストを根拠に、`run`・`pipeline` の実行の流れを、判定表・状態遷移・擬似アルゴリズムで定める。v0.9.0 で加わった内容は、14 章(環境変数の注入)、15 章(`graph`)、16 章(`--dry-run`)、17 章(`init`)にまとめる。ステートファイルの形式と読み書きは [06-state-file.md](06-state-file.md) にある。この文書の「ステートへの記録」は、06 の形式のファイルを書く前の、メモリ上の `PipelineState` の更新を指す。
 
-実装の所在(参考): 判断は `crates/core/src/flow/{classify,decide,next_step,resume,retry}.rs`(純粋関数。ファイル・プロセスに触れず、失敗せず、必ず結果を返す)、記録は `crates/runtime/src/state/record.rs`、流れは `crates/cli/src/{ctx,run,pipeline,retry}.rs`、終了コードは `crates/cli/src/exit.rs`。v0.9.0 以降: 環境変数は `crates/core/src/envfile/`(純粋)と `crates/runtime/src/envfile.rs`(読み取り)、図は `crates/core/src/graph/`、計画は `crates/core/src/plan/`、それぞれの流れは `crates/cli/src/{graph,dry_run,init}.rs`。
+実装の所在(参考): 判断は `crates/core/src/flow/{classify,decide,next_step,resume,retry}.rs`(純粋関数。ファイル・プロセスに触れず、失敗せず、必ず結果を返す)、記録は `crates/core/src/flow/record.rs`(純粋関数。本番の流れと `--dry-run` の模擬が共に使い、`conductor-runtime` が同じ名前で再公開する)、流れは `crates/cli/src/{ctx,run,pipeline,retry}.rs`、終了コードは `crates/cli/src/exit.rs`。v0.9.0 以降: 環境変数は `crates/core/src/envfile/`(純粋)と `crates/runtime/src/envfile.rs`(読み取り)、図は `crates/core/src/graph/`、計画は `crates/core/src/plan/`、それぞれの流れは `crates/cli/src/{graph,dry_run,init}.rs`。
 
 ---
 
@@ -167,6 +167,8 @@ return low
 
 ### 3.3 `apply_outcome`(結果の記録。メモリ上)
 
+§3.3〜§3.5 の関数(と `initial_state`)は、`crates/core/src/flow/record.rs` にある。本番の流れ(cli)と、`--dry-run` の模擬(§16.2)が、同じ関数でステートを更新する(更新の規則は、ここに 1 回だけ書く)。
+
 入力: 現在のステート `S`、ジョブID、`JobExecution`、`JobOutcome`、`NextStep`。`S` を複製して更新する。
 
 1. 対象ジョブ(`S.job_states` から id で探す。見つからなければ 1 を飛ばす):
@@ -186,6 +188,7 @@ return low
   - `first_pending` = 定義の順で最初の `pending`(無ければ無し)
   - `completed` = 「いまスキップしたジョブが定義の最後のジョブ、かつ `first_pending` が無い」
   - `resume_job_id = first_pending`
+- `first_pending` の探索では、各ジョブの状態を定義の位置で引く(記録が同じ位置にあればそれを使い、なければ id で探す。無ければ `pending`。`decide_before_run` の `status_at` と同じ考え)。1 回の `apply_skip` はジョブの数に比例する時間で済む(`@end` の後に多くのジョブをスキップする計画と本番の性能のため。挙動は変わらない)。
 
 ### 3.5 `apply_interrupt`(中断の記録。メモリ上)
 
@@ -864,30 +867,31 @@ target_position(i, on):
 
 ```text
 active = input.state が Some かつ completed でないもの          # 完了したステートは「ステートなし」(本番と同じ)
-states = active があれば active.job_states の複製、なければ全ジョブ pending
-initial_resume = active?.resume_job_id
-resume = initial_resume; end_reached = active?.end_reached(なければ false); stopped = None
+S = active があれば active の複製、なければ initial_state(def, 模擬の中だけのパス, None)   # 全ジョブ pending
+initial_resume = S.resume_job_id
+stopped = None
 for (index, job) in def.job (記述順):
     is_resume = (initial_resume == job.id)
     if stopped: entries に NotReached を足し、continue
-    match decide_before_run(job.id, def, states, resume, end_reached):
+    match decide_before_run(job.id, def, S.job_states, S.resume_job_id, S.end_reached):
         Reject(reason): return Err(PlanRejection{ job.id, reason })
-        Skip(reason):   entries に skip_disposition(reason) を足す          # 模擬の状態は変えない
+        Skip(reason):
+            entries に skip_disposition(reason) を足す
+            S = apply_skip(S, job.id, reason, def)                         # §3.4
         Run:
             (code, assumed) = job.id の仮定があれば (その終了コード, true)、なければ (0, false)
-            (result, next) = simulate_job(job, def, states, code, assumed, Pipeline)
-            apply_result(states, job.id, code, result.classification, next)
-            resume = next.resume_job_id; end_reached = end_reached || next.end_reached
+            (result, execution, outcome, next) = simulate_job(job, def, S.job_states, code, assumed, Pipeline)
+            S = apply_outcome(S, job.id, execution, outcome, next)         # §3.3
             if result.classification == Error: stopped = Some(job.id)
             entries に WillRun(result つき)を足す
-end = stopped があれば StoppedAtError(その ID)、なければ end_reached なら EndReached、なければ Completed
+end = stopped があれば StoppedAtError(その ID)、なければ S.end_reached なら EndReached、なければ Completed
 resume 情報 = initial_resume があれば AfterStop(job_id)、なければ FromStart
 unused_assumptions = 仮定のうち、WillRun の項目にならなかったジョブID(指定順)
 ```
 
 - `skip_disposition(reason)`: `AlreadyExecuted` → `AlreadyExecuted`、`AfterEnd` → `SkippedAfterEnd`、`SkipTarget`・`OutOfOrder` → `SkippedByTransition`。
-- `simulate_job`: 合成した `JobExecution { started: true, exit_code: Some(code), 他は false/None }` を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。
-- `apply_result`(本番の `apply_outcome` と同じ結果にする): ジョブの状態を分類のとおり(success / warning / error)にし、`exit_code = Some(code)`、`skip_reason` を消す。次の動きの `skipped_job_ids`(自分自身を除く)を `skipped` にし、`exit_code` を消し、`skip_reason` = `skip_reason_kind`(無ければ `byTransition`)にする。再開位置と `end_reached` は、呼び出し側が `NextStep` から更新する。
+- `simulate_job`: 合成した `JobExecution { started: true, exit_code: Some(code), 他は false/None }` を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。戻り値は `(SimulatedResult, JobExecution, JobOutcome, NextStep)`(記録に使う実行と分類の結果も返し、分類を 2 回しない)。
+- 模擬のステート `S` の更新は、本番と同じ `apply_skip`・`apply_outcome` で行う(規則は §3.3〜§3.5)。`S` は関数の中だけで持ち、返さず、保存しない。
 - 項目 `PlanEntry`: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 }).names()`(名前と出どころ。値は持たない)。
 - 状態の探索は、ジョブの数に比例する時間で済む(`decide_before_run` は、記録が同じ位置にあればそれを使い、なければ `record_of` と同じに引く。1,000 ジョブの計画の性能のため。挙動は変わらない)。
 
@@ -901,7 +905,7 @@ match decide_before_run(job_id, def, states, resume, end_reached):
     Skip(reason):   項目 = skip_disposition(reason)、end = Completed、note = None
     Run:
         (code, assumed) = 仮定または (0, false)
-        (result, next) = simulate_job(..., Individual)
+        (result, _, _, next) = simulate_job(..., Individual)              # ステートは更新しない
         stopped = (result.classification == Error)
         note = NextStepNote{ next.next_job_id, next.skipped_job_ids, next.completed, next.end_reached, stopped }
         end = stopped なら StoppedAtError(job_id)、next.end_reached なら EndReached、なければ Completed

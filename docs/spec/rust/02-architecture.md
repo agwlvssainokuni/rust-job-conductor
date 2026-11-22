@@ -63,6 +63,7 @@
 | `summarize_errors`(v0.9.0 以降) | `(errors: &[EnvFileError]) -> (&[EnvFileError], usize)` | 表示する先頭の最大 20 件と、残りの件数 |
 | `graph::flow_edges` / `build_graph` / `layout_graph` / `is_lane_drawable` / `overlay_from_state` / `pending_overlay` / `node_state_of`(v0.9.0 以降) | 05 の 15 章 | 図の辺・構造・配置・状態の重ね合わせ(純粋) |
 | `plan_pipeline` / `plan_run`(v0.9.0 以降) | `(&PlanInput<'_>) -> Result<ExecutionPlan, PlanRejection>` / `(job_id: &str, &PlanInput<'_>) -> …` | `--dry-run` の計画の生成(純粋)。05 の 16 章 |
+| `initial_state` / `apply_outcome` / `apply_skip` / `apply_interrupt` | 2.2 の表 | ステートの更新(純粋。`flow/record.rs`)。本番の流れと `--dry-run` の模擬が共に使う。`conductor-runtime` が同じ名前で再公開する。05 の 3.3〜3.5 |
 
 #### 主要な型(`types`)
 
@@ -97,7 +98,7 @@
 
 ### 2.2 `conductor-runtime`
 
-再公開(`lib.rs`): `error::*`、`run_job`、`check_command`、`check_consistency`、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::*`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`(後ろの 4 つは v0.9.0 以降)。`envfile`、`file_create`、`platform`、`runner`、`split`、`state` は非公開(`#![deny(unsafe_code)]`)。
+再公開(`lib.rs`): `error::*`、`run_job`、`check_command`、`check_consistency`、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`(この 4 つは `conductor_core` の `flow/record.rs` の再公開。cli の `use conductor_runtime::{...}` はそのまま使える)、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::*`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`(後ろの 4 つは v0.9.0 以降)。`envfile`、`file_create`、`platform`、`runner`、`split`、`state` は非公開(`#![deny(unsafe_code)]`)。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
@@ -112,7 +113,7 @@
 | `reset_state` | `(definition_path: &Path, run_id: Option<&RunId>) -> Result<(), StateError>` | ステートファイルを消す(なくても成功) |
 | `reset_all_states` | `(definition_path: &Path) -> Result<ResetAllReport, StateError>` | 定義の全ステートを消す。`ResetAllReport { removed: usize, kept: Vec<String> }` |
 | `check_consistency` | `(state: &PipelineState, definition: &PipelineDefinition) -> ConsistencyResult` | 定義との照合。`Ok` / `Mismatch(PipelineName \| JobIds \| JobOrder)` |
-| `initial_state` | `(definition: &PipelineDefinition, definition_path: &Path, run_id: Option<&RunId>) -> PipelineState` | 全ジョブ `pending` の初期ステート |
+| `initial_state` | `(definition: &PipelineDefinition, definition_path: &Path, run_id: Option<&RunId>) -> PipelineState` | 全ジョブ `pending` の初期ステート(この行から `apply_interrupt` までの 4 つは、`conductor_core` の再公開) |
 | `apply_outcome` | `(state, job_id: &str, execution: &JobExecution, outcome: &JobOutcome, next: &NextStep) -> PipelineState` | 結果の記録(メモリ上。純粋) |
 | `apply_skip` | `(state, job_id, reason: DecisionReason, definition) -> PipelineState` | スキップの記録(純粋) |
 | `apply_interrupt` | `(state, resume_point: &ResumePoint) -> PipelineState` | 中断の記録(純粋) |
@@ -235,6 +236,8 @@ Runtime::run_job ──▶ JobExecution ──classify_and_decide──▶ (JobO
 JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了コード
 ```
 
+判断(`decide_before_run`、`classify_and_decide`)と記録(`apply_outcome`、`apply_skip`、`apply_interrupt`)は、どちらも `conductor-core`(`flow/`)の純粋な関数で、`write_state` だけが `conductor-runtime` にある。`--dry-run` の模擬(`plan_pipeline`)も、同じ判断と記録の関数で、メモリ上のステートを進める(`write_state` は呼ばない。05 の 16 章)。
+
 ## 4. テスト用の差し替え点
 
 `conductor-cli` の流れは、OS・ファイル・プロセスに直接触れず、`Deps` を介す。`run_cli_with(args, &mut Deps { runtime, sink, env, signals })` に、偽の実装を渡せる。
@@ -276,7 +279,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `envfile/parse.rs`(同) | `parse_env_file`(`.env` の解析) |
 | `envfile/merge.rs`(同) | `merge_env`(層の統合と自動の変数) |
 | `graph/mod.rs`、`edges.rs`、`layout.rs`、`overlay.rs`(同) | 図の型(`FlowEdge`、`FlowGraph`、`GraphNode`、`NodeState`、`StateOverlay`、`LaneGlyph`、`LaneRow`、`LaneLayout`、`GraphLayout`)、辺の取り出し、「対応する形」の判定とレーンの配置、状態の重ね合わせ |
-| `plan/mod.rs`、`simulate.rs`(同) | 計画の型と、模擬(`plan_pipeline`、`plan_run`) |
+| `plan/mod.rs`、`simulate.rs`(同) | 計画の型と、模擬(`plan_pipeline`、`plan_run`)。模擬のステートの更新は `flow/record.rs` の関数を呼ぶ |
 | `run_id.rs` | `RunId`、`RunIdError`、`is_valid_env_name`、`peek_run_id_env`、`DEFAULT_RUN_ID_ENV`、`MAX_RUN_ID_LEN` |
 | `definition/mod.rs` | `load_definition`、`parse_definition`(5 段階の流れ) |
 | `definition/intake.rs` | 定義の場所の決定、メタデータの確認、1 MiB 上限の読み取り、UTF-8 の確認 |
@@ -289,6 +292,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `flow/classify.rs` | 分類と報告する終了コード |
 | `flow/decide.rs` | 起動前の判断 |
 | `flow/next_step.rs` | 遷移・完了・スキップ対象・再開位置(`classify_and_decide`)。v0.9.0 以降は、遷移の解決 `resolve_transition` を切り出し、図と共有する |
+| `flow/record.rs` | ステートの更新: `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`(純粋)。本番の流れと `--dry-run` の模擬が共に使う(`conductor-runtime` が再公開する) |
 | `flow/resume.rs` | ジョブのあいだの中断の再開位置 |
 | `flow/retry.rs` | リトライの判断と待ち時間の計算 |
 
@@ -308,7 +312,6 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `state/mod.rs` | 下位モジュールの束ね |
 | `state/reader.rs` | ステートの読み込み、検査、`read_state`/`read_state_raw`、`inspect_run_state`(`reset --all` 用) |
 | `state/writer.rs` | 原子的な書き込み(一時ファイル、同期、rename、古い一時ファイルの掃除)、`reset_state`、TOML への書き出し |
-| `state/record.rs` | `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`(純粋) |
 | `state/consistency.rs` | 定義との照合(純粋) |
 | `state/reset_all.rs` | `reset --all` の対象の判定と削除 |
 | `bin/conductor-test-helper.rs` | テスト補助の実行ファイル |
