@@ -135,8 +135,12 @@ pub(crate) mod reason {
     pub const DUPLICATE_KEY: &str = "キーが重複しています";
     pub const RECURSIVE_ANCHOR: &str = "アンカーが自分自身を含んでいます";
     pub const UNKNOWN_ANCHOR: &str = "定義されていないアンカーを参照しています";
+    /// 入れ子の上限の文。数は `raw::MAX_DEPTH` と同じでなければならない(下の const の assert で縛る)。
     pub const TOO_DEEP: &str = "入れ子が深すぎます(上限 32)";
+    /// 展開後の入れ子の上限の文。数は `raw::MAX_DEPTH` と同じ。
     pub const TOO_DEEP_EXPANDED: &str = "展開後の入れ子が深すぎます(上限 32)";
+    // 文の「32」と上限の定数が食い違えば、コンパイルできない(converter は core に依存しない)。
+    const _: () = assert!(crate::raw::MAX_DEPTH == 32);
     pub const MULTI_DOCUMENT: &str = "複数の文書は表せません";
     pub const NULL_VALUE: &str = "null は表せません";
     pub const NON_STRING_KEY: &str = "文字列でないキーは表せません";

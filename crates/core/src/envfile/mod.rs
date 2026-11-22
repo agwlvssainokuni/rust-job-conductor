@@ -28,7 +28,7 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::error::sanitize;
+use crate::error::{MAX_FILE_DISPLAY_CHARS, sanitize};
 use crate::types::PipelineDefinition;
 
 pub use merge::merge_env;
@@ -42,9 +42,6 @@ pub const MAX_ENV_ENTRIES: usize = 10_000;
 pub const MAX_REPORTED_ERRORS: usize = 20;
 /// 予約名の接頭辞(BR1.3)。
 pub const RESERVED_ENV_PREFIX: &str = "CONDUCTOR_";
-
-/// ファイル名を表示するときの最大の文字数。
-const MAX_FILE_DISPLAY_CHARS: usize = 256;
 
 /// 予約名(ASCII の大文字にして `CONDUCTOR_` で始まる名前)か(BR1.3)。
 pub fn is_reserved_env_name(name: &str) -> bool {

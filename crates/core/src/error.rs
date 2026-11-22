@@ -23,8 +23,8 @@ use thiserror::Error;
 /// キー名を表示するときの最大の文字数(NFR4.6)。
 pub const MAX_KEY_DISPLAY_CHARS: usize = 64;
 
-/// ファイル名を表示するときの最大の文字数。
-const MAX_FILE_DISPLAY_CHARS: usize = 256;
+/// ファイル名を表示するときの最大の文字数(定義の誤りと `.env` の誤りで共通)。
+pub(crate) const MAX_FILE_DISPLAY_CHARS: usize = 256;
 
 /// 定義の誤りの種類(BR1.1〜BR1.13、security-design の追加分を含む)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]

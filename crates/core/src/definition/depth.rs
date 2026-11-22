@@ -16,7 +16,7 @@
 //!
 //! 読み取りのあとの木を走査して、入れ子の深さを数える。テーブル、テーブルの配列、
 //! インラインのテーブル、配列を、それぞれ 1 段として数え(根の文書は数えない)、
-//! 32 段を超えたら `syntax` で拒否する(NFR4.7、D4)。
+//! [`MAX_NESTING_DEPTH`](32)段を超えたら `syntax` で拒否する(NFR4.7、D4)。
 //! 走査は、上限を超えた時点で打ち切るため、再帰の深さは上限 + 1 までである。
 
 use toml::de::{DeTable, DeValue};
@@ -68,7 +68,7 @@ fn walk_value(start: usize, value: &DeValue<'_>, depth: usize) -> Option<usize> 
     }
 }
 
-/// 深さの検査。超えていれば `syntax`(理由「深すぎる入れ子」)を返す。
+/// 深さの検査。超えていれば `syntax`(理由「深すぎる入れ子」。上限は [`MAX_NESTING_DEPTH`] から作る)を返す。
 pub fn check_depth(root: &DeTable<'_>, file: &str, locate: &Locate) -> Result<(), DefinitionError> {
     match find_too_deep(root) {
         None => Ok(()),
@@ -76,7 +76,7 @@ pub fn check_depth(root: &DeTable<'_>, file: &str, locate: &Locate) -> Result<()
             file,
             Some(locate.line_of(pos)),
             DefinitionErrorKind::Syntax,
-            "入れ子が深すぎます(上限は 32 段)",
+            format!("入れ子が深すぎます(上限は {MAX_NESTING_DEPTH} 段)"),
         )),
     }
 }
