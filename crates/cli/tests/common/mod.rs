@@ -249,6 +249,30 @@ impl Default for ScriptedRuntime {
     }
 }
 
+/// 偽の `wait` の共通の処理(`ScriptedRuntime` と `MemRuntime`)。待たずに、待ち時間を `waits` に記録する。
+///
+/// 合図がすでに立っていれば `Interrupted`。`interrupt_wait` が `(N, 番号)` で、これが N 回目(0 始まり)の
+/// 呼び出しなら、合図を立てて `Interrupted`。どちらでもなければ `Elapsed`。
+pub fn fake_wait(
+    waits: &RefCell<Vec<u64>>,
+    interrupt_wait: &Cell<Option<(usize, i32)>>,
+    secs: u64,
+    signal: &InterruptSignal,
+) -> WaitOutcome {
+    let n = waits.borrow().len();
+    waits.borrow_mut().push(secs);
+    if let Some(number) = signal.signal_number() {
+        return WaitOutcome::Interrupted(number);
+    }
+    match interrupt_wait.get() {
+        Some((at, number)) if at == n => {
+            signal.raise(number);
+            WaitOutcome::Interrupted(number)
+        }
+        _ => WaitOutcome::Elapsed,
+    }
+}
+
 pub fn state_error(path: &Path, kind: StateErrorKind) -> StateError {
     StateError {
         path: path.to_path_buf(),
@@ -320,15 +344,10 @@ impl Runtime for ScriptedRuntime {
                 .map(|(n, v)| (n.to_string(), v.to_string()))
                 .collect(),
         ));
+        // 土台は「起動した」結果。終了コードは、台本で決める。
         let mut execution = JobExecution {
-            job_id: job.id.clone(),
-            command: job.command.clone(),
-            started: true,
             exit_code: None,
-            terminated_by_signal: None,
-            start_failure: false,
-            interrupted: false,
-            signal_number: None,
+            ..JobExecution::exited(job, 0)
         };
         if let Some(number) = signal.signal_number() {
             execution.started = false;
@@ -363,19 +382,8 @@ impl Runtime for ScriptedRuntime {
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
-        let n = self.waits.borrow().len();
-        self.waits.borrow_mut().push(secs);
         self.push(format!("wait:{secs}"));
-        if let Some(number) = signal.signal_number() {
-            return WaitOutcome::Interrupted(number);
-        }
-        match self.interrupt_wait.get() {
-            Some((at, number)) if at == n => {
-                signal.raise(number);
-                WaitOutcome::Interrupted(number)
-            }
-            _ => WaitOutcome::Elapsed,
-        }
+        fake_wait(&self.waits, &self.interrupt_wait, secs, signal)
     }
 
     fn read_state(
@@ -729,16 +737,8 @@ impl Runtime for MemRuntime {
         _env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        let mut execution = JobExecution {
-            job_id: job.id.clone(),
-            command: job.command.clone(),
-            started: true,
-            exit_code: Some(self.exit_codes.borrow_mut().pop_front().unwrap_or(0)),
-            terminated_by_signal: None,
-            start_failure: false,
-            interrupted: false,
-            signal_number: None,
-        };
+        let mut execution =
+            JobExecution::exited(job, self.exit_codes.borrow_mut().pop_front().unwrap_or(0));
         if let Some(n) = signal.signal_number() {
             execution.started = false;
             execution.exit_code = None;
@@ -749,18 +749,7 @@ impl Runtime for MemRuntime {
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
-        let n = self.waits.borrow().len();
-        self.waits.borrow_mut().push(secs);
-        if let Some(number) = signal.signal_number() {
-            return WaitOutcome::Interrupted(number);
-        }
-        match self.interrupt_wait.get() {
-            Some((at, number)) if at == n => {
-                signal.raise(number);
-                WaitOutcome::Interrupted(number)
-            }
-            _ => WaitOutcome::Elapsed,
-        }
+        fake_wait(&self.waits, &self.interrupt_wait, secs, signal)
     }
 
     fn read_state(
