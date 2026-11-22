@@ -15,7 +15,12 @@
 //! 一時ファイルと親のディレクトリの扱い(ステートの書き込みと、`init` の出力先の置き換えが共有する。
 //! BR2.8)。`state` と `file_create` と `platform` は、ここを使い、互いの内部を使わない。
 
-use std::path::Path;
+use std::fs::{File, OpenOptions};
+use std::io;
+use std::path::{Path, PathBuf};
+
+/// 一時ファイルの名前が重なったとき、連番を進めて作り直す回数の上限。
+const TEMP_ATTEMPTS: u32 = 16;
 
 /// ディレクトリのパスが空なら、実行ディレクトリ(`.`)にする。ステートファイルと `init` の出力先の
 /// 親のディレクトリを開くとき、置き換えの同期と古い一時ファイルの後始末に使う 1 か所(BR2.8)。
@@ -24,5 +29,88 @@ pub(crate) fn dir_or_current(dir: &Path) -> &Path {
         Path::new(".")
     } else {
         dir
+    }
+}
+
+/// 対象のファイル `target_name` の一時ファイルの名前の接頭辞 `.<名前>.tmp.`(名前の作り方と、
+/// 古い一時ファイルの後始末が使う)。
+pub(crate) fn temp_prefix(target_name: &str) -> String {
+    format!(".{target_name}.tmp.")
+}
+
+/// 一時ファイルの名前 `.<名前>.tmp.<プロセス番号>.<時刻>.<連番>`。
+pub(crate) fn temp_name(target_name: &str, pid: u32, nanos: u128, seq: u32) -> String {
+    format!("{}{pid}.{nanos}.{seq}", temp_prefix(target_name))
+}
+
+/// 一時ファイルを、新規作成で作る(既存なら失敗するため、他のファイルを上書きしない)。
+/// 名前が重なったら、`name_for(試行の番号)` で名前を変えて、最大 16 回まで作り直す。
+pub(crate) fn create_temp(
+    dir: &Path,
+    mut name_for: impl FnMut(u32) -> String,
+) -> io::Result<(PathBuf, File)> {
+    let mut last = io::Error::from(io::ErrorKind::AlreadyExists);
+    for attempt in 0..TEMP_ATTEMPTS {
+        let path = dir.join(name_for(attempt));
+        match OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(file) => return Ok((path, file)),
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => last = e,
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+
+    #[test]
+    fn 一時ファイルの名前の形() {
+        assert_eq!(
+            temp_name("c.toml.state", 7, 123, 4),
+            ".c.toml.state.tmp.7.123.4"
+        );
+    }
+
+    #[test]
+    fn 名前が重なったら連番を進める() {
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        std::fs::write(dir.path().join("t0"), "existing").expect("書ける");
+        std::fs::write(dir.path().join("t1"), "existing").expect("書ける");
+        let (path, _file) = create_temp(dir.path(), |n| format!("t{n}")).expect("作れる");
+        assert_eq!(path.file_name().and_then(|n| n.to_str()), Some("t2"));
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("t0"))
+                .ok()
+                .as_deref(),
+            Some("existing"),
+            "既存のファイルは上書きされない"
+        );
+    }
+
+    #[test]
+    fn 名前が_16_回とも重なれば失敗() {
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        std::fs::write(dir.path().join("same"), "x").expect("書ける");
+        let calls = Cell::new(0);
+        let result = create_temp(dir.path(), |_| {
+            calls.set(calls.get() + 1);
+            "same".to_string()
+        });
+        assert!(result.is_err());
+        assert_eq!(calls.get(), 16);
+    }
+
+    #[test]
+    fn 作成のそれ以外の失敗はすぐに返す() {
+        let calls = Cell::new(0);
+        let result = create_temp(Path::new("/definitely/not/existing/dir"), |_| {
+            calls.set(calls.get() + 1);
+            "x".to_string()
+        });
+        assert!(result.is_err());
+        assert_eq!(calls.get(), 1);
     }
 }

@@ -24,8 +24,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::state::writer::{create_temp, temp_name};
-use crate::temp_file::dir_or_current;
+use crate::temp_file::{create_temp, dir_or_current, temp_name};
 
 static SEQUENCE: AtomicU32 = AtomicU32::new(0);
 

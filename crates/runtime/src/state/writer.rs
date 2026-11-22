@@ -17,9 +17,9 @@
 //! 一時ファイルを新規作成で作り、全内容を書き、`Durable` のときだけ同期し、置き換える(`rename`)。
 //! どの段階で失敗しても、ステートファイルは直前の完全な内容のままで、自分が作った一時ファイルは消す。
 
-use std::fs::{self, File, OpenOptions};
+use std::fs;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -27,15 +27,14 @@ use conductor_core::{JobState, PipelineState, RunId};
 // 単体テスト(`mod tests` の `use super::*`)が使う。
 #[cfg(test)]
 use conductor_core::JobStatus;
+#[cfg(test)]
+use std::fs::OpenOptions;
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
 use crate::state::reader::FORMAT_VERSION;
-use crate::temp_file::dir_or_current;
+use crate::temp_file::{create_temp, dir_or_current, temp_name, temp_prefix};
 use crate::types::{Durability, StateLocation};
-
-/// 一時ファイルの名前が重なったとき、連番を進めて作り直す回数の上限。
-const TEMP_ATTEMPTS: u32 = 16;
 
 /// 残った一時ファイルを、後始末で消す古さ(24 時間)。
 const STALE_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
@@ -135,29 +134,6 @@ pub(crate) fn remove_state_file(path: &Path) -> Result<bool, StateError> {
     }
 }
 
-/// 一時ファイルの名前。
-pub(crate) fn temp_name(state_name: &str, pid: u32, nanos: u128, seq: u32) -> String {
-    format!(".{state_name}.tmp.{pid}.{nanos}.{seq}")
-}
-
-/// 一時ファイルを、新規作成で作る(既存なら失敗するため、他のファイルを上書きしない)。
-/// 名前が重なったら、`name_for(試行の番号)` で名前を変えて、最大 16 回まで作り直す。
-pub(crate) fn create_temp(
-    dir: &Path,
-    mut name_for: impl FnMut(u32) -> String,
-) -> io::Result<(PathBuf, File)> {
-    let mut last = io::Error::from(io::ErrorKind::AlreadyExists);
-    for attempt in 0..TEMP_ATTEMPTS {
-        let path = dir.join(name_for(attempt));
-        match OpenOptions::new().write(true).create_new(true).open(&path) {
-            Ok(file) => return Ok((path, file)),
-            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => last = e,
-            Err(e) => return Err(e),
-        }
-    }
-    Err(last)
-}
-
 /// 内容を書き、`Durable` のときだけ同期する。
 pub(crate) fn persist<W: Write>(
     file: &mut W,
@@ -175,7 +151,7 @@ pub(crate) fn persist<W: Write>(
 
 /// 同じ名前の型で、更新から 24 時間以上たった一時ファイルを消す(失敗は無視)。
 pub(crate) fn remove_stale_temps(dir: &Path, state_name: &str, now: SystemTime) {
-    let prefix = format!(".{state_name}.tmp.");
+    let prefix = temp_prefix(state_name);
     let dir = dir_or_current(dir);
     let Ok(entries) = fs::read_dir(dir) else {
         return;
@@ -310,60 +286,12 @@ mod tests {
     }
 
     #[test]
-    fn 一時ファイルの名前の形() {
-        assert_eq!(
-            temp_name("c.toml.state", 7, 123, 4),
-            ".c.toml.state.tmp.7.123.4"
-        );
-    }
-
-    #[test]
     fn 直列化に定義のパスが_2_つのキーで入る() {
         let text = serialize(&state()).expect("直列化できる");
         assert!(text.contains("format_version = 1"));
         assert_eq!(text.matches("\"d/conductor.toml\"").count(), 2);
         assert!(text.contains("resume_job_id = \"a\""));
         assert!(text.contains("exit_code = 3"));
-    }
-
-    #[test]
-    fn 名前が重なったら連番を進める() {
-        let dir = tempfile::tempdir().expect("一時ディレクトリ");
-        std::fs::write(dir.path().join("t0"), "existing").expect("書ける");
-        std::fs::write(dir.path().join("t1"), "existing").expect("書ける");
-        let (path, _file) = create_temp(dir.path(), |n| format!("t{n}")).expect("作れる");
-        assert_eq!(path.file_name().and_then(|n| n.to_str()), Some("t2"));
-        assert_eq!(
-            std::fs::read_to_string(dir.path().join("t0"))
-                .ok()
-                .as_deref(),
-            Some("existing"),
-            "既存のファイルは上書きされない"
-        );
-    }
-
-    #[test]
-    fn 名前が_16_回とも重なれば失敗() {
-        let dir = tempfile::tempdir().expect("一時ディレクトリ");
-        std::fs::write(dir.path().join("same"), "x").expect("書ける");
-        let calls = Cell::new(0);
-        let result = create_temp(dir.path(), |_| {
-            calls.set(calls.get() + 1);
-            "same".to_string()
-        });
-        assert!(result.is_err());
-        assert_eq!(calls.get(), 16);
-    }
-
-    #[test]
-    fn 作成のそれ以外の失敗はすぐに返す() {
-        let calls = Cell::new(0);
-        let result = create_temp(Path::new("/definitely/not/existing/dir"), |_| {
-            calls.set(calls.get() + 1);
-            "x".to_string()
-        });
-        assert!(result.is_err());
-        assert_eq!(calls.get(), 1);
     }
 
     #[test]
