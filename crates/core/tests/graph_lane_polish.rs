@@ -169,9 +169,17 @@ fn 辺の一覧に残る形_交差() {
 }
 
 #[test]
-fn 辺の一覧に残る形_異なる行き先が_2つ() {
+fn 辺の一覧に残る形_分岐の線へ後のジョブが同じ行き先で合流する() {
+    // a は c と f へ分岐し、d が f へ飛ぶ。分岐が開いた線への合流なので、辺の一覧にする(BR2.2)。
     assert_eq!(
-        lanes(5, &[("a", Success, Some("c")), ("a", Warning, Some("d"))]),
+        lanes(
+            7,
+            &[
+                ("a", Success, Some("c")),
+                ("a", Warning, Some("f")),
+                ("d", Success, Some("f")),
+            ]
+        ),
         None
     );
 }

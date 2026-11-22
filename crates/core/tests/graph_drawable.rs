@@ -115,10 +115,45 @@ fn 対応しない形_交差() {
 }
 
 #[test]
-fn 対応しない形_異なる行き先が_2つ() {
-    // 成功が c、警告が e。次のジョブへの辺がなく、飛び越しが 2 つ。
-    assert!(!drawable(
+fn 対応する形_異なる行き先が_2つの分岐() {
+    // 成功が c、警告が e。次のジョブへの辺がなく、行き先が異なる 2 つ。2 本の線を同時に開く(BR1.1)。
+    assert!(drawable(
         &IDS,
         &[("a", Success, Some("c")), ("a", Warning, Some("e"))]
+    ));
+    // 近い行き先が警告でも、終点への分岐でも同じ。
+    assert!(drawable(
+        &IDS,
+        &[("a", Success, Some("e")), ("a", Warning, Some("c"))]
+    ));
+    assert!(drawable(
+        &IDS,
+        &[("a", Success, Some("c")), ("a", Warning, None)]
+    ));
+}
+
+#[test]
+fn 対応しない形_分岐が積み上げの上の線より遠い() {
+    // b→d の線が開いている間に、c が e と f へ分岐する。t2 が最も内側の線以上なので、交差する(BR2.1)。
+    assert!(!drawable(
+        &IDS,
+        &[
+            ("b", Success, Some("d")),
+            ("c", Success, Some("e")),
+            ("c", Warning, Some("f"))
+        ]
+    ));
+}
+
+#[test]
+fn 対応しない形_分岐の線を別の飛び越しが越える() {
+    // a→c,e の分岐と、b→e。b の飛び越しは、分岐の線(内側の c)を越えるので、交差する。
+    assert!(!drawable(
+        &IDS,
+        &[
+            ("a", Success, Some("c")),
+            ("a", Warning, Some("e")),
+            ("b", Success, Some("e"))
+        ]
     ));
 }
