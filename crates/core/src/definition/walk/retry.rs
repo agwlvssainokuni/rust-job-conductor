@@ -20,7 +20,7 @@
 use toml::de::{DeTable, DeValue};
 
 use super::{RawJob, Walker, exit_code_of, integer_of};
-use crate::definition::duration::parse_duration_secs;
+use crate::definition::duration::{MAX_SECS, MIN_SECS, parse_duration_secs};
 use crate::error::DefinitionErrorKind as Kind;
 use crate::types::{DEFAULT_SUCCESS_EXIT_CODES, RetryPolicy};
 
@@ -189,6 +189,8 @@ impl Walker<'_> {
             DeValue::String(s) => parse_duration_secs(s),
             _ => None,
         };
+        // 理由の文の「1 秒以上 24 時間以下」と、間隔の範囲の定数を結ぶ(BR1.10)。
+        const _: () = assert!(MIN_SECS == 1 && MAX_SECS == 24 * 60 * 60);
         if secs.is_none() {
             self.push(
                 offset,

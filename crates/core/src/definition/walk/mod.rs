@@ -30,6 +30,7 @@ use std::collections::HashMap;
 use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
+use crate::definition::version::VERSION_KEY;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
 use crate::types::{
@@ -38,7 +39,7 @@ use crate::types::{
 };
 use retry::{RawRetry, build_retry};
 
-const ROOT_KEYS: &[&str] = &["format_version", "pipeline", "job"];
+const ROOT_KEYS: &[&str] = &[VERSION_KEY, "pipeline", "job"];
 const PIPELINE_KEYS: &[&str] = &[
     "name",
     "description",

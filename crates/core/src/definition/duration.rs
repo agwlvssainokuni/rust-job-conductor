@@ -15,9 +15,9 @@
 //! リトライの間隔の文字列(`<整数><s|m|h>`)を秒に直す(BR1.10、FR1.4)。
 
 /// 間隔の最小(1 秒)。
-const MIN_SECS: u64 = 1;
+pub(super) const MIN_SECS: u64 = 1;
 /// 間隔の最大(24 時間)。
-const MAX_SECS: u64 = 24 * 60 * 60;
+pub(super) const MAX_SECS: u64 = 24 * 60 * 60;
 
 /// 間隔の文字列を秒に直す。
 ///
