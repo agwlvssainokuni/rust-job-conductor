@@ -10,7 +10,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | ルートの `Cargo.toml`(`members = ["crates/*"]`、`resolver = "3"`、edition 2024、`rust-version = "1.100"`、Apache-2.0、`[profile.release]` は `opt-level = 3`・`lto = "thin"`・`codegen-units = 1`・`strip = true`)。4 つのクレートの雛形(`conductor-core`、`conductor-runtime`、`conductor-converter`、`conductor-cli`。すべて 0.9.0、`publish = false`)。`Cargo.lock` をコミットする |
+| 作るもの | ルートの `Cargo.toml`(`members = ["crates/*"]`、`resolver = "3"`、edition 2024、`rust-version = "1.100"`、Apache-2.0、`[profile.release]` は `opt-level = 3`・`lto = "thin"`・`codegen-units = 1`・`strip = true`)。4 つのクレートの雛形(`conductor-core`、`conductor-runtime`、`conductor-converter`、`conductor-cli`。すべて 0.9.1、`publish = false`)。`Cargo.lock` をコミットする |
 | 依存 | 11 の 2 章の表のとおり(`toml` 1.2.1 は `default-features = false`)。禁止の依存を入れない |
 | 完了条件 | `cargo build --workspace --locked` が通る。`cargo fmt --all -- --check` と `cargo clippy --workspace --all-targets --locked -- -D warnings` が通る |
 | 参照 | 11 の 1〜2 章 |
@@ -269,7 +269,7 @@
 | 10 | 127 | 起動できなかった | 加えて、起動していないのに中断でもない組み合わせ、終了の状態を取得できない場合 |
 | 10 | 65 | 一覧あり | 加えて、`pipeline` が完了を判定できないとき |
 | 11 | テスト・CI | `cargo test --workspace --locked` のみ | CI(3 OS + MSRV)、カバレッジ、clippy、`startup-bench` は README にない |
-| 11 | リリース | 例の版が `0.7.0` | クレートの版は 0.9.0(例なので誤りではない) |
+| 11 | リリース | 例の版が `0.7.0` | クレートの版は 0.9.1(例なので誤りではない) |
 | 11 | 性能の測定の文言 | — | 「debug ビルド」の文言だが、CI は `--release` |
 | 04 | `--dry-run` と `graph --state` の、完了したステートの扱い(v0.9.0 以降) | 計画は完了したステートをステートなしとして扱い、`graph --state` は完了したものも読む(意図した違い) | 一致(`read_state` と `read_state_raw`) |
 | 04 | `init` が作ったファイル(v0.9.0 以降) | 新規の作成の短い間と強制終了のあとに、空のファイルが見えることがある | 一致(`create_new` で作ってから書く。`--force` で直せる) |

@@ -1,6 +1,6 @@
 [package]
 name = "conductor-converter"
-version = "0.9.0"
+version = "0.9.1"
 description = "conductor の定義ファイルの変換ライブラリ(YAML と TOML のあいだ)"
 edition.workspace = true
 rust-version.workspace = true
