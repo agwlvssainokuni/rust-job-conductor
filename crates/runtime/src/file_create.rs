@@ -24,6 +24,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::state::dir_or_current;
 use crate::state::writer::{create_temp, temp_name};
 
 static SEQUENCE: AtomicU32 = AtomicU32::new(0);
@@ -118,10 +119,7 @@ fn classify_kind(kind: io::ErrorKind) -> CreateError {
 
 /// `--force`: 一時ファイルに書いて、置き換える。
 fn replace_file(path: &Path, bytes: &[u8]) -> Result<CreateOutcome, CreateError> {
-    let dir = match path.parent() {
-        Some(parent) if !parent.as_os_str().is_empty() => parent,
-        _ => Path::new("."),
-    };
+    let dir = dir_or_current(path.parent().unwrap_or(Path::new("")));
     let name = path
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())

@@ -30,6 +30,7 @@ use conductor_core::JobStatus;
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
+use crate::state::dir_or_current;
 use crate::state::reader::FORMAT_VERSION;
 use crate::types::{Durability, StateLocation};
 
@@ -117,11 +118,17 @@ pub(crate) fn write_state_file(
 /// 削除に失敗したら `removeFailed`。
 pub fn reset_state(definition_path: &Path, run_id: Option<&RunId>) -> Result<(), StateError> {
     let location = StateLocation::of(definition_path, run_id);
-    match fs::remove_file(location.path()) {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+    remove_state_file(location.path()).map(|_| ())
+}
+
+/// ステートファイルを消す。`true` は消した、`false` は無かった(成功)。ほかの失敗は `removeFailed`
+/// (`reset_state` と `reset_all_states` が使う 1 か所。BR2.6)。
+pub(crate) fn remove_state_file(path: &Path) -> Result<bool, StateError> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(true),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
         Err(_) => Err(StateError::new(
-            location.path(),
+            path,
             StateErrorKind::RemoveFailed,
             reason::REMOVE_FAILED,
         )),
@@ -169,11 +176,7 @@ pub(crate) fn persist<W: Write>(
 /// 同じ名前の型で、更新から 24 時間以上たった一時ファイルを消す(失敗は無視)。
 pub(crate) fn remove_stale_temps(dir: &Path, state_name: &str, now: SystemTime) {
     let prefix = format!(".{state_name}.tmp.");
-    let dir = if dir.as_os_str().is_empty() {
-        Path::new(".")
-    } else {
-        dir
-    };
+    let dir = dir_or_current(dir);
     let Ok(entries) = fs::read_dir(dir) else {
         return;
     };

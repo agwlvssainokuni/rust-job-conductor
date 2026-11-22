@@ -30,7 +30,9 @@ use std::path::Path;
 use conductor_core::RunId;
 
 use crate::error::{StateError, StateErrorKind, reason};
+use crate::state::dir_or_current;
 use crate::state::reader::{Inspected, inspect_run_state};
+use crate::state::writer::remove_state_file;
 use crate::types::StateLocation;
 
 /// `reset --all` の結果。
@@ -55,10 +57,7 @@ pub fn reset_all_states(definition_path: &Path) -> Result<ResetAllReport, StateE
     let Some(base) = definition_path.file_name().and_then(|n| n.to_str()) else {
         return Ok(report);
     };
-    let dir = match definition_path.parent() {
-        Some(p) if !p.as_os_str().is_empty() => p,
-        _ => Path::new("."),
-    };
+    let dir = dir_or_current(definition_path.parent().unwrap_or(Path::new("")));
     let entries = match fs::read_dir(dir) {
         Ok(e) => e,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(report),
@@ -117,18 +116,10 @@ fn is_regular_file(path: &Path) -> bool {
 }
 
 fn remove(path: &Path, report: &mut ResetAllReport) -> Result<(), StateError> {
-    match fs::remove_file(path) {
-        Ok(()) => {
-            report.removed += 1;
-            Ok(())
-        }
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-        Err(_) => Err(StateError::new(
-            path,
-            StateErrorKind::RemoveFailed,
-            reason::REMOVE_FAILED,
-        )),
+    if remove_state_file(path)? {
+        report.removed += 1;
     }
+    Ok(())
 }
 
 #[cfg(test)]
