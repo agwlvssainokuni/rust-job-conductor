@@ -1,0 +1,68 @@
+{
+  "stage": "functional-design",
+  "upstream_ids": [
+    "SM1",
+    "SM2",
+    "SM3",
+    "SM4"
+  ],
+  "coverage": [
+    {
+      "id": "SM1",
+      "status": "OK",
+      "target": "BR1.1"
+    },
+    {
+      "id": "SM2",
+      "status": "OK",
+      "target": "BR3.2"
+    },
+    {
+      "id": "SM3",
+      "status": "OK",
+      "target": "BR4.2"
+    },
+    {
+      "id": "SM4",
+      "status": "OK",
+      "target": "BR4.1"
+    }
+  ],
+  "reverse": [
+    {
+      "id": "BR1.2",
+      "status": "N/A",
+      "target": "intent-statement.md: 同じ行き先の描き方(合流の行)"
+    },
+    {
+      "id": "BR1.3",
+      "status": "N/A",
+      "target": "layout-oracle-same-target.md: ラベルの位置"
+    },
+    {
+      "id": "BR1.4",
+      "status": "N/A",
+      "target": "layout-oracle-same-target.md: 合流の行の直後の記号"
+    },
+    {
+      "id": "BR1.5",
+      "status": "N/A",
+      "target": "intent-statement.md: 交差は対象外(辺の一覧のまま)"
+    },
+    {
+      "id": "BR2.1",
+      "status": "N/A",
+      "target": "intent-statement.md: 両方の飛び越しは * のみ"
+    },
+    {
+      "id": "BR2.2",
+      "status": "N/A",
+      "target": "functional-design-questions.md Q1: A"
+    },
+    {
+      "id": "BR3.1",
+      "status": "N/A",
+      "target": "intent-statement.md: 辺の一覧に残る形と注記"
+    }
+  ]
+}
