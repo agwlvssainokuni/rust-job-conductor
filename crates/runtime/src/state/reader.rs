@@ -71,26 +71,55 @@ fn read_state_file_raw(
     path: &Path,
     run_id: Option<&RunId>,
 ) -> Result<Option<PipelineState>, StateError> {
-    let fail = |kind, reason| StateError::new(path, kind, reason);
+    let bytes = match read_bounded(path) {
+        Ok(Some(bytes)) => bytes,
+        Ok(None) => return Ok(None),
+        Err(BoundedError::Unreadable) => {
+            return Err(StateError::new(
+                path,
+                StateErrorKind::Unreadable,
+                reason::UNREADABLE,
+            ));
+        }
+        Err(BoundedError::TooLarge) => {
+            return Err(StateError::new(
+                path,
+                StateErrorKind::TooLarge,
+                reason::TOO_LARGE,
+            ));
+        }
+    };
+    parse_state_raw_for(&bytes, run_id).map_err(|e| StateError::new(path, e.kind, e.reason))
+}
 
+/// 上限つきの読み取り([`read_bounded`])の失敗。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BoundedError {
+    /// 開けない(ファイルが無い、を除く)、大きさを確かめられない、または読めない。
+    Unreadable,
+    /// 大きさが上限(1 MiB)を超える。
+    TooLarge,
+}
+
+/// ステートファイルを、上限(1 MiB)までで読む。`Ok(None)` は、ファイルが無い。
+///
+/// 開いたあとで大きさを確かめ、上限を超えれば読まない。読み取りは上限 + 1 バイトまでに止め、
+/// 読めた長さでも、もう一度上限を確かめる(確かめたあとに伸びたファイルのため)。
+fn read_bounded(path: &Path) -> Result<Option<Vec<u8>>, BoundedError> {
     let file = match File::open(path) {
         Ok(f) => f,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(_) => return Err(fail(StateErrorKind::Unreadable, reason::UNREADABLE)),
+        Err(_) => return Err(BoundedError::Unreadable),
     };
-    let size = file
-        .metadata()
-        .map_err(|_| fail(StateErrorKind::Unreadable, reason::UNREADABLE))?
-        .len();
+    let size = file.metadata().map_err(|_| BoundedError::Unreadable)?.len();
     if size > MAX_STATE_BYTES {
-        return Err(fail(StateErrorKind::TooLarge, reason::TOO_LARGE));
+        return Err(BoundedError::TooLarge);
     }
-    let bytes = read_limited(file, MAX_STATE_BYTES)
-        .map_err(|_| fail(StateErrorKind::Unreadable, reason::UNREADABLE))?;
+    let bytes = read_limited(file, MAX_STATE_BYTES).map_err(|_| BoundedError::Unreadable)?;
     if bytes.len() as u64 > MAX_STATE_BYTES {
-        return Err(fail(StateErrorKind::TooLarge, reason::TOO_LARGE));
+        return Err(BoundedError::TooLarge);
     }
-    parse_state_raw_for(&bytes, run_id).map_err(|e| StateError::new(path, e.kind, e.reason))
+    Ok(Some(bytes))
 }
 
 /// `reset --all` の候補のファイルを、中身で見分けた結果。
@@ -106,19 +135,10 @@ pub(crate) enum Inspected {
 
 /// 名前が `<定義>.<run-id>.state` の形のファイルを、中身で見分ける。
 pub(crate) fn inspect_run_state(path: &Path, run_id: &RunId) -> Inspected {
-    let Ok(file) = File::open(path) else {
+    // ファイルが無い(`Ok(None)`)、読めない、上限を超える、はどれも読めないものとして扱う。
+    let Ok(Some(bytes)) = read_bounded(path) else {
         return Inspected::Broken;
     };
-    match file.metadata() {
-        Ok(m) if m.len() <= MAX_STATE_BYTES => {}
-        _ => return Inspected::Broken,
-    }
-    let Ok(bytes) = read_limited(file, MAX_STATE_BYTES) else {
-        return Inspected::Broken;
-    };
-    if bytes.len() as u64 > MAX_STATE_BYTES {
-        return Inspected::Broken;
-    }
     match parse_state_for(&bytes, Some(run_id)) {
         // 空のファイルは、中身の run_id がなく、だれのものか分からない。
         Ok(None) if bytes.is_empty() => Inspected::NotOurs,
