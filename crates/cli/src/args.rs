@@ -57,31 +57,175 @@ use conductor_core::{Assumption, RunId};
 use lexopt::prelude::*;
 
 use crate::deps::Env;
+use crate::types::CommandKind as C;
 use crate::types::{
     CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind as Kind,
 };
 
+/// オプションの識別子(`-h`・`--help`・`-V`・`--version` を除く。BR1.1)。
+///
+/// 並びは [`OPTIONS`] の行の並びと同じ(コンパイル時に検査する)。
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Opt {
+    Verbose,
+    Config,
+    To,
+    RunId,
+    All,
+    RemoveOnComplete,
+    DryRun,
+    Force,
+    Assume,
+    Format,
+    State,
+}
+
+/// オプションを使える場所(BR1.1)。
+enum Allowed {
+    /// 並びのコマンドで使える。
+    Commands(&'static [CommandKind]),
+    /// `--dry-run` があるときだけ使える(`--assume`。BR2.2)。
+    WithDryRun,
+}
+
+/// オプションの表の 1 行(BR1.1)。
+struct OptSpec {
+    opt: Opt,
+    /// 長い名前(`--` を除く)。
+    long: &'static str,
+    /// 値を取るか(`--name value` と `--name=value`)。
+    takes_value: bool,
+    allowed: Allowed,
+}
+
+/// `convert` 以外のすべてのコマンド。
+const ALL_BUT_CONVERT: &[CommandKind] = &[
+    C::Run,
+    C::Pipeline,
+    C::Watch,
+    C::Reset,
+    C::Validate,
+    C::Graph,
+    C::Init,
+];
+const RUN_AND_PIPELINE: &[CommandKind] = &[C::Run, C::Pipeline];
+
+/// オプションの表(BR1.1)。オプションの性質は、ここにだけ置く。
+///
+/// `--run-id` の `graph` は、`--state` と一緒のときだけ(BR4.5。組み立ての段階で、表の検査のあとに見る)。
+const OPTIONS: &[OptSpec] = &[
+    OptSpec {
+        opt: Opt::Verbose,
+        long: "verbose",
+        takes_value: false,
+        allowed: Allowed::Commands(&[C::Run, C::Pipeline, C::Validate, C::Graph]),
+    },
+    OptSpec {
+        opt: Opt::Config,
+        long: "config",
+        takes_value: true,
+        allowed: Allowed::Commands(ALL_BUT_CONVERT),
+    },
+    OptSpec {
+        opt: Opt::To,
+        long: "to",
+        takes_value: true,
+        allowed: Allowed::Commands(&[C::Convert]),
+    },
+    OptSpec {
+        opt: Opt::RunId,
+        long: "run-id",
+        takes_value: true,
+        allowed: Allowed::Commands(&[C::Run, C::Pipeline, C::Watch, C::Reset, C::Graph]),
+    },
+    OptSpec {
+        opt: Opt::All,
+        long: "all",
+        takes_value: false,
+        allowed: Allowed::Commands(&[C::Reset]),
+    },
+    OptSpec {
+        opt: Opt::RemoveOnComplete,
+        long: "remove-on-complete",
+        takes_value: false,
+        allowed: Allowed::Commands(RUN_AND_PIPELINE),
+    },
+    OptSpec {
+        opt: Opt::DryRun,
+        long: "dry-run",
+        takes_value: false,
+        allowed: Allowed::Commands(RUN_AND_PIPELINE),
+    },
+    OptSpec {
+        opt: Opt::Force,
+        long: "force",
+        takes_value: false,
+        allowed: Allowed::Commands(&[C::Init]),
+    },
+    OptSpec {
+        opt: Opt::Assume,
+        long: "assume",
+        takes_value: true,
+        allowed: Allowed::WithDryRun,
+    },
+    OptSpec {
+        opt: Opt::Format,
+        long: "format",
+        takes_value: true,
+        allowed: Allowed::Commands(&[C::Graph]),
+    },
+    OptSpec {
+        opt: Opt::State,
+        long: "state",
+        takes_value: false,
+        allowed: Allowed::Commands(&[C::Graph]),
+    },
+];
+
+// `OPTIONS` の行は、`Opt` の並びと同じ順に置く(`spec` が添字で引くため)。
+const _: () = {
+    assert!(OPTIONS.len() == Opt::State as usize + 1);
+    let mut i = 0;
+    while i < OPTIONS.len() {
+        assert!(OPTIONS[i].opt as usize == i);
+        i += 1;
+    }
+};
+
+/// 識別子から、表の行を引く。
+fn spec(opt: Opt) -> &'static OptSpec {
+    &OPTIONS[opt as usize]
+}
+
+/// 長い名前から、表の行を引く。
+fn spec_by_long(name: &str) -> Option<&'static OptSpec> {
+    OPTIONS.iter().find(|s| s.long == name)
+}
+
+impl OptSpec {
+    /// コマンド `kind` で使えるか。`dry_run` は `--dry-run` が 1 回以上あるか(`--assume` の条件)。
+    fn allows(&self, kind: CommandKind, dry_run: bool) -> bool {
+        match self.allowed {
+            Allowed::Commands(kinds) => kinds.contains(&kind),
+            Allowed::WithDryRun => dry_run,
+        }
+    }
+}
+
+impl Opt {
+    /// 誤りの対象の綴り。`-v` だけ短い形、ほかは `--<長い名前>`。
+    fn subject(self) -> String {
+        match self {
+            Opt::Verbose => "-v".to_string(),
+            _ => format!("--{}", spec(self).long),
+        }
+    }
+}
+
 /// 字句に分けた 1 つの引数。
 enum Token {
-    Verbose,
-    Config(OsString),
-    To(OsString),
-    /// `--run-id <値>`(値は、字句の段階では、検査しない)。
-    RunId(OsString),
-    /// `--all`。
-    All,
-    /// `--format <値>`(値は、組み立ての段階で検査する)。
-    Format(OsString),
-    /// `--state`(値なし)。
-    State,
-    /// `--remove-on-complete`(値なし)。
-    RemoveOnComplete,
-    /// `--dry-run`(値なし)。
-    DryRun,
-    /// `--force`(値なし)。
-    Force,
-    /// `--assume <値>`(値は、組み立ての段階で検査する)。
-    Assume(OsString),
+    /// 表にあるオプション。値を取るオプションなら `Some`(値は、字句の段階では検査しない)。
+    Opt(Opt, Option<OsString>),
     /// 文法にないオプション(表示用の綴り)。
     Unknown(String),
     Positional(OsString),
@@ -130,53 +274,23 @@ where
             Short('V') | Long("version") => {
                 special.get_or_insert(Special::Version);
             }
-            Short('v') | Long("verbose") => tokens.push(Token::Verbose),
-            Long("config") => match parser.value() {
-                Ok(v) => tokens.push(Token::Config(v)),
-                Err(_) => {
-                    lex_error
-                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--config"));
-                    break;
-                }
-            },
-            Long("run-id") => match parser.value() {
-                Ok(v) => tokens.push(Token::RunId(v)),
-                Err(_) => {
-                    lex_error
-                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--run-id"));
-                    break;
-                }
-            },
-            Long("all") => tokens.push(Token::All),
-            Long("state") => tokens.push(Token::State),
-            Long("format") => match parser.value() {
-                Ok(v) => tokens.push(Token::Format(v)),
-                Err(_) => {
-                    lex_error
-                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--format"));
-                    break;
-                }
-            },
-            Long("remove-on-complete") => tokens.push(Token::RemoveOnComplete),
-            Long("dry-run") => tokens.push(Token::DryRun),
-            Long("force") => tokens.push(Token::Force),
-            Long("assume") => match parser.value() {
-                Ok(v) => tokens.push(Token::Assume(v)),
-                Err(_) => {
-                    lex_error
-                        .get_or_insert(UsageError::with_subject(Kind::MissingValue, "--assume"));
-                    break;
-                }
-            },
-            Long("to") => match parser.value() {
-                Ok(v) => tokens.push(Token::To(v)),
-                Err(_) => {
-                    lex_error.get_or_insert(UsageError::with_subject(Kind::MissingValue, "--to"));
-                    break;
-                }
-            },
+            Short('v') => tokens.push(Token::Opt(Opt::Verbose, None)),
             Short(c) => tokens.push(Token::Unknown(format!("-{c}"))),
-            Long(name) => tokens.push(Token::Unknown(format!("--{name}"))),
+            // 長い名前は表で引き、値を取るかで分ける(BR1.2)。
+            Long(name) => match spec_by_long(name) {
+                Some(spec) if spec.takes_value => match parser.value() {
+                    Ok(v) => tokens.push(Token::Opt(spec.opt, Some(v))),
+                    Err(_) => {
+                        lex_error.get_or_insert(UsageError::with_subject(
+                            Kind::MissingValue,
+                            spec.opt.subject(),
+                        ));
+                        break;
+                    }
+                },
+                Some(spec) => tokens.push(Token::Opt(spec.opt, None)),
+                None => tokens.push(Token::Unknown(format!("--{name}"))),
+            },
             Value(v) => tokens.push(Token::Positional(v)),
         }
     }
@@ -198,16 +312,11 @@ fn map_lex_error(e: &lexopt::Error) -> UsageError {
         lexopt::Error::MissingValue { .. } => UsageError::new(Kind::MissingValue),
         lexopt::Error::UnexpectedValue { option, .. } => {
             // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
-            let known = matches!(
-                option.as_str(),
-                "--verbose"
-                    | "-v"
-                    | "--all"
-                    | "--remove-on-complete"
-                    | "--state"
-                    | "--dry-run"
-                    | "--force"
-            );
+            // 知っている、値を取らないオプションは、表の `takes_value` が偽の行と `-v`(BR1.2)。
+            let known = option == "-v"
+                || option
+                    .strip_prefix("--")
+                    .is_some_and(|long| spec_by_long(long).is_some_and(|spec| !spec.takes_value));
             if known {
                 UsageError::with_subject(Kind::InvalidValue, option.clone())
             } else {
@@ -241,17 +350,20 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let mut positionals: Vec<OsString> = Vec::new();
     for token in tokens {
         match token {
-            Token::Verbose => verbose_count += 1,
-            Token::Config(v) => config.push(v),
-            Token::To(v) => to.push(v),
-            Token::RunId(v) => run_ids.push(v),
-            Token::All => all_count += 1,
-            Token::RemoveOnComplete => remove_count += 1,
-            Token::DryRun => dry_run_count += 1,
-            Token::Force => force_count += 1,
-            Token::Assume(v) => assume.push(v),
-            Token::Format(v) => format.push(v),
-            Token::State => state_count += 1,
+            Token::Opt(opt, value) => match (opt, value) {
+                (Opt::Verbose, _) => verbose_count += 1,
+                (Opt::All, _) => all_count += 1,
+                (Opt::RemoveOnComplete, _) => remove_count += 1,
+                (Opt::DryRun, _) => dry_run_count += 1,
+                (Opt::Force, _) => force_count += 1,
+                (Opt::State, _) => state_count += 1,
+                (_, None) => {}
+                (Opt::Config, Some(v)) => config.push(v),
+                (Opt::To, Some(v)) => to.push(v),
+                (Opt::RunId, Some(v)) => run_ids.push(v),
+                (Opt::Assume, Some(v)) => assume.push(v),
+                (Opt::Format, Some(v)) => format.push(v),
+            },
             Token::Unknown(name) => {
                 unknown.get_or_insert(name);
             }
@@ -281,69 +393,55 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         _ => return Err(UsageError::with_subject(Kind::UnknownCommand, first)),
     };
 
-    // 許されない場所のオプション。
-    let takes_verbose = matches!(
-        kind,
-        CommandKind::Run | CommandKind::Pipeline | CommandKind::Validate | CommandKind::Graph
-    );
-    let takes_config = !matches!(kind, CommandKind::Convert);
-    let takes_to = matches!(kind, CommandKind::Convert);
-    if verbose_count > 0 && !takes_verbose {
+    // 許されない場所のオプション。使える場所は表から読む(BR1.1)。
+    let allowed = |opt: Opt| spec(opt).allows(kind, dry_run_count > 0);
+    if verbose_count > 0 && !allowed(Opt::Verbose) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "-v"));
     }
-    if !config.is_empty() && !takes_config {
+    if !config.is_empty() && !allowed(Opt::Config) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--config"));
     }
-    if !to.is_empty() && !takes_to {
+    if !to.is_empty() && !allowed(Opt::To) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--to"));
     }
     // `graph` の `--run-id` は、`--state` と一緒のときだけ(BR4.5。下で検査する)。
-    let takes_run_id = matches!(
-        kind,
-        CommandKind::Run
-            | CommandKind::Pipeline
-            | CommandKind::Watch
-            | CommandKind::Reset
-            | CommandKind::Graph
-    );
-    if !run_ids.is_empty() && !takes_run_id {
+    if !run_ids.is_empty() && !allowed(Opt::RunId) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--run-id"));
     }
-    if all_count > 0 && kind != CommandKind::Reset {
+    if all_count > 0 && !allowed(Opt::All) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--all"));
     }
-    let takes_remove = matches!(kind, CommandKind::Run | CommandKind::Pipeline);
-    if remove_count > 0 && !takes_remove {
+    if remove_count > 0 && !allowed(Opt::RemoveOnComplete) {
         return Err(UsageError::with_subject(
             Kind::OptionNotAllowed,
             "--remove-on-complete",
         ));
     }
     // `--dry-run` は `run` と `pipeline` だけ。`--assume` は `--dry-run` と一緒のときだけ(BR2.2)。
-    if dry_run_count > 0 && !takes_remove {
+    if dry_run_count > 0 && !allowed(Opt::DryRun) {
         return Err(UsageError::with_subject(
             Kind::OptionNotAllowed,
             "--dry-run",
         ));
     }
     // `--force` は `init` だけ(BR3.1)。
-    if force_count > 0 && kind != CommandKind::Init {
+    if force_count > 0 && !allowed(Opt::Force) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--force"));
     }
     if force_count > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "--force"));
     }
-    if !assume.is_empty() && dry_run_count == 0 {
+    if !assume.is_empty() && !allowed(Opt::Assume) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--assume"));
     }
     if dry_run_count > 1 {
         return Err(UsageError::with_subject(Kind::InvalidValue, "--dry-run"));
     }
     let is_graph = kind == CommandKind::Graph;
-    if !format.is_empty() && !is_graph {
+    if !format.is_empty() && !allowed(Opt::Format) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--format"));
     }
-    if state_count > 0 && !is_graph {
+    if state_count > 0 && !allowed(Opt::State) {
         return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--state"));
     }
     // 重複。
