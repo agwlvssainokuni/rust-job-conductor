@@ -144,14 +144,24 @@ fn readme_の同じ行き先と両方の飛び越しの例は_実際の出力と
 }
 
 #[test]
-fn readme_の辺の一覧に切り替わる形は_交差と異なる行き先の_2_つだけを述べる() {
+fn readme_の分岐の例は_実際の出力と一致する() {
+    let text = readme();
+    let branch = "\n[[job.transitions]]\non = \"success\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"warning\"\nnext = \"d\"\n";
+    let definition = jobs(&["a", "b", "c", "d", "e"], &[("a", branch)]);
+    assert_eq!(graph_example(&text, 3), render(&definition));
+}
+
+#[test]
+fn readme_の辺の一覧に切り替わる形は_交差と分岐の線に関わる形だけを述べる() {
     let text = readme();
     let line = text
         .lines()
         .find(|l| l.starts_with("- **辺の一覧に切り替わる形**"))
         .expect("記述がある");
     assert!(line.contains("交差"));
-    assert!(line.contains("異なる行き先"));
+    assert!(line.contains("分岐"));
+    assert!(line.contains("同じ行き先で合流する形"));
+    assert!(!line.contains("異なる行き先への飛び越しを 2 つ持つ形"));
     assert!(!line.contains("同じ行き先へ飛ぶ辺が 2 つある"));
     assert!(text.contains("`|\\|` の行"));
 }
