@@ -235,7 +235,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn display_has_no_input_values_for_every_kind() {
+    fn 表示は_どの種類でも入力の値を含まない() {
         for kind in ConversionErrorKind::ALL {
             let e = ConversionError::new("in.yaml", Some(3), None, kind, "固定の文");
             let s = e.to_string();
@@ -246,7 +246,7 @@ mod tests {
     }
 
     #[test]
-    fn display_without_line_and_with_key_path() {
+    fn 行がなく_キーの場所がある表示() {
         let e = ConversionError::new(
             "in.toml",
             None,
@@ -260,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_escapes_control_and_format_chars() {
+    fn sanitize_は制御文字と書式文字をエスケープする() {
         assert_eq!(sanitize("a\nb\tc\rd", 64), "a\\nb\\tc\\rd");
         assert_eq!(sanitize("a\u{1b}[31m", 64), "a\\u{1b}[31m");
         assert_eq!(
@@ -271,7 +271,7 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_truncates_to_64_chars() {
+    fn sanitize_は64文字で切り詰める() {
         let long = "k".repeat(100);
         let s = sanitize(&long, MAX_KEY_DISPLAY_CHARS);
         assert_eq!(s.chars().count(), 65);
@@ -283,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn key_path_format() {
+    fn キーの場所の書式() {
         let segs = vec![
             PathSeg::Key("job".into()),
             PathSeg::Index(2),
