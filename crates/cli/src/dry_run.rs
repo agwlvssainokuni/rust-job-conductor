@@ -21,30 +21,39 @@
 
 use conductor_core::{PlanInput, plan_pipeline, plan_run};
 
-use crate::ctx::Ctx;
-use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE};
+use crate::ctx::{Ctx, FlowTarget};
+use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE, EXIT_USAGE};
 use crate::report::DisplayEvent;
 use crate::report::plan_text::render_plan;
-use crate::types::CliCommand;
+use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
-/// 計画の対象。
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum DryRunTarget<'a> {
-    /// `pipeline <name>`。
-    Pipeline(&'a str),
-    /// `run <job-id>`。
-    Run(&'a str),
+/// `run` と `pipeline` の入口(共通)。位置引数 `arg` を、`target` で対象にする。
+///
+/// 位置引数が無ければ、使い方の誤り(68。`parse_args` が先に止めるので来ないが、動きを保つ)。
+/// `--dry-run` なら、計画を出して、その終了コードを `Err` で返す。どちらでもなければ、位置引数を返す。
+pub(crate) fn enter_flow<'c>(
+    ctx: &mut Ctx<'_>,
+    cmd: &CliCommand,
+    arg: Option<&'c str>,
+    target: fn(&'c str) -> FlowTarget<'c>,
+) -> Result<&'c str, i32> {
+    let Some(arg) = arg else {
+        let error = UsageError::new(UsageErrorKind::MissingArgument);
+        ctx.show(&DisplayEvent::Usage(&error));
+        return Err(EXIT_USAGE);
+    };
+    // `--dry-run`: ジョブを実行せず、ステートに書かず、シグナルも準備せずに、計画を出す(U3)。
+    if cmd.dry_run.dry_run {
+        return Err(run_dry_run(ctx, cmd, target(arg)));
+    }
+    Ok(arg)
 }
 
 /// `--dry-run` を実行し、終了コードを返す(計画を出せたら 0。BR4.4)。
-pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: DryRunTarget<'_>) -> i32 {
+pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: FlowTarget<'_>) -> i32 {
     let assumptions = &cmd.dry_run.assumptions;
     let assume_ids: Vec<&str> = assumptions.iter().map(|a| a.job_id.as_str()).collect();
-    let (expected_pipeline, require_job) = match target {
-        DryRunTarget::Pipeline(name) => (Some(name), None),
-        DryRunTarget::Run(job_id) => (None, Some(job_id)),
-    };
-    let checked = match ctx.prepare_checked(cmd, expected_pipeline, require_job, &assume_ids) {
+    let checked = match ctx.prepare_checked(cmd, target, &assume_ids) {
         Ok(checked) => checked,
         Err(code) => return code,
     };
@@ -71,8 +80,8 @@ pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: DryRunTar
         assumptions,
     };
     let planned = match target {
-        DryRunTarget::Pipeline(_) => plan_pipeline(&input),
-        DryRunTarget::Run(job_id) => plan_run(job_id, &input),
+        FlowTarget::Pipeline(_) => plan_pipeline(&input),
+        FlowTarget::Run(job_id) => plan_run(job_id, &input),
     };
     let plan = match planned {
         Ok(plan) => plan,

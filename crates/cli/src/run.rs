@@ -26,26 +26,21 @@
 
 use conductor_core::{Classification, Decision, RunMode};
 
-use crate::ctx::Ctx;
-use crate::dry_run::{DryRunTarget, run_dry_run};
-use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_USAGE, exit_code_for};
+use crate::ctx::{Ctx, FlowTarget};
+use crate::dry_run::enter_flow;
+use crate::exit::{EXIT_OK, EXIT_REJECTED, exit_code_for};
 use crate::report::{DisplayEvent, StateContext};
 use crate::step::{decide, record_skip, remove_if_requested, run_step};
-use crate::types::{CliCommand, UsageError, UsageErrorKind};
+use crate::types::CliCommand;
 
 /// `conductor run <job-id>` を実行し、終了コードを返す。
 pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
-    let Some(job_id) = cmd.job_id.as_deref() else {
-        let error = UsageError::new(UsageErrorKind::MissingArgument);
-        ctx.show(&DisplayEvent::Usage(&error));
-        return EXIT_USAGE;
+    let job_id = match enter_flow(ctx, cmd, cmd.job_id.as_deref(), FlowTarget::Run) {
+        Ok(job_id) => job_id,
+        Err(code) => return code,
     };
-    // `--dry-run`: ジョブを実行せず、ステートに書かず、シグナルも準備せずに、計画を出す(U3)。
-    if cmd.dry_run.dry_run {
-        return run_dry_run(ctx, cmd, DryRunTarget::Run(job_id));
-    }
-    let session = match ctx.prepare(cmd, None, Some(job_id)) {
-        Ok(session) => session,
+    let (session, index) = match ctx.prepare_run(cmd, job_id) {
+        Ok(prepared) => prepared,
         Err(code) => return code,
     };
     let definition = &session.definition;
@@ -72,10 +67,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             EXIT_OK
         }
         Decision::Run => {
-            let Some(index) = definition.job_index(job_id) else {
-                // 検査済み(ジョブIDは定義にある)。ここには来ない。
-                return EXIT_REJECTED;
-            };
+            // 位置は、検査(`prepare_run`)で確かめたもの。
             let job = &definition.job[index];
 
             let step = match run_step(

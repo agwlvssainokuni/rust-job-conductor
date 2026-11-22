@@ -89,6 +89,31 @@ pub(crate) struct Session {
     pub env_files: LoadedEnvFiles,
 }
 
+impl Session {
+    /// 検査を終えた材料と、中断の合図から作る。
+    fn new(checked: Checked, signal: Arc<InterruptSignal>) -> Self {
+        Self {
+            definition_path: checked.definition_path,
+            definition: checked.definition,
+            commands: checked.commands,
+            run_id: checked.run_id,
+            state: checked.state,
+            remove_on_complete: checked.remove_on_complete,
+            signal,
+            env_files: checked.env_files,
+        }
+    }
+}
+
+/// `run` と `pipeline` の対象(本番と `--dry-run` で共通)。
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum FlowTarget<'a> {
+    /// `pipeline <name>`。
+    Pipeline(&'a str),
+    /// `run <job-id>`。
+    Run(&'a str),
+}
+
 /// ステートを読む方法(`read_checked_state`)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum StateRead {
@@ -111,77 +136,120 @@ impl Ctx<'_> {
         self.reporter.show(&mut *self.sink, event)
     }
 
-    /// 実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを `Err` で返す。
+    /// `run <job-id>` の実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを `Err` で返す。
+    /// 材料と、定義の中のそのジョブの位置を返す。
     ///
     /// 順序: シグナルの準備(定義の検査より前。BR4.1)→ 定義(64)→ command(64)→ ジョブID(68)→
-    /// run ID の決定(68)→ `.env` の読み取り(64)→ ステートの読み込み(65)→ 照合(65)。`expected_pipeline` は、`pipeline` の名前の照合に渡す。
-    pub(crate) fn prepare(
+    /// run ID の決定(68)→ `.env` の読み取り(64)→ ステートの読み込み(65)→ 照合(65)。
+    pub(crate) fn prepare_run(
         &mut self,
         cmd: &CliCommand,
-        expected_pipeline: Option<&str>,
-        require_job: Option<&str>,
-    ) -> Result<Session, i32> {
-        let signal = Arc::new(InterruptSignal::new());
-        match self.signals.start(&signal) {
-            Ok(()) | Err(SignalError::AlreadyRegistered) => {}
-            Err(SignalError::Failed) => {
-                self.show(&DisplayEvent::SignalSetupFailed);
-                return Err(EXIT_INTERNAL);
-            }
-        }
-
-        let checked = self.prepare_checked(cmd, expected_pipeline, require_job, &[])?;
-        Ok(Session {
-            definition_path: checked.definition_path,
-            definition: checked.definition,
-            commands: checked.commands,
-            run_id: checked.run_id,
-            state: checked.state,
-            remove_on_complete: checked.remove_on_complete,
-            signal,
-            env_files: checked.env_files,
-        })
+        job_id: &str,
+    ) -> Result<(Session, usize), i32> {
+        let signal = self.start_signals()?;
+        let checked = self.check_definition(cmd, None)?;
+        let index = self.require_job(&checked.definition, job_id)?;
+        let checked = self.check_run_inputs(cmd, checked, Some(job_id))?;
+        Ok((Session::new(checked, signal), index))
     }
 
-    /// `prepare` の、シグナルの準備を除いた部分(定義の検査、ジョブの存在、run ID の決定、`.env` の
-    /// 読み取り、ステートの読み込みと照合。U3 の BR1.1、BR4.1、BR4.2)。`--dry-run` が共有する。
+    /// `pipeline <name>` の実行の前の検査(BR2.1、BR2.2、BR3.1)。順序は [`Ctx::prepare_run`] から
+    /// ジョブIDの検査を除いたもの。`name` は、定義のパイプライン名の照合に渡す。
+    pub(crate) fn prepare_pipeline(
+        &mut self,
+        cmd: &CliCommand,
+        name: &str,
+    ) -> Result<Session, i32> {
+        let signal = self.start_signals()?;
+        let checked = self.check_definition(cmd, Some(name))?;
+        let checked = self.check_run_inputs(cmd, checked, None)?;
+        Ok(Session::new(checked, signal))
+    }
+
+    /// 本番の検査の、シグナルの準備を除いた部分(定義の検査、ジョブの存在、run ID の決定、`.env` の
+    /// 読み取り、ステートの読み込みと照合。U3 の BR1.1、BR4.1、BR4.2)。`--dry-run` が使う。
     ///
-    /// `also_known_jobs` は、`require_job` と同じ位置(定義の検査のあと、run ID の決定の前)で、
+    /// `also_known_jobs` は、ジョブIDの検査と同じ位置(定義の検査のあと、run ID の決定の前)で、
     /// 定義にあるかを確かめるジョブID(`--assume` の指定。ない値は使い方の誤り 68。誤りの表示に、
-    /// ジョブIDは含めない。BR2.1)。本番の `prepare` は、空を渡す。
+    /// ジョブIDは含めない。BR2.1)。
     pub(crate) fn prepare_checked(
         &mut self,
         cmd: &CliCommand,
-        expected_pipeline: Option<&str>,
-        require_job: Option<&str>,
+        target: FlowTarget<'_>,
         also_known_jobs: &[&str],
+    ) -> Result<Checked, i32> {
+        match target {
+            FlowTarget::Pipeline(name) => {
+                let checked = self.check_definition(cmd, Some(name))?;
+                self.require_known(&checked.definition, also_known_jobs)?;
+                self.check_run_inputs(cmd, checked, None)
+            }
+            FlowTarget::Run(job_id) => {
+                let checked = self.check_definition(cmd, None)?;
+                self.require_job(&checked.definition, job_id)?;
+                self.require_known(&checked.definition, also_known_jobs)?;
+                self.check_run_inputs(cmd, checked, Some(job_id))
+            }
+        }
+    }
+
+    /// シグナルの監視を始める(BR4.1)。すでに登録済みなら、そのまま使う。失敗は表示して、70 を `Err` で返す。
+    fn start_signals(&mut self) -> Result<Arc<InterruptSignal>, i32> {
+        let signal = Arc::new(InterruptSignal::new());
+        match self.signals.start(&signal) {
+            Ok(()) | Err(SignalError::AlreadyRegistered) => Ok(signal),
+            Err(SignalError::Failed) => {
+                self.show(&DisplayEvent::SignalSetupFailed);
+                Err(EXIT_INTERNAL)
+            }
+        }
+    }
+
+    /// ジョブIDが定義にあることを確かめ、その位置を返す。無ければ、ジョブIDを添えた使い方の誤り(68)。
+    fn require_job(&mut self, definition: &PipelineDefinition, job_id: &str) -> Result<usize, i32> {
+        match definition.job_index(job_id) {
+            Some(index) => Ok(index),
+            None => {
+                let error = UsageError::with_subject(UsageErrorKind::UnknownJob, job_id);
+                self.show(&DisplayEvent::Usage(&error));
+                Err(EXIT_USAGE)
+            }
+        }
+    }
+
+    /// `--assume` のジョブIDが、すべて定義にあることを確かめる。無ければ、使い方の誤り(68。ジョブIDは
+    /// 表示に含めない。BR2.1)。
+    fn require_known(
+        &mut self,
+        definition: &PipelineDefinition,
+        job_ids: &[&str],
+    ) -> Result<(), i32> {
+        if job_ids.iter().any(|id| definition.job_index(id).is_none()) {
+            let error = UsageError::new(UsageErrorKind::UnknownJob);
+            self.show(&DisplayEvent::Usage(&error));
+            return Err(EXIT_USAGE);
+        }
+        Ok(())
+    }
+
+    /// ジョブの検査のあとの部分: run ID の決定(68)→ `.env` の読み取り(64)→ ステートの読み込みと
+    /// 照合(65)。`env_job` は、読む `.env` の範囲(`run` のジョブID。`pipeline` は `None`)。
+    fn check_run_inputs(
+        &mut self,
+        cmd: &CliCommand,
+        checked: CheckedDefinition,
+        env_job: Option<&str>,
     ) -> Result<Checked, i32> {
         let CheckedDefinition {
             path,
             definition,
             commands,
-        } = self.check_definition(cmd, expected_pipeline)?;
-
-        if let Some(job_id) = require_job
-            && definition.job_index(job_id).is_none()
-        {
-            let error = UsageError::with_subject(UsageErrorKind::UnknownJob, job_id);
-            self.show(&DisplayEvent::Usage(&error));
-            return Err(EXIT_USAGE);
-        }
-        if also_known_jobs
-            .iter()
-            .any(|id| definition.job_index(id).is_none())
-        {
-            let error = UsageError::new(UsageErrorKind::UnknownJob);
-            self.show(&DisplayEvent::Usage(&error));
-            return Err(EXIT_USAGE);
-        }
+        } = checked;
 
         let run_id = self.definition_run_id(cmd, &definition)?;
 
         // `.env` の読み取り(BR6.1〜BR6.3)。誤りがあれば、ジョブを実行せず、ステートにも触れずに 64 で止まる。
-        let env_files = self.load_env_files(&path, &definition, require_job)?;
+        let env_files = self.load_env_files(&path, &definition, env_job)?;
 
         let state =
             self.read_checked_state(&path, &definition, run_id.as_ref(), StateRead::Live)?;
@@ -271,7 +339,7 @@ impl Ctx<'_> {
         }
     }
 
-    /// 定義の読み込みと検証(64)、全ジョブの `command` の検査(64)。`prepare` と `validate` が共有する。
+    /// 定義の読み込みと検証(64)、全ジョブの `command` の検査(64)。`run`・`pipeline` の準備と `validate`・`graph` が共有する。
     ///
     /// シグナル・ステートには触れない。誤りは表示して、終了コードを `Err` で返す。
     /// `command` の誤りは、全ジョブの分を集めてから表示する。分割したコマンドは、ジョブと同じ並びで返す。

@@ -27,27 +27,20 @@
 use conductor_core::{Classification, Decision, PipelineState, RunMode, resume_point_on_interrupt};
 use conductor_runtime::{Durability, StateLocation, apply_interrupt};
 
-use crate::ctx::{Ctx, Session};
-use crate::dry_run::{DryRunTarget, run_dry_run};
-use crate::exit::{
-    EXIT_OK, EXIT_REJECTED, EXIT_STATE, EXIT_USAGE, exit_code_for, signal_exit_code,
-};
+use crate::ctx::{Ctx, FlowTarget, Session};
+use crate::dry_run::enter_flow;
+use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE, exit_code_for, signal_exit_code};
 use crate::report::{DisplayEvent, StateContext};
 use crate::step::{StepResult, decide, record_skip, remove_if_requested, run_step};
-use crate::types::{CliCommand, UsageError, UsageErrorKind};
+use crate::types::CliCommand;
 
 /// `conductor pipeline <pipeline-name>` を実行し、終了コードを返す。
 pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
-    let Some(name) = cmd.pipeline_name.as_deref() else {
-        let error = UsageError::new(UsageErrorKind::MissingArgument);
-        ctx.show(&DisplayEvent::Usage(&error));
-        return EXIT_USAGE;
+    let name = match enter_flow(ctx, cmd, cmd.pipeline_name.as_deref(), FlowTarget::Pipeline) {
+        Ok(name) => name,
+        Err(code) => return code,
     };
-    // `--dry-run`: ジョブを実行せず、ステートに書かず、シグナルも準備せずに、計画を出す(U3)。
-    if cmd.dry_run.dry_run {
-        return run_dry_run(ctx, cmd, DryRunTarget::Pipeline(name));
-    }
-    let session = match ctx.prepare(cmd, Some(name), None) {
+    let session = match ctx.prepare_pipeline(cmd, name) {
         Ok(session) => session,
         Err(code) => return code,
     };
