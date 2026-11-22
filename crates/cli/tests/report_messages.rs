@@ -23,8 +23,9 @@ use conductor_cli::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::{ConversionError, ConversionErrorKind};
 use conductor_core::{
-    DecisionReason, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
-    EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, SkipReason,
+    Classification, DecisionReason, DefinitionError, DefinitionErrorKind, EnvFileError,
+    EnvFileErrorKind, EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, SkipReason,
+    TransitionOn,
 };
 use conductor_runtime::{
     CommandError, CommandErrorKind, CreateError, MismatchKind, StateError, StateErrorKind,
@@ -234,7 +235,12 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
             started: false,
         },
     ] {
-        for result in ["success", "warning", "error", "interrupted"] {
+        for result in [
+            Some(Classification::Success),
+            Some(Classification::Warning),
+            Some(Classification::Error),
+            None,
+        ] {
             f(&DisplayEvent::JobResult {
                 job_id: "a",
                 result,
@@ -244,12 +250,12 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         }
     }
     f(&DisplayEvent::Transition {
-        on: "warning",
+        on: TransitionOn::Warning,
         target: "c",
         skipped: &skipped,
     });
     f(&DisplayEvent::Transition {
-        on: "success",
+        on: TransitionOn::Success,
         target: "@end",
         skipped: &[],
     });
@@ -527,7 +533,7 @@ fn v_の文言() {
     assert_eq!(
         reporter.render(&DisplayEvent::JobResult {
             job_id: "extract",
-            result: "warning",
+            result: Some(Classification::Warning),
             detail: ResultDetail::ExitCode(1),
             conductor_exit: 0,
         }),
@@ -536,7 +542,7 @@ fn v_の文言() {
     assert_eq!(
         reporter.render(&DisplayEvent::JobResult {
             job_id: "x",
-            result: "error",
+            result: Some(Classification::Error),
             detail: ResultDetail::ExitCode(256),
             conductor_exit: 1,
         }),
@@ -545,7 +551,7 @@ fn v_の文言() {
     let skipped = vec!["transform".to_string(), "load".to_string()];
     assert_eq!(
         reporter.render(&DisplayEvent::Transition {
-            on: "warning",
+            on: TransitionOn::Warning,
             target: "notify",
             skipped: &skipped,
         }),

@@ -158,6 +158,16 @@ pub enum TransitionOn {
     Warning,
 }
 
+impl TransitionOn {
+    /// 定義と表示に使う語(`success`、`warning`)。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Success => "success",
+            Self::Warning => "warning",
+        }
+    }
+}
+
 /// 遷移の行き先。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransitionTarget {
@@ -282,6 +292,26 @@ pub enum Classification {
     Success,
     Warning,
     Error,
+}
+
+impl Classification {
+    /// 表示に使う語(`success`、`warning`、`error`)。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Success => "success",
+            Self::Warning => "warning",
+            Self::Error => "error",
+        }
+    }
+
+    /// この分類で引く遷移(成功は `success`、警告は `warning`)。エラーは遷移を書けないため `None`(BR1.2)。
+    pub fn transition_on(self) -> Option<TransitionOn> {
+        match self {
+            Self::Success => Some(TransitionOn::Success),
+            Self::Warning => Some(TransitionOn::Warning),
+            Self::Error => None,
+        }
+    }
 }
 
 /// 実行したジョブの結果の分類と、スケジューラへ返す終了コード。

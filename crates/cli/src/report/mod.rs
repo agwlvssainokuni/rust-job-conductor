@@ -37,8 +37,8 @@ use std::path::Path;
 
 use conductor_converter::ConversionError;
 use conductor_core::{
-    DecisionReason, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, PipelineState,
-    summarize_errors,
+    Classification, DecisionReason, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind,
+    PipelineState, TransitionOn, summarize_errors,
 };
 use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
 
@@ -162,8 +162,8 @@ pub enum DisplayEvent<'a> {
     // ---- verbose(標準エラー。`-v` のとき) ----
     JobResult {
         job_id: &'a str,
-        /// `success`・`warning`・`error`・`interrupted`(トークン)。
-        result: &'static str,
+        /// 分類。`None` は、起動しなかった中断(表示は `success`・`warning`・`error`・`interrupted` のトークン)。
+        result: Option<Classification>,
         detail: ResultDetail,
         /// `conductor` が返す終了コード(範囲を合わせたあと)。
         conductor_exit: i32,
@@ -173,8 +173,8 @@ pub enum DisplayEvent<'a> {
         reason: DecisionReason,
     },
     Transition {
-        /// `success` か `warning`。
-        on: &'static str,
+        /// 遷移を引いた結果(表示は `success` か `warning`)。
+        on: TransitionOn,
         /// 遷移先のジョブID、または `@end`。
         target: &'a str,
         skipped: &'a [String],
@@ -407,7 +407,7 @@ impl<'a> Reporter<'a> {
                 result,
                 detail,
                 conductor_exit,
-            } => job_result_line(lang, job_id, result, *detail, *conductor_exit),
+            } => job_result_line(lang, job_id, *result, *detail, *conductor_exit),
             DisplayEvent::JobSkipped { job_id, reason } => format!(
                 "{VERBOSE_PREFIX}job={} {} ({})\n",
                 escape_name(job_id),
@@ -420,7 +420,8 @@ impl<'a> Reporter<'a> {
                 skipped,
             } => {
                 let mut line = format!(
-                    "{VERBOSE_PREFIX}transition: {on} -> {}",
+                    "{VERBOSE_PREFIX}transition: {} -> {}",
+                    on.as_str(),
                     escape_name(target)
                 );
                 if !skipped.is_empty() {
@@ -608,7 +609,7 @@ fn conversion_line(lang: Language, e: &ConversionError) -> String {
 fn job_result_line(
     lang: Language,
     job_id: &str,
-    result: &str,
+    result: Option<Classification>,
     detail: ResultDetail,
     conductor_exit: i32,
 ) -> String {
@@ -616,7 +617,7 @@ fn job_result_line(
     let inner = match detail {
         ResultDetail::ExitCode(code) => {
             let mut text = format!("{} {code}", messages::EXIT_CODE.get(lang));
-            if result == "error" && code != conductor_exit {
+            if result == Some(Classification::Error) && code != conductor_exit {
                 text.push_str(&format!(
                     ", {} {conductor_exit}",
                     messages::CONDUCTOR_EXITS_WITH.get(lang)
@@ -634,5 +635,6 @@ fn job_result_line(
             text
         }
     };
+    let result = result.map_or("interrupted", Classification::as_str);
     format!("{VERBOSE_PREFIX}job={id} result={result} ({inner})\n")
 }

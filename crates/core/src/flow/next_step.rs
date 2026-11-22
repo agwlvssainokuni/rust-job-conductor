@@ -105,11 +105,12 @@ fn next_step(
     definition: &PipelineDefinition,
     run_mode: RunMode,
 ) -> NextStep {
-    let on = match outcome.classification {
-        Some(Classification::Success) => TransitionOn::Success,
-        Some(Classification::Warning) => TransitionOn::Warning,
-        // エラー、起動しなかった中断
-        _ => return stop(job),
+    // エラー、起動しなかった中断は、止まる。
+    let Some(on) = outcome
+        .classification
+        .and_then(Classification::transition_on)
+    else {
+        return stop(job);
     };
     let Some(index) = definition.job_index(&job.id) else {
         return stop(job);

@@ -23,8 +23,7 @@ use std::sync::Arc;
 use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
     Classification, DefinitionError, JobDefinition, JobExecution, JobOutcome, LoadedEnvFiles,
-    NextStep, PipelineDefinition, PipelineState, RunId, TransitionOn, TransitionTarget,
-    env_file_refs,
+    NextStep, PipelineDefinition, PipelineState, RunId, TransitionTarget, env_file_refs,
 };
 use conductor_runtime::ConsistencyResult;
 use conductor_runtime::{
@@ -451,16 +450,10 @@ impl Ctx<'_> {
     ) {
         let is_error = outcome.classification == Some(Classification::Error);
         let conductor_exit = exit_code_for(outcome.reported_exit_code, is_error);
-        let result = match outcome.classification {
-            Some(Classification::Success) => "success",
-            Some(Classification::Warning) => "warning",
-            Some(Classification::Error) => "error",
-            None => "interrupted",
-        };
         let detail = result_detail(execution);
         self.show(&DisplayEvent::JobResult {
             job_id: &job.id,
-            result,
+            result: outcome.classification,
             detail,
             conductor_exit,
         });
@@ -475,24 +468,17 @@ impl Ctx<'_> {
             self.show(&DisplayEvent::SuccessCodeNotListed { job_id: &job.id });
         }
 
-        let on = match outcome.classification {
-            Some(Classification::Success) => Some(TransitionOn::Success),
-            Some(Classification::Warning) => Some(TransitionOn::Warning),
-            _ => None,
-        };
-        if let Some(on) = on
+        if let Some(on) = outcome
+            .classification
+            .and_then(Classification::transition_on)
             && let Some(transition) = job.transition_for(on)
         {
             let target = match &transition.next {
                 TransitionTarget::Job(id) => id.clone(),
                 TransitionTarget::End => "@end".to_string(),
             };
-            let on_word = match on {
-                TransitionOn::Success => "success",
-                TransitionOn::Warning => "warning",
-            };
             self.show(&DisplayEvent::Transition {
-                on: on_word,
+                on,
                 target: &target,
                 skipped: &next.skipped_job_ids,
             });
