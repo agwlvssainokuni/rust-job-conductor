@@ -37,7 +37,7 @@ pub(crate) fn parse_duration_secs(text: &str) -> Option<u64> {
     }
     let n: u64 = digits.parse().ok()?;
     let secs = n.checked_mul(factor)?;
-    (n >= 1 && (MIN_SECS..=MAX_SECS).contains(&secs)).then_some(secs)
+    (MIN_SECS..=MAX_SECS).contains(&secs).then_some(secs)
 }
 
 #[cfg(test)]
