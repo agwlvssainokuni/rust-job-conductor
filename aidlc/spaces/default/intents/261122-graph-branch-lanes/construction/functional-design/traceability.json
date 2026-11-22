@@ -1,0 +1,62 @@
+{
+  "stage": "functional-design",
+  "upstream_ids": [
+    "SM1",
+    "SM2",
+    "SM3"
+  ],
+  "coverage": [
+    {
+      "id": "SM1",
+      "status": "OK",
+      "target": "BR1.1"
+    },
+    {
+      "id": "SM2",
+      "status": "OK",
+      "target": "BR3.1"
+    },
+    {
+      "id": "SM3",
+      "status": "OK",
+      "target": "BR4.2"
+    }
+  ],
+  "reverse": [
+    {
+      "id": "BR1.2",
+      "status": "N/A",
+      "target": "layout-oracle-branch.md: ラベルの位置"
+    },
+    {
+      "id": "BR1.3",
+      "status": "N/A",
+      "target": "functional-design-questions.md Q1: A(分岐の行)"
+    },
+    {
+      "id": "BR1.4",
+      "status": "N/A",
+      "target": "layout-oracle-branch.md: 行き先での合流の行"
+    },
+    {
+      "id": "BR1.5",
+      "status": "N/A",
+      "target": "layout-oracle-branch.md: 直後の記号"
+    },
+    {
+      "id": "BR2.1",
+      "status": "N/A",
+      "target": "functional-design-questions.md Q2: A(交差と同じ行き先は辺の一覧)"
+    },
+    {
+      "id": "BR4.1",
+      "status": "N/A",
+      "target": "functional-design-questions.md Q3: A(正解データ)"
+    },
+    {
+      "id": "BR2.2",
+      "status": "N/A",
+      "target": "functional-design-questions.md Q2: A(同じ行き先を含む分岐は一覧)と、設計のレビューの Major"
+    }
+  ]
+}
