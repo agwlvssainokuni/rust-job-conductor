@@ -363,6 +363,20 @@ fn コマンドの名前() {
     }
 }
 
+#[test]
+fn コマンドの名前から種類を引ける_往復_重なりなし_知らない名前は_none() {
+    for kind in CommandKind::ALL {
+        assert_eq!(CommandKind::from_name(kind.name()), Some(kind), "{kind:?}");
+    }
+    let mut names: Vec<&str> = CommandKind::ALL.iter().map(|k| k.name()).collect();
+    names.sort_unstable();
+    names.dedup();
+    assert_eq!(names.len(), CommandKind::ALL.len(), "名前は重ならない");
+    for unknown in ["", "Run", "runs"] {
+        assert_eq!(CommandKind::from_name(unknown), None, "{unknown:?}");
+    }
+}
+
 // ---- init(U4。BR1.1、BR1.5、BR2.2、BR3.1) ----
 
 #[test]
