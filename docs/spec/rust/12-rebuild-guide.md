@@ -115,7 +115,7 @@
 |------|------|
 | 作るもの(core) | `flow/next_step.rs` から `resolve_transition` を切り出し(`classify_and_decide` の出力は変えない)、`graph/{mod,edges,layout,overlay}.rs`(型、`flow_edges`、`is_lane_drawable`・`skip_targets`、`layout_graph`・`lane_layout`、`build_graph`・`overlay_from_state`・`pending_overlay`・`node_state_of`) |
 | 作るもの(cli) | `types.rs` の `CommandKind::Graph`・`GraphFormat`・`GraphOptions`、`args.rs`(`--format`・`--state`、`graph` の `--run-id`)、`graph.rs`(`run_graph`)、`report/graph_text.rs`・`graph_mermaid.rs`、メッセージ(辺の一覧の語、`-v` の語、再開位置の注記) |
-| 完了条件 | 08 の 11 章の例 G1〜G4、G6、E1、E2、`--state`、`-v`、Mermaid が 1 文字も違わず一致する。配置が、正解データ(`graph_layout_oracle.md`)の全例と一致する。1,000 ジョブの最悪の 2 つの形が 1 秒以内。`graph` が、ジョブを起動せず、ステートを書かず、標準出力に 1 回で書く。`validate` が 64 になる定義は `graph` も 64 |
+| 完了条件 | 08 の 11 章の例 G1〜G4、G6、E1、E2、`--state`、`-v`、Mermaid が 1 文字も違わず一致する。配置が、正解データ(`graph_layout_oracle.md` と、交差する形の `graph_layout_oracle_cross.md`)の全例と一致する(交差する飛び越しは、交差を許す範囲(05 の 15.4)でレーンの図にし、交差の行と横線 `_` を使う)。1,000 ジョブの最悪の 3 つの形が 1 秒以内。`graph` が、ジョブを起動せず、ステートを書かず、標準出力に 1 回で書く。`validate` が 64 になる定義は `graph` も 64 |
 | 確認の観点 | 辺の取り出しは `resolve_transition` を呼ぶ(判断を二重に書かない)。完了したステートは状態の記号を重ねるが、再開位置は示さない。エラーに辺はない。「対応する形」の 3 条件。`-v` の詳細は、分岐の行のあと(合流の行の前)に置く。`#` を最初に置き換える Mermaid のエスケープ |
 | 参照 | 04 の 7.7、05 の 15 章、08 の 11 章 |
 
@@ -311,7 +311,7 @@
 | 11 | Windows のチェックリストの手動確認の実施の有無 |
 | 11 | `startup-bench` を強制に切り替える予定の有無 |
 | 05 | (v0.9.0 以降)統合した環境変数の全体の大きさの上限は設けておらず、OS の上限を超えたときの起動の失敗(127)の実機の挙動は、未確認。層をまたぐ、大文字小文字だけが違う環境変数の名前の Windows と UNIX 系の違いは、許容として README に書かれている(実機は未確認) |
-| 15 | (v0.9.0 以降)`graph` のレーンの配置の規則は、正解データ(`graph_layout_oracle.md`)の例から導いたもので、正解データが原本。規則に当てはまらない形が見つかれば、「対応する形」の判定(05 の 15.4)が、辺の一覧へ切り替える |
+| 15 | (v0.9.0 以降)`graph` のレーンの配置の規則は、正解データ(`graph_layout_oracle.md`、`graph_layout_oracle_cross.md` など)の例から導いたもので、正解データが原本。交差は、交差を許す範囲(05 の 15.4)の中だけ、レーンの図で描く。規則に当てはまらない形が見つかれば、「対応する形」の判定が、辺の一覧へ切り替える |
 
 ## 5. 受け入れの観点(まとめ)
 

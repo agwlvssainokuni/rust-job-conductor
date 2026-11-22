@@ -111,7 +111,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | ジョブの実行中(約 3 秒)の `conductor` の CPU 時間(`ps -o time=`、UNIX のみ) | 100 ms 以下 | **強制**(`ps` で読めなければスキップ) | 同上 |
 | 同じ定義への 2 つの `run` を同時に | 両方が実行され(ジョブが 2 回始まる)、どちらもジョブの終了コード(99)で終わり、ステートは読み戻せる(排他制御はしない) | **強制** | 同上 |
 | 待ちの間隔 | `try_wait` を 1・2・4・8・10・10... ms(上限 10 ms)。リトライの待機は 50 ms 以下の間隔で合図を確かめ、合図から 1 秒以内に返る | 強制 | `runner.rs` の単体、`wait_interruptible.rs` |
-| 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置(`build_graph` + `layout_graph`)。最悪の 2 つの形(入れ子が最大の形 = 前半の各ジョブ `i` が `N-1-i` へ飛ぶ。交差する形 = 全ジョブ `j(i)` → `j(i+2)`。後者は辺の一覧に切り替わる) | 1 秒以内 | **強制**(`elapsed < 1s`) | `core/tests/graph_perf.rs` |
+| 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置(`build_graph` + `layout_graph`)。最悪の 3 つの形(入れ子が最大の形 = 前半の各ジョブ `i` が `N-1-i` へ飛ぶ。交差する形 = 全ジョブ `j(i)` → `j(i+2)`。幅の広い交差の形 = 前半の各ジョブ `i` が `i+N/2` へ飛ぶ。後の 2 つは交差を許す範囲で、レーンの図になる) | 1 秒以内 | **強制**(`elapsed < 1s`) | `core/tests/graph_perf.rs` |
 | 計画の生成(v0.9.0 以降)。ジョブ 1,000 個がすべて `env` と `env_file` を持ち、すべて実行する計画(`plan_pipeline`) | 1 秒以内 | **強制** | `core/tests/plan_perf.rs` |
 
 測定のしくみ: p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は `[bench] <行>` として標準エラーに出し、環境変数 `GITHUB_STEP_SUMMARY`
@@ -198,7 +198,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `env_file_parse.rs`(10) | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
 | `env_merge.rs`(8) | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
 | `env_types.rs`(5) | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
-| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(11)、`graph_lane_polish.rs`(13)、`graph_layout_oracle.rs`(6)、`graph_branch_lanes.rs`(8)、`graph_perf.rs`(2) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、537 例と、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例と、分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例。規則から導いた図で、git の出力ではない)と照合、分岐の例 B1〜B4(`graph_branch_lanes.rs`)、分岐の判定(図にできる形、できない形)、「両方の飛び越し」の例 D1〜D7(通常の飛び越しの図と、主線の `|` を除いて一致することの照合を含む)と辺の一覧に残る形(交差する両方の飛び越し、分岐の線への合流、遠い行き先が最も内側の線以上の分岐を含む)、1,000 ジョブの性能(05 の 15 章)。`graph_common/mod.rs` は補助 |
+| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(12)、`graph_lane_polish.rs`(13)、`graph_layout_oracle.rs`(7)、`graph_branch_lanes.rs`(8)、`graph_crossing_lanes.rs`(9)、`graph_perf.rs`(3) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、537 例と、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例と、分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例。規則から導いた図で、git の出力ではない。交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例。ジョブ 3〜7 個。git の出力)と照合、分岐の例 B1〜B4(`graph_branch_lanes.rs`)、分岐の判定(図にできる形、できない形)、「両方の飛び越し」の例 D1〜D7(通常の飛び越しの図と、主線の `|` を除いて一致することの照合を含む)と辺の一覧に残る形(交差する両方の飛び越し、分岐の線への合流、遠い行き先が最も内側の線以上の分岐を含む)、交差の例 C1〜C3 と、辺の一覧に残る混ざった形(`graph_crossing_lanes.rs`)、1,000 ジョブの性能(幅の広い交差を含む。05 の 15 章)。`graph_common/mod.rs` は補助 |
 | `plan_types.rs`(3)、`plan_pipeline.rs`(9)、`plan_run.rs`(5)、`plan_assume.rs`(5)、`plan_perf.rs`(1) | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle.md` | 入力例、配置の正解データ(後者は v0.9.0 以降) |
 
