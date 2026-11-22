@@ -114,21 +114,13 @@ pub fn run_job(
     env: &[(&str, &str)],
     signal: &InterruptSignal,
 ) -> JobExecution {
-    let mut execution = base_execution(job);
-
     let line = match command_line(&job.command) {
         Ok(line) => line,
-        Err(_) => {
-            execution.start_failure = true;
-            return execution;
-        }
+        Err(_) => return JobExecution::start_failed(job),
     };
 
     if let Some(number) = signal.signal_number() {
-        execution.started = false;
-        execution.interrupted = true;
-        execution.signal_number = Some(number);
-        return execution;
+        return JobExecution::not_started(job, number);
     }
 
     let mut command = Command::new(&line.program);
@@ -139,11 +131,10 @@ pub fn run_job(
     platform::configure_spawn(&mut command);
     let mut child = match command.spawn() {
         Ok(child) => child,
-        Err(_) => {
-            execution.start_failure = true;
-            return execution;
-        }
+        Err(_) => return JobExecution::start_failed(job),
     };
+
+    let mut execution = base_execution(job);
 
     let waited = wait_loop(
         &mut child,

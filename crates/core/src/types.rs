@@ -241,6 +241,34 @@ impl JobExecution {
             signal_number: None,
         }
     }
+
+    /// 合図(シグナル番号 `signal`)が立っていて、ジョブを起動しなかった実行結果(BR1.6)。
+    pub fn not_started(job: &JobDefinition, signal: i32) -> Self {
+        Self {
+            job_id: job.id.clone(),
+            command: job.command.clone(),
+            started: false,
+            exit_code: None,
+            terminated_by_signal: None,
+            start_failure: false,
+            interrupted: true,
+            signal_number: Some(signal),
+        }
+    }
+
+    /// 起動に失敗した実行結果(BR1.2〜BR1.4)。
+    pub fn start_failed(job: &JobDefinition) -> Self {
+        Self {
+            job_id: job.id.clone(),
+            command: job.command.clone(),
+            started: true,
+            exit_code: None,
+            terminated_by_signal: None,
+            start_failure: true,
+            interrupted: false,
+            signal_number: None,
+        }
+    }
 }
 
 /// ジョブの状態。

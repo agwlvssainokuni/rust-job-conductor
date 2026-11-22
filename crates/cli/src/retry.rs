@@ -79,16 +79,7 @@ pub(crate) fn run_job_with_retry(
                 last_wait_secs = wait_secs;
             }
             WaitOutcome::Interrupted(number) => {
-                return JobExecution {
-                    job_id: job.id.clone(),
-                    command: job.command.clone(),
-                    started: false,
-                    exit_code: None,
-                    terminated_by_signal: None,
-                    start_failure: false,
-                    interrupted: true,
-                    signal_number: Some(number),
-                };
+                return JobExecution::not_started(job, number);
             }
         }
     }
