@@ -131,6 +131,10 @@ pub(crate) mod reason {
     pub const INPUT_TOO_LARGE: &str = "入力が上限(1 MiB)を超えています";
     pub const EXPANDED_TOO_LARGE: &str = "展開後の要素数が上限(100000)を超えています";
     pub const EXPANDED_BYTES_TOO_LARGE: &str = "展開後の文字の大きさが上限(16 MiB)を超えています";
+    // 上の 3 つの文の「1 MiB」「100000」「16 MiB」と上限の定数が食い違えば、コンパイルできない。
+    const _: () = assert!(crate::intake::MAX_INPUT_BYTES == 1024 * 1024);
+    const _: () = assert!(crate::raw::MAX_NODES == 100_000);
+    const _: () = assert!(crate::raw::MAX_EXPANDED_BYTES == 16 * 1024 * 1024);
     pub const SYNTAX: &str = "文法の誤りです";
     pub const DUPLICATE_KEY: &str = "キーが重複しています";
     pub const RECURSIVE_ANCHOR: &str = "アンカーが自分自身を含んでいます";

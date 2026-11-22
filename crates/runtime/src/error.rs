@@ -101,6 +101,8 @@ pub(crate) mod reason {
 
     pub const UNREADABLE: &str = "開く、または読み取ることができません";
     pub const TOO_LARGE: &str = "大きさが上限(1 MiB)を超えています";
+    // 文の「1 MiB」とステートファイルの上限の定数が食い違えば、コンパイルできない。
+    const _: () = assert!(crate::state::reader::MAX_STATE_BYTES == 1024 * 1024);
     pub const NOT_UTF8: &str = "UTF-8 の文字列ではありません";
     pub const NOT_TOML: &str = "TOML として読めません";
     pub const NO_VERSION: &str = "format_version がありません";

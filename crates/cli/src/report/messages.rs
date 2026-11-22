@@ -312,6 +312,10 @@ pub fn env_file_kind(lang: Language, kind: EnvFileErrorKind) -> String {
     text.to_string()
 }
 
+// 次の英語の文の「1 MiB」「10,000」と、conductor-core の上限の定数が食い違えば、コンパイルできない。
+const _: () = assert!(conductor_core::envfile::MAX_ENV_FILE_BYTES == 1_048_576);
+const _: () = assert!(conductor_core::envfile::MAX_ENV_ENTRIES == 10_000);
+
 /// `.env` の誤りの理由(固定の文。値を含まない)。日本語は、conductor-core の理由と同じ。
 pub fn env_file_reason(lang: Language, kind: EnvFileErrorKind) -> String {
     if lang == Language::Ja {
