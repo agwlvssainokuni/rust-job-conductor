@@ -165,6 +165,8 @@
 7. **仕様書の追加の直し**。§8 に挙がっていない次の行も、名前と置き場所を合わせるために直した: 02 章の `ctx.rs` の行の `read_context` と `report/mod.rs` の行(3d、コミット 17)、05 章の `simulate_job` の説明(4e、コミット 24)、02 章の `TargetFormat` の行に `opposite()`(コミット 48)。
 8. **コミット 10 の `--amend`**。fmt の差を見落としてコミットしたため、直して同じコミットに含めた(push 前)。
 
+補足(レビューの指摘による記録): T9 の `status_in` は、ジョブがステートに無いとき `Pending` を返さず `expect` で失敗する(旧 `status_of` は `Pending` を返していた)。確かめ方が厳しくなる方向の変化で、承認済みの ★ T9 のとおり。対象のジョブはいつもステートにあるので、結果は変わらない。
+
 ## 範囲の外として残したもの(設計どおり)
 
 - cli 4 ファイルと runtime `env_loader.rs` の `SECRET`(クレートをまたいだ `tests` の共有はできない)、`docs_graph.rs` の行ごとの検査と ```` ```text ```` の取り出し、`writer.rs` の `create_temp(dir, …)` に渡す `dir` を `dir_or_current` に通すこと、`lexopt::Error` の守りの枝そのもの。
