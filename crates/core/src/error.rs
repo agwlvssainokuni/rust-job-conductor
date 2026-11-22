@@ -16,7 +16,7 @@
 //!
 //! 表示の文は、固定の文だけから組み立てる。ライブラリのエラー文、ソースの抜粋、
 //! 誤った値は含めない(NFR4.6)。入力に由来するキー名は、制御文字をエスケープし、
-//! 64 文字までに切って表示する。
+//! 本文を 64 文字以内に切って表示する(切ったときは末尾に `…` を足す)。
 
 use thiserror::Error;
 
@@ -232,8 +232,8 @@ impl DefinitionError {
 /// - 制御文字(U+0000〜U+001F、U+007F〜U+009F)と、書式・双方向の制御文字(U+200B〜U+200F、
 ///   U+2028、U+2029、U+202A〜U+202E、U+2060〜U+2064、U+2066〜U+2069、U+FEFF)を、`\u{..}` にする。
 ///   改行・復帰・タブは、`\n`・`\r`・`\t`。
-/// - `limit` があれば、エスケープ後の文字数で、その文字数までに収め、切ったときは末尾に `…` を付ける。
-///   `None` は、切らない(パス。エスケープだけ)。
+/// - `limit` があれば、本文はエスケープ後の文字数で `limit` 文字以内。切ったときは末尾に `…` を足す
+///   (全体は最大で `limit + 1` 文字)。`None` は、切らない(パス。エスケープだけ)。
 pub fn escape_display(input: &str, limit: Option<usize>) -> String {
     let mut out = String::with_capacity(input.len());
     let mut count = 0usize;
@@ -252,8 +252,8 @@ pub fn escape_display(input: &str, limit: Option<usize>) -> String {
 
 /// 入力に由来する文字列を、表示用に整える。制御文字をエスケープし、`max_chars` 文字で切る。
 ///
-/// 出力は、エスケープ後の文字数で `max_chars` 文字までに収め、切ったときは末尾に `…` を付ける
-/// ([`escape_display`] の上限つき)。
+/// 本文はエスケープ後の文字数で `max_chars` 文字以内。切ったときは末尾に `…` を足す
+/// (全体は最大で `max_chars + 1` 文字。[`escape_display`] の上限つき)。
 pub fn sanitize(input: &str, max_chars: usize) -> String {
     escape_display(input, Some(max_chars))
 }
@@ -380,6 +380,7 @@ mod tests {
 
     #[test]
     fn エスケープ後も_64_文字を超えない() {
+        // 名前の「64 文字」は、`…` を除いた本文の文字数。
         let s = sanitize(&"\n".repeat(100), 64);
         assert_eq!(s.chars().count(), 64 + 1);
     }
