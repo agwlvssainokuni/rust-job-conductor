@@ -79,8 +79,8 @@
 
 ## 手順
 
-- [ ] Step 1: 既存のテストの実行環境を確かめ、基準の件数を記録する(`cargo test --locked --workspace`。基準: 1,117 通過、1 無視。引数だけなら `cargo test --locked -p conductor-cli --test args_grammar`)。
-- [ ] Step 2: 報告の順を固定するテストを `args_grammar.rs` の末尾に足す(今の動きのまま通ること)。`--force` の重複が `--assume` の不可より先、`--assume` の不可が `--dry-run` の重複より先、「使えない」がすべての「重複」より先(例: `watch -v -v` は `-v` の不可、`graph --format a --format b -v -v` は `--format` の重複)。今のテストがすでに確かめている組は足さない。テスト名は日本語。コミット。(BR2.1。SM2)
+- [x] Step 1: 既存のテストの実行環境を確かめ、基準の件数を記録する(`cargo test --locked --workspace`。基準: 1,117 通過、1 無視。引数だけなら `cargo test --locked -p conductor-cli --test args_grammar`)。
+- [x] Step 2: 報告の順を固定するテストを `args_grammar.rs` の末尾に足す(今の動きのまま通ること)。`--force` の重複が `--assume` の不可より先、`--assume` の不可が `--dry-run` の重複より先、「使えない」がすべての「重複」より先(例: `watch -v -v` は `-v` の不可、`graph --format a --format b -v -v` は `--format` の重複)。今のテストがすでに確かめている組は足さない。テスト名は日本語。コミット。(BR2.1。SM2)
 - [ ] Step 3: `OPTIONS`(`Opt`、`OptSpec`、`Allowed`)を足し、字句の段階を表から行う形にする(`functional-spec.md` 3.1、3.3)。`Token` を `Opt(Opt, Option<OsString>)`、`Unknown`、`Positional` にする。`-h`/`--help`/`-V`/`--version` は表より先。`map_lex_error` の集合を表から作る。コミット。(BR1.1、BR1.2。SM1)
 - [ ] Step 4: `CHECKS` を足し、組み立ての段階の「使えない」と「重複」を表から行う形にする(3.2。並びは仕様書の 04 章 4.2 の 6・7 の順)。オプションごとの値を `Opt` で引く 1 つの並びにする。`CHECKS` のあとの検査は今の順のまま。コミット。(BR1.3。SM1)
 - [ ] Step 5: 引数の層のテストを実行する: 既存のテストを変えずに全体が通り、件数が基準 + Step 2 で足した分であること。`git diff` で既存のテストの行が変わっていないこと。`functional-spec.md` 2 の表の「今」の場所に、オプションごとの `match` の腕と `if` が残っていないこと。(BR2.1、BR5.1。SM1、SM2)

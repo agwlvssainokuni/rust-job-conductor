@@ -863,3 +863,240 @@ fn assume_は_dry_run_なしでは使えず_dry_run_は_run_と_pipeline_だけ(
         UsageErrorKind::InvalidValue
     );
 }
+
+// ---- 誤りの報告の順(04 章 4.2 の 6・7。表化の前の動きを固定する) ----
+
+fn error_of(args: &[&str]) -> (UsageErrorKind, Option<String>) {
+    match parse(args) {
+        Err(e) => (e.kind, e.subject),
+        other => panic!("使い方の誤りになるはず: {args:?} -> {other:?}"),
+    }
+}
+
+fn assert_error(args: &[&str], kind: UsageErrorKind, subject: &str) {
+    assert_eq!(
+        error_of(args),
+        (kind, Some(subject.to_string())),
+        "{args:?}"
+    );
+}
+
+#[test]
+fn 報告の順_使えないの検査は仕様の順に並ぶ() {
+    use UsageErrorKind::OptionNotAllowed as NotAllowed;
+    // -v、--config、--to、--run-id、--all、--remove-on-complete、--dry-run、--force の順。
+    assert_error(
+        &["convert", "f", "--to", "yaml", "--config", "c", "-v"],
+        NotAllowed,
+        "-v",
+    );
+    assert_error(
+        &["validate", "--run-id", "a", "--to", "yaml"],
+        NotAllowed,
+        "--to",
+    );
+    assert_error(
+        &["validate", "--all", "--run-id", "a"],
+        NotAllowed,
+        "--run-id",
+    );
+    assert_error(
+        &["watch", "--remove-on-complete", "--all"],
+        NotAllowed,
+        "--all",
+    );
+    assert_error(
+        &["watch", "--dry-run", "--remove-on-complete"],
+        NotAllowed,
+        "--remove-on-complete",
+    );
+    assert_error(&["watch", "--force", "--dry-run"], NotAllowed, "--dry-run");
+    // --format は --state より先。
+    assert_error(
+        &["run", "x", "--state", "--format", "text"],
+        NotAllowed,
+        "--format",
+    );
+}
+
+#[test]
+fn 報告の順_force_の使えないは重複より先で_force_の重複は_assume_の不可より先() {
+    assert_error(
+        &["watch", "--force", "--force"],
+        UsageErrorKind::OptionNotAllowed,
+        "--force",
+    );
+    assert_error(
+        &["init", "--assume", "a=1", "--force", "--force"],
+        UsageErrorKind::InvalidValue,
+        "--force",
+    );
+}
+
+#[test]
+fn 報告の順_assume_の不可と_dry_run_の重複は_format_と_state_の不可より先() {
+    assert_error(
+        &["run", "x", "--format", "text", "--assume", "a=1"],
+        UsageErrorKind::OptionNotAllowed,
+        "--assume",
+    );
+    assert_error(
+        &["run", "x", "--state", "--dry-run", "--dry-run"],
+        UsageErrorKind::InvalidValue,
+        "--dry-run",
+    );
+    assert_error(
+        &["run", "x", "-v", "-v", "--dry-run", "--dry-run"],
+        UsageErrorKind::InvalidValue,
+        "--dry-run",
+    );
+}
+
+#[test]
+fn 報告の順_使えないはすべての重複より先() {
+    assert_error(
+        &["watch", "-v", "-v"],
+        UsageErrorKind::OptionNotAllowed,
+        "-v",
+    );
+    assert_error(
+        &["run", "x", "--config", "a", "--config", "b", "--state"],
+        UsageErrorKind::OptionNotAllowed,
+        "--state",
+    );
+    assert_error(
+        &["graph", "--format", "a", "--format", "b", "-v", "-v"],
+        UsageErrorKind::InvalidValue,
+        "--format",
+    );
+}
+
+#[test]
+fn 報告の順_重複の検査は仕様の順に並ぶ() {
+    use UsageErrorKind::InvalidValue as Invalid;
+    // --format、--state、-v、--config、--to、--run-id、--all、--remove-on-complete の順。
+    assert_error(
+        &[
+            "graph", "--state", "--state", "--format", "a", "--format", "b",
+        ],
+        Invalid,
+        "--format",
+    );
+    assert_error(
+        &["graph", "-v", "-v", "--state", "--state"],
+        Invalid,
+        "--state",
+    );
+    assert_error(
+        &["run", "x", "--config", "a", "--config", "b", "-v", "-v"],
+        Invalid,
+        "-v",
+    );
+    assert_error(
+        &[
+            "run", "x", "--run-id", "a", "--run-id", "b", "--config", "a", "--config", "b",
+        ],
+        Invalid,
+        "--config",
+    );
+    assert_error(
+        &["reset", "--all", "--all", "--run-id", "a", "--run-id", "b"],
+        Invalid,
+        "--run-id",
+    );
+    assert_error(
+        &[
+            "run",
+            "x",
+            "--remove-on-complete",
+            "--remove-on-complete",
+            "--run-id",
+            "a",
+            "--run-id",
+            "b",
+        ],
+        Invalid,
+        "--run-id",
+    );
+    assert_error(
+        &[
+            "init", "--config", "a", "--config", "b", "--force", "--force",
+        ],
+        Invalid,
+        "--force",
+    );
+}
+
+#[test]
+fn 報告の順_重複は_all_と_run_id_の併用と値の検査より先() {
+    // 併用の誤りの対象は --all、重複の対象は --run-id。
+    assert_error(
+        &["reset", "--all", "--run-id", "a", "--run-id", "b"],
+        UsageErrorKind::InvalidValue,
+        "--run-id",
+    );
+    // --format の値は、重複のあとで検査する(値の誤りでも対象は同じだが、種類の順を確かめる)。
+    assert_error(
+        &["graph", "--format", "dot", "-v", "-v"],
+        UsageErrorKind::InvalidValue,
+        "-v",
+    );
+    // --assume の値の誤りは、--run-id の重複より後。
+    assert_error(
+        &[
+            "run",
+            "x",
+            "--dry-run",
+            "--assume",
+            "bad",
+            "--run-id",
+            "a",
+            "--run-id",
+            "b",
+        ],
+        UsageErrorKind::InvalidValue,
+        "--run-id",
+    );
+}
+
+#[test]
+fn 報告の順_字句の誤りは知らないオプションより先で_最初のものを報告する() {
+    assert_error(
+        &["run", "x", "--bogus", "--verbose=1"],
+        UsageErrorKind::InvalidValue,
+        "--verbose",
+    );
+    assert_error(
+        &["run", "x", "--bogus", "-y"],
+        UsageErrorKind::UnknownOption,
+        "--bogus",
+    );
+    assert_error(
+        &["run", "x", "--force=1", "--bogus=2"],
+        UsageErrorKind::InvalidValue,
+        "--force",
+    );
+    assert_error(&["--bogus"], UsageErrorKind::UnknownOption, "--bogus");
+}
+
+#[test]
+fn 値の欠落の対象はオプションの綴り() {
+    for option in ["--config", "--run-id", "--format", "--assume", "--to"] {
+        assert_error(&["run", "x", option], UsageErrorKind::MissingValue, option);
+    }
+}
+
+#[test]
+fn 値を取らないオプションに値を付けると対象はその綴り() {
+    for option in [
+        "--verbose",
+        "--all",
+        "--remove-on-complete",
+        "--state",
+        "--dry-run",
+        "--force",
+    ] {
+        let arg = format!("{option}=1");
+        assert_error(&["run", "x", &arg], UsageErrorKind::InvalidValue, option);
+    }
+}
