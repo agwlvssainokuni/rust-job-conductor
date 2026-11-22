@@ -452,7 +452,7 @@ README とステートの実装のあいだに、矛盾は見つからなかっ�
 
 1. 親のディレクトリ(`path.parent()`。空なら `.`)のメタデータを取る。取れなければ種類で分類(`NotFound` → `ParentMissing`、`PermissionDenied` → `PermissionDenied`、そのほか → `OtherIo`)。ディレクトリでなければ `OtherIo`。
 2. `path` の `symlink_metadata`: ディレクトリなら `IsDirectory`。ファイルまたはシンボリックリンクなら `existed = true`(シンボリックリンクは、リンクそのものを置き換える)。無ければ `existed = false`。
-3. 同じディレクトリに、一時ファイルを新規作成で作る(`create_temp`。名前 = `.<ファイル名>.tmp.<pid>.<ナノ秒>.<連番>`。§4 と同じ作り方。最大 16 回)。作れなければ、種類で分類する。
+3. 同じディレクトリに、一時ファイルを新規作成で作る(`temp_file.rs` の `create_temp_beside` → `create_temp`。ステートの書き込みと同じ関数・同じ連番。名前 = `.<ファイル名>.tmp.<pid>.<ナノ秒>.<連番>`。§4 と同じ作り方。最大 16 回)。作れなければ、種類で分類する。
 4. 全内容を書き、flush し、閉じて、`rename(一時 → path)` で置き換える。書き込みか `rename` に失敗したら、一時ファイルを消す(`PermissionDenied` は `PermissionDenied`、そのほかは `OtherIo`)。成功は、`existed` なら `Replaced`、でなければ `Created`。
 
 - **親のディレクトリは作らない**。内容は、そのまま書く(改行を変換しない)。同期(`sync_all`)はしない。

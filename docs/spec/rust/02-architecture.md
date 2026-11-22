@@ -319,6 +319,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `envfile.rs`(v0.9.0 以降) | `load_env_files`(パスの解決、大きさの検査、上限 + 1 バイトの読み取り、UTF-8、`parse_env_file` への委譲、同じパスの 1 回だけの読み取り) |
 | `file_create.rs`(同) | `create_file`、`CreateOutcome`、`CreateError`(排他的な作成、`--force` の置き換え) |
 | `wait.rs` | `wait_for`(リトライの待機) |
+| `temp_file.rs` | 一時ファイルと親のディレクトリの扱い(`dir_or_current`、`temp_prefix`、`temp_name`、`create_temp`、連番 1 つ、`create_temp_beside`)。`state`・`file_create`・`platform` が共有し、互いの内部を使わない |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | プロセスグループ(`configure_spawn`)、シグナルの送信(`forward_signal`)、シグナル終了の読み取り(`termination_signal`)、ディレクトリの同期(`sync_dir`)。`unsafe` は `unix.rs` の `libc::kill` だけ |
 | `state/mod.rs` | 下位モジュールの束ね |
 | `state/reader.rs` | ステートの読み込み、検査、`read_state`/`read_state_raw`、`inspect_run_state`(`reset --all` 用)。上限つきの読み取りは `read_bounded` の 1 か所 |

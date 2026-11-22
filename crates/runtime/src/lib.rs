@@ -66,6 +66,7 @@
 //! | `state::consistency` | 照合(Consistency)の単体テスト | 照合の本体は `conductor-core` の `consistency`(再公開) |
 //! | `envfile` | `.env` の読み込み(EnvFileLoader) | `env_file` の場所の決定と読み取り。解析は `conductor-core` の `envfile` |
 //! | `file_create` | ファイルの作成(RuntimeFileCreate) | `init` の出力先を、排他的に作る、または置き換える |
+//! | `temp_file` | 一時ファイル(TempFile) | 一時ファイルの名前と新規作成、連番(1 つ)、親のディレクトリの扱い。`state`・`file_create`・`platform` が共有する |
 //! | `wait` | 待機(Wait) | リトライの前の待機と、中断の合図の確認 |
 //! | `src/bin/conductor-test-helper.rs` | テスト専用の補助の実行ファイル | 引数・環境変数・終了コード・シグナルの受信を出力する。配布には使わない |
 //!

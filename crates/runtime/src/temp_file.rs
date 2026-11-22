@@ -18,9 +18,14 @@
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 一時ファイルの名前が重なったとき、連番を進めて作り直す回数の上限。
 const TEMP_ATTEMPTS: u32 = 16;
+
+/// 一時ファイルの名前の連番(プロセスで 1 つ。ステートと `init` の出力先が共有する)。
+static SEQUENCE: AtomicU32 = AtomicU32::new(0);
 
 /// ディレクトリのパスが空なら、実行ディレクトリ(`.`)にする。ステートファイルと `init` の出力先の
 /// 親のディレクトリを開くとき、置き換えの同期と古い一時ファイルの後始末に使う 1 か所(BR2.8)。
@@ -59,6 +64,24 @@ pub(crate) fn create_temp(
         }
     }
     Err(last)
+}
+
+/// ディレクトリ `dir` に、対象のファイル `target_name` の一時ファイルを、新規作成で作る。
+///
+/// 名前は `.<名前>.tmp.<プロセス番号>.<時刻>.<連番>`。名前が重なったら連番を進めて、
+/// 最大 16 回まで作り直す([`create_temp`])。`dir` は、呼び出し側が渡したまま使う。
+pub(crate) fn create_temp_beside(dir: &Path, target_name: &str) -> io::Result<(PathBuf, File)> {
+    let pid = std::process::id();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    create_temp(dir, |attempt| {
+        let seq = SEQUENCE
+            .fetch_add(1, Ordering::Relaxed)
+            .wrapping_add(attempt);
+        temp_name(target_name, pid, nanos, seq)
+    })
 }
 
 #[cfg(test)]

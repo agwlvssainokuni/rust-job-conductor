@@ -21,12 +21,8 @@
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::temp_file::{create_temp, dir_or_current, temp_name};
-
-static SEQUENCE: AtomicU32 = AtomicU32::new(0);
+use crate::temp_file::{create_temp_beside, dir_or_current};
 
 /// ファイルの作成の成功の結果(BR1.4)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,18 +130,8 @@ fn replace_file(path: &Path, bytes: &[u8]) -> Result<CreateOutcome, CreateError>
         Err(_) => false,
     };
 
-    let pid = std::process::id();
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    let (temp_path, mut file) = create_temp(dir, |attempt| {
-        let seq = SEQUENCE
-            .fetch_add(1, Ordering::Relaxed)
-            .wrapping_add(attempt);
-        temp_name(&name, pid, nanos, seq)
-    })
-    .map_err(|error| classify_kind(error.kind()))?;
+    let (temp_path, mut file) =
+        create_temp_beside(dir, &name).map_err(|error| classify_kind(error.kind()))?;
 
     let written = file.write_all(bytes).and_then(|()| file.flush());
     // 置き換えと後始末の前に、閉じる(Windows では、開いたままのファイルは、移せず、消せない)。

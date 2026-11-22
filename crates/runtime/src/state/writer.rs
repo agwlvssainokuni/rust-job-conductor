@@ -20,8 +20,7 @@
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 
 use conductor_core::{JobState, PipelineState, RunId};
 // 単体テスト(`mod tests` の `use super::*`)が使う。
@@ -33,13 +32,11 @@ use std::fs::OpenOptions;
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
 use crate::state::reader::FORMAT_VERSION;
-use crate::temp_file::{create_temp, dir_or_current, temp_name, temp_prefix};
+use crate::temp_file::{create_temp_beside, dir_or_current, temp_prefix};
 use crate::types::{Durability, StateLocation};
 
 /// 残った一時ファイルを、後始末で消す古さ(24 時間)。
 const STALE_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
-
-static SEQUENCE: AtomicU32 = AtomicU32::new(0);
 
 /// ステートを書く(契約 C3 の `write_state`。W3)。
 ///
@@ -81,19 +78,7 @@ pub(crate) fn write_state_file(
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .ok_or_else(fail)?;
-    let pid = std::process::id();
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-
-    let (temp_path, mut file) = create_temp(dir, |attempt| {
-        let seq = SEQUENCE
-            .fetch_add(1, Ordering::Relaxed)
-            .wrapping_add(attempt);
-        temp_name(&state_name, pid, nanos, seq)
-    })
-    .map_err(|_| fail())?;
+    let (temp_path, mut file) = create_temp_beside(dir, &state_name).map_err(|_| fail())?;
 
     let written = persist(&mut file, text.as_bytes(), durability, |f| f.sync_all());
     // 置き換えと後始末の前に、閉じる(Windows では、開いたままのファイルは、移せず、消せない)。
