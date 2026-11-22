@@ -20,8 +20,11 @@
 //!
 //! 項目の数に比例する時間。二乗の時間に戻ると、手元の機械でも上限を大きく超える。
 
+mod common;
+
 use std::time::{Duration, Instant};
 
+use common::median;
 use conductor_core::envfile::MAX_ENV_ENTRIES;
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvOrigin, LoadedEnvFiles,
@@ -35,12 +38,6 @@ const BUILTINS: [&str; 4] = [
     "CONDUCTOR_RUN_ID",
     "CONDUCTOR_ATTEMPT",
 ];
-
-/// 計った時間の中央値。
-fn median(mut samples: Vec<Duration>) -> Duration {
-    samples.sort();
-    samples[samples.len() / 2]
-}
 
 /// 名前の並びから `.env` の内容を作る。
 fn content(path: &str, names: &[String]) -> EnvFileContent {

@@ -14,12 +14,13 @@
 
 //! 計画の型(U3。BR2.1、BR5.1、FR1.12)。
 
+mod common;
+
+use common::SECRET;
 use conductor_core::{
     Assumption, Classification, EnvEntry, EnvFileContent, EnvOrigin, LoadedEnvFiles,
     PlanDisposition, PlanEntry, PlanInput, SimulatedResult, parse_definition, plan_pipeline,
 };
-
-const SECRET: &str = "s3cr3t-VALUE-do-not-print";
 
 #[test]
 fn 計画の項目は_扱いと結果と名前の要約を持つ() {

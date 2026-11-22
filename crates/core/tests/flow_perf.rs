@@ -18,9 +18,12 @@
 //! `skipped_job_ids` に列挙する。この判断を 100 回くり返す時間の、5 回の中央値が 50 ms 以内
 //! (ジョブの数に比例する時間。二乗の時間に戻ると、手元の機械でも上限を大きく超える)。
 
+mod common;
+
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+use common::median;
 use conductor_core::{
     JobExecution, RunMode, SkipReason, classify_and_decide, initial_state, parse_definition,
 };
@@ -29,12 +32,6 @@ const N: usize = 1000;
 const REPEAT: usize = 100;
 const SAMPLES: usize = 5;
 const LIMIT: Duration = Duration::from_millis(50);
-
-/// 計った時間の中央値。
-fn median(mut samples: Vec<Duration>) -> Duration {
-    samples.sort();
-    samples[samples.len() / 2]
-}
 
 #[test]
 fn a2_千個のジョブで終点に着いたときの残りの列挙を_100_回くり返しても_50ms_以内() {

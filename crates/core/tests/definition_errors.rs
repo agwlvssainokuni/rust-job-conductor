@@ -14,26 +14,17 @@
 
 //! 定義の検証の誤り(BR1.1〜BR1.13)の網羅テスト。違反の例と、受理の例。
 
+mod common;
+
 use std::path::{Path, PathBuf};
 
+use common::{kinds, run};
 use conductor_core::DefinitionErrorKind as K;
 use conductor_core::{load_definition, parse_definition};
-
-/// 検査の結果を `(種類, 行)` の並びで返す。受理なら空。
-fn run(text: &str) -> Vec<(K, Option<usize>)> {
-    match parse_definition(text, "t.toml", None) {
-        Ok(_) => Vec::new(),
-        Err(errs) => errs.into_iter().map(|e| (e.kind, e.line)).collect(),
-    }
-}
 
 /// 先頭に版とパイプラインを付けた定義(3 行)。ジョブは 4 行目から。
 fn with_header(jobs: &str) -> String {
     format!("format_version = 1\n[pipeline]\nname = \"p\"\n{jobs}")
-}
-
-fn kinds(text: &str) -> Vec<K> {
-    run(text).into_iter().map(|(k, _)| k).collect()
 }
 
 #[test]

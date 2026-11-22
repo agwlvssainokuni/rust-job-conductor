@@ -14,9 +14,10 @@
 
 //! 定義の新しいキー `env`、`env_file` の読み取りと検査(U1。BR1.1〜BR1.8、FR1.1〜FR1.4、FR1.9、FR1.11、FR1.13)。
 
-use conductor_core::{DefinitionErrorKind as K, PipelineDefinition, parse_definition};
+mod common;
 
-const SECRET: &str = "s3cr3t-VALUE-do-not-print";
+use common::{SECRET, kinds};
+use conductor_core::{DefinitionErrorKind as K, PipelineDefinition, parse_definition};
 
 fn parse(text: &str) -> Result<PipelineDefinition, Vec<(K, String)>> {
     parse_definition(text, "t.toml", None)
@@ -25,14 +26,6 @@ fn parse(text: &str) -> Result<PipelineDefinition, Vec<(K, String)>> {
 
 fn ok(text: &str) -> PipelineDefinition {
     parse(text).unwrap_or_else(|e| panic!("受理されること: {e:?}"))
-}
-
-fn kinds(text: &str) -> Vec<K> {
-    parse(text)
-        .unwrap_err()
-        .into_iter()
-        .map(|(k, _)| k)
-        .collect()
 }
 
 /// パイプラインの追加部分 `p` と、ジョブ `a` の追加部分 `j` を持つ定義。

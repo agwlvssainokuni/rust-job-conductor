@@ -14,21 +14,12 @@
 
 //! リトライの設定 `[job.retry]` の読み取りと検証(U1。BR1.1〜BR1.16、FR1.1〜FR1.9、FR7.1)。
 
+mod common;
+
+use common::{kinds, run};
 use conductor_core::{
     DefinitionErrorKind as K, JobDefinition, PipelineDefinition, RetryPolicy, parse_definition,
 };
-
-/// 検査の結果を `(種類, 行)` の並びで返す。受理なら空。
-fn run(text: &str) -> Vec<(K, Option<usize>)> {
-    match parse_definition(text, "t.toml", None) {
-        Ok(_) => Vec::new(),
-        Err(errs) => errs.into_iter().map(|e| (e.kind, e.line)).collect(),
-    }
-}
-
-fn kinds(text: &str) -> Vec<K> {
-    run(text).into_iter().map(|(k, _)| k).collect()
-}
 
 /// 先頭に版とパイプライン(3 行)と、ジョブ `a`(4〜6 行目)を付ける。`job_extra` は 7 行目から。
 fn job_with(job_extra: &str) -> String {

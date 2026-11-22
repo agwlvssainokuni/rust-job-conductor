@@ -14,14 +14,15 @@
 
 //! 環境変数の型と誤りの種類(U1。BR8.1)。値が表示に出ないこと、種類の網羅。
 
+mod common;
+
 use std::collections::HashSet;
 
+use common::SECRET;
 use conductor_core::{
     DefinitionErrorKind, EffectiveEntry, EnvEntry, EnvFileError, EnvFileErrorKind, EnvOrigin,
     EnvVar, summarize_errors,
 };
-
-const SECRET: &str = "s3cr3t-VALUE-do-not-print";
 
 #[test]
 fn 値を持つ型の_debug_は値を伏せる() {

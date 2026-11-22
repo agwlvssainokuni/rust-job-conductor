@@ -14,9 +14,10 @@
 
 //! `.env` の解析(U1。BR1.3〜BR1.5、BR2.1〜BR2.8、BR3.2、FR1.6、FR1.7、FR1.9)。
 
-use conductor_core::{EnvFileError, EnvFileErrorKind as K, EnvWarningKind, parse_env_file};
+mod common;
 
-const SECRET: &str = "s3cr3t-VALUE-do-not-print";
+use common::SECRET;
+use conductor_core::{EnvFileError, EnvFileErrorKind as K, EnvWarningKind, parse_env_file};
 
 fn pairs(text: &str) -> Vec<(String, String)> {
     parse_env_file(text, "t.env")

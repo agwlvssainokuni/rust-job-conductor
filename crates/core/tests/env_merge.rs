@@ -14,12 +14,13 @@
 
 //! 層の統合と自動の変数(U1。BR4.1〜BR4.4、BR5.1〜BR5.3、BR6.1、BR8.2)。
 
+mod common;
+
+use common::SECRET;
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvFileContent, EnvOrigin, LoadedEnvFiles, PipelineDefinition,
     env_file_refs, merge_env, parse_definition, parse_env_file,
 };
-
-const SECRET: &str = "s3cr3t-VALUE-do-not-print";
 
 fn def(text: &str) -> PipelineDefinition {
     parse_definition(text, "t.toml", None).unwrap_or_else(|e| panic!("{e:?}"))
