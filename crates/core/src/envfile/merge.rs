@@ -43,6 +43,8 @@ pub fn merge_env(
     items.push(("CONDUCTOR_PIPELINE", ctx.pipeline_name, EnvOrigin::Builtin));
     items.push(("CONDUCTOR_JOB_ID", ctx.job_id, EnvOrigin::Builtin));
     if let Some(run_id) = ctx.run_id {
+        // `run_id::DEFAULT_RUN_ID_ENV` とは意味が別(あちらは run ID を読む名前で `run_id_env` で変わる。
+        // こちらはジョブに渡す名前で固定)。同じ値でも、まとめない。
         items.push(("CONDUCTOR_RUN_ID", run_id, EnvOrigin::Builtin));
     }
     items.push(("CONDUCTOR_ATTEMPT", &attempt, EnvOrigin::Builtin));
