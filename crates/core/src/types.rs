@@ -78,16 +78,6 @@ pub enum Command {
     Argv(Vec<String>),
 }
 
-impl Command {
-    /// 起動するプログラムの名前(起動失敗の表示用)。取り出せないとき(空)は `None`。
-    pub fn program_name(&self) -> Option<&str> {
-        match self {
-            Command::Line(line) => line.split_whitespace().next(),
-            Command::Argv(argv) => argv.first().map(String::as_str),
-        }
-    }
-}
-
 impl From<&str> for Command {
     fn from(line: &str) -> Self {
         Command::Line(line.to_string())
@@ -625,15 +615,6 @@ mod tests {
             Command::from(String::from("echo a")),
             Command::Line("echo a".into())
         );
-    }
-
-    #[test]
-    fn プログラム名は_line_では先頭の語_argv_では先頭の要素() {
-        assert_eq!(Command::from("  echo  a b").program_name(), Some("echo"));
-        assert_eq!(Command::from("   ").program_name(), None);
-        let argv = Command::Argv(vec!["my prog".into(), "x".into()]);
-        assert_eq!(argv.program_name(), Some("my prog"));
-        assert_eq!(Command::Argv(vec![]).program_name(), None);
     }
 
     #[test]
