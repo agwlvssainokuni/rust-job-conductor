@@ -63,7 +63,7 @@ pub enum StateContext {
     JobNotStarted,
     /// ジョブのあとの失敗(ジョブは実行済み)。
     JobExecuted,
-    /// 補足なし(`reset` コマンド、`watch`)。
+    /// 補足なし(`reset` と `reset --all`)。
     Plain,
 }
 
@@ -120,7 +120,7 @@ pub enum DisplayEvent<'a> {
         job_id: &'a str,
     },
     Conversion(&'a ConversionError),
-    /// 標準出力に書けなかった(`watch` は 65、`convert` は 67 で終わる)。
+    /// 標準出力に書けなかった(`watch`・`graph`・`--dry-run` は 65、`convert` は 67 で終わる)。
     OutputFailed,
     CompletionUndetermined {
         state_path: &'a Path,

@@ -105,7 +105,7 @@ pub trait Runtime {
         definition_path: &Path,
         run_id: Option<&RunId>,
     ) -> Result<Option<PipelineState>, StateError>;
-    /// ステートを、完了のものも含めて読む(`read_state_raw`。`watch` が使う。`None` はファイルなし・長さ 0)。
+    /// ステートを、完了のものも含めて読む(`read_state_raw`。`watch` と `graph --state` が使う。`None` はファイルなし・長さ 0)。
     fn read_state_raw(
         &self,
         definition_path: &Path,

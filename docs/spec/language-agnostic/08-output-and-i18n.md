@@ -208,7 +208,7 @@ conductor: error: nonexist.toml: 定義ファイルが存在しません: 指定
 | `ReadRunId`(run ID つきで読んだ) | 同上 | ``run `conductor reset --run-id <ID>` to discard the state``(`<ID>` は、文字どおり `<ID>` という文字列) | `` `conductor reset --run-id <ID>` でステートを初期化できます `` |
 | `JobNotStarted` | 常に ` (<文>)` | `the job was not started` | `ジョブは起動していません` |
 | `JobExecuted` | 常に ` (<文>)` | `the job has already been executed` | `ジョブは実行されました` |
-| `Plain`(`reset`・`watch` の一部) | なし | | |
+| `Plain`(`reset`・`reset --all`) | なし | | |
 
 文脈の使い分け:
 

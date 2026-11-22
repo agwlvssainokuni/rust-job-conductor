@@ -140,7 +140,7 @@ pub struct CliCommand {
     pub convert_input: Option<OsString>,
     /// `convert` のときのみ。`--to` の値。
     pub convert_target: Option<TargetFormat>,
-    /// `--config <パス>`。run・pipeline・watch・reset のときのみ。
+    /// `--config <パス>`。`convert` 以外のすべて(`init` では出力先。`-` は標準出力)。
     pub config_path: Option<OsString>,
     /// `-v` / `--verbose`。run・pipeline・validate・graph のときのみ指定できる。
     pub verbose: bool,

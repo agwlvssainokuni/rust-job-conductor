@@ -20,7 +20,8 @@
 pub const EXIT_OK: i32 = 0;
 /// 定義の誤り(ファイルがない・読めない・検証の誤り・command の誤り)。
 pub const EXIT_DEFINITION: i32 = 64;
-/// ステートの誤り(読めない・壊れている・食い違い・書き込み・初期化の失敗)と、`watch` の出力の失敗。
+/// ステートの誤り(読めない・壊れている・食い違い・書き込み・初期化の失敗)と、`watch`・`graph`・
+/// `--dry-run` の標準出力の失敗、`init` の書き込みの失敗。
 pub const EXIT_STATE: i32 = 65;
 /// 拒否(順序外)。
 pub const EXIT_REJECTED: i32 = 66;
