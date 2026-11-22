@@ -78,6 +78,9 @@
 //!   制御文字をエスケープし、64 文字までに切る(NFR4.6)。
 //! - 定義に書かれたコマンド([`Command`]。文字列または文字列の配列)は、データとして扱い、
 //!   解釈も起動もしない(NFR4.5)。
+//! - `#![forbid(unsafe_code)]`。
+
+#![forbid(unsafe_code)]
 
 pub mod consistency;
 pub mod definition;
