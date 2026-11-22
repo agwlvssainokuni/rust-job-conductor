@@ -1,0 +1,34 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": [
+    "SM1",
+    "SM2",
+    "SM3",
+    "SM4",
+    "SM5",
+    "BR1.1",
+    "BR1.2",
+    "BR1.3",
+    "BR2.1",
+    "BR2.2",
+    "BR2.3",
+    "BR3.1",
+    "BR4.1"
+  ],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "crates/core/src/flow/record.rs" },
+    { "id": "SM2", "status": "OK", "target": "crates/core/src/plan/simulate.rs" },
+    { "id": "SM3", "status": "OK", "target": "crates/core/tests/plan_perf.rs" },
+    { "id": "SM4", "status": "OK", "target": "docs/spec/rust/05-execution-flow.md" },
+    { "id": "SM5", "status": "OK", "target": "aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-summary.md" },
+    { "id": "BR1.1", "status": "OK", "target": "crates/core/src/flow/record.rs" },
+    { "id": "BR1.2", "status": "OK", "target": "crates/runtime/src/lib.rs" },
+    { "id": "BR1.3", "status": "OK", "target": "crates/core/src/plan/simulate.rs" },
+    { "id": "BR2.1", "status": "OK", "target": "crates/core/tests/plan_pipeline.rs" },
+    { "id": "BR2.2", "status": "OK", "target": "aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-summary.md" },
+    { "id": "BR2.3", "status": "OK", "target": "crates/core/tests/plan_perf.rs" },
+    { "id": "BR3.1", "status": "OK", "target": "docs/spec/rust/05-execution-flow.md" },
+    { "id": "BR4.1", "status": "OK", "target": "aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-summary.md" }
+  ],
+  "reverse": []
+}
