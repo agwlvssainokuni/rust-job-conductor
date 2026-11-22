@@ -198,7 +198,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `env_file_parse.rs`(10) | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
 | `env_merge.rs`(8) | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
 | `env_types.rs`(5) | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
-| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(6)、`graph_layout_oracle.rs`(4)、`graph_perf.rs`(2) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、8,461 行)と照合、1,000 ジョブの性能(05 の 15 章)。`graph_common/mod.rs` は補助 |
+| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(8)、`graph_lane_polish.rs`(10)、`graph_layout_oracle.rs`(5)、`graph_perf.rs`(2) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定、配置を正解データ(`fixtures/graph_layout_oracle.md`、537 例と、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例)と照合、「両方の飛び越し」の例 D1〜D6 と辺の一覧に残る形、1,000 ジョブの性能(05 の 15 章)。`graph_common/mod.rs` は補助 |
 | `plan_types.rs`(3)、`plan_pipeline.rs`(9)、`plan_run.rs`(5)、`plan_assume.rs`(5)、`plan_perf.rs`(1) | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle.md` | 入力例、配置の正解データ(後者は v0.9.0 以降) |
 
@@ -237,14 +237,14 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `exit_codes.rs`(7) | 終了コードの決定(純粋な関数の全項目) |
 | `escape_table.rs`(4) | `escape_display` の入力と期待値の表(core・runtime・converter と揃える) |
 | `report_messages.rs`(35) | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
-| `graph_report.rs`(8) | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1、E2 と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
+| `graph_report.rs`(12) | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1、E2、S1、D1 と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
 | `plan_report.rs`(7) | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs`(7)、`init_types.rs`(3) | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)、`InitOptions`・`InitTarget` |
 | `flow_env.rs`(10)、`flow_graph.rs`(8)、`flow_dry_run.rs`(10)、`flow_init.rs`(9) | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |
 | `flow_run.rs`(51)、`flow_pipeline.rs`(31)、`flow_retry.rs`(18)、`flow_run_id.rs`(24)、`flow_aux.rs`(33)、`flow_validate.rs`(12) | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
 | `binary_basic.rs`(19)、`binary_run_id.rs`(5) | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
-| `binary_env.rs`(5)、`binary_graph.rs`(4)、`binary_dry_run.rs`(4)、`binary_init.rs`(5) | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
-| `docs_env.rs`(2)、`docs_graph.rs`(2)、`docs_dry_run.rs`(2)、`docs_init.rs`(2) | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
+| `binary_env.rs`(5)、`binary_graph.rs`(6)、`binary_dry_run.rs`(4)、`binary_init.rs`(5) | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
+| `docs_env.rs`(2)、`docs_graph.rs`(4)、`docs_dry_run.rs`(2)、`docs_init.rs`(2) | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
 | `binary_signal.rs`(2、UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
 | `signals_real.rs`(1)、`signals_order.rs`(1)(UNIX) | 本番のシグナル監視(最初の番号が残る、2 回目の登録は `AlreadyRegistered`、時間を空けた INT のあとの HUP) |
 | `panic_hook.rs`(3) | パニックのフック |
