@@ -310,7 +310,8 @@ impl JobState {
 /// 定義ファイル 1 つに対する、実行状態の全体(契約 C1。保持は conductor-runtime)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PipelineState {
-    /// 仮。確定は conductor-runtime の Functional Design。
+    /// 定義ファイルのパス(`definition_path` と同じ文字列)。ステートファイルの必須のキーで、
+    /// 照合には使わない(06 章)。
     pub definition_key: String,
     pub pipeline_name: String,
     pub definition_path: String,
