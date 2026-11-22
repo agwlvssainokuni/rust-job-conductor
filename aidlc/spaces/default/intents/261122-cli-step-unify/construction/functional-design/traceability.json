@@ -1,0 +1,13 @@
+{
+  "stage": "functional-design",
+  "upstream_ids": ["SM1", "SM2", "SM3", "SM4"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "BR1.1, BR1.2" },
+    { "id": "SM2", "status": "OK", "target": "BR2.1" },
+    { "id": "SM3", "status": "OK", "target": "BR3.1" },
+    { "id": "SM4", "status": "OK", "target": "BR4.1" }
+  ],
+  "reverse": [
+    { "id": "BR1.2", "status": "N/A", "target": "functional-spec.md §2(run と pipeline で削除の時機が違うことを、コードで確かめた)" }
+  ]
+}
