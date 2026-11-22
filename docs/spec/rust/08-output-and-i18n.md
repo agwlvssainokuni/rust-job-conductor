@@ -230,9 +230,6 @@ conductor: error: c.toml.state: ステートファイルが壊れています: T
 |------|------|------|--------|
 | `REJECTED` | `conductor: error: job '<ID>': <REJECTED>: <理由>` | `cannot run this job now` | `このジョブは、いま実行できません` |
 | 拒否の理由 `OutOfOrder` | | `earlier jobs have not finished (out of order)` | `前のジョブが終わっていません(順序外)` |
-| 拒否の理由 `SkipTarget` | | `skip target` | `スキップの対象です` |
-| 拒否の理由 `AfterEnd` | | `after @end` | `@end より後ろです` |
-| 拒否の理由 `AlreadyExecuted` | | `already executed` | `実行済みです` |
 | `CANNOT_START` | `conductor: error: job '<ID>': <文> '<コマンド名>'` | `cannot start command` | `コマンドを起動できません` |
 | `SUCCESS_CODE_NOT_LISTED` | `conductor: error: job '<ID>': <文>` | `exit code 0 is not listed in success_exit_codes` | `終了コード 0 は、success_exit_codes に含まれていません` |
 | `OUTPUT_FAILED` | `conductor: error: <文>`(場所なし) | `cannot write to standard output` | `標準出力に書き込めません` |

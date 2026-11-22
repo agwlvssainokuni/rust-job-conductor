@@ -182,7 +182,7 @@ return low
 
 入力: ステート `S`、ジョブID、`SkipCause`(スキップの理由)、定義。
 
-- 理由が `AlreadyExecuted` / `OutOfOrder` → 何も変えない(複製を返す)。
+- 理由が `AlreadyExecuted` → 何も変えない(複製を返す)。
 - `SkipTarget` → そのジョブを `skipped(byTransition)`、`AfterEnd` → `skipped(byEnd)` にし(`exit_code` 無し)、`AfterEnd` なら `end_reached = true`。ジョブが `S` に無ければ、更新せず複製を返す。
 - そのあと、`S` にエラーのジョブが 1 つでもあれば、`resume_job_id` と `completed` は**変えない**(エラーの再開位置を守る)。無ければ:
   - `first_pending` = 定義の順で最初の `pending`(無ければ無し)
