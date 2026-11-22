@@ -83,9 +83,9 @@ pub(crate) fn record_skip(
     job_id: &str,
     reason: DecisionReason,
 ) -> Result<(PipelineState, bool), i32> {
-    let definition = &session.definition;
-    let path = &session.definition_path;
-    let run_id = session.run_id.as_ref();
+    let definition = &session.checked.definition;
+    let path = &session.checked.definition_path;
+    let run_id = session.checked.run_id.as_ref();
     let base = base
         .cloned()
         .unwrap_or_else(|| initial_state(definition, path, run_id));
@@ -111,8 +111,8 @@ pub(crate) fn record_skip(
 /// 4. `report_execution` で表示する。
 /// 5. `apply_outcome` で記録し、`Durable` で書く(文脈は、起動したかで決まる)。
 ///
-/// `base` は値で受ける(`run` は `session.state.clone()`、`pipeline` は `current.take()` を渡す)。
-/// `command` は、定義の検査で分割したそのジョブのコマンド(`session.commands` の同じ位置)。
+/// `base` は値で受ける(`run` は `session.checked.state.clone()`、`pipeline` は `current.take()` を渡す)。
+/// `command` は、定義の検査で分割したそのジョブのコマンド(`session.checked.commands` の同じ位置)。
 /// 書き込みの失敗は、終了コードを `Err` で返す。
 pub(crate) fn run_step(
     ctx: &mut Ctx<'_>,
@@ -122,9 +122,9 @@ pub(crate) fn run_step(
     command: &CommandLine,
     mode: RunMode,
 ) -> Result<StepResult, i32> {
-    let definition = &session.definition;
-    let path = &session.definition_path;
-    let run_id = session.run_id.as_ref();
+    let definition = &session.checked.definition;
+    let path = &session.checked.definition_path;
+    let run_id = session.checked.run_id.as_ref();
     let base = match base {
         Some(state) => state,
         None => {
@@ -168,10 +168,11 @@ pub(crate) fn remove_if_requested(
     session: &Session,
     context: StateContext,
 ) -> Result<(), i32> {
-    if !session.remove_on_complete {
+    let checked = &session.checked;
+    if !checked.remove_on_complete {
         return Ok(());
     }
-    ctx.reset(&session.definition_path, session.run_id.as_ref(), context)
+    ctx.reset(&checked.definition_path, checked.run_id.as_ref(), context)
 }
 
 /// ジョブを実行したあとの表示(BR2.6、BR6.3、BR6.4)。`-v` の結果・遷移・中断と、

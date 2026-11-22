@@ -59,18 +59,6 @@ pub(crate) struct Checked {
     pub definition: PipelineDefinition,
     /// 各ジョブの `command` を分割したもの(ジョブと同じ並び)。
     pub commands: Vec<CommandLine>,
-    pub run_id: Option<RunId>,
-    pub state: Option<PipelineState>,
-    pub remove_on_complete: bool,
-    pub env_files: LoadedEnvFiles,
-}
-
-/// 実行の前の検査を終えた、1 回の実行の材料。
-pub(crate) struct Session {
-    pub definition_path: PathBuf,
-    pub definition: PipelineDefinition,
-    /// 各ジョブの `command` を分割したもの(ジョブと同じ並び)。
-    pub commands: Vec<CommandLine>,
     /// この実行の run ID(`None` は、run ID なし)。ステートのパスと、`run_id` の照合に使う。
     pub run_id: Option<RunId>,
     /// ステート(`None` は空。完了のまま残ったものも空として返る)。
@@ -78,26 +66,16 @@ pub(crate) struct Session {
     /// 実効の `remove_on_complete`(FR2.3): `--remove-on-complete` があれば `true`、なければ
     /// 定義の `[pipeline].remove_on_complete`。環境変数は見ない(FR2.6)。
     pub remove_on_complete: bool,
-    /// 中断の合図(シグナルの監視が書き、`run_job` が読む)。
-    pub signal: Arc<InterruptSignal>,
     /// 読み取った `.env`(この呼び出しの中だけで持つ。ステートには書かない。BR6.3、BR8.3)。
     pub env_files: LoadedEnvFiles,
 }
 
-impl Session {
-    /// 検査を終えた材料と、中断の合図から作る。
-    fn new(checked: Checked, signal: Arc<InterruptSignal>) -> Self {
-        Self {
-            definition_path: checked.definition_path,
-            definition: checked.definition,
-            commands: checked.commands,
-            run_id: checked.run_id,
-            state: checked.state,
-            remove_on_complete: checked.remove_on_complete,
-            signal,
-            env_files: checked.env_files,
-        }
-    }
+/// 実行の前の検査を終えた、1 回の実行の材料。
+pub(crate) struct Session {
+    /// 実行の前の検査を終えた材料。
+    pub checked: Checked,
+    /// 中断の合図(シグナルの監視が書き、`run_job` が読む)。
+    pub signal: Arc<InterruptSignal>,
 }
 
 /// `run` と `pipeline` の対象(本番と `--dry-run` で共通)。
@@ -164,7 +142,7 @@ impl Ctx<'_> {
         let checked = self.check_definition(cmd, None)?;
         let index = self.require_job(&checked.definition, job_id)?;
         let checked = self.check_run_inputs(cmd, checked, Some(job_id))?;
-        Ok((Session::new(checked, signal), index))
+        Ok((Session { checked, signal }, index))
     }
 
     /// `pipeline <name>` の実行の前の検査(BR2.1、BR2.2、BR3.1)。順序は [`Ctx::prepare_run`] から
@@ -177,7 +155,7 @@ impl Ctx<'_> {
         let signal = self.start_signals()?;
         let checked = self.check_definition(cmd, Some(name))?;
         let checked = self.check_run_inputs(cmd, checked, None)?;
-        Ok(Session::new(checked, signal))
+        Ok(Session { checked, signal })
     }
 
     /// 本番の検査の、シグナルの準備を除いた部分(定義の検査、ジョブの存在、run ID の決定、`.env` の

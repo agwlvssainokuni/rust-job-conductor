@@ -44,14 +44,15 @@ pub(crate) fn run_job_with_retry(
     loop {
         // 試行ごとに、足す環境を作り直す(`CONDUCTOR_ATTEMPT` は、この呼び出しのリトライの回数 + 1。
         // 再開すると 1 に戻る。BR5.2、FR1.10)。
+        let checked = &session.checked;
         let env = merge_env(
-            &session.definition,
+            &checked.definition,
             job,
-            &session.env_files,
+            &checked.env_files,
             &EnvContext {
-                pipeline_name: &session.definition.name,
+                pipeline_name: &checked.definition.name,
                 job_id: &job.id,
-                run_id: session.run_id.as_ref().map(|r| r.as_str()),
+                run_id: checked.run_id.as_ref().map(|r| r.as_str()),
                 attempt: retries_done + 1,
             },
         );

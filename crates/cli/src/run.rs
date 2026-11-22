@@ -43,19 +43,24 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(prepared) => prepared,
         Err(code) => return code,
     };
-    let definition = &session.definition;
+    let definition = &session.checked.definition;
 
-    match decide(job_id, definition, session.state.as_ref()) {
+    match decide(job_id, definition, session.checked.state.as_ref()) {
         Decision::Reject(reason) => {
             ctx.show(&DisplayEvent::Rejected { job_id, reason });
             EXIT_REJECTED
         }
         Decision::Skip(reason) => {
-            let (recorded, changed) =
-                match record_skip(ctx, &session, session.state.as_ref(), job_id, reason) {
-                    Ok(result) => result,
-                    Err(code) => return code,
-                };
+            let (recorded, changed) = match record_skip(
+                ctx,
+                &session,
+                session.checked.state.as_ref(),
+                job_id,
+                reason,
+            ) {
+                Ok(result) => result,
+                Err(code) => return code,
+            };
             // run は、記録が変わって完了したときだけ、表示の前に消す(pipeline と違う。BR1.2)。
             if changed
                 && recorded.completed
@@ -73,9 +78,9 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             let step = match run_step(
                 ctx,
                 &session,
-                session.state.clone(),
+                session.checked.state.clone(),
                 job,
-                &session.commands[index],
+                &session.checked.commands[index],
                 RunMode::Individual,
             ) {
                 Ok(step) => step,
