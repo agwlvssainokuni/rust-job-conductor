@@ -106,13 +106,14 @@ pub(crate) fn record_skip(
 /// ジョブを 1 つ実行して記録する(BR1.1)。順序は固定:
 ///
 /// 1. `base` が空なら、初期ステートを `Fast` で書く(文脈は「起動前」)。
-/// 2. `run_job_with_retry` で実行する(リトライを含む)。
+/// 2. `run_job_with_retry` で、`command` を渡して実行する(リトライを含む)。
 /// 3. `classify_and_decide` で分類し、次の動きを決める(`mode` は実行方式)。
 /// 4. `report_execution` で表示する。
 /// 5. `apply_outcome` で記録し、`Durable` で書く(文脈は、起動したかで決まる)。
 ///
 /// `base` は値で受ける(`run` は `session.checked.state.clone()`、`pipeline` は `current.take()` を渡す)。
 /// `command` は、定義の検査で分割したそのジョブのコマンド(`session.checked.commands` の同じ位置)。
+/// 起動にも表示にも、これを使う(分け直さない。BR2.2)。
 /// 書き込みの失敗は、終了コードを `Err` で返す。
 pub(crate) fn run_step(
     ctx: &mut Ctx<'_>,
@@ -140,7 +141,7 @@ pub(crate) fn run_step(
         }
     };
 
-    let execution = run_job_with_retry(ctx, session, job);
+    let execution = run_job_with_retry(ctx, session, job, command);
     let (outcome, next) = classify_and_decide(job, &execution, &base.job_states, definition, mode);
     report_execution(ctx, job, command, &execution, &outcome, &next);
 

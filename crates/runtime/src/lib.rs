@@ -23,7 +23,7 @@
 //!
 //! | 関数 | 役割 | 入出力 | 失敗 |
 //! |------|------|--------|------|
-//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `StartFailed` の値) |
+//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `StartFailed` の値) |
 //! | [`load_env_files`] | `env_file` の `.env` を読む(U1。BR1.7、BR3.x、BR6.4) | 定義ファイルのパス、`env_file` の記述 → `LoadedEnvFiles` | `EnvFileError` の並び(複数) |
 //! | [`wait_for`] | リトライの前の待機。中断の合図を短い間隔で確かめる(BR2.13、NFR7) | 秒数、[`InterruptSignal`] → [`WaitOutcome`] | なし |
 //! | [`check_command`] | command を、起動せずに検査する(BR1.1) | [`Command`](文字列または配列) → [`CommandLine`] | [`CommandError`] |

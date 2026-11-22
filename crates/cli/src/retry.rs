@@ -23,13 +23,15 @@ use conductor_core::{
     EnvContext, ExecutionResult, JobDefinition, JobExecution, RetryDecision, merge_env,
     retry_decision,
 };
-use conductor_runtime::{InterruptSignal, WaitOutcome};
+use conductor_runtime::{CommandLine, InterruptSignal, WaitOutcome};
 
 use crate::ctx::{Ctx, Session};
 use crate::report::DisplayEvent;
 
 /// ジョブを実行し、リトライの対象なら、知らせて、待って、実行し直す。最後の実行結果を返す。
 ///
+/// `line` は、実行の前の検査で分割したそのジョブのコマンド。リトライの何回目でも、同じものを渡す
+/// (分け直さない。BR2.2)。
 /// - リトライの設定がない、または対象外の結果なら、1 回実行して、その結果を返す(従来どおり。BR2.9)。
 /// - 待機中に中断の合図が立てば、待機を打ち切り、「起動していない、中断された」実行結果
 ///   (`NotStarted`)を返す。
@@ -39,6 +41,7 @@ pub(crate) fn run_job_with_retry(
     ctx: &mut Ctx<'_>,
     session: &Session,
     job: &JobDefinition,
+    line: &CommandLine,
 ) -> JobExecution {
     let signal: &InterruptSignal = &session.signal;
     let mut retries_done: u32 = 0;
@@ -58,7 +61,7 @@ pub(crate) fn run_job_with_retry(
                 attempt: retries_done + 1,
             },
         );
-        let execution = ctx.runtime.run_job(job, &env.additions(), signal);
+        let execution = ctx.runtime.run_job(job, line, &env.additions(), signal);
         let RetryDecision::Retry { wait_secs } =
             retry_decision(job, &execution, retries_done, last_wait_secs)
         else {

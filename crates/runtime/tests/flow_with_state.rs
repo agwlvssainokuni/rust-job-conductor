@@ -33,9 +33,9 @@ use conductor_core::{
 };
 use conductor_runtime::{
     ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateError, StateErrorKind,
-    apply_outcome, apply_skip, check_consistency, initial_state as initial_state_with,
-    read_state as read_state_with, reset_state as reset_state_with, run_job,
-    write_state as write_state_with,
+    apply_outcome, apply_skip, check_command, check_consistency,
+    initial_state as initial_state_with, read_state as read_state_with,
+    reset_state as reset_state_with, run_job, write_state as write_state_with,
 };
 
 // run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)。
@@ -220,7 +220,8 @@ fn run_step(
             initial
         }
     };
-    let execution = run_job(job, &[], signal);
+    let line = check_command(&job.command).expect("分けられる");
+    let execution = run_job(job, &line, &[], signal);
     if stop_before_record {
         return Ok(None);
     }

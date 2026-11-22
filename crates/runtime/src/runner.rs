@@ -25,8 +25,7 @@ use std::time::Duration;
 use conductor_core::{ExecutionResult, JobDefinition, JobExecution};
 
 use crate::platform;
-use crate::split::command_line;
-use crate::types::InterruptSignal;
+use crate::types::{CommandLine, InterruptSignal};
 
 /// 待ちの間隔の最初と最大(ミリ秒)。
 const FIRST_INTERVAL_MS: u64 = 1;
@@ -84,8 +83,11 @@ pub(crate) fn wait_loop<C: Waitable>(
 
 /// ジョブを、シェルを介さずに起動し、終了を待つ(契約 C3 の `run_job`。W1)。
 ///
-/// - command を分ける(BR1.1。配列は、要素をそのまま引数にする)。分けられないとき(Cli が、実行の前に検査するため、通常は来ない)は、
-///   `StartFailed`(防御)。
+/// - 分割済みのコマンド `line`(Cli が、実行の前の検査で `check_command` で作ったもの)で起動する。
+///   ここでは command を分け直さない(BR2.1。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した)。
+///   `job` は、結果の `job_id` と `command` のために使う。
+/// - `line.program` が空または空白だけなら、起動せず `StartFailed`(防御。BR2.3)。この確認は、
+///   起動前の合図の確認より先に行う。
 /// - 合図が、起動の前に立っていれば、起動せず、`NotStarted`(BR1.6)。
 /// - 起動する(UNIX 系は新しいプロセスグループ)。作業ディレクトリ、環境変数、標準入出力は引き継ぐ。
 ///   `env` の名前と値を、並びの順に足す(引き継いだ環境は残し、同じ名前は上書きする。同じ名前が
@@ -98,13 +100,13 @@ pub(crate) fn wait_loop<C: Waitable>(
 /// 失敗は、すべて戻り値(`JobExecution`)で返し、パニックしない(NFR4.7)。
 pub fn run_job(
     job: &JobDefinition,
+    line: &CommandLine,
     env: &[(&str, &str)],
     signal: &InterruptSignal,
 ) -> JobExecution {
-    let line = match command_line(&job.command) {
-        Ok(line) => line,
-        Err(_) => return JobExecution::start_failed(job),
-    };
+    if line.program.trim().is_empty() {
+        return JobExecution::start_failed(job);
+    }
 
     if let Some(number) = signal.signal_number() {
         return JobExecution::not_started(job, number);
@@ -244,29 +246,35 @@ mod tests {
         }
     }
 
+    fn line(job: &JobDefinition) -> CommandLine {
+        crate::split::check_command(&job.command).expect("分けられる")
+    }
+
     #[test]
-    fn 分けられない_command_は起動失敗() {
-        let e = run_job(&job("echo 'x"), &[], &InterruptSignal::new());
-        assert_eq!(e.result, ExecutionResult::StartFailed);
-        let e = run_job(&job("  "), &[], &InterruptSignal::new());
-        assert_eq!(e.result, ExecutionResult::StartFailed);
+    fn 空の_program_は起動失敗() {
+        for program in ["", "  "] {
+            let empty = CommandLine {
+                program: program.into(),
+                args: vec![],
+            };
+            let e = run_job(&job("x"), &empty, &[], &InterruptSignal::new());
+            assert_eq!(e.result, ExecutionResult::StartFailed);
+        }
     }
 
     #[test]
     fn 起動前の合図は起動しない() {
         let s = InterruptSignal::new();
         s.raise(2);
-        let e = run_job(&job("definitely-not-run"), &[], &s);
+        let j = job("definitely-not-run");
+        let e = run_job(&j, &line(&j), &[], &s);
         assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
     }
 
     #[test]
     fn 存在しないコマンドは起動失敗() {
-        let e = run_job(
-            &job("conductor-no-such-command-zzz --flag"),
-            &[],
-            &InterruptSignal::new(),
-        );
+        let j = job("conductor-no-such-command-zzz --flag");
+        let e = run_job(&j, &line(&j), &[], &InterruptSignal::new());
         assert_eq!(e.result, ExecutionResult::StartFailed);
     }
 }

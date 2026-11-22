@@ -166,23 +166,28 @@ fn 大きな入力の_command_でも分けられる() {
 #[test]
 fn 起動できないコマンドや範囲外の番号でパニックしない() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    // 分けられない command は、`run_job` に渡せない。誤りを値で返すことを、`check_command` で確かめる。
+    for command in [String::new(), "'".to_string(), "''".to_string()] {
+        assert!(check_command(&command.into()).is_err());
+    }
     let cases = [
-        String::new(),
-        "'".to_string(),
-        "''".to_string(),
         "conductor-no-such-command-zzz".to_string(),
         // ディレクトリを実行ファイルとして指定する。
         format!("'{}'", dir.path().display()),
         "/".to_string(),
     ];
     for command in cases {
-        let e = run_job(&common::job("j", command), &[], &InterruptSignal::new());
+        let j = common::job("j", command);
+        let line = check_command(&j.command).expect("分けられる");
+        let e = run_job(&j, &line, &[], &InterruptSignal::new());
         assert_eq!(e.result, ExecutionResult::StartFailed, "{e:?}");
     }
     for number in [i32::MAX, i32::MIN, 0, -1, 1_000_000] {
         let s = InterruptSignal::new();
         s.raise(number);
-        let e = run_job(&common::job("j", "anything"), &[], &s);
+        let j = common::job("j", "anything");
+        let line = check_command(&j.command).expect("分けられる");
+        let e = run_job(&j, &line, &[], &s);
         assert!(matches!(e.result, ExecutionResult::NotStarted { .. }));
     }
 }

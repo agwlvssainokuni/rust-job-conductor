@@ -90,10 +90,11 @@ pub trait Runtime {
         definition_path: &Path,
         refs: &[String],
     ) -> Result<LoadedEnvFiles, Vec<EnvFileError>>;
-    /// ジョブを、`env` を足した環境で起動し、終了を待つ(`run_job`)。
+    /// ジョブを、分割済みのコマンド `line` で、`env` を足した環境で起動し、終了を待つ(`run_job`。BR2.2)。
     fn run_job(
         &self,
         job: &JobDefinition,
+        line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution;
@@ -174,10 +175,11 @@ impl Runtime for SystemRuntime {
     fn run_job(
         &self,
         job: &JobDefinition,
+        line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        conductor_runtime::run_job(job, env, signal)
+        conductor_runtime::run_job(job, line, env, signal)
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

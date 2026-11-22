@@ -18,12 +18,16 @@ mod common;
 
 use common::*;
 use conductor_core::{Command, ExecutionResult};
-use conductor_runtime::{InterruptSignal, run_job};
+use conductor_runtime::{CommandLine, InterruptSignal, check_command, run_job};
 
 fn run(command: impl Into<Command> + Send + 'static) -> conductor_core::JobExecution {
     run_with_limit(
         || {},
-        move || run_job(&job("j", command), &[], &InterruptSignal::new()),
+        move || {
+            let j = job("j", command);
+            let line = check_command(&j.command).expect("分けられる");
+            run_job(&j, &line, &[], &InterruptSignal::new())
+        },
     )
 }
 
@@ -94,7 +98,18 @@ fn 配列の_command_の要素は分割も展開もされずにそのまま渡�
 #[test]
 fn 配列の_command_の先頭が空なら起動失敗() {
     for argv in [vec![String::new()], vec!["  ".into(), "x".into()], vec![]] {
-        let e = run(Command::Argv(argv));
+        // `check_command` は誤りを返すので、分割済みのコマンドを直接作る(先頭を `program`、
+        // 無ければ空、残りを `args`)。`run_job` は、空の `program` を起動失敗にする。
+        let mut iter = argv.clone().into_iter();
+        let line = CommandLine {
+            program: iter.next().unwrap_or_default(),
+            args: iter.collect(),
+        };
+        let j = job("j", Command::Argv(argv));
+        let e = run_with_limit(
+            || {},
+            move || run_job(&j, &line, &[], &InterruptSignal::new()),
+        );
         assert_eq!(e.result, ExecutionResult::StartFailed);
     }
 }
@@ -186,7 +201,9 @@ fn 起動前の合図が立っていれば起動しない() {
         move || {
             let signal = InterruptSignal::new();
             signal.raise(2);
-            run_job(&job("j", command), &[], &signal)
+            let j = job("j", command);
+            let line = check_command(&j.command).expect("分けられる");
+            run_job(&j, &line, &[], &signal)
         },
     );
     assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
@@ -228,7 +245,9 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
                 // 転送されない番号(Windows では、何も送らない)。ジョブは自分で終わる。
                 s.raise(10);
             });
-            let e = run_job(&job("j", command), &[], &signal);
+            let j = job("j", command);
+            let line = check_command(&j.command).expect("分けられる");
+            let e = run_job(&j, &line, &[], &signal);
             let _ = t.join();
             e
         },

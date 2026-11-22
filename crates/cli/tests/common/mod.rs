@@ -334,6 +334,7 @@ impl Runtime for ScriptedRuntime {
     fn run_job(
         &self,
         job: &JobDefinition,
+        _line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
@@ -733,6 +734,7 @@ impl Runtime for MemRuntime {
     fn run_job(
         &self,
         job: &JobDefinition,
+        _line: &CommandLine,
         _env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
