@@ -82,3 +82,20 @@ fn 幅の広い交差の最悪の形は_1000_ジョブでも_1秒以内() {
     }
     assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
 }
+
+#[test]
+fn 同じ行き先が離れて重なる形は_レーンの図になり_1000_ジョブでも_1秒以内() {
+    let ids = ids();
+    let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+    // 前半の各ジョブ i が、j(N/2 + i % 250) へ飛ぶ。250 個の行き先を、250 ジョブ離れた 2 本の線が共有し、
+    // 線の幅が広いまま、同じ行き先の寄せが続く(BR1.4)。
+    let transitions: Vec<_> = (0..N / 2)
+        .map(|i| (refs[i], Success, Some(refs[N / 2 + i % 250])))
+        .collect();
+    let (layout, elapsed) = timed(&definition(&refs, &transitions));
+    match layout {
+        GraphLayout::Lanes(l) => assert!(l.rows.len() > N),
+        GraphLayout::EdgeList => panic!("同じ行き先が重なる形は、レーンの図になる"),
+    }
+    assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
+}

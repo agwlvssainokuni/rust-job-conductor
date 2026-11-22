@@ -148,15 +148,16 @@ fn 辺の一覧に残る形_交差と離れた別のジョブの分岐() {
 }
 
 #[test]
-fn 辺の一覧に残る形_交差と離れた別のジョブの同じ行き先() {
-    // g→i と h→i が同じ行き先(合流)。
+fn 交差と離れた別のジョブの同じ行き先は_レーンの図になる() {
+    // g→i と f→i が同じ行き先(合流)。通常の飛び越しだけなので、図にする(BR1.1)。
     let transitions: Vec<Spec<'_>> = vec![
         ("a", Success, Some("d")),
         ("b", Success, Some("e")),
         ("f", Success, Some("i")),
         ("g", Success, Some("i")),
     ];
-    assert_eq!(lanes(10, &transitions), None);
+    let text = lanes(10, &transitions).expect("通常の飛び越しだけのグラフは、図になる");
+    assert!(text.ends_with("o @end\n"), "{text}");
 }
 
 #[test]

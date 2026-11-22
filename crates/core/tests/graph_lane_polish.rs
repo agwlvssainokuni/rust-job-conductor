@@ -186,8 +186,24 @@ fn 辺の一覧に残る形_分岐の線へ後のジョブが同じ行き先で�
 }
 
 #[test]
-fn 辺の一覧に残る形_同じ行き先を含んでも交差する() {
-    // a→e と c→e は同じ行き先で、b→f が a→e の線の行き先を越えるため、交差する(範囲の外。BR2.1)。
+fn 同じ行き先を含んで交差する形は_レーンの図になる() {
+    // a→e と c→e は同じ行き先で、b→f が a→e の線の行き先を越えて交差する。通常の飛び越しだけなので図にする(BR1.1)。
+    let text = lanes(
+        7,
+        &[
+            ("a", Success, Some("e")),
+            ("b", Success, Some("f")),
+            ("c", Success, Some("e")),
+        ],
+    )
+    .expect("通常の飛び越しだけのグラフは、レーンの図になる");
+    assert!(text.starts_with("*   a\n|\\\n* \\   b\n"), "{text}");
+    assert!(text.ends_with("o @end\n"), "{text}");
+}
+
+#[test]
+fn 辺の一覧に残る形_交差と同じ行き先に_両方の飛び越しが混ざる() {
+    // 交差と同じ行き先に、「両方の飛び越し」(d が成功も警告も f へ)が加わると、辺の一覧のまま(BR2.1)。
     assert_eq!(
         lanes(
             7,
@@ -195,6 +211,8 @@ fn 辺の一覧に残る形_同じ行き先を含んでも交差する() {
                 ("a", Success, Some("e")),
                 ("b", Success, Some("f")),
                 ("c", Success, Some("e")),
+                ("d", Success, Some("f")),
+                ("d", Warning, Some("f")),
             ]
         ),
         None

@@ -115,13 +115,26 @@ fn 対応する形_交差する飛び越し() {
 }
 
 #[test]
-fn 対応しない形_交差に同じ行き先が混ざる() {
-    // a→e、b→f は交差し、c→e が同じ行き先なので、範囲の外(辺の一覧。BR2.1)。
+fn 対応する形_交差に同じ行き先が混ざる() {
+    // a→e、b→f は交差し、c→e が同じ行き先。通常の飛び越しだけなので、レーンの図で描く(BR1.1)。
     let ids = ["a", "b", "c", "d", "e", "f", "g"];
     let transitions = [
         ("a", Success, Some("e")),
         ("b", Success, Some("f")),
         ("c", Success, Some("e")),
+    ];
+    assert!(drawable(&ids, &transitions));
+}
+
+#[test]
+fn 対応しない形_交差に同じ行き先が混ざり_両方の飛び越しがある() {
+    // 同じ形に、「両方の飛び越し」(d が成功も警告も e へ)が加わると、範囲の外(辺の一覧。BR2.1)。
+    let ids = ["a", "b", "c", "d", "e", "f", "g"];
+    let transitions = [
+        ("a", Success, Some("e")),
+        ("b", Success, Some("f")),
+        ("d", Success, Some("f")),
+        ("d", Warning, Some("f")),
     ];
     assert!(!drawable(&ids, &transitions));
 }
