@@ -22,10 +22,9 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use conductor_core::TransitionTarget;
-use conductor_core::graph::{EdgeKind, EdgeTarget, FlowGraph};
+use conductor_core::graph::{EdgeTarget, FlowGraph};
 
-use super::graph_text::state_symbol;
-use super::messages::{GRAPH_KIND_BOTH, GRAPH_KIND_SUCCESS, GRAPH_KIND_WARNING};
+use super::graph_text::{is_main_edge, kind_label, state_symbol};
 use crate::types::Language;
 
 /// ラベルの中の文字を、Mermaid の実体の記法にする(BR5.4)。`#` は、最初に置き換える
@@ -83,14 +82,10 @@ pub fn render_mermaid(lang: Language, graph: &FlowGraph) -> String {
         };
         let Some(to) = to else { continue };
         // 主線の辺(次のジョブへ、成功と警告の両方)は、ラベルなし(BR5.3)。
-        if edge.kinds.len() == 2 && edge.skipped_jobs.is_empty() {
+        if is_main_edge(edge) {
             let _ = writeln!(out, "  {from} --> {to}");
         } else {
-            let label = match edge.kinds.as_slice() {
-                [EdgeKind::Success] => GRAPH_KIND_SUCCESS.get(lang),
-                [EdgeKind::Warning] => GRAPH_KIND_WARNING.get(lang),
-                _ => GRAPH_KIND_BOTH.get(lang),
-            };
+            let label = kind_label(lang, &edge.kinds);
             let _ = writeln!(out, "  {from} -->|\"{label}\"| {to}");
         }
     }

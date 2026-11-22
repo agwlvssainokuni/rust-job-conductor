@@ -74,12 +74,18 @@ fn command_text(command: &Command) -> String {
     }
 }
 
-fn kind_label(lang: Language, kinds: &[EdgeKind]) -> &'static str {
+/// 辺の種類のラベル(成功だけ、警告だけ、両方)。text と Mermaid が使う。
+pub(crate) fn kind_label(lang: Language, kinds: &[EdgeKind]) -> &'static str {
     match kinds {
         [EdgeKind::Success] => GRAPH_KIND_SUCCESS.get(lang),
         [EdgeKind::Warning] => GRAPH_KIND_WARNING.get(lang),
         _ => GRAPH_KIND_BOTH.get(lang),
     }
+}
+
+/// 主線の辺(次のジョブへ、成功と警告の両方)か(BR3.2、BR5.3)。text と Mermaid が使う。
+pub(crate) fn is_main_edge(edge: &FlowEdge) -> bool {
+    edge.kinds.len() == 2 && edge.skipped_jobs.is_empty()
 }
 
 /// 行き先の表示(ジョブ ID はエスケープ。終点は `@end`)。
@@ -249,8 +255,7 @@ fn render_edge_list(
             target_text(&edge.to)
         );
         // 主線の辺(次のジョブへ、成功と警告の両方)以外は、種類を添える。
-        let is_main = edge.kinds.len() == 2 && edge.skipped_jobs.is_empty();
-        if !is_main {
+        if !is_main_edge(edge) {
             line.push_str(&format!(" ({})", kind_label(lang, &edge.kinds)));
         }
         push_line(&mut out, &line);
