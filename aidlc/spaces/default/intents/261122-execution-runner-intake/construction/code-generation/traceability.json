@@ -1,0 +1,37 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": [
+    "SM1", "SM2", "SM3", "SM4", "SM5",
+    "BR1.1", "BR1.2", "BR1.3", "BR1.4", "BR1.5",
+    "BR2.1", "BR2.2", "BR2.3", "BR2.4",
+    "BR3.1", "BR3.2", "BR3.3", "BR3.4", "BR3.5", "BR3.6",
+    "BR4.1", "BR4.2", "BR4.3", "BR4.4"
+  ],
+  "coverage": [
+    {"id": "SM1", "status": "OK", "target": "crates/core/src/types.rs"},
+    {"id": "SM2", "status": "OK", "target": "crates/runtime/src/runner.rs"},
+    {"id": "SM3", "status": "OK", "target": "crates/core/src/definition/intake.rs"},
+    {"id": "SM4", "status": "OK", "target": "crates/cli/tests/binary_basic.rs"},
+    {"id": "SM5", "status": "OK", "target": "aidlc/spaces/default/intents/261122-execution-runner-intake/construction/code-generation/code-summary.md"},
+    {"id": "BR1.1", "status": "OK", "target": "crates/core/src/types.rs"},
+    {"id": "BR1.2", "status": "OK", "target": "crates/cli/tests/common/mod.rs"},
+    {"id": "BR1.3", "status": "OK", "target": "crates/core/src/flow/classify.rs"},
+    {"id": "BR1.4", "status": "OK", "target": "crates/core/src/flow/record.rs"},
+    {"id": "BR1.5", "status": "OK", "target": "docs/spec/rust/07-process-and-signals.md"},
+    {"id": "BR2.1", "status": "OK", "target": "crates/runtime/src/runner.rs"},
+    {"id": "BR2.2", "status": "OK", "target": "crates/cli/src/retry.rs"},
+    {"id": "BR2.3", "status": "OK", "target": "crates/runtime/tests/runner_basic.rs"},
+    {"id": "BR2.4", "status": "OK", "target": "docs/spec/rust/05-execution-flow.md"},
+    {"id": "BR3.1", "status": "OK", "target": "crates/core/src/definition/intake.rs"},
+    {"id": "BR3.2", "status": "OK", "target": "crates/core/src/definition/intake.rs"},
+    {"id": "BR3.3", "status": "OK", "target": "crates/converter/src/intake.rs"},
+    {"id": "BR3.4", "status": "OK", "target": "crates/core/src/definition/intake.rs"},
+    {"id": "BR3.5", "status": "OK", "target": "docs/spec/rust/03-definition-format.md"},
+    {"id": "BR3.6", "status": "OK", "target": "crates/cli/Cargo.toml"},
+    {"id": "BR4.1", "status": "OK", "target": "aidlc/spaces/default/intents/261122-execution-runner-intake/construction/code-generation/code-summary.md"},
+    {"id": "BR4.2", "status": "OK", "target": "aidlc/spaces/default/intents/261122-execution-runner-intake/construction/code-generation/code-summary.md"},
+    {"id": "BR4.3", "status": "OK", "target": "aidlc/spaces/default/intents/261122-execution-runner-intake/construction/code-generation/code-summary.md"},
+    {"id": "BR4.4", "status": "OK", "target": "crates/runtime/tests/nfr_source.rs"}
+  ],
+  "reverse": []
+}

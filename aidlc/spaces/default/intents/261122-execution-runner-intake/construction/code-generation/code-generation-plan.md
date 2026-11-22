@@ -14,27 +14,27 @@
 
 ## 段 1: `JobExecution` の型(BR1.1〜BR1.5、SM1)
 
-- [ ] Step 1: `JobExecution::not_started` と `start_failed` を足し、runtime の `run_job` と cli の `retry.rs` が使う(今の項目の形のまま。動きは同じ。テストは変えない)。コミット 1。
-- [ ] Step 2: `JobExecution { job_id, command, result: ExecutionResult }` に切り替える。`ExecutionResult` は `NotStarted { signal }`、`StartFailed`、`Exited { exit_code, terminated_by_signal, interrupted_by }`(D5)。`types.rs` に置き、`conductor_core` のルートから公開する。`classify`、`retry_decision`、`apply_outcome`、`run_job`、`step.rs`、`retry.rs` と、T1〜T12 を同じコミットで直す。コミット 2。
-- [ ] Step 3: N1(`classify.rs` の単体。§2.1.3 の表の 6 行)。コミット 3。
-- [ ] Step 4: 仕様書(rust の 02、05、07、11、12)。language-agnostic は変えない(D2)。コミット 4。段 1 の後の件数を記録(見込み 1,138)。
+- [x] Step 1: `JobExecution::not_started` と `start_failed` を足し、runtime の `run_job` と cli の `retry.rs` が使う(今の項目の形のまま。動きは同じ。テストは変えない)。コミット 1。
+- [x] Step 2: `JobExecution { job_id, command, result: ExecutionResult }` に切り替える。`ExecutionResult` は `NotStarted { signal }`、`StartFailed`、`Exited { exit_code, terminated_by_signal, interrupted_by }`(D5)。`types.rs` に置き、`conductor_core` のルートから公開する。`classify`、`retry_decision`、`apply_outcome`、`run_job`、`step.rs`、`retry.rs` と、T1〜T12 を同じコミットで直す。コミット 2。
+- [x] Step 3: N1(`classify.rs` の単体。§2.1.3 の表の 6 行)。コミット 3。
+- [x] Step 4: 仕様書(rust の 02、05、07、11、12)。language-agnostic は変えない(D2)。コミット 4。段 1 の後の件数を記録(見込み 1,138)。
 
 ## 段 2: `run_job` の入力(BR2.1〜BR2.4、SM2)
 
-- [ ] Step 5: `run_job(job, line: &CommandLine, env, signal)` にし、`Runtime` トレイト、`run_job_with_retry`、`run_step` を合わせる。リトライでは `session.checked.commands[i]` をそのまま渡す。`run_job` の中の分割をなくし、「`line.program` が空・空白だけなら `StartFailed`」の 1 行を、起動前の合図の確認より前に置く(D4)。引数の名前は `line`(`nfr_source.rs` の `Command::new(&line.program)`)。T13〜T17。コミット 5。
-- [ ] Step 6: N2(`runner_basic.rs`。分けられない `job.command` と、補助の実行ファイルを指す `line` を渡すと `Exited { Some(3), .. }`)。コミット 6。
-- [ ] Step 7: 仕様書(rust の 02、05、07、11、12 と、language-agnostic の 05 §1.2 の手順 1・§7.5、07 §3.6・§4.1・§4.3 の最小限)。コミット 7。段 2 の後の件数を記録(見込み 1,139)。
+- [x] Step 5: `run_job(job, line: &CommandLine, env, signal)` にし、`Runtime` トレイト、`run_job_with_retry`、`run_step` を合わせる。リトライでは `session.checked.commands[i]` をそのまま渡す。`run_job` の中の分割をなくし、「`line.program` が空・空白だけなら `StartFailed`」の 1 行を、起動前の合図の確認より前に置く(D4)。引数の名前は `line`(`nfr_source.rs` の `Command::new(&line.program)`)。T13〜T17。コミット 5。
+- [x] Step 6: N2(`runner_basic.rs`。分けられない `job.command` と、補助の実行ファイルを指す `line` を渡すと `Exited { Some(3), .. }`)。コミット 6。
+- [x] Step 7: 仕様書(rust の 02、05、07、11、12 と、language-agnostic の 05 §1.2 の手順 1・§7.5、07 §3.6・§4.1・§4.3 の最小限)。コミット 7。段 2 の後の件数を記録(見込み 1,139)。
 
 ## 段 3: 定義ファイルの読み込みの順序(BR3.1〜BR3.6、SM3、SM4)
 
-- [ ] Step 8: `read_definition` を形 B にする(D1): パスで種別だけ見る(無い → FileMissing、通常のファイルでない → Unreadable。開かない)→ 開く(権限など → Unreadable)→ 開いたハンドルから大きさ(上限超過 → TooLarge)→ 上限 + 1 バイトまで読む → UTF-8 の確認。理由の文は今のものを使い、入力の値を含めない。コミット 8。
-- [ ] Step 9: N3(UNIX。mode 000 の 1 MiB 超 → Unreadable。開けたら確かめない)、N4(上限超過は UTF-8 でないより先)、N5(UNIX。FIFO は開かずに Unreadable。別のスレッドで呼び、5 秒で打ち切る)。N3 は直す前の木で落ちること、N5 は直す前と後の両方で通ることを記録する。コミット 9。
-- [ ] Step 10: 仕様書(rust の 03・02、language-agnostic の 03)。「v0.9.5 までは、読む権限のない大きなファイルは tooLarge だった」の注記(`--to` の注記と同じ書き方)。FIFO の「止まらない」は「種別を見てから開くまでの差し替えの競合を除く」。コミット 10。
-- [ ] Step 11: 版を 0.9.6 にする(`ea09b46` と同じ範囲: `Cargo.toml` × 4、`Cargo.lock`、T18 の `binary_basic.rs`、仕様書の表記)。コミット 11。段 3 の後の件数を記録(見込み 1,142)。
+- [x] Step 8: `read_definition` を形 B にする(D1): パスで種別だけ見る(無い → FileMissing、通常のファイルでない → Unreadable。開かない)→ 開く(権限など → Unreadable)→ 開いたハンドルから大きさ(上限超過 → TooLarge)→ 上限 + 1 バイトまで読む → UTF-8 の確認。理由の文は今のものを使い、入力の値を含めない。コミット 8。
+- [x] Step 9: N3(UNIX。mode 000 の 1 MiB 超 → Unreadable。開けたら確かめない)、N4(上限超過は UTF-8 でないより先)、N5(UNIX。FIFO は開かずに Unreadable。別のスレッドで呼び、5 秒で打ち切る)。N3 は直す前の木で落ちること、N5 は直す前と後の両方で通ることを記録する。コミット 9。
+- [x] Step 10: 仕様書(rust の 03・02、language-agnostic の 03)。「v0.9.5 までは、読む権限のない大きなファイルは tooLarge だった」の注記(`--to` の注記と同じ書き方)。FIFO の「止まらない」は「種別を見てから開くまでの差し替えの競合を除く」。コミット 10。
+- [x] Step 11: 版を 0.9.6 にする(`ea09b46` と同じ範囲: `Cargo.toml` × 4、`Cargo.lock`、T18 の `binary_basic.rs`、仕様書の表記)。コミット 11。段 3 の後の件数を記録(見込み 1,142)。
 
 ## 記録
 
-- [ ] Step 12: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更の一覧、計画からのずれ)、`traceability.json`(SM1〜SM5 と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 12: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更の一覧、計画からのずれ)、`traceability.json`(SM1〜SM5 と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
