@@ -544,7 +544,7 @@ pub fn walk(
 
     if w.errors.is_empty()
         && let Some(head) = pipeline
-        && let Some(jobs) = build_jobs(&raw_jobs)
+        && let Some(jobs) = build_jobs(raw_jobs)
     {
         return Ok(PipelineDefinition {
             name: head.name,
@@ -570,19 +570,20 @@ pub fn walk(
     Err(errors.into_iter().map(|(_, e)| e).collect())
 }
 
-fn build_jobs(raw: &[RawJob]) -> Option<Vec<JobDefinition>> {
-    raw.iter()
+/// 走査の結果から、ジョブの定義を組み立てる(値は移す。組み立てられないジョブが 1 つでもあれば `None`)。
+fn build_jobs(raw: Vec<RawJob>) -> Option<Vec<JobDefinition>> {
+    raw.into_iter()
         .map(|job| {
             if !job.complete {
                 return None;
             }
             let mut transitions = Vec::new();
-            for t in &job.transitions {
-                let (next, _) = t.next.as_ref()?;
+            for t in job.transitions {
+                let (next, _) = t.next?;
                 let target = if next == TransitionTarget::END_LABEL {
                     TransitionTarget::End
                 } else {
-                    TransitionTarget::Job(next.clone())
+                    TransitionTarget::Job(next)
                 };
                 transitions.push(Transition {
                     on: t.on?,
@@ -590,21 +591,17 @@ fn build_jobs(raw: &[RawJob]) -> Option<Vec<JobDefinition>> {
                 });
             }
             Some(JobDefinition {
-                id: job.id.as_ref()?.0.clone(),
-                command: job.command.clone()?,
-                warning_exit_codes: job
-                    .warning
-                    .as_ref()
-                    .map(|(c, _)| c.clone())
-                    .unwrap_or_default(),
-                success_exit_codes: match &job.success {
-                    SuccessCodes::Valid(codes) => Some(codes.clone()),
+                id: job.id?.0,
+                command: job.command?,
+                warning_exit_codes: job.warning.map(|(c, _)| c).unwrap_or_default(),
+                success_exit_codes: match job.success {
+                    SuccessCodes::Valid(codes) => Some(codes),
                     SuccessCodes::Absent | SuccessCodes::Invalid => None,
                 },
                 transitions,
                 retry: build_retry(job.retry.as_ref()),
-                env: job.env.clone(),
-                env_file: job.env_file.clone(),
+                env: job.env,
+                env_file: job.env_file,
             })
         })
         .collect()
