@@ -580,7 +580,7 @@ mod tests {
     }
 
     #[test]
-    fn budget_exactly_at_limit_is_accepted_and_one_byte_over_is_too_large() {
+    fn 上限ちょうどの大きさは受理し_1バイト超は大きすぎる() {
         // キー `a`(1)+ 値 `abc`(3)= 4 バイト
         assert!(run("a: abc\n", 4).is_ok());
         let e = run("a: abc\n", 3).unwrap_err();
@@ -589,7 +589,7 @@ mod tests {
     }
 
     #[test]
-    fn every_alias_visit_is_charged() {
+    fn エイリアスを訪れるたびに数える() {
         // 値 `vvvv`(4)を、エイリアスで 3 回参照する。キー 4 バイト + 値 16 バイト
         let text = "a: &a vvvv\nb: *a\nc: *a\nd: *a\n";
         assert!(run(text, 20).is_ok());
@@ -600,7 +600,7 @@ mod tests {
     }
 
     #[test]
-    fn aliased_merge_keys_and_discarded_items_are_charged() {
+    fn エイリアスのマージキーと_捨てた要素も数える() {
         // base: `b`(1)+ `k`(1)+ `vvvv`(4)= 6。m: `m`(1)+ `<<`(2)+ 参照先の `k` `vvvv`(5)= 8
         let text = "b: &b {k: vvvv}\nm:\n  <<: *b\n";
         assert!(run(text, 14).is_ok());
@@ -617,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn default_budget_is_16_mib() {
+    fn 既定の上限は16_mib() {
         assert_eq!(MAX_EXPANDED_BYTES, 16 * 1024 * 1024);
     }
 }
