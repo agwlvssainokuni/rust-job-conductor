@@ -48,7 +48,7 @@
 //! |------------|------|------|
 //! | `main.rs` | 入口(main) | パニックのフックを設定し、`run_cli` の結果で、1 回だけ `std::process::exit` |
 //! | [`args`] | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する |
-//! | `ctx`、`run`、`pipeline`、`dry_run`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、`--dry-run`(計画。U3)、W4〜W6(watch・reset・convert) |
+//! | `ctx`、`step`、`run`、`pipeline`、`dry_run`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、1 つのジョブの共通の手順(`step`)、`--dry-run`(計画。U3)、W4〜W6(watch・reset・convert) |
 //! | [`platform`] | シグナルの監視(SignalWatcher)ほか | OS 固有のコードは、ここだけ(`cfg(unix)`/`cfg(windows)`) |
 //! | [`exit`] | 終了コードの決定(ExitMapper) | 純粋な関数。0〜255 に合わせる(BR5.2) |
 //! | [`report`] | 表示(Reporter)、watch の表(WatchView)、エスケープ(Escape) | 文言(英語・日本語)の組み立て。言語・色は遅延 |
@@ -95,6 +95,9 @@ pub mod platform;
 pub mod report;
 mod retry;
 mod run;
+// 次のコミットで run・pipeline から呼ぶ。それまでの未使用の警告を抑える。
+#[allow(dead_code)]
+mod step;
 pub mod types;
 
 use std::ffi::OsString;
