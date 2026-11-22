@@ -1,0 +1,230 @@
+// 一時の確認(plan-state-unify の機能の設計)。設計の確認のあとに削除する。コミットしない。
+//! 今の模擬(`plan_pipeline`。スキップで状態を変えない)と、スキップも本番と同じく記録する模擬の、
+//! 計画の扱い(ジョブごと)と終わり方と拒否を比べる。ステートは、本番の更新の関数で作る。
+
+use std::path::Path;
+
+use conductor_core::{
+    Assumption, Classification, Decision, JobExecution, LoadedEnvFiles, PipelineDefinition,
+    PipelineState, PlanDisposition, PlanEnd, PlanInput, RunMode, classify_and_decide,
+    decide_before_run, parse_definition, plan_pipeline, resume_point_on_interrupt,
+};
+use conductor_runtime::{apply_interrupt, apply_outcome, apply_skip, initial_state};
+
+struct Rng(u64);
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        self.0
+    }
+    fn below(&mut self, n: u64) -> u64 {
+        self.next() % n
+    }
+}
+
+fn random_definition(rng: &mut Rng) -> String {
+    let n = 2 + rng.below(5) as usize;
+    let mut s = String::from("format_version = 1\n[pipeline]\nname = \"p\"\n");
+    for i in 0..n {
+        s += &format!(
+            "[[job]]\nid = \"j{i}\"\ncommand = \"echo\"\nwarning_exit_codes = [3]\n"
+        );
+        for on in ["success", "warning"] {
+            if rng.below(3) == 0 {
+                let choices = n - i; // i+1..n-1 と @end
+                let k = rng.below(choices as u64) as usize;
+                let target = if i + 1 + k >= n {
+                    "@end".to_string()
+                } else {
+                    format!("j{}", i + 1 + k)
+                };
+                s += &format!("[[job.transitions]]\non = \"{on}\"\nnext = \"{target}\"\n");
+            }
+        }
+    }
+    s
+}
+
+fn code(rng: &mut Rng) -> i32 {
+    match rng.below(4) {
+        0 => 3,
+        1 => 1,
+        _ => 0,
+    }
+}
+
+fn execute(def: &PipelineDefinition, state: &PipelineState, id: &str, c: i32, mode: RunMode) -> PipelineState {
+    let job = &def.job[def.job_index(id).unwrap()];
+    let exec = JobExecution {
+        job_id: id.to_string(),
+        command: job.command.clone(),
+        started: true,
+        exit_code: Some(c),
+        terminated_by_signal: None,
+        start_failure: false,
+        interrupted: false,
+        signal_number: None,
+    };
+    let (outcome, next) = classify_and_decide(job, &exec, &state.job_states, def, mode);
+    apply_outcome(state, id, &exec, &outcome, &next)
+}
+
+/// 本番の流れを真似て、ステートを 1 段進める(pipeline の 1 回、または run の 1 回)。
+fn real_step(def: &PipelineDefinition, cur: Option<PipelineState>, rng: &mut Rng) -> Option<PipelineState> {
+    let path = Path::new("t.toml");
+    let mut st = cur.unwrap_or_else(|| initial_state(def, path, None));
+    if rng.below(2) == 0 {
+        for job in &def.job {
+            match decide_before_run(&job.id, def, &st.job_states, st.resume_job_id.as_deref(), st.end_reached) {
+                Decision::Reject(_) => break,
+                Decision::Skip(r) => {
+                    st = apply_skip(&st, &job.id, r, def);
+                    if st.completed {
+                        break;
+                    }
+                }
+                Decision::Run => {
+                    let c = code(rng);
+                    st = execute(def, &st, &job.id, c, RunMode::Pipeline);
+                    if c == 1 || st.completed {
+                        break;
+                    }
+                    if rng.below(5) == 0 {
+                        let p = resume_point_on_interrupt(def, &st.job_states);
+                        st = apply_interrupt(&st, &p);
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        let id = def.job[rng.below(def.job.len() as u64) as usize].id.clone();
+        match decide_before_run(&id, def, &st.job_states, st.resume_job_id.as_deref(), st.end_reached) {
+            Decision::Reject(_) => {}
+            Decision::Skip(r) => st = apply_skip(&st, &id, r, def),
+            Decision::Run => {
+                let c = code(rng);
+                st = execute(def, &st, &id, c, RunMode::Individual);
+            }
+        }
+    }
+    if st.completed { None } else { Some(st) }
+}
+
+type Outcome = Result<(Vec<PlanDisposition>, PlanEnd), String>;
+
+/// 新しい模擬: 今の `plan_pipeline` の流れのまま、スキップを `apply_skip`、結果を `apply_outcome` で記録する。
+fn new_plan(def: &PipelineDefinition, state: Option<&PipelineState>, assumptions: &[Assumption]) -> Outcome {
+    let mut st = state.cloned().unwrap_or_else(|| initial_state(def, Path::new("t.toml"), None));
+    let mut stopped = None;
+    let mut out = Vec::new();
+    for job in &def.job {
+        if stopped.is_some() {
+            out.push(PlanDisposition::NotReached);
+            continue;
+        }
+        match decide_before_run(&job.id, def, &st.job_states, st.resume_job_id.as_deref(), st.end_reached) {
+            Decision::Reject(_) => return Err(job.id.clone()),
+            Decision::Skip(r) => {
+                out.push(match r {
+                    conductor_core::DecisionReason::AlreadyExecuted => PlanDisposition::AlreadyExecuted,
+                    conductor_core::DecisionReason::AfterEnd => PlanDisposition::SkippedAfterEnd,
+                    _ => PlanDisposition::SkippedByTransition,
+                });
+                st = apply_skip(&st, &job.id, r, def);
+            }
+            Decision::Run => {
+                let c = assumptions.iter().find(|a| a.job_id == job.id).map_or(0, |a| a.exit_code);
+                let job_def = &def.job[def.job_index(&job.id).unwrap()];
+                let exec = JobExecution {
+                    job_id: job.id.clone(),
+                    command: job_def.command.clone(),
+                    started: true,
+                    exit_code: Some(c),
+                    terminated_by_signal: None,
+                    start_failure: false,
+                    interrupted: false,
+                    signal_number: None,
+                };
+                let (outcome, next) = classify_and_decide(job_def, &exec, &st.job_states, def, RunMode::Pipeline);
+                st = apply_outcome(&st, &job.id, &exec, &outcome, &next);
+                if outcome.classification == Some(Classification::Error) {
+                    stopped = Some(job.id.clone());
+                }
+                out.push(PlanDisposition::WillRun);
+            }
+        }
+    }
+    let end = match stopped {
+        Some(id) => PlanEnd::StoppedAtError(id),
+        None if st.end_reached => PlanEnd::EndReached,
+        None => PlanEnd::Completed,
+    };
+    Ok((out, end))
+}
+
+fn old_plan(def: &PipelineDefinition, state: Option<&PipelineState>, assumptions: &[Assumption]) -> Outcome {
+    let commands: Vec<Vec<String>> = def.job.iter().map(|_| vec!["echo".to_string()]).collect();
+    let files = LoadedEnvFiles::new();
+    let input = PlanInput { definition: def, state, commands: &commands, env_files: &files, run_id: None, assumptions };
+    match plan_pipeline(&input) {
+        Ok(p) => Ok((p.entries.iter().map(|e| e.disposition).collect(), p.end)),
+        Err(r) => Err(r.job_id),
+    }
+}
+
+#[test]
+#[ignore]
+fn 今の模擬と_スキップを記録する模擬の比較() {
+    let mut rng = Rng(std::env::var("SEED").ok().and_then(|s| s.parse().ok()).unwrap_or(20261122));
+    let (mut cases, mut diffs, mut skips_seen) = (0u64, 0u64, [0u64; 3]);
+    let (mut with_error, mut with_resume) = (0u64, 0u64);
+    let mut shown = 0;
+    while cases < 300_000 {
+        let text = random_definition(&mut rng);
+        let def = parse_definition(&text, "t.toml", None).expect("正しい定義");
+        let mut cur: Option<PipelineState> = None;
+        for _ in 0..6 {
+            let mut assumptions: Vec<Assumption> = Vec::new();
+            for j in &def.job {
+                if rng.below(3) == 0 {
+                    let c = code(&mut rng);
+                    assumptions.push(Assumption { job_id: j.id.clone(), exit_code: c });
+                }
+            }
+            let a = old_plan(&def, cur.as_ref(), &assumptions);
+            let b = new_plan(&def, cur.as_ref(), &assumptions);
+            if let Ok((d, _)) = &a {
+                for x in d {
+                    match x {
+                        PlanDisposition::SkippedByTransition => skips_seen[0] += 1,
+                        PlanDisposition::SkippedAfterEnd => skips_seen[1] += 1,
+                        PlanDisposition::AlreadyExecuted => skips_seen[2] += 1,
+                        _ => {}
+                    }
+                }
+            }
+            cases += 1;
+            if let Some(s) = &cur {
+                if s.job_states.iter().any(|j| j.status == conductor_core::JobStatus::Error) {
+                    with_error += 1;
+                }
+                if s.resume_job_id.is_some() {
+                    with_resume += 1;
+                }
+            }
+            if a != b {
+                diffs += 1;
+                if shown < 5 {
+                    shown += 1;
+                    eprintln!("DIFF\n{text}\nstate={cur:?}\nassume={assumptions:?}\nold={a:?}\nnew={b:?}\n");
+                }
+            }
+            cur = real_step(&def, cur, &mut rng);
+        }
+    }
+    eprintln!("cases={cases} diffs={diffs} skips(transition,afterEnd,already)={skips_seen:?} with_error={with_error} with_resume={with_resume}");
+    assert_eq!(diffs, 0);
+}
