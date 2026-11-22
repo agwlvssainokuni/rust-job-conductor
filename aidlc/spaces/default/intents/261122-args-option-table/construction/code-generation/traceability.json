@@ -1,0 +1,20 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["SM1", "SM2", "SM3", "SM4", "SM5", "BR1.1", "BR1.2", "BR1.3", "BR2.1", "BR3.1", "BR3.2", "BR4.1", "BR5.1"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "SM2", "status": "OK", "target": "crates/cli/tests/args_grammar.rs" },
+    { "id": "SM3", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "SM4", "status": "OK", "target": "crates/cli/src/dry_run.rs" },
+    { "id": "SM5", "status": "OK", "target": "aidlc/spaces/default/intents/261122-args-option-table/construction/code-generation/code-summary.md" },
+    { "id": "BR1.1", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "BR1.2", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "BR1.3", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "BR2.1", "status": "OK", "target": "crates/cli/tests/args_grammar.rs" },
+    { "id": "BR3.1", "status": "OK", "target": "crates/cli/src/args.rs" },
+    { "id": "BR3.2", "status": "OK", "target": "docs/spec/rust/04-cli.md" },
+    { "id": "BR4.1", "status": "OK", "target": "crates/cli/src/dry_run.rs" },
+    { "id": "BR5.1", "status": "OK", "target": "aidlc/spaces/default/intents/261122-args-option-table/construction/code-generation/code-summary.md" }
+  ],
+  "reverse": []
+}
