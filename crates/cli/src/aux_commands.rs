@@ -21,7 +21,7 @@ use std::path::PathBuf;
 use conductor_converter::TargetFormat;
 use conductor_core::PipelineDefinition;
 
-use crate::ctx::{Ctx, aux_run_id, definition_path};
+use crate::ctx::{Ctx, aux_run_id, definition_path, read_context};
 use crate::exit::{EXIT_CONVERSION, EXIT_OK, EXIT_STATE, EXIT_USAGE};
 use crate::report::{DisplayEvent, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
@@ -38,11 +38,7 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             return EXIT_USAGE;
         }
     };
-    let context = if run_id.is_some() {
-        StateContext::ReadRunId
-    } else {
-        StateContext::Read
-    };
+    let context = read_context(run_id.is_some());
     // 完了のステートも読む(FR3.1)。`WatchEmpty` は、ファイルなし・長さ 0 のときだけ。
     let state = match ctx.runtime.read_state_raw(&path, run_id.as_ref()) {
         Ok(state) => state,

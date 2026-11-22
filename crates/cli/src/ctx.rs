@@ -77,6 +77,15 @@ pub(crate) struct Session {
     pub env_files: LoadedEnvFiles,
 }
 
+/// ステートを読む方法(`read_checked_state`)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StateRead {
+    /// `read_state`: 完了のまま残ったステートは、空として読む(`run`・`pipeline`)。
+    Live,
+    /// `read_state_raw`: 完了のステートも読む(`graph --state`)。
+    Raw,
+}
+
 /// 定義ファイルの場所(BR1.4)。`--config` があればそのパス、なければ実行ディレクトリの `conductor.toml`。
 pub(crate) fn definition_path(cmd: &CliCommand) -> PathBuf {
     match &cmd.config_path {
@@ -152,40 +161,13 @@ impl Ctx<'_> {
             return Err(EXIT_USAGE);
         }
 
-        // run ID の決定(FR1.2〜FR1.4)。環境変数の名前は、定義の `run_id_env`(なければ既定)。
-        let env_name = definition
-            .run_id_env
-            .as_deref()
-            .unwrap_or(DEFAULT_RUN_ID_ENV);
-        let run_id = match resolve_run_id(cmd.run_id.as_deref(), env_name, self.env) {
-            Ok(run_id) => run_id,
-            Err(error) => {
-                self.show(&DisplayEvent::Usage(&error));
-                return Err(EXIT_USAGE);
-            }
-        };
+        let run_id = self.definition_run_id(cmd, &definition)?;
 
         // `.env` の読み取り(BR6.1〜BR6.3)。誤りがあれば、ジョブを実行せず、ステートにも触れずに 64 で止まる。
         let env_files = self.load_env_files(&path, &definition, require_job)?;
 
-        let read_context = read_context(run_id.is_some());
-        let state = match self.runtime.read_state(&path, run_id.as_ref()) {
-            Ok(state) => state,
-            Err(error) => return Err(self.state_error(&error, read_context)),
-        };
-        if let Some(state) = &state
-            && let ConsistencyResult::Mismatch(kind) = check_consistency(state, &definition)
-        {
-            let state_path = StateLocation::of(&path, run_id.as_ref())
-                .path()
-                .to_path_buf();
-            self.show(&DisplayEvent::ConsistencyMismatch {
-                state_path: &state_path,
-                kind,
-                with_run_id: run_id.is_some(),
-            });
-            return Err(EXIT_STATE);
-        }
+        let state =
+            self.read_checked_state(&path, &definition, run_id.as_ref(), StateRead::Live)?;
 
         let remove_on_complete = cmd.remove_on_complete || definition.remove_on_complete;
         Ok(Checked {
@@ -196,6 +178,58 @@ impl Ctx<'_> {
             remove_on_complete,
             env_files,
         })
+    }
+
+    /// 定義を読んだあとの run ID の決定(FR1.2〜FR1.4)。環境変数の名前は、定義の `run_id_env`
+    /// (なければ既定)。誤りは表示して、68 を `Err` で返す。`prepare_checked` と `graph --state` が使う。
+    pub(crate) fn definition_run_id(
+        &mut self,
+        cmd: &CliCommand,
+        definition: &PipelineDefinition,
+    ) -> Result<Option<RunId>, i32> {
+        let env_name = definition
+            .run_id_env
+            .as_deref()
+            .unwrap_or(DEFAULT_RUN_ID_ENV);
+        match resolve_run_id(cmd.run_id.as_deref(), env_name, self.env) {
+            Ok(run_id) => Ok(run_id),
+            Err(error) => {
+                self.show(&DisplayEvent::Usage(&error));
+                Err(EXIT_USAGE)
+            }
+        }
+    }
+
+    /// ステートを読み、定義と照合する(BR2.5)。読めなければ 65、食い違えば 65 を、表示して `Err` で返す。
+    /// ステートが無ければ `Ok(None)`。`read` で、完了のステートを空として読むか(`Live`)、
+    /// 完了のものも読むか(`Raw`)を選ぶ。
+    pub(crate) fn read_checked_state(
+        &mut self,
+        path: &Path,
+        definition: &PipelineDefinition,
+        run_id: Option<&RunId>,
+        read: StateRead,
+    ) -> Result<Option<PipelineState>, i32> {
+        let result = match read {
+            StateRead::Live => self.runtime.read_state(path, run_id),
+            StateRead::Raw => self.runtime.read_state_raw(path, run_id),
+        };
+        let state = match result {
+            Ok(state) => state,
+            Err(error) => return Err(self.state_error(&error, read_context(run_id.is_some()))),
+        };
+        if let Some(state) = &state
+            && let ConsistencyResult::Mismatch(kind) = check_consistency(state, definition)
+        {
+            let state_path = StateLocation::of(path, run_id).path().to_path_buf();
+            self.show(&DisplayEvent::ConsistencyMismatch {
+                state_path: &state_path,
+                kind,
+                with_run_id: run_id.is_some(),
+            });
+            return Err(EXIT_STATE);
+        }
+        Ok(state)
     }
 
     /// 読む対象の `env_file`(`job_id` があればそのジョブの分、なければ全ジョブの分と

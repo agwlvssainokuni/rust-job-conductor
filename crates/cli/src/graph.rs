@@ -20,16 +20,14 @@
 
 use std::path::Path;
 
+use conductor_core::PipelineDefinition;
 use conductor_core::graph::{
     StateOverlay, build_graph, layout_graph, overlay_from_state, pending_overlay,
 };
-use conductor_core::{DEFAULT_RUN_ID_ENV, PipelineDefinition};
-use conductor_runtime::{ConsistencyResult, StateLocation, check_consistency};
 
-use crate::args::resolve_run_id;
 use crate::aux_commands::check_definition_and_env;
-use crate::ctx::{Ctx, read_context};
-use crate::exit::{EXIT_OK, EXIT_STATE, EXIT_USAGE};
+use crate::ctx::{Ctx, StateRead};
+use crate::exit::{EXIT_OK, EXIT_STATE};
 use crate::report::DisplayEvent;
 use crate::report::graph_mermaid::render_mermaid;
 use crate::report::graph_text::render_text;
@@ -77,35 +75,11 @@ fn read_overlay(
     path: &Path,
     definition: &PipelineDefinition,
 ) -> Result<StateOverlay, i32> {
-    let env_name = definition
-        .run_id_env
-        .as_deref()
-        .unwrap_or(DEFAULT_RUN_ID_ENV);
-    let run_id = match resolve_run_id(cmd.run_id.as_deref(), env_name, ctx.env) {
-        Ok(run_id) => run_id,
-        Err(error) => {
-            ctx.show(&DisplayEvent::Usage(&error));
-            return Err(EXIT_USAGE);
-        }
-    };
-    // `read_state` は、完了したステートを「無い」として返すため、使わない。
-    let state = match ctx.runtime.read_state_raw(path, run_id.as_ref()) {
-        Ok(state) => state,
-        Err(error) => return Err(ctx.state_error(&error, read_context(run_id.is_some()))),
-    };
-    let Some(state) = state else {
-        return Ok(pending_overlay(definition));
-    };
-    if let ConsistencyResult::Mismatch(kind) = check_consistency(&state, definition) {
-        let state_path = StateLocation::of(path, run_id.as_ref())
-            .path()
-            .to_path_buf();
-        ctx.show(&DisplayEvent::ConsistencyMismatch {
-            state_path: &state_path,
-            kind,
-            with_run_id: run_id.is_some(),
-        });
-        return Err(EXIT_STATE);
-    }
-    Ok(overlay_from_state(&state))
+    let run_id = ctx.definition_run_id(cmd, definition)?;
+    // `read_state` は、完了したステートを「無い」として返すため、使わない(`Raw`)。
+    let state = ctx.read_checked_state(path, definition, run_id.as_ref(), StateRead::Raw)?;
+    Ok(match state {
+        Some(state) => overlay_from_state(&state),
+        None => pending_overlay(definition),
+    })
 }
