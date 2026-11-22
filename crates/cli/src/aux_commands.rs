@@ -18,7 +18,7 @@
 
 use std::path::Path;
 
-use crate::ctx::{Ctx, definition_path, read_context};
+use crate::ctx::{Ctx, definition_path};
 use crate::exit::{EXIT_CONVERSION, EXIT_OK};
 use crate::report::{DisplayEvent, StateContext};
 use crate::run_id::aux_run_id;
@@ -33,7 +33,7 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(run_id) => run_id,
         Err(error) => return ctx.usage_error(&error),
     };
-    let context = read_context(run_id.is_some());
+    let context = StateContext::for_read(run_id.is_some());
     // 完了のステートも読む(FR3.1)。`WatchEmpty` は、ファイルなし・長さ 0 のときだけ。
     let state = match ctx.runtime.read_state_raw(&path, run_id.as_ref()) {
         Ok(state) => state,

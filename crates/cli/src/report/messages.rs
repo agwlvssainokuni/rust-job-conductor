@@ -427,6 +427,16 @@ pub const RESET_HINT_RUN_ID: Text = Text::new(
     "`conductor reset --run-id <ID>` でステートを初期化できます",
 );
 
+/// ステートの初期化の案内。run ID があるときは `reset --run-id <ID>`、無ければ `reset`(読み取りの誤りと、
+/// 定義との食い違いが使う 1 か所)。
+pub fn reset_hint(with_run_id: bool) -> Text {
+    if with_run_id {
+        RESET_HINT_RUN_ID
+    } else {
+        RESET_HINT
+    }
+}
+
 /// `reset --all` が、読めなくて残したファイルの警告(続けて、ファイル名を 1 行ずつ)。
 pub const RESET_ALL_KEPT: Text = Text::new(
     "kept state files that could not be read (remove one with `conductor reset --run-id <ID>`):",

@@ -309,7 +309,9 @@ impl Ctx<'_> {
         };
         let state = match result {
             Ok(state) => state,
-            Err(error) => return Err(self.state_error(&error, read_context(run_id.is_some()))),
+            Err(error) => {
+                return Err(self.state_error(&error, StateContext::for_read(run_id.is_some())));
+            }
         };
         if let Some(state) = &state
             && let ConsistencyResult::Mismatch(kind) = check_consistency(state, definition)
@@ -444,14 +446,5 @@ impl Ctx<'_> {
             Ok(()) => Ok(()),
             Err(error) => Err(self.state_error(&error, context)),
         }
-    }
-}
-
-/// ステートを読んだときの表示の文脈。run ID があるときは、案内を `reset --run-id` にする。
-pub(crate) fn read_context(with_run_id: bool) -> StateContext {
-    if with_run_id {
-        StateContext::ReadRunId
-    } else {
-        StateContext::Read
     }
 }

@@ -354,7 +354,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `run_id.rs` | run ID の解決(`resolve_run_id`。`watch`・`reset` の `aux_run_id`) |
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
-| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare_run` はジョブの位置も返す、`prepare_pipeline`。どちらも `Session { checked: Checked, signal }` を返す。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。検査の並びは `check_job`(`run`)と `check_pipeline`(`pipeline`)の 1 か所で、部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助(`usage_error`、`show_output`、`state_error`、`write`、`reset`)、`read_context` |
+| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare_run` はジョブの位置も返す、`prepare_pipeline`。どちらも `Session { checked: Checked, signal }` を返す。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。検査の並びは `check_job`(`run`)と `check_pipeline`(`pipeline`)の 1 か所で、部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助(`usage_error`、`show_output`、`state_error`、`write`、`reset`) |
 | `step.rs` | 1 つのジョブの共通の手順(`decide`、`record_skip`、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)。`run` と `pipeline` が呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
 | `run.rs` | `run_individual`(個別実行)。`prepare_run` が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
 | `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
@@ -366,7 +366,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |
-| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`) |
+| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read` で読み取りの文脈を選ぶ)、`push_line`(graph・計画・watch が共有) |
 | `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
 | `report/watch.rs` | `watch` の表(列の幅、色) |
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |

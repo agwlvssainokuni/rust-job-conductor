@@ -67,6 +67,17 @@ pub enum StateContext {
     Plain,
 }
 
+impl StateContext {
+    /// ステートを読んだときの表示の文脈。run ID があるときは、案内を `reset --run-id` にする。
+    pub(crate) fn for_read(with_run_id: bool) -> Self {
+        if with_run_id {
+            Self::ReadRunId
+        } else {
+            Self::Read
+        }
+    }
+}
+
 /// ジョブの結果の補足(`-v` の `(…)` の中)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResultDetail {
@@ -344,11 +355,7 @@ impl<'a> Reporter<'a> {
                 with_run_id,
             } => {
                 let place = show_path(state_path);
-                let hint = if *with_run_id {
-                    messages::RESET_HINT_RUN_ID.get(lang)
-                } else {
-                    messages::RESET_HINT.get(lang)
-                };
+                let hint = messages::reset_hint(*with_run_id).get(lang);
                 let what = mismatch_kind(*kind).get(lang);
                 error_line(
                     &place,
@@ -579,14 +586,10 @@ fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
     let place = show_path(&e.path);
     let mut cause = escape_path(e.reason);
     match context {
-        StateContext::Read => {
+        StateContext::Read | StateContext::ReadRunId => {
             if state_kind_suggests_reset(e.kind) {
-                cause.push_str(&format!("; {}", messages::RESET_HINT.get(lang)));
-            }
-        }
-        StateContext::ReadRunId => {
-            if state_kind_suggests_reset(e.kind) {
-                cause.push_str(&format!("; {}", messages::RESET_HINT_RUN_ID.get(lang)));
+                let hint = messages::reset_hint(context == StateContext::ReadRunId);
+                cause.push_str(&format!("; {}", hint.get(lang)));
             }
         }
         StateContext::JobNotStarted => {
