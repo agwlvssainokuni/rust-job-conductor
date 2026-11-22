@@ -180,6 +180,49 @@ fn v_の詳細は_合流の行のあとにも_分岐の行と同じように置�
     );
 }
 
+/// a の成功が `near`、警告が `far` へ飛ぶ(分岐)。
+fn branch_extra(near: &str, far: &str) -> String {
+    format!(
+        "\n[[job.transitions]]\non = \"success\"\nnext = \"{near}\"\n\n[[job.transitions]]\non = \"warning\"\nnext = \"{far}\"\n"
+    )
+}
+
+const B1_TEXT: &str = "*     a\n \\ \\\n* | | b\n / /\n* | c\n /\n* d\n* e\no @end\n";
+
+#[test]
+fn 分岐の図_b1_の全文() {
+    // B1: a の成功が c、警告が d。2 本の線を同時に開き、主線の線を省く。
+    let b1 = definition(&IDS5, &[], &branch_extra("c", "d"));
+    assert_eq!(text_of(Language::Ja, &b1, None, false), B1_TEXT);
+    // 近い行き先が警告でも、同じ図になる。
+    let swapped = definition(&IDS5, &[], &branch_extra("d", "c"));
+    assert_eq!(text_of(Language::Ja, &swapped, None, false), B1_TEXT);
+}
+
+#[test]
+fn 分岐の図に_v_の詳細と_state_を重ねる() {
+    let b1 = definition(&IDS5, &[], &branch_extra("c", "d"));
+    assert_eq!(
+        text_of(Language::En, &b1, None, true),
+        "*     a\n \\ \\\n| | | command: echo a\n| | | success -> c (skips b), warning -> d (skips b, c)\n\
+         * | | b\n| | | command: echo b\n / /\n* | c\n| | command: echo c\n /\n* d\n| command: echo d\n* e\n| command: echo e\no @end\n"
+    );
+    let overlay = StateOverlay {
+        states: vec![
+            ("a".into(), NodeState::Ok),
+            ("b".into(), NodeState::Skipped),
+            ("c".into(), NodeState::Ok),
+            ("d".into(), NodeState::Pending),
+            ("e".into(), NodeState::Pending),
+        ],
+        resume_job_id: Some("d".into()),
+    };
+    assert_eq!(
+        text_of(Language::Ja, &b1, Some(&overlay), false),
+        "*     [OK] a\n \\ \\\n* | | [--] b\n / /\n* | [OK] c\n /\n* [  ] d  <- 再開位置\n* [  ] e\no @end\n"
+    );
+}
+
 #[test]
 fn 英語の注記は_レーンの図で描けない形を含む言い方() {
     let e1 = definition(&IDS5, &[("a", "d"), ("b", "e")], "");
