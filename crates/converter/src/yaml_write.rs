@@ -212,7 +212,7 @@ mod tests {
     }
 
     #[test]
-    fn strings_that_look_like_other_types_are_quoted() {
+    fn ほかの型に見える文字列は引用符で囲む() {
         for t in [
             "yes", "no", "on", "off", "true", "false", "null", "~", "1", "-1", "1.5", "0x1F", "",
             " lead", "trail ", "<<", "a: b", "a #b", ".nan", "1e3", "Yes", "Y",
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn double_quoted_escapes() {
+    fn 二重引用符のエスケープ() {
         assert_eq!(double_quoted("a\"b\\c\nd\te"), "\"a\\\"b\\\\c\\nd\\te\"");
         assert_eq!(double_quoted("\u{1}\u{7f}"), "\"\\u0001\\u007F\"");
         assert_eq!(double_quoted("日本語"), "\"日本語\"");
@@ -240,7 +240,7 @@ mod tests {
     }
 
     #[test]
-    fn floats_keep_form() {
+    fn 浮動小数は形を保つ() {
         assert_eq!(float_text(1.0), "1.0");
         assert_eq!(float_text(-0.0), "-0.0");
         assert_eq!(float_text(f64::NAN), ".nan");
@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn nested_structure_layout() {
+    fn 入れ子の構造の配置() {
         let v = map(vec![
             ("name", s("demo")),
             ("num", Value::Int(i64::MIN)),
@@ -285,7 +285,7 @@ job:
     }
 
     #[test]
-    fn empty_root_map() {
+    fn 空の最上位のマップ() {
         assert_eq!(write(&Value::Map(vec![])), "{}\n");
     }
 }
