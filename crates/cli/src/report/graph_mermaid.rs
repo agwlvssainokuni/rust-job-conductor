@@ -71,16 +71,14 @@ pub fn render_mermaid(lang: Language, graph: &FlowGraph) -> String {
         }
     }
     for edge in &graph.edges {
-        let (Some(from), to) = (
-            ids.get(edge.from_job.as_str()),
-            match &edge.to {
-                EdgeTarget::Job(id) => ids.get(id.as_str()).map(String::as_str),
-                EdgeTarget::End => Some("nend"),
-            },
-        ) else {
+        let from = ids.get(edge.from_job.as_str());
+        let to = match &edge.to {
+            EdgeTarget::Job(id) => ids.get(id.as_str()).map(String::as_str),
+            EdgeTarget::End => Some("nend"),
+        };
+        let (Some(from), Some(to)) = (from, to) else {
             continue;
         };
-        let Some(to) = to else { continue };
         // 主線の辺(次のジョブへ、成功と警告の両方)は、ラベルなし(BR5.3)。
         if is_main_edge(edge) {
             let _ = writeln!(out, "  {from} --> {to}");
