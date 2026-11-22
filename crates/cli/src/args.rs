@@ -321,14 +321,15 @@ where
         let arg = match parser.next() {
             Ok(Some(arg)) => arg,
             Ok(None) => break,
-            Err(e) => {
-                if lex_error.is_none() {
-                    lex_error = Some(map_lex_error(&e));
-                }
-                // 値の取り残し(`--bogus=x`)の後も、解釈は続けられる。続けられない誤りは、そこで終える。
-                if matches!(e, lexopt::Error::UnexpectedValue { .. }) {
-                    continue;
-                }
+            // 値の取り残し(`--bogus=x`)。最初の誤りを記録し、解釈を続ける。
+            Err(lexopt::Error::UnexpectedValue { option, .. }) => {
+                lex_error.get_or_insert_with(|| map_unexpected_value(&option));
+                continue;
+            }
+            // lexopt 0.3.2 の `next` は `UnexpectedValue` しか返さない。版を上げたときの守り
+            // (`lexopt::Error` の枝を網羅するため残す)。続けられない誤りとして、そこで終える。
+            Err(_) => {
+                lex_error.get_or_insert(UsageError::new(Kind::InvalidValue));
                 break;
             }
         };
@@ -371,24 +372,19 @@ where
     build_command(tokens)
 }
 
-/// `lexopt` の誤りを、使い方の誤りにする。
-fn map_lex_error(e: &lexopt::Error) -> UsageError {
-    match e {
-        lexopt::Error::MissingValue { .. } => UsageError::new(Kind::MissingValue),
-        lexopt::Error::UnexpectedValue { option, .. } => {
-            // `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
-            // 知っている、値を取らないオプションは、表の `takes_value` が偽の行と `-v`(BR1.2)。
-            let known = option == "-v"
-                || option
-                    .strip_prefix("--")
-                    .is_some_and(|long| spec_by_long(long).is_some_and(|spec| !spec.takes_value));
-            if known {
-                UsageError::with_subject(Kind::InvalidValue, option.clone())
-            } else {
-                UsageError::with_subject(Kind::UnknownOption, option.clone())
-            }
-        }
-        _ => UsageError::new(Kind::InvalidValue),
+/// `lexopt` の値の取り残し(`UnexpectedValue`)を、使い方の誤りにする。
+///
+/// `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
+/// 知っている、値を取らないオプションは、表の `takes_value` が偽の行と `-v`(BR1.2)。
+fn map_unexpected_value(option: &str) -> UsageError {
+    let known = option == "-v"
+        || option
+            .strip_prefix("--")
+            .is_some_and(|long| spec_by_long(long).is_some_and(|spec| !spec.takes_value));
+    if known {
+        UsageError::with_subject(Kind::InvalidValue, option.to_string())
+    } else {
+        UsageError::with_subject(Kind::UnknownOption, option.to_string())
     }
 }
 
