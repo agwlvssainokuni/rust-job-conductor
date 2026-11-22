@@ -890,7 +890,7 @@ unused_assumptions = 仮定のうち、WillRun の項目にならなかったジ
 ```
 
 - `skip_disposition(reason)`: `AlreadyExecuted` → `AlreadyExecuted`、`AfterEnd` → `SkippedAfterEnd`、`SkipTarget`・`OutOfOrder` → `SkippedByTransition`。
-- `simulate_job`: 合成した `JobExecution::exited(job, code)`(`result` は `Exited { exit_code: Some(code), terminated_by_signal: None, interrupted_by: None }`)を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。戻り値は `(SimulatedResult, JobExecution, JobOutcome, NextStep)`(記録に使う実行と分類の結果も返し、分類を 2 回しない)。
+- `simulate_job`: 合成した `JobExecution::exited(job, code)`(`result` は `Exited { exit_code: Some(code), terminated_by_signal: None, interrupted_by: None }`)を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。結果の語(`SimulatedResult.classification`)は、`classify` の手順 5 と同じ規則 `classify_exit_code(job, code)`(`flow/classify.rs`。成功コード → 成功・0、警告コード → 警告・0、成功コードに無い 0 → エラー・1・`conductor_error`、そのほか → エラー・その終了コード)で決める。`retryable` = `job.retry` があり、`is_retry_target(policy, execution)`(§7.2)が真。戻り値は `(SimulatedResult, JobExecution, JobOutcome, NextStep)`(記録に使う実行と分類の結果も返す)。
 - 模擬のステート `S` の更新は、本番と同じ `apply_skip`・`apply_outcome` で行う(規則は §3.3〜§3.5)。`S` は関数の中だけで持ち、返さず、保存しない。
 - 項目 `PlanEntry`: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 }).names()`(名前と出どころ。値は持たない)。
 - 状態の探索は、ジョブの数に比例する時間で済む(`decide_before_run` は、記録が同じ位置にあればそれを使い、なければ `record_of` と同じに引く。1,000 ジョブの計画の性能のため。挙動は変わらない)。

@@ -85,14 +85,45 @@ pub fn classify(job: &JobDefinition, execution: &JobExecution) -> JobOutcome {
     let Some(code) = exit_code else {
         return outcome(job, Some(Classification::Error), EXIT_UNLISTED_ZERO, true);
     };
-    if job.effective_success_codes().contains(&code) {
-        outcome(job, Some(Classification::Success), 0, false)
-    } else if job.warning_exit_codes.contains(&code) {
-        outcome(job, Some(Classification::Warning), 0, false)
-    } else if code == 0 {
-        outcome(job, Some(Classification::Error), EXIT_UNLISTED_ZERO, true)
-    } else {
-        outcome(job, Some(Classification::Error), code, false)
+    let c = classify_exit_code(job, code);
+    outcome(
+        job,
+        Some(c.classification),
+        c.reported_exit_code,
+        c.conductor_error,
+    )
+}
+
+/// 終了コードの分類の結果([`classify`] の手順 5)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ExitCodeClass {
+    pub(crate) classification: Classification,
+    /// スケジューラへ返す終了コード。
+    pub(crate) reported_exit_code: i32,
+    /// conductor のエラーか(成功コードに含まれない 0。BR2.2)。
+    pub(crate) conductor_error: bool,
+}
+
+/// 終了コード `code` を、成功・警告・エラーに分類し、返す終了コードを決める([`classify`] の
+/// 手順 5。BR2.1、BR2.2)。`--dry-run` の模擬も、同じ規則で結果の語を決める。
+///
+/// 成功コード → 成功・0、警告コード → 警告・0、成功コードに含まれない 0 → エラー・1・
+/// `conductor_error`、そのほか → エラー・その終了コード。
+pub(crate) fn classify_exit_code(job: &JobDefinition, code: i32) -> ExitCodeClass {
+    let (classification, reported_exit_code, conductor_error) =
+        if job.effective_success_codes().contains(&code) {
+            (Classification::Success, 0, false)
+        } else if job.warning_exit_codes.contains(&code) {
+            (Classification::Warning, 0, false)
+        } else if code == 0 {
+            (Classification::Error, EXIT_UNLISTED_ZERO, true)
+        } else {
+            (Classification::Error, code, false)
+        };
+    ExitCodeClass {
+        classification,
+        reported_exit_code,
+        conductor_error,
     }
 }
 

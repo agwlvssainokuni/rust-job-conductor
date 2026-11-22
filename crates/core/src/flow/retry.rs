@@ -32,7 +32,7 @@ pub enum RetryDecision {
 /// 起動して終了を観測し(`Exited`)、conductor の中断でない、シグナルで終了していない、
 /// 終了コードが設定の集合に含まれる、の全部が成り立つときだけ真。
 /// ジョブ自身が返した 127 は、一覧にあれば対象になる(起動の失敗は終了コードを持たないので、対象にならない)。
-fn is_retry_target(policy: &RetryPolicy, execution: &JobExecution) -> bool {
+pub(crate) fn is_retry_target(policy: &RetryPolicy, execution: &JobExecution) -> bool {
     match execution.result {
         ExecutionResult::Exited {
             exit_code: Some(code),
