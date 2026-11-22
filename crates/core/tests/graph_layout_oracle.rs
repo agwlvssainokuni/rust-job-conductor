@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! レーンの配置の正解データ(`fixtures/graph_layout_oracle.md`。537 個)との一致(BR2.3)。
+//! レーンの配置の正解データとの一致(BR2.3、BR4.1)。
+//!
+//! 行き先がすべて違う形(`fixtures/graph_layout_oracle.md`。537 個)と、
+//! 同じ行き先を含む形(`fixtures/graph_layout_oracle_same_target.md`。1,517 個)。
 
 mod graph_common;
 
@@ -21,6 +24,7 @@ use conductor_core::graph::{build_graph, is_lane_drawable};
 use graph_common::{definition, lanes_text, letters};
 
 const ORACLE: &str = include_str!("fixtures/graph_layout_oracle.md");
+const ORACLE_SAME_TARGET: &str = include_str!("fixtures/graph_layout_oracle_same_target.md");
 
 struct Example {
     heading: String,
@@ -29,9 +33,9 @@ struct Example {
     expected: String,
 }
 
-fn parse() -> Vec<Example> {
+fn parse(source: &str) -> Vec<Example> {
     let mut examples = Vec::new();
-    let mut lines = ORACLE.lines();
+    let mut lines = source.lines();
     while let Some(line) = lines.next() {
         let Some(heading) = line.strip_prefix("### ") else {
             continue;
@@ -85,14 +89,25 @@ fn build(example: &Example) -> conductor_core::PipelineDefinition {
     definition(&ids, &transitions)
 }
 
+fn all() -> Vec<Example> {
+    let mut examples = parse(ORACLE);
+    examples.extend(parse(ORACLE_SAME_TARGET));
+    examples
+}
+
 #[test]
 fn 正解データの例の数は_537_個() {
-    assert_eq!(parse().len(), 537);
+    assert_eq!(parse(ORACLE).len(), 537);
+}
+
+#[test]
+fn 同じ行き先の正解データの例の数は_1517_個() {
+    assert_eq!(parse(ORACLE_SAME_TARGET).len(), 1517);
 }
 
 #[test]
 fn 正解データのすべての形は_対応する形と判定される() {
-    for example in parse() {
+    for example in all() {
         let graph = build_graph(&build(&example), None);
         assert!(is_lane_drawable(&graph), "{}", example.heading);
     }
@@ -101,7 +116,7 @@ fn 正解データのすべての形は_対応する形と判定される() {
 #[test]
 fn 正解データのすべての例に_1文字も違わず一致する() {
     let mut failures = Vec::new();
-    for example in parse() {
+    for example in all() {
         let actual = lanes_text(&build(&example));
         if actual.as_deref() != Some(example.expected.as_str()) {
             failures.push(format!(
@@ -127,7 +142,7 @@ fn 正解データのすべての例に_1文字も違わず一致する() {
 
 #[test]
 fn 正解データの各行は_末尾に空白を持たない() {
-    for example in parse() {
+    for example in all() {
         assert!(
             example.expected.lines().all(|l| l == l.trim_end()),
             "{}",
