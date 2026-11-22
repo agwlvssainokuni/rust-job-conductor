@@ -163,8 +163,8 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 
 ### 3.5 ソースの検査を行うテスト一覧
 
-`runtime/tests/nfr_source.rs`(5 件: `unsafe` の個所、`unsafe` の許可の場所、OS 分岐の場所、シェルを呼ばない、パニックしうる書き方がない)、
-`cli/tests/nfr_source.rs`(6 件: `forbid(unsafe_code)`、`unsafe`/`low_level` なし、ネットワークなし、OS 分岐の場所、テスト専用の経路なし、依存の検査。
+`runtime/tests/nfr_source.rs`(`unsafe` の個所、`unsafe` の許可の場所、OS 分岐の場所、シェルを呼ばない、パニックしうる書き方がない)、
+`cli/tests/nfr_source.rs`(`forbid(unsafe_code)`、`unsafe`/`low_level` なし、ネットワークなし、OS 分岐の場所、テスト専用の経路なし、依存の検査。
 最後は `cargo tree -p conductor-cli -e normal,build --prefix none --offline --locked` を実行し、`cargo` が使えない・失敗する場合はスキップする)、
 `converter/tests/nfr_security.rs`(ソース検査を含む)。
 
@@ -180,78 +180,80 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 - テストは日本語の関数名を使い、OS 依存のテストは `#[cfg(unix)]` / `#[cfg(windows)]` をファイル全体またはテスト単位に付ける。
 - 実行: ローカルは `cargo test --workspace --locked`。補助の実行ファイルは `cargo test` が自動でビルドする(`env!("CARGO_BIN_EXE_<名前>")`)。
 
-### 4.2 テストファイルの目的(`#[test]` の数は統合テストの個数)
+### 4.2 テストファイルの目的
+
+ファイルごとのテストの件数は書かない(機能を足すたびに変わり、OS によっても変わる。件数は `cargo test` の出力で分かる)。
 
 #### conductor-core(`crates/core/tests/`)
 
 | ファイル | 目的 |
 |----------|------|
-| `definition_valid.rs`(9) | 正しい定義の受理と、`load_definition`(ファイルから読む入口) |
-| `definition_errors.rs`(28) | 定義の検証の誤りの網羅(違反の例と受理の例) |
-| `definition_retry.rs`(36) | `[job.retry]` の読み取りと検証 |
-| `flow_sequences.rs`(9) | フローの判断の一連の流れ(`parse_definition` と手元のステートだけ) |
-| `retry_flow.rs`(16) | `retry_decision` の判断 |
-| `library_capability.rs`(3) | `toml` の `DeTable` の確認(要素ごとのバイト範囲、深さ 1,000 の入力で異常終了しない) |
-| `nfr_performance.rs`(1) | NFR1.1 の測定(3.1) |
-| `nfr_security.rs`(5) | NFR4.5〜4.7(3.2、3.3)。v0.9.0 以降は、新しい 3 種(`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue`)の表示に値が出ないことも確かめる |
-| `env_definition.rs`(9) | v0.9.0 以降。`env`・`env_file` の読み取りと検査(03 の 6.6。各誤り、予約名の大文字小文字、NUL、順序) |
-| `env_file_parse.rs`(10) | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
-| `env_merge.rs`(8) | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
-| `env_types.rs`(5) | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
-| `graph_types.rs`(5)、`graph_edges.rs`(9)、`graph_overlay.rs`(5)、`graph_drawable.rs`(21)、`graph_layout_oracle.rs`(11)、`graph_shape_skip.rs`(5)、`graph_shape_same_target.rs`(6)、`graph_shape_both.rs`(14)、`graph_shape_branch.rs`(12)、`graph_perf.rs`(6) | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定(4 つの種類。定義から作れる形はすべて対応する形で、範囲の外の形は図の構造を直接作って確かめる)、配置を正解データと 1 文字単位で照合(git の出力: `fixtures/graph_layout_oracle.md`、537 例、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例、交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。規則から導いた図で、git の出力ではない: 分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例(主線の列 0 の規則で作り直した第 2 版)、「両方の飛び越し」か分岐を含むジョブ 3〜5 個の全形 `fixtures/graph_layout_oracle_offmain.md`、2,748 例、ジョブ 6〜7 個の `fixtures/graph_layout_oracle_offmain_67.md`、300 例)、形ごとの図の全文: 通常の飛び越しと交差の例 C1〜C3(`graph_shape_skip.rs`)、同じ行き先と交差に同じ行き先が混ざる例 M2〜M4(`graph_shape_same_target.rs`)、「両方の飛び越し」の例 D1〜D7 と組み合わせ N1、N3、N4(`graph_shape_both.rs`)、分岐の例 B1〜B4 と組み合わせ N2、N5(`graph_shape_branch.rs`)、辺の一覧に残る形と主線の列 0 の記号(`graph_drawable.rs`)、1,000 ジョブの性能(幅の広い交差、「両方の飛び越し」と分岐の入れ子・交差を含む。`graph_perf.rs`。05 の 15 章)。`graph_common/mod.rs` は補助(`definition`、`letters`、`letter_definition`、`lanes`、`both` など) |
-| `plan_types.rs`(3)、`plan_pipeline.rs`(9)、`plan_run.rs`(5)、`plan_assume.rs`(5)、`plan_perf.rs`(1) | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
+| `definition_valid.rs` | 正しい定義の受理と、`load_definition`(ファイルから読む入口) |
+| `definition_errors.rs` | 定義の検証の誤りの網羅(違反の例と受理の例) |
+| `definition_retry.rs` | `[job.retry]` の読み取りと検証 |
+| `flow_sequences.rs` | フローの判断の一連の流れ(`parse_definition` と手元のステートだけ) |
+| `retry_flow.rs` | `retry_decision` の判断 |
+| `library_capability.rs` | `toml` の `DeTable` の確認(要素ごとのバイト範囲、深さ 1,000 の入力で異常終了しない) |
+| `nfr_performance.rs` | NFR1.1 の測定(3.1) |
+| `nfr_security.rs` | NFR4.5〜4.7(3.2、3.3)。v0.9.0 以降は、新しい 3 種(`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue`)の表示に値が出ないことも確かめる |
+| `env_definition.rs` | v0.9.0 以降。`env`・`env_file` の読み取りと検査(03 の 6.6。各誤り、予約名の大文字小文字、NUL、順序) |
+| `env_file_parse.rs` | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
+| `env_merge.rs` | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
+| `env_types.rs` | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 33 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
+| `graph_types.rs`、`graph_edges.rs`、`graph_overlay.rs`、`graph_drawable.rs`、`graph_layout_oracle.rs`、`graph_shape_skip.rs`、`graph_shape_same_target.rs`、`graph_shape_both.rs`、`graph_shape_branch.rs`、`graph_perf.rs` | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定(4 つの種類。定義から作れる形はすべて対応する形で、範囲の外の形は図の構造を直接作って確かめる)、配置を正解データと 1 文字単位で照合(git の出力: `fixtures/graph_layout_oracle.md`、537 例、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例、交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。規則から導いた図で、git の出力ではない: 分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例(主線の列 0 の規則で作り直した第 2 版)、「両方の飛び越し」か分岐を含むジョブ 3〜5 個の全形 `fixtures/graph_layout_oracle_offmain.md`、2,748 例、ジョブ 6〜7 個の `fixtures/graph_layout_oracle_offmain_67.md`、300 例)、形ごとの図の全文: 通常の飛び越しと交差の例 C1〜C3(`graph_shape_skip.rs`)、同じ行き先と交差に同じ行き先が混ざる例 M2〜M4(`graph_shape_same_target.rs`)、「両方の飛び越し」の例 D1〜D7 と組み合わせ N1、N3、N4(`graph_shape_both.rs`)、分岐の例 B1〜B4 と組み合わせ N2、N5(`graph_shape_branch.rs`)、辺の一覧に残る形と主線の列 0 の記号(`graph_drawable.rs`)、1,000 ジョブの性能(幅の広い交差、「両方の飛び越し」と分岐の入れ子・交差を含む。`graph_perf.rs`。05 の 15 章)。`graph_common/mod.rs` は補助(`definition`、`letters`、`letter_definition`、`lanes`、`both` など) |
+| `plan_types.rs`、`plan_pipeline.rs`、`plan_run.rs`、`plan_assume.rs`、`plan_perf.rs` | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
 
 #### conductor-runtime(`crates/runtime/tests/`)
 
 | ファイル | 目的 |
 |----------|------|
-| `runner_basic.rs`(14) | `run_job` の統合テスト(補助の実行ファイルを実際に起動)。メタ文字、配列、環境変数と作業ディレクトリの引き継ぎ、起動失敗、終了コード、起動前の合図。Windows 専用の `cmd` 注入 3 件 |
-| `runner_env.rs`(5) | v0.9.0 以降。`run_job` の `env` 引数(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ) |
-| `env_loader.rs`(7) | v0.9.0 以降。`load_env_files`(無い、読めない、大きすぎる、UTF-8 でない、相対と絶対のパス、同じパスの 1 回だけの読み取り、すべての誤りを集める) |
-| `file_create.rs`(8) | v0.9.0 以降。`create_file`(新規で内容がそのまま、既存は壊さない、`--force` の置き換えと一時ファイルが残らない、親が無い、ディレクトリ、宙に浮いたシンボリックリンク、権限がない、同時に作る 2 つのうち 1 つだけが `Created`) |
-| `runner_signal.rs`(6、UNIX) | SIGTERM・SIGINT の転送、許可外の番号、新しいプロセスグループ、転送は 1 回、先に終わったジョブ |
-| `wait_interruptible.rs`(6) | `wait_for`(経過、0 秒、合図、1 秒以内の打ち切り、最初の番号) |
-| `state_read.rs`(14)、`state_read_raw.rs`(4)、`state_write.rs`(10) | ステートの読み書き・削除(実ファイル。書き込みの失敗は、置き換え先をディレクトリにして起こす) |
-| `run_id_state.rs`(15) | run ID ごとのステートと `reset --all` |
-| `flow_with_state.rs`(20) | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ |
-| `toml_depth.rs`(3) | 深い入れ子の TOML |
-| `nfr_content.rs`(3)、`nfr_performance.rs`(1)、`nfr_robust.rs`(6)、`nfr_source.rs`(5) | 3 章 |
+| `runner_basic.rs` | `run_job` の統合テスト(補助の実行ファイルを実際に起動)。メタ文字、配列、環境変数と作業ディレクトリの引き継ぎ、起動失敗、終了コード、起動前の合図。Windows 専用の `cmd` 注入 3 件 |
+| `runner_env.rs` | v0.9.0 以降。`run_job` の `env` 引数(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ) |
+| `env_loader.rs` | v0.9.0 以降。`load_env_files`(無い、読めない、大きすぎる、UTF-8 でない、相対と絶対のパス、同じパスの 1 回だけの読み取り、すべての誤りを集める) |
+| `file_create.rs` | v0.9.0 以降。`create_file`(新規で内容がそのまま、既存は壊さない、`--force` の置き換えと一時ファイルが残らない、親が無い、ディレクトリ、宙に浮いたシンボリックリンク、権限がない、同時に作る 2 つのうち 1 つだけが `Created`) |
+| `runner_signal.rs`(UNIX) | SIGTERM・SIGINT の転送、許可外の番号、新しいプロセスグループ、転送は 1 回、先に終わったジョブ |
+| `wait_interruptible.rs` | `wait_for`(経過、0 秒、合図、1 秒以内の打ち切り、最初の番号) |
+| `state_read.rs`、`state_read_raw.rs`、`state_write.rs` | ステートの読み書き・削除(実ファイル。書き込みの失敗は、置き換え先をディレクトリにして起こす) |
+| `run_id_state.rs` | run ID ごとのステートと `reset --all` |
+| `flow_with_state.rs` | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ |
+| `toml_depth.rs` | 深い入れ子の TOML |
+| `nfr_content.rs`、`nfr_performance.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
 | `common/mod.rs` | 補助(`helper_path`、`helper_command`、`job`、`lines`、`wait_for_line`、`pid_in`、`force_kill`、`is_root`、`run_with_limit`) |
 
 #### conductor-converter(`crates/converter/tests/`)
 
 | ファイル | 目的 |
 |----------|------|
-| `convert_ac.rs`(8) | 受け入れ基準と、`convert`(ファイルを読む入口) |
-| `convert_roundtrip.rs`(14) | 往復(変換して読み戻した木が入力の木と等しい) |
-| `read_resolve.rs`(29) | 文書の確認と展開、失敗の順序、暴走する入力 |
-| `nfr_security.rs`(13) | 3 章 |
+| `convert_ac.rs` | 受け入れ基準と、`convert`(ファイルを読む入口) |
+| `convert_roundtrip.rs` | 往復(変換して読み戻した木が入力の木と等しい) |
+| `read_resolve.rs` | 文書の確認と展開、失敗の順序、暴走する入力 |
+| `nfr_security.rs` | 3 章 |
 | `fixtures/{pipeline,broken}.{toml,yaml}` | 入力例 |
 
 #### conductor-cli(`crates/cli/tests/`)
 
 | ファイル | 目的 |
 |----------|------|
-| `args_grammar.rs`(49) | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
-| `exit_codes.rs`(7) | 終了コードの決定(純粋な関数の全項目) |
-| `escape_table.rs`(4) | `escape_display` の入力と期待値の表(core・converter と揃える) |
-| `report_messages.rs`(35) | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
-| `graph_report.rs`(28) | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
-| `plan_report.rs`(7) | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
-| `init_template.rs`(7)、`init_types.rs`(3) | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)、`InitOptions`・`InitTarget` |
-| `flow_env.rs`(10)、`flow_graph.rs`(8)、`flow_dry_run.rs`(10)、`flow_init.rs`(9) | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |
-| `flow_run.rs`(51)、`flow_pipeline.rs`(31)、`flow_retry.rs`(18)、`flow_run_id.rs`(24)、`flow_aux.rs`(33)、`flow_validate.rs`(12) | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
-| `binary_basic.rs`(19)、`binary_run_id.rs`(5) | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
-| `binary_env.rs`(5)、`binary_graph.rs`(10)、`binary_dry_run.rs`(4)、`binary_init.rs`(5) | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
-| `docs_env.rs`(2)、`docs_graph.rs`(8)、`docs_dry_run.rs`(2)、`docs_init.rs`(2) | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
-| `binary_signal.rs`(2、UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
-| `signals_real.rs`(1)、`signals_order.rs`(1)(UNIX) | 本番のシグナル監視(最初の番号が残る、2 回目の登録は `AlreadyRegistered`、時間を空けた INT のあとの HUP) |
-| `panic_hook.rs`(3) | パニックのフック |
-| `nfr_perf.rs`(5)、`nfr_robust.rs`(4)、`nfr_source.rs`(6) | 3 章 |
-| `msrv_consistency.rs`(3) | MSRV の記載の一致(1.2 節) |
-| `docs_retry.rs`(4) | README のリトライの説明の検査(見出し、5 つのキー名、TOML の例が実際の読み取りに通ること) |
-| `unix_demo.rs`(3、UNIX)、`windows_demo.rs`(17、Windows) | デモの検査(9.5 節) |
+| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
+| `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
+| `escape_table.rs` | `escape_display` の入力と期待値の表(core・converter と揃える) |
+| `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
+| `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
+| `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
+| `init_template.rs`、`init_types.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)、`InitOptions`・`InitTarget` |
+| `flow_env.rs`、`flow_graph.rs`、`flow_dry_run.rs`、`flow_init.rs` | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |
+| `flow_run.rs`、`flow_pipeline.rs`、`flow_retry.rs`、`flow_run_id.rs`、`flow_aux.rs`、`flow_validate.rs` | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
+| `binary_basic.rs`、`binary_run_id.rs` | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
+| `binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`binary_init.rs` | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
+| `docs_env.rs`、`docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
+| `binary_signal.rs`(UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
+| `signals_real.rs`、`signals_order.rs`(UNIX) | 本番のシグナル監視(最初の番号が残る、2 回目の登録は `AlreadyRegistered`、時間を空けた INT のあとの HUP) |
+| `panic_hook.rs` | パニックのフック |
+| `nfr_perf.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
+| `msrv_consistency.rs` | MSRV の記載の一致(1.2 節) |
+| `docs_retry.rs` | README のリトライの説明の検査(見出し、5 つのキー名、TOML の例が実際の読み取りに通ること) |
+| `unix_demo.rs`(UNIX)、`windows_demo.rs`(Windows) | デモの検査(9.5 節) |
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
 | `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem` |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
@@ -470,8 +472,8 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 
 | テスト | OS | 内容 |
 |--------|----|------|
-| `cli/tests/unix_demo.rs`(3) | UNIX | `sh demo/run-demo.sh` を、`CONDUCTOR=<テスト用のバイナリ>`、`DEMO_LANG=en_US.UTF-8`、`DEMO_SLEEP=0`、`TMPDIR=<一時ディレクトリ>` で実行。終了コード 0、見出し `=== 0. ` から `=== 14. `、場面 7・4・8・9・10 の要点の行(`definition is valid`、`command has an unclosed quote`、`→ 終了コード 64`、`completed`、`conductor.toml.build-1.state`、`skipped (already executed)`、`conductor.toml.opt-1.state`、`no state`、リトライの知らせ 2 行、`[flaky] 3 回目の実行`、`job=flaky result=success`)と、場面 11〜14 の要点の行(`[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`、`missing.env`、``duplicate key `A` ``。`*   extract` から `o @end` までの図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract`。`plan (--dry-run): pipeline nightly` の計画、`assume: extract=1`、`[skip (transition)]`、`stopped (error: load)`、`target job: extract`、`next step: next job transform`。`created new.toml`、`name = "starter"`、`already exists (use --force to overwrite)`、`→ 終了コード 69`、`replaced new.toml`)が出る。利用者の `CONDUCTOR_RUN_ID`・`DEMO_RUN_ID`・`LC_ALL`・`LC_MESSAGES`・`NO_COLOR` に左右されない(`zzz` が出力に現れない)。終了後に `TMPDIR` に何も残らない |
-| `cli/tests/windows_demo.rs`(17) | Windows | 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で、場面 1〜14 の終了コードと結果を確かめる(定義が 4 ジョブと `extract` の警告の遷移を持つこと、場面 1 は 0、場面 2 は `notify` へ進み 0、場面 3・4 は 2 のあと `load` から再開、`run`/`reset`/`convert`、`validate` が 0 と 64、run ID ごとにステートが分かれる、`--run-id` が環境変数に勝つ、`reset --run-id` と `--all`、リトライで 2 回失敗してから成功、場面 11(環境変数が子に渡り優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0)、場面 12(`graph` の図と `--state`)、場面 13(`--dry-run` は何も実行せずステートも作らない)、場面 14(`init` は 2 回目に 69、`--force` で上書き)、利用者の run ID に影響されない) |
+| `cli/tests/unix_demo.rs` | UNIX | `sh demo/run-demo.sh` を、`CONDUCTOR=<テスト用のバイナリ>`、`DEMO_LANG=en_US.UTF-8`、`DEMO_SLEEP=0`、`TMPDIR=<一時ディレクトリ>` で実行。終了コード 0、見出し `=== 0. ` から `=== 14. `、場面 7・4・8・9・10 の要点の行(`definition is valid`、`command has an unclosed quote`、`→ 終了コード 64`、`completed`、`conductor.toml.build-1.state`、`skipped (already executed)`、`conductor.toml.opt-1.state`、`no state`、リトライの知らせ 2 行、`[flaky] 3 回目の実行`、`job=flaky result=success`)と、場面 11〜14 の要点の行(`[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`、`missing.env`、``duplicate key `A` ``。`*   extract` から `o @end` までの図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract`。`plan (--dry-run): pipeline nightly` の計画、`assume: extract=1`、`[skip (transition)]`、`stopped (error: load)`、`target job: extract`、`next step: next job transform`。`created new.toml`、`name = "starter"`、`already exists (use --force to overwrite)`、`→ 終了コード 69`、`replaced new.toml`)が出る。利用者の `CONDUCTOR_RUN_ID`・`DEMO_RUN_ID`・`LC_ALL`・`LC_MESSAGES`・`NO_COLOR` に左右されない(`zzz` が出力に現れない)。終了後に `TMPDIR` に何も残らない |
+| `cli/tests/windows_demo.rs` | Windows | 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で、場面 1〜14 の終了コードと結果を確かめる(定義が 4 ジョブと `extract` の警告の遷移を持つこと、場面 1 は 0、場面 2 は `notify` へ進み 0、場面 3・4 は 2 のあと `load` から再開、`run`/`reset`/`convert`、`validate` が 0 と 64、run ID ごとにステートが分かれる、`--run-id` が環境変数に勝つ、`reset --run-id` と `--all`、リトライで 2 回失敗してから成功、場面 11(環境変数が子に渡り優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0)、場面 12(`graph` の図と `--state`)、場面 13(`--dry-run` は何も実行せずステートも作らない)、場面 14(`init` は 2 回目に 69、`--force` で上書き)、利用者の run ID に影響されない) |
 
 ---
 
