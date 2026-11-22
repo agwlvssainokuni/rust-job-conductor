@@ -44,8 +44,10 @@ fn status_at(job_states: &[JobState], index: usize, job_id: &str) -> JobStatus {
 ///
 /// 個別実行で `@end` に到達したあと(`end_reached = true`)は、`NextStep.skipped_job_ids` が空なので、
 /// 後ろのジョブは記録なし(pending)のまま。スケジューラが呼ぶたびに、2 で `Skip(AfterEnd)` を返す。
-/// Cli は、呼ばれたジョブだけを `skipped(byEnd)` として記録し、その都度
-/// [`resume_point_on_interrupt`](super::resume_point_on_interrupt) で完了を判定する(BR3.6)。
+/// Cli は、呼ばれたジョブだけを [`apply_skip`](super::apply_skip) で `skipped(byEnd)` として記録する。
+/// 完了と再開位置は `apply_skip` が書く(最後のジョブをスキップとして記録し、`pending` が無ければ
+/// `completed = true`。BR3.6)。[`resume_point_on_interrupt`](super::resume_point_on_interrupt) は、
+/// `pipeline` のジョブのあいだの中断にだけ使う。
 pub fn decide_before_run(
     job_id: &str,
     definition: &PipelineDefinition,

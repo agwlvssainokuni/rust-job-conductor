@@ -61,8 +61,9 @@
 //!
 //! ジョブごとに、[`decide_before_run`] → (`Run` のとき)ジョブの起動 → [`classify_and_decide`] →
 //! ステートの書き込み。`Skip` のときは、ジョブを起動せず、必要ならスキップをステートに記録して、
-//! 終了コード 0 で終わる。スキップの記録のあとの完了の判定には、[`resume_point_on_interrupt`] を使う
-//! (最後のジョブがスキップなら `completed` が `true`)。`Reject` のときは、ジョブを実行せず、
+//! 終了コード 0 で終わる。完了と再開位置は [`apply_skip`] が書く(最後のジョブをスキップとして
+//! 記録し、`pending` が無ければ `completed = true`)。[`resume_point_on_interrupt`] は、`pipeline` の
+//! ジョブのあいだの中断にだけ使う。`Reject` のときは、ジョブを実行せず、
 //! ステートも変えず、conductor 自身のエラー(終了コード 66。BR5.1)として扱う。
 //!
 //! # 守る性質

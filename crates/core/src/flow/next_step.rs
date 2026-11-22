@@ -36,8 +36,10 @@ use crate::types::{
 ///   `Individual` で `@end` に到達したときは、`end_reached = true`、`skip_reason_kind = ByEnd` で、
 ///   `skipped_job_ids` は空、`completed = false`。以降のジョブは、スケジューラが呼んだときに
 ///   [`decide_before_run`](super::decide_before_run) が `Skip(AfterEnd)` を返し、Cli が呼ばれた
-///   ジョブだけをスキップとして記録する。最後のジョブが記録されたとき、
-///   [`resume_point_on_interrupt`](super::resume_point_on_interrupt) が `completed = true` を返す。
+///   ジョブだけをスキップとして記録する。完了と再開位置は [`apply_skip`](super::apply_skip) が書く
+///   (最後のジョブをスキップとして記録し、`pending` が無ければ `completed = true`)。
+///   [`resume_point_on_interrupt`](super::resume_point_on_interrupt) は、`pipeline` のジョブのあいだの
+///   中断にだけ使う。
 ///   (`@end` より後ろに未処理のジョブがなければ、`Individual` でも、その場で `completed`。)
 ///
 /// 再実行で成功・警告になったときは、再開位置は無し(BR3.4)。`job_states` は、すでに成功・警告・

@@ -25,10 +25,9 @@ use crate::types::{JobState, JobStatus, PipelineDefinition, ResumePoint};
 /// - `end_reached` は、`@end` によるスキップの記録があれば `true`(引き継ぎ)。
 /// - エラーとしては記録しない(この関数は、記録を作らない)。
 ///
-/// Cli がスキップをステートに記録したあとの完了の判定にも使う(最後のジョブがスキップなら
-/// `completed` が `true`)。個別実行で `@end` に到達したあとは、呼ばれたジョブを 1 つ
-/// `skipped(byEnd)` と記録するごとに、次の未呼び出しのジョブが再開位置になり、最後のジョブが
-/// 記録された時点で `completed = true` になる(BR3.6)。
+/// Cli がこの関数を使うのは、`pipeline` のジョブのあいだの中断だけである。スキップを記録した
+/// あとの完了と再開位置は [`apply_skip`](super::apply_skip) が書く(最後のジョブをスキップとして
+/// 記録し、`pending` が無ければ `completed = true`。BR3.6)。
 pub fn resume_point_on_interrupt(
     definition: &PipelineDefinition,
     job_states: &[JobState],
