@@ -27,13 +27,13 @@ use super::{EdgeTarget, FlowGraph, GraphLayout, LaneGlyph, LaneLayout, LaneRow};
 ///
 /// 1. 各ジョブから出る辺は、記述順の次の節への辺を持ち、それ以外の辺(飛び越し)は、多くて 1 つ。
 ///    ただし、辺が 1 つだけで、種類が成功と警告の両方で、行き先が次の節でないジョブ
-///    (「両方の飛び越し」。BR2.1)は、次の節への辺を要らず、線を作らない(`None` として扱う)。
+///    (「両方の飛び越し」。BR2.1)は、次の節への辺を要らない。その辺は、通常の飛び越しと同じ線で描く。
 /// 2. 飛び越しの区間が交差しない(元 1 < 元 2 < 行き先 1 < 行き先 2 になる組がない)。
 ///    行き先が同じ辺は、交差ではなく、合流になる(BR1.1)。
 ///
 /// 条件 2 は、記述順に節を見ながら、開いている飛び越しの行き先を積んだ列(積み上げ)で、
 /// 1 回の走査で確かめる。合流する辺は、積み上げに載せない。
-fn skip_targets(graph: &FlowGraph) -> Option<Vec<Option<usize>>> {
+fn skip_targets(graph: &FlowGraph) -> Option<(Vec<Option<usize>>, Vec<bool>)> {
     let job_count = graph.nodes.len().checked_sub(1)?;
     let position: HashMap<&str, usize> = graph
         .nodes
@@ -73,8 +73,7 @@ fn skip_targets(graph: &FlowGraph) -> Option<Vec<Option<usize>>> {
     }
     for i in 0..job_count {
         if both_skip[i] && edge_count[i] == 1 {
-            // 「両方の飛び越し」: 線を作らず、次の節への辺も要らない。
-            skip[i] = None;
+            // 「両方の飛び越し」: 次の節への辺は要らない(行き先は、通常の飛び越しと同じ線で描く)。
         } else if !has_next[i] {
             return None;
         }
@@ -99,7 +98,10 @@ fn skip_targets(graph: &FlowGraph) -> Option<Vec<Option<usize>>> {
             }
         }
     }
-    Some(skip)
+    let exclusive: Vec<bool> = (0..job_count)
+        .map(|i| both_skip[i] && edge_count[i] == 1)
+        .collect();
+    Some((skip, exclusive))
 }
 
 /// 図の形が、レーンの図(`git log --graph` と同じ見た目)で描ける「対応する形」か(BR2.4)。
@@ -112,14 +114,19 @@ pub fn is_lane_drawable(graph: &FlowGraph) -> bool {
 /// 図の配置を決める。「対応する形」ならレーンの図、そうでなければ辺の一覧(BR2.4、BR2.8)。
 pub fn layout_graph(graph: &FlowGraph) -> GraphLayout {
     match skip_targets(graph) {
-        Some(skip) => GraphLayout::Lanes(lane_layout(&skip)),
+        Some((skip, both)) => GraphLayout::Lanes(lane_layout(&skip, &both)),
         None => GraphLayout::EdgeList,
     }
 }
 
 /// 線をつなぐ行(合流): 主線の線と、閉じる線(列 1)の合流、残りの `remaining` 本の左へのずれ。
-fn merge_row(remaining: usize) -> Vec<LaneGlyph> {
-    let mut glyphs = vec![LaneGlyph::Line, LaneGlyph::Join];
+fn merge_row(remaining: usize, all_both: bool) -> Vec<LaneGlyph> {
+    let first = if all_both {
+        LaneGlyph::Empty
+    } else {
+        LaneGlyph::Line
+    };
+    let mut glyphs = vec![first, LaneGlyph::Join];
     for _ in 0..remaining {
         glyphs.extend([LaneGlyph::Empty, LaneGlyph::Join]);
     }
@@ -127,8 +134,13 @@ fn merge_row(remaining: usize) -> Vec<LaneGlyph> {
 }
 
 /// 線をつなぐ行(分岐): 新しい線を列 1 に入れ、すでにある `existing` 本が右へずれる。
-fn fork_row(existing: usize) -> Vec<LaneGlyph> {
-    let mut glyphs = vec![LaneGlyph::Line, LaneGlyph::Fork];
+fn fork_row(existing: usize, both: bool) -> Vec<LaneGlyph> {
+    let first = if both {
+        LaneGlyph::Empty
+    } else {
+        LaneGlyph::Line
+    };
+    let mut glyphs = vec![first, LaneGlyph::Fork];
     for _ in 0..existing {
         glyphs.extend([LaneGlyph::Empty, LaneGlyph::Fork]);
     }
@@ -136,8 +148,13 @@ fn fork_row(existing: usize) -> Vec<LaneGlyph> {
 }
 
 /// 線をつなぐ行(同じ行き先への合流): 既存の最も内側の線(列 1)に重なる。外側の `outer` 本は、そのまま。
-fn join_lane_row(outer: usize) -> Vec<LaneGlyph> {
-    let mut glyphs = vec![LaneGlyph::Line, LaneGlyph::Fork, LaneGlyph::Line];
+fn join_lane_row(outer: usize, both: bool) -> Vec<LaneGlyph> {
+    let first = if both {
+        LaneGlyph::Empty
+    } else {
+        LaneGlyph::Line
+    };
+    let mut glyphs = vec![first, LaneGlyph::Fork, LaneGlyph::Line];
     for _ in 0..outer {
         glyphs.extend([LaneGlyph::Empty, LaneGlyph::Line]);
     }
@@ -153,22 +170,29 @@ fn join_lane_row(outer: usize) -> Vec<LaneGlyph> {
 ///    この節が合流の行き先(直前が合流の行)で、次の節も合流の行き先なら `/`、それ以外は `|`。
 ///    ラベルの位置は、2 × (1 + 開いている線の数 + (NewLane なら 1))(正解データの例が根拠)。
 /// 3. 新しい線なら分岐の行。最も内側の線と行き先が同じ飛び越し(JoinLane)なら、合流の行 `|\|`
-///    (線を増やさない)。飛び越しなし、「両方の飛び越し」(NoLane)は、行を足さない。
-fn lane_layout(skip: &[Option<usize>]) -> LaneLayout {
+///    (線を増やさない)。飛び越しなし(NoLane)は、行を足さない。
+///    「両方の飛び越し」は、通常の飛び越しと同じ扱い(NewLane か JoinLane)。
+fn lane_layout(skip: &[Option<usize>], both: &[bool]) -> LaneLayout {
     let job_count = skip.len();
     let mut rows: Vec<LaneRow> = Vec::with_capacity(job_count * 3 + 2);
     // 開いている飛び越しの行き先。最後が列 1(最も内側)。
     let mut open: Vec<usize> = Vec::new();
+    // 開いている線ごとに、その線に合流する辺がすべて「両方の飛び越し」か(その線の主線側の `|` を描かない)。
+    let mut open_all_both: Vec<bool> = Vec::new();
     // 直前の行が分岐の行か(分岐の行の直後のノードの行では、ずれる線を `\` で描く)。
     let mut after_fork = false;
     for i in 0..=job_count {
         let is_target = open.last() == Some(&i);
         if is_target {
             rows.push(LaneRow {
-                glyphs: merge_row(open.len() - 1),
+                glyphs: merge_row(
+                    open.len() - 1,
+                    open_all_both.last().copied().unwrap_or(false),
+                ),
                 node_index: None,
             });
             open.pop();
+            open_all_both.pop();
             after_fork = false;
         }
         let existing = open.len();
@@ -204,18 +228,23 @@ fn lane_layout(skip: &[Option<usize>]) -> LaneLayout {
             glyphs,
             node_index: Some(i),
         });
+        let is_both = both.get(i).copied().unwrap_or(false);
         if let Some(t) = target {
             if joins {
+                if let Some(last) = open_all_both.last_mut() {
+                    *last &= is_both;
+                }
                 rows.push(LaneRow {
-                    glyphs: join_lane_row(existing - 1),
+                    glyphs: join_lane_row(existing - 1, is_both),
                     node_index: None,
                 });
             } else {
                 rows.push(LaneRow {
-                    glyphs: fork_row(existing),
+                    glyphs: fork_row(existing, is_both),
                     node_index: None,
                 });
                 open.push(t);
+                open_all_both.push(is_both);
             }
         }
         after_fork = new_lane;

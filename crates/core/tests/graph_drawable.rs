@@ -81,11 +81,26 @@ fn 対応する形_同じ行き先と終点の共有() {
 
 #[test]
 fn 対応する形_成功と警告の両方が飛び越す() {
-    // 両方が d へ。線なしで描ける。
+    // 両方が d へ。通常の飛び越しと同じ線で描ける。
     assert!(drawable(
         &IDS,
         &[("a", Success, Some("d")), ("a", Warning, Some("d"))]
     ));
+}
+
+#[test]
+fn 対応しない形_両方の飛び越しが交差する() {
+    // a の両方が d へ、b の成功が e へ。通常の飛び越しと同じく交差する。
+    let crossing = [
+        ("a", Success, Some("d")),
+        ("a", Warning, Some("d")),
+        ("b", Success, Some("e")),
+    ];
+    assert!(!drawable(&IDS, &crossing));
+    assert_eq!(
+        layout_graph(&build_graph(&definition(&IDS, &crossing), None)),
+        GraphLayout::EdgeList
+    );
 }
 
 #[test]

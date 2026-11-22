@@ -136,11 +136,11 @@ fn 同じ行き先の図_s1_と_両方の飛び越しの図_d1() {
         text_of(Language::Ja, &s1, None, false),
         "*   a\n|\\\n* | b\n|\\|\n* | c\n|/\n* d\n* e\no @end\n"
     );
-    // D1: a の成功と警告が、どちらも c へ飛ぶ。線なし。
+    // D1: a の成功と警告が、どちらも c へ飛ぶ。通常の飛び越しと同じ線で、主線の線だけ省く。
     let d1 = definition(&["a", "b", "c", "d"], &[], &both_skip_extra("c"));
     assert_eq!(
         text_of(Language::Ja, &d1, None, false),
-        "* a\n* b\n* c\n* d\no @end\n"
+        "*   a\n \\\n* | b\n /\n* c\n* d\no @end\n"
     );
 }
 
@@ -158,7 +158,7 @@ fn 同じ行き先と両方の飛び越しに_state_を重ねても_行の形は
     };
     assert_eq!(
         text_of(Language::Ja, &d1, Some(&overlay), false),
-        "* [OK] a\n* [--] b\n* [OK] c\n* [  ] d  <- 再開位置\no @end\n"
+        "*   [OK] a\n \\\n* | [--] b\n /\n* [OK] c\n* [  ] d  <- 再開位置\no @end\n"
     );
 }
 
@@ -175,8 +175,8 @@ fn v_の詳細は_合流の行のあとにも_分岐の行と同じように置�
     let d1 = definition(&["a", "b", "c", "d"], &[], &both_skip_extra("c"));
     assert_eq!(
         text_of(Language::En, &d1, None, true),
-        "* a\n| command: echo a\n| success, warning -> c (skips b)\n\
-         * b\n| command: echo b\n* c\n| command: echo c\n* d\n| command: echo d\no @end\n"
+        "*   a\n \\\n| | command: echo a\n| | success, warning -> c (skips b)\n\
+         * | b\n| | command: echo b\n /\n* c\n| command: echo c\n* d\n| command: echo d\no @end\n"
     );
 }
 

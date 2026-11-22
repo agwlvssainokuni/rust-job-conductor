@@ -201,9 +201,9 @@ fn 同じ行き先の定義は_合流の行のレーンの図で出る() {
     assert_eq!(text(&out.stderr), "");
 }
 
-/// 成功と警告の両方が飛び越す定義(例 D1)の text が、線なしの行で出る。交差は、辺の一覧に残る。
+/// 成功と警告の両方が飛び越す定義(例 D1)の text が、通常の飛び越しと同じ線(主線の線だけ省く)で出る。交差は、辺の一覧に残る。
 #[test]
-fn 両方の飛び越しの定義は_線なしの図で出て_交差は辺の一覧のまま() {
+fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_交差は辺の一覧のまま() {
     let ok = helper_command("exit 0");
     let both = "[[job.transitions]]\non = \"warning\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"c\"\n";
     let jobs = [
@@ -215,7 +215,10 @@ fn 両方の飛び越しの定義は_線なしの図で出て_交差は辺の一
     let project = Project::new(&definition("p", &jobs));
     let out = project.run(&["graph"]);
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
-    assert_eq!(text(&out.stdout), "* a\n* b\n* c\n* d\no @end\n");
+    assert_eq!(
+        text(&out.stdout),
+        "*   a\n \\\n* | b\n /\n* c\n* d\no @end\n"
+    );
 
     // 交差する形(a→d、b→e)は、辺の一覧と、広い言い方の注記。
     let crossing = [
