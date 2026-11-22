@@ -1,6 +1,6 @@
 # 02. アーキテクチャ(クレート・公開 API・実行の流れ・差し替え点・モジュール)
 
-対象: `conductor` v0.8.0(Rust 実装)。根拠は `crates/*/src/{lib,types,deps,...}.rs`。この文書は「どのクレートが何を受け持ち、何を公開し、どう組み合わさるか」を定める。各挙動の細部は 03〜10 章にある。
+対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。根拠は `crates/*/src/{lib,types,deps,...}.rs`。この文書は「どのクレートが何を受け持ち、何を公開し、どう組み合わさるか」を定める。各挙動の細部は 03〜10 章にある。
 
 ## 1. 4 クレートの責務と依存方向
 
@@ -21,10 +21,10 @@
 
 | クレート | 種別 | 内部の依存 | 責務 | 入出力 |
 |----------|------|------------|------|--------|
-| `conductor-core` | lib | なし | 定義ファイルの読み込みと検証(`load_definition`、`parse_definition`)。共有する型。run ID の検査。フローの判断(分類、起動前の判断、次の動きと完了、リトライの判断、中断時の再開位置)。エラー型 `DefinitionError` | ファイルに触れるのは定義の取り込み(`definition/intake.rs`)だけ。判断の関数は純粋(ファイル・プロセス・環境変数に触れず、失敗せず、必ず結果を返す) |
-| `conductor-runtime` | lib(+ テスト補助 bin) | core | `command` の分割と検査。ジョブの起動・待ち・シグナルの転送(`run_job`)。リトライの待機(`wait_for`)。ステートの読み込み・書き込み・初期化・照合・記録(`state`)。`reset --all` | プロセス、ステートファイル、OS(`platform`) |
+| `conductor-core` | lib | なし | 定義ファイルの読み込みと検証(`load_definition`、`parse_definition`)。共有する型。run ID の検査。フローの判断(分類、起動前の判断、次の動きと完了、リトライの判断、中断時の再開位置)。エラー型 `DefinitionError`。v0.9.0 以降: `.env` の解析と層の統合(`envfile`)、図の構造と配置(`graph`)、実行計画の模擬(`plan`)。すべて純粋 | ファイルに触れるのは定義の取り込み(`definition/intake.rs`)だけ。判断の関数は純粋(ファイル・プロセス・環境変数に触れず、失敗せず、必ず結果を返す)。`envfile`・`graph`・`plan` も、文字列と値だけを扱う |
+| `conductor-runtime` | lib(+ テスト補助 bin) | core | `command` の分割と検査。ジョブの起動・待ち・シグナルの転送(`run_job`)。リトライの待機(`wait_for`)。ステートの読み込み・書き込み・初期化・照合・記録(`state`)。`reset --all`。v0.9.0 以降: `.env` ファイルの読み取り(`load_env_files`)、ファイルの排他的な作成(`create_file`。`init` が使う) | プロセス、ステートファイル、`.env`、OS(`platform`) |
 | `conductor-converter` | lib | なし | 定義ファイルの TOML と YAML の相互変換(`convert`、`convert_text`)。定義の検証はしない | 入力ファイルの読み取りだけ(`intake.rs`) |
-| `conductor-cli` | lib `conductor_cli` + bin `conductor`(+ テスト補助 bin) | core、runtime、converter | 引数の解釈、流れの組み立て(`run`・`pipeline`・`watch`・`reset`・`validate`・`convert`)、シグナルの監視、表示(英語・日本語)、終了コードの決定、パニックのフック | 標準入出力、環境変数、シグナル。ファイルとプロセスの操作は `Runtime` trait を介して runtime・core・converter に任せる |
+| `conductor-cli` | lib `conductor_cli` + bin `conductor`(+ テスト補助 bin) | core、runtime、converter | 引数の解釈、流れの組み立て(`run`・`pipeline`・`watch`・`reset`・`validate`・`convert`・`graph`・`init`、`--dry-run`)、図と計画とひな形の文字への整形、シグナルの監視、表示(英語・日本語)、終了コードの決定、パニックのフック | 標準入出力、環境変数、シグナル。ファイルとプロセスの操作は `Runtime` trait を介して runtime・core・converter に任せる |
 
 依存方向の規則:
 
@@ -39,7 +39,7 @@
 
 ### 2.1 `conductor-core`
 
-再公開(`lib.rs`): `definition::{load_definition, parse_definition}`、`error::*`、`flow::{RetryDecision, classify_and_decide, decide_before_run, resume_point_on_interrupt, retry_decision}`、`run_id::{DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env}`、`types::*`。公開モジュール: `definition`、`error`、`flow`(`classify` を含む。定数 `EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1` と関数 `classify` は `flow::classify` にある)、`run_id`、`types`。
+再公開(`lib.rs`): `definition::{load_definition, parse_definition}`、`error::*`、`flow::{RetryDecision, TransitionResolution, classify_and_decide, decide_before_run, resolve_transition, resume_point_on_interrupt, retry_decision}`、`run_id::{DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env}`、`types::*`。v0.9.0 以降は、さらに `envfile::{EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError, EnvFileErrorKind, EnvOrigin, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs, is_reserved_env_name, merge_env, parse_env_file, summarize_errors}` と `plan::{Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry, PlanInput, PlanMode, PlanRejection, ResumeInfo, ResumeKind, SimulatedResult, plan_pipeline, plan_run}` を再公開する(`graph` は `conductor_core::graph::…` のパスで使う)。公開モジュール: `definition`、`envfile`、`error`、`flow`(`classify` を含む。定数 `EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1` と関数 `classify` は `flow::classify` にある)、`graph`、`plan`、`run_id`、`types`。
 
 #### 関数
 
@@ -55,13 +55,22 @@
 | `decide_before_run` | `(job_id: &str, definition: &PipelineDefinition, job_states: &[JobState], resume_job_id: Option<&str>, end_reached: bool) -> Decision` | 起動前の判断(Run / Skip / Reject)。05 の 4 章 |
 | `resume_point_on_interrupt` | `(definition: &PipelineDefinition, job_states: &[JobState]) -> ResumePoint` | ジョブのあいだの中断の再開位置。05 の 9 章 |
 | `retry_decision` | `(job: &JobDefinition, execution: &JobExecution, retries_done: u32, last_wait_secs: u64) -> RetryDecision` | リトライするか(`Stop` または `Retry { wait_secs }`)。05 の 7 章 |
+| `resolve_transition`(v0.9.0 以降) | `(job: &JobDefinition, on: TransitionOn, definition: &PipelineDefinition, index: usize) -> TransitionResolution` | 結果 `on` の遷移の行き先の解決(`End` / `Job(位置)` / `Default`)。`classify_and_decide` と、図の辺の取り出し(`graph::flow_edges`)が共有する。05 の 3.2 |
+| `parse_env_file`(v0.9.0 以降) | `(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvFileError>>` | `.env` の文字列の解析(純粋)。03 の 6.7 |
+| `merge_env`(v0.9.0 以降) | `(def: &PipelineDefinition, job: &JobDefinition, files: &LoadedEnvFiles, ctx: &EnvContext<'_>) -> EffectiveEnv` | 層を統合して、ジョブに足す環境を作る(純粋)。05 の 14 章 |
+| `env_file_refs`(v0.9.0 以降) | `(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<String>` | 読む対象の `env_file` の記述(重複なし、書いた順)。`None` は全ジョブ分 |
+| `is_reserved_env_name`(v0.9.0 以降) | `(name: &str) -> bool` | `CONDUCTOR_` で始まるか(ASCII の大文字小文字を区別しない) |
+| `summarize_errors`(v0.9.0 以降) | `(errors: &[EnvFileError]) -> (&[EnvFileError], usize)` | 表示する先頭の最大 20 件と、残りの件数 |
+| `graph::flow_edges` / `build_graph` / `layout_graph` / `is_lane_drawable` / `overlay_from_state` / `pending_overlay` / `node_state_of`(v0.9.0 以降) | 05 の 15 章 | 図の辺・構造・配置・状態の重ね合わせ(純粋) |
+| `plan_pipeline` / `plan_run`(v0.9.0 以降) | `(&PlanInput<'_>) -> Result<ExecutionPlan, PlanRejection>` / `(job_id: &str, &PlanInput<'_>) -> …` | `--dry-run` の計画の生成(純粋)。05 の 16 章 |
 
 #### 主要な型(`types`)
 
 | 型 | 内容 |
 |----|------|
-| `PipelineDefinition` | `name`、`description: Option<String>`、`run_id_env: Option<String>`、`remove_on_complete: bool`、`format_version: u32`、`job: Vec<JobDefinition>`。`job_index(&str) -> Option<usize>` |
-| `JobDefinition` | `id`、`command: Command`、`warning_exit_codes: Vec<i32>`、`success_exit_codes: Option<Vec<i32>>`、`transitions: Vec<Transition>`、`retry: Option<RetryPolicy>`。`effective_success_codes() -> &[i32]`、`transition_for(TransitionOn) -> Option<&Transition>` |
+| `PipelineDefinition` | `name`、`description: Option<String>`、`run_id_env: Option<String>`、`remove_on_complete: bool`、`format_version: u32`、`job: Vec<JobDefinition>`、`env: Vec<EnvVar>`、`env_file: Vec<String>`(後ろの 2 つは v0.9.0 以降)。`job_index(&str) -> Option<usize>` |
+| `EnvVar`(v0.9.0 以降) | `{ name: String, value: String }`。`Debug` は値を `"***"` と表示する |
+| `JobDefinition` | `id`、`command: Command`、`warning_exit_codes: Vec<i32>`、`success_exit_codes: Option<Vec<i32>>`、`transitions: Vec<Transition>`、`retry: Option<RetryPolicy>`、`env: Vec<EnvVar>`、`env_file: Vec<String>`(後ろの 2 つは v0.9.0 以降)。`effective_success_codes() -> &[i32]`、`transition_for(TransitionOn) -> Option<&Transition>` |
 | `Command` | `Line(String)` / `Argv(Vec<String>)`。`program_name() -> Option<&str>` |
 | `Transition` / `TransitionOn` / `TransitionTarget` | `{ on, next }` / `Success`・`Warning` / `Job(String)`・`End` |
 | `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`multiplier: Option<u32>`、`max_interval_secs: Option<u64>` |
@@ -80,18 +89,21 @@
 
 | 型 | 内容 |
 |----|------|
-| `DefinitionErrorKind` | 30 種(`ALL: [DefinitionErrorKind; 30]`)。`code() -> &'static str` が識別子(`fileMissing` など)。03 の 9.3、10 の 7.1 |
+| `DefinitionErrorKind` | 33 種(`ALL: [DefinitionErrorKind; 33]`。v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を追加)。`code() -> &'static str` が識別子(`fileMissing` など)。03 の 9.3、10 の 7.1 |
 | `DefinitionError` | `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>` |
 | `RunIdError` | `Empty`・`TooLong`・`InvalidChar`・`LeadingDot` |
+| `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`ALL: [EnvFileErrorKind; 13]`。`code()`、`reason()`)/ `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>`。03 の 6.7、10 の 7.1 |
 | 補助 | `sanitize(input, max_chars)`(制御文字・書式文字のエスケープと切り詰め)、`quote_key`、`Locate`(位置→行番号。`line_of(offset)`)、`MAX_KEY_DISPLAY_CHARS = 64` |
 
 ### 2.2 `conductor-runtime`
 
-再公開(`lib.rs`): `error::*`、`run_job`、`check_command`、`check_consistency`、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::*`、`WaitOutcome`、`wait_for`。`platform`、`runner`、`split`、`state` は非公開(`#![deny(unsafe_code)]`)。
+再公開(`lib.rs`): `error::*`、`run_job`、`check_command`、`check_consistency`、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::*`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`(後ろの 4 つは v0.9.0 以降)。`envfile`、`file_create`、`platform`、`runner`、`split`、`state` は非公開(`#![deny(unsafe_code)]`)。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
-| `run_job` | `(job: &JobDefinition, signal: &InterruptSignal) -> JobExecution` | シェルを介さず直接起動し、終了を待つ。パニックしない。シグナルを子へ 1 回転送。07 の 4 章 |
+| `run_job` | `(job: &JobDefinition, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution` | シェルを介さず直接起動し、終了を待つ。`env` を、並びの順に、引き継いだ環境へ足す(v0.9.0 以降。v0.8.0 以前は `env` 引数なし)。パニックしない。シグナルを子へ 1 回転送。07 の 4 章 |
+| `load_env_files`(v0.9.0 以降) | `(definition_path: &Path, refs: &[String]) -> Result<LoadedEnvFiles, Vec<EnvFileError>>` | `env_file` の `.env` を、すべて読む(パスの解決、1 MiB の上限、UTF-8、解析)。誤りは全ファイル分を集めて返す。03 の 6.7 |
+| `create_file`(v0.9.0 以降) | `(path: &Path, bytes: &[u8], force: bool) -> Result<CreateOutcome, CreateError>` | 排他的な作成(`force` なら一時ファイルから置き換え)。`CreateOutcome::{Created, Replaced}`、`CreateError::{AlreadyExists, ParentMissing, IsDirectory, PermissionDenied, OtherIo}`(`ALL: [CreateError; 5]`)。04 の 7.8 |
 | `check_command` | `(command: &Command) -> Result<CommandLine, CommandError>` | 起動せずに `command` を検査(分割)する。07 の 3 章 |
 | `wait_for` | `(secs: u64, signal: &InterruptSignal) -> WaitOutcome` | リトライ前の待機。合図を 50 ms 以下の間隔で確かめる。`WaitOutcome::{Elapsed, Interrupted(i32)}` |
 | `read_state` | `(definition_path: &Path, run_id: Option<&RunId>) -> Result<Option<PipelineState>, StateError>` | ステートを読む。ファイルなし・長さ 0・**完了のもの**は `None`(空) |
@@ -123,7 +135,7 @@
 
 ### 2.4 `conductor-cli`
 
-再公開(`lib.rs`): `parse_args`、`Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`、`install_panic_hook_with`、`on_panic`、`CliCommand`、`CommandKind`、`Language`、`Level`、`ParsedArgs`、`UsageError`、`UsageErrorKind`。公開モジュール: `args`、`deps`、`exit`、`panic_hook`、`platform`、`report`、`types`。
+再公開(`lib.rs`): `parse_args`、`Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`、`install_panic_hook_with`、`on_panic`、`CliCommand`、`CommandKind`、`DryRunOptions`、`GraphFormat`、`GraphOptions`、`InitOptions`、`InitTarget`(後ろの 5 つは v0.9.0 以降)、`Language`、`Level`、`ParsedArgs`、`UsageError`、`UsageErrorKind`。公開モジュール: `args`、`deps`、`exit`、`panic_hook`、`platform`、`report`、`types`。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
@@ -136,9 +148,9 @@
 | `render_table`(`report::watch`) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
 | `escape_display`(`report::escape`) | `(input: &str, limit: Option<usize>) -> String` | 入力由来の文字列のエスケープ。08 の 9 章 |
 
-終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_INTERNAL = 70`。
+終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
 
-型(`types`): `CommandKind { Run, Pipeline, Watch, Reset, Validate, Convert }`(`name()`)、`CliCommand { kind, job_id, pipeline_name, convert_input: Option<OsString>, convert_target: Option<TargetFormat>, config_path: Option<OsString>, verbose, run_id: Option<String>, all, remove_on_complete }`、`ParsedArgs { Help, Version, Command(CliCommand) }`、`UsageErrorKind`(8 種)、`UsageError { kind, subject: Option<String> }`、`Language { En(既定), Ja }`、`Level { Error, Notice, Verbose, Output }`。
+型(`types`): `CommandKind { Run, Pipeline, Watch, Reset, Validate, Convert, Graph, Init }`(`name()`。後ろの 2 つは v0.9.0 以降)、`CliCommand { kind, job_id, pipeline_name, convert_input: Option<OsString>, convert_target: Option<TargetFormat>, config_path: Option<OsString>, verbose, run_id: Option<String>, all, remove_on_complete, graph: GraphOptions, dry_run: DryRunOptions, force }`(最後の 3 つは v0.9.0 以降。`init_options() -> InitOptions`)、`GraphFormat { Text(既定), Mermaid }`、`GraphOptions { format, with_state }`、`DryRunOptions { dry_run, assumptions: Vec<Assumption> }`、`InitTarget { File(OsString), Stdout }`(`from_path`: `-` だけが `Stdout`)、`InitOptions { target, force, pipeline_name }`(既定は `conductor.toml` の `File`、`force = false`、名前 `my-pipeline`。定数 `DEFAULT_INIT_PATH`、`DEFAULT_INIT_PIPELINE_NAME`)、`ParsedArgs { Help, Version, Command(CliCommand) }`、`UsageErrorKind`(8 種)、`UsageError { kind, subject: Option<String> }`、`Language { En(既定), Ja }`、`Level { Error, Notice, Verbose, Output }`。
 
 ## 3. 実行時の全体の流れ
 
@@ -159,7 +171,7 @@ parsed = parse_args(args)
   Ok(Help)          → 使い方全文を標準出力へ、return 0
   Ok(Version)       → `conductor <版>` を標準出力へ、return 0
   Ok(Command(cmd))  → ctx = Ctx { runtime, signals, sink, env, reporter(verbose) }
-                      match cmd.kind: run / pipeline / watch / reset / validate / convert
+                      match cmd.kind: run / pipeline / watch / reset / validate / convert / graph / init
 ```
 
 ### 3.2 `pipeline` 実行のシーケンス
@@ -172,6 +184,7 @@ cli::pipeline::run_pipeline
  │    │    ├─ Runtime::load_definition(path, name)    → core::load_definition   → 失敗 64
  │    │    └─ Runtime::check_command(各ジョブ)         → runtime::check_command  → 失敗 64
  │    ├─ resolve_run_id(--run-id | 環境変数)           → 失敗 68
+ │    ├─ Ctx::load_env_files(v0.9.0 以降)             → Runtime::load_env_files → runtime::load_env_files → 失敗 64
  │    ├─ Runtime::read_state(path, run_id)            → runtime::read_state     → 失敗 65(完了のものは None)
  │    └─ check_consistency(state, definition)         → 食い違い 65
  └─ for job in definition.job (記述順):
@@ -181,7 +194,7 @@ cli::pipeline::run_pipeline
       │    └─ Run:
       │         ├─ 状態が空なら runtime::initial_state → Runtime::write_state(Fast)
       │         ├─ retry::run_job_with_retry
-      │         │    loop { Runtime::run_job → core::retry_decision
+      │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(job, 足す環境, signal) → core::retry_decision
       │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
       │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
       │         ├─ 表示(-v のときの結果行・遷移行。常時のエラー行)
@@ -193,7 +206,19 @@ cli::pipeline::run_pipeline
  └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
 ```
 
-`run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて同じ「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`/`convert` を呼ぶ(04 の 7 章)。
+`run` は、`prepare`(ジョブIDの存在の検査を含む)のあと、指定した 1 ジョブについて同じ「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
+
+v0.9.0 以降の 3 つの流れ(05 の 15〜17 章、04 の 7.7〜7.9):
+
+```text
+graph:      check_definition_and_env(定義 64 → command 64 → .env 64、重複キーの警告)
+            → (--state)run ID の決定 68 → read_state_raw → 照合 65 → overlay_from_state
+            → build_graph → layout_graph → render_text | render_mermaid → 標準出力 1 回
+--dry-run:  Ctx::prepare_checked(定義 64 → --assume のジョブID 68 → run ID 68 → .env 64 → ステート 65 → 照合 65)
+            → 各ジョブの command の分割 → plan_pipeline | plan_run(拒否 66)→ render_plan → 標準出力 1 回
+            (シグナルの準備なし、ステートに書かない、ジョブを起動しない)
+init:       render_template(言語, 名前) → Runtime::create_file | 標準出力(ファイル・ステート・.env を読まない)
+```
 
 ### 3.3 責務の流れ(データ)
 
@@ -214,7 +239,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 
 | trait | 本番の実装 | 責務(メソッド) |
 |-------|-----------|----------------|
-| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`run_job(job, signal)`、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)` |
+| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(job, env, signal)`(`env` は v0.9.0 以降)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
 | `Sink` | `StdSink` | `write_out(bytes)`、`write_err(bytes)`(書くたびに flush) |
 | `Env` | `SystemEnv` | `var(name) -> Option<String>`(UTF-8 でない値・未設定は `None`)、`stdout_is_terminal() -> bool` |
 | `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`AlreadyRegistered` / `Failed`) |
@@ -244,7 +269,12 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 |----------|------|
 | `lib.rs` | 公開の再公開 |
 | `types.rs` | 共有する型(2.1) |
-| `error.rs` | `DefinitionErrorKind`(30 種)、`DefinitionError`、`sanitize`、`quote_key`、`Locate`(位置→行番号) |
+| `error.rs` | `DefinitionErrorKind`(33 種)、`DefinitionError`、`sanitize`、`quote_key`、`Locate`(位置→行番号) |
+| `envfile/mod.rs`(v0.9.0 以降) | `.env` の型(`EnvFileErrorKind` 13 種、`EnvFileError`、`EnvWarning`、`EnvEntry`、`EnvFileContent`、`LoadedEnvFiles`、`EnvContext`、`EnvOrigin`、`EffectiveEntry`、`EffectiveEnv`)、定数(`MAX_ENV_FILE_BYTES = 1_048_576`、`MAX_ENV_ENTRIES = 10_000`、`MAX_REPORTED_ERRORS = 20`、`RESERVED_ENV_PREFIX`)、`is_reserved_env_name`、`env_file_refs`、`summarize_errors` |
+| `envfile/parse.rs`(同) | `parse_env_file`(`.env` の解析) |
+| `envfile/merge.rs`(同) | `merge_env`(層の統合と自動の変数) |
+| `graph/mod.rs`、`edges.rs`、`layout.rs`、`overlay.rs`(同) | 図の型(`FlowEdge`、`FlowGraph`、`GraphNode`、`NodeState`、`StateOverlay`、`LaneGlyph`、`LaneRow`、`LaneLayout`、`GraphLayout`)、辺の取り出し、「対応する形」の判定とレーンの配置、状態の重ね合わせ |
+| `plan/mod.rs`、`simulate.rs`(同) | 計画の型と、模擬(`plan_pipeline`、`plan_run`) |
 | `run_id.rs` | `RunId`、`RunIdError`、`is_valid_env_name`、`peek_run_id_env`、`DEFAULT_RUN_ID_ENV`、`MAX_RUN_ID_LEN` |
 | `definition/mod.rs` | `load_definition`、`parse_definition`(5 段階の流れ) |
 | `definition/intake.rs` | 定義の場所の決定、メタデータの確認、1 MiB 上限の読み取り、UTF-8 の確認 |
@@ -256,7 +286,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `flow/mod.rs` | 判断の再公開 |
 | `flow/classify.rs` | 分類と報告する終了コード |
 | `flow/decide.rs` | 起動前の判断 |
-| `flow/next_step.rs` | 遷移・完了・スキップ対象・再開位置(`classify_and_decide`) |
+| `flow/next_step.rs` | 遷移・完了・スキップ対象・再開位置(`classify_and_decide`)。v0.9.0 以降は、遷移の解決 `resolve_transition` を切り出し、図と共有する |
 | `flow/resume.rs` | ジョブのあいだの中断の再開位置 |
 | `flow/retry.rs` | リトライの判断と待ち時間の計算 |
 
@@ -268,7 +298,9 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `types.rs` | `CommandLine`、`InterruptSignal`、`StateLocation`、`MismatchKind`、`ConsistencyResult`、`Durability` |
 | `error.rs` | `CommandError`、`StateError`(種類の文、理由の固定の日本語の文) |
 | `split.rs` | `command` の分割(状態機械)、`check_command` |
-| `runner.rs` | `run_job`(起動・待ち・シグナルの転送)、`wait_loop` |
+| `runner.rs` | `run_job`(起動・待ち・シグナルの転送。v0.9.0 以降は環境変数を足す)、`wait_loop` |
+| `envfile.rs`(v0.9.0 以降) | `load_env_files`(パスの解決、大きさの検査、上限 + 1 バイトの読み取り、UTF-8、`parse_env_file` への委譲、同じパスの 1 回だけの読み取り) |
+| `file_create.rs`(同) | `create_file`、`CreateOutcome`、`CreateError`(排他的な作成、`--force` の置き換え) |
 | `wait.rs` | `wait_for`(リトライの待機) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | プロセスグループ(`configure_spawn`)、シグナルの送信(`forward_signal`)、シグナル終了の読み取り(`termination_signal`)、ディレクトリの同期(`sync_dir`)。`unsafe` は `unix.rs` の `libc::kill` だけ |
 | `state/mod.rs` | 下位モジュールの束ね |
@@ -302,19 +334,25 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `main.rs` | 入口(パニックのフック、`run_cli`、`process::exit` 1 回) |
 | `lib.rs` | 公開の再公開、`run_cli`、`run_cli_with` |
 | `args.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査)、`resolve_run_id` |
-| `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level` |
+| `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
-| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare`)、`check_definition`、表示・書き込み・削除の補助、`aux_run_id` |
+| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare`。v0.9.0 以降は、シグナルを除く部分を `prepare_checked` に分け、`Checked` を返す)、`check_definition`、`load_env_files`、表示・書き込み・削除の補助、`aux_run_id` |
 | `run.rs` | `run_individual`(個別実行) |
 | `pipeline.rs` | `run_pipeline`(一括実行)、`finish` |
-| `retry.rs` | `run_job_with_retry`(リトライを含む実行) |
-| `aux_commands.rs` | `watch`・`reset`・`validate`・`convert` |
+| `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`) |
+| `aux_commands.rs` | `watch`・`reset`・`validate`・`convert`、`check_definition_and_env`(`validate` と `graph` が共有) |
+| `graph.rs`(v0.9.0 以降) | `run_graph` |
+| `dry_run.rs`(同) | `run_dry_run`(`DryRunTarget::{Pipeline, Run}`) |
+| `init.rs`(同) | `run_init` |
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |
 | `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`) |
 | `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
 | `report/watch.rs` | `watch` の表(列の幅、色) |
+| `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |
+| `report/plan_text.rs`(同) | `render_plan` |
+| `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
 | `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display`、`escape_name`、`escape_path`) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
 

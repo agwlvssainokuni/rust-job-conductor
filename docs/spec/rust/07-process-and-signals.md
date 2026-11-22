@@ -1,6 +1,6 @@
 # 07 プロセス起動とシグナル(`command` の分割・起動・待ち・中断)
 
-対象: `conductor` v0.8.0(Rust 実装)。根拠は `crates/runtime/src/{split,runner,wait,types,error,platform/*}.rs`、
+対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。根拠は `crates/runtime/src/{split,runner,wait,types,error,platform/*}.rs`、
 `crates/cli/src/{platform/*,ctx,pipeline,run,retry,exit,panic_hook,main}.rs`、`crates/core/src/flow/{classify,resume}.rs`、
 および `crates/runtime/tests/{runner_*,wait_interruptible,nfr_*}.rs`、`crates/cli/tests/{signals_*,binary_signal}.rs`、
 `crates/cli/tests/WINDOWS_CTRL_C_CHECKLIST.md`。
@@ -174,14 +174,15 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 ### 4.1 手順(時系列)
 
-`run_job(job, signal) -> JobExecution`。失敗はすべて戻り値で返し、パニックしない。
+`run_job(job, env, signal) -> JobExecution`(v0.9.0 以降。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
 
 1. `JobExecution` を初期化する: `started = true`、`exit_code = None`、`terminated_by_signal = None`、`start_failure = false`、
    `interrupted = false`、`signal_number = None`。
 2. `command` を分割する(文字列は 3 章、配列は 3.5 節)。失敗なら `start_failure = true` で返す。
 3. **起動の前**に合図が立っていれば、起動せずに返す: `started = false`、`interrupted = true`、`signal_number = Some(番号)`。
    (ジョブは実行されない。)
-4. `std::process::Command::new(program)` に `args` を渡して作り、`platform::configure_spawn` を適用する
+4. `std::process::Command::new(program)` に `args` を渡して作り、`env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足し
+   (v0.9.0 以降。引き継いだ環境は残り、同じ名前は上書きされる。同じ名前が並びに 2 回あれば、後ろが勝つ)、`platform::configure_spawn` を適用する
    (UNIX: 新しいプロセスグループ。Windows: 何もしない)。
 5. `spawn()`。失敗なら `start_failure = true` で返す(`started` は `true` のまま)。
 6. WaitLoop で終了を待つ(5 章)。時間切れ(タイムアウト)はない。自動のリトライもしない(リトライは cli の層で行う。07 の範囲外)。
@@ -198,7 +199,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | シェル | 使わない。`sh -c` や `cmd /C` を挟まない(ソース検索のテストで、`"sh"`、`"cmd"`、`"bash"`、`"powershell"`、`"-c"`、`"/C"` の文字列と、`Command::new(&line.program)` 以外の `Command::new` がないことを確かめている) |
 | プログラムの探索 | 標準ライブラリ(`std::process::Command`)の規則に従う(`program` に区切り文字がなければ、OS の標準の探索。`PATH` など)。conductor 独自の探索はしない |
 | 作業ディレクトリ | 引き継ぐ(`conductor` を起動したときのカレントディレクトリ。定義ファイルの場所に移らない)。変更しない |
-| 環境変数 | すべて引き継ぐ。追加・削除・上書きをしない(`conductor` 自身が、子に渡すための変数を設定することはない)。run ID も環境変数としては渡さない |
+| 環境変数 | すべて引き継ぐ。**v0.8.0 以前**は、追加・削除・上書きをせず、run ID も渡さなかった。**v0.9.0 以降**は、引き継いだ環境を残したまま、`run_job` の `env` 引数(定義の `env`・`.env` と自動の変数 `CONDUCTOR_PIPELINE`・`CONDUCTOR_JOB_ID`・`CONDUCTOR_RUN_ID`(run ID があるとき)・`CONDUCTOR_ATTEMPT`。05 の 14 章)を**足す**(同じ名前は上書き。取り除くことはしない)。値は、書いたとおりに渡す |
 | 標準入力・標準出力・標準エラー | すべて引き継ぐ(`Stdio` を指定しない)。ジョブの出力は、`conductor` を介さず、そのまま流れる。`conductor` は、ジョブの出力を読まない・保存しない・ステートに書かない |
 | 引数の渡し方 | 分割した各引数を、そのまま OS に渡す(メタ文字は注入にならない)。Windows で `.cmd` / `.bat` を起動するときの引数の安全は、標準ライブラリのエスケープ(または起動の拒否)に任せる。どちらでも、続くコマンドは実行されない(Windows のテストで確かめる) |
 | 起動できなかった場合 | `spawn` の失敗は、原因(見つからない・実行権限がない・実行できない形式・ディレクトリを指定した、など)を区別せず `start_failure = true`。終了コードは 127(分類)。表示は `conductor: error: job '<ID>': cannot start command '<プログラム名>'`(英語)。ジョブの終了コード・シグナルは `None` |
@@ -283,7 +284,8 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 ### 7.1 準備(両 OS 共通)
 
 - `run` と `pipeline` だけが、**定義の検査より前**に、シグナルの監視を始める(`Ctx::prepare` の最初)。
-  `watch`・`reset`・`validate`・`convert` は監視せず、OS の既定の動作で終わる。
+  `watch`・`reset`・`validate`・`convert` は監視せず、OS の既定の動作で終わる。v0.9.0 以降の `graph`・`init` も監視しない。
+  `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare` の代わりに、シグナルを除く `prepare_checked` を呼ぶ)。
 - `InterruptSignal` を 1 つ作り、`Arc` で SignalWatcher に渡す。
 - 監視の登録は **プロセスで 1 回だけ**。2 回目の呼び出しは `AlreadyRegistered` になり、流れは成功と同様に続ける
   (2 回目に渡した合図には配線されない)。登録に失敗したとき(`Failed`)は、標準エラーに
@@ -419,6 +421,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 |--------------|--------|
 | 分割の全規則(3 章の表) | `crates/runtime/src/split.rs` の単体テスト |
 | メタ文字が引数にそのまま渡る、配列の要素がそのまま渡る、環境変数と作業ディレクトリの引き継ぎ、起動失敗、終了コード(0・3・255・300) | `crates/runtime/tests/runner_basic.rs` |
+| `env` 引数が子の環境に足される(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ。v0.9.0 以降) | `crates/runtime/tests/runner_env.rs` |
 | 起動前の合図で起動しない、終了の観測の直後の合図で `interrupted` | 同上 |
 | SIGTERM / SIGINT の転送、許可外の番号は送らない、新しいプロセスグループ、転送は 1 回だけ、先に終わったジョブは転送なし | `crates/runtime/tests/runner_signal.rs`(UNIX) |
 | 待ちの間隔(1,2,4,8,10,10)、転送 1 回 | `crates/runtime/src/runner.rs` の単体テスト |
@@ -444,7 +447,7 @@ README の「command の書き方」「シグナルの扱い」と実装は、�
 | 起動できなかった場合の 127 | 「ジョブを起動できなかった」 | `spawn` の失敗に加え、`try_wait` の失敗(終了の状態を取得できない)も、起動失敗として 127 にする |
 | 許可外の番号 | 記載なし | `run_job` に許可外の番号の合図が来ても送信しない。ただし `conductor` 本体は 4 つのシグナルだけを受けるため、通常は起こらない |
 | ジョブが 0 で終わったが合図が立っていたとき | 「ジョブの結果を、エラーとしてステートに記録」 | 終了の観測の直後に合図が立っていれば、ジョブの終了コードが 0 でもエラー(`128 + 番号`)。完了済みの最後のジョブの後に立った合図は無視(0 で終わる) |
-| ジョブの出力 | 「ジョブ本体の出力が、そのまま流れます」 | 標準入力・標準出力・標準エラー・環境変数・作業ディレクトリをすべて引き継ぐ(明記は一部) |
+| ジョブの出力 | 「ジョブ本体の出力が、そのまま流れます」 | 標準入力・標準出力・標準エラー・環境変数・作業ディレクトリをすべて引き継ぐ(明記は一部)。v0.9.0 以降は、環境変数に、定義の `env`・`.env`・自動の変数を足す(README の「環境変数の設定」の節) |
 
 ## 12. 未確認の事項
 

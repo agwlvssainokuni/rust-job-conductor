@@ -1,4 +1,4 @@
-# 03. 定義ファイルの書式と検証(rust 版 conductor v0.8.0)
+# 03. 定義ファイルの書式と検証(rust 版 conductor v0.9.0)
 
 この文書は、`conductor` の定義ファイル(`conductor.toml`)の書式と、読み込み時の検証を定める。実装は `crates/core/src/definition/*`(`conductor-core`)で、根拠は実装とそのテスト(`crates/core/tests/definition_*.rs`)である。この文書だけで、同じ受理・拒否・エラーを返す読み込み処理を実装できることを目標とする。
 
@@ -6,6 +6,8 @@
 - 検証は、見つけた誤りを**まとめて**返す(ただし、早い段階の誤りは 1 件だけで打ち切る。後述)。
 - 定義の内容は、実行も評価もしない。`command` の文字列は、そのまま保持する。
 - 確認できなかった点は「未確認」と書く。
+- v0.9.0 以降、定義は `env`(環境変数の表)と `env_file`(`.env` ファイルの指定)を持てる(6.6)。定義の読み込み(`load_definition`)は、`env_file` の**パスの書式だけ**を検査し、指す `.env` ファイルは読まない。`.env` の読み取りと検査は、実行の前(`run`・`pipeline`・`--dry-run`)と `validate`・`graph` が別に行い、誤りは `DefinitionError` ではなく `EnvFileError`(6.7、13 種)で返す。終了コードはどちらも 64。
+- `format_version` は 1 のままである。新しいキー(`env`、`env_file`)を使わない定義は、変更なしで読める。v0.8.x 以前の `conductor` は、新しいキーを `unknownKey` として拒否する。
 
 ## 1. 処理の段階と打ち切り
 
@@ -127,6 +129,8 @@ Parse に成功した木を走査し、入れ子の深さを数える。
 | `description` | 文字列 | 任意 | なし(`None`) | 型だけ |
 | `run_id_env` | 文字列 | 任意 | なし(`None`。実行時の既定は `CONDUCTOR_RUN_ID`) | 名前の形(下記) |
 | `remove_on_complete` | 真偽値 | 任意 | `false` | 型だけ |
+| `env`(v0.9.0 以降) | テーブル(値は文字列) | 任意 | 空 | 第 6.6 節 |
+| `env_file`(v0.9.0 以降) | 文字列、または文字列の配列 | 任意 | 空 | 第 6.6 節 |
 
 - 許されたキー以外は `unknownKey`(例: `owner`、`remove_on_complet`)。
 - 型の誤り(すべて `typeMismatch`、行は値の行。`name` が無いときは `[pipeline]` のテーブルの先頭の行)の理由の原文:
@@ -164,6 +168,8 @@ Parse に成功した木を走査し、入れ子の深さを数える。
 | `success_exit_codes` | 整数の配列 | 任意 | 省略(`None`)。意味は `[0]` | 成功にする終了コード |
 | `transitions` | テーブルの配列 | 任意 | 空 | 第 6.4 節 |
 | `retry` | テーブル | 任意 | なし(`None`) | 第 6.5 節 |
+| `env`(v0.9.0 以降) | テーブル(値は文字列) | 任意 | 空 | 第 6.6 節 |
+| `env_file`(v0.9.0 以降) | 文字列、または文字列の配列 | 任意 | 空 | 第 6.6 節 |
 
 許されたキー以外は `unknownKey`(例: `warn_exit_codes`)。
 
@@ -266,13 +272,144 @@ Parse に成功した木を走査し、入れ子の深さを数える。
 - `retry` の有無は、ほかのキーの読み取りの結果に影響しない。
 - 誤りの文に、入力の値は含めない(`"SENTINEL..."` のような値が文に出ないことを確認するテストがある)。
 
+### 6.6 `env` と `env_file`(v0.9.0 以降)
+
+`[pipeline]` と各 `[[job]]` に、同じ形の 2 つの任意のキーを書ける。意味(層の順、ジョブへの足し方)は 05 の 14 章。
+
+```toml
+[pipeline]
+name = "nightly"
+env_file = ".env"                 # 文字列、または文字列の配列
+[pipeline.env]                    # 全ジョブに足す環境変数
+TZ = "Asia/Tokyo"
+
+[[job]]
+id = "extract"
+command = "python scripts/extract.py"
+env_file = ["extract.env", "secret.env"]
+[job.env]
+LOG_LEVEL = "debug"
+```
+
+`env` の書き方は、`[pipeline.env]` / `[job.env]` の見出しでも、`env = { A = "1" }` のインラインテーブルでもよい。
+
+#### `env`(テーブル)の検査
+
+`env` がテーブルでなければ、`typeMismatch`、値の行、理由 `` `env` は表で書きます ``(`env` は空として扱う)。テーブルなら、項目を**キーの位置の順(書いた順)**に 1 つずつ、次の順に検査する。当てはまった最初の誤りを報告して、その項目の検査を終える(次の項目へ進む)。
+
+| 順 | 条件 | `kind` | 行 | 理由(`<名前>` は `quote_key` で整形した名前) |
+|----|------|--------|----|------|
+| 1 | 名前が `is_valid_env_name` を満たさない(第 6.1 節の `run_id_env` と同じ規則。空、数字で始まる、`A-B`、`A B`、非 ASCII など) | `invalidEnvName` | **キー**の行 | `` `env` の名前 <名前> は、英字または `_` で始まり、英数字と `_` だけで書きます `` |
+| 2 | 名前が予約名(ASCII の大文字にして `CONDUCTOR_` で始まる。`conductor_x`、`Conductor_X` も) | `reservedEnvName` | キーの行 | `` `env` の名前 <名前> は、`CONDUCTOR_` で始まるため書けません `` |
+| 3 | すでに検査を通った名前のうち、ASCII の大文字小文字を無視すると同じで、綴りが違う名前がある(`foo` と `FOO`)。**完全に同じ綴りの重複は、TOML の文法の誤り(`syntax`)で、ここには来ない** | `envNameCaseConflict` | キーの行(2 つ目の名前) | `` `env` の名前 <名前> は、大文字小文字だけが違う名前が、すでにあります `` |
+| 4 | 値が文字列でない(整数、配列など) | `typeMismatch` | **値**の行 | `` `env` の名前 <名前> の値は、文字列で書きます `` |
+| 5 | 値の文字列に NUL(U+0000)を含む | `invalidEnvValue` | 値の行 | `` `env` の名前 <名前> の値に、NUL は書けません `` |
+
+- 順 1〜2 を通らなかった名前は、順 3 の「すでにある名前」の集合に入れない。順 1〜3 を通った名前は、値の誤り(順 4・5)があっても、集合に入る。
+- 値は、**書いたとおり**に保持する(`${X}`、`$X`、`~`、空文字列、空白、改行を含めて展開・変換をしない)。空の文字列は、有効な値である。
+- 受理: `A = "1"`、`_x = ""`、`path = "$HOME:/bin"`。拒否: `"1A" = "x"`(`invalidEnvName`)、`CONDUCTOR_JOB_ID = "x"`(`reservedEnvName`)、`foo` と `FOO` の併記(`envNameCaseConflict`)、`A = 1`(`typeMismatch`)、`A = "a\u0000b"`(`invalidEnvValue`)。
+- 検査を通った項目は、`Vec<EnvVar>`(`{ name, value }`)に、書いた順で入る。
+
+#### `env_file` の検査
+
+| 条件 | `kind` | 行 | 理由 |
+|------|--------|----|------|
+| 文字列でも配列でもない(整数、テーブルなど) | `typeMismatch` | 値の行 | `` `env_file` は、文字列、または文字列の配列で書きます `` |
+| 配列の要素が文字列でない | `typeMismatch`(要素ごと) | その要素の行 | `` `env_file` の配列の要素は、文字列で書きます `` |
+| 文字列(または配列の要素)が空の文字列 | `emptyField`(要素ごと) | その値(要素)の行 | `` `env_file` に空の文字列は書けません `` |
+
+- 文字列 1 つは、要素 1 つの並びとして保持する(`Vec<String>`)。空の配列 `env_file = []` は誤りではなく、何も読まない。空白だけの文字列は、空ではないので受理する(読み取りのときに、ファイルが無い誤りになる)。
+- 同じパスを 2 回書いても、受理する(書いた順のまま保持する。読み取りは 1 回で済む。6.7)。
+- 定義の読み込みでは、パスの存在も内容も調べない。`~` と変数は展開しない。
+
+### 6.7 `.env` ファイルの読み取りと書式(v0.9.0 以降)
+
+`env_file` が指す `.env` ファイルの読み取りは、`conductor-runtime` の `load_env_files(definition_path, refs)` が行い、解析は `conductor-core` の純粋な関数 `parse_env_file(text, file)` が行う。読む範囲(どのコマンドが、どの `env_file` を読むか)は 05 の 14 章。
+
+#### 読み取りの手順(`load_env_files`)
+
+入力: 定義ファイルのパス、読む対象の `env_file` の記述(文字列)の並び。出力: すべて読めて解析できたときは `LoadedEnvFiles`(記述の文字列 → 内容を引ける。同じ解決済みのパスは、1 つの内容を共有)。1 つでも誤りがあれば、**すべてのファイル分の誤り**を集めた `Vec<EnvFileError>`。
+
+1. 基準のディレクトリ = 定義ファイルの親ディレクトリ(親が無ければ空 = 実行ディレクトリ)。**実行ディレクトリではなく、定義ファイルのあるディレクトリが基準**である。
+2. 記述ごとに、パスを解決する: 絶対パスならそのまま、相対パスなら (基準)/(記述)。`..` を許す。`~` と変数は展開しない。シンボリックリンクは OS の規則どおりにたどる。
+3. 解決した結果が、すでに読んだパスと同じなら、読み直さない(内容を共有し、誤りも重複して報告しない)。
+4. 1 つのファイルを、次の順に調べる(最初に当てはまったもので失敗し、そのファイルは終わる)。表示するファイル名は、解決済みのパスの文字列。行番号は付かない。
+
+| 順 | 条件 | `kind` |
+|----|------|--------|
+| 1 | メタデータの取得で「存在しない」 | `fileMissing` |
+| 2 | メタデータの取得で、その他の失敗(権限など) | `unreadable` |
+| 3 | 通常のファイルでない(ディレクトリなど) | `unreadable` |
+| 4 | メタデータの大きさが 1 MiB(1,048,576 バイト)を超える(中身は読まない) | `tooLarge` |
+| 5 | 開けない(「存在しない」は `fileMissing`、その他は `unreadable`) | `fileMissing` / `unreadable` |
+| 6 | 読み取りの途中の失敗 | `unreadable` |
+| 7 | 読み取り(「上限 + 1 バイト」までしか読まない)の結果が上限を超える | `tooLarge` |
+| 8 | UTF-8 として解釈できない | `notUtf8` |
+| 9 | 解析(下記)の誤り | 下の表 |
+
+- 上限は、**ちょうど 1 MiB まで受理**し、1 バイトでも超えると `tooLarge`。空のファイル(0 バイト)は、項目 0 個として受理する。
+- 定義の取り込み(2.2)と違い、`.env` の誤りの理由は、**言語に従って**表示される(08 の 4.12)。
+
+#### 書式と解析(`parse_env_file(text, file)`)
+
+出力: `EnvFileContent { path, entries: Vec<EnvEntry { name, value, line }>, warnings: Vec<EnvWarning { file, line, name, kind: DuplicateKey }> }`、または `Vec<EnvFileError>`(行ごとの誤りは**止めずにすべて集める**。1 件でもあれば、項目は返さない)。純粋な関数で、ファイルにも環境変数にも触れない。
+
+1. 先頭の BOM(U+FEFF)があれば、1 つだけ取り除く。
+2. 文字列を LF(`\n`)で分けて行にする。各行の末尾の `\r` を 1 つ取り除く(CRLF の対応)。行番号は 1 始まり(末尾の LF のあとの空の行も 1 行と数える)。
+3. 各行について:
+   1. 行頭の空白(Unicode の空白)を取り除いた結果が、空、または `#` で始まるなら、読み飛ばす(空行とコメント)。
+   2. `export` で始まり、その直後の 1 文字が空白(スペースまたはタブ)なら、`export` と続く空白を取り除く(取り除いたあとの先頭の空白も取り除く)。`export` のあとに空白が続かなければ、取り除かない(`export=1` は名前が `export` の項目。`exportX=1` は名前 `exportX`。`export` だけの行は、`=` が無いので `missingEquals`)。
+   3. 最初の `=` で、`KEY` と残り(値の部分)に分ける。`=` が無ければ `missingEquals`。`KEY` の前後の空白を取り除く(`A = 1` は受理)。値の中の `=` は、値の文字である(`A=x=y` の値は `x=y`)。
+   4. `KEY` が `is_valid_env_name` を満たさなければ(空を含む)`invalidName`。予約名(ASCII の大文字小文字を区別せず `CONDUCTOR_` で始まる)なら `reservedName`。
+   5. 値を読む(下記)。誤りがあれば、その種類(`unterminatedQuote`、`invalidEscape`、`trailingGarbage`)で、その行を誤りにする。
+   6. 値に NUL があれば `nulInValue`。
+   7. ここまで通った行を数える。数が **10,000 を超えたら**、その行に `tooManyEntries` を報告して、**解析を止める**(それ以降の行は読まない)。数えるのは、通った行(重複を含む)で、誤りの行は数えない。
+   8. 重複の扱い: すでに通った名前のうち、ASCII の大文字小文字を無視すると同じものがあるとき、綴りが**完全に同じ**なら、前の項目を取り除き、後ろの項目を並びの**末尾**に足し、警告 `DuplicateKey`(`file`、後ろの行、名前)を足す(後ろが勝つ)。綴りが**違う**なら(`foo` と `FOO`)、その行を `caseConflict` の誤りにして、項目に足さない。なければ、項目を並びの末尾に足す。
+4. 誤りが 1 件もなければ、項目と警告を返す(`path` は与えられた `file`)。
+
+値の読み方(`=` の右側。`KEY` を切り出したあとの残り):
+
+| 先頭の文字(`=` の右の空白を読み飛ばしたあと) | 値 |
+|-----------------------------------------------|----|
+| `'` | 次の `'` までを、そのまま値にする(エスケープなし)。`'` が無ければ `unterminatedQuote`。閉じたあとに、空白とコメント(`#` で始まる)以外が続けば `trailingGarbage` |
+| `"` | 次の閉じる `"` までを読む。`\n`(LF)、`\r`(CR)、`\t`(タブ)、`\"`、`\\` の 5 つだけを解く。それ以外の `\` の組は `invalidEscape`。行末で閉じていなければ(行の末尾の `\` を含む)`unterminatedQuote`。閉じたあとの規則は、単一引用符と同じ |
+| それ以外 | 行末まで。ただし、**空白に続く `#`** から先はコメントで、その手前までとする。前後の空白を取り除く。`#` が `=` の直後(空白なし)や、空白でない文字に続くとき(`A=x#y`)は、値の一部。`KEY=` は空の文字列 |
+
+- 受理の例: `A=1`、`export A=1`、`A = 1`、`A=x=y`(値 `x=y`)、`A=x #y`(値 `x`)、`A=x#y`(値 `x#y`)、`A= "x"`(値 `x`)、`A='no $expansion'`(値 `no $expansion`)、`A="a\nb"`(値は `a`、LF、`b`)、`A=`(値は空)、`A=  # c`(値は空)。
+- 拒否の例: `A`(`missingEquals`)、`=1` と `1A=x`(`invalidName`)、`CONDUCTOR_X=1`(`reservedName`)、`A='x`(`unterminatedQuote`)、`A="x\q"`(`invalidEscape`)、`A="x" y`(`trailingGarbage`)、`foo=1` と `FOO=2`(`caseConflict`)。
+- `$`、`${` は展開しない(値の文字)。複数行の値は受け付けない(行をまたぐ引用符は `unterminatedQuote`)。
+
+#### `.env` の誤りの種類(13 種)
+
+識別子は `EnvFileErrorKind::code()`。日本語の種類の文は `Display`。理由(`reason`)の日本語は `reason()`(英語は 08 の 4.12)。
+
+| 識別子 | 日本語の種類の文 | 日本語の理由 | 行 |
+|--------|------------------|--------------|----|
+| `fileMissing` | 環境変数ファイルが存在しません | `` `env_file` に書かれたファイルが、見つかりません `` | なし |
+| `unreadable` | 環境変数ファイルを読めません | `` `env_file` に書かれたファイルを、読めません `` | なし |
+| `tooLarge` | 環境変数ファイルが大きすぎます | `ファイルの大きさが、上限(1 MiB)を超えています` | なし |
+| `notUtf8` | 環境変数ファイルが UTF-8 ではありません | `ファイルは UTF-8 で書きます` | なし |
+| `tooManyEntries` | 環境変数ファイルの項目が多すぎます | `項目の数が、上限(10,000)を超えています` | 10,001 個目の項目の行 |
+| `invalidName` | 環境変数の名前が正しくありません | `` 名前は、英字または `_` で始まり、英数字と `_` だけで書きます `` | 行 |
+| `reservedName` | 予約された環境変数の名前です | `` `CONDUCTOR_` で始まる名前は、書けません `` | 行 |
+| `caseConflict` | 大文字小文字だけが違う環境変数の名前があります | `大文字小文字だけが違う名前が、同じファイルにあります` | 後ろの行 |
+| `missingEquals` | `` `KEY=VALUE` の形ではありません `` | `` `KEY=VALUE` の形で書きます `` | 行 |
+| `unterminatedQuote` | 引用符が閉じていません | `引用符が、同じ行で閉じていません` | 行 |
+| `invalidEscape` | 許されないエスケープです | `` 二重引用符の中で使えるエスケープは、`\n`、`\r`、`\t`、`\"`、`\\` だけです `` | 行 |
+| `trailingGarbage` | 閉じた引用符のあとに余計な文字があります | `閉じた引用符のあとは、空白とコメントだけを書けます` | 行 |
+| `nulInValue` | 値に NUL が含まれています | `値に NUL(U+0000)は書けません` | 行 |
+
+- 誤りに、値を含めない(理由は固定の文)。表示の書式は `<ファイル>[:<行>]: <種類の文>: <理由>`(ライブラリの `Display`)。CLI の表示は 08 の 4.12。
+- 表示の件数: 先頭の最大 **20 件**を表示し、超えた分は「ほか N 件」の 1 行にする(`summarize_errors(errors) -> (&[EnvFileError], usize)`。定数 `MAX_REPORTED_ERRORS = 20`)。
+- 重複キーの警告(`EnvWarning`)は誤りではない。`validate` だけが表示する(04 の 7.5)。
+
 ## 7. 検査の順序とエラーの集約・並び
 
 Walk の中の処理順(誤りは、見つかった順に集める):
 
 1. 根のキー検査(`unknownKey`)。
-2. `[pipeline]`: キー検査 → `name` → `description` → `run_id_env`(型の誤り、続けて名前の形の誤り) → `remove_on_complete` → `name` の空の検査 → 名前の照合。
-3. `job`: 無い/空/型の誤りの処理。配列なら、各ジョブを順に、次の順で検査する: キー検査 → `id` → `command` → `warning_exit_codes` → `success_exit_codes` → `transitions`(各遷移について、キー検査 → `on` → `next` → 重複) → `retry`(キー検査 → `exit_codes` → `max` → `interval` → `multiplier` → `max_interval` → 倍率と上限の片方だけの検査)。
+2. `[pipeline]`: キー検査 → `name` → `description` → `run_id_env`(型の誤り、続けて名前の形の誤り) → `remove_on_complete` → `env`(v0.9.0 以降。6.6) → `env_file`(同) → `name` の空の検査 → 名前の照合。
+3. `job`: 無い/空/型の誤りの処理。配列なら、各ジョブを順に、次の順で検査する: キー検査 → `id` → `command` → `warning_exit_codes` → `success_exit_codes` → `transitions`(各遷移について、キー検査 → `on` → `next` → 重複) → `retry`(キー検査 → `exit_codes` → `max` → `interval` → `multiplier` → `max_interval` → 倍率と上限の片方だけの検査) → `env`(v0.9.0 以降) → `env_file`(同)。
 4. 全ジョブにまたがる検査(第 8 節): ジョブIDの検査 → 各ジョブについて、遷移先 → 終了コード(`zeroAsWarning`、`overlappingExitCodes`) → `retry` の重なり・上限と間隔の大小。
 5. 誤りが 1 件もなく、`[pipeline]` とすべてのジョブが組み立てられるときだけ、`PipelineDefinition` を返す。
 
@@ -374,7 +511,7 @@ conductor: error: conductor.toml: definition file does not exist: 指定の場�
 - 改行を `\n`、復帰を `\r`、タブを `\t` に、その他の制御文字と書式文字(`U+200B`〜`U+200F`、`U+2028`、`U+2029`、`U+202A`〜`U+202E`、`U+2060`〜`U+2064`、`U+2066`〜`U+2069`、`U+FEFF`)を `\u{16進小文字}` にエスケープする。
 - エスケープ後の文字数が **64 文字**を超えるときは、64 文字までで切って末尾に `…` を付ける(エスケープの途中では切らない)。ちょうど 64 文字は切らない。
 
-### 9.3 種類の一覧(30 種)
+### 9.3 種類の一覧(33 種)
 
 「識別子」は機械が読む名前、「日本語」はライブラリの表示、「英語」は CLI が英語ロケールで出す文。
 
@@ -410,8 +547,11 @@ conductor: error: conductor.toml: definition file does not exist: 指定の場�
 | `retryBackoffIncomplete` | retry の倍率と間隔の上限は、両方を書くか、両方とも書きません | retry multiplier and max_interval must be given together or not at all |
 | `retryMultiplierInvalid` | retry の倍率が正しくありません | retry multiplier is invalid |
 | `retryMaxIntervalTooSmall` | retry の間隔の上限が、間隔より小さくなっています | retry max_interval is smaller than interval |
+| `reservedEnvName`(v0.9.0 以降) | 予約された環境変数の名前です | reserved environment variable name |
+| `envNameCaseConflict`(v0.9.0 以降) | 大文字小文字だけが違う環境変数の名前があります | environment variable names differ only in letter case |
+| `invalidEnvValue`(v0.9.0 以降) | 環境変数の値が正しくありません | invalid environment variable value |
 
-(`retryDurationInvalid` の英語は、`max_interval` の誤りにも同じ文が使われる。)
+(`retryDurationInvalid` の英語は、`max_interval` の誤りにも同じ文が使われる。`invalidEnvName` は、v0.9.0 以降、`run_id_env` と `env` の名前の両方に使う。`.env` の読み取りの誤りは、別の型 `EnvFileErrorKind`(13 種。6.7)で、この表に含めない。)
 
 理由(`reason`)は、第 2〜6 節の各表の日本語の原文のとおり。英語の理由文は存在しない(理由は常に日本語)。
 
@@ -438,6 +578,8 @@ PipelineDefinition {
     remove_on_complete: bool,          // 省略時 false
     format_version: u32,               // 1
     job: Vec<JobDefinition>,           // 記述順を保つ。1 つ以上
+    env: Vec<EnvVar>,                  // v0.9.0 以降。[pipeline.env]。書いた順。省略時 []
+    env_file: Vec<String>,             // v0.9.0 以降。[pipeline].env_file。省略時 []
 }
 JobDefinition {
     id: String,                        // 空白だけでなく、@ で始まらず、定義内で一意
@@ -446,7 +588,10 @@ JobDefinition {
     success_exit_codes: Option<Vec<i32>>, // 省略時 None(意味は [0])
     transitions: Vec<Transition>,      // 書いた順。on ごとに高々 1 つ
     retry: Option<RetryPolicy>,        // 書かなければ None
+    env: Vec<EnvVar>,                  // v0.9.0 以降。書いた順。省略時 []
+    env_file: Vec<String>,             // v0.9.0 以降。書いた順。文字列 1 つは要素 1 つ。省略時 []
 }
+EnvVar { name: String, value: String }   // Debug は value を "***" と表示する
 Transition { on: Success | Warning, next: Job(String) | End }   // next が "@end" のとき End
 RetryPolicy {
     exit_codes: Vec<i32>,              // 昇順・重複なし・各 1〜255・空でない
@@ -524,6 +669,25 @@ id = "notify"
 command = "notify --channel ops"
 ```
 
+`env` と `env_file` を使った定義(受理。v0.9.0 以降):
+
+```toml
+format_version = 1
+
+[pipeline]
+name = "nightly"
+env_file = ".env"
+[pipeline.env]
+TZ = "Asia/Tokyo"
+
+[[job]]
+id = "extract"
+command = "python scripts/extract.py"
+env_file = ["extract.env", "secret.env"]
+[job.env]
+LOG_LEVEL = "debug"
+```
+
 拒否の例(各行の行番号は、ヘッダ 3 行を除く、`with_header` の続きとしての値。表の「行」は、テスト `definition_errors.rs` / `definition_retry.rs` で確認した値):
 
 | 入力(ヘッダ `format_version = 1` / `[pipeline]` / `name = "p"` の次から) | 結果 |
@@ -542,6 +706,10 @@ command = "notify --channel ops"
 | `command = "  "` | `emptyField` 6 行目 |
 | ヘッダのみ(ジョブなし) | `noJobs` 1 行目 |
 | `[job.retry]` に `exit_codes = [0]`、`max = 0`、`interval = "0s"`、`multiplier = 1`、`max_interval = "0s"`、`unknown = 1`(7 行目が `[job.retry]`) | 8〜13 行目に、`retryExitCodeInvalid`、`retryMaxInvalid`、`retryDurationInvalid`、`retryMultiplierInvalid`、`retryDurationInvalid`、`unknownKey`(この順) |
+| `[pipeline.env]` に `CONDUCTOR_X = "1"`(v0.9.0 以降) | `reservedEnvName`(キーの行) |
+| `[job.env]` に `foo = "1"` と `FOO = "2"` | `envNameCaseConflict`(2 つ目のキーの行) |
+| `[job.env]` に `A = 1`、または `"1A" = "x"` | `typeMismatch`(値の行)、または `invalidEnvName`(キーの行) |
+| `env_file = ""`、`env_file = ["a", 3]`、`env_file = 5` | `emptyField`、`typeMismatch`(3 の行)、`typeMismatch` |
 
 テストの確認済みの実行例: 行番号は `\r\n` の改行でも同じ。複数のジョブにまたがる誤り(`command = ""`、`max = 0`、同じ `id`、`retry` の必須キー欠落)は、位置の順に `emptyField`(6)、`retryMaxInvalid`(9)、`duplicateJobId`(12)、`retryMissingKey`(14)で返る。
 

@@ -6,19 +6,20 @@
 
 | 終了コード | 定数 | 意味 | 主な発生箇所 |
 |------------|------|------|--------------|
-| 0 | `EXIT_OK` | 成功。ジョブの成功・警告、スキップ(実行済み・遷移・`@end`)、`watch`・`reset`・`validate`・`convert` の成功、`--help`・`--version`。`reset --all` の警告(読めなくて残したファイル)も 0 | 全般 |
+| 0 | `EXIT_OK` | 成功。ジョブの成功・警告、スキップ(実行済み・遷移・`@end`)、`watch`・`reset`・`validate`・`convert` の成功、`--help`・`--version`。`reset --all` の警告(読めなくて残したファイル)も 0。v0.9.0 以降: `graph`・`init` の成功、`--dry-run` の計画を出せたとき(模擬の結果がエラーでの停止でも 0)、`validate` の `.env` の重複キーの警告 | 全般 |
 | 1 | (`EXIT_UNLISTED_ZERO`) | ジョブが終了コード 0 で終わったが、`success_exit_codes` に 0 がない。または、ジョブの終了コードがエラーで、下位 8 ビットが 0 になる(例: 256) | `classify`, `exit_code_for` |
 | ジョブの値(1〜255) | | エラーになったジョブの終了コードを、そのまま。範囲外は下位 8 ビット(0 になるなら 1) | `exit_code_for` |
-| 64 | `EXIT_DEFINITION` | 定義の誤り: ファイルがない・読めない・大きすぎる・文法・検証の誤り(パイプライン名の不一致、`run_id_env` や `remove_on_complete` の型・形の誤り、`[job.retry]` の誤りを含む)、`command` の誤り(引用符が閉じていない・空)。`validate` の失敗も 64 | `Ctx::check_definition` |
-| 65 | `EXIT_STATE` | ステートの誤り: 読めない・大きすぎる・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みの失敗・削除(初期化)の失敗。`reset`・`reset --all` で消すのに失敗。`watch` が標準出力に書けない。`pipeline` が完了を判定できない | `state_error`, `watch` |
-| 66 | `EXIT_REJECTED` | 拒否(順序外など。`run` で前のジョブが終わっていない、スキップ対象、`@end` より後ろ、など) | `run`, `pipeline` |
+| 64 | `EXIT_DEFINITION` | 定義の誤り: ファイルがない・読めない・大きすぎる・文法・検証の誤り(パイプライン名の不一致、`run_id_env` や `remove_on_complete` の型・形の誤り、`[job.retry]` の誤りを含む)、`command` の誤り(引用符が閉じていない・空)。`validate` の失敗も 64。v0.9.0 以降: `env`・`env_file` の誤り(`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` ほか)と、`.env` が無い・読めない・大きすぎる・UTF-8 でない・書式の誤り(`EnvFileErrorKind` の 13 種)。`graph`・`--dry-run` の定義と `.env` の誤りも 64 | `Ctx::check_definition`, `Ctx::load_env_files` |
+| 65 | `EXIT_STATE` | ステートの誤り: 読めない・大きすぎる・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みの失敗・削除(初期化)の失敗。`reset`・`reset --all` で消すのに失敗。`watch` が標準出力に書けない。`pipeline` が完了を判定できない。v0.9.0 以降: `graph`・`--dry-run` の `--state`・ステートの読み取りの誤りと、標準出力に書けないとき。`init` がファイルを作れない(親のディレクトリが無い・書く権限がない・作る先がディレクトリ・そのほかの入出力の誤り)・ひな形を標準出力に書けない | `state_error`, `watch`, `graph`, `dry_run`, `init` |
+| 66 | `EXIT_REJECTED` | 拒否(順序外など。`run` で前のジョブが終わっていない、スキップ対象、`@end` より後ろ、など)。v0.9.0 以降は、`--dry-run` で、本番なら拒否されるとき | `run`, `pipeline`, `dry_run` |
 | 67 | `EXIT_CONVERSION` | 変換の誤り。`convert` が標準出力に書けない | `convert` |
-| 68 | `EXIT_USAGE` | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないオプション、使えないオプション、値の欠落・誤り、知らないジョブID、run ID の値の誤り〔引数・環境変数とも〕、重複、`--all` と `--run-id` の併用) | 引数の解釈、`prepare`、`watch`/`reset` |
+| 68 | `EXIT_USAGE` | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないオプション、使えないオプション、値の欠落・誤り、知らないジョブID、run ID の値の誤り〔引数・環境変数とも〕、重複、`--all` と `--run-id` の併用)。v0.9.0 以降: `--assume` の誤り(書式・範囲外・重複・定義にないジョブID)、`--dry-run` なしの `--assume`、`--format` の値の誤り、`graph` 以外の `--format`・`--state`、`--state` なしの `graph --run-id`、`init` の名前が空、`init` に許されないオプション、`init` 以外への `--force`、`run`・`pipeline` 以外の `--dry-run` | 引数の解釈、`prepare`、`prepare_checked`、`watch`/`reset` |
+| 69 | `EXIT_EXISTS` | (v0.9.0 以降)`init` の作る先に、ファイルが既にある(`--force` なし。何も変えない) | `init` |
 | 70 | `EXIT_INTERNAL` | 内部の誤り: パニック、シグナルの準備の失敗 | パニックのフック、`prepare` |
 | 127 | `EXIT_START_FAILURE` | ジョブを起動できなかった(実行ファイルがない・実行権限がない、など。終了の状態を取得できない場合も安全側で起動失敗扱い) | `classify` |
 | 128 + 番号 | `EXIT_SIGNAL_BASE` | ジョブがシグナルで終了した、または `conductor` が中断された(例: SIGHUP = 129、SIGINT = 130、SIGQUIT = 131、SIGTERM = 143)。リトライの待機中の中断も含む | `classify`, `signal_exit_code` |
 
-- 64〜68 と 70 は、ジョブ自身の終了コードと重なりうる。区別は、標準エラーの `conductor: error: ...` の行で行う(70 は固定の英語の文)。
+- 64〜70(69 を含む)は、ジョブ自身の終了コードと重なりうる。区別は、標準エラーの `conductor: error: ...` の行で行う(70 は固定の英語の文)。
 - 終了コードの範囲(0〜255)への合わせ方は 4 章。
 
 ## 2. 終了コードの決定順序
@@ -33,6 +34,7 @@
 | 3 | 全ジョブの `command` の検査(誤りのあるジョブごとに 1 行) | 64 |
 | 4 | `run` のジョブIDが定義にあるか | 68 |
 | 5 | run ID の決定(`--run-id` または環境変数。規則違反) | 68 |
+| 5a | (v0.9.0 以降)`.env` の読み取り(`pipeline` は全ジョブ分、`run` はそのジョブ分と `[pipeline]` 分。誤りは全部集め、先頭 20 件と「ほか N 件」を表示) | 64(ジョブは起動せず、ステートに触れない) |
 | 6 | ステートの読み込み | 65 |
 | 7 | ステートと定義の照合 | 65 |
 | 8 | 起動前の判断 | 拒否は 66。スキップは 0(`run` は 0 で終わる。`pipeline` は続ける) |
@@ -46,7 +48,10 @@
 - 検査やステートの確認の途中でシグナルを受け取っても、検査は最後まで進む。定義の誤り(64)、ステートの誤り(65)、拒否(66)、スキップ(0)の終了コードが、中断の終了コードより優先する。
 - `watch`: run ID の決定(68)→ ステートの読み込み(65)→ 表の出力(書けなければ 65)。成功は 0。定義は検証しない。シグナルの準備はしない。
 - `reset`: run ID の決定(68。`--all` のときは決定しない)→ 削除(65)。成功は 0。
-- `validate`: 定義(64)→ `command`(64)。成功は 0。ステートに触れない。シグナルの準備はしない。
+- `validate`: 定義(64)→ `command`(64)→ (v0.9.0 以降)`.env`(64。重複キーの警告は 0)。成功は 0。ステートに触れない。シグナルの準備はしない。
+- `graph`(v0.9.0 以降): 定義(64)→ `command`(64)→ `.env`(64)→(`--state` のとき)run ID の決定(68)→ ステートの読み取り(65)→ 照合(65)→ 標準出力への書き込み(書けなければ 65)。成功は 0。ステートに書かない。シグナルの準備はしない。
+- `--dry-run`(v0.9.0 以降): 定義(64)→ `command`(64)→ `run` のジョブID(68)→ `--assume` のジョブID(68)→ run ID の決定(68)→ `.env`(64)→ ステートの読み込み(65)→ 照合(65)→ 計画(拒否は 66)→ 標準出力への書き込み(書けなければ 65)。成功は 0。ステートに書かない。シグナルの準備はしない。
+- `init`(v0.9.0 以降): 引数の解釈(68)→ ひな形の作成: 既にある 69、作れない 65、標準出力に書けない 65。成功は 0。定義・`.env`・ステートを読まない。シグナルの準備はしない。
 - `convert`: 変換(67)→ 標準出力への書き込み(書けなければ 67)。成功は 0。
 - `pipeline` の特有: 実行したジョブがエラー(または分類なし)なら、そのジョブの終了コードで終わる。ジョブのあいだに中断の合図があれば `128 + 番号`。完了なら 0。完了を判定できなければ 65。
 - ステートの書き込みに失敗すると、ジョブの終了コードではなく 65 で終わり、「ジョブは実行されました」と表示する(at-least-once)。起動前の失敗(初期ステートの書き込みなど)は「ジョブは起動していません」。
@@ -89,7 +94,7 @@
 
 - UNIX 系: `SIGHUP`(1)・`SIGINT`(2)・`SIGQUIT`(3)・`SIGTERM`(15)を、専用スレッドで監視し、最初の番号を中断の合図に書く。ほぼ同時に複数届くと、番号の小さい方が「最初」になりうる。
 - Windows: Ctrl+C(番号 2)だけ。
-- `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は既定の動作で終わる。
+- `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は既定の動作で終わる(v0.9.0 以降の `graph`・`init`、`--dry-run` も同じ)。
 - 起動済みのジョブが中断されると、`128 + 番号`、エラーとして記録する。起動前、またはジョブのあいだ、リトライの待機中に中断されたときは、エラーとして記録せず、再開位置を記録して `128 + 番号` で終わる。
 - 準備の失敗(`SignalError::Failed`)は、`conductor: error: failed to set up signal handling` を出して 70。`AlreadyRegistered`(プロセスで 2 回目)は成功と同じに扱う。
 
@@ -112,12 +117,15 @@ conductor: error: internal error
 
 | 型 | 内容 |
 |----|------|
-| `DefinitionErrorKind`(30 種) | 識別子(`code()`)・日本語の文(`Display`)・英語の文は 08 章 4.3 に全件 |
+| `DefinitionErrorKind`(33 種) | 識別子(`code()`)・日本語の文(`Display`)・英語の文は 08 章 4.3 に全件 |
+| `EnvFileErrorKind`(13 種。v0.9.0 以降) | `fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`。すべて終了コード 64。識別子・条件は 03 の 6.7、文言は 08 の 4.12。`ALL: [EnvFileErrorKind; 13]`、`code()`、`reason()` |
+| `EnvFileError { file, line: Option<usize>, kind, reason }`(同) | `Display` は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: …`)。`file` は制御文字をエスケープして 256 文字で切る(ライブラリ側の表示のみ)。CLI は自前の形式で、言語に従った種類の文と理由を、`file` を切らずに表示する(08 の 4.12)。理由は固定の文で、値を含めない |
+| `EnvWarning { file, line, name, kind: DuplicateKey }`(同) | 誤りではない(重複キー)。`validate` だけが表示する |
 | `DefinitionError { file, line: Option<usize>, kind, reason }` | `Display` は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。`Display` では、`file` を制御文字のエスケープのうえ 256 文字で切る(ライブラリ側の表示のみ)。CLI は `Display` を使わず、自前の形式で、`file` をエスケープだけして切らずに表示する(08 章)。`reason` は core が作る日本語の固定の文。キー名は `` `キー名` `` の形で入り、64 文字で切る |
 | `RunIdError`(4 種) | `Empty`, `TooLong`, `InvalidChar`, `LeadingDot`。CLI では、すべて `invalid value`(68)にまとめられ、値は含めない |
 
 `DefinitionErrorKind` の一覧(識別子順):
-`fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`。すべて終了コード 64。
+`fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`, `reservedEnvName`, `envNameCaseConflict`, `invalidEnvValue`(最後の 3 つは v0.9.0 以降)。すべて終了コード 64。
 
 `reason`(原因の文)の全件は、定義の検証の仕様に属し、この文書では列挙しない(未確認)。
 
@@ -130,6 +138,8 @@ conductor: error: internal error
 | `StateErrorKind`(6 種) | `Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。終了コード 65 |
 | `StateError { path, kind, reason }` | `Display`(runtime 内)は `<種類の日本語の文>: <パス> (<原因>)`。CLI は自前の形式で表示する(08 章 4.5) |
 | `MismatchKind`(3 種) | `PipelineName`, `JobIds`, `JobOrder`(定義との食い違い。終了コード 65) |
+| `CreateError`(5 種。v0.9.0 以降) | `AlreadyExists`(終了コード 69)、`ParentMissing`, `IsDirectory`, `PermissionDenied`, `OtherIo`(終了コード 65)。`ALL: [CreateError; 5]`。`init` が使う(`create_file`)。文言は 08 の 4.13、作成の規則は 06 の 13 章。OS のエラーの文は持たない |
+| `CreateOutcome`(同) | `Created`, `Replaced`(成功。誤りではない) |
 
 `StateError.reason`(固定の日本語。言語を切り替えない)と、それを返す種類:
 
@@ -215,15 +225,18 @@ conductor: error: internal error
 | 位置引数なし | `MissingArgument` | なし |
 | コマンド名が未知(空文字も) | `UnknownCommand` | その語 |
 | 文法にないオプション、`--bogus=x` | `UnknownOption` | `--bogus`、`-x` など |
-| そのコマンドで使えないオプション | `OptionNotAllowed` | `-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete` |
-| 値のないオプション | `MissingValue` | `--config`, `--run-id`, `--to` |
-| 重複、`--verbose=x` など、`--all` と `--run-id` の併用、`--run-id` の値の規則違反 | `InvalidValue` | オプション名(`-v`, `--config`, …、併用は `--all`) |
+| そのコマンドで使えないオプション | `OptionNotAllowed` | `-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete`, `--dry-run`, `--force`, `--assume`, `--format`, `--state`(後ろの 5 つは v0.9.0 以降) |
+| 値のないオプション | `MissingValue` | `--config`, `--run-id`, `--to`, `--format`, `--assume` |
+| 重複、`--verbose=x` など、`--all` と `--run-id` の併用、`--run-id` の値の規則違反 | `InvalidValue` | オプション名(`-v`, `--config`, …、併用は `--all`。v0.9.0 以降は `--dry-run`, `--force`, `--format`, `--state` も) |
+| `--assume` の値の誤り(`=` がない、整数でない、範囲外、ジョブID の重複)、`--format` の値の誤り(v0.9.0 以降) | `InvalidValue` | `--assume`、`--format`(値は含めない) |
+| `init` のパイプライン名が空・空白だけ(v0.9.0 以降) | `InvalidValue` | `pipeline name`(値は含めない) |
 | `--to` の値が `yaml`/`toml` 以外 | `InvalidValue` | その値 |
 | 非 UTF-8 の位置引数 | `InvalidValue` | lossy 変換した文字列 |
 | 環境変数の run ID の規則違反 | `InvalidValue` | `run ID (environment variable)` |
 | 余分な位置引数 | `UnexpectedArgument` | その語 |
 | `convert` で `--to` なし | `MissingArgument` | `--to` |
 | `run` のジョブIDが定義にない | `UnknownJob` | そのジョブID |
+| `--assume` のジョブIDが定義にない(v0.9.0 以降) | `UnknownJob` | なし(ジョブIDを含めない) |
 
 ## 8. 標準エラーの出力と終了コードの例
 
@@ -259,6 +272,18 @@ conductor: error: job 'step3': cannot start command 'nonexistent_prog_x'
 
 $ (ジョブが SIGKILL で終了)
 → 137
+
+$ conductor pipeline p          # [pipeline].env_file の .env に 3 行目の誤り(v0.9.0 以降)
+conductor: error: x.env:3: not in KEY=VALUE form: write a line as `KEY=VALUE`
+→ 64(ジョブは 1 つも実行せず、ステートに触れない)
+
+$ conductor init                # conductor.toml が既にある(v0.9.0 以降)
+conductor: error: conductor.toml already exists (use --force to overwrite)
+→ 69
+
+$ conductor init --config /no/such/dir/c.toml
+conductor: error: cannot create /no/such/dir/c.toml: the parent directory does not exist
+→ 65
 ```
 
 ## 9. 実装と README の差
@@ -272,3 +297,5 @@ $ (ジョブが SIGKILL で終了)
 | 変換の入力・出力の誤り | 67 | 一致(標準出力に書けないときも 67) |
 | `watch` の標準出力の失敗 | 65 | 一致 |
 | `reset --all` の警告 | 終了コード 0 | 一致 |
+| 69(v0.9.0 以降) | 「`init` の作る先に、ファイルが既にある」 | 一致 |
+| `init` の 65(v0.9.0 以降) | 「作れないとき(親のディレクトリが無い、書く権限がない、作る先がディレクトリ、そのほかの入出力の誤り)と標準出力に書けないとき」 | 一致 |

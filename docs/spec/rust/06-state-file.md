@@ -1,6 +1,6 @@
 # 06. ステートファイル(形式・場所・読み書き・整合性・reset)
 
-対象: `conductor` v0.8.0(Rust 実装)。ステートファイルは、あるパイプライン定義の、実行の途中経過(どのジョブがどう終わったか、どこから再開するか)を保存する TOML ファイル。実行の意味論(いつ何を記録するか)は [05-execution-flow.md](05-execution-flow.md) にある。この文書は、ファイルの形式、読み書きの手順、異常系の挙動を定める。
+対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。ステートファイルは、あるパイプライン定義の、実行の途中経過(どのジョブがどう終わったか、どこから再開するか)を保存する TOML ファイル。実行の意味論(いつ何を記録するか)は [05-execution-flow.md](05-execution-flow.md) にある。この文書は、ファイルの形式、読み書きの手順、異常系の挙動を定める。
 
 実装の所在(参考): `crates/runtime/src/state/{reader,writer,record,consistency,reset_all}.rs`、`crates/runtime/src/types.rs`(`StateLocation`)、`crates/runtime/src/error.rs`(理由文)。
 
@@ -396,6 +396,8 @@ conductor: warning: kept state files that could not be read (remove one with `co
 - `end_reached` は単調(true になったら戻らない)。
 - `completed = true` のとき `resume_job_id` は無い(`NextStep` が完了のとき再開位置を持たない。`apply_skip` は `resume_job_id = first_pending` で、完了の条件は `first_pending` が無いこと)。
 - ただし、`apply_outcome` が、エラーのジョブの状態を保つ「起動前の中断」のとき、`status = error` のまま `exit_code` が消える(05 §12 の 2)。
+- (v0.9.0 以降)ステートに、環境変数(名前も値も)、`.env` の内容、`env` の設定を**書かない**。ステートの書式(§2)は v0.8.0 と同じで、`PipelineState` の型に環境変数の項目はない。再開のときも、`.env` は、呼び出しごとに読み直す(05 の 14.5)。
+- (v0.9.0 以降)`graph --state` は、ステートを `read_state_raw` で、完了したものも含めて**読むだけ**で、書かず・消さない。`--dry-run` は、`read_state`(完了したものは「空」)で読むだけで、書かず・消さない。どちらも、定義との照合(§6)を行い、食い違いは 65。
 
 ---
 
@@ -429,3 +431,32 @@ README とステートの実装のあいだに、矛盾は見つからなかっ�
 - Windows での `rename` による置き換えの細部(既存ファイルが他のプロセスに開かれているとき)と、ディレクトリを `File::open` したときの `unreadable` の判定(UNIX 系では、ディレクトリを開いて読むのに失敗して `unreadable` になる想定だが、テストで確認していない)。
 - ファイルの権限の挙動は、UNIX 系の実測(`-rw-r--r--`)と、コードに権限の設定が無いことによる。Windows の ACL は未確認。
 - 一時ファイルの `<時刻>` は、`UNIX_EPOCH` からのナノ秒(取得に失敗すれば 0)。クロックが戻った場合の挙動は、名前の衝突の再試行(最大 16 回)に任せている。
+
+## 13. ファイルの排他的な作成(`create_file`。`init` が使う。v0.9.0 以降)
+
+ステートの書き込みとは別の部品だが、同じ「一時ファイルから置き換える」作り方(§4 の 3、6、7)を共有するので、ここに置く。実装は `crates/runtime/src/file_create.rs`。
+
+`create_file(path, bytes, force) -> Result<CreateOutcome, CreateError>`:
+
+| 型 | 内容 |
+|----|------|
+| `CreateOutcome` | `Created`(新規に作った)、`Replaced`(`--force` で、既にあったファイルを置き換えた) |
+| `CreateError` | `AlreadyExists`(既にある。`force` なし)、`ParentMissing`(親のディレクトリが無い。作らない)、`IsDirectory`(作る先がディレクトリ)、`PermissionDenied`(書く権限がない)、`OtherIo`(そのほかの入出力の誤り)。`ALL: [CreateError; 5]` |
+
+**`force = false`(新規)**:
+
+1. `OpenOptions::new().write(true).create_new(true).open(path)`(ファイルがなければ作る、1 回の操作)。失敗したら、パスの今の姿(`symlink_metadata`)で分類する: ディレクトリなら `IsDirectory`、ファイル、またはシンボリックリンク(宙に浮いたリンクを含む)なら `AlreadyExists`、メタデータも取れなければ、元の誤りの種類(`NotFound` → `ParentMissing`、`PermissionDenied` → `PermissionDenied`、そのほか → `OtherIo`)。OS によって、ディレクトリへの `create_new` の誤りの種類が違うため、この分類にする。
+2. 全内容を書き、flush する。閉じてから(Windows は、開いたままのファイルを消せない)、書き込みに失敗していれば、作ったファイルを消して `OtherIo`。成功は `Created`。
+
+**`force = true`(置き換え)**:
+
+1. 親のディレクトリ(`path.parent()`。空なら `.`)のメタデータを取る。取れなければ種類で分類(`NotFound` → `ParentMissing`、`PermissionDenied` → `PermissionDenied`、そのほか → `OtherIo`)。ディレクトリでなければ `OtherIo`。
+2. `path` の `symlink_metadata`: ディレクトリなら `IsDirectory`。ファイルまたはシンボリックリンクなら `existed = true`(シンボリックリンクは、リンクそのものを置き換える)。無ければ `existed = false`。
+3. 同じディレクトリに、一時ファイルを新規作成で作る(`create_temp`。名前 = `.<ファイル名>.tmp.<pid>.<ナノ秒>.<連番>`。§4 と同じ作り方。最大 16 回)。作れなければ、種類で分類する。
+4. 全内容を書き、flush し、閉じて、`rename(一時 → path)` で置き換える。書き込みか `rename` に失敗したら、一時ファイルを消す(`PermissionDenied` は `PermissionDenied`、そのほかは `OtherIo`)。成功は、`existed` なら `Replaced`、でなければ `Created`。
+
+- **親のディレクトリは作らない**。内容は、そのまま書く(改行を変換しない)。同期(`sync_all`)はしない。
+- 表示は、`CreateError` の種類ごとの固定の文とパスだけで、OS のエラーの文を含めない(08 の 4.13)。
+- 置き換えたファイルは、新しい権限と所有者になる(UNIX 系では、新規作成の権限。§4 の権限の項と同じ)。Windows では、読み取り専用のファイルは置き換えられず、UNIX 系では置き換えられる。
+- **既知の限界**: 新規の作成は、ファイルを作ってから書くので、その短い間と、強制終了のあとには、空のファイルが見えることがある(その場合、2 回目の `init` は `AlreadyExists` になる。`--force` で直せる)。
+

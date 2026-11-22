@@ -1,8 +1,8 @@
-# 05. 実行の意味論(終了コード・分岐・再開・run ID・リトライ・パイプライン)
+# 05. 実行の意味論(終了コード・分岐・再開・run ID・リトライ・環境変数・パイプライン・図と計画)
 
-対象: `conductor` v0.8.0(Rust 実装)。この文書は、実装とテストを根拠に、`run`・`pipeline` の実行の流れを、判定表・状態遷移・擬似アルゴリズムで定める。ステートファイルの形式と読み書きは [06-state-file.md](06-state-file.md) にある。この文書の「ステートへの記録」は、06 の形式のファイルを書く前の、メモリ上の `PipelineState` の更新を指す。
+対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。この文書は、実装とテストを根拠に、`run`・`pipeline` の実行の流れを、判定表・状態遷移・擬似アルゴリズムで定める。v0.9.0 で加わった内容は、14 章(環境変数の注入)、15 章(`graph`)、16 章(`--dry-run`)、17 章(`init`)にまとめる。ステートファイルの形式と読み書きは [06-state-file.md](06-state-file.md) にある。この文書の「ステートへの記録」は、06 の形式のファイルを書く前の、メモリ上の `PipelineState` の更新を指す。
 
-実装の所在(参考): 判断は `crates/core/src/flow/{classify,decide,next_step,resume,retry}.rs`(純粋関数。ファイル・プロセスに触れず、失敗せず、必ず結果を返す)、記録は `crates/runtime/src/state/record.rs`、流れは `crates/cli/src/{ctx,run,pipeline,retry}.rs`、終了コードは `crates/cli/src/exit.rs`。
+実装の所在(参考): 判断は `crates/core/src/flow/{classify,decide,next_step,resume,retry}.rs`(純粋関数。ファイル・プロセスに触れず、失敗せず、必ず結果を返す)、記録は `crates/runtime/src/state/record.rs`、流れは `crates/cli/src/{ctx,run,pipeline,retry}.rs`、終了コードは `crates/cli/src/exit.rs`。v0.9.0 以降: 環境変数は `crates/core/src/envfile/`(純粋)と `crates/runtime/src/envfile.rs`(読み取り)、図は `crates/core/src/graph/`、計画は `crates/core/src/plan/`、それぞれの流れは `crates/cli/src/{graph,dry_run,init}.rs`。
 
 ---
 
@@ -163,6 +163,7 @@ return low
 - 成功・警告のあと再開位置は無し。エラーのあとは必ずそのジョブ。
 - Individual の `@end` では、後ろのジョブを今は記録せず(空)、`end_reached = true` だけを記録する。後ろのジョブは、スケジューラが 1 つずつ `run` を呼んだときに `Skip(AfterEnd)` が返り、呼ばれたジョブだけ `skipped(byEnd)` と記録される(§4.2、§5.4)。
 - 自動のリトライ(ジョブ失敗の再実行)は、`[job.retry]` を書かない限りしない(§7)。
+- (v0.9.0 以降)遷移の行き先の解決は、純粋な関数 `resolve_transition(job, on, definition, index) -> TransitionResolution` に切り出してある。`End`(`@end`)、`Job(t)`(記述順で index より後ろのジョブの位置 `t`)、`Default`(遷移なし、または行き先が後ろのジョブでない場合。記述順で次のジョブ、最後なら完了)の 3 つを返す。`classify_and_decide` の判定表の「遷移」の列は、この関数の結果で決まり、`graph` の辺の取り出し(15 章)も、同じ関数を呼ぶ(図と実際の動きが食い違わない)。`classify_and_decide` の出力は、v0.8.0 と変わらない。
 
 ### 3.3 `apply_outcome`(結果の記録。メモリ上)
 
@@ -261,11 +262,12 @@ return low
 | 3 | 全ジョブの `command` の検査(引用符の閉じ忘れ・空) | 64 |
 | 4 | `run` のとき、ジョブIDが定義にあるか | 68(`unknown job`) |
 | 5 | run ID の決定(§6) | 68 |
+| 5a | (v0.9.0 以降)`.env` の読み取り(14 章)。`pipeline` は `[pipeline].env_file` とすべてのジョブの `env_file`、`run` は `[pipeline].env_file` とそのジョブの `env_file`。誤りが 1 つでもあれば、ジョブを実行せず、ステートに触れずに止まる | 64 |
 | 6 | ステートの読み込み(06 §5)。完了のまま残ったものは「空」 | 65 |
 | 7 | 空でなければ、定義との照合(06 §6) | 65 |
 | 8 | 実効の `remove_on_complete` = `--remove-on-complete` があれば true、なければ定義の `[pipeline].remove_on_complete`(省略時 false)。環境変数は見ない | - |
 
-定義ファイルは `--config <パス>`、なければ実行ディレクトリの `conductor.toml`。シグナルを受け取っても、1〜7 は最後まで進む。64・65・66・スキップ(0)の終了コードが、中断の終了コードに優先する。
+定義ファイルは `--config <パス>`、なければ実行ディレクトリの `conductor.toml`。使い方の誤り(4 と 5 の 68)と `.env` の誤り(5a の 64)が同時にあるときは、先に検出する 68 が勝つ(5a は 5 のあと)。`--dry-run` は、この `prepare` の 1〜(シグナルを除く)7 を共有する(`prepare_checked`。16 章)。シグナルを受け取っても、1〜7 は最後まで進む。64・65・66・スキップ(0)の終了コードが、中断の終了コードに優先する。
 
 ### 5.2 `conductor run <job-id>` の擬似アルゴリズム
 
@@ -485,7 +487,9 @@ next_wait_secs:
 ```text
 retries_done = 0; last_wait_secs = 0
 loop:
-    exec = run_job(job, signal)
+    # v0.9.0 以降: 試行ごとに、足す環境を作り直す(14 章)。attempt = retries_done + 1
+    env  = merge_env(def, job, session.env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: retries_done + 1 })
+    exec = run_job(job, env.additions(), signal)       # v0.8.0 以前は run_job(job, signal)
     match retry_decision(job, exec, retries_done, last_wait_secs):
         Stop: return exec                          # 最後の結果
         Retry{wait_secs}:
@@ -594,3 +598,310 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 - Windows での、実行中ジョブへのシグナル転送の細部(`platform::forward_signal` の Windows 側)と、`exit_code` が負になる場合の実機の値。この文書は UNIX 系での確認と、コードの読み取りに基づく。
 - ジョブの標準入出力の扱い(子プロセスの継承の設定)。この文書の対象外として、確認していない。
 - `Interrupted` 後の、複数シグナルがほぼ同時に届いたときの「最初の番号」の決まり方は、シグナル監視ライブラリ `signal-hook` の返す順序(番号の小さい順)に依存する(07 の 7.2 節と 10 の 5 章。`crates/cli/src/deps.rs` のコメントと `binary_signal.rs` の「HUP のあとの INT」のテストによる。ほぼ同時の到着そのものの再現は未確認)。
+
+---
+
+## 14. 環境変数の注入(`env`、`env_file`、`.env`。v0.9.0 以降)
+
+ジョブを起動するとき、引き継いだ環境(`conductor` が親から受け取った環境変数)に、定義で決めた変数を**足す**。書式は 03 の 6.6(`env`、`env_file`)と 6.7(`.env`)。取り除く書き方(`unset`)はない。ステートには、環境変数(名前も値も)を書かない(`PipelineState` の型は変えない)。実装は、型と純粋な処理が `crates/core/src/envfile/{mod,parse,merge}.rs`、ファイルの読み取りが `crates/runtime/src/envfile.rs`、起動への反映が `crates/runtime/src/runner.rs`、流れが `crates/cli/src/{ctx,retry,aux_commands}.rs`。
+
+### 14.1 型(`conductor_core::envfile`)
+
+| 型 | 内容 |
+|----|------|
+| `EnvFileContent` | `{ path: String, entries: Vec<EnvEntry>, warnings: Vec<EnvWarning> }`。1 つの `.env` の解析結果 |
+| `EnvEntry` | `{ name, value, line }`。`Debug` は値を `"***"` と表示する |
+| `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。`files: Vec<EnvFileContent>`(解決済みのパスごと、読んだ順)と、「定義に書かれた `env_file` の文字列 → `files` の位置」の対応を持つ。`new()`、`push_file(content) -> 位置`、`link(記述, 位置)`、`add(記述, content)`(偽の実装・テスト用)、`get(記述) -> Option<&EnvFileContent>`、`files()`。同じ解決済みのパスは、1 つの内容を共有する |
+| `EnvContext<'a>` | `{ pipeline_name: &str, job_id: &str, run_id: Option<&str>, attempt: u32 }`。自動の変数の入力 |
+| `EnvOrigin` | `PipelineEnvFile`、`PipelineEnv`、`JobEnvFile`、`JobEnv`、`Builtin`(契約の「出どころ」。名前の要約に使う) |
+| `EffectiveEntry` | `{ name, value, origin }`。`Debug` は値を `"***"` と表示する |
+| `EffectiveEnv` | `{ job_id, entries: Vec<EffectiveEntry> }`。`additions() -> Vec<(&str, &str)>`(名前と値。並びの順)、`names() -> Vec<(&str, EnvOrigin)>`(値を含まない要約) |
+
+### 14.2 層と優先順位
+
+ジョブの環境は、後ろが勝つ順に、次の層を重ねて決まる。
+
+```text
+引き継いだ環境  <  [pipeline].env_file  <  [pipeline.env]  <  [job].env_file  <  [job.env]  <  自動の変数
+```
+
+- `env_file` が配列のときは、書いた順に読み、後ろのファイルが勝つ。
+- 引き継いだ環境は、`merge_env` の結果に**含めない**(子プロセスが OS の規則で引き継ぐ。結果は「足すもの」だけ)。引き継いだ環境が数百の名前を持ちうるため、名前の要約にも含めない。
+
+### 14.3 統合 `merge_env(def, job, files, ctx) -> EffectiveEnv`
+
+純粋な関数。次の手順で、結果の並び(`entries`)を作る。
+
+```text
+entries = []
+put(name, value, origin):        # 同じ名前があれば取り除き、末尾に足す
+    entries から name が完全に同じ項目を取り除く
+    entries の末尾に { name, value, origin } を足す
+
+for ref in def.env_file:  (files.get(ref) があれば) for e in その entries: put(e.name, e.value, PipelineEnvFile)
+for v   in def.env:                                               put(v.name, v.value, PipelineEnv)
+for ref in job.env_file:  (files.get(ref) があれば) for e in その entries: put(e.name, e.value, JobEnvFile)
+for v   in job.env:                                               put(v.name, v.value, JobEnv)
+put("CONDUCTOR_PIPELINE", ctx.pipeline_name, Builtin)
+put("CONDUCTOR_JOB_ID",   ctx.job_id,        Builtin)
+if ctx.run_id がある: put("CONDUCTOR_RUN_ID", run_id, Builtin)
+put("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  Builtin)
+return EffectiveEnv { job_id: job.id, entries }
+```
+
+- 完全に同じ名前は、後ろの層が勝って 1 つになる(並びでは、後ろの層の位置に移る)。**大文字小文字だけが違う名前は、別の名前として**、層の順に並べる(`foo` と `FOO` は両方が残る)。
+- `files.get(ref)` で引けない記述は、何も足さない(読み取りは、実行の前に済んでいる前提。誤りは返さない)。
+- 予約名の拒否は、`merge_env` では行わない(定義の読み取りと `.env` の解析が拒否済み。03 の 6.6、6.7)ので、`merge_env` は誤りを返さない。
+
+#### 自動の変数
+
+| 名前 | 値 | 備考 |
+|------|----|------|
+| `CONDUCTOR_PIPELINE` | パイプライン名(`[pipeline].name`) | 常に足す。引き継いだ値を上書きする |
+| `CONDUCTOR_JOB_ID` | ジョブID | 常に足す |
+| `CONDUCTOR_RUN_ID` | run ID | run ID が**あるときだけ**足す。無いときは足さず、引き継いだ環境に `CONDUCTOR_RUN_ID` があっても、そのまま(取り除かない) |
+| `CONDUCTOR_ATTEMPT` | 試行の番号(十進。1 から) | 常に足す |
+
+- `CONDUCTOR_ATTEMPT` = (その呼び出しの中での、これまでのリトライの回数) + 1。リトライのたびに環境を**作り直す**(1、2、3、…)。リトライの回数はローカルな値で、ステートに書かないので、`conductor` が落ちた(または中断された)あとの再開では、また 1 から数える。
+- 利用者は `CONDUCTOR_` で始まる名前を書けない(予約名)ので、自動の変数が利用者の値に上書きされることはない。ただし、引き継いだ環境に同名があれば、上書きする。
+
+### 14.4 起動への反映(`run_job(job, env, signal)`)
+
+`run_job` は、`Command` を作ったあと、`env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足す。引き継いだ環境は、そのまま残る(同じ名前は上書きされる)。同じ名前が並びに 2 回あれば、後ろが勝つ(`merge_env` は完全に同じ名前を 1 つにするので、通常は起きない)。値の展開はしない。
+
+**受け入れる OS の違い**: 層をまたぐ、大文字小文字だけが違う名前(例: `[pipeline.env]` の `foo` と `[job.env]` の `FOO`)は、Linux と macOS では、子に両方が見える。Windows は環境変数の名前の大文字小文字を区別せず、並びの後ろに足した `FOO` だけが見える。完全に同じ名前の優先順位は、どの OS でも同じ。統合した環境の全体の大きさには、上限を設けない(OS の上限を超えて起動できないときは、従来の「起動の失敗」(終了コード 127)として扱う)。
+
+### 14.5 いつ読むか
+
+| コマンド | 読む `env_file` | 位置 | 誤りのとき |
+|----------|-----------------|------|-----------|
+| `pipeline`(実行) | `[pipeline].env_file` と、**すべてのジョブ**の `env_file`(実行済みのジョブ、遷移でスキップされるジョブの分も) | 5.1 の 5a(run ID の決定のあと、ステートの読み込みの前) | 64。ジョブを 1 つも実行せず、ステートに触れない |
+| `run`(実行) | `[pipeline].env_file` と、**そのジョブ**の `env_file` だけ | 同 | 同 |
+| `--dry-run`(`pipeline`・`run`) | 上の 2 行と同じ範囲(本番と同じ読み取り) | `prepare_checked` の中(16 章) | 64(計画は出ない) |
+| `validate`、`graph` | `pipeline` と同じ範囲 | 定義と `command` の検査のあと | 64 |
+
+- 範囲は、`env_file_refs(def, job_id)` が決める: `[pipeline].env_file` を先に、続けて(`job_id` が `None` なら全ジョブ、`Some(id)` ならそのジョブだけの)`env_file` を、定義の記述順に並べ、同じ記述の文字列は 1 つにまとめる(書いた順を保つ)。一覧が空(`env_file = []` を含む)なら、読み取りは何もしない(`Runtime::load_env_files` を呼ばない)。
+- 再開のときも、呼び出しごとに、現在のファイルを読み直す(ステートに内容を残さない)。
+- 誤りは、すべてのファイル分を集め(`load_env_files`)、`DisplayEvent::EnvFileErrors` で表示する(先頭の 20 件と「ほか N 件」。08 の 4.12)。終了コードは 64(`EXIT_DEFINITION`)。
+- 読み取った結果(`LoadedEnvFiles`)は、`Session.env_files`(`--dry-run` では `Checked.env_files`)として、その呼び出しの中だけで持つ。
+
+### 14.6 値の秘匿
+
+環境変数の値は、標準出力、標準エラー(`-v` を含む)、ステート、エラーの表示、`Debug` の出力のどこにも出さない。出してよいのは名前だけ。
+
+- 値を持つ型(`EnvVar`、`EnvEntry`、`EffectiveEntry`)の `Debug` は、値を `"***"` と表示する。
+- `.env` と `env` の誤りの理由は、固定の文で、入力の値を含めない。名前は、`quote_key` を通す(`env`)。`.env` の誤りの表示は、ファイル名と行番号と種類の固定の文だけ(名前も出さない)。
+- 計画(`--dry-run`)と図(`graph`)の型は、値を持たない(計画は、名前と出どころ `EnvNameEntry` だけ。図は、環境変数を持たない)。
+
+---
+
+## 15. `graph`: 図の構造と配置(v0.9.0 以降)
+
+`conductor graph` が出す図の、構造と配置の規則。実装は `crates/core/src/graph/{mod,edges,overlay,layout}.rs`(純粋。ファイルにもプロセスにも環境変数にも触れない。文字への変換は `crates/cli/src/report/{graph_text,graph_mermaid}.rs`)。コマンドの流れは 04 の 7.7、出力の全例は 08 の 11 章。
+
+### 15.1 型(`conductor_core::graph`)
+
+| 型 | 内容 |
+|----|------|
+| `EdgeKind` | `Success`、`Warning`(エラーには辺がない) |
+| `EdgeTarget` | `Job(String)`、`End`(終点 `@end`。最後のジョブが完了したときの行き先も `End`) |
+| `FlowEdge` | `{ from_job, to: EdgeTarget, kinds: Vec<EdgeKind>, skipped_jobs: Vec<String>, explicit: bool }`。`kinds` は 1 つ以上(成功、警告の順)。`skipped_jobs` は、元と行き先のあいだのジョブの ID(記述順)。`explicit` は、定義に遷移として書かれた辺か(書かずに記述順の次へ進む辺は `false`) |
+| `NodeState` | `Ok`(成功と警告をまとめる)、`Skipped`、`Error`、`Pending` |
+| `StateOverlay` | `{ states: Vec<(job_id, NodeState)>, resume_job_id: Option<String> }`。環境変数もコマンドも持たない |
+| `GraphNode` | `{ job_id: Option<String>(終点は None), is_end, state: Option<NodeState>(--state のときだけ), is_resume }` |
+| `FlowGraph` | `{ nodes: Vec<GraphNode>(定義の記述順、最後に終点), edges: Vec<FlowEdge> }` |
+| `LaneGlyph` | `Empty`、`Node`(`*`)、`EndNode`(`o`)、`Line`(`\|`)、`Fork`(`\`)、`Join`(`/`) |
+| `LaneRow` | `{ glyphs: Vec<LaneGlyph>, node_index: Option<usize> }`。ノードの行では、`glyphs` の長さが、ラベルを置く位置 |
+| `LaneLayout` | `{ rows: Vec<LaneRow> }` |
+| `GraphLayout` | `Lanes(LaneLayout)`(対応する形)、`EdgeList`(それ以外) |
+
+### 15.2 辺の取り出し(`flow_edges(definition) -> Vec<FlowEdge>`)
+
+ジョブ(位置 `i`、`0` 始まり)ごとに、成功と警告の行き先の位置を決める。位置は、ジョブなら `0..n-1`、終点なら `n`(`n` = ジョブの数)。
+
+```text
+target_position(i, on):
+    match resolve_transition(job[i], on, definition, i):      # 05 の 3.2。実行と同じ関数
+        End        → (n,   explicit = true)
+        Job(t)     → (t,   explicit = true)
+        Default    → (i+1, explicit = false)                  # 記述順の次。最後のジョブなら終点(n)
+```
+
+- 成功の行き先 `s` と警告の行き先 `w` が同じなら、1 つの辺にまとめ、`kinds = [Success, Warning]`、`explicit` = どちらかが `true`。違うなら、2 つの辺(`[Success]` と `[Warning]`)。
+- 同じ元の辺は、行き先の位置の昇順に並べる(記述順で次のジョブへの辺が先、終点が最後)。辺の全体の並びは、元のジョブの記述順。
+- `skipped_jobs` = 元と行き先のあいだのジョブ(`jobs[i+1 .. min(行き先, n)]`。終点なら、末尾まで)の ID。行き先が次のジョブなら空。
+- エラーに辺はない(エラーでは、ジョブは止まる)。
+
+### 15.3 状態の重ね合わせ
+
+- `node_state_of(status)`: `Success`・`Warning` → `Ok`、`Skipped` → `Skipped`、`Error` → `Error`、`Pending` → `Pending`。
+- `overlay_from_state(state)`: ステートの各ジョブの状態を重ねる。再開位置 `resume_job_id` は、**完了していないステートのときだけ**使う(完了したステート、`completed = true`、は、状態の記号は重ねるが、再開位置は示さない)。
+- `pending_overlay(definition)`: ステートがないとき。すべてのジョブが `Pending`、再開位置なし。
+- `build_graph(definition, overlay)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`job_id = None`、`is_end = true`、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `Pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。
+
+### 15.4 「対応する形」の判定(`is_lane_drawable`、`skip_targets`)
+
+レーンの図(`git log --graph` と同じ見た目)で描けるのは、ジョブが主線(左の列)に記述順に並び、飛び越しの辺が、主線の右隣(列 1)から始まる線になる形だけ。`skip_targets(graph) -> Option<Vec<Option<usize>>>` が、各ジョブの飛び越しの行き先(節の位置。終点は `n`)を返す。次の 3 つの条件のどれか 1 つでも満たさなければ `None`(全体が「対応しない形」)。
+
+1. 各ジョブから出る辺は、記述順の次の節(位置 `i+1`)への辺を**持ち**、それ以外の辺(飛び越し)は、**多くて 1 つ**。(辺の行き先が、元より後ろでなければ `None`。)
+2. 飛び越しの行き先が、どの 2 つの辺でも**違う**(最後のジョブの、終点への辺は、次の節への辺なので、飛び越しではない)。
+3. 飛び越しの区間が**交差しない**(元 1 < 元 2 < 行き先 1 < 行き先 2 になる組がない)。
+
+条件 2、3 は、記述順にジョブを見ながら、開いている飛び越しの行き先を積んだ列(積み上げ。最後が最も内側)で、1 回の走査で確かめる。
+
+```text
+open = []
+for i in 0..n:
+    if open の最後 == i: open を 1 つ取り出す                 # 位置 i で、最も内側の線が閉じる
+    if open に i が(取り出したあとにも)含まれる: return None   # 内側でない線が、ここで終わる → 交差
+    if skip[i] = Some(t):
+        if open が空でなく、t >= open の最後: return None        # 行き先が、内側の線以降 → 交差か、同じ行き先
+        open に t を積む
+return Some(skip)
+```
+
+対応する形の例: 飛び越しが 1 本、入れ子の 2 本(`a→f`、`b→e`)、続く 2 本(`a→c`、`d→f`)。対応しない形: 交差(`a→d` と `b→e`)、同じ行き先に 2 本、成功と警告のどちらも次のジョブを飛び越す(1 つのジョブから、飛び越しが 2 つ)。
+
+### 15.5 レーンの配置(`layout_graph`、`lane_layout(skip)`)
+
+対応する形なら `GraphLayout::Lanes`、そうでなければ `GraphLayout::EdgeList`。レーンの配置は、節を記述順に処理して、行(`LaneRow`)を作る。`open` = 開いている飛び越しの行き先(最後が列 1、最も内側)、`after_fork` = 直前の行が分岐の行か。
+
+節 `i`(`0..=n`。`n` は終点)ごとに、次の順で行を作る。
+
+1. **合流の行**: `open` の最後が `i`(この節が、飛び越しの行き先)なら、`merge_row(open の数 - 1)` を作り、`open` から取り出し、`after_fork = false` にする。`merge_row(r)` = `[Line, Join]` に、`[Empty, Join]` を `r` 回足したもの(`|/`、`|/ /`、…)。
+2. **ノードの行**: `existing` = `open` の数(合流の行のあと)。
+   - `i == n`(終点)なら、`[EndNode, Empty]`(`o `)で、配置を終える。
+   - それ以外: ジョブ `i` の飛び越し `target = skip[i]`。すでにある右の線(`existing` 本)の記号 `existing_glyph`:
+     - `target` がある: `after_fork` なら `Fork`(`\`)、そうでなければ `Line`(`|`)。
+     - `target` がなく、この節が合流の行き先で(直前の 1 が行を作った)、`open` の最後が `i + 1`(次の節も合流の行き先)なら `Join`(`/`)。
+     - それ以外 `Line`。
+   - 幅 = `2 × (1 + existing + (target があれば 1))`。行 = `[Node]` に、`[Empty, existing_glyph]` を `existing` 回足し、幅まで `Empty` で埋めたもの。**ラベル(ジョブID、`@end`)を置く位置は、この幅**。
+3. **分岐の行**: `target` があれば、`fork_row(existing)` を作り、`open` に `target` を積む。`fork_row(e)` = `[Line, Fork]` に、`[Empty, Fork]` を `e` 回足したもの(`|\`、`|\ \`、…)。
+4. `after_fork = (target がある)`。
+
+全ノードが、ちょうど 1 回ずつ、記述順(最後が終点)に現れる。配置は、`crates/core/tests/fixtures/graph_layout_oracle.md`(正解データ。8,461 行)と、例 G1〜G6 で確かめる(`graph_layout_oracle.rs`)。この配置の規則は、正解データの例から導いたもので、正解データが原本である。
+
+### 15.6 text の整形(`render_text`)
+
+`GraphLayout::Lanes` ならレーンの図、`EdgeList` なら辺の一覧。各行の末尾の空白は取り除き、最後に改行を付ける。
+
+**レーンの図**: 各 `LaneRow` を、`glyph_char`(`Empty`=空白、`Node`=`*`、`EndNode`=`o`、`Line`=`|`、`Fork`=`\`、`Join`=`/`)で文字にする。ノードの行は、そのあとに**ラベル**を付ける: 状態の記号(`--state` のとき。`[OK] `、`[--] `、`[NG] `、`[  ] `。末尾に空白 1 つ)、ジョブID(制御文字をエスケープ)、再開位置のジョブなら `  <- resume here`(日本語 `  <- 再開位置`。先頭に空白 2 つ)。終点は `@end`(状態の記号も注記もない)。ノードの行でない行(分岐、合流)は、記号だけ。
+
+**`-v` の詳細**(`--verbose`): ジョブのノードの行(終点を除く)の直後に、詳細の行を置く。ただし、ノードの行の直後が分岐の行なら、その分岐の行を先に出してから、詳細の行を置く(合流の行の前)。詳細の行の接頭辞 = `"| "` を(そのノードの行の列の数)回繰り返したもの。列の数 = `glyphs` の長さ ÷ 2(切り捨て)。詳細の文は、次の順(該当しない項目は出さない):
+
+1. `command: <コマンド>`(日本語 `コマンド: `)。コマンドは、文字列ならそのまま(エスケープのみ)、配列なら要素ごとに(空、または空白を含む要素だけ二重引用符で囲み、エスケープ)空白でつなぐ。
+2. `retry: <要約>`(日本語 `リトライ: `)。`[job.retry]` があるときだけ。要約は、英語 `exit codes 75, 76, up to 3 times, every 5 s`(倍率と上限があれば ` (x2, max 60 s)` を続ける)、日本語 `終了コード 75、76 を最大 3 回、間隔 5 秒`(あれば `(倍率 2、上限 60 秒)` を続ける)。
+3. 飛び越しの注記。そのジョブから出る辺が 2 つ以上ある、または飛び越すジョブがあるとき。辺を、成功の辺を先、警告の辺を後に、`<種類> -> <行き先>`(日本語 `<種類> → <行き先>`)、飛び越すジョブがあれば `(skips b, c)`(日本語は `(b、c を飛び越す)`。区切りは英語 `, `、日本語 `、`)を続けたものを、英語 `, `、日本語 `、` でつなぐ。種類は、`success`/`warning`/`success, warning`(日本語 `成功`/`警告`/`成功・警告`)。
+
+**辺の一覧**(対応しない形): 次の行を出す。
+
+```text
+<注記の行>                      注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。
+ジョブ:                          (英語は Jobs:)
+  <ラベル>                       ジョブごとに 1 行(2 つの空白の字下げ。ラベルは、状態の記号とジョブID、再開位置の注記)。終点は含めない
+    <詳細の文>                   -v のときだけ。4 つの空白の字下げ。上の 1〜3
+辺:                              (英語は Edges:)
+  <元> -> <行き先>[ (<種類>)]    辺ごとに 1 行(2 つの空白の字下げ。`->` は日本語でも ASCII)
+```
+
+- 注記の行(英語): `note: the skip edges cross or share a target, so the lane diagram is replaced by a list of edges.`
+- 辺の行の `(<種類>)` は、**主線の辺**(次のジョブへの、成功と警告の両方の辺。`kinds` が 2 つで `skipped_jobs` が空)以外に付ける。種類は日本語 `(成功)`/`(警告)`/`(成功・警告)`、英語 `(success)`/`(warning)`/`(success, warning)`。
+
+### 15.7 Mermaid(`render_mermaid`)
+
+形によらず常に出せる。`-v` は影響しない。次の順に、各行を 2 つの空白で字下げして出す(最初の行を除く)。
+
+1. `flowchart TD`。
+2. 節の定義: ジョブ `k`(0 始まりの位置)は `n<k>["<ラベル>"]`、終点は `nend(["@end"])`。ラベル = 状態の記号(`--state` のとき。`[OK] ` など)+ ジョブID(下のエスケープ)。**ジョブIDは、二重引用符つきのラベルに書く**(どのIDでも図が壊れない)。
+3. 辺の定義(`flow_edges` の順): 主線の辺(`kinds` が 2 つで `skipped_jobs` が空)は `<元> --> <行き先>`、それ以外は `<元> -->|"<種類>"| <行き先>`(種類は text と同じ語。言語に従う)。
+4. 再開位置があるときだけ: `classDef resume stroke-width:3px`、`class n<k> resume`(この 2 行)。
+
+エスケープ(`escape_label`。ラベルの中): `#` → `#35;`(**最初に**置き換える。置き換えで作った `#` は、さらに置き換えない)、`"` → `#quot;`、`<` → `#lt;`、`>` → `#gt;`、`&` → `#amp;`、`` ` `` → `#96;`、そのほかの制御文字 → `#<10 進>;`。
+
+---
+
+## 16. `--dry-run`: 実行計画(v0.9.0 以降)
+
+`pipeline <名前> --dry-run` と `run <ジョブID> --dry-run` の計画の生成。実装は `crates/core/src/plan/{mod,simulate}.rs`(純粋。ファイルにも、プロセスにも、環境変数にも触れない)。流れは 04 の 7.9、文字への整形は `crates/cli/src/report/plan_text.rs`、出力の全例は 08 の 11 章。実行と**同じ判断**(`decide_before_run`、`classify_and_decide`)を、ジョブを起動する代わりに、仮定した終了コード(指定がなければ 0)で進める。
+
+### 16.1 型(`conductor_core::plan`)
+
+| 型 | 内容 |
+|----|------|
+| `Assumption` | `{ job_id, exit_code: i32 }`。`Assumption::new`。`exit_code_in_range(code)` = 0〜255(定数 `ASSUME_EXIT_CODE_MIN = 0`、`ASSUME_EXIT_CODE_MAX = 255`) |
+| `PlanDisposition` | `WillRun`(実行する)、`AlreadyExecuted`(実行済み)、`SkippedByTransition`(遷移でスキップ)、`SkippedAfterEnd`(`@end` のあとでスキップ)、`NotReached`(模擬でエラーの停止のあとのため、実行されない) |
+| `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`WillRun` のジョブだけ |
+| `EnvNameEntry` | `{ name, origin: EnvOrigin }`。値を持たない |
+| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前と出どころ), retry: Option<RetryPolicy>, result: Option<SimulatedResult> }`。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
+| `PlanMode` | `Pipeline`、`Individual` |
+| `ResumeKind` / `ResumeInfo` | `FromStart`(ステートなし、または完了したステート)、`AfterStop`(前回の停止で再開位置あり)、`Individual`(`run` の対象)/ `{ kind, job_id: Option<String> }` |
+| `PlanEnd` | `Completed`、`EndReached`(`@end` に到達)、`StoppedAtError(job_id)` |
+| `NextStepNote` | `{ next_job_id, skipped_job_ids, completed, end_reached, stopped }`(`run` の、仮定の結果による次の動き) |
+| `ExecutionPlan` | `{ pipeline_name, run_id, mode, resume, assumptions, unused_assumptions: Vec<String>, entries, end, next_step_note: Option<NextStepNote> }` |
+| `PlanRejection` | `{ job_id, reason: DecisionReason }`。本番なら順序外として拒否されるとき |
+| `PlanInput<'a>` | `{ definition, state: Option<&PipelineState>, commands: &[Vec<String>](記述順。分割済み)、env_files: &LoadedEnvFiles, run_id: Option<&str>, assumptions: &[Assumption] }` |
+
+### 16.2 `plan_pipeline(input) -> Result<ExecutionPlan, PlanRejection>`
+
+```text
+active = input.state が Some かつ completed でないもの          # 完了したステートは「ステートなし」(本番と同じ)
+states = active があれば active.job_states の複製、なければ全ジョブ pending
+initial_resume = active?.resume_job_id
+resume = initial_resume; end_reached = active?.end_reached(なければ false); stopped = None
+for (index, job) in def.job (記述順):
+    is_resume = (initial_resume == job.id)
+    if stopped: entries に NotReached を足し、continue
+    match decide_before_run(job.id, def, states, resume, end_reached):
+        Reject(reason): return Err(PlanRejection{ job.id, reason })
+        Skip(reason):   entries に skip_disposition(reason) を足す          # 模擬の状態は変えない
+        Run:
+            (code, assumed) = job.id の仮定があれば (その終了コード, true)、なければ (0, false)
+            (result, next) = simulate_job(job, def, states, code, assumed, Pipeline)
+            apply_result(states, job.id, code, result.classification, next)
+            resume = next.resume_job_id; end_reached = end_reached || next.end_reached
+            if result.classification == Error: stopped = Some(job.id)
+            entries に WillRun(result つき)を足す
+end = stopped があれば StoppedAtError(その ID)、なければ end_reached なら EndReached、なければ Completed
+resume 情報 = initial_resume があれば AfterStop(job_id)、なければ FromStart
+unused_assumptions = 仮定のうち、WillRun の項目にならなかったジョブID(指定順)
+```
+
+- `skip_disposition(reason)`: `AlreadyExecuted` → `AlreadyExecuted`、`AfterEnd` → `SkippedAfterEnd`、`SkipTarget`・`OutOfOrder` → `SkippedByTransition`。
+- `simulate_job`: 合成した `JobExecution { started: true, exit_code: Some(code), 他は false/None }` を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。
+- `apply_result`(本番の `apply_outcome` と同じ結果にする): ジョブの状態を分類のとおり(success / warning / error)にし、`exit_code = Some(code)`、`skip_reason` を消す。次の動きの `skipped_job_ids`(自分自身を除く)を `skipped` にし、`exit_code` を消し、`skip_reason` = `skip_reason_kind`(無ければ `byTransition`)にする。再開位置と `end_reached` は、呼び出し側が `NextStep` から更新する。
+- 項目 `PlanEntry`: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 }).names()`(名前と出どころ。値は持たない)。
+- 状態の探索は、ジョブの数に比例する時間で済む(`decide_before_run` は、記録が同じ位置にあればそれを使い、なければ `record_of` と同じに引く。1,000 ジョブの計画の性能のため。挙動は変わらない)。
+
+### 16.3 `plan_run(job_id, input)`
+
+```text
+index = def.job_index(job_id); なければ Err(PlanRejection{ job_id, OutOfOrder })      # 通常は、68 で先に止まる
+(states, resume, end_reached) = active があれば (active.job_states, active.resume_job_id, active.end_reached)、なければ ([], None, false)
+match decide_before_run(job_id, def, states, resume, end_reached):
+    Reject(reason): return Err(PlanRejection)
+    Skip(reason):   項目 = skip_disposition(reason)、end = Completed、note = None
+    Run:
+        (code, assumed) = 仮定または (0, false)
+        (result, next) = simulate_job(..., Individual)
+        stopped = (result.classification == Error)
+        note = NextStepNote{ next.next_job_id, next.skipped_job_ids, next.completed, next.end_reached, stopped }
+        end = stopped なら StoppedAtError(job_id)、next.end_reached なら EndReached、なければ Completed
+        項目 = WillRun(result つき)
+resume 情報 = Individual(job_id)、entries = [項目]、unused_assumptions = 仮定のうち、job_id が WillRun でないもの
+```
+
+- `run` では、`is_resume` は常に false。`next_step_note` は、対象が `WillRun` のときだけ `Some`。`end` は参考の値で、表示しない。
+
+### 16.4 使われなかった仮定
+
+仮定したジョブが、遷移でスキップされる、実行済みである、停止のあとである、`run` の対象でない、のいずれかで `WillRun` にならなければ、誤りにせず、計画の `unused_assumptions` に入れる(指定順)。定義にないジョブIDの仮定は、計画の前に 68 で拒否される(04 の 7.9)。
+
+---
+
+## 17. `init`(v0.9.0 以降)
+
+`conductor init` は、定義のひな形を作る。ひな形の文面は 08 の 12 章、ファイルの作成の規則は 06 の 13 章、流れは 04 の 7.8。要点:
+
+- ひな形は、`validate` に必ず通る定義(`[pipeline.env]` と `[job.retry]` の例を、有効な行として含む)。入力は、言語(ロケール)とパイプライン名だけで、利用者の環境変数や `.env`、既存のファイルの内容は入らない。
+- 名前は、TOML の基本文字列として、`"`、`\`、制御文字(U+0000〜U+001F、U+007F は `\uXXXX`)をエスケープして `[pipeline].name` に入れる。名前は、コメントには書かない。
+- 出力先が既にある(`--force` なし)と、何も変えず 69。`--force` は、同じディレクトリの一時ファイルに書いて、置き換える。`--config -` は標準出力。

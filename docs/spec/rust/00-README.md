@@ -1,13 +1,13 @@
 # 00. README(rust 版 conductor 仕様書の案内)
 
-この仕様書は、Rust 製のコマンドラインツール `conductor` の **v0.8.0 の現在の実装** を、忠実に書き起こしたものである。「この仕様書だけを渡された実装者(人または AI)が、ゼロから、同じ挙動のツールを実装できる」ことを目標とする。
+この仕様書は、Rust 製のコマンドラインツール `conductor` の **v0.9.0 の機能を含む現在の実装** を、忠実に書き起こしたものである。「この仕様書だけを渡された実装者(人または AI)が、ゼロから、同じ挙動のツールを実装できる」ことを目標とする。
 
 ## 1. 範囲と版
 
 | 項目 | 内容 |
 |------|------|
 | 対象 | `conductor`(実行ファイル名 `conductor`)と、それを構成する 4 つのクレート(`conductor-core`、`conductor-runtime`、`conductor-converter`、`conductor-cli`) |
-| 版 | v0.8.0(4 クレートとも `0.8.0`) |
+| 版 | v0.9.0 の機能(環境変数の注入と `.env`、`graph`、`--dry-run`、`init`)を含む。4 クレートの `Cargo.toml` の版は、版を上げるコミットまで `0.8.0` のままである(`--version` の表示も、その版による) |
 | 言語・環境 | Rust(MSRV 1.100、edition 2024)。対応 OS は Linux、macOS、Windows |
 | 根拠 | `crates/*/src` の実装と `crates/*/tests` のテスト。README(利用者向け)との差は、各文書の末尾の「実装と README の差」に書き、全件を [12-rebuild-guide.md](12-rebuild-guide.md) の 3 章に集めた |
 | 方針 | 実装が正である。README と実装が食い違うときは実装に従い、食い違いを明記する。推測で書かない。確認できなかった点は「未確認」と書き、全件を [12-rebuild-guide.md](12-rebuild-guide.md) の 4 章に集めた |
@@ -20,22 +20,22 @@
 | [00-README.md](00-README.md) | この文書。範囲、目次、読む順序、用語集、表記の規約 |
 | [01-overview.md](01-overview.md) | 目的、ユースケース、設計方針、非目標、制約、利用者像、主要な概念の概観 |
 | [02-architecture.md](02-architecture.md) | 4 クレートの責務と依存方向、公開 API、実行時の流れ、差し替え点、モジュール構成 |
-| [03-definition-format.md](03-definition-format.md) | 定義ファイル(`conductor.toml`)の書式と、読み込み時の検証(30 種のエラーの種類、行番号、順序) |
-| [04-cli.md](04-cli.md) | コマンドラインの文法(6 サブコマンド、オプション、解釈の順序)、run ID の決定、各コマンドの動作 |
-| [05-execution-flow.md](05-execution-flow.md) | `run`・`pipeline` の実行の意味論(分類、遷移、起動前の判断、再開、リトライ、完了) |
-| [06-state-file.md](06-state-file.md) | ステートファイルの形式・場所・読み書き・整合性の検査・初期化(`reset`) |
+| [03-definition-format.md](03-definition-format.md) | 定義ファイル(`conductor.toml`)の書式と、読み込み時の検証(33 種のエラーの種類、行番号、順序) |
+| [04-cli.md](04-cli.md) | コマンドラインの文法(8 サブコマンド、オプション、解釈の順序)、run ID の決定、各コマンドの動作 |
+| [05-execution-flow.md](05-execution-flow.md) | `run`・`pipeline` の実行の意味論(分類、遷移、起動前の判断、再開、リトライ、環境変数の注入、`--dry-run` の計画、完了)と、`graph`・`init` の流れ |
+| [06-state-file.md](06-state-file.md) | ステートファイルの形式・場所・読み書き・整合性の検査・初期化(`reset`)、`init` が使うファイルの排他的な作成 |
 | [07-process-and-signals.md](07-process-and-signals.md) | `command` の分割、ジョブの起動と待ち、シグナルの転送と中断、OS ごとの違い、パニックのフック |
-| [08-output-and-i18n.md](08-output-and-i18n.md) | 出力先の使い分け、`-v`、メッセージカタログ(英語・日本語)、`watch` の表、ロケール、`--help` |
+| [08-output-and-i18n.md](08-output-and-i18n.md) | 出力先の使い分け、`-v`、メッセージカタログ(英語・日本語。`.env` と `init` のメッセージを含む)、`watch` の表、ロケール、`--help`、`graph` の図・`--dry-run` の計画・`init` のひな形の出力 |
 | [09-converter.md](09-converter.md) | `convert`(TOML と YAML の相互変換)の規則、展開の上限、表せない値、往復の保証 |
 | [10-errors-and-exit-codes.md](10-errors-and-exit-codes.md) | 終了コードの全件と決定順序、エラー型の一覧、標準エラーの例 |
-| [11-quality-and-build.md](11-quality-and-build.md) | 依存、非機能要件、テスト構成、カバレッジ、CI、リリース、デモ |
-| [12-rebuild-guide.md](12-rebuild-guide.md) | ゼロから実装する順序と完了条件、落とし穴、実装と README の差の一覧、未確認事項の一覧 |
+| [11-quality-and-build.md](11-quality-and-build.md) | 依存、非機能要件、テスト構成(v0.9.0 の新しいテストを含む)、カバレッジ、CI、リリース、デモ(場面 0〜14) |
+| [12-rebuild-guide.md](12-rebuild-guide.md) | ゼロから実装する順序と完了条件(段 0〜13。v0.9.0 の機能は段 10〜13)、落とし穴、実装と README の差の一覧、未確認事項の一覧 |
 
 ## 3. 読む順序
 
 - **全体をつかむ**: 01 → 02 → 04(コマンドの形)→ 05(実行の意味)の順。
 - **ゼロから実装する**: 01 → 02 → 12(順序と完了条件)を先に読み、12 の各段で指示される文書(03〜11)を、段ごとに読む。
-- **特定の挙動を確かめる**: 終了コードは 10、定義の書式と検証は 03、ステートは 06、出力の文言は 08、変換は 09。
+- **特定の挙動を確かめる**: 終了コードは 10、定義の書式と検証は 03、ステートは 06、出力の文言は 08、変換は 09。v0.9.0 の機能は、環境変数と `.env` が 03 の 6.6・6.7 と 05 の 14 章、`graph` が 04 の 7.7 と 05 の 15 章と 08 の 11 章、`--dry-run` が 04 の 7.9 と 05 の 16 章と 08 の 11 章、`init` が 04 の 7.8 と 05 の 17 章と 06 の 13 章と 08 の 12 章。
 - 05(意味論)は 03(定義)・06(ステート)の用語を前提にする。06 は 05 の「いつ何を記録するか」を前提にする。両方を行き来してよい。
 
 ## 4. 用語集
@@ -72,6 +72,14 @@
 | 一括実行 / 個別実行 | `pipeline`(全ジョブを記述順に処理)/ `run`(ジョブ 1 つ。スケジューラが 1 つずつ呼ぶ) |
 | スケジューラ | `conductor` を呼び出す外部のもの(cron など)。`conductor` 自身はスケジュール機能を持たない |
 | 変換(convert) | 定義ファイルを TOML と YAML のあいだで変換する `convert` コマンド。定義の検証はしない |
+| 環境変数の層(`env`・`env_file`、v0.9.0 以降) | ジョブに足す環境変数の出どころ。後ろが勝つ順に、`[pipeline].env_file`、`[pipeline.env]`、`[job].env_file`、`[job.env]`、自動の変数(`CONDUCTOR_*`)。引き継いだ環境(親から受け取ったもの)は、これらの手前の土台で、`conductor` は足すだけ(取り除かない) |
+| `.env` | `env_file` で指す、`KEY=VALUE` の行からなるファイル。書式は 03 の 6.7。実行の前にすべて読む。誤りは終了コード 64 |
+| 予約名 | `CONDUCTOR_` で始まる環境変数の名前(ASCII の大文字小文字を区別しない)。利用者は、`env` にも `.env` にも書けない。自動の変数が使う |
+| 自動の変数 | ジョブに常に足される `CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(run ID があるときだけ)、`CONDUCTOR_ATTEMPT`(1 から。リトライごとに増える) |
+| 辺(edge)(`graph`、v0.9.0 以降) | 図の中の、ジョブから行き先(後ろのジョブまたは終点 `@end`)への矢印。成功と警告のそれぞれの行き先から作る。エラーに辺はない |
+| 計画(plan)(`--dry-run`、v0.9.0 以降) | ジョブを実行せず、仮定した終了コード(既定は 0)で、実行と同じ判断を進めて得る「実行したら何が起こるか」の表示 |
+| 仮定(assume) | `--assume <ジョブID>=<終了コード>` で与える、計画の中のジョブの終了コード(0〜255) |
+| ひな形(`init`、v0.9.0 以降) | `conductor init` が作る、有効な定義の例(日本語と英語の 2 つの文面。パイプライン名だけが入れ替わる) |
 | Intake / Parse / Depth / VersionCheck / Walk | 定義の読み込みの 5 段階(03 の 1 章)。Intake=場所の決定と読み取り、Parse=TOML の文法、Depth=入れ子の深さ、VersionCheck=`format_version`、Walk=構造・型・遷移などの検査 |
 | 耐久性(`Durable` / `Fast`) | ステートの書き込みで、ファイルの内容の同期を行う(Durable)か省く(Fast)か |
 | at-least-once | ジョブの終了とステートへの記録のあいだで `conductor` が落ちると、ジョブが再実行されうる、という保証の範囲 |

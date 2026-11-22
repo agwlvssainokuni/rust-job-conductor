@@ -1,6 +1,6 @@
 # 08. 出力と多言語化
 
-実装: `crates/cli/src/report/{mod,messages,watch,escape}.rs`、`crates/cli/src/platform/mod.rs`、`crates/cli/src/deps.rs`。
+実装: `crates/cli/src/report/{mod,messages,watch,escape}.rs`、`crates/cli/src/platform/mod.rs`、`crates/cli/src/deps.rs`。v0.9.0 以降は、`crates/cli/src/report/{graph_text,graph_mermaid,plan_text,init_template}.rs` も(11、12 章)。
 
 ## 1. 出力先の使い分け
 
@@ -9,13 +9,13 @@
 | 水準 | 出力先 | 出す条件 | 書き込み失敗 |
 |------|--------|----------|--------------|
 | `Error` | 標準エラー | 常に | 無視(本筋を止めない) |
-| `Notice` | 標準エラー | 常に(エラーではない知らせ。リトライの前の知らせだけ) | 無視 |
+| `Notice` | 標準エラー | 常に(エラーではない知らせ。リトライの前の知らせと、v0.9.0 以降の `init` の成功の知らせ) | 無視 |
 | `Verbose` | 標準エラー | `-v` のときだけ | 無視 |
-| `Output` | 標準出力 | 常に | 値で返す(`watch` は 65、`convert` は 67 で終わる) |
+| `Output` | 標準出力 | 常に | 値で返す(`watch` は 65、`convert` は 67、v0.9.0 以降の `graph`・`--dry-run`・`init --config -` は 65 で終わる) |
 
 - どの文言も、最後に改行(`\n`)を含む。複数の誤りは 1 行ずつ。
 - `Sink` は、書き込みのたびに flush する(行ごとに、すぐに見える)。
-- 標準出力に出すのは、`watch` の表(と `no state`)、`--help`、`--version`、`convert` の変換結果だけ。
+- 標準出力に出すのは、`watch` の表(と `no state`)、`--help`、`--version`、`convert` の変換結果と、v0.9.0 以降の `graph` の図、`--dry-run` の計画、`init --config -` のひな形だけ。この 3 つは、組み立て済みの文字列を、そのまま 1 回で書く(`DisplayEvent::Graph`・`Plan`・`InitTemplate`)。
 - ジョブ本体の標準出力・標準エラーは `conductor` が加工せず、そのまま流れる。`conductor` の表示は標準エラーなので、標準出力にはジョブの出力だけが残る。
 - 成功・スキップで `-v` なしのときは、表示が一度もなく、言語も色も判定されない(遅延評価)。
 
@@ -23,14 +23,14 @@
 
 | 水準 | イベント |
 |------|----------|
-| Error | 定義の誤り、`command` の誤り、使い方の誤り(+使い方全文)、ステートの誤り、定義との食い違い、`reset --all` の警告(`conductor: warning:`)、拒否、起動失敗、成功コードに含まれない 0、変換の誤り、標準出力に書けない、完了を判定できない、シグナルの準備の失敗 |
-| Notice | リトライの前の知らせ(`conductor: retry:`) |
+| Error | 定義の誤り、`command` の誤り、使い方の誤り(+使い方全文)、ステートの誤り、定義との食い違い、`reset --all` の警告(`conductor: warning:`)、拒否、起動失敗、成功コードに含まれない 0、変換の誤り、標準出力に書けない、完了を判定できない、シグナルの準備の失敗。v0.9.0 以降: `.env` の誤り(`EnvFileErrors`)、`.env` の重複キーの警告(`EnvWarnings`。`conductor: warning:`)、`init` の既存(`InitExists`)・作れない(`InitFailed`)・標準出力に書けない(`InitStdoutFailed`) |
+| Notice | リトライの前の知らせ(`conductor: retry:`)。v0.9.0 以降: `init` の成功(`InitCreated`、`InitReplaced`) |
 | Verbose | ジョブの結果、スキップ、遷移、中断、`validate` が通った |
-| Output | `watch` の表、`watch` の空、`--help`、`--version` |
+| Output | `watch` の表、`watch` の空、`--help`、`--version`。v0.9.0 以降: `graph` の図、`--dry-run` の計画、`init --config -` のひな形 |
 
 ## 2. `-v`(`--verbose`)
 
-- `run`・`pipeline`・`validate` だけが受け付ける。1 回だけ(2 回は 68)。
+- `run`・`pipeline`・`validate`、v0.9.0 以降は `graph` が受け付ける(`graph` では、標準出力の図に詳細の行を足す。11 章)。1 回だけ(2 回は 68)。
 - 常に表示するものは `-v` に関係なく出る(エラー、起動失敗、成功コードに含まれない 0、リトライの知らせ)。
 - `-v` の行は、先頭が `[conductor] `。
 
@@ -93,7 +93,7 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 ```
 
 - 先頭 `conductor: error: ` は言語によらず同じ。警告は `conductor: warning: `、リトライの知らせは `conductor: retry: `。
-- `<場所>`: 定義の誤りは `<ファイル>` または `<ファイル>:<行>`、`command` の誤りは `<定義ファイル>: job '<ID>'`、ステート・食い違いは `<ステートのパス>`、拒否・起動失敗・成功コードに含まれない 0 は `job '<ID>'`、変換の誤りは `<ファイル>` または `<ファイル>:<行>`。
+- `<場所>`: 定義の誤りは `<ファイル>` または `<ファイル>:<行>`、`.env` の誤りと警告(v0.9.0 以降)は `<.env のパス>` または `<.env のパス>:<行>`(`escape_path`)、`command` の誤りは `<定義ファイル>: job '<ID>'`、ステート・食い違いは `<ステートのパス>`、拒否・起動失敗・成功コードに含まれない 0 は `job '<ID>'`、変換の誤りは `<ファイル>` または `<ファイル>:<行>`。
 - 使い方の誤りだけは場所を持たず、`conductor: error: <文>[: '<対象>']` のあとに空行と使い方全文を続ける。
 
 ## 4. メッセージカタログ
@@ -159,6 +159,9 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 | `retryBackoffIncomplete` | `retry multiplier and max_interval must be given together or not at all` | `retry の倍率と間隔の上限は、両方を書くか、両方とも書きません` |
 | `retryMultiplierInvalid` | `retry multiplier is invalid` | `retry の倍率が正しくありません` |
 | `retryMaxIntervalTooSmall` | `retry max_interval is smaller than interval` | `retry の間隔の上限が、間隔より小さくなっています` |
+| `reservedEnvName`(v0.9.0 以降) | `reserved environment variable name` | `予約された環境変数の名前です` |
+| `envNameCaseConflict`(v0.9.0 以降) | `environment variable names differ only in letter case` | `大文字小文字だけが違う環境変数の名前があります` |
+| `invalidEnvValue`(v0.9.0 以降) | `invalid environment variable value` | `環境変数の値が正しくありません` |
 
 実出力:
 
@@ -312,6 +315,69 @@ conductor: warning: <RESET_ALL_KEPT>
 | `SKIPPED_WORD`(スキップ行の語) | `skipped` | `スキップ` |
 | `SKIPPED_LIST`(遷移行の `(…: ID, …)`) | `skipped` | `スキップ` |
 
+### 4.12 `.env` の誤りと警告(v0.9.0 以降)
+
+**誤り**(`DisplayEvent::EnvFileErrors`。標準エラー。終了コード 64): 誤り 1 件につき 1 行。
+
+```text
+conductor: error: <ファイル>[:<行>]: <種類の文>: <理由>
+```
+
+- `<ファイル>` は解決済みのパス(`escape_path`。切らない)。`<行>` は、行番号があるときだけ(無い誤り: `fileMissing`、`unreadable`、`tooLarge`、`notUtf8`)。
+- 種類の文と理由は、**言語に従う**(定義の誤りの `<原因>` が常に日本語なのと違う)。日本語は `conductor-core` の `EnvFileErrorKind` の `Display`(種類の文)と `reason()`(理由)と同じ。英語は次の表(`messages.rs` の `env_file_kind`、`env_file_reason`)。
+- 先頭の最大 20 件を表示し、超えたら、最後に 1 行 `conductor: error: and <N> more`(日本語 `conductor: error: ほか <N> 件`)を出す(`<N>` = 残りの件数)。
+- **値は、どの行にも含めない**(名前も含めない)。
+
+| 識別子 | 種類の文(英語) | 理由(英語) |
+|--------|-----------------|--------------|
+| `fileMissing` | `environment file does not exist` | ``the file named in `env_file` was not found`` |
+| `unreadable` | `cannot read environment file` | ``the file named in `env_file` cannot be read`` |
+| `tooLarge` | `environment file is too large` | `the file is larger than the limit (1 MiB)` |
+| `notUtf8` | `environment file is not UTF-8` | `write the file in UTF-8` |
+| `tooManyEntries` | `environment file has too many entries` | `the number of entries exceeds the limit (10,000)` |
+| `invalidName` | `invalid environment variable name` | ``a name starts with an ASCII letter or `_` and has only ASCII letters, digits and `_` `` |
+| `reservedName` | `reserved environment variable name` | ``names starting with `CONDUCTOR_` cannot be written`` |
+| `caseConflict` | `environment variable names differ only in letter case` | `the file has names that differ only in letter case` |
+| `missingEquals` | `not in KEY=VALUE form` | ``write a line as `KEY=VALUE` `` |
+| `unterminatedQuote` | `unterminated quote` | `the quote is not closed on the same line` |
+| `invalidEscape` | `invalid escape sequence` | ``only `\n`, `\r`, `\t`, `\"` and `\\` can be escaped in double quotes`` |
+| `trailingGarbage` | `unexpected characters after the closing quote` | `only spaces and a comment can follow the closing quote` |
+| `nulInValue` | `value contains NUL` | `a value cannot contain NUL (U+0000)` |
+
+(理由の中の `` ` `` は、文の一部である。)日本語の種類の文と理由は、03 の 6.7 の表。
+
+実出力(英語。`x.env` の 3 行目に `=` がない場合):
+
+```text
+conductor: error: x.env:3: not in KEY=VALUE form: write a line as `KEY=VALUE`
+```
+
+**警告**(`DisplayEvent::EnvWarnings`。標準エラー。`validate` だけが出す。重複キー): 警告 1 件につき 1 行。誤りではないので、終了コードに影響しない(`validate` の終了コードは 0)。
+
+```text
+conductor: warning: <ファイル>:<後ろの行>: duplicate key `<名前>` (the last one wins)
+conductor: warning: <ファイル>:<後ろの行>: 重複キー `<名前>`(後ろの値を使います)
+```
+
+`<名前>` は `escape_name`(64 文字で切る)。例: ``conductor: warning: x.env:5: duplicate key `A\nB` (the last one wins)``(名前が `A<LF>B` のとき)。警告は、ファイルの読み取り順、ファイルの中では行の順に出す。
+
+### 4.13 `init` のメッセージ(v0.9.0 以降)
+
+パス(`<path>`)は `escape_path`(切らない)。成功は標準エラー(`Notice`)、誤りは `conductor: error: ` つきの標準エラー。
+
+| 場面 | 英語 | 日本語 | 終了コード |
+|------|------|--------|------------|
+| 作った(`Created`) | `created <path>` | `<path> を作成しました` | 0 |
+| 置き換えた(`Replaced`) | `replaced <path>` | `<path> を置き換えました` | 0 |
+| 既にある(`AlreadyExists`) | `conductor: error: <path> already exists (use --force to overwrite)` | `conductor: error: <path> は既にあります(上書きするには --force)` | 69 |
+| 親のディレクトリが無い(`ParentMissing`) | `conductor: error: cannot create <path>: the parent directory does not exist` | `conductor: error: <path> を作れません: 親のディレクトリがありません` | 65 |
+| 作る先がディレクトリ(`IsDirectory`) | `conductor: error: cannot create <path>: it is a directory` | `conductor: error: <path> を作れません: ディレクトリです` | 65 |
+| 権限がない(`PermissionDenied`) | `conductor: error: cannot create <path>: permission denied` | `conductor: error: <path> を作れません: 書く権限がありません` | 65 |
+| そのほか(`OtherIo`) | `conductor: error: cannot create <path>: I/O error` | `conductor: error: <path> を作れません: 入出力の誤りです` | 65 |
+| `--config -` で、標準出力に書けない | `conductor: error: cannot write the template to standard output` | `conductor: error: ひな形を標準出力に書けません` | 65 |
+
+OS のエラーの文は含めない。`--config -` の成功では、ひな形だけを標準出力に出し、成功のメッセージは出さない。
+
 ## 5. スキップ・拒否の理由の対応
 
 | 理由(`DecisionReason`) | `-v` のスキップ行 `(…)` 英語 | 日本語 | 拒否の理由 |
@@ -419,25 +485,37 @@ load       success  終了コード 0
 
 ### 8.1 英語
 
+v0.9.0 以降の全文(v0.8.0 以前は、`graph`・`init` の行、`--dry-run`・`--assume`・`--format`・`--state`・`--force` の行を持たない):
+
 ```text
 Usage:
-  conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] <job-id>
-  conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] <pipeline-name>
+  conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]] <job-id>
+  conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]] <pipeline-name>
   conductor watch [--config <path>] [--run-id <id>]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
+  conductor graph [-v] [--config <path>] [--format <text|mermaid>] [--state [--run-id <id>]] [<pipeline-name>]
+  conductor init [--config <path>] [--force] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
 
 Options:
-  -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line)
-  --config <path>     definition file (default: conductor.toml in the current directory)
-  --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset; default: the environment variable
+  -v, --verbose       print job results, skips and transitions to standard error (run, pipeline; validate prints one line);
+                      graph prints the command, retry and skip details under each job
+  --config <path>     definition file (default: conductor.toml in the current directory; init: - writes the template to standard output)
+  --run-id <id>       run ID that separates the state file (run, pipeline, watch, reset, graph --state; default: the environment variable
                       named by run_id_env in the definition, or CONDUCTOR_RUN_ID; an empty value means no run ID)
   --remove-on-complete
                       remove the state file when the run completes (run, pipeline; default: keep it, or the
                       remove_on_complete setting of the definition)
   --all               remove every state file of the definition, with or without a run ID (reset only)
+  --format <text|mermaid>
+                      output format of graph (default: text)
+  --state             overlay the state of the jobs on the graph (graph only; reads the state file, never writes it)
+  --dry-run           print the execution plan without running jobs, writing the state or setting up signals (run, pipeline)
+  --assume <job-id>=<code>
+                      assume the exit code (0-255) of a job in the plan; repeatable (with --dry-run only; default: 0)
+  --force             overwrite the file that already exists (init only; default: leave it and exit with 69)
   --to <yaml|toml>    target format of convert
   -h, --help          print this help
   -V, --version       print the version
@@ -447,22 +525,32 @@ Options:
 
 ```text
 使い方:
-  conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <ジョブID>
-  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] <パイプライン名>
+  conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <ジョブID>
+  conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <パイプライン名>
   conductor watch [--config <パス>] [--run-id <ID>]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
+  conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+  conductor init [--config <パス>] [--force] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
 
 オプション:
-  -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)
-  --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml)
-  --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset。省略時: 定義の run_id_env の環境変数、
+  -v, --verbose       ジョブの結果、スキップ、遷移を標準エラーに表示する(run、pipeline。validate は 1 行)。
+                      graph は、ジョブごとに、コマンド、リトライ、飛び越しの詳細を表示する
+  --config <パス>     定義ファイル(省略時: 実行ディレクトリの conductor.toml。init: - なら、ひな形を標準出力に出す)
+  --run-id <ID>       ステートファイルを分ける run ID(run、pipeline、watch、reset、graph --state。省略時: 定義の run_id_env の環境変数、
                       なければ CONDUCTOR_RUN_ID。空の値は run ID なし)
   --remove-on-complete
                       完了のときにステートファイルを消す(run、pipeline。省略時: 残す。定義の remove_on_complete に従う)
   --all               定義のステートファイルを、run ID の有無によらず、すべて消す(reset のみ)
+  --format <text|mermaid>
+                      graph の出力の形式(省略時: text)
+  --state             ジョブの状態を図に重ねる(graph のみ。ステートファイルを読むだけで、書かない)
+  --dry-run           ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を表示する(run、pipeline)
+  --assume <ジョブID>=<終了コード>
+                      計画の中で、ジョブの終了コード(0〜255)を仮定する。複数回指定できる(--dry-run と一緒のときだけ。省略時: 0)
+  --force             既にあるファイルを上書きする(init のみ。省略時: 何も変えず、終了コード 69)
   --to <yaml|toml>    convert の変換後の形式
   -h, --help          この使い方を表示する
   -V, --version       版を表示する
@@ -525,3 +613,467 @@ Options:
 | 定義・ステート・変換の誤りの原因 | 「一部は日本語」 | 英語ロケールでも日本語の固定の文(種類の文は英語になる) |
 | 版の表示 | 記述なし | `conductor <版>` |
 | 英語ロケールで `ja` 判定 | 「`ja` で始まる」 | 一致。最初の空でない変数だけを見る |
+| `.env` の誤りの理由の言語(v0.9.0 以降) | 「`.env` の誤りは、ファイル名と行番号つきで表示」 | 種類の文と理由が言語に従う(定義の誤りの理由が常に日本語なのと違う)。値は含めない |
+| `graph`・計画・ひな形の標準出力(v0.9.0 以降) | 例を載せる | 11、12 章の例と一致(テストが 1 文字単位で確かめる) |
+
+## 11. `graph` の図と `--dry-run` の計画の出力(v0.9.0 以降)
+
+図(`graph`)と計画(`--dry-run`)は、組み立て済みの文字列を、標準出力に 1 回で書く(`DisplayEvent::Graph`・`Plan`)。各行の末尾の空白は取り除く。ジョブID、コマンドの語、仮定のジョブIDは、制御文字を `escape_path`(切らない)でエスケープする。環境変数の値は、どこにも出さない。以降の例は、テスト(`graph_report.rs`、`plan_report.rs`)の期待値のとおり。配置と整形の規則は、05 の 15、16 章。
+
+### 11.1 `graph` の text(レーンの図)
+
+例 G1(`a`、`b`、`c`。飛び越しなし):
+
+```text
+* a
+* b
+* c
+o @end
+```
+
+例 G2(`a` の成功が `d` へ飛ぶ。5 ジョブ `a`〜`e`):
+
+```text
+*   a
+|\
+* | b
+* | c
+|/
+* d
+* e
+o @end
+```
+
+例 G3(`a` の成功が `@end` へ。3 ジョブ):
+
+```text
+*   a
+|\
+* | b
+* | c
+|/
+o @end
+```
+
+例 G4(入れ子の 2 本。`a` → `f`、`b` → `e`。6 ジョブ):
+
+```text
+*   a
+|\
+* \   b
+|\ \
+* | | c
+* | | d
+|/ /
+* / e
+|/
+* f
+o @end
+```
+
+例 G6(続く 2 本。`a` → `c`、`d` → `f`。7 ジョブ):
+
+```text
+*   a
+|\
+* | b
+|/
+* c
+*   d
+|\
+* | e
+|/
+* f
+* g
+o @end
+```
+
+### 11.2 `graph --state`(G2 に、`a` 成功、`b` エラー、そのほか未実行、再開位置 `b`)
+
+日本語:
+
+```text
+*   [OK] a
+|\
+* | [NG] b  <- 再開位置
+* | [  ] c
+|/
+* [  ] d
+* [  ] e
+o @end
+```
+
+英語は、`b` の行が `* | [NG] b  <- resume here`。完了したステート(`a` 成功、`b`・`c` スキップ、`d`・`e` 成功)は、再開位置を示さず、次のようになる。
+
+```text
+*   [OK] a
+|\
+* | [--] b
+* | [--] c
+|/
+* [OK] d
+* [OK] e
+o @end
+```
+
+### 11.3 `graph -v`(G2。日本語)
+
+```text
+*   a
+|\
+| | コマンド: echo a
+| | 成功 → d(b、c を飛び越す)、警告 → b
+* | b
+| | コマンド: echo b
+* | c
+| | コマンド: echo c
+|/
+* d
+| コマンド: echo d
+* e
+| コマンド: echo e
+o @end
+```
+
+G4 の `-v`(日本語。分岐の行のあとに詳細を置き、列の数だけ `|` を重ねる):
+
+```text
+*   a
+|\
+| | コマンド: echo a
+| | 成功 → f(b、c、d、e を飛び越す)、警告 → b
+* \   b
+|\ \
+| | | コマンド: echo b
+| | | 成功 → e(c、d を飛び越す)、警告 → c
+* | | c
+| | | コマンド: echo c
+* | | d
+| | | コマンド: echo d
+|/ /
+* / e
+| | コマンド: echo e
+|/
+* f
+| コマンド: echo f
+o @end
+```
+
+リトライと配列の `command` の `-v`(英語。`command = ["echo", "hello world", "", "x\ty"]`、`exit_codes = [75, 76]`、`max = 3`、`interval = "5s"`、`multiplier = 2`、`max_interval = "60s"`。`\t` は、バックスラッシュと `t` の 2 文字):
+
+```text
+* a
+| command: echo "hello world" "" "x\ty"
+| retry: exit codes 75, 76, up to 3 times, every 5 s (x2, max 60 s)
+* b
+| command: echo b
+o @end
+```
+
+日本語のリトライの行: `| リトライ: 終了コード 75、76 を最大 3 回、間隔 5 秒(倍率 2、上限 60 秒)`。
+
+### 11.4 `graph` の辺の一覧
+
+例 E1(`a` → `d`、`b` → `e`。6 ジョブ `a`〜`f`。飛び越しが交差するので、レーンの図でなく辺の一覧。日本語):
+
+```text
+注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。
+ジョブ:
+  a
+  b
+  c
+  d
+  e
+  f
+辺:
+  a -> b (警告)
+  a -> d (成功)
+  b -> c (警告)
+  b -> e (成功)
+  c -> d
+  d -> e
+  e -> f
+  f -> @end
+```
+
+例 E2(`a` の成功と警告が、どちらも `d` へ。4 ジョブ。`--state` で `a`・`d` 成功、`b`・`c` スキップ):
+
+```text
+注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。
+ジョブ:
+  [OK] a
+  [--] b
+  [--] c
+  [OK] d
+辺:
+  a -> d (成功・警告)
+  b -> c
+  c -> d
+  d -> @end
+```
+
+英語の見出しは `Jobs:`、`Edges:`、種類は `(success)`、`(warning)`、`(success, warning)`。`-v` の詳細は、ジョブの行の下に、4 つの空白で字下げして足す(英語。5 ジョブ `a`〜`e`、`a` → `d`、`b` → `e`):
+
+```text
+Jobs:
+  a
+    command: echo a
+    success -> d (skips b, c), warning -> b
+  b
+  ...
+Edges:
+  a -> b (warning)
+  ...
+```
+
+### 11.5 `graph --format mermaid`(G2)
+
+```text
+flowchart TD
+  n0["a"]
+  n1["b"]
+  n2["c"]
+  n3["d"]
+  n4["e"]
+  nend(["@end"])
+  n0 -->|"警告"| n1
+  n0 -->|"成功"| n3
+  n1 --> n2
+  n2 --> n3
+  n3 --> n4
+  n4 --> nend
+```
+
+(ラベルの語は、英語では `"warning"`、`"success"`。)`--state` で `a` 成功、`b` エラー、そのほか未実行、再開位置 `b` のときは、節の定義が `n0["[OK] a"]`、`n1["[NG] b"]`、`n2["[  ] c"]`、…になり、末尾に次の 2 行が付く。
+
+```text
+  classDef resume stroke-width:3px
+  class n1 resume
+```
+
+エスケープ: `a<b>&c#d"e`f<SOH>` → `a#lt;b#gt;#amp;c#35;d#quot;e#96;f#1;`。日本語のジョブID(`取得`)と予約語(`end`)は、そのまま、引用符の中に書く(`n0["end"]`、`n1["取得"]`)。
+
+### 11.6 `--dry-run` の計画(`pipeline`)
+
+形(1 行目から順に): ヘッダー、再開位置(または `run` の対象のジョブ)、仮定(あれば)、使われなかった仮定(あれば)、ジョブごとの項目、模擬の結果(`pipeline`)または次の動き(`run`)。
+
+| 行 | 日本語 | 英語 |
+|----|--------|------|
+| ヘッダー | `計画(--dry-run): パイプライン <名前>`(run ID があれば、続けて `(run ID: <ID>)`。空白なし) | `plan (--dry-run): pipeline <名前>`(あれば ` (run ID: <ID>)`。空白あり) |
+| 再開位置 | `再開位置: 最初から` / `再開位置: <ID>(前回の停止)` | `resume: from the start` / `resume: <ID> (previous stop)` |
+| `run` の対象 | `対象のジョブ: <ID>` | `target job: <ID>` |
+| 仮定 | `仮定: a=3, b=1`(指定順。`, `) | `assume: a=3, b=1` |
+| 使われなかった仮定 | `使われなかった仮定: b` | `unused assumptions: b` |
+| ジョブの項目 | `<番号>. [<扱い>] <ID>`(再開位置のジョブは行末に `  <- 再開位置`) | `<番号>. [<扱い>] <ID>`(`  <- resume here`) |
+| コマンド(`WillRun` のみ) | 5 つの空白 + `コマンド: ["echo", "a"]` | 5 つの空白 + `command: ["echo", "a"]` |
+| 環境変数(同) | 5 つの空白 + `環境変数: A, B, ...`(名前だけ。層の順) | 5 つの空白 + `env: A, B, ...` |
+| リトライ(同。あれば) | 5 つの空白 + `リトライ: 終了コード 75、76 を最大 3 回、間隔 5 秒` | 5 つの空白 + `retry: exit codes 75, 76, up to 3 times, every 5 s` |
+| 模擬の結果(`pipeline`) | `結果(模擬): <終わり>` | `result (simulated): <終わり>` |
+| 次の動き(`run`) | `次の動き: <動き>` | `next step: <動き>` |
+
+- 扱い(`[ ]` の中): `実行する`/`run`、`実行済み`/`already executed`、`スキップ(遷移)`/`skip (transition)`、`スキップ(@end のあと)`/`skip (after @end)`、`実行されない(停止のあと)`/`not run (after stop)`。
+- 仮定の補足: `WillRun` のジョブで、`--assume` で指定したもの、または既定の結果が成功でないものに、扱いの語のあとに括弧で付ける(日本語は語のすぐあと `実行する(仮定: 終了コード 3 → 警告)`、英語は空白を置いて `run (assumed: exit code 3 -> warning)`)。指定のない既定の成功は、補足なし。補足の語: `仮定`/`assumed`(指定)、`既定`/`default`(既定の 0)、`終了コード <C> → <分類>`/`exit code <C> -> <class>`、分類の語 `成功`/`警告`/`エラー`、`success`/`warning`/`error`。リトライの対象の終了コードなら、続けて `、リトライの対象`/`, retry target`。
+- 模擬の終わり: `完了`/`completed`、`@end に到達(完了)`/`reached @end (completed)`、`停止(エラー: <ID>)`/`stopped (error: <ID>)`。
+- 次の動き(`run`): 先頭に、結果が警告かエラーのとき `(<仮定の補足>) `(リトライの注記なし)を添える。そのあと: 停止なら `停止`/`stop`、`@end` に到達して未完了なら `@end に到達(残りのジョブは、呼ばれたときにスキップ)`/`reached @end (the rest are skipped when called)`、完了なら `完了`/`done`、そうでなければ `次のジョブ <ID>`(あれば `(スキップ: <ID>、<ID>)`)/`next job <ID>`(`(skipped: <ID>, <ID>)`)。
+- 実行済みなどで `WillRun` でない `run` の対象は、次の動きの行を出さない。
+
+例 P1(日本語。ステートなし、すべて成功):
+
+```text
+計画(--dry-run): パイプライン demo
+再開位置: 最初から
+1. [実行する] a
+     コマンド: ["echo", "a"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+2. [実行する] b
+     コマンド: ["echo", "b"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+3. [実行する] c
+     コマンド: ["echo", "c"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+結果(模擬): 完了
+```
+
+例 P2(日本語。`[pipeline.env]` に `API_URL`、run ID `r1`、`a` 成功済みで `b` がエラーで停止、`c` にリトライ、`--assume c=75`):
+
+```text
+計画(--dry-run): パイプライン demo(run ID: r1)
+再開位置: b(前回の停止)
+仮定: c=75
+1. [実行済み] a
+2. [実行する] b  <- 再開位置
+     コマンド: ["echo", "b"]
+     環境変数: API_URL, CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_RUN_ID, CONDUCTOR_ATTEMPT
+3. [実行する(仮定: 終了コード 75 → エラー、リトライの対象)] c
+     コマンド: ["fetch", "--retry"]
+     環境変数: API_URL, CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_RUN_ID, CONDUCTOR_ATTEMPT
+     リトライ: 終了コード 75、76 を最大 3 回、間隔 5 秒
+4. [実行されない(停止のあと)] d
+結果(模擬): 停止(エラー: c)
+```
+
+例 P2e(P2 の英語):
+
+```text
+plan (--dry-run): pipeline demo (run ID: r1)
+resume: b (previous stop)
+assume: c=75
+1. [already executed] a
+2. [run] b  <- resume here
+     command: ["echo", "b"]
+     env: API_URL, CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_RUN_ID, CONDUCTOR_ATTEMPT
+3. [run (assumed: exit code 75 -> error, retry target)] c
+     command: ["fetch", "--retry"]
+     env: API_URL, CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_RUN_ID, CONDUCTOR_ATTEMPT
+     retry: exit codes 75, 76, up to 3 times, every 5 s
+4. [not run (after stop)] d
+result (simulated): stopped (error: c)
+```
+
+例 P3(日本語。`a` の成功が `c` へ飛ぶ。`--assume b=1` は使われない):
+
+```text
+計画(--dry-run): パイプライン demo
+再開位置: 最初から
+仮定: b=1
+使われなかった仮定: b
+1. [実行する] a
+     コマンド: ["echo", "a"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+2. [スキップ(遷移)] b
+3. [実行する] c
+     コマンド: ["echo", "c"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+結果(模擬): 完了
+```
+
+例 P4(日本語。`a` が警告 `[3]` で `@end` へ。`--assume a=3`)と P4e(英語):
+
+```text
+計画(--dry-run): パイプライン demo
+再開位置: 最初から
+仮定: a=3
+1. [実行する(仮定: 終了コード 3 → 警告)] a
+     コマンド: ["echo", "a"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+2. [スキップ(@end のあと)] b
+3. [スキップ(@end のあと)] c
+結果(模擬): @end に到達(完了)
+```
+
+```text
+plan (--dry-run): pipeline demo
+resume: from the start
+assume: a=3
+1. [run (assumed: exit code 3 -> warning)] a
+     command: ["echo", "a"]
+     env: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+2. [skip (after @end)] b
+3. [skip (after @end)] c
+result (simulated): reached @end (completed)
+```
+
+例 P6(日本語。`a` が `success_exit_codes = [10]` で、既定の 0 がエラーになる):
+
+```text
+計画(--dry-run): パイプライン demo
+再開位置: 最初から
+1. [実行する(既定: 終了コード 0 → エラー)] a
+     コマンド: ["make"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+2. [実行されない(停止のあと)] b
+結果(模擬): 停止(エラー: a)
+```
+
+環境変数の名前は、層の順(`[pipeline].env_file`、`[pipeline.env]`、`[job].env_file`、`[job.env]`、自動の変数)に並ぶ。例: `env: P_FILE, P_ENV, A_FILE, J_ENV, CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_RUN_ID, CONDUCTOR_ATTEMPT`。
+
+### 11.7 `--dry-run` の計画(`run`)
+
+例 P5(日本語。`a` 成功済み、`b` と `c` が未実行。`run b --dry-run`):
+
+```text
+計画(--dry-run): パイプライン demo
+対象のジョブ: b
+1. [実行する] b
+     コマンド: ["echo", "b"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+次の動き: 次のジョブ c
+```
+
+例 P7(`a` の成功が `c` へ飛ぶ。`run a --dry-run`)の最後の行: `次の動き: 次のジョブ c(スキップ: b)`。例 P8(`a` の成功が `@end` へ)の最後の行: `次の動き: @end に到達(残りのジョブは、呼ばれたときにスキップ)`。`--assume a=1`(エラー)なら、最後の行は、日本語 `次の動き: (仮定: 終了コード 1 → エラー) 停止`、英語 `next step: (assumed: exit code 1 -> error) stop`(`target job: a` の行から始まる)。
+
+## 12. `init` のひな形(v0.9.0 以降)
+
+`render_template(lang, name)` は、`HEAD` + エスケープした名前 + `TAIL` の文字列を返す。UTF-8、LF、末尾に改行 1 つ。言語は、ロケールの判定結果(日本語か英語。コメントだけが違う)。`name` は、既定 `my-pipeline`。
+
+日本語(名前が既定のとき):
+
+```toml
+# conductor の定義ファイルのひな形(conductor init が作った)。
+# 検査: conductor validate / 実行計画: conductor pipeline <名前> --dry-run / 図: conductor graph
+format_version = 1
+
+[pipeline]
+name = "my-pipeline"
+description = "ひな形のパイプライン"
+
+# 全ジョブに足す環境変数。値は、書いたとおりに渡す(展開しない)。
+# .env ファイルから読むときは、[pipeline] に env_file = ".env" を足す。
+[pipeline.env]
+GREETING = "hello"
+
+# hello: 最初のジョブ。
+# Windows では、echo は実行ファイルではないので、command = ["cmd", "/c", "echo", "hello"] のように書く。
+[[job]]
+id = "hello"
+command = ["echo", "hello"]
+
+# flaky: 終了コード 75 は「一時的な失敗」。5 秒待って、最大 3 回、実行し直す。
+# 待ち時間を伸ばすには、multiplier と max_interval を、一緒に書く(例: multiplier = 2、max_interval = "1m")。
+[[job]]
+id = "flaky"
+command = ["echo", "flaky"]
+
+[job.retry]
+exit_codes = [75]
+max = 3
+interval = "5s"
+```
+
+英語(名前が既定のとき):
+
+```toml
+# A starter conductor definition (created by conductor init).
+# Check: conductor validate / plan: conductor pipeline <name> --dry-run / diagram: conductor graph
+format_version = 1
+
+[pipeline]
+name = "my-pipeline"
+description = "Starter pipeline"
+
+# Environment variables added to every job. Values are passed as written (no expansion).
+# To read a .env file, add env_file = ".env" to [pipeline].
+[pipeline.env]
+GREETING = "hello"
+
+# hello: the first job.
+# On Windows echo is not an executable; write command = ["cmd", "/c", "echo", "hello"] instead.
+[[job]]
+id = "hello"
+command = ["echo", "hello"]
+
+# flaky: exit code 75 means "a temporary failure". Wait 5 seconds and run again, up to 3 times.
+# To lengthen the wait, write multiplier and max_interval together (for example multiplier = 2, max_interval = "1m").
+[[job]]
+id = "flaky"
+command = ["echo", "flaky"]
+
+[job.retry]
+exit_codes = [75]
+max = 3
+interval = "5s"
+```
+
+- 名前のエスケープ(`escape_basic_string`): TOML の基本文字列として、`"` → `\"`、`\` → `\\`、制御文字(U+0000〜U+001F と U+007F)→ `\uXXXX`(大文字 16 進 4 桁)。それ以外はそのまま(日本語の名前もそのまま)。名前は、コメントには書かない。
+- ひな形は、`validate` に必ず通る(名前の空白だけは 68 で先に拒否される)。`[pipeline.env]` と `[job.retry]` の例を、有効な行として含む。
+- 入力は言語と名前だけで、利用者の環境変数や、`.env`、既存のファイルの内容は入らない。
