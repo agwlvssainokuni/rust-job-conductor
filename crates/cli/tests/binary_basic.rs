@@ -243,7 +243,7 @@ fn fr2_5_remove_on_complete_は_watch_で_68() {
 #[test]
 fn fr6_1_version_は_0_8_0() {
     let output = run_limited(conductor(&["--version"]), || {});
-    assert_eq!(text(&output.stdout), "conductor 0.9.3\n");
+    assert_eq!(text(&output.stdout), "conductor 0.9.4\n");
 }
 
 /// 補助の実行ファイルを、`command` の配列で呼ぶジョブ(`run <label> <code>`)。
