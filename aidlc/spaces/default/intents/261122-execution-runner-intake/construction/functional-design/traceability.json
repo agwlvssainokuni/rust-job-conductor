@@ -1,0 +1,12 @@
+{
+  "stage": "functional-design",
+  "upstream_ids": ["SM1", "SM2", "SM3", "SM4", "SM5"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "BR1.1, BR1.2, BR1.3, BR1.4, BR1.5" },
+    { "id": "SM2", "status": "OK", "target": "BR2.1, BR2.2, BR2.3, BR2.4" },
+    { "id": "SM3", "status": "OK", "target": "BR3.1, BR3.2, BR3.3, BR3.4, BR3.5" },
+    { "id": "SM4", "status": "OK", "target": "BR3.6" },
+    { "id": "SM5", "status": "OK", "target": "BR4.1, BR4.2, BR4.3, BR4.4" }
+  ],
+  "reverse": []
+}
