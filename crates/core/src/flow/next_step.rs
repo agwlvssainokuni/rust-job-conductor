@@ -15,7 +15,7 @@
 //! 次の動きと完了(`classify_and_decide`)。BR1.10、BR3.1〜BR3.4、BR3.6。
 
 use super::classify::classify;
-use super::{is_settled, record_of};
+use super::{is_settled, status_at};
 use crate::types::{
     Classification, JobDefinition, JobExecution, JobOutcome, JobState, NextStep,
     PipelineDefinition, RunMode, SkipReason, TransitionOn, TransitionTarget,
@@ -131,18 +131,21 @@ fn next_step(
 
     let mut step = empty_step(job);
 
-    let pending_ids = |range: &[JobDefinition]| -> Vec<String> {
+    // 範囲の先頭の記述順の位置 `start` から、状態を位置で引く([`status_at`])。ジョブの数に
+    // 比例する時間で済む(BR2.1)。
+    let pending_ids = |start: usize, range: &[JobDefinition]| -> Vec<String> {
         range
             .iter()
-            .filter(|j| !is_settled(record_of(job_states, &j.id).0))
-            .map(|j| j.id.clone())
+            .enumerate()
+            .filter(|(k, j)| !is_settled(status_at(job_states, start + k, &j.id)))
+            .map(|(_, j)| j.id.clone())
             .collect()
     };
 
     match resolve_transition(job, on, definition, index) {
         TransitionResolution::End => {
             step.end_reached = true;
-            let pending = pending_ids(&jobs[index + 1..]);
+            let pending = pending_ids(index + 1, &jobs[index + 1..]);
             if !pending.is_empty() {
                 step.skip_reason_kind = Some(SkipReason::ByEnd);
             }
@@ -161,7 +164,7 @@ fn next_step(
             }
         }
         TransitionResolution::Job(t) => {
-            step.skipped_job_ids = pending_ids(&jobs[index + 1..t]);
+            step.skipped_job_ids = pending_ids(index + 1, &jobs[index + 1..t]);
             if !step.skipped_job_ids.is_empty() {
                 step.skip_reason_kind = Some(SkipReason::ByTransition);
             }
