@@ -74,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    fn strings_are_quoted_and_survive() {
+    fn 文字列は引用符で囲み_そのまま残る() {
         let v = map(vec![
             ("a", Value::Str("yes".into())),
             ("b", Value::Str("1".into())),
@@ -92,7 +92,7 @@ mod tests {
     }
 
     #[test]
-    fn floats_and_integer_edges() {
+    fn 浮動小数と整数の端() {
         let v = map(vec![
             ("one", Value::Float(1.0)),
             ("nz", Value::Float(-0.0)),
@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn tables_arrays_of_tables_and_empty_values() {
+    fn テーブルと_テーブルの配列と_空の値() {
         let v = map(vec![
             ("top", Value::Int(1)),
             ("empty_map", Value::Map(vec![])),
@@ -147,12 +147,12 @@ mod tests {
     }
 
     #[test]
-    fn empty_root_is_empty_text() {
+    fn 空の最上位は空の文字列() {
         assert_eq!(write(&Value::Map(vec![]), "t").unwrap(), "");
     }
 
     #[test]
-    fn non_map_root_is_an_error() {
+    fn マップでない最上位は誤り() {
         let e = write(&Value::Int(1), "t").unwrap_err();
         assert_eq!(e.kind, ConversionErrorKind::Unrepresentable);
     }
