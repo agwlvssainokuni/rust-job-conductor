@@ -773,7 +773,7 @@ return Some(SkipPlan)
 
 ### 15.5 レーンの配置(`layout_graph`、`lane_layout(plan)`)
 
-対応する形なら `GraphLayout::Lanes`、そうでなければ `GraphLayout::EdgeList`。レーンの配置は、節を記述順に処理して、行(`LaneRow`)を作る。`open` = 開いている飛び越しの行き先(最後が列 1、最も内側)、`open_all_off_main` = `open` と同じ長さで、その線を開いたジョブがすべて主線につながらない(分岐、「両方の飛び越し」)か、`after_fork` = 直前の行が分岐の行か。`has_branch` = 図に分岐が 1 つでもあるか。
+対応する形なら `GraphLayout::Lanes`、そうでなければ `GraphLayout::EdgeList`。レーンの配置は、節を記述順に処理して、行(`LaneRow`)を作る。`open` = 開いている飛び越しの行き先(最後が列 1、最も内側)、`open_all_off_main` = `open` と同じ長さで、その線を開いたジョブがすべて主線につながらない(分岐、「両方の飛び越し」)か、`after_fork` = 直前の行が分岐の行か。
 
 節 `i`(`0..=n`。`n` は終点)ごとに、次の順で行を作る。
 
@@ -782,7 +782,7 @@ return Some(SkipPlan)
    - `i == n`(終点)なら、`[EndNode, Empty]`(`o `)で、配置を終える。
    - それ以外: ジョブ `i` の飛び越し `targets[i]`(0〜2 個)。`new` = 新しい線の数(0 個なら 0、JoinLane なら 0、1 個の NewLane なら 1、分岐なら 2)。すでにある右の線(`existing` 本)の記号 `existing_glyph`:
      - `new > 0`(NewLane、分岐): `after_fork` なら `Fork`(`\`)、そうでなければ `Line`(`|`)。
-     - `new == 0`(飛び越しなし、または JoinLane)、かつ、この節が合流の行き先で(直前の 1 が行を作った)、`open` の最後が `i + 1`(次の節も合流の行き先)、かつ `has_branch` が偽なら `Join`(`/`)。(`has_branch` が真の図では、`/` を使わず `Line` で描く。分岐を含む形の正解データがそう定めている。)
+     - `new == 0`(飛び越しなし、または JoinLane)、かつ、この節が合流の行き先で(直前の 1 が行を作った)、`open` の最後が `i + 1`(次の節も合流の行き先)なら `Join`(`/`)(分岐を含む図でも、同じ規則)。
      - それ以外 `Line`。
    - 幅 = `2 × (1 + existing + new)`(分岐なら `2 × (1 + existing + 2)`)。行 = `[Node]` に、`[Empty, existing_glyph]` を `existing` 回足し、幅まで `Empty` で埋めたもの。**ラベル(ジョブID、`@end`)を置く位置は、この幅**。
 3. **分岐の行、または、同じ行き先への合流の行**: `new > 0` なら、`fork_row(existing, new, off_main[i])` を作り、`open` に、行き先を遠い順(分岐なら `t2`、`t1` の順。外側が遠い行き先、内側が近い行き先)に積み、`open_all_off_main` に `off_main[i]` を、積んだ数だけ積む。`fork_row(e, k, b)` = `[Line, Fork]`(`b` なら `[Empty, Fork]`。` \`)に、`[Empty, Fork]` を `e + k - 1` 回足したもの(`|\`、`|\ \`、…。分岐は、`b` が真なので ` \ \`、…。新しい線 2 本と、既存の線 `e` 本の、`e + 2` 個の `\`)。JoinLane(`targets[i]` が 1 個で、`open` の最後と等しい)なら、`join_lane_row(existing - 1, off_main[i])` を作り、`open` には積まず、`open_all_off_main` の最後を `off_main[i]` との論理積にする。`join_lane_row(o, b)` = `[Line, Fork, Line]`(`b` なら `[Empty, Fork, Line]`。` \|`)に、`[Empty, Line]` を `o` 回(外側の線の数)足したもの(`|\|`、`|\| |`、…)。`targets[i]` が空(NoLane)のジョブは、行を足さない。「両方の飛び越し」は、通常の飛び越しと同じく NewLane か JoinLane になる。
