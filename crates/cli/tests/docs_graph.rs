@@ -174,18 +174,36 @@ fn readme_の交差に同じ行き先が混ざる例は_実際の出力と一致
 }
 
 #[test]
-fn readme_の辺の一覧に切り替わる形は_交差と分岐の線に関わる形だけを述べる() {
+fn readme_の辺の一覧に切り替わる形は_4つの種類の外の形だけを述べる() {
     let text = readme();
     let line = text
         .lines()
         .find(|l| l.starts_with("- **辺の一覧に切り替わる形**"))
         .expect("記述がある");
-    assert!(line.contains("交差"));
-    assert!(line.contains("分岐"));
-    assert!(line.contains("同じ行き先で合流する形"));
-    assert!(line.contains("グラフのどこかに"));
-    assert!(!line.contains("同じ行き先へ飛ぶ辺(同じ行き先で合流する形)を含む形"));
-    assert!(!line.contains("異なる行き先への飛び越しを 2 つ持つ形"));
-    assert!(!line.contains("同じ行き先へ飛ぶ辺が 2 つある"));
+    for word in [
+        "飛び越しなし",
+        "通常の飛び越し",
+        "両方の飛び越し",
+        "分岐",
+        "どの組み合わせでも",
+        "3 本以上",
+    ] {
+        assert!(line.contains(word), "{word} がない");
+    }
+    // 前回までの範囲(交差と、両方の飛び越し・分岐の組み合わせを辺の一覧にする)は、述べない(BR4.2)。
+    assert!(!line.contains("グラフのどこかに"));
+    assert!(!line.contains("同じ行き先で合流する形"));
     assert!(text.contains("`|\\|` の行"));
+}
+
+#[test]
+fn readme_の両方の飛び越しと交差が混ざる例は_実際の出力と一致する() {
+    let text = readme();
+    let both_to_d = "\n[[job.transitions]]\non = \"warning\"\nnext = \"d\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"d\"\n";
+    let to_e = "\n[[job.transitions]]\non = \"success\"\nnext = \"e\"\n";
+    let definition = jobs(
+        &["a", "b", "c", "d", "e", "f"],
+        &[("a", both_to_d), ("b", to_e)],
+    );
+    assert_eq!(graph_example(&text, 6), render(&definition));
 }
