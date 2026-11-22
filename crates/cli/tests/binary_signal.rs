@@ -21,20 +21,14 @@
 #![cfg(unix)]
 
 mod bin_support;
+mod signal_support;
 
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use bin_support::*;
 use conductor_core::JobStatus;
-
-fn send(signal: &str, pid: u32) {
-    let status = Command::new("kill")
-        .args([format!("-{signal}"), pid.to_string()])
-        .status()
-        .expect("kill を起動できる");
-    assert!(status.success());
-}
+use signal_support::send;
 
 #[test]
 fn ジョブの実行中の_sigterm_は_143_で_再開位置が残る() {

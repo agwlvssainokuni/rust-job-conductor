@@ -20,20 +20,14 @@
 
 #![cfg(unix)]
 
+mod signal_support;
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use conductor_cli::{SignalError, Signals, SystemSignals};
 use conductor_runtime::InterruptSignal;
-
-fn send(signal: &str) {
-    let pid = std::process::id().to_string();
-    let status = std::process::Command::new("kill")
-        .args([format!("-{signal}"), pid])
-        .status()
-        .expect("kill を起動できる");
-    assert!(status.success());
-}
+use signal_support::send_self;
 
 fn wait_for(signal: &InterruptSignal) -> Option<i32> {
     let start = Instant::now();
@@ -52,11 +46,11 @@ fn 最初のシグナルの番号だけが残り_2_回目の登録は登録済�
     assert_eq!(SystemSignals.start(&signal), Ok(()));
     assert!(!signal.is_raised());
 
-    send("TERM");
+    send_self("TERM");
     assert_eq!(wait_for(&signal), Some(15));
     // 続けて別のシグナルを送っても、最初の番号が残る(`SIGINT` を受け取っても、このプロセスは終わらない)
-    send("INT");
-    send("HUP");
+    send_self("INT");
+    send_self("HUP");
     std::thread::sleep(Duration::from_millis(200));
     assert_eq!(signal.signal_number(), Some(15));
 
@@ -66,7 +60,7 @@ fn 最初のシグナルの番号だけが残り_2_回目の登録は登録済�
         SystemSignals.start(&other),
         Err(SignalError::AlreadyRegistered)
     );
-    send("QUIT");
+    send_self("QUIT");
     std::thread::sleep(Duration::from_millis(200));
     assert!(!other.is_raised(), "配線されていない");
 }
