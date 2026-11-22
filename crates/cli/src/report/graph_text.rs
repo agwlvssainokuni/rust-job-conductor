@@ -21,13 +21,15 @@
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeState,
 };
-use conductor_core::{Command, JobDefinition, PipelineDefinition, TransitionTarget};
+use conductor_core::{
+    Classification, Command, JobDefinition, PipelineDefinition, TransitionTarget,
+};
 
 use super::escape::escape_path;
 use super::messages::{
-    GRAPH_DETAIL_COMMAND, GRAPH_DETAIL_RETRY, GRAPH_EDGE_LIST_NOTE, GRAPH_EDGES_HEADING,
-    GRAPH_JOBS_HEADING, GRAPH_KIND_BOTH, GRAPH_KIND_SUCCESS, GRAPH_KIND_WARNING,
-    GRAPH_NOTE_SEPARATOR, GRAPH_RESUME_HERE, graph_edge_note, graph_retry_summary,
+    DETAIL_COMMAND, DETAIL_RETRY, GRAPH_EDGE_LIST_NOTE, GRAPH_EDGES_HEADING, GRAPH_JOBS_HEADING,
+    GRAPH_KIND_BOTH, GRAPH_NOTE_SEPARATOR, RESUME_HERE, class_word, graph_edge_note,
+    graph_retry_summary,
 };
 use crate::types::Language;
 
@@ -49,7 +51,7 @@ fn node_label(lang: Language, node: &GraphNode) -> String {
     };
     let mut label = format!("{}{}", state_symbol(node.state), escape_path(id));
     if node.is_resume {
-        label.push_str(GRAPH_RESUME_HERE.get(lang));
+        label.push_str(RESUME_HERE.get(lang));
     }
     label
 }
@@ -77,8 +79,8 @@ fn command_text(command: &Command) -> String {
 /// 辺の種類のラベル(成功だけ、警告だけ、両方)。text と Mermaid が使う。
 pub(crate) fn kind_label(lang: Language, kinds: &[EdgeKind]) -> &'static str {
     match kinds {
-        [EdgeKind::Success] => GRAPH_KIND_SUCCESS.get(lang),
-        [EdgeKind::Warning] => GRAPH_KIND_WARNING.get(lang),
+        [EdgeKind::Success] => class_word(lang, Classification::Success),
+        [EdgeKind::Warning] => class_word(lang, Classification::Warning),
         _ => GRAPH_KIND_BOTH.get(lang),
     }
 }
@@ -121,13 +123,13 @@ fn skip_note(lang: Language, edges: &[&FlowEdge]) -> Option<String> {
 fn detail_sentences(lang: Language, job: &JobDefinition, graph: &FlowGraph) -> Vec<String> {
     let mut lines = vec![format!(
         "{}{}",
-        GRAPH_DETAIL_COMMAND.get(lang),
+        DETAIL_COMMAND.get(lang),
         command_text(&job.command)
     )];
     if let Some(retry) = &job.retry {
         lines.push(format!(
             "{}{}",
-            GRAPH_DETAIL_RETRY.get(lang),
+            DETAIL_RETRY.get(lang),
             graph_retry_summary(lang, retry)
         ));
     }

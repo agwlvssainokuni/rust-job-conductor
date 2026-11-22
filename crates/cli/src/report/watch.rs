@@ -21,8 +21,8 @@ use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 
 use super::escape::escape_name;
 use super::messages::{
-    EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, SKIPPED_AFTER_END, SKIPPED_BY_TRANSITION,
-    WATCH_COMPLETED, WATCH_PIPELINE, WATCH_RUN_ID,
+    COMPLETED, EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, SKIPPED_AFTER_END,
+    SKIPPED_BY_TRANSITION, WATCH_PIPELINE, WATCH_RUN_ID,
 };
 use crate::types::Language;
 
@@ -123,7 +123,7 @@ pub fn render_table(lang: Language, state: &PipelineState, color: bool) -> Strin
     }
     // 完了のステートは、表の下に、完了を示す行を足す(FR3.1)。
     if state.completed {
-        out.push_str(WATCH_COMPLETED.get(lang));
+        out.push_str(COMPLETED.get(lang));
         out.push('\n');
     }
     out

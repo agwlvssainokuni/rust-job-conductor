@@ -529,8 +529,8 @@ pub const WATCH_EMPTY: Text = Text::new(
     "no state (nothing has run yet)",
     "ステートはありません(まだ実行されていません)",
 );
-/// 完了のステートの表の下に足す 1 行(FR3.1)。
-pub const WATCH_COMPLETED: Text = Text::new("completed", "完了");
+/// 完了の語(watch の完了のステートの表の下に足す 1 行(FR3.1)と、計画の模擬の最後の語)。
+pub const COMPLETED: Text = Text::new("completed", "完了");
 pub const HEADER_JOB: Text = Text::new("JOB", "ジョブ");
 pub const HEADER_STATUS: Text = Text::new("STATUS", "状態");
 pub const HEADER_NOTE: Text = Text::new("NOTE", "補足");
@@ -546,18 +546,16 @@ pub const GRAPH_EDGE_LIST_NOTE: Text = Text::new(
 pub const GRAPH_JOBS_HEADING: Text = Text::new("Jobs:", "ジョブ:");
 /// 辺の一覧の「辺」の見出し(BR2.8)。
 pub const GRAPH_EDGES_HEADING: Text = Text::new("Edges:", "辺:");
-/// 辺の種類(成功)。
-pub const GRAPH_KIND_SUCCESS: Text = Text::new("success", "成功");
-/// 辺の種類(警告)。
-pub const GRAPH_KIND_WARNING: Text = Text::new("warning", "警告");
-/// 辺の種類(成功と警告の両方)。
+/// 辺の種類(成功と警告の両方)。成功だけ・警告だけは [`class_word`] の語。
 pub const GRAPH_KIND_BOTH: Text = Text::new("success, warning", "成功・警告");
-/// 再開位置の注記(ジョブの行の末尾。先頭の 2 つの空白を含む。BR4.2)。
-pub const GRAPH_RESUME_HERE: Text = Text::new("  <- resume here", "  <- 再開位置");
-/// `-v` の詳細の行の見出し(コマンド。BR3.1)。
-pub const GRAPH_DETAIL_COMMAND: Text = Text::new("command: ", "コマンド: ");
-/// `-v` の詳細の行の見出し(リトライ。BR3.1)。
-pub const GRAPH_DETAIL_RETRY: Text = Text::new("retry: ", "リトライ: ");
+/// 再開位置の注記(ジョブの行の末尾。先頭の 2 つの空白を含む。graph の BR4.2 と計画が使う)。
+pub const RESUME_HERE: Text = Text::new("  <- resume here", "  <- 再開位置");
+/// 詳細の行の見出し(コマンド。graph の `-v`(BR3.1)と計画が使う)。
+pub const DETAIL_COMMAND: Text = Text::new("command: ", "コマンド: ");
+/// 詳細の行の見出し(環境変数。計画が使う)。
+pub const DETAIL_ENV: Text = Text::new("env: ", "環境変数: ");
+/// 詳細の行の見出し(リトライ。graph の `-v`(BR3.1)と計画が使う)。
+pub const DETAIL_RETRY: Text = Text::new("retry: ", "リトライ: ");
 
 /// リトライの要約(`-v`。BR3.1)。例: 「終了コード 75、76 を最大 3 回、間隔 5 秒(倍率 2、上限 60 秒)」。
 pub fn graph_retry_summary(lang: Language, retry: &conductor_core::RetryPolicy) -> String {
@@ -642,12 +640,6 @@ pub const PLAN_TARGET_LABEL: Text = Text::new("target job: ", "対象のジョ�
 pub const PLAN_ASSUME_LABEL: Text = Text::new("assume: ", "仮定: ");
 /// 使われなかった仮定の行の見出し。
 pub const PLAN_UNUSED_LABEL: Text = Text::new("unused assumptions: ", "使われなかった仮定: ");
-/// 再開位置のジョブの行末の印。
-pub const PLAN_RESUME_HERE: Text = Text::new("  <- resume here", "  <- 再開位置");
-/// 詳細の行の見出し(コマンド、環境変数、リトライ)。
-pub const PLAN_DETAIL_COMMAND: Text = Text::new("command: ", "コマンド: ");
-pub const PLAN_DETAIL_ENV: Text = Text::new("env: ", "環境変数: ");
-pub const PLAN_DETAIL_RETRY: Text = Text::new("retry: ", "リトライ: ");
 /// 模擬の結果の行の見出し。
 pub const PLAN_RESULT_LABEL: Text = Text::new("result (simulated): ", "結果(模擬): ");
 /// 次の動きの行の見出し(`run`)。
@@ -683,8 +675,8 @@ pub fn plan_disposition(lang: Language, disposition: PlanDisposition) -> &'stati
     text.get(lang)
 }
 
-/// 結果の分類の語。
-pub fn plan_class_word(lang: Language, classification: Classification) -> &'static str {
+/// 結果の分類の語(計画の仮定の補足と、graph の辺の種類が使う)。
+pub fn class_word(lang: Language, classification: Classification) -> &'static str {
     let text = match classification {
         Classification::Success => Text::new("success", "成功"),
         Classification::Warning => Text::new("warning", "警告"),
@@ -702,7 +694,7 @@ pub fn plan_assumed(
     classification: Classification,
     retry_target: bool,
 ) -> String {
-    let class = plan_class_word(lang, classification);
+    let class = class_word(lang, classification);
     match lang {
         Language::En => {
             let word = if assumed { "assumed" } else { "default" };
@@ -726,8 +718,7 @@ pub fn plan_assumed(
 /// 模擬の最後の語(エスケープ済みのジョブ ID を渡す)。
 pub fn plan_end(lang: Language, end: &PlanEnd, escaped_job_id: &str) -> String {
     match (lang, end) {
-        (Language::En, PlanEnd::Completed) => "completed".to_string(),
-        (Language::Ja, PlanEnd::Completed) => "完了".to_string(),
+        (_, PlanEnd::Completed) => COMPLETED.get(lang).to_string(),
         (Language::En, PlanEnd::EndReached) => "reached @end (completed)".to_string(),
         (Language::Ja, PlanEnd::EndReached) => "@end に到達(完了)".to_string(),
         (Language::En, PlanEnd::StoppedAtError(_)) => {

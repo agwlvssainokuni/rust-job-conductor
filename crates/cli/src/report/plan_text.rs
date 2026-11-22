@@ -25,10 +25,10 @@ use conductor_core::{
 
 use super::escape::escape_path;
 use super::messages::{
-    PLAN_ASSUME_LABEL, PLAN_DETAIL_COMMAND, PLAN_DETAIL_ENV, PLAN_DETAIL_RETRY, PLAN_FROM_START,
-    PLAN_HEADING, PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_HERE, PLAN_RESUME_LABEL,
-    PLAN_TARGET_LABEL, PLAN_UNUSED_LABEL, graph_retry_summary, plan_assumed, plan_disposition,
-    plan_end, plan_next_step, plan_resume_after_stop, plan_run_id_suffix,
+    DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, PLAN_ASSUME_LABEL, PLAN_FROM_START, PLAN_HEADING,
+    PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_LABEL, PLAN_TARGET_LABEL, PLAN_UNUSED_LABEL,
+    RESUME_HERE, graph_retry_summary, plan_assumed, plan_disposition, plan_end, plan_next_step,
+    plan_resume_after_stop, plan_run_id_suffix,
 };
 use crate::types::Language;
 
@@ -142,7 +142,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
     }
     let mut line = format!("{number}. [{word}] {}", escape_path(&entry.job_id));
     if entry.is_resume {
-        line.push_str(PLAN_RESUME_HERE.get(lang));
+        line.push_str(RESUME_HERE.get(lang));
     }
     push_line(out, &line);
 
@@ -158,7 +158,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
         out,
         &format!(
             "{DETAIL_INDENT}{}[{}]",
-            PLAN_DETAIL_COMMAND.get(lang),
+            DETAIL_COMMAND.get(lang),
             words.join(", ")
         ),
     );
@@ -171,7 +171,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
         out,
         &format!(
             "{DETAIL_INDENT}{}{}",
-            PLAN_DETAIL_ENV.get(lang),
+            DETAIL_ENV.get(lang),
             names.join(", ")
         ),
     );
@@ -180,7 +180,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
             out,
             &format!(
                 "{DETAIL_INDENT}{}{}",
-                PLAN_DETAIL_RETRY.get(lang),
+                DETAIL_RETRY.get(lang),
                 graph_retry_summary(lang, retry)
             ),
         );
