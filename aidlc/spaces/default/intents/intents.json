@@ -156,7 +156,7 @@
     "slug": "internal-cleanup",
     "dirName": "261122-internal-cleanup",
     "scope": "refactor",
-    "status": "in-flight",
+    "status": "complete",
     "request": "25e05c32"
   }
 ]
