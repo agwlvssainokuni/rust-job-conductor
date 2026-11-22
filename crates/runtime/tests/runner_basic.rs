@@ -168,6 +168,29 @@ fn 実行できないファイルは起動失敗() {
     assert_eq!(e.result, ExecutionResult::StartFailed);
 }
 
+/// `run_job` は渡した分割済みのコマンドで起動し、`job.command` を分け直さない(BR2.1)。
+#[test]
+fn 渡した分割済みのコマンドで起動し_command_を分け直さない() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let out = dir.path().join("out.txt");
+    let line = check_command(&helper_command(&out, "exit 3").into()).expect("分けられる");
+    // 定義の command は分けられない文字列。分け直せば起動失敗になる。
+    let j = job("j", "'");
+    assert!(check_command(&j.command).is_err());
+    let e = run_with_limit(
+        || {},
+        move || run_job(&j, &line, &[], &InterruptSignal::new()),
+    );
+    assert_eq!(
+        e.result,
+        ExecutionResult::Exited {
+            exit_code: Some(3),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        }
+    );
+}
+
 #[test]
 fn 終了コードの返り方() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
