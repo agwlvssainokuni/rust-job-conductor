@@ -68,6 +68,23 @@ pub enum CommandKind {
 }
 
 impl CommandKind {
+    /// すべての種類(名前の逆引きと、網羅のテストに使う)。
+    pub const ALL: [CommandKind; 8] = [
+        Self::Run,
+        Self::Pipeline,
+        Self::Watch,
+        Self::Reset,
+        Self::Validate,
+        Self::Convert,
+        Self::Graph,
+        Self::Init,
+    ];
+
+    /// 名前(引数に書く語)から種類を引く。知らない名前は `None`。
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|kind| kind.name() == name)
+    }
+
     /// コマンドの名前(引数に書く語)。
     pub fn name(self) -> &'static str {
         match self {

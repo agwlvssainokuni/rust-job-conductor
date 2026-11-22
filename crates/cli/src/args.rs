@@ -419,16 +419,8 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         return Err(UsageError::new(Kind::MissingArgument));
     };
     let first = to_text(first)?;
-    let kind = match first.as_str() {
-        "run" => CommandKind::Run,
-        "pipeline" => CommandKind::Pipeline,
-        "watch" => CommandKind::Watch,
-        "reset" => CommandKind::Reset,
-        "validate" => CommandKind::Validate,
-        "convert" => CommandKind::Convert,
-        "graph" => CommandKind::Graph,
-        "init" => CommandKind::Init,
-        _ => return Err(UsageError::with_subject(Kind::UnknownCommand, first)),
+    let Some(kind) = CommandKind::from_name(&first) else {
+        return Err(UsageError::with_subject(Kind::UnknownCommand, first));
     };
 
     // 許されない場所のオプションと重複。CHECKS の順に検査し、最初の誤りを報告する(BR1.3)。
