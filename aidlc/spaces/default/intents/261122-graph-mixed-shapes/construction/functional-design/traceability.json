@@ -1,0 +1,18 @@
+{
+  "stage": "functional-design",
+  "upstream_ids": ["SM1", "SM2", "SM3"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "BR1.1" },
+    { "id": "SM2", "status": "OK", "target": "BR3.1" },
+    { "id": "SM3", "status": "OK", "target": "BR4.2" }
+  ],
+  "reverse": [
+    { "id": "BR1.2", "status": "N/A", "target": "layout-oracle-mixed.md: 線の並びと寄せ" },
+    { "id": "BR1.3", "status": "N/A", "target": "layout-oracle-mixed.md: 寄せの行" },
+    { "id": "BR1.4", "status": "N/A", "target": "layout-oracle-mixed.md: 寄せる順序" },
+    { "id": "BR1.5", "status": "N/A", "target": "layout-oracle-mixed.md: ノードの行の記号" },
+    { "id": "BR2.1", "status": "N/A", "target": "intent-statement.md: 範囲(両方の飛び越し・分岐は後回し)" },
+    { "id": "BR4.1", "status": "N/A", "target": "functional-design-questions.md Q2: A(正解データ)" },
+    { "id": "BR5.1", "status": "N/A", "target": "前回までの intent の確認(git のソースを読まない)" }
+  ]
+}
