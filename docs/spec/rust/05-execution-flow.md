@@ -180,7 +180,7 @@ return low
 
 ### 3.4 `apply_skip`(スキップの記録。メモリ上)
 
-入力: ステート `S`、ジョブID、`DecisionReason`、定義。
+入力: ステート `S`、ジョブID、`SkipCause`(スキップの理由)、定義。
 
 - 理由が `AlreadyExecuted` / `OutOfOrder` → 何も変えない(複製を返す)。
 - `SkipTarget` → そのジョブを `skipped(byTransition)`、`AfterEnd` → `skipped(byEnd)` にし(`exit_code` 無し)、`AfterEnd` なら `end_reached = true`。ジョブが `S` に無ければ、更新せず複製を返す。
@@ -732,8 +732,8 @@ return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
 
 | 型 | 内容 |
 |----|------|
-| `EdgeKind` | `Success`、`Warning`(エラーには辺がない) |
-| `EdgeTarget` | `Job(String)`、`End`(終点 `@end`。最後のジョブが完了したときの行き先も `End`) |
+| `EdgeKind` | `Success`、`Warning`(エラーには辺がない)。`TransitionOn` の別名(`pub use … as`) |
+| `EdgeTarget` | `Job(String)`、`End`(終点 `@end`。最後のジョブが完了したときの行き先も `End`)。`TransitionTarget` の別名 |
 | `FlowEdge` | `{ from_job, to: EdgeTarget, kinds: Vec<EdgeKind>, skipped_jobs: Vec<String>, explicit: bool }`。`kinds` は 1 つ以上(成功、警告の順)。`skipped_jobs` は、元と行き先のあいだのジョブの ID(記述順)。`explicit` は、定義に遷移として書かれた辺か(書かずに記述順の次へ進む辺は `false`) |
 | `NodeState` | `Ok`(成功と警告をまとめる)、`Skipped`、`Error`、`Pending` |
 | `StateOverlay` | `{ states: Vec<(job_id, NodeState)>, resume_job_id: Option<String> }`。環境変数もコマンドも持たない |
@@ -857,12 +857,12 @@ target_position(i, on):
 | `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`WillRun` のジョブだけ |
 | `EnvNameEntry` | `{ name, origin: EnvOrigin }`。値を持たない |
 | `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前と出どころ), retry: Option<RetryPolicy>, result: Option<SimulatedResult> }`。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
-| `PlanMode` | `Pipeline`、`Individual` |
+| `PlanMode` | `Pipeline`、`Individual`。`RunMode` の別名(`ExecutionPlan.mode` の型は `RunMode`) |
 | `ResumeKind` / `ResumeInfo` | `FromStart`(ステートなし、または完了したステート)、`AfterStop`(前回の停止で再開位置あり)、`Individual`(`run` の対象)/ `{ kind, job_id: Option<String> }` |
 | `PlanEnd` | `Completed`、`EndReached`(`@end` に到達)、`StoppedAtError(job_id)` |
 | `NextStepNote` | `{ next_job_id, skipped_job_ids, completed, end_reached, stopped }`(`run` の、仮定の結果による次の動き) |
 | `ExecutionPlan` | `{ pipeline_name, run_id, mode, resume, assumptions, unused_assumptions: Vec<String>, entries, end, next_step_note: Option<NextStepNote> }` |
-| `PlanRejection` | `{ job_id, reason: DecisionReason }`。本番なら順序外として拒否されるとき |
+| `PlanRejection` | `{ job_id, reason: RejectReason }`。本番なら順序外として拒否されるとき |
 | `PlanInput<'a>` | `{ definition, state: Option<&PipelineState>, commands: &[Vec<String>](記述順。分割済み)、env_files: &LoadedEnvFiles, run_id: Option<&str>, assumptions: &[Assumption] }` |
 
 ### 16.2 `plan_pipeline(input) -> Result<ExecutionPlan, PlanRejection>`

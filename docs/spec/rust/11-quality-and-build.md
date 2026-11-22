@@ -219,7 +219,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `wait_interruptible.rs` | `wait_for`(経過、0 秒、合図、1 秒以内の打ち切り、最初の番号) |
 | `state_read.rs`、`state_read_raw.rs`、`state_write.rs` | ステートの読み書き・削除(実ファイル。書き込みの失敗は、置き換え先をディレクトリにして起こす) |
 | `run_id_state.rs` | run ID ごとのステートと `reset --all` |
-| `flow_with_state.rs` | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ |
+| `flow_with_state.rs` | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ(今の cli と同じ順で: スキップは変わったときだけ書く、削除は `remove_on_complete` のときだけ、`pipeline` は記述順に決める。完了のステートは既定で残る) |
 | `toml_depth.rs` | 深い入れ子の TOML |
 | `nfr_content.rs`、`nfr_performance.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
 | `common/mod.rs` | 補助(`helper_path`、`helper_command`、`job`、`lines`、`wait_for_line`、`pid_in`、`force_kill`、`is_root`、`run_with_limit`) |
@@ -240,6 +240,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 |----------|------|
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
+| `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(本体は core。converter の写しは converter の単体テストの同じ表で揃える) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |

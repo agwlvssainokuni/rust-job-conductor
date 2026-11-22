@@ -380,12 +380,19 @@ OS のエラーの文は含めない。`--config -` の成功では、ひな形�
 
 ## 5. スキップ・拒否の理由の対応
 
-| 理由(`DecisionReason`) | `-v` のスキップ行 `(…)` 英語 | 日本語 | 拒否の理由 |
-|------------------------|--------------------------------|--------|------------|
-| `SkipTarget` | `skipped by a transition` | `遷移によりスキップ` | `skip target` / `スキップの対象です` |
-| `AfterEnd` | `skipped after @end` | `@end の後ろのためスキップ` | `after @end` / `@end より後ろです` |
-| `AlreadyExecuted` | `already executed` | `実行済み` | `already executed` / `実行済みです` |
-| `OutOfOrder` | `out of order` | `順序外` | `earlier jobs have not finished (out of order)` / `前のジョブが終わっていません(順序外)` |
+スキップの理由(`SkipCause`。`-v` のスキップ行 `(…)`):
+
+| 理由(`SkipCause`) | 英語 | 日本語 |
+|--------------------|------|--------|
+| `SkipTarget` | `skipped by a transition` | `遷移によりスキップ` |
+| `AfterEnd` | `skipped after @end` | `@end の後ろのためスキップ` |
+| `AlreadyExecuted` | `already executed` | `実行済み` |
+
+拒否の理由(`RejectReason`):
+
+| 理由(`RejectReason`) | 英語 | 日本語 |
+|----------------------|------|--------|
+| `OutOfOrder` | `earlier jobs have not finished (out of order)` | `前のジョブが終わっていません(順序外)` |
 
 ## 6. `watch` の表
 

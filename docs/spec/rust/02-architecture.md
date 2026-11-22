@@ -80,7 +80,8 @@
 | `JobStatus` / `SkipReason` | `Pending`・`Success`・`Warning`・`Error`・`Skipped` / `ByTransition`・`ByEnd`。どちらも `as_str()` と `parse(&str) -> Option<Self>` で、ステートファイルの語(`pending` など、`byTransition`・`byEnd`)と行き来する |
 | `JobState` | `job_id`、`status`、`exit_code: Option<i32>`、`skip_reason: Option<SkipReason>`。`JobState::pending(id)` |
 | `PipelineState` | `definition_key`、`pipeline_name`、`definition_path`、`job_order: Vec<String>`、`job_states: Vec<JobState>`、`resume_job_id: Option<String>`、`end_reached`、`completed`、`run_id: Option<String>`。06 章 |
-| `Decision` / `DecisionReason` | `Run` / `Skip(reason)` / `Reject(reason)`。理由は `SkipTarget`・`AfterEnd`・`AlreadyExecuted`・`OutOfOrder` |
+| `Decision` / `SkipCause` / `RejectReason` | `Run` / `Skip(SkipCause)` / `Reject(RejectReason)`。スキップの理由 `SkipCause` は `SkipTarget`・`AfterEnd`・`AlreadyExecuted`、拒否の理由 `RejectReason` は `OutOfOrder` だけ(ステートに書く `SkipReason { ByTransition, ByEnd }` とは別の型) |
+| `TransitionTarget` / `TransitionOn` | `TransitionTarget::END_LABEL`(`@end`)、`label()`(ジョブID か `@end`)。`TransitionOn::parse`(`as_str` の逆)。`From<Classification> for JobStatus` |
 | `Classification` / `JobOutcome` | `Success`・`Warning`・`Error`(`as_str()`、遷移を引く `transition_on() -> Option<TransitionOn>`。エラーは `None`)/ `{ job_id, classification: Option<Classification>, reported_exit_code: i32, conductor_error: bool }` |
 | `NextStep` | `{ job_id, next_job_id, skipped_job_ids, skip_reason_kind, end_reached, completed, resume_job_id }` |
 | `RunMode` | `Individual` / `Pipeline` |
@@ -116,7 +117,7 @@
 | `check_consistency` | `(state: &PipelineState, definition: &PipelineDefinition) -> ConsistencyResult` | 定義との照合。`Ok` / `Mismatch(PipelineName \| JobIds \| JobOrder)` |
 | `initial_state` | `(definition: &PipelineDefinition, definition_path: &Path, run_id: Option<&RunId>) -> PipelineState` | 全ジョブ `pending` の初期ステート(この行から `apply_interrupt` までの 4 つは、`conductor_core` の再公開) |
 | `apply_outcome` | `(state, job_id: &str, execution: &JobExecution, outcome: &JobOutcome, next: &NextStep) -> PipelineState` | 結果の記録(メモリ上。純粋) |
-| `apply_skip` | `(state, job_id, reason: DecisionReason, definition) -> PipelineState` | スキップの記録(純粋) |
+| `apply_skip` | `(state, job_id, reason: SkipCause, definition) -> PipelineState` | スキップの記録(純粋) |
 | `apply_interrupt` | `(state, resume_point: &ResumePoint) -> PipelineState` | 中断の記録(純粋) |
 
 型(`types`): `CommandLine { program: String, args: Vec<String> }`、`InterruptSignal`(`AtomicI32` 1 つ。`new`、`raise(n)`、`is_raised`、`signal_number`。最初の番号が残る)、`StateLocation::of(definition_path, run_id)`(`path()`)、`MismatchKind`、`ConsistencyResult`(この 2 つは `conductor_core` の再公開)、`Durability { Durable(既定), Fast }`。エラー: `CommandError`/`CommandErrorKind`、`StateError`/`StateErrorKind`(10 の 7.2)。
@@ -152,7 +153,7 @@
 
 終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
 
-型(`types`): `CommandKind { Run, Pipeline, Watch, Reset, Validate, Convert, Graph, Init }`(`name()`。後ろの 2 つは v0.9.0 以降)、`CliCommand { kind, job_id, pipeline_name, convert_input: Option<OsString>, convert_target: Option<TargetFormat>, config_path: Option<OsString>, verbose, run_id: Option<String>, all, remove_on_complete, graph: GraphOptions, dry_run: DryRunOptions, force }`(最後の 3 つは v0.9.0 以降。`init_options() -> InitOptions`)、`GraphFormat { Text(既定), Mermaid }`、`GraphOptions { format, with_state }`、`DryRunOptions { dry_run, assumptions: Vec<Assumption> }`、`InitTarget { File(OsString), Stdout }`(`from_path`: `-` だけが `Stdout`)、`InitOptions { target, force, pipeline_name }`(既定は `conductor.toml` の `File`、`force = false`、名前 `my-pipeline`。定数 `DEFAULT_INIT_PATH`、`DEFAULT_INIT_PIPELINE_NAME`)、`ParsedArgs { Help, Version, Command(CliCommand) }`、`UsageErrorKind`(8 種)、`UsageError { kind, subject: Option<String> }`、`Language { En(既定), Ja }`、`Level { Error, Notice, Verbose, Output }`。
+型(`types`): `CommandKind { Run, Pipeline, Watch, Reset, Validate, Convert, Graph, Init }`(`name()`。後ろの 2 つは v0.9.0 以降)、`CliCommand { kind, job_id, pipeline_name, convert_input: Option<OsString>, convert_target: Option<TargetFormat>, config_path: Option<OsString>, verbose, run_id: Option<RunIdArg>, all, remove_on_complete, graph: GraphOptions, dry_run: DryRunOptions, force }`(最後の 3 つは v0.9.0 以降。`init_options() -> InitOptions`)、`GraphFormat { Text(既定), Mermaid }`、`GraphOptions { format, with_state }`、`DryRunOptions { dry_run, assumptions: Vec<Assumption> }`、`InitTarget { File(OsString), Stdout }`(`from_path`: `-` だけが `Stdout`)、`InitOptions { target, force, pipeline_name }`(既定は `conductor.toml` の `File`、`force = false`、名前 `my-pipeline`。定数 `DEFAULT_INIT_PATH`、`DEFAULT_INIT_PIPELINE_NAME`)、`RunIdArg { Empty, Id(RunId) }`(`--run-id` の検査済みの指定。`parse`、`as_str`。`Empty` は run ID なしに固定)、`ParsedArgs { Help, Version, Command(CliCommand) }`、`UsageErrorKind`(8 種)、`UsageError { kind, subject: Option<String> }`、`Language { En(既定), Ja }`、`Level { Error, Notice, Verbose, Output }`。
 
 ## 3. 実行時の全体の流れ
 
