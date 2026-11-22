@@ -97,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    fn nan_equals_nan_and_signed_zero_differs() {
+    fn nan_は_nan_と等しく_符号の違う0は異なる() {
         assert_eq!(Value::Float(f64::NAN), Value::Float(-f64::NAN));
         assert_ne!(Value::Float(0.0), Value::Float(-0.0));
         assert_eq!(Value::Float(-0.0), Value::Float(-0.0));
@@ -105,14 +105,14 @@ mod tests {
     }
 
     #[test]
-    fn types_never_equal_across_kinds() {
+    fn 種類が違えば等しくない() {
         assert_ne!(Value::Str("1".into()), Value::Int(1));
         assert_ne!(Value::Int(1), Value::Float(1.0));
         assert_ne!(Value::Bool(true), Value::Str("true".into()));
     }
 
     #[test]
-    fn map_equality_ignores_key_order_but_array_order_matters() {
+    fn マップの等しさはキーの順を見ず_配列は順を見る() {
         let a = map(&[("x", Value::Int(1)), ("y", Value::Int(2))]);
         let b = map(&[("y", Value::Int(2)), ("x", Value::Int(1))]);
         assert_eq!(a, b);
