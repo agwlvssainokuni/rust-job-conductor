@@ -4,6 +4,8 @@
 
 **注意: この図は、`git log --graph` の出力ではない。** git では、これらの形を作れない(次のジョブへの辺のないジョブが、git の図に出ない)。規則(`functional-spec.md` の WF2、参照実装 `layout-reference.py`)から生成した。ユーザーが、代表的な図(functional-spec.md の §4)を承認した。
 
+生成元: `aidlc/spaces/default/intents/261122-graph-layout-unify/construction/functional-design/layout-reference.py`(同じフォルダの `layout-oracle-offmain.md` を、そのまま写した)。
+
 - 形の表し方: `jobs=<ジョブの数> skips=<辺>`。`a>d` は「`a` の成功が `d` へ飛ぶ(警告は次のジョブへ)」。`a>>d` は「`a` が、成功でも警告でも `d` へ(両方の飛び越し)」。`a>c,d` は「`a` の成功が `c`、警告が `d` へ(分岐)」。`END` は終点。
 - 範囲: ジョブ 3〜5 個で、「両方の飛び越し」か分岐を 1 つ以上含む、すべての形(交差、同じ行き先を含む)。計 2748 個。
 - **この文書のすべての例に、1 文字も違わず一致すること**が、レーンの配置の合格の条件である。

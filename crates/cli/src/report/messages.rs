@@ -535,8 +535,8 @@ pub const NOTE_BY_END: Text = Text::new("skipped after @end", "@end の後ろの
 
 /// 辺の一覧に切り替えたときの、先頭の注記の行(BR2.8)。
 pub const GRAPH_EDGE_LIST_NOTE: Text = Text::new(
-    "note: the skip edges cross or form a shape the lane diagram cannot draw, so it is replaced by a list of edges.",
-    "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。",
+    "note: the graph has a shape the lane diagram cannot draw, so it is replaced by a list of edges.",
+    "注記: レーンの図で描けない形のため、レーンの図の代わりに、辺の一覧を出します。",
 );
 /// 辺の一覧の「ジョブ」の見出し(BR2.8)。
 pub const GRAPH_JOBS_HEADING: Text = Text::new("Jobs:", "ジョブ:");

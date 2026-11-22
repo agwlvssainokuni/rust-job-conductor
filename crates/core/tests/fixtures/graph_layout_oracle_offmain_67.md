@@ -4,6 +4,8 @@
 
 **注意: この図は、`git log --graph` の出力ではない。** 規則(`functional-spec.md` の WF2)の参照実装 `layout-reference.py` の `layout` から生成した。
 
+生成元: `aidlc/spaces/default/intents/261122-graph-layout-unify/construction/functional-design/layout-reference.py` と、生成のスクリプト `aidlc/spaces/default/intents/261122-graph-layout-unify/construction/code-generation/gen_offmain_67.py`。
+
 - 形の表し方: `jobs=<ジョブの数> skips=<辺>`。`a>d` は「`a` の成功が `d` へ飛ぶ(警告は次のジョブへ)」。`a>>d` は「`a` が、成功でも警告でも `d` へ(両方の飛び越し)」。`a>c,d` は「`a` の成功が `c`、警告が `d` へ(分岐)」。`END` は終点。
 - 作り方: `construction/code-generation/gen_offmain_67.py` で、乱数の種 20261122 から、ジョブ 6 か 7 個で、「両方の飛び越し」か分岐を 1 つ以上含む形を、重複なく 300 個、生成順に並べた(`python3 gen_offmain_67.py <layout-reference.py> <この文書>`)。
 - **この文書のすべての例に、1 文字も違わず一致すること**が、レーンの配置の合格の条件である。

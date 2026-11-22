@@ -829,7 +829,7 @@ target_position(i, on):
 **辺の一覧**(対応しない形): 次の行を出す。
 
 ```text
-<注記の行>                      注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。
+<注記の行>                      注記: レーンの図で描けない形のため、レーンの図の代わりに、辺の一覧を出します。
 ジョブ:                          (英語は Jobs:)
   <ラベル>                       ジョブごとに 1 行(2 つの空白の字下げ。ラベルは、状態の記号とジョブID、再開位置の注記)。終点は含めない
     <詳細の文>                   -v のときだけ。4 つの空白の字下げ。上の 1〜3
@@ -837,7 +837,7 @@ target_position(i, on):
   <元> -> <行き先>[ (<種類>)]    辺ごとに 1 行(2 つの空白の字下げ。`->` は日本語でも ASCII)
 ```
 
-- 注記の行(英語): `note: the skip edges cross or form a shape the lane diagram cannot draw, so it is replaced by a list of edges.`
+- 注記の行(英語): `note: the graph has a shape the lane diagram cannot draw, so it is replaced by a list of edges.`
 - 辺の行の `(<種類>)` は、**主線の辺**(次のジョブへの、成功と警告の両方の辺。`kinds` が 2 つで `skipped_jobs` が空)以外に付ける。種類は日本語 `(成功)`/`(警告)`/`(成功・警告)`、英語 `(success)`/`(warning)`/`(success, warning)`。
 
 ### 15.7 Mermaid
