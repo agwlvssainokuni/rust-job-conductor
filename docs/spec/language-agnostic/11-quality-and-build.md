@@ -587,23 +587,23 @@ job:
 | AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::ちょうど1_mibの正しい入力は変換できる` |
 | AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to toml` | 67。`cannot read input file`(文法を見る前) | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
-| AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to toml` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` | `flow_aux::convert は表せない値を場所つきで表示する`、`read_resolve::first_unrepresentable_value_in_input_order_with_key_path` |
-| AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x`。TOML: `d = 1979-05-27T07:32:00Z` / `d = 1979-05-27` / `t = 07:32:00` | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(3 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(2 つ)、`文字列でないキーは表せません`(2 つ)、`日時の値は表せません`(3 つ) | `read_resolve::null_forms_and_other_unrepresentable_kinds / toml_datetime_is_unrepresentable` |
-| AC-218 | 複数の文書 | `a: 1⏎---⏎b: 2` | `convert in.yaml --to toml` | 67。`value cannot be represented in the target format: 複数の文書は表せません` | `read_resolve::multiple_documents_are_unrepresentable` |
-| AC-219 | 最上位がマップでない | `- 1⏎- 2` | `convert in.yaml --to toml` | 67。`top level is not a map: 最上位がマップではありません`(行 1) | `read_resolve::root_must_be_a_map` |
+| AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to toml` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` | `flow_aux::convert は表せない値を場所つきで表示する`、`read_resolve::入力の順で最初の表せない値を_キーの場所つきで報告する` |
+| AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x`。TOML: `d = 1979-05-27T07:32:00Z` / `d = 1979-05-27` / `t = 07:32:00` | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(3 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(2 つ)、`文字列でないキーは表せません`(2 つ)、`日時の値は表せません`(3 つ) | `read_resolve::null_の書き方と_ほかの表せない種類 / toml_の日時は表せない` |
+| AC-218 | 複数の文書 | `a: 1⏎---⏎b: 2` | `convert in.yaml --to toml` | 67。`value cannot be represented in the target format: 複数の文書は表せません` | `read_resolve::複数の文書は表せない` |
+| AC-219 | 最上位がマップでない | `- 1⏎- 2` | `convert in.yaml --to toml` | 67。`top level is not a map: 最上位がマップではありません`(行 1) | `read_resolve::最上位はマップでなければならない` |
 | AC-220 | 空の YAML | 空ファイル(または `# c` だけ) | `convert in.yaml --to toml` | 67。`top level is not a map: 文書が空です` | `read_resolve`(09 章 5.3 節) |
 | AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::コメントつきの入力は変換でき_コメントは捨てる` |
 | AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_roundtrip::出力は毎回同じ`) |
 | AC-223 | 空のマップ | `{}`(YAML)、空(TOML) | `convert in.yaml --to toml` / `convert in.toml --to yaml` | 0。TOML の出力は空文字列。YAML の出力は `{}` | 09 章 9 節 |
-| AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to toml` | 0。`d` は `x = 1`、`y = 9`(自身のキーが優先) | `read_resolve::merge_key_single_list_and_priority` |
-| AC-225 | マージキーの値がマップでない | `a:⏎  <<: 5` | `convert in.yaml --to toml` | 67。`マージキーの値がマップではありません`(`(at: a.<<)`) | `read_resolve::merge_key_with_non_map_value_is_unrepresentable` |
+| AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to toml` | 0。`d` は `x = 1`、`y = 9`(自身のキーが優先) | `read_resolve::マージキーの単独と並びと優先順位` |
+| AC-225 | マージキーの値がマップでない | `a:⏎  <<: 5` | `convert in.yaml --to toml` | 67。`マージキーの値がマップではありません`(`(at: a.<<)`) | `read_resolve::値がマップでないマージキーは表せない` |
 | AC-226 | 重複するキー | `a: 1⏎b: 2⏎a: 3` | `convert in.yaml --to toml` | 67。`syntax error: キーが重複しています`(行 3) | `read_resolve`(09 章 5.1 節) |
 | AC-227 | 再帰するアンカー | `a: &r [*r]` | `convert in.yaml --to toml` | 67。`アンカーが自分自身を含んでいます` | `read_resolve`(09 章 5.1 節) |
-| AC-228 | スカラーの解決 | YAML: `a: yes`、`b: 0x1F`、`c: 007`、`d: '1'`、`e: 2001-01-01`、`f: 1_000` | `convert in.yaml --to toml` | `a = "yes"`、`b = 31`、`c = 7`、`d = "1"`、`e = "2001-01-01"`、`f = "1_000"`(キーは辞書順に並ぶ)。真偽値になるのは `true`/`false` の 3 通りの書き方だけ | `read_resolve::core_schema_scalars`(09 章 5.2 節) |
-| AC-229 | 展開後の要素数の上限 | `a: [0, 0, …]`(0 を n 個) | `convert in.yaml --to toml` | n = 99,997 は 0。n = 99,998 は 67(`input is too large`。原因 `展開後の要素数が上限(100000)を超えています`)。TOML 入力(`a = [0, 0, …]`)も同じ境界 | `read_resolve::node_limit_exactly_100000_is_accepted_and_one_more_is_too_large / toml_input_has_the_same_node_limit` |
-| AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to toml` | 30 秒以内に 67(`input is too large`)。メモリを使い果たさない | `read_resolve::alias_bomb_is_too_large_without_exhausting_memory` |
-| AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 31 個 / 32 個(閉じも書く) | `convert in.yaml --to toml` | 31 個: 0。32 個: 67(`syntax error: 入れ子が深すぎます(上限 32)`) | `read_resolve::read_depth_limit_32_33` |
-| AC-232 | 極端な深さでも異常終了しない | 1,000 段、100,000 段の入れ子(YAML・TOML) | `convert … ` | 67(`syntax error`)。異常終了しない | `read_resolve::extremely_deep_inputs_fail_with_syntax_not_abort` |
+| AC-228 | スカラーの解決 | YAML: `a: yes`、`b: 0x1F`、`c: 007`、`d: '1'`、`e: 2001-01-01`、`f: 1_000` | `convert in.yaml --to toml` | `a = "yes"`、`b = 31`、`c = 7`、`d = "1"`、`e = "2001-01-01"`、`f = "1_000"`(キーは辞書順に並ぶ)。真偽値になるのは `true`/`false` の 3 通りの書き方だけ | `read_resolve::コアスキーマのスカラー`(09 章 5.2 節) |
+| AC-229 | 展開後の要素数の上限 | `a: [0, 0, …]`(0 を n 個) | `convert in.yaml --to toml` | n = 99,997 は 0。n = 99,998 は 67(`input is too large`。原因 `展開後の要素数が上限(100000)を超えています`)。TOML 入力(`a = [0, 0, …]`)も同じ境界 | `read_resolve::要素数ちょうど100000は受理し_1つ多いと大きすぎる / toml_の入力も要素数の上限は同じ` |
+| AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to toml` | 30 秒以内に 67(`input is too large`)。メモリを使い果たさない | `read_resolve::エイリアスの爆発は_メモリを使い果たさずに大きすぎる` |
+| AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 31 個 / 32 個(閉じも書く) | `convert in.yaml --to toml` | 31 個: 0。32 個: 67(`syntax error: 入れ子が深すぎます(上限 32)`) | `read_resolve::読み取りの深さの上限_32_と_33` |
+| AC-232 | 極端な深さでも異常終了しない | 1,000 段、100,000 段の入れ子(YAML・TOML) | `convert … ` | 67(`syntax error`)。異常終了しない | `read_resolve::極端に深い入力は_異常終了せずに文法の誤りで失敗する` |
 | AC-233 | 往復で木が等しい | `CV1` | `convert in.toml --to yaml` の OUT を `convert --to toml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`[job.retry]` の表も同じ | `convert_roundtrip::定義の形の_toml_は_yaml_を通って往復する`、`配列形式の_command_は往復する_*`、`retry_の表は往復する_*` |
 | AC-234 | 数値の往復 | 整数の端(`i64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`inf`、`nan`)、空の配列・マップ | 往復 | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別) | `convert_roundtrip::i64_の端は往復する / 浮動小数は両方向に往復する / スカラーの境界は往復する_*` |
 | AC-235 | ファイルを作らず環境に左右されない | `T` に入力のみ | `convert` を、別のカレントディレクトリ・異なる環境変数で実行 | `T` のファイル一覧が実行の前後で同じ。結果が同じ | `converter::nfr_security`、`flow_aux::convert は定義もステートも読まず シグナルも準備しない` |
@@ -881,7 +881,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-413 | 変換の頑健性 | 範囲外・空・壊れた・切り詰めた入力、ランダムな構造 | `convert` | 異常終了しない。成功した構造は往復で等しい | `converter::nfr_security` |
 | AC-414 | 内部の誤り | 異常終了を起こす | (入口) | 4.13 節の「内部の誤りの文」と同じ | `panic_hook` |
 | AC-415 | 検証は副作用を持たない | 4.1 節の最後の項目 | — | 4.1 節 | `core::nfr_security` |
-| AC-416 | 入力の値を表示に出さない | 各種類のエラー(定義・`command`・ステート・変換・使い方)に、秘密のつもりの文字列を含む入力 | 各コマンド | ERR に、その値が現れない(キー名は、エスケープして現れてよい)。`command` の誤りの文に `command` の中身が現れない | `core::nfr_security`、`runtime::nfr_content`、`converter::nfr_security`、`error_messages_never_contain_input_values` |
+| AC-416 | 入力の値を表示に出さない | 各種類のエラー(定義・`command`・ステート・変換・使い方)に、秘密のつもりの文字列を含む入力 | 各コマンド | ERR に、その値が現れない(キー名は、エスケープして現れてよい)。`command` の誤りの文に `command` の中身が現れない | `core::nfr_security`、`runtime::nfr_content`、`converter::nfr_security`、`read_resolve::誤りの文は入力の値を含まない` |
 | AC-417 | ステートに機微な値を書かない | 4.3 節の項目 | — | 4.3 節 | `runtime::nfr_content` |
 | AC-418 | 変換に副作用がない | 4.7 節の項目 | — | 4.7 節 | `converter::nfr_security` |
 | AC-419 | ネットワークに接続しない | 実装と依存 | 点検(ソースの検索、依存の一覧、実行中の通信の監視) | ネットワークの機能を使わない。通信の部品(HTTP・TLS など)が依存にない | `cli::nfr_source::ネットワークなし`、依存の検査。区分: 点検 |
