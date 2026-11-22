@@ -28,6 +28,13 @@
 //! | [`decide_before_run`] | ジョブを起動する前の判断(W2、BR3.5) | 引数 → [`Decision`] | なし(純粋) |
 //! | [`classify_and_decide`] | 実行後の分類と次の動き(W3、BR2.x、BR3.x) | 引数 → ([`JobOutcome`], [`NextStep`]) | なし(純粋) |
 //! | [`resume_point_on_interrupt`] | ジョブのあいだの中断の再開位置(W4、BR3.7) | 引数 → [`ResumePoint`] | なし(純粋) |
+//! | [`initial_state`] | 空のステートを、定義から作る(BR2.8) | 定義、パス、run ID → [`PipelineState`] | なし(純粋) |
+//! | [`apply_outcome`] | ジョブの結果を記録する(BR2.8) | ステート、結果、次の動き → ステート | なし(純粋) |
+//! | [`apply_skip`] | スキップを記録し、完了を判定する(BR2.8) | ステート、理由、定義 → ステート | なし(純粋) |
+//! | [`apply_interrupt`] | 中断を記録する(BR2.8) | ステート、[`ResumePoint`] → ステート | なし(純粋) |
+//!
+//! ステートの更新の関数(`initial_state`、`apply_*`)は、本番の流れと `--dry-run` の模擬が共に使う。
+//! `conductor-runtime` は、同じ名前で再公開する。
 //!
 //! 入出力に触れるのは、[`definition::intake`] だけである。それ以外は、引数だけから結果を決める
 //! 純粋な処理で、ファイルにもプロセスにも環境変数にも触れない。
@@ -44,6 +51,7 @@
 //! | [`definition::version`] | 版の確認(VersionCheck) | `format_version` が 1 であること。通らなければ、そこで終える |
 //! | [`definition::walk`] | 構造の検査(Walk) | キー、型、構造の制約、遷移、終了コード、名前。誤りはすべて集める |
 //! | [`flow`] | 判断(Flow) | 起動前の判断、分類、次の動き、完了、再開位置 |
+//! | `flow::record` | 記録(Recorder) | `initial_state`、`apply_*`(純粋。本番と模擬が共に使う) |
 //!
 //! 定義の読み込みの流れは Intake → Parse → Depth → VersionCheck → Walk の順である。
 //!
@@ -80,8 +88,9 @@ pub use envfile::{
 };
 pub use error::*;
 pub use flow::{
-    RetryDecision, TransitionResolution, classify_and_decide, decide_before_run,
-    resolve_transition, resume_point_on_interrupt, retry_decision,
+    RetryDecision, TransitionResolution, apply_interrupt, apply_outcome, apply_skip,
+    classify_and_decide, decide_before_run, initial_state, resolve_transition,
+    resume_point_on_interrupt, retry_decision,
 };
 pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,

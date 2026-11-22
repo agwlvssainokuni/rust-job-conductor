@@ -13,10 +13,10 @@
 // limitations under the License.
 
 //! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer` だけで、
-//! `consistency` と `record` は、入出力のない純粋な処理である。
+//! `consistency` は、入出力のない純粋な処理である。ステートの更新(`initial_state`、`apply_*`)は、
+//! `conductor-core` の `flow::record` にある(`lib.rs` で再公開する)。
 
 pub(crate) mod consistency;
 pub(crate) mod reader;
-pub(crate) mod record;
 pub(crate) mod reset_all;
 pub(crate) mod writer;

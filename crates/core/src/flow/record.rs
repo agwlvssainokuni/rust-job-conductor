@@ -14,14 +14,17 @@
 
 //! ステートへの記録(Recorder。BR2.8)。入出力のない純粋な関数。
 //!
-//! 呼び出し側(Cli)が、結果を受け取り、記録して、`write_state` を呼ぶ。`end_reached` は、
-//! 一度 `true` になったら、`false` に戻さない(monotonic)。
+//! 本番の流れ(Cli)と、`--dry-run` の模擬(`plan::simulate`)の両方が呼ぶ、ステートの更新の
+//! 1 か所。本番では、呼び出し側(Cli)が、結果を受け取り、記録して、`write_state`
+//! (`conductor-runtime`)を呼ぶ。`end_reached` は、一度 `true` になったら、`false` に戻さない
+//! (monotonic)。
 
 use std::path::Path;
 
-use conductor_core::{
+use crate::run_id::RunId;
+use crate::types::{
     Classification, DecisionReason, JobExecution, JobOutcome, JobState, JobStatus, NextStep,
-    PipelineDefinition, PipelineState, ResumePoint, RunId, SkipReason,
+    PipelineDefinition, PipelineState, ResumePoint, SkipReason,
 };
 
 /// 空のステートを、定義から作る(`initial_state`)。
@@ -181,7 +184,7 @@ pub fn apply_interrupt(state: &PipelineState, resume_point: &ResumePoint) -> Pip
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conductor_core::JobDefinition;
+    use crate::types::JobDefinition;
 
     /// run ID なしの初期ステート(既存のテストの書き方を保つ)。
     fn initial_state(definition: &PipelineDefinition, path: &Path) -> PipelineState {

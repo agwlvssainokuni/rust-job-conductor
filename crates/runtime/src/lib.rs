@@ -34,12 +34,15 @@
 //! | [`reset_state`] | ステートを、検査を迂回して消す(W5。BR2.6) | 定義ファイルのパス | [`StateError`](`removeFailed`) |
 //! | [`reset_all_states`] | その定義のステートを、run ID の有無によらず、すべて消す(FR5) | 定義ファイルのパス → [`ResetAllReport`] | [`StateError`] |
 //! | [`initial_state`] | 空のステートを、定義から作る(BR2.8) | 定義、パス、run ID → `PipelineState` | なし(純粋) |
-//!
-//! `read_state`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
-//! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
 //! | [`apply_outcome`] | ジョブの結果を記録する(BR2.8) | ステート、結果、次の動き → ステート | なし(純粋) |
 //! | [`apply_skip`] | スキップを記録し、完了を判定する(BR2.8) | ステート、理由、定義 → ステート | なし(純粋) |
 //! | [`apply_interrupt`] | 中断を記録する(BR2.8) | ステート、`ResumePoint` → ステート | なし(純粋) |
+//!
+//! `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt` は、`conductor-core` の
+//! `flow::record` にある(`--dry-run` の模擬と共に使う)。この Unit は、同じ名前で再公開する。
+//!
+//! `read_state`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
+//! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
 //!
 //! ファイルに触れるのは、`read_state`、`write_state`、`reset_state` だけ。プロセスに触れるのは、
 //! `run_job` だけ。それ以外は、引数だけから結果を決める純粋な処理で、ファイルにもプロセスにも
@@ -57,7 +60,6 @@
 //! | `state::reader` | ステートの読み込み(StateReader) | 上限 + 1 バイトの読み取り、版の確認(先)、走査、矛盾の検査 |
 //! | `state::writer` | ステートの書き込み(StateWriter)、初期化(Reset) | 一時ファイルの新規作成、同期、置き換え、後始末 |
 //! | `state::consistency` | 照合(Consistency) | パイプライン名、ジョブIDの集合、並び(純粋) |
-//! | `state::record` | 記録(Recorder) | `initial_state`、`apply_*`(純粋) |
 //! | `src/bin/conductor-test-helper.rs` | テスト専用の補助の実行ファイル | 引数・環境変数・終了コード・シグナルの受信を出力する。配布には使わない |
 //!
 //! # 呼び出しの順序(契約 C2 の順序の続き)
@@ -113,6 +115,7 @@ mod state;
 pub mod types;
 mod wait;
 
+pub use conductor_core::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub use envfile::load_env_files;
 pub use error::*;
 pub use file_create::{CreateError, CreateOutcome, create_file};
@@ -120,7 +123,6 @@ pub use runner::run_job;
 pub use split::check_command;
 pub use state::consistency::check_consistency;
 pub use state::reader::{read_state, read_state_raw};
-pub use state::record::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub use state::reset_all::{ResetAllReport, reset_all_states};
 pub use state::writer::{reset_state, write_state};
 pub use types::*;
