@@ -19,7 +19,7 @@
 
 use toml::de::{DeTable, DeValue};
 
-use super::{RawJob, Walker, exit_code_of, integer_of};
+use super::{RawJob, SuccessCodes, Walker, exit_code_of, integer_of};
 use crate::definition::duration::{MAX_SECS, MIN_SECS, parse_duration_secs};
 use crate::error::DefinitionErrorKind as Kind;
 use crate::types::{DEFAULT_SUCCESS_EXIT_CODES, RetryPolicy};
@@ -214,9 +214,9 @@ impl Walker<'_> {
         if let Some((codes, offset)) = &retry.exit_codes {
             // 成功の終了コードは、省略時は 0 だけ。書いて誤りだったときは、重なりを調べない。
             let success: Option<&[i32]> = match &job.success {
-                Some((c, _)) => Some(c),
-                None if !job.success_declared => Some(DEFAULT_SUCCESS_EXIT_CODES),
-                None => None,
+                SuccessCodes::Valid(codes) => Some(codes),
+                SuccessCodes::Absent => Some(DEFAULT_SUCCESS_EXIT_CODES),
+                SuccessCodes::Invalid => None,
             };
             let overlaps_success = success.is_some_and(|s| codes.iter().any(|c| s.contains(c)));
             let overlaps_warning = job

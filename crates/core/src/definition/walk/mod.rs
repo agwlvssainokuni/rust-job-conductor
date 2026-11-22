@@ -75,13 +75,21 @@ struct RawTransition {
     next: Option<(String, usize)>,
 }
 
+/// `success_exit_codes` の読み取りの結果。
+enum SuccessCodes {
+    /// 書いていない(省略時は `[0]`)。
+    Absent,
+    /// 書いて誤り(ほかの値との重なりを調べない)。
+    Invalid,
+    /// 正しい値(位置は、ほかの誤りの場所に使わないので持たない)。
+    Valid(Vec<i32>),
+}
+
 struct RawJob {
     id: Option<(String, usize)>,
     command: Option<Command>,
     warning: Option<(Vec<i32>, usize)>,
-    success: Option<(Vec<i32>, usize)>,
-    /// `success_exit_codes` を書いたか(書いて誤りなら `success` は `None`)。
-    success_declared: bool,
+    success: SuccessCodes,
     transitions: Vec<RawTransition>,
     /// `[job.retry]`。書かなければ `None`。
     retry: Option<RawRetry>,
@@ -367,8 +375,7 @@ impl<'a> Walker<'a> {
             id: None,
             command: None,
             warning: None,
-            success: None,
-            success_declared: false,
+            success: SuccessCodes::Absent,
             transitions: Vec::new(),
             retry: None,
             env: Vec::new(),
@@ -384,8 +391,11 @@ impl<'a> Walker<'a> {
         raw.id = self.string(table, "id", start, true);
         raw.command = self.command(table, start);
         raw.warning = self.exit_codes(table, "warning_exit_codes");
-        raw.success = self.exit_codes(table, "success_exit_codes");
-        raw.success_declared = table.contains_key("success_exit_codes");
+        raw.success = match self.exit_codes(table, "success_exit_codes") {
+            Some((codes, _)) => SuccessCodes::Valid(codes),
+            None if table.contains_key("success_exit_codes") => SuccessCodes::Invalid,
+            None => SuccessCodes::Absent,
+        };
         raw.transitions = self.transitions(table);
         raw.retry = self.retry(table);
         raw.env = self.env_table(table);
@@ -460,7 +470,9 @@ impl<'a> Walker<'a> {
             }
             _ => false,
         };
-        if let (Some((warning, offset)), Some((success, _))) = (&job.warning, &job.success) {
+        if let (Some((warning, offset)), SuccessCodes::Valid(success)) =
+            (&job.warning, &job.success)
+        {
             let overlaps = warning
                 .iter()
                 .any(|w| success.contains(w) && !(zero_as_warning && *w == 0));
@@ -585,7 +597,10 @@ fn build_jobs(raw: &[RawJob]) -> Option<Vec<JobDefinition>> {
                     .as_ref()
                     .map(|(c, _)| c.clone())
                     .unwrap_or_default(),
-                success_exit_codes: job.success.as_ref().map(|(c, _)| c.clone()),
+                success_exit_codes: match &job.success {
+                    SuccessCodes::Valid(codes) => Some(codes.clone()),
+                    SuccessCodes::Absent | SuccessCodes::Invalid => None,
+                },
                 transitions,
                 retry: build_retry(job.retry.as_ref()),
                 env: job.env.clone(),
