@@ -68,19 +68,25 @@ pub(crate) fn run_job_with_retry(
             return execution;
         };
 
+        // `Retry` は、リトライの設定があり、結果が終了コードつきの `Exited` のときだけ返る
+        // (`is_retry_target`)。else はそれに当たらない場合で、リトライしないのと同じ結果にする。
+        let (
+            Some(policy),
+            ExecutionResult::Exited {
+                exit_code: Some(last_exit_code),
+                ..
+            },
+        ) = (job.retry.as_ref(), &execution.result)
+        else {
+            return execution;
+        };
+
         // 待機の前に、常に知らせる(BR2.4)。
-        let max = job.retry.as_ref().map_or(0, |policy| policy.max);
         ctx.show(&DisplayEvent::RetryScheduled {
             job_id: &job.id,
-            last_exit_code: match execution.result {
-                ExecutionResult::Exited {
-                    exit_code: Some(code),
-                    ..
-                } => code,
-                _ => 0,
-            },
+            last_exit_code: *last_exit_code,
             retry_number: retries_done + 1,
-            max,
+            max: policy.max,
             wait_secs,
         });
 
