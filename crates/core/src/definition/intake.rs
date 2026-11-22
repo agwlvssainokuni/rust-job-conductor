@@ -54,36 +54,59 @@ fn io_reason(kind: ErrorKind) -> &'static str {
     }
 }
 
-/// 定義ファイルを読み取って、文字列として返す。
+/// 定義ファイルを読み取って、文字列として返す(BR3.1)。
+///
+/// 順序は次のとおり(開けるかの確認が、大きさの確認より先)。
+///
+/// 1. パスのメタデータで、種別だけを見る(大きさは見ない)。通常のファイルでないもの(ディレクトリ、
+///    名前付きパイプなど)は、開かずに `unreadable`(書き手のいない名前付きパイプを開いて待ち続けないため)。
+/// 2. 開く。権限がないなどで開けなければ `unreadable`。
+/// 3. 開いたハンドルのメタデータで、種別と大きさを見る(1 のあとに差し替わっても、開いたものを見る)。
+/// 4. 上限 + 1 バイトまで読み、UTF-8 かを確かめる。
 ///
 /// 失敗は、次の種類の `DefinitionError` として返す。
 /// 存在しない: `fileMissing`、上限超過: `tooLarge`、
 /// 権限がない・通常のファイルでない・UTF-8 でない: `unreadable`(理由で区別)。
+/// v0.9.5 までは、パスのメタデータで大きさを先に見たため、読む権限のない 1 MiB 超のファイルは `tooLarge` だった。
 pub fn read_definition(path: &Path) -> Result<String, DefinitionError> {
     let file = file_label(path);
-
-    let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
-        ErrorKind::NotFound => error(
+    let missing = || {
+        error(
             &file,
             DefinitionErrorKind::FileMissing,
             "指定の場所にファイルがありません",
-        ),
-        k => error(&file, DefinitionErrorKind::Unreadable, io_reason(k)),
-    })?;
-
-    if !meta.is_file() {
-        return Err(error(
+        )
+    };
+    let not_regular = || {
+        error(
             &file,
             DefinitionErrorKind::Unreadable,
             "通常のファイルではありません",
-        ));
+        )
+    };
+
+    let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
+        ErrorKind::NotFound => missing(),
+        k => error(&file, DefinitionErrorKind::Unreadable, io_reason(k)),
+    })?;
+    if !meta.is_file() {
+        return Err(not_regular());
     }
-    if meta.len() > MAX_DEFINITION_BYTES {
+
+    let handle = File::open(path).map_err(|e| match e.kind() {
+        ErrorKind::NotFound => missing(),
+        k => error(&file, DefinitionErrorKind::Unreadable, io_reason(k)),
+    })?;
+    let opened = handle
+        .metadata()
+        .map_err(|e| error(&file, DefinitionErrorKind::Unreadable, io_reason(e.kind())))?;
+    if !opened.is_file() {
+        return Err(not_regular());
+    }
+    if opened.len() > MAX_DEFINITION_BYTES {
         return Err(too_large(&file));
     }
 
-    let handle = File::open(path)
-        .map_err(|e| error(&file, DefinitionErrorKind::Unreadable, io_reason(e.kind())))?;
     let bytes = match read_bounded(handle, MAX_DEFINITION_BYTES) {
         Ok(Some(bytes)) => bytes,
         Ok(None) => return Err(too_large(&file)),
