@@ -14,43 +14,28 @@
 
 //! README の `init` の説明の検査(U4。BR4.2、FR5.2)。README を読むだけで、書き込まない。
 
-use std::path::{Path, PathBuf};
+mod docs_support;
 
 use conductor_cli::Language;
 use conductor_cli::report::init_template::render_template;
-
-fn readme() -> String {
-    let root: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-    std::fs::read_to_string(root.join("README.md"))
-        .expect("README.md を読める")
-        .replace("\r\n", "\n")
-}
+use docs_support::{assert_docs_check_words, assert_readme_has, readme};
 
 #[test]
 fn readme_に_init_の必須の語句と版の表記と終了コード_69_がある() {
     let text = readme();
-    for word in [
-        "conductor init",
-        "--force",
-        "--config -",
-        "## init の使い方(v0.9.0 以降)",
-        "| 69 |",
-        "既にあります",
-    ] {
-        assert!(text.contains(word), "README に {word} がない");
-    }
+    assert_readme_has(
+        &text,
+        &[
+            "conductor init",
+            "--force",
+            "--config -",
+            "## init の使い方(v0.9.0 以降)",
+            "| 69 |",
+            "既にあります",
+        ],
+    );
     // docs-check の必須語句は残っている
-    for word in [
-        "SHA-256",
-        "Gatekeeper",
-        "終了コードの表",
-        "ステートファイルの場所",
-        "at-least-once",
-        "シグナル",
-        "convert",
-    ] {
-        assert!(text.contains(word), "docs-check の語句 {word} がない");
-    }
+    assert_docs_check_words(&text);
 }
 
 #[test]

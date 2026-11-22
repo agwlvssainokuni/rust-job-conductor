@@ -14,41 +14,27 @@
 
 //! README の `graph` の説明の検査(U2。BR7.2、FR5.2)。README を読むだけで、書き込まない。
 
-use std::path::{Path, PathBuf};
+mod docs_support;
 
-fn readme() -> String {
-    let root: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-    std::fs::read_to_string(root.join("README.md"))
-        .expect("README.md を読める")
-        .replace("\r\n", "\n")
-}
+use docs_support::{assert_docs_check_words, assert_readme_has, readme};
 
 #[test]
 fn readme_に_graph_の必須の語句と版の表記がある() {
     let text = readme();
-    for word in [
-        "conductor graph",
-        "--format mermaid",
-        "--state",
-        "(v0.9.0 以降)",
-        "辺の一覧",
-        "flowchart TD",
-    ] {
-        assert!(text.contains(word), "README に {word} がない");
-    }
+    assert_readme_has(
+        &text,
+        &[
+            "conductor graph",
+            "--format mermaid",
+            "--state",
+            "(v0.9.0 以降)",
+            "辺の一覧",
+            "flowchart TD",
+        ],
+    );
     assert!(text.contains("## graph の使い方(v0.9.0 以降)"));
     // docs-check の必須語句は残っている
-    for word in [
-        "SHA-256",
-        "Gatekeeper",
-        "終了コードの表",
-        "ステートファイルの場所",
-        "at-least-once",
-        "シグナル",
-        "convert",
-    ] {
-        assert!(text.contains(word), "docs-check の語句 {word} がない");
-    }
+    assert_docs_check_words(&text);
 }
 
 #[test]

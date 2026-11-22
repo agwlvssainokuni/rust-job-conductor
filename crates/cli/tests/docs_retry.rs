@@ -16,41 +16,27 @@
 //!
 //! README を読むだけで、書き込まない。例の定義は、一時ファイルに書いて、実際の読み取りに通す。
 
-use std::path::{Path, PathBuf};
+mod docs_support;
 
-fn readme() -> String {
-    let root: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-    std::fs::read_to_string(root.join("README.md"))
-        .expect("README.md を読める")
-        .replace("\r\n", "\n")
-}
+use docs_support::{DOCS_CHECK_WORDS, assert_readme_has, block_after_heading, readme};
 
 /// 小節の見出し(リトライの設定)の行。
 const HEADING: &str = "### リトライの設定(`[job.retry]`)";
 
-/// 見出しのあとの、最初の ```toml ブロックの中身。
-fn first_toml_block_after_heading(text: &str) -> String {
-    let start = text.find(HEADING).expect("リトライの設定の小節がある");
-    let rest = &text[start..];
-    let open = rest.find("```toml\n").expect("TOML の例がある") + "```toml\n".len();
-    let body = &rest[open..];
-    let close = body.find("\n```").expect("コードブロックが閉じている");
-    format!("{}\n", &body[..close])
-}
-
 #[test]
 fn readme_に_job_retry_と_5_つのキーが書かれている() {
     let text = readme();
-    for word in [
-        "[job.retry]",
-        "exit_codes",
-        "max",
-        "interval",
-        "multiplier",
-        "max_interval",
-    ] {
-        assert!(text.contains(word), "README に {word} がない");
-    }
+    assert_readme_has(
+        &text,
+        &[
+            "[job.retry]",
+            "exit_codes",
+            "max",
+            "interval",
+            "multiplier",
+            "max_interval",
+        ],
+    );
     assert!(text.contains("(v0.8.0 以降)"), "版の表記がない");
 }
 
@@ -69,7 +55,7 @@ fn 古い一文はそのままの形では残っていない() {
 
 #[test]
 fn readme_の例の定義を実際の読み取りに通すとリトライの設定が入っている() {
-    let example = first_toml_block_after_heading(&readme());
+    let example = block_after_heading(&readme(), HEADING, "toml");
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let path = dir.path().join("conductor.toml");
     std::fs::write(&path, example).expect("書ける");
@@ -89,15 +75,5 @@ fn readme_の例の定義を実際の読み取りに通すとリトライの設�
 #[test]
 fn ci_の_docs_check_の_7_語が_readme_にある() {
     let text = readme();
-    for word in [
-        "SHA-256",
-        "Gatekeeper",
-        "終了コードの表",
-        "ステートファイルの場所",
-        "at-least-once",
-        "シグナル",
-        "convert",
-    ] {
-        assert!(text.contains(word), "README に {word} がない");
-    }
+    assert_readme_has(&text, &DOCS_CHECK_WORDS);
 }
