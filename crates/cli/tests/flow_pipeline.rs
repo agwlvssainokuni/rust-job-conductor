@@ -294,6 +294,45 @@ fn fr1_1_削除しないときは_削除の失敗の設定があっても_0() {
 }
 
 #[test]
+fn fr2_1_スキップで完了して_remove_on_complete_なら消して_0() {
+    // a(@end)を個別に実行し、b・c は、一括実行のなかで、スキップとして記録される。
+    let mut h = Harness::new(END_AFTER_A);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    h.runtime.log.borrow_mut().clear();
+    let out = h.run(&["pipeline", "p", "--remove-on-complete"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(h.runtime.ran(), Vec::<String>::new(), "a は再実行しない");
+    assert!(!h.state_path().exists(), "最後のスキップで完了し、消える");
+    let log = h.runtime.log();
+    assert_eq!(
+        log[log.len() - 2..],
+        ["write:durable", "reset"],
+        "c のスキップを記録してから消す: {log:?}"
+    );
+}
+
+#[test]
+fn br1_2_スキップで完了したときは_表示のあとで消し_削除の失敗は_65() {
+    // pipeline は、スキップを表示してから消す(run は、表示の前に消す)。
+    let mut h = Harness::new(END_AFTER_A);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    h.runtime.fail_reset.set(true);
+    let out = h.run(&["pipeline", "p", "--remove-on-complete", "-v"]);
+    assert_eq!(out.code, 65);
+    assert_eq!(h.runtime.ran(), ["a"], "a は個別実行の 1 回だけ");
+    let skipped = out.err.find("job=c skipped").expect("c のスキップの表示");
+    let failed = out
+        .err
+        .find("the job was not started")
+        .expect("起動前の文脈の、削除の失敗の表示");
+    assert!(skipped < failed, "表示のあとで消す: {}", out.err);
+    assert!(
+        h.state().is_none() && h.state_raw().is_some_and(|s| s.completed),
+        "completed のまま残る"
+    );
+}
+
+#[test]
 fn ジョブのあいだの合図は_再開位置を記録して_128_足す番号() {
     let mut h = Harness::new(THREE_JOBS);
     *h.runtime.after_job.borrow_mut() = Some(Box::new(|id, signal| {

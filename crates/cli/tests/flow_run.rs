@@ -486,6 +486,27 @@ fn スキップで完了したときの削除の失敗は_65() {
     assert_eq!(h.runtime.ran(), ["a"]);
 }
 
+#[test]
+fn br1_2_記録の変わらないスキップは_remove_on_complete_でも消さない() {
+    // run は、スキップの記録が変わったときだけ、削除を考える(pipeline と違う)。
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    h.runtime.log.borrow_mut().clear();
+    h.runtime.fail_reset.set(true);
+    let out = h.run(&["run", "a", "--remove-on-complete"]);
+    assert_eq!(out.code, 0, "reset を呼ばないので、削除の失敗にならない");
+    assert_eq!(h.runtime.ran(), Vec::<String>::new(), "再実行しない");
+    assert!(
+        !h.runtime
+            .log()
+            .iter()
+            .any(|l| l.starts_with("write") || l == "reset"),
+        "書かず、消さない: {:?}",
+        h.runtime.log()
+    );
+    assert!(h.state().is_some(), "ステートは残る");
+}
+
 // ---- ジョブの結果の表示 ----
 
 #[test]
