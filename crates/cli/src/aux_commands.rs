@@ -16,7 +16,7 @@
 //!
 //! シグナルの準備は行わない(既定の動作で終わる。BR4.1)。
 
-use conductor_converter::TargetFormat;
+use std::path::Path;
 
 use crate::ctx::{Ctx, aux_run_id, definition_path, read_context};
 use crate::exit::{EXIT_CONVERSION, EXIT_OK};
@@ -97,8 +97,7 @@ pub(crate) fn run_convert(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         let error = UsageError::new(UsageErrorKind::MissingArgument);
         return ctx.usage_error(&error);
     };
-    let target: TargetFormat = target;
-    match ctx.runtime.convert(std::path::Path::new(input), target) {
+    match ctx.runtime.convert(Path::new(input), target) {
         Ok(text) => match ctx.sink.write_out(text.as_bytes()) {
             Ok(()) => EXIT_OK,
             Err(_) => {
