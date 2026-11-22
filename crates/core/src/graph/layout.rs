@@ -226,7 +226,7 @@ fn join_lane_row(outer: usize, both: bool) -> Vec<LaneGlyph> {
 ///
 /// 1. その節が飛び越しの行き先なら、合流の行(列 1 の線が主線へ合流し、残りは左へ詰まる)。
 /// 2. ノードの行。すでにある右の線は、この節が新しい線(NewLane、分岐)を持ち、かつ直前の行が分岐の行なら `\`、
-///    この節が合流の行き先(直前が合流の行)で、次の節も合流の行き先なら `/`(分岐を含む形では `|`)、それ以外は `|`。
+///    この節が合流の行き先(直前が合流の行)で、次の節も合流の行き先なら `/`、それ以外は `|`。
 ///    ラベルの位置は、2 × (1 + 開いている線の数 + 新しい線の数(NewLane なら 1、分岐なら 2))。
 /// 3. 新しい線なら分岐の行。最も内側の線と行き先が同じ飛び越し(JoinLane)なら、合流の行 `|\|`
 ///    (線を増やさない)。飛び越しなし(NoLane)は、行を足さない。分岐は、線を 2 本(外側が遠い行き先、
@@ -239,9 +239,6 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
     let mut open: Vec<usize> = Vec::new();
     // 開いている線ごとに、その線を開いたジョブがすべて主線につながらないか(その線の主線側の `|` を描かない)。
     let mut open_all_off_main: Vec<bool> = Vec::new();
-    // 分岐を含む形では、合流の行き先が続くときの `/` を使わず、`|` で描く。分岐を含む形の正解データ
-    // (規則から導いた図。`graph_layout_oracle_branch.md`)が、そう定めている。分岐を含まない形は、変えない。
-    let has_branch = plan.targets.iter().any(|t| t.len() == 2);
     // 直前の行が分岐の行か(分岐の行の直後のノードの行では、ずれる線を `\` で描く)。
     let mut after_fork = false;
     for i in 0..=job_count {
@@ -276,7 +273,7 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
             } else {
                 LaneGlyph::Line
             }
-        } else if is_target && open.last() == Some(&(i + 1)) && !has_branch {
+        } else if is_target && open.last() == Some(&(i + 1)) {
             LaneGlyph::Join
         } else {
             LaneGlyph::Line
