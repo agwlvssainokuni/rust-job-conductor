@@ -1,0 +1,20 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["SM1", "SM2", "SM3", "SM4", "BR1.1", "BR1.2", "BR1.3", "BR1.4", "BR2.1", "BR3.1", "BR4.1", "BR4.2", "BR5.1"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "crates/core/src/graph/layout.rs" },
+    { "id": "SM2", "status": "OK", "target": "crates/core/tests/graph_layout_oracle.rs" },
+    { "id": "SM3", "status": "OK", "target": "crates/core/tests/graph_layout_unify.rs" },
+    { "id": "SM4", "status": "OK", "target": "README.md" },
+    { "id": "BR1.1", "status": "OK", "target": "crates/core/tests/graph_drawable.rs" },
+    { "id": "BR1.2", "status": "OK", "target": "crates/core/src/graph/layout.rs" },
+    { "id": "BR1.3", "status": "OK", "target": "crates/core/tests/fixtures/graph_layout_oracle_offmain.md" },
+    { "id": "BR1.4", "status": "OK", "target": "crates/cli/src/report/graph_text.rs" },
+    { "id": "BR2.1", "status": "OK", "target": "crates/core/tests/graph_layout_unify.rs" },
+    { "id": "BR3.1", "status": "OK", "target": "crates/core/tests/graph_layout_oracle.rs" },
+    { "id": "BR4.1", "status": "OK", "target": "crates/core/tests/fixtures/graph_layout_oracle_offmain_67.md" },
+    { "id": "BR4.2", "status": "OK", "target": "crates/cli/tests/docs_graph.rs" },
+    { "id": "BR5.1", "status": "N/A", "target": "作業の進め方の規則(git のソースは読まず、規則は設計の参照実装だけから移した)" }
+  ],
+  "reverse": []
+}

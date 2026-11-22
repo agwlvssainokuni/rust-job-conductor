@@ -77,18 +77,18 @@
 
 ## 手順
 
-- [ ] Step 1: 既存のテストの実行環境を確かめる(`cargo test -p conductor-core --test graph_layout_oracle` が動くこと。コマンドは `unit-test-instructions.md`)。
-- [ ] Step 2: 判定(core)を実装する: `crates/core/src/graph/layout.rs` の `skip_targets` を、functional-spec.md の §6b の 3(ジョブごとの辺の数と種類)で、レーンの図にするかを決める形にする。`SkipPlan` は、ジョブごとの「次のジョブへの辺の有無」「種類(飛び越しなし、通常、両方の飛び越し、分岐)」「行き先(0〜2 個)」を持つ。`ordinary` の欄と `is_ordinary_skip_graph` は削除する。(BR1.1。SM1、SM3)
-- [ ] Step 3: 配置(core)を実装する: `ordinary_layout` を唯一の配置にし、「両方の飛び越し」(線 1 本)と分岐(線 2 本、近い行き先が内側)の線の開き方と、主線の列 0 の規則(実行されうるジョブからの辺。実行されうるジョブは、先頭のジョブから辺をたどって求める)を足す。`move_rows`、分岐の行、合流の行、寄せの行の列 0 に、その記号を渡す。古い経路(`lane_layout`、`open_all_off_main`、「分岐が開いた」印、`debug_assert`、古い経路だけが使う補助)を削除する。`is_lane_drawable` の名前は変えない。規範は `layout-reference.py`。(BR1.2〜BR1.4。SM1、SM3)
-- [ ] Step 4: `-v` の詳細の行の列 0(core と cli): ノードごとの列 0 の記号を、配置の結果(`LaneLayout` か `LaneRow`)に持たせ、cli の `crates/cli/src/report/graph_text.rs` の `render_lanes` が、詳細の行の先頭に、それを使う(functional-spec.md の §6b の 1)。ほかの整形は変えない。(BR1.4。SM3)
-- [ ] Step 5: 配置の層のテストを書いて実行する(core): `crates/core/tests/graph_layout_oracle.rs` の読み取りに、`a>>d`(両方の飛び越し)を足す。分岐の正解データ `crates/core/tests/fixtures/graph_layout_oracle_branch.md` を、`layout-oracle-branch-v2.md`(871 例)に置き換える(`cp`)。`layout-oracle-offmain.md`(2,748 例)を `crates/core/tests/fixtures/graph_layout_oracle_offmain.md` に置く(`cp`)。ジョブ 6〜7 個の確認用に、`layout-reference.py` の `layout` で、乱数の種 20261122、ジョブ数 6 か 7、「両方の飛び越し」か分岐を 1 つ以上含む、重複のない 300 例を生成し、`crates/core/tests/fixtures/graph_layout_oracle_offmain_67.md` に置く(生成のコマンドは、この計画が名指しする。生成の手順は、ファイルの先頭に書く)。git の出力の正解データ(537、1,517、940、487 例)は、変えずに通ること。全部の正解データを、件数と 1 文字ずつ照合する。(BR3.1、BR4.1。SM2、SM3)
-- [ ] Step 6: 既存のテストを、新しい期待に書き換える: 「両方の飛び越し」と分岐の図の期待のうち、主線の列 0 の規則で変わるもの(`graph_lane_polish.rs`、`graph_branch_lanes.rs`、`graph_report.rs`、`binary_graph.rs`、`docs_graph.rs`、README の例)。組み合わせを「辺の一覧」とするテスト(`graph_drawable.rs`、`graph_crossing_lanes.rs`、`graph_mixed_shapes.rs`、`graph_report.rs` の辺の一覧の例、`binary_graph.rs`)を、図の期待にする。辺の一覧に残る形のテストは、3 本以上の辺を持つジョブなど(§6b の 3 の範囲の外)の形に差し替える。削除した名前を参照する `graph_types.rs`、`nfr_source.rs`、`crates/cli/src/graph.rs`、`graph_common` も直す。実際に失敗するものを確かめて直す。(BR2.1、BR3.1。SM2、SM3)
-- [ ] Step 7: 追加の例のテストを書いて実行する(core): N1〜N5、B1、D1 の全文(functional-spec.md の §4)、性能(「両方の飛び越し」と分岐を含む 1,000 ジョブで 1 秒以内)。`crates/core/tests/graph_layout_unify.rs`(新規)と `graph_perf.rs`。(BR1.1〜BR2.1。SM3)
-- [ ] Step 8: 整形の層のテストを書いて実行する(cli): `graph_report.rs` に、N1 の text の全文、N1・N2・N5 の `-v`(詳細の行の列 0)、`--state`。実バイナリ(`binary_graph.rs`)で N1。(BR1.4。SM3)
-- [ ] Step 9: README を直す: 「両方の飛び越し」と分岐の図の例(B1 など、変わる図)、辺の一覧に切り替わる形(3 本以上の辺を持つジョブなど)、N1 の例(最後に足す)。`docs_graph.rs` を合わせる。(BR4.2。SM4)
-- [ ] Step 10: 仕様書を直す: `docs/spec/rust` と `docs/spec/language-agnostic` の 05(15.4、15.5 を 1 つの仕組みとして書き直す)、08(図の例)、11(受け入れ基準、テストの表)、12。ほかの 5 つの仕様書と `demo/` は変えない。(BR4.2。SM4)
-- [ ] Step 11: 全体の確認: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --locked --workspace` が通ること(行カバレッジは Build and Test が確かめる)。
-- [ ] Step 12: 文書と追跡: `code-summary.md`、`traceability.json` を作る。
+- [x] Step 1: 既存のテストの実行環境を確かめる(`cargo test -p conductor-core --test graph_layout_oracle` が動くこと。コマンドは `unit-test-instructions.md`)。
+- [x] Step 2: 判定(core)を実装する: `crates/core/src/graph/layout.rs` の `skip_targets` を、functional-spec.md の §6b の 3(ジョブごとの辺の数と種類)で、レーンの図にするかを決める形にする。`SkipPlan` は、ジョブごとの「次のジョブへの辺の有無」「種類(飛び越しなし、通常、両方の飛び越し、分岐)」「行き先(0〜2 個)」を持つ。`ordinary` の欄と `is_ordinary_skip_graph` は削除する。(BR1.1。SM1、SM3)
+- [x] Step 3: 配置(core)を実装する: `ordinary_layout` を唯一の配置にし、「両方の飛び越し」(線 1 本)と分岐(線 2 本、近い行き先が内側)の線の開き方と、主線の列 0 の規則(実行されうるジョブからの辺。実行されうるジョブは、先頭のジョブから辺をたどって求める)を足す。`move_rows`、分岐の行、合流の行、寄せの行の列 0 に、その記号を渡す。古い経路(`lane_layout`、`open_all_off_main`、「分岐が開いた」印、`debug_assert`、古い経路だけが使う補助)を削除する。`is_lane_drawable` の名前は変えない。規範は `layout-reference.py`。(BR1.2〜BR1.4。SM1、SM3)
+- [x] Step 4: `-v` の詳細の行の列 0(core と cli): ノードごとの列 0 の記号を、配置の結果(`LaneLayout` か `LaneRow`)に持たせ、cli の `crates/cli/src/report/graph_text.rs` の `render_lanes` が、詳細の行の先頭に、それを使う(functional-spec.md の §6b の 1)。ほかの整形は変えない。(BR1.4。SM3)
+- [x] Step 5: 配置の層のテストを書いて実行する(core): `crates/core/tests/graph_layout_oracle.rs` の読み取りに、`a>>d`(両方の飛び越し)を足す。分岐の正解データ `crates/core/tests/fixtures/graph_layout_oracle_branch.md` を、`layout-oracle-branch-v2.md`(871 例)に置き換える(`cp`)。`layout-oracle-offmain.md`(2,748 例)を `crates/core/tests/fixtures/graph_layout_oracle_offmain.md` に置く(`cp`)。ジョブ 6〜7 個の確認用に、`layout-reference.py` の `layout` で、乱数の種 20261122、ジョブ数 6 か 7、「両方の飛び越し」か分岐を 1 つ以上含む、重複のない 300 例を生成し、`crates/core/tests/fixtures/graph_layout_oracle_offmain_67.md` に置く(生成のコマンドは、この計画が名指しする。生成の手順は、ファイルの先頭に書く)。git の出力の正解データ(537、1,517、940、487 例)は、変えずに通ること。全部の正解データを、件数と 1 文字ずつ照合する。(BR3.1、BR4.1。SM2、SM3)
+- [x] Step 6: 既存のテストを、新しい期待に書き換える: 「両方の飛び越し」と分岐の図の期待のうち、主線の列 0 の規則で変わるもの(`graph_lane_polish.rs`、`graph_branch_lanes.rs`、`graph_report.rs`、`binary_graph.rs`、`docs_graph.rs`、README の例)。組み合わせを「辺の一覧」とするテスト(`graph_drawable.rs`、`graph_crossing_lanes.rs`、`graph_mixed_shapes.rs`、`graph_report.rs` の辺の一覧の例、`binary_graph.rs`)を、図の期待にする。辺の一覧に残る形のテストは、3 本以上の辺を持つジョブなど(§6b の 3 の範囲の外)の形に差し替える。削除した名前を参照する `graph_types.rs`、`nfr_source.rs`、`crates/cli/src/graph.rs`、`graph_common` も直す。実際に失敗するものを確かめて直す。(BR2.1、BR3.1。SM2、SM3)
+- [x] Step 7: 追加の例のテストを書いて実行する(core): N1〜N5、B1、D1 の全文(functional-spec.md の §4)、性能(「両方の飛び越し」と分岐を含む 1,000 ジョブで 1 秒以内)。`crates/core/tests/graph_layout_unify.rs`(新規)と `graph_perf.rs`。(BR1.1〜BR2.1。SM3)
+- [x] Step 8: 整形の層のテストを書いて実行する(cli): `graph_report.rs` に、N1 の text の全文、N1・N2・N5 の `-v`(詳細の行の列 0)、`--state`。実バイナリ(`binary_graph.rs`)で N1。(BR1.4。SM3)
+- [x] Step 9: README を直す: 「両方の飛び越し」と分岐の図の例(B1 など、変わる図)、辺の一覧に切り替わる形(3 本以上の辺を持つジョブなど)、N1 の例(最後に足す)。`docs_graph.rs` を合わせる。(BR4.2。SM4)
+- [x] Step 10: 仕様書を直す: `docs/spec/rust` と `docs/spec/language-agnostic` の 05(15.4、15.5 を 1 つの仕組みとして書き直す)、08(図の例)、11(受け入れ基準、テストの表)、12。ほかの 5 つの仕様書と `demo/` は変えない。(BR4.2。SM4)
+- [x] Step 11: 全体の確認: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --locked --workspace` が通ること(行カバレッジは Build and Test が確かめる)。
+- [x] Step 12: 文書と追跡: `code-summary.md`、`traceability.json` を作る。
 
 ## 守ること
 
