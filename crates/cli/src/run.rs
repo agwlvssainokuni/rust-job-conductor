@@ -20,15 +20,17 @@
 //! (求められていなければ、完了のステートを残す)。`run_job` の呼び出しは、リトライを含む共通の処理
 //! (`retry::run_job_with_retry`)に置き換わっている。ステートは、最終の結果について 1 回だけ書く。
 //! 初期ステートは、`Run` が決まったあとにだけ書く(Reject・Skip の前には書かない)。
+//!
+//! 1 つのジョブの手順(判断、スキップの記録、実行と記録、削除)は、`pipeline` と共通の
+//! `crate::step` を呼ぶ(BR1.1)。いつ消すかと、終了コードの決め方は、ここに残す(BR1.2)。
 
-use conductor_core::{Classification, Decision, RunMode, classify_and_decide, decide_before_run};
-use conductor_runtime::{Durability, apply_outcome, apply_skip, initial_state};
+use conductor_core::{Classification, Decision, RunMode};
 
 use crate::ctx::Ctx;
 use crate::dry_run::{DryRunTarget, run_dry_run};
 use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_USAGE, exit_code_for};
 use crate::report::{DisplayEvent, StateContext};
-use crate::retry::run_job_with_retry;
+use crate::step::{decide, record_skip, remove_if_requested, run_step};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// `conductor run <job-id>` を実行し、終了コードを返す。
@@ -47,101 +49,52 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Err(code) => return code,
     };
     let definition = &session.definition;
-    let path = &session.definition_path;
-    let run_id = session.run_id.as_ref();
 
-    let (states, resume, end_reached) = match &session.state {
-        Some(state) => (
-            state.job_states.as_slice(),
-            state.resume_job_id.as_deref(),
-            state.end_reached,
-        ),
-        None => (&[][..], None, false),
-    };
-    let decision = decide_before_run(job_id, definition, states, resume, end_reached);
-
-    match decision {
+    match decide(job_id, definition, session.state.as_ref()) {
         Decision::Reject(reason) => {
             ctx.show(&DisplayEvent::Rejected { job_id, reason });
             EXIT_REJECTED
         }
         Decision::Skip(reason) => {
-            let base = session
-                .state
-                .clone()
-                .unwrap_or_else(|| initial_state(definition, path, run_id));
-            let recorded = apply_skip(&base, job_id, reason, definition);
-            if recorded != base {
-                if let Err(code) = ctx.write(
-                    path,
-                    run_id,
-                    &recorded,
-                    Durability::Durable,
-                    StateContext::JobNotStarted,
-                ) {
-                    return code;
-                }
-                if recorded.completed
-                    && session.remove_on_complete
-                    && let Err(code) = ctx.reset(path, run_id, StateContext::JobNotStarted)
-                {
-                    return code;
-                }
+            let (recorded, changed) =
+                match record_skip(ctx, &session, session.state.as_ref(), job_id, reason) {
+                    Ok(result) => result,
+                    Err(code) => return code,
+                };
+            // run は、記録が変わって完了したときだけ、表示の前に消す(pipeline と違う。BR1.2)。
+            if changed
+                && recorded.completed
+                && let Err(code) = remove_if_requested(ctx, &session, StateContext::JobNotStarted)
+            {
+                return code;
             }
             ctx.show(&DisplayEvent::JobSkipped { job_id, reason });
             EXIT_OK
         }
         Decision::Run => {
-            let base = match session.state.clone() {
-                Some(state) => state,
-                None => {
-                    let initial = initial_state(definition, path, run_id);
-                    if let Err(code) = ctx.write(
-                        path,
-                        run_id,
-                        &initial,
-                        Durability::Fast,
-                        StateContext::JobNotStarted,
-                    ) {
-                        return code;
-                    }
-                    initial
-                }
-            };
             let Some(index) = definition.job_index(job_id) else {
                 // 検査済み(ジョブIDは定義にある)。ここには来ない。
                 return EXIT_REJECTED;
             };
             let job = &definition.job[index];
 
-            let execution = run_job_with_retry(ctx, &session, job);
-            let (outcome, next) = classify_and_decide(
+            let step = match run_step(
+                ctx,
+                &session,
+                session.state.clone(),
                 job,
-                &execution,
-                &base.job_states,
-                definition,
                 RunMode::Individual,
-            );
-            ctx.report_execution(job, &execution, &outcome, &next);
-
-            let recorded = apply_outcome(&base, job_id, &execution, &outcome, &next);
-            // 起動前の中断(started = false)は、ジョブが実行されていない。
-            let after = if execution.started {
-                StateContext::JobExecuted
-            } else {
-                StateContext::JobNotStarted
+            ) {
+                Ok(step) => step,
+                Err(code) => return code,
             };
-            if let Err(code) = ctx.write(path, run_id, &recorded, Durability::Durable, after) {
-                return code;
-            }
-            if next.completed
-                && session.remove_on_complete
-                && let Err(code) = ctx.reset(path, run_id, after)
+            if step.next.completed
+                && let Err(code) = remove_if_requested(ctx, &session, step.after)
             {
                 return code;
             }
-            let is_error = outcome.classification == Some(Classification::Error);
-            exit_code_for(outcome.reported_exit_code, is_error)
+            let is_error = step.outcome.classification == Some(Classification::Error);
+            exit_code_for(step.outcome.reported_exit_code, is_error)
         }
     }
 }
