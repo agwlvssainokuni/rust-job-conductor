@@ -1,0 +1,16 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["SM1", "SM2", "SM3", "SM4", "BR1.1", "BR1.2", "BR2.1", "BR3.1", "BR4.1"],
+  "coverage": [
+    { "id": "SM1", "status": "OK", "target": "crates/cli/src/step.rs" },
+    { "id": "SM2", "status": "OK", "target": "crates/cli/tests/flow_pipeline.rs" },
+    { "id": "SM3", "status": "OK", "target": "docs/spec/rust/05-execution-flow.md" },
+    { "id": "SM4", "status": "OK", "target": ".github/workflows/ci.yml" },
+    { "id": "BR1.1", "status": "OK", "target": "crates/cli/src/step.rs" },
+    { "id": "BR1.2", "status": "OK", "target": "crates/cli/src/run.rs" },
+    { "id": "BR2.1", "status": "OK", "target": "crates/cli/tests/flow_run.rs" },
+    { "id": "BR3.1", "status": "OK", "target": "docs/spec/rust/02-architecture.md" },
+    { "id": "BR4.1", "status": "OK", "target": ".github/workflows/ci.yml" }
+  ],
+  "reverse": []
+}
