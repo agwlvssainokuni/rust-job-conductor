@@ -79,17 +79,17 @@
 
 ## 手順
 
-- [ ] Step 1: 既存のテストの実行環境を確かめ、基準の件数を記録する(`cargo test --locked --workspace`。基準: 1,128 通過、1 無視、0 失敗)。
-- [ ] Step 2: 段 1(説明と制約)を実装する: `functional-spec.md` §8 のコミット 1〜9(1a〜1h)。T8 はコミット 3。`#![forbid(unsafe_code)]` の説明文に語 `unsafe` を書いて `nfr_source.rs` の検査に触れないように注意。項目ごとにコミット。(BR1.1〜BR1.8。SM1)
-- [ ] Step 3: 段 1 の層のテストを実行する: 全体が通り、件数が基準と同じ。テストのファイルの変更は T8 のコメントだけ。(BR5.1〜BR5.3。SM5)
-- [ ] Step 4: 段 2(小さな重複と計算量)を実装する: §8 のコミット 10〜25(2a〜2k)。計算量の 2 件は、**直す前に、§5 の測り方(debug、5 回の中央値)で今の時間を測って記録してから直す**。graph の text の行き先は今と同じ `escape_path`(64 文字で切らない)を保ち、遷移の表示の `escape_name` との使い分けを変えない。T1 はコミット 18。15(`.env` の解析の重複の除去)は任意。項目ごとにコミット。(BR2.1〜BR2.11。SM2)
-- [ ] Step 5: 段 2 の層のテストを書いて実行する: 性能のテスト `crates/core/tests/flow_perf.rs`(A2。100 回で上限 50 ms)と `crates/core/tests/env_merge_perf.rs`(A3a 上限 50 ms、A3b 上限 100 ms)を足す。直した後の時間(A3a を含む)を測って記録する。65 文字以上のジョブ ID の graph の text の出力が今と同じであることを、既存のテストで確かめているか見て、無ければ足す。全体が通ること。件数は基準 + 足した分。テストのファイルの変更は T1 と新しいファイルだけ。(BR2.x、BR5.x。SM2、SM5)
-- [ ] Step 6: 段 3(cli の ctx)を実装する: §8 のコミット 26〜30(3a〜3e)。prepare の検査の順序(シグナル → 定義 → command → ジョブ → `--assume` → run ID → `.env` → ステート)と、graph の順序を変えない。項目ごとにコミット。(BR3.1〜BR3.4。SM3)
-- [ ] Step 7: 段 3 の層のテストを実行する: `flow_run.rs`・`flow_pipeline.rs`・`flow_dry_run.rs`・`flow_run_id.rs`・`flow_env.rs` を含む全体が変えずに通ること。(BR5.x。SM3、SM5)
-- [ ] Step 8: 段 4(型とテスト)を実装する: §8 のコミット 31〜36(4a〜4e)。T2〜T7、T9 はここ。`PlanMode`・`EdgeKind`・`EdgeTarget` は別名(`pub use … as`)にして graph と plan のテストは変えない。項目ごとにコミット。(BR4.1〜BR4.4。SM4)
-- [ ] Step 9: 段 4 の層のテストを書いて実行する: §6 の単体テスト 4 件(`TransitionOn::parse`、`TransitionTarget::label`、`From<Classification> for JobStatus`、`RunIdArg::parse`・`as_str`)。テスト名は日本語。全体が通ること。`flow_with_state.rs` は 20 件のまま。(BR4.x、BR5.x。SM4、SM5)
-- [ ] Step 10: 全体の確認: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --locked --workspace`(失敗 0、件数は基準 + 足した分)。`functional-spec.md` §7 の grep の確かめ。テストのファイルの差分が T1〜T9 と新しいファイルだけであること。(BR5.4。SM6)
-- [ ] Step 11: 文書と追跡: `code-summary.md`(段ごとの件数、性能の前後の時間、テストの変更の一覧、計画からのずれ、見送ったこと)、`traceability.json` を作る。
+- [x] Step 1: 既存のテストの実行環境を確かめ、基準の件数を記録する(`cargo test --locked --workspace`。基準: 1,128 通過、1 無視、0 失敗)。
+- [x] Step 2: 段 1(説明と制約)を実装する: `functional-spec.md` §8 のコミット 1〜9(1a〜1h)。T8 はコミット 3。`#![forbid(unsafe_code)]` の説明文に語 `unsafe` を書いて `nfr_source.rs` の検査に触れないように注意。項目ごとにコミット。(BR1.1〜BR1.8。SM1)
+- [x] Step 3: 段 1 の層のテストを実行する: 全体が通り、件数が基準と同じ。テストのファイルの変更は T8 のコメントだけ。(BR5.1〜BR5.3。SM5)
+- [x] Step 4: 段 2(小さな重複と計算量)を実装する: §8 のコミット 10〜25(2a〜2k)。計算量の 2 件は、**直す前に、§5 の測り方(debug、5 回の中央値)で今の時間を測って記録してから直す**。graph の text の行き先は今と同じ `escape_path`(64 文字で切らない)を保ち、遷移の表示の `escape_name` との使い分けを変えない。T1 はコミット 18。15(`.env` の解析の重複の除去)は任意。項目ごとにコミット。(BR2.1〜BR2.11。SM2)
+- [x] Step 5: 段 2 の層のテストを書いて実行する: 性能のテスト `crates/core/tests/flow_perf.rs`(A2。100 回で上限 50 ms)と `crates/core/tests/env_merge_perf.rs`(A3a 上限 50 ms、A3b 上限 100 ms)を足す。直した後の時間(A3a を含む)を測って記録する。65 文字以上のジョブ ID の graph の text の出力が今と同じであることを、既存のテストで確かめているか見て、無ければ足す。全体が通ること。件数は基準 + 足した分。テストのファイルの変更は T1 と新しいファイルだけ。(BR2.x、BR5.x。SM2、SM5)
+- [x] Step 6: 段 3(cli の ctx)を実装する: §8 のコミット 26〜30(3a〜3e)。prepare の検査の順序(シグナル → 定義 → command → ジョブ → `--assume` → run ID → `.env` → ステート)と、graph の順序を変えない。項目ごとにコミット。(BR3.1〜BR3.4。SM3)
+- [x] Step 7: 段 3 の層のテストを実行する: `flow_run.rs`・`flow_pipeline.rs`・`flow_dry_run.rs`・`flow_run_id.rs`・`flow_env.rs` を含む全体が変えずに通ること。(BR5.x。SM3、SM5)
+- [x] Step 8: 段 4(型とテスト)を実装する: §8 のコミット 31〜36(4a〜4e)。T2〜T7、T9 はここ。`PlanMode`・`EdgeKind`・`EdgeTarget` は別名(`pub use … as`)にして graph と plan のテストは変えない。項目ごとにコミット。(BR4.1〜BR4.4。SM4)
+- [x] Step 9: 段 4 の層のテストを書いて実行する: §6 の単体テスト 4 件(`TransitionOn::parse`、`TransitionTarget::label`、`From<Classification> for JobStatus`、`RunIdArg::parse`・`as_str`)。テスト名は日本語。全体が通ること。`flow_with_state.rs` は 20 件のまま。(BR4.x、BR5.x。SM4、SM5)
+- [x] Step 10: 全体の確認: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --locked --workspace`(失敗 0、件数は基準 + 足した分)。`functional-spec.md` §7 の grep の確かめ。テストのファイルの差分が T1〜T9 と新しいファイルだけであること。(BR5.4。SM6)
+- [x] Step 11: 文書と追跡: `code-summary.md`(段ごとの件数、性能の前後の時間、テストの変更の一覧、計画からのずれ、見送ったこと)、`traceability.json` を作る。
 
 ## 守ること
 
