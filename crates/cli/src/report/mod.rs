@@ -357,7 +357,7 @@ impl<'a> Reporter<'a> {
                 )
             }
             DisplayEvent::Rejected { job_id, reason } => {
-                let place = format!("job '{}'", escape_name(job_id));
+                let place = job_place(job_id);
                 error_line(
                     &place,
                     messages::REJECTED.get(lang),
@@ -365,7 +365,7 @@ impl<'a> Reporter<'a> {
                 )
             }
             DisplayEvent::StartFailure { job_id, command } => {
-                let place = format!("job '{}'", escape_name(job_id));
+                let place = job_place(job_id);
                 let sentence = format!(
                     "{} '{}'",
                     messages::CANNOT_START.get(lang),
@@ -374,7 +374,7 @@ impl<'a> Reporter<'a> {
                 error_line(&place, &sentence, None)
             }
             DisplayEvent::SuccessCodeNotListed { job_id } => {
-                let place = format!("job '{}'", escape_name(job_id));
+                let place = job_place(job_id);
                 error_line(&place, messages::SUCCESS_CODE_NOT_LISTED.get(lang), None)
             }
             DisplayEvent::Conversion(error) => conversion_line(lang, error),
@@ -547,8 +547,19 @@ fn env_warning_line(lang: Language, w: &EnvWarning) -> String {
     )
 }
 
+/// 1 行を足す(末尾の空白を取り除き、改行を足す)。graph・計画・watch の整形が使う。
+pub(crate) fn push_line(out: &mut String, line: &str) {
+    out.push_str(line.trim_end());
+    out.push('\n');
+}
+
+/// ジョブの場所 `job '<ID>'`(ジョブ ID はエスケープする)。
+fn job_place(job_id: &str) -> String {
+    format!("job '{}'", escape_name(job_id))
+}
+
 fn command_line(lang: Language, definition: &str, job_id: &str, e: &CommandError) -> String {
-    let place = format!("{definition}: job '{}'", escape_name(job_id));
+    let place = format!("{definition}: {}", job_place(job_id));
     let sentence = command_kind(e.kind).get(lang);
     error_line(&place, sentence, None)
 }

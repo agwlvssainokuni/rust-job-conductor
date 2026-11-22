@@ -30,6 +30,7 @@ use super::messages::{
     RESUME_HERE, graph_retry_summary, plan_assumed, plan_disposition, plan_end, plan_next_step,
     plan_resume_after_stop, plan_run_id_suffix,
 };
+use super::push_line;
 use crate::types::Language;
 
 /// 詳細の行の字下げ(5 つの空白。BR3.3)。
@@ -230,9 +231,4 @@ fn next_step_line(lang: Language, note: &NextStepNote, entry: &PlanEntry) -> Str
         &escaped_skipped,
     ));
     format!("{}{text}", PLAN_NEXT_LABEL.get(lang))
-}
-
-fn push_line(out: &mut String, line: &str) {
-    out.push_str(line.trim_end());
-    out.push('\n');
 }

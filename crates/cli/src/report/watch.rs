@@ -24,6 +24,7 @@ use super::messages::{
     COMPLETED, EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, SKIPPED_AFTER_END,
     SKIPPED_BY_TRANSITION, WATCH_PIPELINE, WATCH_RUN_ID,
 };
+use super::push_line;
 use crate::types::Language;
 
 /// 状態を表す文字(言語に関わらず英語のまま。[`JobStatus::as_str`] と同じ)。
@@ -118,8 +119,7 @@ pub fn render_table(lang: Language, state: &PipelineState, color: bool) -> Strin
             _ => format!("{word}{padding}"),
         };
         let line = format!("{}  {}  {}", pad(&job, job_width), status_cell, note);
-        out.push_str(line.trim_end());
-        out.push('\n');
+        push_line(&mut out, &line);
     }
     // 完了のステートは、表の下に、完了を示す行を足す(FR3.1)。
     if state.completed {

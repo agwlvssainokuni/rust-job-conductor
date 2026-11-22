@@ -31,6 +31,7 @@ use super::messages::{
     GRAPH_KIND_BOTH, GRAPH_NOTE_SEPARATOR, RESUME_HERE, class_word, graph_edge_note,
     graph_retry_summary,
 };
+use super::push_line;
 use crate::types::Language;
 
 /// 状態の記号(BR4.1)。`--state` でなければ、空。
@@ -169,11 +170,6 @@ pub fn glyph_char(glyph: &LaneGlyph) -> char {
         LaneGlyph::Join => '/',
         LaneGlyph::Underscore => '_',
     }
-}
-
-fn push_line(out: &mut String, line: &str) {
-    out.push_str(line.trim_end());
-    out.push('\n');
 }
 
 fn render_lanes(
