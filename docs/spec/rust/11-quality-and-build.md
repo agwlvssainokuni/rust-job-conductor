@@ -206,6 +206,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `plan_types.rs`、`plan_pipeline.rs`、`plan_run.rs`、`plan_assume.rs`、`plan_perf.rs` | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `flow_perf.rs`、`env_merge_perf.rs` | `@end` に着いたときの残りのジョブの列挙(ジョブ 1,000 個)と、`merge_env`(`.env` 10,000 項目)の性能(3.1 節の表)。結果の中身(並び、出どころ)も確かめる |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
+| `common/mod.rs` | 補助(`SECRET`、`run`・`kinds`(定義の検査の結果)、`median`、`state(jobs, resume, completed)`、`job(id)`、`exited(job_id, code)`) |
 
 #### conductor-runtime(`crates/runtime/tests/`)
 
@@ -222,7 +223,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `flow_with_state.rs` | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ(今の cli と同じ順で: スキップは変わったときだけ書く、削除は `remove_on_complete` のときだけ、`pipeline` は記述順に決める。完了のステートは既定で残る) |
 | `toml_depth.rs` | 深い入れ子の TOML |
 | `nfr_content.rs`、`nfr_performance.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
-| `common/mod.rs` | 補助(`helper_path`、`helper_command`、`job`、`lines`、`wait_for_line`、`pid_in`、`force_kill`、`is_root`、`run_with_limit`) |
+| `common/mod.rs` | 補助(`helper_path`、`helper_command`、`job`、`definition(name, jobs)`、`without_run_id`(run ID なしの `read_state`・`reset_state`・`initial_state`・`write_state`)、`lines`、`wait_for_line`、`pid_in`、`force_kill`、`is_root`、`run_with_limit`) |
 
 #### conductor-converter(`crates/converter/tests/`)
 
@@ -260,8 +261,10 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `docs_retry.rs` | README のリトライの説明の検査(見出し、5 つのキー名、TOML の例が実際の読み取りに通ること) |
 | `unix_demo.rs`(UNIX)、`windows_demo.rs`(Windows) | デモの検査(9.5 節) |
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
-| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem` |
+| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、ステートの中の状態 `status_in`・`status_of` |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
+| `docs_support/mod.rs` | README を検査するテストの補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`) |
+| `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
 
 `bin_support::conductor(args)` は、表示を安定させるため、`LC_ALL` と `LC_MESSAGES` を外し、`LANG=C`(英語)にし、`NO_COLOR` を外した `Command` を返す。
 

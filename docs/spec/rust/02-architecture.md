@@ -266,7 +266,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `FakeEnv` | 環境変数の表(`with(&[(名前, 値)])`)。ロケールを読んだかを記録する |
 | `FakeSink` | 標準出力・標準エラーを文字列に溜める(`out_text()`、`err_text()`) |
 | `FakeSignals` | `SignalMode`(`Noop`・`Fail`・`Already`・`RaiseOnStart(番号)`)に応じて、登録の成功・失敗・登録済み・開始時の合図を再現する |
-| `ScriptedRuntime` | ジョブごとの結果(`Exec`)を台本で返す `Runtime`。呼び出しの記録(`log()`、`ran()`) |
+| `ScriptedRuntime` | ジョブごとの結果(`Exec`)を台本で返す `Runtime`。呼び出しの記録(`log()`、`ran()`)、`run_job` に渡された環境(`run_envs`)と分割済みのコマンド(`run_lines`) |
 | `MemRuntime` | ステートをメモリに持つ `Runtime`(ファイルなし。大きなジョブ数の流れの測定にも使う) |
 | `Harness` | 実ファイルの一時ディレクトリで、定義の書き換え・実行・ステートの読み取りをする補助 |
 
