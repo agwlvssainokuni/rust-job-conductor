@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer` だけである。照合
+//! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer`、`reset_all` だけである。照合
 //! (`check_consistency`)は `conductor-core` の `consistency` にあり、`consistency` はその単体テストを
 //! 持つ。ステートの更新(`initial_state`、`apply_*`)は、`conductor-core` の `flow::record` にある
 //! (どちらも `lib.rs` で再公開する)。

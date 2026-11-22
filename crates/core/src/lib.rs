@@ -36,6 +36,7 @@
 //!
 //! ステートの更新の関数(`initial_state`、`apply_*`)は、本番の流れと `--dry-run` の模擬が共に使う。
 //! `conductor-runtime` は、これらと `check_consistency` を、同じ名前で再公開する。
+//! ほかの公開の関数(`.env` の解析と統合、図、計画、run ID など)は、各モジュールにある。
 //!
 //! 入出力に触れるのは、[`definition::intake`] だけである。それ以外は、引数だけから結果を決める
 //! 純粋な処理で、ファイルにもプロセスにも環境変数にも触れない。
@@ -54,6 +55,10 @@
 //! | [`flow`] | 判断(Flow) | 起動前の判断、分類、次の動き、完了、再開位置 |
 //! | `flow::record` | 記録(Recorder) | `initial_state`、`apply_*`(純粋。本番と模擬が共に使う) |
 //! | [`consistency`] | 照合(Consistency) | ステートと定義の、パイプライン名、ジョブIDの集合、並び(純粋) |
+//! | [`envfile`] | `.env` の解析と層の統合 | `.env` の文字列の解析と、環境変数の層の統合(純粋) |
+//! | [`graph`] | 図の構造と配置 | `graph` の図の節・辺と配置(純粋) |
+//! | [`plan`] | `--dry-run` の計画 | 実行の模擬と計画(純粋) |
+//! | [`run_id`] | run ID の型と規則 | run ID の検査と、環境変数の名前の規則 |
 //!
 //! 定義の読み込みの流れは Intake → Parse → Depth → VersionCheck → Walk の順である。
 //!
