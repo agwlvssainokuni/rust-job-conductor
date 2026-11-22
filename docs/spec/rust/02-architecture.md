@@ -291,7 +291,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `plan/mod.rs`、`simulate.rs`(同) | 計画の型と、模擬(`plan_pipeline`、`plan_run`)。模擬のステートの更新は `flow/record.rs` の関数を呼ぶ |
 | `run_id.rs` | `RunId`、`RunIdError`、`is_valid_env_name`、`peek_run_id_env`、`DEFAULT_RUN_ID_ENV`、`MAX_RUN_ID_LEN` |
 | `definition/mod.rs` | `load_definition`、`parse_definition`(5 段階の流れ) |
-| `definition/intake.rs` | 定義の場所の決定、メタデータの確認、1 MiB 上限の読み取り、UTF-8 の確認 |
+| `definition/intake.rs` | 定義の場所の決定、パスで種別の確認(通常のファイルでなければ開かない)、開いて、開いたハンドルから種別と大きさを確かめる、1 MiB 上限の読み取り、UTF-8 の確認 |
 | `definition/parse.rs` | `toml` で、位置(バイト範囲)を保つ木に読む。文法の誤りの固定の文 |
 | `definition/depth.rs` | 入れ子の深さ(`MAX_NESTING_DEPTH` = 32 段)の検査。誤りの文の上限の数も、この定数から作る |
 | `definition/version.rs` | `format_version` の確認 |
