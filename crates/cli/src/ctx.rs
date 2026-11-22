@@ -23,7 +23,7 @@ use std::sync::Arc;
 use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
     Classification, DefinitionError, JobDefinition, JobExecution, JobOutcome, LoadedEnvFiles,
-    NextStep, PipelineDefinition, PipelineState, RunId, TransitionTarget, env_file_refs,
+    NextStep, PipelineDefinition, PipelineState, RunId, env_file_refs,
 };
 use conductor_runtime::ConsistencyResult;
 use conductor_runtime::{
@@ -468,13 +468,9 @@ impl Ctx<'_> {
             .and_then(Classification::transition_on)
             && let Some(transition) = job.transition_for(on)
         {
-            let target = match &transition.next {
-                TransitionTarget::Job(id) => id.clone(),
-                TransitionTarget::End => "@end".to_string(),
-            };
             self.show(&DisplayEvent::Transition {
                 on,
-                target: &target,
+                target: &transition.next,
                 skipped: &next.skipped_job_ids,
             });
         }

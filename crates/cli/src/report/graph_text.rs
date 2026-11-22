@@ -21,7 +21,7 @@
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeState,
 };
-use conductor_core::{Command, JobDefinition, PipelineDefinition};
+use conductor_core::{Command, JobDefinition, PipelineDefinition, TransitionTarget};
 
 use super::escape::escape_path;
 use super::messages::{
@@ -45,7 +45,7 @@ pub fn state_symbol(state: Option<NodeState>) -> &'static str {
 /// ジョブの節のラベル(状態の記号、ジョブ ID、再開位置の注記)。終点は `@end`(BR4.1、BR4.2)。
 fn node_label(lang: Language, node: &GraphNode) -> String {
     let Some(id) = &node.job_id else {
-        return "@end".to_string();
+        return TransitionTarget::END_LABEL.to_string();
     };
     let mut label = format!("{}{}", state_symbol(node.state), escape_path(id));
     if node.is_resume {
@@ -86,7 +86,7 @@ fn kind_label(lang: Language, kinds: &[EdgeKind]) -> &'static str {
 fn target_text(to: &EdgeTarget) -> String {
     match to {
         EdgeTarget::Job(id) => escape_path(id),
-        EdgeTarget::End => "@end".to_string(),
+        EdgeTarget::End => TransitionTarget::END_LABEL.to_string(),
     }
 }
 

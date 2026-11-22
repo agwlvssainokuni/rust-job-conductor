@@ -25,7 +25,7 @@ use conductor_converter::{ConversionError, ConversionErrorKind};
 use conductor_core::{
     Classification, DecisionReason, DefinitionError, DefinitionErrorKind, EnvFileError,
     EnvFileErrorKind, EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, SkipReason,
-    TransitionOn,
+    TransitionOn, TransitionTarget,
 };
 use conductor_runtime::{
     CommandError, CommandErrorKind, CreateError, MismatchKind, StateError, StateErrorKind,
@@ -251,12 +251,12 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     }
     f(&DisplayEvent::Transition {
         on: TransitionOn::Warning,
-        target: "c",
+        target: &TransitionTarget::Job("c".into()),
         skipped: &skipped,
     });
     f(&DisplayEvent::Transition {
         on: TransitionOn::Success,
-        target: "@end",
+        target: &TransitionTarget::End,
         skipped: &[],
     });
     f(&DisplayEvent::Interrupted { signal: 15 });
@@ -552,7 +552,7 @@ fn v_の文言() {
     assert_eq!(
         reporter.render(&DisplayEvent::Transition {
             on: TransitionOn::Warning,
-            target: "notify",
+            target: &TransitionTarget::Job("notify".into()),
             skipped: &skipped,
         }),
         "[conductor] transition: warning -> notify (skipped: transform, load)\n"

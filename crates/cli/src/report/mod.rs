@@ -38,7 +38,7 @@ use std::path::Path;
 use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DecisionReason, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind,
-    PipelineState, TransitionOn, summarize_errors,
+    PipelineState, TransitionOn, TransitionTarget, summarize_errors,
 };
 use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
 
@@ -175,8 +175,8 @@ pub enum DisplayEvent<'a> {
     Transition {
         /// 遷移を引いた結果(表示は `success` か `warning`)。
         on: TransitionOn,
-        /// 遷移先のジョブID、または `@end`。
-        target: &'a str,
+        /// 遷移先(ジョブID、または `@end`。表示は [`TransitionTarget::label`] をエスケープしたもの)。
+        target: &'a TransitionTarget,
         skipped: &'a [String],
     },
     Interrupted {
@@ -422,7 +422,7 @@ impl<'a> Reporter<'a> {
                 let mut line = format!(
                     "{VERBOSE_PREFIX}transition: {} -> {}",
                     on.as_str(),
-                    escape_name(target)
+                    escape_name(target.label())
                 );
                 if !skipped.is_empty() {
                     let ids: Vec<String> = skipped.iter().map(|s| escape_name(s)).collect();

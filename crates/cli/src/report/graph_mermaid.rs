@@ -21,6 +21,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
+use conductor_core::TransitionTarget;
 use conductor_core::graph::{EdgeKind, EdgeTarget, FlowGraph};
 
 use super::graph_text::state_symbol;
@@ -65,7 +66,9 @@ pub fn render_mermaid(lang: Language, graph: &FlowGraph) -> String {
                 }
                 ids.insert(job_id.as_str(), node_id);
             }
-            None => out.push_str("  nend([\"@end\"])\n"),
+            None => {
+                let _ = writeln!(out, "  nend([\"{}\"])", TransitionTarget::END_LABEL);
+            }
         }
     }
     for edge in &graph.edges {
