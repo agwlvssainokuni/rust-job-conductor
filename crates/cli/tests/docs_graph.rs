@@ -152,6 +152,17 @@ fn readme_の分岐の例は_実際の出力と一致する() {
 }
 
 #[test]
+fn readme_の交差の例は_実際の出力と一致する() {
+    let text = readme();
+    let to = |t: &str| format!("\n[[job.transitions]]\non = \"success\"\nnext = \"{t}\"\n");
+    let definition = jobs(
+        &["a", "b", "c", "d", "e"],
+        &[("a", &to("d")), ("b", &to("e"))],
+    );
+    assert_eq!(graph_example(&text, 4), render(&definition));
+}
+
+#[test]
 fn readme_の辺の一覧に切り替わる形は_交差と分岐の線に関わる形だけを述べる() {
     let text = readme();
     let line = text
@@ -161,6 +172,7 @@ fn readme_の辺の一覧に切り替わる形は_交差と分岐の線に関わ
     assert!(line.contains("交差"));
     assert!(line.contains("分岐"));
     assert!(line.contains("同じ行き先で合流する形"));
+    assert!(line.contains("グラフのどこかに"));
     assert!(!line.contains("異なる行き先への飛び越しを 2 つ持つ形"));
     assert!(!line.contains("同じ行き先へ飛ぶ辺が 2 つある"));
     assert!(text.contains("`|\\|` の行"));
