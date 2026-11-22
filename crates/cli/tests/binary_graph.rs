@@ -261,7 +261,7 @@ fn 分岐の定義は_2本の線を同時に開くレーンの図で出る() {
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
     assert_eq!(
         text(&out.stdout),
-        "*     a\n \\ \\\n* | | b\n / /\n* | c\n /\n* d\n* e\no @end\n"
+        "*     a\n \\ \\\n* | | b\n / /\n* / c\n /\n* d\n* e\no @end\n"
     );
     assert_eq!(text(&out.stderr), "");
 }

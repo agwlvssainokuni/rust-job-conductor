@@ -187,7 +187,7 @@ fn branch_extra(near: &str, far: &str) -> String {
     )
 }
 
-const B1_TEXT: &str = "*     a\n \\ \\\n* | | b\n / /\n* | c\n /\n* d\n* e\no @end\n";
+const B1_TEXT: &str = "*     a\n \\ \\\n* | | b\n / /\n* / c\n /\n* d\n* e\no @end\n";
 
 #[test]
 fn 分岐の図_b1_の全文() {
@@ -205,7 +205,7 @@ fn 分岐の図に_v_の詳細と_state_を重ねる() {
     assert_eq!(
         text_of(Language::En, &b1, None, true),
         "*     a\n \\ \\\n| | | command: echo a\n| | | success -> c (skips b), warning -> d (skips b, c)\n\
-         * | | b\n| | | command: echo b\n / /\n* | c\n| | command: echo c\n /\n* d\n| command: echo d\n* e\n| command: echo e\no @end\n"
+         * | | b\n| | | command: echo b\n / /\n* / c\n| | command: echo c\n /\n* d\n| command: echo d\n* e\n| command: echo e\no @end\n"
     );
     let overlay = StateOverlay {
         states: vec![
@@ -219,7 +219,7 @@ fn 分岐の図に_v_の詳細と_state_を重ねる() {
     };
     assert_eq!(
         text_of(Language::Ja, &b1, Some(&overlay), false),
-        "*     [OK] a\n \\ \\\n* | | [--] b\n / /\n* | [OK] c\n /\n* [  ] d  <- 再開位置\n* [  ] e\no @end\n"
+        "*     [OK] a\n \\ \\\n* | | [--] b\n / /\n* / [OK] c\n /\n* [  ] d  <- 再開位置\n* [  ] e\no @end\n"
     );
 }
 

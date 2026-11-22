@@ -31,7 +31,7 @@ fn lanes(n: usize, transitions: &[Spec<'_>]) -> Option<String> {
 fn b1_分岐は_2本の線を同時に開き_主線の線を省く() {
     assert_eq!(
         lanes(5, &[("a", Success, Some("c")), ("a", Warning, Some("d"))]).unwrap(),
-        "*     a\n \\ \\\n* | | b\n / /\n* | c\n /\n* d\n* e\no @end\n"
+        "*     a\n \\ \\\n* | | b\n / /\n* / c\n /\n* d\n* e\no @end\n"
     );
 }
 
@@ -55,7 +55,7 @@ fn b3_外側に通常の飛び越しがある分岐() {
             ]
         )
         .unwrap(),
-        "*   a\n|\\\n* \\     b\n \\ \\ \\\n* | | | c\n / / /\n* | | d\n / /\n* | e\n* | f\n|/\n* g\no @end\n"
+        "*   a\n|\\\n* \\     b\n \\ \\ \\\n* | | | c\n / / /\n* / / d\n / /\n* | e\n* | f\n|/\n* g\no @end\n"
     );
 }
 
