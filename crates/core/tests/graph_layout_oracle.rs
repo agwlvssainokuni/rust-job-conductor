@@ -16,7 +16,8 @@
 //!
 //! 行き先がすべて違う形(`fixtures/graph_layout_oracle.md`。537 個)と、
 //! 同じ行き先を含む形(`fixtures/graph_layout_oracle_same_target.md`。1,517 個)と、
-//! 分岐を含む形(`fixtures/graph_layout_oracle_branch.md`。871 個。規則から導いた図で、git の出力ではない)。
+//! 分岐を含む形(`fixtures/graph_layout_oracle_branch.md`。871 個。規則から導いた図で、git の出力ではない)と、
+//! 飛び越しが交差する形(`fixtures/graph_layout_oracle_cross.md`。940 個。ジョブ 3〜7 個。git の出力)。
 
 mod graph_common;
 
@@ -27,6 +28,7 @@ use graph_common::{definition, lanes_text, letters};
 const ORACLE: &str = include_str!("fixtures/graph_layout_oracle.md");
 const ORACLE_SAME_TARGET: &str = include_str!("fixtures/graph_layout_oracle_same_target.md");
 const ORACLE_BRANCH: &str = include_str!("fixtures/graph_layout_oracle_branch.md");
+const ORACLE_CROSS: &str = include_str!("fixtures/graph_layout_oracle_cross.md");
 
 struct Example {
     heading: String,
@@ -105,6 +107,7 @@ fn all() -> Vec<Example> {
     let mut examples = parse(ORACLE);
     examples.extend(parse(ORACLE_SAME_TARGET));
     examples.extend(parse(ORACLE_BRANCH));
+    examples.extend(parse(ORACLE_CROSS));
     examples
 }
 
@@ -121,6 +124,11 @@ fn 同じ行き先の正解データの例の数は_1517_個() {
 #[test]
 fn 分岐の正解データの例の数は_871_個() {
     assert_eq!(parse(ORACLE_BRANCH).len(), 871);
+}
+
+#[test]
+fn 交差の正解データの例の数は_940_個() {
+    assert_eq!(parse(ORACLE_CROSS).len(), 940);
 }
 
 #[test]

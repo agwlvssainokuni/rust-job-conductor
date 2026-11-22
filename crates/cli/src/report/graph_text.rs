@@ -161,6 +161,7 @@ pub fn glyph_char(glyph: &LaneGlyph) -> char {
         LaneGlyph::Line => '|',
         LaneGlyph::Fork => '\\',
         LaneGlyph::Join => '/',
+        LaneGlyph::Underscore => '_',
     }
 }
 

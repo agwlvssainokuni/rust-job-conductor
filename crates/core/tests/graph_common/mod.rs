@@ -82,6 +82,7 @@ pub fn render_lanes(layout: &LaneLayout, labels: &[String]) -> String {
                 LaneGlyph::Line => '|',
                 LaneGlyph::Fork => '\\',
                 LaneGlyph::Join => '/',
+                LaneGlyph::Underscore => '_',
             })
             .collect();
         if let Some(i) = row.node_index {

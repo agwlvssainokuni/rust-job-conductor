@@ -117,6 +117,12 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
         }
     }
 
+    // 交差を許す範囲(BR1.1): グラフ全体で、すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本、
+    // 「両方の飛び越し」と分岐がなく、飛び越しの行き先が、終点も含めて、どの 2 本でも違う。
+    if is_crossing_class(&targets, &has_next, &off_main) {
+        return Some(SkipPlan { targets, off_main });
+    }
+
     // 条件 2、3: 開いている行き先の積み上げ(上が最も内側)。
     let mut open: Vec<OpenLane> = Vec::new();
     for (i, ts) in targets.iter().enumerate() {
@@ -159,6 +165,19 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
         }
     }
     Some(SkipPlan { targets, off_main })
+}
+
+/// 交差を許す範囲か(BR1.1)。すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本で、
+/// 主線につながらないジョブ(「両方の飛び越し」、分岐)がなく、行き先が(終点も含めて)すべて違う。
+fn is_crossing_class(targets: &[Vec<usize>], has_next: &[bool], off_main: &[bool]) -> bool {
+    if !has_next.iter().all(|&h| h) || off_main.iter().any(|&o| o) {
+        return false;
+    }
+    if targets.iter().any(|ts| ts.len() > 1) {
+        return false;
+    }
+    let mut seen = std::collections::HashSet::new();
+    targets.iter().flatten().all(|t| seen.insert(*t))
 }
 
 /// 図の形が、レーンの図(`git log --graph` と同じ見た目)で描ける「対応する形」か(BR2.4)。
@@ -206,6 +225,27 @@ fn fork_row(existing: usize, new: usize, off_main: bool) -> Vec<LaneGlyph> {
     glyphs
 }
 
+/// 交差の行(BR1.4)。開いている線が `m` 本、到着する線が内側から `k` 番目(`k >= 1`)のときの、行 A と行 B。
+fn crossing_rows(m: usize, k: usize) -> (Vec<LaneGlyph>, Vec<LaneGlyph>) {
+    let mut a = vec![LaneGlyph::Line, LaneGlyph::Empty];
+    for j in 0..k {
+        a.push(LaneGlyph::Line);
+        a.push(if j == k - 1 {
+            LaneGlyph::Join
+        } else {
+            LaneGlyph::Underscore
+        });
+    }
+    for _ in 0..(m - 1 - k) {
+        a.extend([LaneGlyph::Empty, LaneGlyph::Join]);
+    }
+    let mut b = vec![LaneGlyph::Line, LaneGlyph::Join, LaneGlyph::Line];
+    for _ in 0..(m - 2) {
+        b.extend([LaneGlyph::Empty, LaneGlyph::Line]);
+    }
+    (a, b)
+}
+
 /// 線をつなぐ行(同じ行き先への合流): 既存の最も内側の線(列 1)に重なる。外側の `outer` 本は、そのまま。
 fn join_lane_row(outer: usize, both: bool) -> Vec<LaneGlyph> {
     let first = if both {
@@ -242,17 +282,30 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
     // 直前の行が分岐の行か(分岐の行の直後のノードの行では、ずれる線を `\` で描く)。
     let mut after_fork = false;
     for i in 0..=job_count {
-        let is_target = open.last() == Some(&i);
-        if is_target {
-            rows.push(LaneRow {
-                glyphs: merge_row(
-                    open.len() - 1,
-                    open_all_off_main.last().copied().unwrap_or(false),
-                ),
-                node_index: None,
-            });
-            open.pop();
-            open_all_off_main.pop();
+        // この節に到着する線(最後が最も内側。内側から数えた位置 `k` は `open.len() - 1 - 添字`)。
+        let arrival = open.iter().position(|&t| t == i);
+        let mut arrived_innermost = false;
+        if let Some(index) = arrival {
+            let k = open.len() - 1 - index;
+            if k == 0 {
+                rows.push(LaneRow {
+                    glyphs: merge_row(open.len() - 1, open_all_off_main[index]),
+                    node_index: None,
+                });
+                arrived_innermost = true;
+            } else {
+                let (row_a, row_b) = crossing_rows(open.len(), k);
+                rows.push(LaneRow {
+                    glyphs: row_a,
+                    node_index: None,
+                });
+                rows.push(LaneRow {
+                    glyphs: row_b,
+                    node_index: None,
+                });
+            }
+            open.remove(index);
+            open_all_off_main.remove(index);
             after_fork = false;
         }
         let existing = open.len();
@@ -267,22 +320,32 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
         let joins = targets.len() == 1 && open.last() == Some(&targets[0]);
         let new_lanes = if joins { 0 } else { targets.len() };
         let new_lane = new_lanes > 0;
-        let existing_glyph = if new_lane {
-            if after_fork {
-                LaneGlyph::Fork
+        // 次の節も線の行き先なら、その線(内側から数えて `q` 番目)以降の線は `/`(BR1.5 の (b))。
+        let join_from = if !new_lane && arrived_innermost {
+            open.iter()
+                .position(|&t| t == i + 1)
+                .map(|p| open.len() - 1 - p)
+        } else {
+            None
+        };
+        let existing_glyph = |j: usize| {
+            if new_lane {
+                if after_fork {
+                    LaneGlyph::Fork
+                } else {
+                    LaneGlyph::Line
+                }
+            } else if join_from.is_some_and(|q| j >= q) {
+                LaneGlyph::Join
             } else {
                 LaneGlyph::Line
             }
-        } else if is_target && open.last() == Some(&(i + 1)) {
-            LaneGlyph::Join
-        } else {
-            LaneGlyph::Line
         };
         let width = 2 * (1 + existing + new_lanes);
         let mut glyphs = Vec::with_capacity(width);
         glyphs.push(LaneGlyph::Node);
-        for _ in 0..existing {
-            glyphs.extend([LaneGlyph::Empty, existing_glyph]);
+        for j in 0..existing {
+            glyphs.extend([LaneGlyph::Empty, existing_glyph(j)]);
         }
         glyphs.resize(width, LaneGlyph::Empty);
         rows.push(LaneRow {
