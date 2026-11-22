@@ -85,7 +85,7 @@
 - [x] Step 4: `CHECKS` を足し、組み立ての段階の「使えない」と「重複」を表から行う形にする(3.2。並びは仕様書の 04 章 4.2 の 6・7 の順)。オプションごとの値を `Opt` で引く 1 つの並びにする。`CHECKS` のあとの検査は今の順のまま。コミット。(BR1.3。SM1)
 - [x] Step 5: 引数の層のテストを実行する: 既存のテストを変えずに全体が通り、件数が基準 + Step 2 で足した分であること。`git diff` で既存のテストの行が変わっていないこと。`functional-spec.md` 2 の表の「今」の場所に、オプションごとの `match` の腕と `if` が残っていないこと。(BR2.1、BR5.1。SM1、SM2)
 - [x] Step 6: `--to` の誤りの対象を `--to` にする(値を含めない。UTF-8 でない値も)。テスト `to_の値の誤りの対象は_to_で値を含まない`(`json`、`YAML`、空文字)と、UTF-8 でない値のテスト(既存の `#[cfg(unix)]` のテストと同じ置き方)を足す。仕様書を直す: `docs/spec/rust/04-cli.md` の 73・90・111・291 行、`docs/spec/rust/10-errors-and-exit-codes.md` の 233 行、`docs/spec/language-agnostic/04-cli.md` の 79・134・327 行、`docs/spec/language-agnostic/10-errors-and-exit-codes.md` の 241 行、`docs/spec/language-agnostic/11-quality-and-build.md` の 611 行(AC-237)と 752 行(AC-337)の期待とテストの列。凍結した 5 つの仕様書は直さない。全体のテストを実行する。コミット。(BR3.1、BR3.2。SM3)
-- [ ] Step 7: `dry_run.rs:32` の `enter_flow` の doc コメントを「位置引数が無ければ、使い方の誤り(68)。コマンドからは `parse_args` が先に止めるが、公開の型 `CliCommand` を直接組み立てて呼ばれたときの守り」の趣旨に直す。分岐は残す。コミット。(BR4.1。SM4)
+- [x] Step 7: `dry_run.rs:32` の `enter_flow` の doc コメントを「位置引数が無ければ、使い方の誤り(68)。コマンドからは `parse_args` が先に止めるが、公開の型 `CliCommand` を直接組み立てて呼ばれたときの守り」の趣旨に直す。分岐は残す。コミット。(BR4.1。SM4)
 - [ ] Step 8: `docs/spec/rust` のうち `args.rs` の内部の形(`Token` の変種、`build_command` の `if` の並びなど)を書いた箇所があれば、表の形に合わせる。無ければ何もしない。コミット。(SM1)
 - [ ] Step 9: 全体の確認: `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --locked --workspace` が通ること(行カバレッジは Build and Test が確かめる)。(BR5.1。SM5)
 - [ ] Step 10: 文書と追跡: `code-summary.md`(件数、足したテストの一覧、表の形、仕様書の変更の一覧、版の更新の候補であること)、`traceability.json` を作る。
