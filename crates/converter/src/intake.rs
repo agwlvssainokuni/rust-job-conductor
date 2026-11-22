@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_file_is_file_missing() {
+    fn 存在しないファイルは_file_missing() {
         let dir = tempfile::tempdir().unwrap();
         let e = read_input(&dir.path().join("none.yaml")).unwrap_err();
         assert_eq!(e.kind, ConversionErrorKind::FileMissing);
@@ -146,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn exactly_one_mib_is_accepted_and_one_more_is_too_large() {
+    fn ちょうど1_mibは受理し_1バイト多いと大きすぎる() {
         let dir = tempfile::tempdir().unwrap();
         let ok = write_file(dir.path(), "ok.txt", &vec![b'a'; MAX_INPUT_BYTES as usize]);
         assert_eq!(read_input(&ok).unwrap().len() as u64, MAX_INPUT_BYTES);
@@ -160,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn endless_reader_stops_at_limit_plus_one() {
+    fn 終わりのない入力は_上限より1バイト多いところで止まる() {
         let mut r = Endless { served: 0 };
         let out = read_bounded(&mut r, 1000).unwrap();
         assert!(out.is_none());
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_utf8_is_unreadable() {
+    fn utf8_でない入力は読めない() {
         let dir = tempfile::tempdir().unwrap();
         let p = write_file(
             dir.path(),
@@ -185,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn directory_is_unreadable() {
+    fn ディレクトリは読めない() {
         let dir = tempfile::tempdir().unwrap();
         let e = read_input(dir.path()).unwrap_err();
         assert_eq!(e.kind, ConversionErrorKind::Unreadable);
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn too_large_wins_over_invalid_utf8() {
+    fn 大きすぎるは_utf8_でないより優先する() {
         // BR1.12: 3) tooLarge は 4) UTF-8 でない より先
         let dir = tempfile::tempdir().unwrap();
         let p = write_file(
@@ -222,7 +222,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn mode_000_file_is_unreadable() {
+    fn 権限_000_のファイルは読めない() {
         let dir = tempfile::tempdir().unwrap();
         let p = write_file(dir.path(), "locked.yaml", b"a: 1\n");
         set_mode(&p, 0o000);
@@ -236,7 +236,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn mode_000_file_over_1_mib_is_unreadable_not_too_large() {
+    fn 権限_000_で1_mibを超えるファイルは_大きすぎるでなく読めない() {
         // BR1.12: 2) 権限は 3) 大きさより先
         let dir = tempfile::tempdir().unwrap();
         let p = write_file(
@@ -254,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn io_errors_map_to_fixed_reasons() {
+    fn 入出力の誤りは固定の理由に写す() {
         // OS 固有の処理(権限の変更)を使わず、対応の関数で確かめる(NFR3.1)
         assert_eq!(io_reason(ErrorKind::PermissionDenied), reason::PERMISSION);
         assert_eq!(io_reason(ErrorKind::Other), reason::READ_FAILED);
