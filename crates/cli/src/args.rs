@@ -222,6 +222,72 @@ impl Opt {
     }
 }
 
+/// 検査の順の表の 1 つ(BR1.3)。
+#[derive(Clone, Copy)]
+enum Check {
+    /// 1 回以上あり、そのコマンドで使えない → `optionNotAllowed`(対象は綴り)。
+    NotAllowed(Opt),
+    /// 2 回以上ある → `invalidValue`(対象は綴り)。
+    Duplicate(Opt),
+}
+
+/// 「使えない」と「重複」の検査の順(BR1.3)。仕様書 04 章 4.2 の 6・7 の順を写す。
+/// 誤りの報告の順は、この並びで決まる。`--assume` は重複を許す(同じジョブID の重複は、値の検査で誤り)。
+const CHECKS: &[Check] = &[
+    Check::NotAllowed(Opt::Verbose),
+    Check::NotAllowed(Opt::Config),
+    Check::NotAllowed(Opt::To),
+    Check::NotAllowed(Opt::RunId),
+    Check::NotAllowed(Opt::All),
+    Check::NotAllowed(Opt::RemoveOnComplete),
+    Check::NotAllowed(Opt::DryRun),
+    Check::NotAllowed(Opt::Force),
+    Check::Duplicate(Opt::Force),
+    Check::NotAllowed(Opt::Assume),
+    Check::Duplicate(Opt::DryRun),
+    Check::NotAllowed(Opt::Format),
+    Check::NotAllowed(Opt::State),
+    Check::Duplicate(Opt::Format),
+    Check::Duplicate(Opt::State),
+    Check::Duplicate(Opt::Verbose),
+    Check::Duplicate(Opt::Config),
+    Check::Duplicate(Opt::To),
+    Check::Duplicate(Opt::RunId),
+    Check::Duplicate(Opt::All),
+    Check::Duplicate(Opt::RemoveOnComplete),
+];
+
+/// オプションごとの指定の並び(`Opt` で引く。BR1.3)。数は並びの長さ。値を取らないオプションは `None` を積む。
+struct Given(Vec<Vec<Option<OsString>>>);
+
+impl Given {
+    fn new() -> Self {
+        Given(OPTIONS.iter().map(|_| Vec::new()).collect())
+    }
+
+    fn push(&mut self, opt: Opt, value: Option<OsString>) {
+        self.0[opt as usize].push(value);
+    }
+
+    /// 指定の回数。
+    fn count(&self, opt: Opt) -> usize {
+        self.0[opt as usize].len()
+    }
+
+    /// ちょうど 1 回か(CHECKS のあとは、`--assume` 以外は 0 回か 1 回)。
+    fn once(&self, opt: Opt) -> bool {
+        self.count(opt) == 1
+    }
+
+    /// 値を、指定の順に取り出す。
+    fn take(&mut self, opt: Opt) -> Vec<OsString> {
+        std::mem::take(&mut self.0[opt as usize])
+            .into_iter()
+            .flatten()
+            .collect()
+    }
+}
+
 /// 字句に分けた 1 つの引数。
 enum Token {
     /// 表にあるオプション。値を取るオプションなら `Some`(値は、字句の段階では検査しない)。
@@ -335,35 +401,12 @@ fn to_text(value: OsString) -> Result<String, UsageError> {
 }
 
 fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
-    let mut verbose_count = 0usize;
-    let mut config: Vec<OsString> = Vec::new();
-    let mut to: Vec<OsString> = Vec::new();
-    let mut run_ids: Vec<OsString> = Vec::new();
-    let mut all_count = 0usize;
-    let mut remove_count = 0usize;
-    let mut dry_run_count = 0usize;
-    let mut force_count = 0usize;
-    let mut assume: Vec<OsString> = Vec::new();
-    let mut format: Vec<OsString> = Vec::new();
-    let mut state_count = 0usize;
+    let mut given = Given::new();
     let mut unknown: Option<String> = None;
     let mut positionals: Vec<OsString> = Vec::new();
     for token in tokens {
         match token {
-            Token::Opt(opt, value) => match (opt, value) {
-                (Opt::Verbose, _) => verbose_count += 1,
-                (Opt::All, _) => all_count += 1,
-                (Opt::RemoveOnComplete, _) => remove_count += 1,
-                (Opt::DryRun, _) => dry_run_count += 1,
-                (Opt::Force, _) => force_count += 1,
-                (Opt::State, _) => state_count += 1,
-                (_, None) => {}
-                (Opt::Config, Some(v)) => config.push(v),
-                (Opt::To, Some(v)) => to.push(v),
-                (Opt::RunId, Some(v)) => run_ids.push(v),
-                (Opt::Assume, Some(v)) => assume.push(v),
-                (Opt::Format, Some(v)) => format.push(v),
-            },
+            Token::Opt(opt, value) => given.push(opt, value),
             Token::Unknown(name) => {
                 unknown.get_or_insert(name);
             }
@@ -393,113 +436,59 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
         _ => return Err(UsageError::with_subject(Kind::UnknownCommand, first)),
     };
 
-    // 許されない場所のオプション。使える場所は表から読む(BR1.1)。
-    let allowed = |opt: Opt| spec(opt).allows(kind, dry_run_count > 0);
-    if verbose_count > 0 && !allowed(Opt::Verbose) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "-v"));
+    // 許されない場所のオプションと重複。CHECKS の順に検査し、最初の誤りを報告する(BR1.3)。
+    let dry_run = given.count(Opt::DryRun) > 0;
+    for check in CHECKS {
+        match *check {
+            Check::NotAllowed(opt) => {
+                if given.count(opt) > 0 && !spec(opt).allows(kind, dry_run) {
+                    return Err(UsageError::with_subject(
+                        Kind::OptionNotAllowed,
+                        opt.subject(),
+                    ));
+                }
+            }
+            Check::Duplicate(opt) => {
+                if given.count(opt) > 1 {
+                    return Err(UsageError::with_subject(Kind::InvalidValue, opt.subject()));
+                }
+            }
+        }
     }
-    if !config.is_empty() && !allowed(Opt::Config) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--config"));
-    }
-    if !to.is_empty() && !allowed(Opt::To) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--to"));
-    }
-    // `graph` の `--run-id` は、`--state` と一緒のときだけ(BR4.5。下で検査する)。
-    if !run_ids.is_empty() && !allowed(Opt::RunId) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--run-id"));
-    }
-    if all_count > 0 && !allowed(Opt::All) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--all"));
-    }
-    if remove_count > 0 && !allowed(Opt::RemoveOnComplete) {
-        return Err(UsageError::with_subject(
-            Kind::OptionNotAllowed,
-            "--remove-on-complete",
-        ));
-    }
-    // `--dry-run` は `run` と `pipeline` だけ。`--assume` は `--dry-run` と一緒のときだけ(BR2.2)。
-    if dry_run_count > 0 && !allowed(Opt::DryRun) {
-        return Err(UsageError::with_subject(
-            Kind::OptionNotAllowed,
-            "--dry-run",
-        ));
-    }
-    // `--force` は `init` だけ(BR3.1)。
-    if force_count > 0 && !allowed(Opt::Force) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--force"));
-    }
-    if force_count > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--force"));
-    }
-    if !assume.is_empty() && !allowed(Opt::Assume) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--assume"));
-    }
-    if dry_run_count > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--dry-run"));
-    }
-    let is_graph = kind == CommandKind::Graph;
-    if !format.is_empty() && !allowed(Opt::Format) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--format"));
-    }
-    if state_count > 0 && !allowed(Opt::State) {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--state"));
-    }
-    // 重複。
-    if format.len() > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--format"));
-    }
-    if state_count > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--state"));
-    }
-    if verbose_count > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "-v"));
-    }
-    if config.len() > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--config"));
-    }
-    if to.len() > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--to"));
-    }
-    if run_ids.len() > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--run-id"));
-    }
-    if all_count > 1 {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
-    }
-    if remove_count > 1 {
+    // ここから先、`--assume` 以外のオプションは 0 回か 1 回。
+
+    let run_id = given.take(Opt::RunId).into_iter().next();
+    // `--all` と `--run-id` は、一緒に使えない。
+    if given.once(Opt::All) && run_id.is_some() {
         return Err(UsageError::with_subject(
             Kind::InvalidValue,
-            "--remove-on-complete",
+            Opt::All.subject(),
         ));
-    }
-    // `--all` と `--run-id` は、一緒に使えない。
-    if all_count == 1 && !run_ids.is_empty() {
-        return Err(UsageError::with_subject(Kind::InvalidValue, "--all"));
     }
 
     // `graph` の `--run-id` は、`--state` と一緒のときだけ(BR4.5)。
-    if is_graph && !run_ids.is_empty() && state_count == 0 {
-        return Err(UsageError::with_subject(Kind::OptionNotAllowed, "--run-id"));
+    if kind == CommandKind::Graph && run_id.is_some() && !given.once(Opt::State) {
+        return Err(UsageError::with_subject(
+            Kind::OptionNotAllowed,
+            Opt::RunId.subject(),
+        ));
     }
 
     let mut command = CliCommand::new(kind);
-    command.verbose = verbose_count == 1;
-    command.force = force_count == 1;
-    command.config_path = config.into_iter().next();
-    command.all = all_count == 1;
-    command.remove_on_complete = remove_count == 1;
-    command.dry_run.dry_run = dry_run_count == 1;
-    command.dry_run.assumptions = parse_assumptions(assume)?;
-    command.graph.with_state = state_count == 1;
-    if let Some(value) = format.into_iter().next() {
+    command.verbose = given.once(Opt::Verbose);
+    command.force = given.once(Opt::Force);
+    command.config_path = given.take(Opt::Config).into_iter().next();
+    command.all = given.once(Opt::All);
+    command.remove_on_complete = given.once(Opt::RemoveOnComplete);
+    command.dry_run.dry_run = given.once(Opt::DryRun);
+    command.dry_run.assumptions = parse_assumptions(given.take(Opt::Assume))?;
+    command.graph.with_state = given.once(Opt::State);
+    if let Some(value) = given.take(Opt::Format).into_iter().next() {
         command.graph.format = parse_graph_format(&value)?;
     }
     // 値の検査は、ここで行う。誤りの文に、値は含めない(対象は、オプションの名前だけ)。
-    command.run_id = run_ids
-        .into_iter()
-        .next()
-        .map(parse_run_id_option)
-        .transpose()?;
+    command.run_id = run_id.map(parse_run_id_option).transpose()?;
+    let to = given.take(Opt::To);
 
     // `validate` の位置引数(パイプライン名)は、省略できる。
     let wants_positional = !matches!(
