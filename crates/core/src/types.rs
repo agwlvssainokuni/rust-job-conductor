@@ -15,8 +15,10 @@
 //! 共有する型(Types)。契約 C1 のデータの形だけを持ち、入出力と OS に依存しない。
 //!
 //! 型の定義は、`entities.md` に従う。値の生成を受け持つのは、このクレートでは
-//! 定義(`PipelineDefinition` など)と判断(`Decision`、`JobOutcome`、`NextStep`)で、
-//! `JobExecution`、`JobState`、`PipelineState` は conductor-runtime が生成・保持する。
+//! 定義(`PipelineDefinition` など)と判断(`Decision`、`JobOutcome`、`NextStep`)。
+//! `PipelineState`・`JobState` の生成と更新は core の `flow::record` が受け持ち、
+//! conductor-runtime はそれを読み書きするだけ。`JobExecution` は、runtime の起動の結果、
+//! cli のリトライの待機の中断、core の `--dry-run` の模擬が作る。
 //!
 //! 終了コードは、プロセスの終了コードに合わせて `i32` で持つ。定義ファイルに書かれた
 //! `i32` の範囲を超える整数は、読み込み時に `typeMismatch` になる。
@@ -208,7 +210,8 @@ pub struct Transition {
     pub next: TransitionTarget,
 }
 
-/// 1 回のジョブの起動の結果(契約 C1。生成は conductor-runtime と、cli のリトライの待機)。
+/// 1 回のジョブの起動の結果(契約 C1。生成は runtime の起動の結果、cli のリトライの待機の中断、
+/// core の `--dry-run` の模擬)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobExecution {
     pub job_id: String,
