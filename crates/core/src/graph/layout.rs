@@ -17,7 +17,7 @@
 //! ジョブは主線(左の列)に記述順で並び、飛び越しの辺は、主線の右隣(列 1)から始まる線になる。
 //! 配置は、`layout-oracle.md` の例と BR2.3 の手順から、新しく書いた純粋な関数である(BR2.6)。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{EdgeTarget, FlowGraph, GraphLayout, LaneGlyph, LaneLayout, LaneRow};
 
@@ -28,6 +28,8 @@ struct SkipPlan {
     targets: Vec<Vec<usize>>,
     /// 主線につながらないジョブか(分岐と「両方の飛び越し」)。その線の主線側の `|` を描かない。
     off_main: Vec<bool>,
+    /// 「通常の飛び越しだけのグラフ」か(BR1.1)。真なら `ordinary_layout`、偽なら `lane_layout` で配置する。
+    ordinary: bool,
 }
 
 /// 開いている線(積み上げの 1 要素)。判定の走査の中だけで使う。
@@ -118,10 +120,14 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
         }
     }
 
-    // 交差を許す範囲(BR1.1): グラフ全体で、すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本、
-    // 「両方の飛び越し」と分岐がなく、飛び越しの行き先が、終点も含めて、どの 2 本でも違う。
-    if is_crossing_class(&targets, &has_next, &off_main) {
-        return Some(SkipPlan { targets, off_main });
+    // 通常の飛び越しだけのグラフ(BR1.1): グラフ全体で、すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本、
+    // 「両方の飛び越し」と分岐がない。行き先の重なりと交差の有無によらず、常に図にできる。
+    if is_ordinary_skip_graph(&targets, &has_next, &off_main) {
+        return Some(SkipPlan {
+            targets,
+            off_main,
+            ordinary: true,
+        });
     }
 
     // 条件 2、3: 開いている行き先の積み上げ(上が最も内側)。
@@ -165,20 +171,19 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
             _ => return None,
         }
     }
-    Some(SkipPlan { targets, off_main })
+    Some(SkipPlan {
+        targets,
+        off_main,
+        ordinary: false,
+    })
 }
 
-/// 交差を許す範囲か(BR1.1)。すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本で、
-/// 主線につながらないジョブ(「両方の飛び越し」、分岐)がなく、行き先が(終点も含めて)すべて違う。
-fn is_crossing_class(targets: &[Vec<usize>], has_next: &[bool], off_main: &[bool]) -> bool {
-    if !has_next.iter().all(|&h| h) || off_main.iter().any(|&o| o) {
-        return false;
-    }
-    if targets.iter().any(|ts| ts.len() > 1) {
-        return false;
-    }
-    let mut seen = std::collections::HashSet::new();
-    targets.iter().flatten().all(|t| seen.insert(*t))
+/// 通常の飛び越しだけのグラフか(BR1.1)。すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本で、
+/// 主線につながらないジョブ(「両方の飛び越し」、分岐)がない。行き先の重なりと交差は問わない。
+fn is_ordinary_skip_graph(targets: &[Vec<usize>], has_next: &[bool], off_main: &[bool]) -> bool {
+    has_next.iter().all(|&h| h)
+        && !off_main.iter().any(|&o| o)
+        && targets.iter().all(|ts| ts.len() <= 1)
 }
 
 /// 図の形が、レーンの図(`git log --graph` と同じ見た目)で描ける「対応する形」か(BR2.4)。
@@ -191,6 +196,7 @@ pub fn is_lane_drawable(graph: &FlowGraph) -> bool {
 /// 図の配置を決める。「対応する形」ならレーンの図、そうでなければ辺の一覧(BR2.4、BR2.8)。
 pub fn layout_graph(graph: &FlowGraph) -> GraphLayout {
     match skip_targets(graph) {
+        Some(plan) if plan.ordinary => GraphLayout::Lanes(ordinary_layout(&plan)),
         Some(plan) => GraphLayout::Lanes(lane_layout(&plan)),
         None => GraphLayout::EdgeList,
     }
@@ -226,27 +232,6 @@ fn fork_row(existing: usize, new: usize, off_main: bool) -> Vec<LaneGlyph> {
     glyphs
 }
 
-/// 交差の行(BR1.4)。開いている線が `m` 本、到着する線が内側から `k` 番目(`k >= 1`)のときの、行 A と行 B。
-fn crossing_rows(m: usize, k: usize) -> (Vec<LaneGlyph>, Vec<LaneGlyph>) {
-    let mut a = vec![LaneGlyph::Line, LaneGlyph::Empty];
-    for j in 0..k {
-        a.push(LaneGlyph::Line);
-        a.push(if j == k - 1 {
-            LaneGlyph::Join
-        } else {
-            LaneGlyph::Underscore
-        });
-    }
-    for _ in 0..(m - 1 - k) {
-        a.extend([LaneGlyph::Empty, LaneGlyph::Join]);
-    }
-    let mut b = vec![LaneGlyph::Line, LaneGlyph::Join, LaneGlyph::Line];
-    for _ in 0..(m - 2) {
-        b.extend([LaneGlyph::Empty, LaneGlyph::Line]);
-    }
-    (a, b)
-}
-
 /// 線をつなぐ行(同じ行き先への合流): 既存の最も内側の線(列 1)に重なる。外側の `outer` 本は、そのまま。
 fn join_lane_row(outer: usize, both: bool) -> Vec<LaneGlyph> {
     let first = if both {
@@ -261,12 +246,12 @@ fn join_lane_row(outer: usize, both: bool) -> Vec<LaneGlyph> {
     glyphs
 }
 
-/// レーンの配置(BR1.1〜BR1.5、BR2.1〜BR2.3、BR2.5)。
+/// 「両方の飛び越し」と分岐を含むグラフのレーンの配置(BR2.1。前回までのとおり)。
 ///
 /// 節ごとに、次の順で行を作る。
 ///
-/// 1. その節が飛び越しの行き先なら、その線の位置 `k`(内側から数える)で、`k = 0` は合流の行(列 1 の線が主線へ
-///    合流し、残りは左へ詰まる)、`k >= 1` は交差の行(行 A、行 B の 2 行。BR1.4)。その線は、位置 `k` から取り除く。
+/// 1. その節が飛び越しの行き先なら、合流の行(列 1 の線が主線へ合流し、残りは左へ詰まる)。その線は取り除く。
+///    交差する形は、通常の飛び越しだけのグラフとして、`ordinary_layout` が配置する(BR1.1)。
 /// 2. ノードの行。すでにある右の線は、この節が新しい線(NewLane、分岐)を持ち、かつ直前の行が分岐の行なら `\`、
 ///    この節が合流の行き先(直前が `k = 0` の合流の行)で、次の節も合流の行き先(位置 `q`)なら、`q` 以降を `/`、
 ///    それ以外は `|`(BR1.5)。
@@ -289,24 +274,13 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
         let arrival = open.iter().position(|&t| t == i);
         let mut arrived_innermost = false;
         if let Some(index) = arrival {
-            let k = open.len() - 1 - index;
-            if k == 0 {
-                rows.push(LaneRow {
-                    glyphs: merge_row(open.len() - 1, open_all_off_main[index]),
-                    node_index: None,
-                });
-                arrived_innermost = true;
-            } else {
-                let (row_a, row_b) = crossing_rows(open.len(), k);
-                rows.push(LaneRow {
-                    glyphs: row_a,
-                    node_index: None,
-                });
-                rows.push(LaneRow {
-                    glyphs: row_b,
-                    node_index: None,
-                });
-            }
+            // この配置は交差しない形だけを扱う(`skip_targets` が確かめる)ので、到着する線は、常に最も内側。
+            debug_assert_eq!(index, open.len() - 1);
+            rows.push(LaneRow {
+                glyphs: merge_row(open.len() - 1, open_all_off_main[index]),
+                node_index: None,
+            });
+            arrived_innermost = true;
             open.remove(index);
             open_all_off_main.remove(index);
             after_fork = false;
@@ -374,6 +348,246 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
                 open.push(t);
                 open_all_off_main.push(off_main);
             }
+        }
+        after_fork = new_lane;
+    }
+    LaneLayout { rows }
+}
+
+/// 直前に作った「寄せ」の種類(ノードの行の、既存の線の記号を決める。BR1.5)。
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LastMove {
+    /// 寄せなし。
+    None,
+    /// 1 行の寄せ(`c - d = 1`)。
+    OneRow,
+    /// 2 行の、同じ行き先の寄せ(`d >= 1`)。
+    DuplicateTwoRows,
+    /// 2 行の、到着する線の寄せ(`d = 0`、`k >= 1`)。
+    ArrivalTwoRows,
+}
+
+/// マスの並びの、末尾の空白を取る。
+fn trim_row(mut glyphs: Vec<LaneGlyph>) -> Vec<LaneGlyph> {
+    while glyphs.last() == Some(&LaneGlyph::Empty) {
+        glyphs.pop();
+    }
+    glyphs
+}
+
+/// 「寄せ」`MOVE(c, d)` の行(BR1.3)。列 `c`(1 始まり)の線を、列 `d`(0 は主線)へ寄せる。
+/// `m` は寄せる前の線の数、`rest` は寄せる線を除いた線の並び(内側が先頭)、`next` は次のノードの位置。
+/// 戻り値は、行と、1 行の寄せか。
+fn move_rows(
+    c: usize,
+    d: usize,
+    m: usize,
+    rest: &[usize],
+    next: usize,
+) -> (Vec<Vec<LaneGlyph>>, bool) {
+    if c - d == 1 {
+        let mut row = Vec::with_capacity(2 * m);
+        for _ in 0..c - 1 {
+            row.extend([LaneGlyph::Line, LaneGlyph::Empty]);
+        }
+        row.extend([LaneGlyph::Line, LaneGlyph::Join]);
+        for _ in 0..m - c {
+            row.extend([LaneGlyph::Empty, LaneGlyph::Join]);
+        }
+        return (vec![trim_row(row)], true);
+    }
+    // 行 1: 列 0 〜 `c - 1` を `|` で、間の空白のうち、右の `c - d - 2` 個を `_` にする。
+    let underscores = c - d - 2;
+    let mut row1 = Vec::with_capacity(2 * m);
+    for j in 0..c {
+        row1.push(LaneGlyph::Line);
+        if j < c - 1 {
+            row1.push(if j >= (c - 1) - underscores {
+                LaneGlyph::Underscore
+            } else {
+                LaneGlyph::Empty
+            });
+        }
+    }
+    row1.push(LaneGlyph::Join);
+    for _ in 0..m - c {
+        row1.extend([LaneGlyph::Empty, LaneGlyph::Join]);
+    }
+    // 行 2: 最初の重複から先は `/`。`d >= 1` のときは、寄せた線より外側で、次のノードが行き先の線から先も `/`。
+    let first_duplicate = {
+        let mut seen = HashSet::new();
+        rest.iter()
+            .position(|t| !seen.insert(*t))
+            .unwrap_or(rest.len())
+    };
+    let mut row2 = Vec::with_capacity(2 * m);
+    for _ in 0..d {
+        row2.extend([LaneGlyph::Line, LaneGlyph::Empty]);
+    }
+    row2.extend([LaneGlyph::Line, LaneGlyph::Join]);
+    let outer_start = if d >= 1 {
+        rest.len() - (m - c)
+    } else {
+        rest.len()
+    };
+    let mut reached_next = false;
+    for (j, &target) in rest.iter().enumerate().skip(d) {
+        if j >= outer_start && target == next {
+            reached_next = true;
+        }
+        let slash = j >= first_duplicate || (d >= 1 && j >= outer_start && reached_next);
+        row2.extend([
+            if slash {
+                LaneGlyph::Join
+            } else {
+                LaneGlyph::Line
+            },
+            LaneGlyph::Empty,
+        ]);
+    }
+    (vec![trim_row(row1), trim_row(row2)], false)
+}
+
+/// 寄せる、同じ行き先の組 `(a, b)`(`a < b`)を 1 つ探す(BR1.4)。`a` の小さい順、同じなら `b` の小さい順。
+/// `arriving` は `(到着する線の位置, 到着するノードの位置)`。その行き先の組と、到着する線をまたぐ組は除く。
+/// 各 `a` について、次の同じ行き先の線だけ見ればよい(より後ろの線も、またぐ)ので、線の数に比例する。
+fn find_duplicate_pair(
+    lanes: &[usize],
+    arriving: Option<(usize, usize)>,
+) -> Option<(usize, usize)> {
+    let mut next_same = vec![usize::MAX; lanes.len()];
+    let mut last_seen: HashMap<usize, usize> = HashMap::new();
+    for (index, &target) in lanes.iter().enumerate().rev() {
+        if let Some(later) = last_seen.insert(target, index) {
+            next_same[index] = later;
+        }
+    }
+    for (a, &b) in next_same.iter().enumerate() {
+        if b == usize::MAX {
+            continue;
+        }
+        if let Some((k, node)) = arriving
+            && (lanes[a] == node || (a < k && k < b))
+        {
+            continue;
+        }
+        return Some((a, b));
+    }
+    None
+}
+
+/// 同じ行き先の重複を、なくなるまで寄せる(BR1.4)。寄せるたびに、先頭から探し直す。
+fn settle_duplicates(
+    lanes: &mut Vec<usize>,
+    arriving: Option<(usize, usize)>,
+    node: usize,
+    rows: &mut Vec<LaneRow>,
+    last: &mut LastMove,
+) {
+    while let Some((a, b)) = find_duplicate_pair(lanes, arriving) {
+        let m = lanes.len();
+        lanes.remove(b);
+        let (moved, one_row) = move_rows(b + 1, a + 1, m, lanes, node);
+        rows.extend(moved.into_iter().map(|glyphs| LaneRow {
+            glyphs,
+            node_index: None,
+        }));
+        *last = if one_row {
+            LastMove::OneRow
+        } else {
+            LastMove::DuplicateTwoRows
+        };
+    }
+}
+
+/// 通常の飛び越しだけのグラフのレーンの配置(BR1.1〜BR1.5)。参照実装は `layout-reference.py`。
+///
+/// 開いている線 `lanes` は、内側が先頭(`lane_layout` の `open` とは逆順)。同じ行き先の重複を許す。
+/// 節ごとに、(1) 到着する線をまたがない重複を寄せ、到着する線を主線へ寄せ、残りの重複を寄せる、
+/// (2) ノードの行、(3) 飛び越しなら、合流の行(先頭の線と行き先が同じ)か、分岐の行と新しい線、の順。
+fn ordinary_layout(plan: &SkipPlan) -> LaneLayout {
+    let job_count = plan.targets.len();
+    let mut rows: Vec<LaneRow> = Vec::with_capacity(job_count * 3 + 2);
+    let mut lanes: Vec<usize> = Vec::new();
+    let mut after_fork = false;
+    for i in 0..=job_count {
+        let start_len = rows.len();
+        let mut last = LastMove::None;
+        if let Some(first) = lanes.iter().position(|&t| t == i) {
+            settle_duplicates(&mut lanes, Some((first, i)), i, &mut rows, &mut last);
+            let m = lanes.len();
+            let k = lanes.iter().position(|&t| t == i).unwrap_or(0);
+            // 到着する線と、同じ行き先の別の線は、取り除く。
+            let rest: Vec<usize> = lanes.iter().copied().filter(|&t| t != i).collect();
+            let (moved, one_row) = move_rows(k + 1, 0, m, &rest, i);
+            rows.extend(moved.into_iter().map(|glyphs| LaneRow {
+                glyphs,
+                node_index: None,
+            }));
+            last = if one_row {
+                LastMove::OneRow
+            } else {
+                LastMove::ArrivalTwoRows
+            };
+            lanes = rest;
+            after_fork = false;
+        }
+        settle_duplicates(&mut lanes, None, i, &mut rows, &mut last);
+        if rows.len() > start_len {
+            after_fork = false;
+        }
+        let existing = lanes.len();
+        if i == job_count {
+            rows.push(LaneRow {
+                glyphs: vec![LaneGlyph::EndNode, LaneGlyph::Empty],
+                node_index: Some(i),
+            });
+            break;
+        }
+        let target = plan.targets.get(i).and_then(|ts| ts.first().copied());
+        let joins = target.is_some() && lanes.first() == target.as_ref();
+        let new_lane = target.is_some() && !joins;
+        // 次のノードが線の行き先なら、その線から先を `/` で描く(BR1.5 の (b)、(c))。
+        let (slash_from, slash_only_first) = match lanes.iter().position(|&t| t == i + 1) {
+            Some(q) if !new_lane && last == LastMove::OneRow => (Some(q), false),
+            Some(0) if target.is_none() && last == LastMove::DuplicateTwoRows => (Some(0), true),
+            _ => (None, false),
+        };
+        let existing_glyph = |j: usize| {
+            if new_lane {
+                if after_fork {
+                    LaneGlyph::Fork
+                } else {
+                    LaneGlyph::Line
+                }
+            } else if slash_from.is_some_and(|q| if slash_only_first { j == q } else { j >= q }) {
+                LaneGlyph::Join
+            } else {
+                LaneGlyph::Line
+            }
+        };
+        let width = 2 * (1 + existing + usize::from(new_lane));
+        let mut glyphs = Vec::with_capacity(width);
+        glyphs.push(LaneGlyph::Node);
+        for j in 0..existing {
+            glyphs.extend([LaneGlyph::Empty, existing_glyph(j)]);
+        }
+        glyphs.resize(width, LaneGlyph::Empty);
+        rows.push(LaneRow {
+            glyphs,
+            node_index: Some(i),
+        });
+        if joins {
+            rows.push(LaneRow {
+                glyphs: join_lane_row(existing - 1, false),
+                node_index: None,
+            });
+        } else if let Some(t) = target {
+            rows.push(LaneRow {
+                glyphs: fork_row(existing, 1, false),
+                node_index: None,
+            });
+            lanes.insert(0, t);
         }
         after_fork = new_lane;
     }
