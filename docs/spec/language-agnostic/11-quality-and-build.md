@@ -593,7 +593,7 @@ job:
 | AC-219 | 最上位がマップでない | `- 1⏎- 2` | `convert in.yaml --to toml` | 67。`top level is not a map: 最上位がマップではありません`(行 1) | `read_resolve::root_must_be_a_map` |
 | AC-220 | 空の YAML | 空ファイル(または `# c` だけ) | `convert in.yaml --to toml` | 67。`top level is not a map: 文書が空です` | `read_resolve`(09 章 5.3 節) |
 | AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::コメントつきの入力は変換でき_コメントは捨てる` |
-| AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_roundtrip::output_is_deterministic`) |
+| AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_roundtrip::出力は毎回同じ`) |
 | AC-223 | 空のマップ | `{}`(YAML)、空(TOML) | `convert in.yaml --to toml` / `convert in.toml --to yaml` | 0。TOML の出力は空文字列。YAML の出力は `{}` | 09 章 9 節 |
 | AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to toml` | 0。`d` は `x = 1`、`y = 9`(自身のキーが優先) | `read_resolve::merge_key_single_list_and_priority` |
 | AC-225 | マージキーの値がマップでない | `a:⏎  <<: 5` | `convert in.yaml --to toml` | 67。`マージキーの値がマップではありません`(`(at: a.<<)`) | `read_resolve::merge_key_with_non_map_value_is_unrepresentable` |
@@ -604,8 +604,8 @@ job:
 | AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to toml` | 30 秒以内に 67(`input is too large`)。メモリを使い果たさない | `read_resolve::alias_bomb_is_too_large_without_exhausting_memory` |
 | AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 31 個 / 32 個(閉じも書く) | `convert in.yaml --to toml` | 31 個: 0。32 個: 67(`syntax error: 入れ子が深すぎます(上限 32)`) | `read_resolve::read_depth_limit_32_33` |
 | AC-232 | 極端な深さでも異常終了しない | 1,000 段、100,000 段の入れ子(YAML・TOML) | `convert … ` | 67(`syntax error`)。異常終了しない | `read_resolve::extremely_deep_inputs_fail_with_syntax_not_abort` |
-| AC-233 | 往復で木が等しい | `CV1` | `convert in.toml --to yaml` の OUT を `convert --to toml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`[job.retry]` の表も同じ | `convert_roundtrip::definition_like_toml_roundtrips_through_yaml`、`array_command_roundtrips_*`、`retry_table_roundtrips_*` |
-| AC-234 | 数値の往復 | 整数の端(`i64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`inf`、`nan`)、空の配列・マップ | 往復 | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別) | `convert_roundtrip::i64_edges_roundtrip / floats_roundtrip_both_ways / scalar_boundaries_*` |
+| AC-233 | 往復で木が等しい | `CV1` | `convert in.toml --to yaml` の OUT を `convert --to toml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`[job.retry]` の表も同じ | `convert_roundtrip::定義の形の_toml_は_yaml_を通って往復する`、`配列形式の_command_は往復する_*`、`retry_の表は往復する_*` |
+| AC-234 | 数値の往復 | 整数の端(`i64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`inf`、`nan`)、空の配列・マップ | 往復 | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別) | `convert_roundtrip::i64_の端は往復する / 浮動小数は両方向に往復する / スカラーの境界は往復する_*` |
 | AC-235 | ファイルを作らず環境に左右されない | `T` に入力のみ | `convert` を、別のカレントディレクトリ・異なる環境変数で実行 | `T` のファイル一覧が実行の前後で同じ。結果が同じ | `converter::nfr_security`、`flow_aux::convert は定義もステートも読まず シグナルも準備しない` |
 | AC-236 | 標準出力に書けない(注入) | 正しい入力 | `convert`(標準出力を書き込み失敗にする) | 67。ERR = `conductor: error: cannot write to standard output` | `flow_aux::convert の標準出力が閉じていたら 67`。区分: 注入 |
 | AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to json` / `convert f --to YAML` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: 'json'` / `invalid value: 'YAML'` / `option not allowed for this command: '--config'` | `args_grammar::to は convert だけで必須 / to の値は yaml か toml だけ / config は convert に付けられない` |

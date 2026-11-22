@@ -58,7 +58,7 @@ fn assert_roundtrip(text: &str, from: TargetFormat) -> String {
 }
 
 #[test]
-fn definition_like_toml_roundtrips_through_yaml() {
+fn 定義の形の_toml_は_yaml_を通って往復する() {
     let yaml_text = assert_roundtrip(PIPELINE_TOML, TargetFormat::Toml);
     // `on` キーは、文字列のキーとして保たれる
     let tree = read(&yaml_text, TargetFormat::Yaml);
@@ -71,7 +71,7 @@ fn definition_like_toml_roundtrips_through_yaml() {
 }
 
 #[test]
-fn definition_like_yaml_roundtrips_through_toml() {
+fn 定義の形の_yaml_は_toml_を通って往復する() {
     let toml_text = assert_roundtrip(PIPELINE_YAML, TargetFormat::Yaml);
     assert!(toml_text.contains("[[job]]"), "{toml_text}");
     // アンカー、エイリアス、マージキーは、出力に残らない
@@ -124,7 +124,7 @@ fn command_of(tree: &Value, index: usize) -> Value {
 }
 
 #[test]
-fn array_command_roundtrips_toml_yaml_toml() {
+fn 配列形式の_command_は往復する_toml_yaml_toml() {
     let yaml_text = assert_roundtrip(ARRAY_COMMAND_TOML, TargetFormat::Toml);
     let tree = read(&yaml_text, TargetFormat::Yaml);
     assert_eq!(command_of(&tree, 0), s("echo a"));
@@ -135,7 +135,7 @@ fn array_command_roundtrips_toml_yaml_toml() {
 }
 
 #[test]
-fn array_command_roundtrips_yaml_toml_yaml() {
+fn 配列形式の_command_は往復する_yaml_toml_yaml() {
     let toml_text = assert_roundtrip(ARRAY_COMMAND_YAML, TargetFormat::Yaml);
     let tree = read(&toml_text, TargetFormat::Toml);
     assert_eq!(command_of(&tree, 0), s("echo a"));
@@ -146,7 +146,7 @@ fn array_command_roundtrips_yaml_toml_yaml() {
 }
 
 #[test]
-fn merged_values_are_expanded_with_priority() {
+fn マージした値は優先順位どおりに展開する() {
     let tree = read(PIPELINE_YAML, TargetFormat::Yaml);
     let Value::Map(top) = tree else { panic!("map") };
     let Value::Array(jobs) = &top.iter().find(|(k, _)| k == "job").unwrap().1 else {
@@ -171,7 +171,7 @@ fn merged_values_are_expanded_with_priority() {
 }
 
 #[test]
-fn scalar_boundaries_roundtrip_from_yaml() {
+fn スカラーの境界は往復する_yaml_から() {
     let text = r##"
 "yes": "yes"
 "no": "no"
@@ -209,7 +209,7 @@ long: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 
 #[test]
-fn scalar_boundaries_roundtrip_from_toml() {
+fn スカラーの境界は往復する_toml_から() {
     let text = r#"
 "yes" = "yes"
 "1" = "1"
@@ -226,7 +226,7 @@ unicode = "日本語のテキスト😀"
 }
 
 #[test]
-fn floats_roundtrip_both_ways() {
+fn 浮動小数は両方向に往復する() {
     let yaml_text = "one: 1.0\nneg_zero: -0.0\nnan: .nan\ninf: .inf\nninf: -.inf\nsmall: 1.5e-7\nbig: 1e21\nint: 1\nfrac: 0.1\n";
     let toml_text = assert_roundtrip(yaml_text, TargetFormat::Yaml);
     let tree = read(&toml_text, TargetFormat::Toml);
@@ -249,7 +249,7 @@ fn floats_roundtrip_both_ways() {
 }
 
 #[test]
-fn i64_edges_roundtrip() {
+fn i64_の端は往復する() {
     let toml_in = "max = 9223372036854775807\nmin = -9223372036854775808\nzero = 0\n";
     let yaml_out = assert_roundtrip(toml_in, TargetFormat::Toml);
     assert!(yaml_out.contains("max: 9223372036854775807"), "{yaml_out}");
@@ -261,7 +261,7 @@ fn i64_edges_roundtrip() {
 }
 
 #[test]
-fn empty_and_nested_collections_roundtrip() {
+fn 空と入れ子の集まりは往復する() {
     assert_roundtrip("{}\n", TargetFormat::Yaml);
     assert_eq!(
         convert_text("{}\n", TargetFormat::Toml, "t").unwrap().text,
@@ -327,7 +327,7 @@ max_interval = \"10m\"
 ";
 
 #[test]
-fn retry_table_roundtrips_through_yaml_and_back_to_toml() {
+fn retry_の表は往復する_yaml_を通って_toml_に戻る() {
     let yaml_text = assert_roundtrip(RETRY_TOML, TargetFormat::Toml);
     // 値(整数と文字列)が、型を保って YAML に出る
     let tree = read(&yaml_text, TargetFormat::Yaml);
@@ -352,7 +352,7 @@ fn retry_table_roundtrips_through_yaml_and_back_to_toml() {
 }
 
 #[test]
-fn retry_table_roundtrips_from_yaml() {
+fn retry_の表は往復する_yaml_から() {
     let yaml_text = convert_text(RETRY_TOML, TargetFormat::Yaml, "t")
         .unwrap()
         .text;
@@ -360,14 +360,14 @@ fn retry_table_roundtrips_from_yaml() {
 }
 
 #[test]
-fn deepest_allowed_structure_roundtrips() {
+fn 許される最も深い構造は往復する() {
     // 32 段(根のマップ 1 + 配列 31)
     let yaml_text = format!("a: {}x{}\n", "[".repeat(31), "]".repeat(31));
     assert_roundtrip(&yaml_text, TargetFormat::Yaml);
 }
 
 #[test]
-fn output_is_deterministic() {
+fn 出力は毎回同じ() {
     let first = convert_text(PIPELINE_YAML, TargetFormat::Toml, "t").unwrap();
     let second = convert_text(PIPELINE_YAML, TargetFormat::Toml, "t").unwrap();
     assert_eq!(first, second);
