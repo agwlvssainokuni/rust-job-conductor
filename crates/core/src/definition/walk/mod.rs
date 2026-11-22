@@ -33,7 +33,8 @@ use toml::de::{DeTable, DeValue};
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::is_valid_env_name;
 use crate::types::{
-    Command, EnvVar, JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget,
+    Classification, Command, EnvVar, JobDefinition, PipelineDefinition, Transition, TransitionOn,
+    TransitionTarget,
 };
 use retry::{RawRetry, build_retry};
 
@@ -344,22 +345,19 @@ impl<'a> Walker<'a> {
 
     fn transition_on(&mut self, t: &DeTable<'_>, parent: usize) -> Option<TransitionOn> {
         let (text, offset) = self.string(t, "on", parent, true)?;
-        match text.as_str() {
-            "success" => Some(TransitionOn::Success),
-            "warning" => Some(TransitionOn::Warning),
-            "error" => {
-                self.push(
-                    offset,
-                    Kind::ErrorTransition,
-                    "エラー結果(`error`)には遷移先を書けません",
-                );
-                None
-            }
-            _ => {
-                self.type_error(offset, "`on` は `success` または `warning` で書きます");
-                None
-            }
+        if let Some(on) = TransitionOn::parse(&text) {
+            return Some(on);
         }
+        if text == Classification::Error.as_str() {
+            self.push(
+                offset,
+                Kind::ErrorTransition,
+                "エラー結果(`error`)には遷移先を書けません",
+            );
+        } else {
+            self.type_error(offset, "`on` は `success` または `warning` で書きます");
+        }
+        None
     }
 
     fn job(&mut self, value: &Spanned<DeValue<'_>>) -> RawJob {

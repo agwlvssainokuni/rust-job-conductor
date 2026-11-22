@@ -169,6 +169,14 @@ impl TransitionOn {
             Self::Warning => "warning",
         }
     }
+
+    /// 定義に書く語から戻す([`TransitionOn::as_str`] の逆)。`success`・`warning` 以外(`error` を
+    /// 含む)は `None`(BR1.2。誤りの種類の区別は、呼び出し側が行う)。
+    pub fn parse(text: &str) -> Option<Self> {
+        [Self::Success, Self::Warning]
+            .into_iter()
+            .find(|on| on.as_str() == text)
+    }
 }
 
 /// 遷移の行き先。
@@ -244,6 +252,17 @@ pub enum JobStatus {
     Warning,
     Error,
     Skipped,
+}
+
+/// 分類から、記録する状態へ(`apply_outcome`。BR2.8)。成功・警告・エラーは、同じ名前の状態。
+impl From<Classification> for JobStatus {
+    fn from(classification: Classification) -> Self {
+        match classification {
+            Classification::Success => Self::Success,
+            Classification::Warning => Self::Warning,
+            Classification::Error => Self::Error,
+        }
+    }
 }
 
 impl JobStatus {
@@ -503,6 +522,27 @@ mod tests {
         let mut j = job("a");
         j.success_exit_codes = Some(vec![2, 3]);
         assert_eq!(j.effective_success_codes(), &[2, 3]);
+    }
+
+    #[test]
+    fn 遷移の結果の語は_as_str_と往復し_知らない語と_error_は_none() {
+        // BR1.2、BR4.3: 定義の `on` の語から戻す。
+        for on in [TransitionOn::Success, TransitionOn::Warning] {
+            assert_eq!(TransitionOn::parse(on.as_str()), Some(on));
+        }
+        for text in ["error", "", "Success", "SUCCESS", " success", "ok"] {
+            assert_eq!(TransitionOn::parse(text), None, "{text:?}");
+        }
+    }
+
+    #[test]
+    fn 分類から記録する状態は同じ名前の状態() {
+        // BR2.8: `apply_outcome` が使う写し。
+        assert_eq!(JobStatus::from(Classification::Success), JobStatus::Success);
+        assert_eq!(JobStatus::from(Classification::Warning), JobStatus::Warning);
+        assert_eq!(JobStatus::from(Classification::Error), JobStatus::Error);
+        let status: JobStatus = Classification::Error.into();
+        assert_ne!(status, JobStatus::Pending);
     }
 
     #[test]

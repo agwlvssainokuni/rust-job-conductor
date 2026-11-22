@@ -88,11 +88,8 @@ pub fn apply_outcome(
     let mut out = state.clone();
     if let Some(job) = find_mut(&mut out, job_id) {
         if let Some(classification) = outcome.classification {
-            job.status = match classification {
-                Classification::Success => JobStatus::Success,
-                Classification::Warning => JobStatus::Warning,
-                Classification::Error => JobStatus::Error,
-            };
+            // 分類から状態へ(`From<Classification> for JobStatus`)。
+            job.status = <JobStatus as From<Classification>>::from(classification);
             job.skip_reason = None;
         }
         job.exit_code = execution.exit_code;
