@@ -195,3 +195,27 @@ fn ステートの遷移のスキップの記録は_遷移でスキップとし�
         [D::AlreadyExecuted, D::SkippedByTransition, D::WillRun]
     );
 }
+
+#[test]
+fn 手で書き換えた_end_のスキップがあり_end_reached_が偽のステートは_終点に着くで終わる() {
+    // 本番の流れでは作られない形(`check_consistency` は通る)。模擬は、本番と同じ `apply_skip` で
+    // 終点の後のスキップを記録し、`end_reached` を立てるので、終わり方は「終点に着く」(本番と一致)。
+    let mut s = state(
+        &[
+            ("a", JobStatus::Success),
+            ("b", JobStatus::Skipped),
+            ("c", JobStatus::Pending),
+        ],
+        None,
+        false,
+    );
+    s.job_states[0].exit_code = Some(0);
+    s.job_states[1].skip_reason = Some(SkipReason::ByEnd);
+    assert!(!s.end_reached);
+    let plan = plan_with(THREE, Some(&s), &[]);
+    assert_eq!(
+        dispositions(&plan),
+        [D::AlreadyExecuted, D::SkippedAfterEnd, D::SkippedAfterEnd]
+    );
+    assert_eq!(plan.end, PlanEnd::EndReached);
+}
