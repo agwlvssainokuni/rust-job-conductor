@@ -214,6 +214,31 @@ pub enum JobStatus {
     Skipped,
 }
 
+impl JobStatus {
+    /// ステートファイルと `watch` の表に書く語(言語に関わらず英語のまま)。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Success => "success",
+            Self::Warning => "warning",
+            Self::Error => "error",
+            Self::Skipped => "skipped",
+        }
+    }
+
+    /// [`JobStatus::as_str`] の語から戻す。知らない語は `None`。
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "pending" => Some(Self::Pending),
+            "success" => Some(Self::Success),
+            "warning" => Some(Self::Warning),
+            "error" => Some(Self::Error),
+            "skipped" => Some(Self::Skipped),
+            _ => None,
+        }
+    }
+}
+
 /// スキップの理由(`JobStatus::Skipped` のときのみ)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkipReason {
@@ -221,6 +246,25 @@ pub enum SkipReason {
     ByTransition,
     /// `@end` によるスキップ。
     ByEnd,
+}
+
+impl SkipReason {
+    /// ステートファイルに書く語(`byTransition`、`byEnd`)。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ByTransition => "byTransition",
+            Self::ByEnd => "byEnd",
+        }
+    }
+
+    /// [`SkipReason::as_str`] の語から戻す。知らない語は `None`。
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "byTransition" => Some(Self::ByTransition),
+            "byEnd" => Some(Self::ByEnd),
+            _ => None,
+        }
+    }
 }
 
 /// パイプラインの中の 1 つのジョブの、これまでの状態(契約 C1。保持は conductor-runtime)。

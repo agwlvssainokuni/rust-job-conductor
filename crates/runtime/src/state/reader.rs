@@ -225,25 +225,6 @@ fn as_bool(value: &toml::Value) -> Result<bool, ParseFailure> {
     value.as_bool().ok_or_else(|| corrupt(reason::WRONG_TYPE))
 }
 
-fn parse_status(text: &str) -> Result<JobStatus, ParseFailure> {
-    match text {
-        "pending" => Ok(JobStatus::Pending),
-        "success" => Ok(JobStatus::Success),
-        "warning" => Ok(JobStatus::Warning),
-        "error" => Ok(JobStatus::Error),
-        "skipped" => Ok(JobStatus::Skipped),
-        _ => Err(corrupt(reason::BAD_STATUS)),
-    }
-}
-
-fn parse_skip_reason(text: &str) -> Result<SkipReason, ParseFailure> {
-    match text {
-        "byTransition" => Ok(SkipReason::ByTransition),
-        "byEnd" => Ok(SkipReason::ByEnd),
-        _ => Err(corrupt(reason::BAD_SKIP_REASON)),
-    }
-}
-
 fn walk(
     table: &toml::Table,
     expected_run_id: Option<&RunId>,
@@ -328,7 +309,8 @@ fn walk_job(job: &toml::Table) -> Result<JobState, ParseFailure> {
         return Err(corrupt(reason::UNKNOWN_KEY));
     }
     let job_id = as_string(required(job, "id")?)?;
-    let status = parse_status(&as_string(required(job, "status")?)?)?;
+    let status = JobStatus::parse(&as_string(required(job, "status")?)?)
+        .ok_or_else(|| corrupt(reason::BAD_STATUS))?;
     let exit_code = match job.get("exit_code") {
         None => None,
         Some(v) => {
@@ -338,7 +320,9 @@ fn walk_job(job: &toml::Table) -> Result<JobState, ParseFailure> {
     };
     let skip_reason = match job.get("skip_reason") {
         None => None,
-        Some(v) => Some(parse_skip_reason(&as_string(v)?)?),
+        Some(v) => Some(
+            SkipReason::parse(&as_string(v)?).ok_or_else(|| corrupt(reason::BAD_SKIP_REASON))?,
+        ),
     };
 
     if (status == JobStatus::Skipped) != skip_reason.is_some() {

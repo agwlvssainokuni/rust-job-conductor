@@ -23,7 +23,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use conductor_core::{JobState, JobStatus, PipelineState, RunId, SkipReason};
+use conductor_core::{JobState, PipelineState, RunId};
+// 単体テスト(`mod tests` の `use super::*`)が使う。
+#[cfg(test)]
+use conductor_core::JobStatus;
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
@@ -196,38 +199,18 @@ pub(crate) fn remove_stale_temps(dir: &Path, state_name: &str, now: SystemTime) 
     }
 }
 
-fn status_name(status: JobStatus) -> &'static str {
-    match status {
-        JobStatus::Pending => "pending",
-        JobStatus::Success => "success",
-        JobStatus::Warning => "warning",
-        JobStatus::Error => "error",
-        JobStatus::Skipped => "skipped",
-    }
-}
-
-fn skip_reason_name(reason: SkipReason) -> &'static str {
-    match reason {
-        SkipReason::ByTransition => "byTransition",
-        SkipReason::ByEnd => "byEnd",
-    }
-}
-
 fn job_table(job: &JobState) -> toml::Table {
     let mut t = toml::Table::new();
     t.insert("id".into(), toml::Value::String(job.job_id.clone()));
     t.insert(
         "status".into(),
-        toml::Value::String(status_name(job.status).into()),
+        toml::Value::String(job.status.as_str().into()),
     );
     if let Some(code) = job.exit_code {
         t.insert("exit_code".into(), toml::Value::Integer(i64::from(code)));
     }
     if let Some(r) = job.skip_reason {
-        t.insert(
-            "skip_reason".into(),
-            toml::Value::String(skip_reason_name(r).into()),
-        );
+        t.insert("skip_reason".into(), toml::Value::String(r.as_str().into()));
     }
     t
 }

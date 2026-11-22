@@ -26,15 +26,9 @@ use super::messages::{
 };
 use crate::types::Language;
 
-/// 状態を表す文字(言語に関わらず英語のまま)。
+/// 状態を表す文字(言語に関わらず英語のまま。[`JobStatus::as_str`] と同じ)。
 pub fn status_word(status: JobStatus) -> &'static str {
-    match status {
-        JobStatus::Pending => "pending",
-        JobStatus::Success => "success",
-        JobStatus::Warning => "warning",
-        JobStatus::Error => "error",
-        JobStatus::Skipped => "skipped",
-    }
+    status.as_str()
 }
 
 /// 状態の色(ANSI の SGR の番号)。`pending` は色なし。
