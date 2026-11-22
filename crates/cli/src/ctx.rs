@@ -36,9 +36,6 @@ use crate::exit::{EXIT_DEFINITION, EXIT_INTERNAL, EXIT_STATE, EXIT_USAGE, exit_c
 use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
-/// 既定の定義ファイル(BR1.4)。
-const DEFAULT_DEFINITION: &str = "conductor.toml";
-
 /// 流れが使う、差し替え口と表示の束。
 pub(crate) struct Ctx<'a> {
     pub runtime: &'a dyn Runtime,
@@ -122,12 +119,10 @@ pub(crate) enum StateRead {
     Raw,
 }
 
-/// 定義ファイルの場所(BR1.4)。`--config` があればそのパス、なければ実行ディレクトリの `conductor.toml`。
+/// 定義ファイルの場所(BR1.4)。`--config` があればそのパス、なければ実行ディレクトリの `conductor.toml`
+/// (conductor-core の `resolve_path`)。
 pub(crate) fn definition_path(cmd: &CliCommand) -> PathBuf {
-    match &cmd.config_path {
-        Some(path) => PathBuf::from(path),
-        None => PathBuf::from(DEFAULT_DEFINITION),
-    }
+    conductor_core::definition::intake::resolve_path(cmd.config_path.as_deref().map(Path::new))
 }
 
 impl Ctx<'_> {

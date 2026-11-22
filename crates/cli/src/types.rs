@@ -56,8 +56,8 @@ impl CommandKind {
 /// `init` のパイプライン名の既定(BR2.2)。
 pub const DEFAULT_INIT_PIPELINE_NAME: &str = "my-pipeline";
 
-/// `init` の定義のひな形の出力先の既定のパス(BR1.1)。
-pub const DEFAULT_INIT_PATH: &str = "conductor.toml";
+/// `init` の定義のひな形の出力先の既定のパス(BR1.1)。conductor-core の既定の定義ファイル名と同じ。
+pub const DEFAULT_INIT_PATH: &str = conductor_core::definition::intake::DEFAULT_DEFINITION_FILE;
 
 /// `conductor init` の出力先(entities の InitTarget)。
 #[derive(Debug, Clone, PartialEq, Eq)]
