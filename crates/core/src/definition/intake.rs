@@ -278,4 +278,56 @@ mod tests {
             assert!(e.reason.contains("権限"));
         }
     }
+
+    /// 開けるかの確認が、大きさの確認より先(BR3.1)。
+    #[cfg(unix)]
+    #[test]
+    fn 権限のない_1_mib_超のファイルは_unreadable() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("big-secret.toml");
+        std::fs::write(&p, "#".repeat(MAX_DEFINITION_BYTES as usize + 1)).unwrap();
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o000)).unwrap();
+        // root などで開けてしまうときは、確かめない。
+        if File::open(&p).is_ok() {
+            return;
+        }
+        let e = read_definition(&p).unwrap_err();
+        assert_eq!(e.kind, DefinitionErrorKind::Unreadable);
+        assert!(e.reason.contains("権限"));
+    }
+
+    /// 上限超過は、UTF-8 でないより先に判定する(BR3.2)。
+    #[test]
+    fn 上限超過は_utf8_でないより先() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("big-binary.toml");
+        std::fs::write(&p, vec![0xff_u8; MAX_DEFINITION_BYTES as usize + 1]).unwrap();
+        assert_eq!(kind_of(read_definition(&p)), DefinitionErrorKind::TooLarge);
+    }
+
+    /// 書き手のいない名前付きパイプは、開かずに `unreadable`(待ち続けない。BR3.2)。
+    #[cfg(unix)]
+    #[test]
+    fn 名前付きパイプは開かずに_unreadable() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("pipe.toml");
+        let status = std::process::Command::new("mkfifo")
+            .arg(&p)
+            .status()
+            .expect("mkfifo を起動できる");
+        assert!(status.success(), "mkfifo が失敗した");
+        // 止まったときに落ちるよう、別のスレッドで呼び、5 秒で打ち切る。
+        let (tx, rx) = std::sync::mpsc::channel();
+        let q = p.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(read_definition(&q));
+        });
+        let r = rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("5 秒以内に返る(開いて待たない)");
+        let e = r.unwrap_err();
+        assert_eq!(e.kind, DefinitionErrorKind::Unreadable);
+        assert!(e.reason.contains("通常のファイル"));
+    }
 }
