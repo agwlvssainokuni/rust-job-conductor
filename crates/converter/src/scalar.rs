@@ -209,7 +209,7 @@ mod tests {
     }
 
     #[test]
-    fn core_schema_bool_and_null() {
+    fn コアスキーマの真偽値と_null() {
         assert_eq!(s("true"), Resolved::Bool(true));
         assert_eq!(s("False"), Resolved::Bool(false));
         for t in ["yes", "no", "on", "off", "Yes", "ON", "y", "n"] {
@@ -222,7 +222,7 @@ mod tests {
     }
 
     #[test]
-    fn core_schema_integers() {
+    fn コアスキーマの整数() {
         assert_eq!(s("0"), Resolved::Int(0));
         assert_eq!(s("-12"), Resolved::Int(-12));
         assert_eq!(s("+7"), Resolved::Int(7));
@@ -239,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn core_schema_floats() {
+    fn コアスキーマの浮動小数() {
         assert_eq!(s("1.5"), Resolved::Float(1.5));
         assert_eq!(s("-0.0"), Resolved::Float(-0.0));
         assert_eq!(s(".5"), Resolved::Float(0.5));
@@ -258,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn quoted_scalars_are_always_strings() {
+    fn 引用符つきのスカラーは常に文字列() {
         assert_eq!(
             yaml_resolved("1", false, Tag::None),
             Ok(Resolved::Str("1".into()))
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn tags() {
+    fn タグ() {
         assert_eq!(
             yaml_resolved("1", true, Tag::Core(CoreTag::Str)),
             Ok(Resolved::Str("1".into()))
@@ -299,7 +299,7 @@ mod tests {
     }
 
     #[test]
-    fn scalar_value_maps_unrepresentable() {
+    fn スカラーの値は表せないものを写す() {
         let y = |t: &str| RawScalar::Yaml {
             text: t.into(),
             plain: true,
