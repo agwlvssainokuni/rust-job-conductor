@@ -180,6 +180,19 @@ pub enum TransitionTarget {
     End,
 }
 
+impl TransitionTarget {
+    /// 遷移先に書く、終了を表す語(`@end`)。定義の読み取り、表示、図が使う 1 か所(BR2.4)。
+    pub const END_LABEL: &'static str = "@end";
+
+    /// 定義と表示に使う語(ジョブID、または `@end`)。
+    pub fn label(&self) -> &str {
+        match self {
+            Self::Job(id) => id,
+            Self::End => Self::END_LABEL,
+        }
+    }
+}
+
 /// 結果ごとの遷移ルール(独立した識別子を持たない値)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transition {
@@ -485,6 +498,20 @@ mod tests {
         let mut j = job("a");
         j.success_exit_codes = Some(vec![2, 3]);
         assert_eq!(j.effective_success_codes(), &[2, 3]);
+    }
+
+    #[test]
+    fn 遷移先の語はジョブidか_end() {
+        // BR2.4: 終点の語は 1 か所。ジョブIDはそのまま返す(`@end` に似た ID も別物)。
+        assert_eq!(TransitionTarget::END_LABEL, "@end");
+        assert_eq!(TransitionTarget::End.label(), "@end");
+        assert_eq!(TransitionTarget::Job("load".into()).label(), "load");
+        assert_eq!(TransitionTarget::Job("".into()).label(), "");
+        assert_ne!(
+            TransitionTarget::Job("@end".into()),
+            TransitionTarget::End,
+            "語が同じでも行き先の種類は別"
+        );
     }
 
     #[test]

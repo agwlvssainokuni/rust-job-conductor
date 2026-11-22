@@ -58,9 +58,6 @@ const JOB_KEYS: &[&str] = &[
 ];
 const TRANSITION_KEYS: &[&str] = &["on", "next"];
 
-/// 遷移先に書く、終了を表す値。
-const END_TARGET: &str = "@end";
-
 /// `[pipeline]` から取り出した値。
 struct PipelineHead {
     name: String,
@@ -430,7 +427,7 @@ impl<'a> Walker<'a> {
                 let (Some(_), Some((next, offset))) = (t.on, &t.next) else {
                     continue;
                 };
-                if next == END_TARGET {
+                if next == TransitionTarget::END_LABEL {
                     continue;
                 }
                 match index.get(next.as_str()) {
@@ -571,7 +568,7 @@ fn build_jobs(raw: &[RawJob]) -> Option<Vec<JobDefinition>> {
             let mut transitions = Vec::new();
             for t in &job.transitions {
                 let (next, _) = t.next.as_ref()?;
-                let target = if next == END_TARGET {
+                let target = if next == TransitionTarget::END_LABEL {
                     TransitionTarget::End
                 } else {
                     TransitionTarget::Job(next.clone())
