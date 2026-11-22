@@ -285,7 +285,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 - `run` と `pipeline` だけが、**定義の検査より前**に、シグナルの監視を始める(`Ctx::prepare_run`・`Ctx::prepare_pipeline` の最初の `start_signals`)。
   `watch`・`reset`・`validate`・`convert` は監視せず、OS の既定の動作で終わる。v0.9.0 以降の `graph`・`init` も監視しない。
-  `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare_run`・`prepare_pipeline` の代わりに、シグナルを除く `prepare_checked` を呼ぶ)。
+  `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare_run`・`prepare_pipeline` の代わりに、シグナルを除く `prepare_checked` を呼ぶ。検査の並び `check_job`・`check_pipeline` は本番と共有する)。
 - `InterruptSignal` を 1 つ作り、`Arc` で SignalWatcher に渡す。
 - 監視の登録は **プロセスで 1 回だけ**。2 回目の呼び出しは `AlreadyRegistered` になり、流れは成功と同様に続ける
   (2 回目に渡した合図には配線されない)。登録に失敗したとき(`Failed`)は、標準エラーに

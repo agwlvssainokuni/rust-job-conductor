@@ -73,7 +73,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `types.rs`、`exit.rs`(定数と `exit_code_for`)、`args.rs`(`lexopt`、解釈の順序 11 段、`resolve_run_id`)、`report/`(`Reporter`、メッセージカタログ英日、`watch` の表、エスケープ、遅延評価のロケール・色)、`deps.rs`(4 つの trait と本番の実装)、`panic_hook.rs` |
+| 作るもの | `types.rs`、`exit.rs`(定数と `exit_code_for`)、`args.rs`(`lexopt`、解釈の順序 11 段)、`run_id.rs`(`resolve_run_id`、`aux_run_id`)、`report/`(`Reporter`、メッセージカタログ英日、`watch` の表、エスケープ、遅延評価のロケール・色)、`deps.rs`(4 つの trait と本番の実装)、`panic_hook.rs` |
 | 完了条件 | 04 の 9 章の実行例が同じ結果。解釈の優先順位(04 の 4.1)のとおりに、同時に複数の誤りがあるとき最初のものが返る。10 の 4 章の終了コードの整形表のとおり。08 の各文言が、英語・日本語で一致する |
 | 確認の観点 | `-h`/`-V` はほかの誤りより先で、先に現れた方が勝つ。`--` 以降は位置引数。使い方の誤りは「1 行 + 空行 + 使い方全文」で 68。入力由来の文字列は、エスケープ・切り詰めして出す |
 | 参照 | 04、08、10 章 |
@@ -82,7 +82,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `ctx.rs`(`prepare_run`・`prepare_pipeline`: シグナル → 定義(64)→ `command`(64。分割したコマンドを `Session` が持つ)→ ジョブID(68。`prepare_run` は位置を返す)→ run ID(68)→ ステートの読み込み(65)→ 照合(65)→ 削除の実効値。run ID の決定は `definition_run_id`、ステートの読み込みと照合は `read_checked_state`)、`retry.rs`、`run.rs`、`pipeline.rs`、`aux_commands.rs`(`watch`・`reset`・`validate`・`convert`)、`platform/`(UNIX: `signal-hook` の専用スレッド。Windows: `ctrlc`)、`main.rs`、`lib.rs`(`run_cli`・`run_cli_with`) |
+| 作るもの | `ctx.rs`(`prepare_run`・`prepare_pipeline`: シグナル → 検査の並び `check_job`・`check_pipeline`: 定義(64)→ `command`(64。分割したコマンドを `Checked` が持ち、`Session { checked, signal }` が包む)→ ジョブID(68。`prepare_run` は位置を返す)→ run ID(68)→ ステートの読み込み(65)→ 照合(65)→ 削除の実効値。run ID の決定は `definition_run_id`、ステートの読み込みと照合は `read_checked_state`)、`retry.rs`、`run.rs`、`pipeline.rs`、`aux_commands.rs`(`watch`・`reset`・`validate`・`convert`)、`platform/`(UNIX: `signal-hook` の専用スレッド。Windows: `ctrlc`)、`main.rs`、`lib.rs`(`run_cli`・`run_cli_with`) |
 | 完了条件 | 偽の `Runtime`・`Env`・`Sink`・`Signals` で、05 の状態遷移の例(`a → b → c`)、`@end` の例、リトライの例、中断の表(05 の 8 章)が再現する。実ファイルと実プロセスで、`run`・`pipeline`・`watch`・`reset`・`validate`・`convert` が、04・05・06 の挙動と終了コード(10 の 1 章の全件)を返す |
 | 確認の観点 | 検査の順序(10 の 2 章の 13 段)。ステートの書き込みの失敗は、ジョブの終了コードより優先して 65 で、「ジョブは実行されました」を表示。完了の判定は、中断の合図の判定より先。リトライの知らせは `-v` によらず常に標準エラー |
 | 参照 | 04、05、06、07 の 7 章、10 章 |
@@ -124,7 +124,7 @@
 | 項目 | 内容 |
 |------|------|
 | 作るもの(core) | `plan/{mod,simulate}.rs`(型、`plan_pipeline`、`plan_run`、`simulate_job`。`plan_pipeline` は `PipelineState` を 1 つ持ち、本番と同じ `apply_skip`・`apply_outcome` で更新する。更新の写しを作らない)。`decide_before_run` の探索を、位置の一致を先に見る `status_at` にする(挙動は同じ) |
-| 作るもの(cli) | `args.rs`(`--dry-run`、`--assume` の検査)、`ctx.rs` の `prepare_checked`(本番の前処理の、シグナルを除く部分。`--assume` のジョブID の検査 `require_known` を含む。対象は `FlowTarget`)、`dry_run.rs`(`run_dry_run`、入口 `enter_flow`。計画には定義の検査で分割したコマンドを渡す)、`report/plan_text.rs`、メッセージ |
+| 作るもの(cli) | `args.rs`(`--dry-run`、`--assume` の検査)、`ctx.rs` の `prepare_checked`(本番の前処理の、シグナルを除く部分。対象は `FlowTarget` で、`check_job`・`check_pipeline` に `--assume` のジョブIDを渡し、`require_known` で検査する)、`dry_run.rs`(`run_dry_run`、入口 `enter_flow`。計画には定義の検査で分割したコマンドを渡す)、`report/plan_text.rs`、メッセージ |
 | 完了条件 | 08 の 11 章の例 P1〜P8、P2e、P4e が 1 文字も違わず一致する。ジョブを起動せず、ステートを書かず・消さず、シグナルを準備しない。計画の「実行する」ジョブが、本番の流れが起動するジョブと一致する(新規と再開の両方)。1,000 ジョブの計画が 1 秒以内 |
 | 確認の観点 | 完了したステートは「ステートなし」。使われなかった仮定は誤りにしない。定義にないジョブIDの仮定は 68(ジョブIDを表示しない)。`.env` は本番と同じ範囲で読み、64。環境変数は名前と出どころだけを計画に持つ(値を持たない) |
 | 参照 | 04 の 7.9、05 の 16 章、08 の 11 章 |

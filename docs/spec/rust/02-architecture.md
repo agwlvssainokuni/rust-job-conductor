@@ -146,7 +146,7 @@
 | `parse_args` | `<I>(args: I) -> Result<ParsedArgs, UsageError>` | 引数の解釈。04 章 |
 | `exit_code_for` | `(reported: i32, is_error: bool) -> i32` | 0〜255 への整形。05 の 2.2 |
 | `signal_exit_code` | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
-| `resolve_run_id`(`args`) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
+| `resolve_run_id`(`run_id`) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
 | `render_table`(`report::watch`) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
 | `escape_display`(`report::escape`。conductor-core の本体の再公開) | `(input: &str, limit: Option<usize>) -> String` | 入力由来の文字列のエスケープ。08 の 9 章 |
 
@@ -181,18 +181,19 @@ parsed = parse_args(args)
 ```text
 cli::pipeline::run_pipeline
  ├─ dry_run::enter_flow(名前が無ければ 68、--dry-run なら run_dry_run へ)
- ├─ Ctx::prepare_pipeline
+ ├─ Ctx::prepare_pipeline → Session { checked: Checked, signal }
  │    ├─ Ctx::start_signals → Signals::start(signal)  → 失敗 70(登録済みは続行)
- │    ├─ Ctx::check_definition                         → CheckedDefinition(分割したコマンドを含む)
- │    │    ├─ Runtime::load_definition(path, name)    → core::load_definition   → 失敗 64
- │    │    └─ Runtime::check_command(各ジョブ)         → runtime::check_command  → 失敗 64(全件を集める)
- │    └─ Ctx::check_run_inputs
- │         ├─ Ctx::definition_run_id → resolve_run_id(--run-id | 環境変数) → 失敗 68
- │         ├─ Ctx::load_env_files(v0.9.0 以降)        → Runtime::load_env_files → runtime::load_env_files → 失敗 64
- │         └─ Ctx::read_checked_state(StateRead::Live)
- │              ├─ Runtime::read_state(path, run_id)  → runtime::read_state     → 失敗 65(完了のものは None)
- │              └─ check_consistency(state, definition) → 食い違い 65
- └─ for (job, command) in definition.job と session.commands (記述順):
+ │    └─ Ctx::check_pipeline(--assume のジョブIDは空。require_known は何もしない)
+ │         ├─ Ctx::check_definition                         → CheckedDefinition(分割したコマンドを含む)
+ │         │    ├─ Runtime::load_definition(path, name)    → core::load_definition   → 失敗 64
+ │         │    └─ Runtime::check_command(各ジョブ)         → runtime::check_command  → 失敗 64(全件を集める)
+ │         └─ Ctx::check_run_inputs                         → Checked
+ │              ├─ Ctx::definition_run_id → run_id::resolve_run_id(--run-id | 環境変数) → 失敗 68
+ │              ├─ Ctx::load_env_files(v0.9.0 以降)        → Runtime::load_env_files → runtime::load_env_files → 失敗 64
+ │              └─ Ctx::read_checked_state(StateRead::Live)
+ │                   ├─ Runtime::read_state(path, run_id)  → runtime::read_state     → 失敗 65(完了のものは None)
+ │                   └─ check_consistency(state, definition) → 食い違い 65
+ └─ for (job, command) in definition.job と session.checked.commands (記述順):
       ├─ step::decide → core::decide_before_run(...)  → Run / Skip / Reject
       │    ├─ Reject → 表示、return 66
       │    ├─ Skip   → step::record_skip(runtime::apply_skip → 変化があれば Runtime::write_state(Durable))
@@ -203,17 +204,17 @@ cli::pipeline::run_pipeline
       │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(job, 足す環境, signal) → core::retry_decision
       │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
       │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
-      │         ├─ 表示(-v のときの結果行・遷移行。常時のエラー行)
+      │         ├─ step::report_execution: 表示(-v のときの結果行・遷移行。常時のエラー行)
       │         └─ runtime::apply_outcome → Runtime::write_state(Durable) → StepResult
       │       (ここから pipeline)
-      │         ├─ error または分類なし → return exit_code_for(...)
+      │         ├─ error または分類なし → return outcome_exit_code(...)
       │         ├─ completed → finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
       │         └─ 中断の合図が立っている → core::resume_point_on_interrupt → runtime::apply_interrupt
       │                                      → Runtime::write_state(Durable)、return 128 + n
  └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
 ```
 
-`run` は、`prepare_run`(ジョブIDの存在の検査を含み、ジョブの位置を返す)のあと、指定した 1 ジョブについて、同じ `step` の関数(`decide`、`record_skip`、`run_step`、`remove_if_requested`)で「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。いつ消すかと終了コードの決め方は、`run` と `pipeline` で違い、それぞれに残る(05 §5.1a〜§5.3)。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
+`run` は、`prepare_run`(`start_signals` のあと `check_job`。ジョブIDの存在の検査を含み、ジョブの位置を返す)のあと、指定した 1 ジョブについて、同じ `step` の関数(`decide`、`record_skip`、`run_step`、`remove_if_requested`)で「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。いつ消すかと終了コードの決め方は、`run` と `pipeline` で違い、それぞれに残る(05 §5.1a〜§5.3)。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
 
 v0.9.0 以降の 3 つの流れ(05 の 15〜17 章、04 の 7.7〜7.9):
 
@@ -221,7 +222,7 @@ v0.9.0 以降の 3 つの流れ(05 の 15〜17 章、04 の 7.7〜7.9):
 graph:      Ctx::check_definition_and_env(定義 64 → command 64 → .env 64、重複キーの警告)
             → (--state)Ctx::definition_run_id 68 → Ctx::read_checked_state(StateRead::Raw。読み取り 65 → 照合 65)
             → overlay_from_state → build_graph → layout_graph → render_text | render_mermaid → 標準出力 1 回
---dry-run:  Ctx::prepare_checked(FlowTarget。定義 64 → command 64 → ジョブID 68 → --assume のジョブID 68 → run ID 68
+--dry-run:  Ctx::prepare_checked(FlowTarget で check_job | check_pipeline を呼び分ける。定義 64 → command 64 → ジョブID 68 → --assume のジョブID 68 → run ID 68
             → .env 64 → ステート 65 → 照合 65)
             → 定義の検査で分割したコマンドを渡す → plan_pipeline | plan_run(拒否 66)→ render_plan → 標準出力 1 回
             (シグナルの準備なし、ステートに書かない、ジョブを起動しない)
@@ -346,11 +347,12 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 |----------|------|
 | `main.rs` | 入口(パニックのフック、`run_cli`、`process::exit` 1 回) |
 | `lib.rs` | 公開の再公開、`run_cli`、`run_cli_with` |
-| `args.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査)、`resolve_run_id` |
+| `args.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査) |
+| `run_id.rs` | run ID の解決(`resolve_run_id`。`watch`・`reset` の `aux_run_id`) |
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
-| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare_run` はジョブの位置も返す、`prepare_pipeline`。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助、`aux_run_id`、`read_context` |
-| `step.rs` | 1 つのジョブの共通の手順(`decide`、`record_skip`、`run_step`、`remove_if_requested`、`StepResult`)。`run` と `pipeline` が呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
+| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare_run` はジョブの位置も返す、`prepare_pipeline`。どちらも `Session { checked: Checked, signal }` を返す。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。検査の並びは `check_job`(`run`)と `check_pipeline`(`pipeline`)の 1 か所で、部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助(`usage_error`、`show_output`、`state_error`、`write`、`reset`)、`read_context` |
+| `step.rs` | 1 つのジョブの共通の手順(`decide`、`record_skip`、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)。`run` と `pipeline` が呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
 | `run.rs` | `run_individual`(個別実行)。`prepare_run` が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
 | `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
 | `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`) |

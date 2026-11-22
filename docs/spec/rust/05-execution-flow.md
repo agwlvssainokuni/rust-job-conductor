@@ -256,7 +256,7 @@ return low
 
 ### 5.1 共通の前処理(`run` は `prepare_run`、`pipeline` は `prepare_pipeline`)
 
-順序は固定。最初に誤りがあった時点で、その終了コードで終わる(以降は行わない)。どちらも `crates/cli/src/ctx.rs` の部品(1 は `start_signals`、2〜3 は `check_definition`、4 は `require_job`、5〜7 は `check_run_inputs`。5 は `definition_run_id`、6〜7 は `read_checked_state`)を、この順に呼ぶ。`prepare_run` は、4 で確かめたジョブの位置も返す。
+順序は固定。最初に誤りがあった時点で、その終了コードで終わる(以降は行わない)。どちらも 1 のあと、検査の並びの 1 か所(`run` は `check_job`、`pipeline` は `check_pipeline`)を呼び、`Session { checked: Checked, signal }` を返す。部品は `crates/cli/src/ctx.rs` の(1 は `start_signals`、2〜3 は `check_definition`、4 は `require_job`、5〜7 は `check_run_inputs`。5 は `definition_run_id`、6〜7 は `read_checked_state`)を、この順に呼ぶ。`prepare_run` は、4 で確かめたジョブの位置も返す。
 
 | 順 | 処理 | 誤りのときの終了コード |
 |---|---|---|
@@ -309,17 +309,17 @@ remove_if_requested(session, context):
 
 ```text
 (session, index) = prepare_run(...)         # 5.1。誤りなら終了。index はジョブの位置
-match decide(job_id, def, session.state):   # 5.1a
+match decide(job_id, def, session.checked.state):   # 5.1a
   Reject(r):  表示、return 66
   Skip(r):
-    (rec, changed) = record_skip(session, session.state, job_id, r)     # 5.1a
+    (rec, changed) = record_skip(session, session.checked.state, job_id, r)     # 5.1a
     if changed and rec.completed:
         remove_if_requested(文脈=ジョブ起動前)                            # 表示の前に消す
     -v なら skipped 表示
     return 0
   Run:
     job = def.job[index]                     # 検査済み(5.1 の 4)
-    step = run_step(session, session.state, job, session.commands[index], Individual)   # 5.1a
+    step = run_step(session, session.checked.state, job, session.checked.commands[index], Individual)   # 5.1a
     if step.next.completed:
         remove_if_requested(文脈=step.after)
     return exit_code_for(step.outcome.reported_exit_code, step.outcome.classification == Error)
@@ -342,8 +342,8 @@ match decide(job_id, def, session.state):   # 5.1a
 
 ```text
 session = prepare_pipeline(...)              # 引数の名前が無ければ 68(入口の enter_flow)
-current = session.state                      # 空なら None
-for (job, command) in def.job と session.commands (記述順):
+current = session.checked.state              # 空なら None
+for (job, command) in def.job と session.checked.commands (記述順):
   match decide(job.id, def, current):        # 5.1a
     Reject(r): 表示、return 66
     Skip(r):
@@ -423,7 +423,7 @@ run ID は、同じ定義を別々の実行単位で並行して使うときに�
 
 有効: `1`, `r1`, `12345`, `build-2026.11_a`, `a.b`, 64 文字ちょうど。無効: `""`(ただし §6.2 の規則で空は「なし」)、65 文字、`a/b`、`a b`、`.x`、`..`、`日本語`。
 
-### 6.2 決定(`resolve_run_id`、前処理の 5。`Ctx::definition_run_id`)
+### 6.2 決定(`run_id::resolve_run_id`、前処理の 5。`Ctx::definition_run_id`)
 
 ```text
 env_name = 定義の [pipeline].run_id_env があればそれ、なければ "CONDUCTOR_RUN_ID"
@@ -515,7 +515,7 @@ next_wait_secs:
 retries_done = 0; last_wait_secs = 0
 loop:
     # v0.9.0 以降: 試行ごとに、足す環境を作り直す(14 章)。attempt = retries_done + 1
-    env  = merge_env(def, job, session.env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: retries_done + 1 })
+    env  = merge_env(def, job, session.checked.env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: retries_done + 1 })
     exec = run_job(job, env.additions(), signal)       # v0.8.0 以前は run_job(job, signal)
     match retry_decision(job, exec, retries_done, last_wait_secs):
         Stop: return exec                          # 最後の結果
@@ -712,7 +712,7 @@ return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
 - 範囲は、`env_file_refs(def, job_id)` が決める: `[pipeline].env_file` を先に、続けて(`job_id` が `None` なら全ジョブ、`Some(id)` ならそのジョブだけの)`env_file` を、定義の記述順に並べ、同じ記述の文字列は 1 つにまとめる(書いた順を保つ)。一覧が空(`env_file = []` を含む)なら、読み取りは何もしない(`Runtime::load_env_files` を呼ばない)。
 - 再開のときも、呼び出しごとに、現在のファイルを読み直す(ステートに内容を残さない)。
 - 誤りは、すべてのファイル分を集め(`load_env_files`)、`DisplayEvent::EnvFileErrors` で表示する(先頭の 20 件と「ほか N 件」。08 の 4.12)。終了コードは 64(`EXIT_DEFINITION`)。
-- 読み取った結果(`LoadedEnvFiles`)は、`Session.env_files`(`--dry-run` では `Checked.env_files`)として、その呼び出しの中だけで持つ。
+- 読み取った結果(`LoadedEnvFiles`)は、`Checked.env_files`(本番では `Session.checked` の中)として、その呼び出しの中だけで持つ。
 
 ### 14.6 値の秘匿
 
