@@ -71,14 +71,6 @@ max = 2
 interval = "1s"
 "#;
 
-fn status_of(state: &conductor_core::PipelineState, id: &str) -> JobStatus {
-    state
-        .job_states
-        .iter()
-        .find(|j| j.job_id == id)
-        .map_or(JobStatus::Pending, |j| j.status)
-}
-
 /// ジョブの実行・待機・ステートの書き込みだけを、順に並べたログ。
 fn flow_log(h: &Harness) -> Vec<String> {
     h.runtime
@@ -104,7 +96,7 @@ fn run_2_回目に成功すると_0_で終わり_知らせは_v_なしでも出�
     );
     assert_eq!(out.out, "");
     assert_eq!(
-        status_of(&h.state().expect("ステート"), "a"),
+        status_in(&h.state().expect("ステート"), "a"),
         JobStatus::Success
     );
 }
@@ -128,7 +120,7 @@ fn run_使い切ると_最後の終了コードで終わり_再開位置はそ�
     assert_eq!(out.err.matches("conductor: retry: ").count(), 3);
     assert!(out.err.contains("retry 3 of 3"), "{}", out.err);
     let state = h.state().expect("ステート");
-    assert_eq!(status_of(&state, "a"), JobStatus::Error);
+    assert_eq!(status_in(&state, "a"), JobStatus::Error);
     assert_eq!(state.job_states[0].exit_code, Some(75));
     assert_eq!(state.resume_job_id.as_deref(), Some("a"));
 }
@@ -243,7 +235,7 @@ fn run_待機中のシグナルで_128_足す番号で終わり_エラーとし�
     assert_eq!(h.runtime.ran(), ["a"], "待機のあとの実行はしない");
     assert!(!out.err.contains("conductor: error"), "{}", out.err);
     let state = h.state().expect("ステート");
-    assert_ne!(status_of(&state, "a"), JobStatus::Error);
+    assert_ne!(status_in(&state, "a"), JobStatus::Error);
     assert_eq!(state.resume_job_id.as_deref(), Some("a"));
 }
 
@@ -300,7 +292,7 @@ fn pipeline_使い切ると_そこで停止し_再開位置はそのジョブ() 
     assert_eq!(out.code, 75);
     assert_eq!(h.runtime.ran(), ["a", "a", "a", "a"]);
     let state = h.state().expect("ステート");
-    assert_eq!(status_of(&state, "a"), JobStatus::Error);
+    assert_eq!(status_in(&state, "a"), JobStatus::Error);
     assert_eq!(state.resume_job_id.as_deref(), Some("a"));
 }
 
@@ -334,7 +326,7 @@ fn pipeline_待機中のシグナルで_以降を実行せず_再開位置を記
     assert_eq!(out.code, 143);
     assert_eq!(h.runtime.ran(), ["a"]);
     let state = h.state().expect("ステート");
-    assert_ne!(status_of(&state, "a"), JobStatus::Error);
+    assert_ne!(status_in(&state, "a"), JobStatus::Error);
     assert_eq!(state.resume_job_id.as_deref(), Some("a"));
 }
 

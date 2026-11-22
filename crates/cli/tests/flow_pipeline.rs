@@ -20,16 +20,6 @@ use common::*;
 use conductor_core::{JobState, JobStatus, PipelineState};
 use conductor_runtime::{Durability, write_state};
 
-fn status_of(h: &Harness, id: &str) -> JobStatus {
-    h.state()
-        .expect("ステートがある")
-        .job_states
-        .iter()
-        .find(|j| j.job_id == id)
-        .expect("ジョブがある")
-        .status
-}
-
 #[test]
 fn fr1_1_全部成功なら_記述順に実行し_完了のステートを残して_0() {
     let mut h = Harness::new(THREE_JOBS);

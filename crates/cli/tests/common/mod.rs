@@ -26,7 +26,7 @@ use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntim
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
     Command, DefinitionError, EnvFileError, ExecutionResult, JobDefinition, JobExecution,
-    LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
+    JobStatus, LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
@@ -847,4 +847,19 @@ pub fn run_mem(runtime: &MemRuntime, args: &[&str]) -> (i32, FakeSink) {
         run_cli_with(args.iter().map(OsString::from), &mut deps)
     };
     (code, sink)
+}
+
+/// ステートの中の、ジョブ `id` の状態(ジョブが無ければ失敗する)。
+pub fn status_in(state: &PipelineState, id: &str) -> JobStatus {
+    state
+        .job_states
+        .iter()
+        .find(|j| j.job_id == id)
+        .expect("ジョブがある")
+        .status
+}
+
+/// 偽の実行環境が書いたステートの中の、ジョブ `id` の状態(ステートかジョブが無ければ失敗する)。
+pub fn status_of(h: &Harness, id: &str) -> JobStatus {
+    status_in(&h.state().expect("ステートがある"), id)
 }

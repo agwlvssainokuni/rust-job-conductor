@@ -49,16 +49,6 @@ id = "a"
 command = ["conductor-array-prog", "x y"]
 "#;
 
-fn status_of(h: &Harness, id: &str) -> JobStatus {
-    h.state()
-        .expect("ステートがある")
-        .job_states
-        .iter()
-        .find(|j| j.job_id == id)
-        .expect("ジョブがある")
-        .status
-}
-
 // ---- 成功と順序 ----
 
 #[test]
