@@ -14,6 +14,8 @@
 
 //! 引数の文法の表(NFR4.1、BR1.1〜BR1.6)。全コマンドの正しい引数と誤り。
 
+mod common;
+
 use std::ffi::OsString;
 
 use conductor_cli::{
@@ -622,29 +624,9 @@ fn run_id_の無効な値は_68_で誤りの文に値を含めない() {
 
 // ---- resolve_run_id(FR1.2〜FR1.4) ----
 
-struct MapEnv(std::collections::HashMap<String, String>);
-
-impl conductor_cli::Env for MapEnv {
-    fn var(&self, name: &str) -> Option<String> {
-        self.0.get(name).cloned()
-    }
-    fn stdout_is_terminal(&self) -> bool {
-        false
-    }
-}
-
-fn env_of(pairs: &[(&str, &str)]) -> MapEnv {
-    MapEnv(
-        pairs
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect(),
-    )
-}
-
 fn resolved(option: Option<&str>, env: &[(&str, &str)]) -> Result<Option<String>, UsageError> {
     let option = option.map(RunIdArg::parse).transpose()?;
-    conductor_cli::run_id::resolve_run_id(option.as_ref(), "RID", &env_of(env))
+    conductor_cli::run_id::resolve_run_id(option.as_ref(), "RID", &common::FakeEnv::with(env))
         .map(|r| r.map(|id| id.as_str().to_string()))
 }
 
