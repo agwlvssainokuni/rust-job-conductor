@@ -168,8 +168,9 @@ pub enum Exec {
     StartFailure,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum WriteFailure {
+    #[default]
     Never,
     /// 書き込みの N 回目(0 始まり)が失敗する。
     OnCall(usize),
@@ -185,6 +186,7 @@ pub type JobHook = Box<dyn Fn(&str, &InterruptSignal)>;
 
 /// 定義・ステートの入出力は実際の関数(`SystemRuntime`)に任せ、ジョブの起動だけを、台本で偽にする。
 /// 失敗は、注入できる。呼び出しの順序を `log` に残す。
+#[derive(Default)]
 pub struct ScriptedRuntime {
     pub inner: SystemRuntime,
     pub log: RefCell<Vec<String>>,
@@ -221,33 +223,6 @@ pub struct ScriptedRuntime {
 
 /// `create_file` に渡された、(パス、内容、`force`)。
 pub type CreateCall = (PathBuf, Vec<u8>, bool);
-
-impl Default for ScriptedRuntime {
-    fn default() -> Self {
-        Self {
-            inner: SystemRuntime,
-            log: RefCell::new(Vec::new()),
-            scripts: RefCell::new(HashMap::new()),
-            write_failure: Cell::new(WriteFailure::Never),
-            write_calls: Cell::new(0),
-            fail_reset: Cell::new(false),
-            read_failure: RefCell::new(None),
-            convert_result: RefCell::new(None),
-            during_job: RefCell::new(None),
-            after_job: RefCell::new(None),
-            run_calls: Cell::new(0),
-            reset_all_override: RefCell::new(None),
-            run_id_env_calls: Cell::new(0),
-            waits: RefCell::new(Vec::new()),
-            interrupt_wait: Cell::new(None),
-            env_loads: RefCell::new(Vec::new()),
-            env_override: RefCell::new(None),
-            run_envs: RefCell::new(Vec::new()),
-            create_calls: RefCell::new(Vec::new()),
-            create_override: RefCell::new(None),
-        }
-    }
-}
 
 /// 偽の `wait` の共通の処理(`ScriptedRuntime` と `MemRuntime`)。待たずに、待ち時間を `waits` に記録する。
 ///
@@ -678,7 +653,6 @@ pub struct MemRuntime {
     /// ジョブの終了コード(先頭から使い、尽きたら 0)。
     pub exit_codes: RefCell<VecDeque<i32>>,
     pub write_ok: Cell<bool>,
-    pub writes: Cell<usize>,
     /// `wait` が呼ばれた待ち時間(秒)。待たずに記録するだけ。
     pub waits: RefCell<Vec<u64>>,
     /// `wait` の N 回目(0 始まり)で、合図(番号)を立てて `Interrupted` を返す。
@@ -695,7 +669,6 @@ impl MemRuntime {
             run_states: RefCell::new(HashMap::new()),
             exit_codes: RefCell::new(VecDeque::new()),
             write_ok: Cell::new(true),
-            writes: Cell::new(0),
             waits: RefCell::new(Vec::new()),
             interrupt_wait: Cell::new(None),
         }
@@ -779,7 +752,6 @@ impl Runtime for MemRuntime {
         state: &PipelineState,
         _durability: Durability,
     ) -> Result<(), StateError> {
-        self.writes.set(self.writes.get() + 1);
         if !self.write_ok.get() {
             return Err(state_error(path, StateErrorKind::WriteFailed));
         }
