@@ -1330,3 +1330,68 @@
 **Stage**: functional-design
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T09:33:39Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T09:33:48Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/unit-test-instructions.md
+**Context**: construction > code-generation > unit-test-instructions.md
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-22T09:33:51Z
+**Event**: QUESTION_ASKED
+**Question Id**: 5ba94950
+**Question Type**: plan-approval
+**Question Chat**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question Shows**: sha256:347813119f4029e809d3ea320c9fba39ad2719f4239ac223bea6c86a901c2d6f
+**Stage**: code-generation
+**Ask Id**: 9dd2cde8b4c5e992539a4d3150bc1aef
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: f9130f37b257072ebbd4554a40a4fdb3e2d4ca6638e48c0ec54eb70feb460884
+**Questions File**: aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-generation-questions.md
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-22T09:34:48Z
+**Event**: HUMAN_TURN
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve Plan (推奨)"]
+**Message Id**: 0f71819e
+**Open Questions**: 5ba94950
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"981545e5318bceb7"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-22T09:34:49Z
+**Event**: QUESTION_REPLIED
+**Session**: 8e1e0ddf-1216-413b-8fe8-d56bac43f7ad
+**Question**: コードの計画を承認しますか? 計画は aidlc/spaces/default/intents/261122-plan-state-unify/construction/code-generation/code-generation-plan.md にあります。\n- 作るもの: ステートの更新の関数(record.rs)を runtime から core に移し、runtime は core から公開し直します。スキップの記録を O(n) に速くします。模擬はステートを 1 つ持ち、本番と同じ関数で記録します(写しはなくします)。\n- 触る場所: core の lib.rs、flow、plan/simulate.rs、runtime の lib.rs と state/mod.rs、core のテスト 2 つ、仕様書(rust の 05、02、12)。\n- テスト: 既存のテストを変えずにすべて通します。足すのは 2 本です(終点の後の 1,000 個近いスキップが 1 秒以内、承認した手書きのステートの形)。実装の後に、書き換える前の模擬と本物の新しい模擬を 90 万例で比べます(一時のテストで、確かめたら削除します)。\n- コミット: 移動、速さ、模擬、テスト、仕様書の順に分け、どのコミットでもテストが通るようにします。
+**Reply**: Approve Plan (推奨)
+**Options**: ["Approve Plan (推奨)","Request Changes","I'll edit the files"]
+
+---
+
+## Error Logged
+**Timestamp**: 2026-11-22T09:34:53Z
+**Event**: ERROR_LOGGED
+**Tool**: aidlc-log
+**Command**: aidlc-log engine log answer --stage code-generation --checkpoint plan-approval --details Approve Plan
+**Error**: The person has not replied to the plan question since it was shown. End the turn, wait for their reply, then record the choice they made.
+
+---
