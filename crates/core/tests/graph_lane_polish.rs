@@ -148,23 +148,24 @@ fn 両方の飛び越しが交差する形は_通常の飛び越しが交差す�
         .chain([("b", Success, Some("e"))])
         .collect();
     assert_eq!(lanes(6, &transitions), None);
-    assert_eq!(
+    // 通常の飛び越しだけなら、交差してもレーンの図になる(BR1.1)。
+    assert!(
         lanes(
             6,
             &skips
                 .iter()
                 .map(|(f, t)| (*f, Success, Some(*t)))
                 .collect::<Vec<_>>()
-        ),
-        None
+        )
+        .is_some()
     );
 }
 
 #[test]
-fn 辺の一覧に残る形_交差() {
+fn 交差する通常の飛び越しは_レーンの図になる() {
     assert_eq!(
-        lanes(6, &[("a", Success, Some("d")), ("b", Success, Some("e"))]),
-        None
+        lanes(5, &[("a", Success, Some("d")), ("b", Success, Some("e"))]).as_deref(),
+        Some("*   a\n|\\\n* \\   b\n|\\ \\\n* | | c\n| |/\n|/|\n* | d\n|/\n* e\no @end\n")
     );
 }
 
@@ -186,14 +187,14 @@ fn 辺の一覧に残る形_分岐の線へ後のジョブが同じ行き先で�
 
 #[test]
 fn 辺の一覧に残る形_同じ行き先を含んでも交差する() {
-    // a→d と c→d は同じ行き先だが、b→e が a→d の線の行き先を越えるため、交差する。
+    // a→e と c→e は同じ行き先で、b→f が a→e の線の行き先を越えるため、交差する(範囲の外。BR2.1)。
     assert_eq!(
         lanes(
-            6,
+            7,
             &[
-                ("a", Success, Some("d")),
-                ("b", Success, Some("e")),
-                ("c", Success, Some("d")),
+                ("a", Success, Some("e")),
+                ("b", Success, Some("f")),
+                ("c", Success, Some("e")),
             ]
         ),
         None

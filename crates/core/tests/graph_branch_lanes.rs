@@ -122,9 +122,17 @@ fn 辺の一覧に残る形_分岐の遠い行き先が最も内側の線以上(
 
 #[test]
 fn 辺の一覧に残る形_交差する() {
-    // a→d、b→e は交差する。
+    // a→d、b→e は交差し、離れた f が分岐するので、グラフ全体が範囲の外(辺の一覧。BR2.1)。
     assert_eq!(
-        lanes(5, &[("a", Success, Some("d")), ("b", Success, Some("e"))]),
+        lanes(
+            9,
+            &[
+                ("a", Success, Some("d")),
+                ("b", Success, Some("e")),
+                ("f", Success, Some("h")),
+                ("f", Warning, None),
+            ]
+        ),
         None
     );
     // 分岐の線の間に、別の飛び越しの線が割り込む。

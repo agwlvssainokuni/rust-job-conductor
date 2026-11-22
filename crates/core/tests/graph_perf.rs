@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 1,000 ジョブでの性能(BR2.7、NFR1)。最悪の 2 つの形で、1 秒以内。
+//! 1,000 ジョブでの性能(BR2.7、NFR1)。最悪の形で、1 秒以内(交差する形を含む)。
 
 mod graph_common;
 
@@ -52,14 +52,33 @@ fn 入れ子が最大の形は_1000_ジョブでも_1秒以内() {
 }
 
 #[test]
-fn 交差する形は_辺の一覧に切り替わり_1000_ジョブでも_1秒以内() {
+fn 交差する形は_レーンの図になり_1000_ジョブでも_1秒以内() {
     let ids = ids();
     let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-    // j(i) → j(i+2) を、すべての i で。隣の区間と交差する。
+    // j(i) → j(i+2) を、すべての i で。隣の区間と交差するが、行き先が違うので、レーンの図(BR1.1)。
     let transitions: Vec<_> = (0..N - 2)
         .map(|i| (refs[i], Success, Some(refs[i + 2])))
         .collect();
     let (layout, elapsed) = timed(&definition(&refs, &transitions));
-    assert_eq!(layout, GraphLayout::EdgeList);
+    match layout {
+        GraphLayout::Lanes(l) => assert!(l.rows.len() > N),
+        GraphLayout::EdgeList => panic!("交差する形は、レーンの図になる"),
+    }
+    assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
+}
+
+#[test]
+fn 幅の広い交差の最悪の形は_1000_ジョブでも_1秒以内() {
+    let ids = ids();
+    let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+    // 前半の各ジョブ i が、j(i + N/2) へ飛ぶ。500 本の線が同時に開き、すべてが交差する。
+    let transitions: Vec<_> = (0..N / 2)
+        .map(|i| (refs[i], Success, Some(refs[i + N / 2])))
+        .collect();
+    let (layout, elapsed) = timed(&definition(&refs, &transitions));
+    match layout {
+        GraphLayout::Lanes(l) => assert!(l.rows.len() > N),
+        GraphLayout::EdgeList => panic!("幅の広い交差は、レーンの図になる"),
+    }
     assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
 }

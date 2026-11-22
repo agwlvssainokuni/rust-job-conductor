@@ -104,14 +104,26 @@ fn 対応しない形_両方の飛び越しが交差する() {
 }
 
 #[test]
-fn 対応しない形_交差() {
-    // a→d、b→e は交差する。
+fn 対応する形_交差する飛び越し() {
+    // a→d、b→e は交差するが、各ジョブの飛び越しが 1 本で行き先が違うので、レーンの図で描く(BR1.1)。
     let crossing = [("a", Success, Some("d")), ("b", Success, Some("e"))];
-    assert!(!drawable(&IDS, &crossing));
-    assert_eq!(
+    assert!(drawable(&IDS, &crossing));
+    assert!(matches!(
         layout_graph(&build_graph(&definition(&IDS, &crossing), None)),
-        GraphLayout::EdgeList
-    );
+        GraphLayout::Lanes(_)
+    ));
+}
+
+#[test]
+fn 対応しない形_交差に同じ行き先が混ざる() {
+    // a→e、b→f は交差し、c→e が同じ行き先なので、範囲の外(辺の一覧。BR2.1)。
+    let ids = ["a", "b", "c", "d", "e", "f", "g"];
+    let transitions = [
+        ("a", Success, Some("e")),
+        ("b", Success, Some("f")),
+        ("c", Success, Some("e")),
+    ];
+    assert!(!drawable(&ids, &transitions));
 }
 
 #[test]
