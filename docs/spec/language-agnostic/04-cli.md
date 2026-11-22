@@ -285,11 +285,11 @@ conductor --help | --version
 ## 8. ヘルプとバージョン
 
 - `-h`/`--help`: 使い方全文を標準出力に出して 0。言語はロケールに従う(全文は 08 章 8 章)。
-- `-V`/`--version`: 標準出力に `conductor <版>` と改行 1 つ(v0.9.1 では `conductor 0.9.1`)。ロケールを判定しない(常にこの英語の形)。終了コード 0。
+- `-V`/`--version`: 標準出力に `conductor <版>` と改行 1 つ(v0.9.2 では `conductor 0.9.2`)。ロケールを判定しない(常にこの英語の形)。終了コード 0。
 
 ```text
 $ conductor --version
-conductor 0.9.1
+conductor 0.9.2
 ```
 
 ## 9. 実行例(`LANG=C`)
