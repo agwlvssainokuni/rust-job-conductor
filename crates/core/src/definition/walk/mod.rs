@@ -30,6 +30,7 @@ use std::collections::HashMap;
 use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
+use crate::definition::integer_value;
 use crate::definition::version::VERSION_KEY;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
@@ -495,7 +496,7 @@ fn exit_code_of(item: &Spanned<DeValue<'_>>) -> Option<i32> {
 /// 整数の値を `i64` で取り出す(整数でない、または `i64` に収まらなければ `None`)。
 fn integer_of(item: &Spanned<DeValue<'_>>) -> Option<i64> {
     match item.get_ref() {
-        DeValue::Integer(i) => i64::from_str_radix(i.as_str(), i.radix()).ok(),
+        DeValue::Integer(i) => integer_value(i),
         _ => None,
     }
 }

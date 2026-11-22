@@ -26,8 +26,15 @@ pub mod walk;
 
 use std::path::Path;
 
+use toml::de::DeInteger;
+
 use crate::error::{DefinitionError, Locate};
 use crate::types::PipelineDefinition;
+
+/// TOML の整数を `i64` で取り出す(`i64` に収まらなければ `None`)。走査と版の確認が共有する。
+pub(crate) fn integer_value(int: &DeInteger<'_>) -> Option<i64> {
+    i64::from_str_radix(int.as_str(), int.radix()).ok()
+}
 
 /// 定義ファイルを読み込み、検証して、`PipelineDefinition` を返す(契約 C2 の `load_definition`)。
 ///

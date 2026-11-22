@@ -19,6 +19,7 @@
 
 use toml::de::{DeTable, DeValue};
 
+use crate::definition::integer_value;
 use crate::error::{DefinitionError, DefinitionErrorKind, Locate};
 
 /// 書式の版のキー。
@@ -53,8 +54,8 @@ pub fn check_version(
             "`format_version` は整数で書きます(対応する版は 1 です)",
         ));
     };
-    match i64::from_str_radix(int.as_str(), int.radix()) {
-        Ok(v) if v == i64::from(SUPPORTED_FORMAT_VERSION) => Ok(SUPPORTED_FORMAT_VERSION),
+    match integer_value(int) {
+        Some(v) if v == i64::from(SUPPORTED_FORMAT_VERSION) => Ok(SUPPORTED_FORMAT_VERSION),
         _ => Err(unsupported(
             "この版には対応していません(対応する版は 1 です)",
         )),
