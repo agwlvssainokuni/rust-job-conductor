@@ -54,9 +54,14 @@ fn text_of(
 
 const A_TO_D: &[(&str, &str)] = &[("a", "d")];
 const IDS5: [&str; 5] = ["a", "b", "c", "d", "e"];
-/// 交差し、かつ同じ行き先を含む形(辺の一覧になる)。
+/// 交差し、かつ「両方の飛び越し」(a が成功も警告も e へ)を含む形(辺の一覧になる)。
 const E1_IDS: [&str; 7] = ["a", "b", "c", "d", "e", "f", "g"];
-const E1_SKIPS: [(&str, &str); 3] = [("a", "e"), ("b", "f"), ("c", "e")];
+const E1_SKIPS: [(&str, &str); 2] = [("b", "f"), ("c", "e")];
+
+/// E1 の定義。a の成功と警告が、どちらも e へ飛ぶ。
+fn e1_definition() -> PipelineDefinition {
+    definition(&E1_IDS, &E1_SKIPS, &both_skip_extra("e"))
+}
 
 #[test]
 fn レーンの図の例_g1_から_g4_と_g6() {
@@ -97,13 +102,13 @@ fn レーンの図の例_g1_から_g4_と_g6() {
 
 #[test]
 fn 辺の一覧の例_e1_交差と_状態つき() {
-    // 交差し、さらに同じ行き先(a→e と c→e)を含む形は、範囲の外なので辺の一覧(BR2.1)。
-    let e1 = definition(&E1_IDS, &E1_SKIPS, "");
+    // 交差し、さらに「両方の飛び越し」(a が成功も警告も e へ)を含む形は、範囲の外なので辺の一覧(BR2.1)。
+    let e1 = e1_definition();
     assert_eq!(
         text_of(Language::Ja, &e1, None, false),
         "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
          ジョブ:\n  a\n  b\n  c\n  d\n  e\n  f\n  g\n\
-         辺:\n  a -> b (警告)\n  a -> e (成功)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
+         辺:\n  a -> e (成功・警告)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
     );
     // E2: 辺の一覧の形に、状態を重ねる。
     let overlay = StateOverlay {
@@ -117,7 +122,7 @@ fn 辺の一覧の例_e1_交差と_状態つき() {
         text_of(Language::Ja, &e1, Some(&overlay), false),
         "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
          ジョブ:\n  [  ] a\n  [  ] b\n  [  ] c\n  [  ] d\n  [  ] e\n  [  ] f\n  [  ] g\n\
-         辺:\n  a -> b (警告)\n  a -> e (成功)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
+         辺:\n  a -> e (成功・警告)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
     );
 }
 
@@ -225,7 +230,7 @@ fn 分岐の図に_v_の詳細と_state_を重ねる() {
 
 #[test]
 fn 英語の注記は_レーンの図で描けない形を含む言い方() {
-    let e1 = definition(&E1_IDS, &E1_SKIPS, "");
+    let e1 = e1_definition();
     let text = text_of(Language::En, &e1, None, false);
     assert!(
         text.starts_with(
@@ -345,15 +350,18 @@ fn v_は_リトライと配列のコマンドと英語の文を出し_辺の一�
     );
 
     // 辺の一覧(交差と同じ行き先)の `-v` は、ジョブの行の下に、4 つの空白で字下げした詳細。
-    let crossing = definition(&E1_IDS, &E1_SKIPS, "");
+    let crossing = e1_definition();
     let list = text_of(Language::En, &crossing, None, true);
     assert!(
         list.contains(
-            "Jobs:\n  a\n    command: echo a\n    success -> e (skips b, c, d), warning -> b\n  b\n"
+            "Jobs:\n  a\n    command: echo a\n    success, warning -> e (skips b, c, d)\n  b\n"
         ),
         "{list}"
     );
-    assert!(list.contains("Edges:\n  a -> b (warning)\n"), "{list}");
+    assert!(
+        list.contains("Edges:\n  a -> e (success, warning)\n"),
+        "{list}"
+    );
 }
 
 #[test]
@@ -467,5 +475,87 @@ fn 交差の図に_state_の状態を重ねる() {
     assert_eq!(
         text,
         "*   [OK] a\n|\\\n* \\   [OK] b\n|\\ \\\n* | | [NG] c  <- 再開位置\n| |/\n|/|\n* | [  ] d\n|/\n* [  ] e\no @end\n"
+    );
+}
+
+/// M2: a→e、b→d、c→e(5 ジョブ)。離れて同じ行き先を持つ線が、別の線と交差する(BR1.1)。
+const M2_TEXT: &str = "\
+*   a
+|\\
+* \\   b
+|\\ \\
+* \\ \\   c
+|\\ \\ \\
+| |/ /
+|/| /
+| |/
+* / d
+|/
+* e
+o @end
+";
+
+fn m2_definition() -> PipelineDefinition {
+    definition(&IDS5, &[("a", "e"), ("b", "d"), ("c", "e")], "")
+}
+
+#[test]
+fn 同じ行き先が混ざる交差の図_m2_は_text_の全文で出る() {
+    assert_eq!(
+        text_of(Language::Ja, &m2_definition(), None, false),
+        M2_TEXT
+    );
+}
+
+#[test]
+fn 同じ行き先が混ざる交差で_横線を含む図_m4_が出る() {
+    // M4: a→d、b→f、c→e(6 ジョブ)。3 本の線が続けて交差し(`_`)、終わりに同じ行き先が重なる。
+    let m4 = definition(
+        &["a", "b", "c", "d", "e", "f"],
+        &[("a", "d"), ("b", "f"), ("c", "e")],
+        "",
+    );
+    assert_eq!(
+        text_of(Language::Ja, &m4, None, false),
+        "*   a\n|\\\n* \\   b\n|\\ \\\n* \\ \\   c\n|\\ \\ \\\n| |_|/\n|/| |\n* | | d\n|/ /\n* / e\n|/\n* f\no @end\n"
+    );
+}
+
+#[test]
+fn 同じ行き先が混ざる交差の図の_v_は_寄せの行の置き場所を変えず_詳細の行を足す() {
+    let text = text_of(Language::En, &m2_definition(), None, true);
+    assert!(
+        text.contains(
+            "*   a\n|\\\n| | command: echo a\n| | success -> e (skips b, c, d), warning -> b\n"
+        ),
+        "{text}"
+    );
+    // 詳細の行を除くと、`-v` なしの図と同じ(寄せの行は、そのまま)。
+    let without_details: String = text
+        .lines()
+        .filter(|l| {
+            !l.contains("command:") && !l.contains("success ->") && !l.contains("warning ->")
+        })
+        .map(|l| format!("{l}\n"))
+        .collect();
+    assert_eq!(without_details, M2_TEXT);
+}
+
+#[test]
+fn 同じ行き先が混ざる交差の図に_state_の状態を重ねる() {
+    let overlay = StateOverlay {
+        states: vec![
+            ("a".into(), NodeState::Ok),
+            ("b".into(), NodeState::Ok),
+            ("c".into(), NodeState::Error),
+            ("d".into(), NodeState::Pending),
+            ("e".into(), NodeState::Pending),
+        ],
+        resume_job_id: Some("c".into()),
+    };
+    let text = text_of(Language::Ja, &m2_definition(), Some(&overlay), false);
+    assert_eq!(
+        text,
+        "*   [OK] a\n|\\\n* \\   [OK] b\n|\\ \\\n* \\ \\   [NG] c  <- 再開位置\n|\\ \\ \\\n| |/ /\n|/| /\n| |/\n* / [  ] d\n|/\n* [  ] e\no @end\n"
     );
 }
