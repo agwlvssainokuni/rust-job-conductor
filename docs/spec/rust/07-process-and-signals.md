@@ -166,7 +166,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 利用者への表示(標準エラー) | `conductor: error: <定義ファイルのパス>: job '<ジョブID>': <文>`。文は表示言語に従う。英語は `command has an unclosed quote` / `command is empty`、日本語は `command の引用符が閉じていません` / `command が空です` |
 | 検査の時点 | `run` / `pipeline` / `validate` は、定義の読み込みと検証のあと、**全ジョブ**の `command` を `check_command` で検査し、誤りのあるジョブをすべて報告して、終了コード 64 で終わる。ジョブは 1 つも起動せず、ステートにも触れない。分割は、この検査(`Ctx::check_definition`)の 1 回だけで、結果(`CommandLine` の並び)を、起動の失敗の表示(`report_execution` のコマンド名)と `--dry-run` の計画が使い回す |
 | 順序 | シグナルの準備(`run`/`pipeline` のみ)→ 定義の読み込み(64)→ `command` の検査(64)→ ジョブID(68)→ run ID(68)→ ステートの読み込み(65)→ 照合(65) |
-| 防御 | `run_job` の内側でも分割し直す。万一失敗したら、`start_failure = true` の `JobExecution` を返す(通常は到達しない) |
+| 防御 | `run_job` の内側でも分割し直す。万一失敗したら、結果が `StartFailed` の `JobExecution` を返す(通常は到達しない) |
 
 ---
 
@@ -176,21 +176,20 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 `run_job(job, env, signal) -> JobExecution`(v0.9.0 以降。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
 
-1. `JobExecution` を初期化する: `started = true`、`exit_code = None`、`terminated_by_signal = None`、`start_failure = false`、
-   `interrupted = false`、`signal_number = None`。
-2. `command` を分割する(文字列は 3 章、配列は 3.5 節)。失敗なら `start_failure = true` で返す。
-3. **起動の前**に合図が立っていれば、起動せずに返す: `started = false`、`interrupted = true`、`signal_number = Some(番号)`。
+1. 返す `JobExecution` の `job_id` と `command` は、`job` から写す。結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。
+2. `command` を分割する(文字列は 3 章、配列は 3.5 節)。失敗なら `StartFailed` で返す。
+3. **起動の前**に合図が立っていれば、起動せずに返す: `NotStarted { signal: 番号 }`。
    (ジョブは実行されない。)
 4. `std::process::Command::new(program)` に `args` を渡して作り、`env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足し
    (v0.9.0 以降。引き継いだ環境は残り、同じ名前は上書きされる。同じ名前が並びに 2 回あれば、後ろが勝つ)、`platform::configure_spawn` を適用する
    (UNIX: 新しいプロセスグループ。Windows: 何もしない)。
-5. `spawn()`。失敗なら `start_failure = true` で返す(`started` は `true` のまま)。
+5. `spawn()`。失敗なら `StartFailed` で返す。
 6. WaitLoop で終了を待つ(5 章)。時間切れ(タイムアウト)はない。自動のリトライもしない(リトライは cli の層で行う。07 の範囲外)。
-7. 終了を観測したら:
+7. 終了を観測したら、`Exited { exit_code, terminated_by_signal, interrupted_by }` を返す:
    - `exit_code = status.code()`。
    - `terminated_by_signal = platform::termination_signal(status)`(UNIX: シグナルで終了したときのシグナル番号。Windows: 常に `None`)。
-   - **この時点で** 合図が立っていれば `interrupted = true`、`signal_number = Some(番号)`。
-8. `try_wait` が失敗したとき(終了の状態を取得できない)は、`start_failure = true` で返す(分類で 127)。
+   - **この時点で** 合図が立っていれば `interrupted_by = Some(番号)`、立っていなければ `None`。
+8. `try_wait` が失敗したとき(終了の状態を取得できない)は、`StartFailed` で返す(分類で 127)。
 
 ### 4.2 起動の条件
 
@@ -202,7 +201,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 環境変数 | すべて引き継ぐ。**v0.8.0 以前**は、追加・削除・上書きをせず、run ID も渡さなかった。**v0.9.0 以降**は、引き継いだ環境を残したまま、`run_job` の `env` 引数(定義の `env`・`.env` と自動の変数 `CONDUCTOR_PIPELINE`・`CONDUCTOR_JOB_ID`・`CONDUCTOR_RUN_ID`(run ID があるとき)・`CONDUCTOR_ATTEMPT`。05 の 14 章)を**足す**(同じ名前は上書き。取り除くことはしない)。値は、書いたとおりに渡す |
 | 標準入力・標準出力・標準エラー | すべて引き継ぐ(`Stdio` を指定しない)。ジョブの出力は、`conductor` を介さず、そのまま流れる。`conductor` は、ジョブの出力を読まない・保存しない・ステートに書かない |
 | 引数の渡し方 | 分割した各引数を、そのまま OS に渡す(メタ文字は注入にならない)。Windows で `.cmd` / `.bat` を起動するときの引数の安全は、標準ライブラリのエスケープ(または起動の拒否)に任せる。どちらでも、続くコマンドは実行されない(Windows のテストで確かめる) |
-| 起動できなかった場合 | `spawn` の失敗は、原因(見つからない・実行権限がない・実行できない形式・ディレクトリを指定した、など)を区別せず `start_failure = true`。終了コードは 127(分類)。表示は `conductor: error: job '<ID>': cannot start command '<プログラム名>'`(英語)。ジョブの終了コード・シグナルは `None` |
+| 起動できなかった場合 | `spawn` の失敗は、原因(見つからない・実行権限がない・実行できない形式・ディレクトリを指定した、など)を区別せず `StartFailed`。終了コードは 127(分類)。表示は `conductor: error: job '<ID>': cannot start command '<プログラム名>'`(英語)。`StartFailed` は、ジョブの終了コード・シグナルを持たない |
 | 時間の上限 | ない。ジョブが終わらなければ、`conductor` は待ち続ける |
 | ジョブの強制終了 | しない(SIGKILL を送る機能はない) |
 
@@ -211,12 +210,15 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 項目 | 意味 |
 |------|------|
 | `job_id`, `command` | 定義のジョブIDと `command` |
-| `started` | 起動を試みたか。`false` は、起動の前に合図が立っていたときだけ |
-| `exit_code` | `status.code()`。UNIX でシグナルによって終了したときは `None`。Windows は常に値がある。UNIX の終了コードは下位 8 ビット(300 を返すと 44)、Windows は 32 ビットのまま(300 のまま) |
-| `terminated_by_signal` | UNIX のシグナル終了の番号。Windows は常に `None` |
-| `start_failure` | 分割の失敗、`spawn` の失敗、`try_wait` の失敗のいずれか |
-| `interrupted` | 起動前、または、終了の観測の直後に、合図が立っていた |
-| `signal_number` | `interrupted` のとき、**最初に受け取った**シグナルの番号 |
+| `result` | 起動の結果(`ExecutionResult`)。下の 3 つの場合のどれか 1 つ |
+| `NotStarted { signal }` | 起動の前に合図が立っていた(リトライの待機中に立ったときも、cli がこの場合を作る)。`signal` は**最初に受け取った**シグナルの番号 |
+| `StartFailed` | 分割の失敗、`spawn` の失敗、`try_wait` の失敗のいずれか |
+| `Exited { exit_code, .. }` | `status.code()`。UNIX でシグナルによって終了したときは `None`。Windows は常に値がある。UNIX の終了コードは下位 8 ビット(300 を返すと 44)、Windows は 32 ビットのまま(300 のまま) |
+| `Exited { terminated_by_signal, .. }` | UNIX のシグナル終了の番号。Windows は常に `None` |
+| `Exited { interrupted_by, .. }` | 終了の観測の直後に合図が立っていたとき、**最初に受け取った**シグナルの番号 |
+
+組み立ての関数は `JobExecution::new(job, result)`、`exited(job, exit_code)`、`not_started(job, signal)`、`start_failed(job)`。v0.9.5 までは、
+`started`、`exit_code`、`terminated_by_signal`、`start_failure`、`interrupted`、`signal_number` の 6 つの項目で表した(あり得ない組み合わせも表せた)。
 
 ### 4.4 分類(終了コードの決定。`conductor-core` の `classify`)
 
@@ -224,16 +226,15 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 | 順 | 条件 | 分類 | 報告する終了コード |
 |----|------|------|--------------------|
-| 1 | `started = false` かつ `interrupted` | 分類なし(エラーとして記録しない) | `128 + signal_number` |
-| 2 | `started = false` で中断でもない(起こらない) | エラー | 127 |
-| 3 | `interrupted`(起動済み) | エラー | `128 + signal_number`(ジョブ自身の終了コードは見ない。ジョブが 0 で終わっていてもエラー) |
-| 4 | `start_failure` | エラー | 127 |
-| 5 | `terminated_by_signal = Some(n)` | エラー | `128 + n` |
-| 6 | `exit_code = None`(起動して終わったのに値がない) | エラー(`conductor_error`) | 1 |
-| 7 | `exit_code` が成功コード(既定は `[0]`、`success_exit_codes` で指定) | 成功 | 0 |
-| 8 | `exit_code` が `warning_exit_codes` | 警告 | 0 |
-| 9 | `exit_code = 0` で成功コードに含まれない | エラー(`conductor_error`) | 1 |
-| 10 | 上記以外 | エラー | `exit_code` のまま |
+| 1 | `NotStarted { signal }` | 分類なし(エラーとして記録しない) | `128 + signal` |
+| 2 | `Exited { interrupted_by: Some(n), .. }`(起動済みの中断) | エラー | `128 + n`(ジョブ自身の終了コードとシグナルは見ない。ジョブが 0 で終わっていてもエラー) |
+| 3 | `StartFailed` | エラー | 127 |
+| 4 | `Exited { terminated_by_signal: Some(n), .. }` | エラー | `128 + n` |
+| 5 | `Exited { exit_code: None, .. }`(起動して終わったのに値がない) | エラー(`conductor_error`) | 1 |
+| 6 | `exit_code` が成功コード(既定は `[0]`、`success_exit_codes` で指定) | 成功 | 0 |
+| 7 | `exit_code` が `warning_exit_codes` | 警告 | 0 |
+| 8 | `exit_code = 0` で成功コードに含まれない | エラー(`conductor_error`) | 1 |
+| 9 | 上記以外 | エラー | `exit_code` のまま |
 
 `conductor` の終了コードは、報告する終了コードを 0〜255 に合わせたもの(範囲内はそのまま。範囲外は下位 8 ビット。エラーで
 下位 8 ビットが 0 になるときは 1)。
@@ -274,8 +275,8 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 性質 | 立ったら下りない(レベルで持つ)。スレッド間で共有できる(`Sync`)。`cli` は `Arc` で包んで SignalWatcher のスレッドに渡し、runtime は読むだけ |
 | 等価性 | `signal_number()` が等しければ等しい |
 
-番号は、`run_job` の転送の許可集合にない値でも(負数や `i32::MAX` を含め)、立ったことは記録され、`interrupted = true` と `signal_number` に
-そのまま入る。
+番号は、`run_job` の転送の許可集合にない値でも(負数や `i32::MAX` を含め)、立ったことは記録され、`NotStarted { signal }` の `signal` か `Exited` の
+`interrupted_by` に、そのまま入る。
 
 ---
 
@@ -310,7 +311,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
    - `kill` の失敗は無視する。
 4. ジョブは、受け取ったシグナルの既定の動作で終了するか、自分で処理する。`conductor` は待ち続ける。2 回目以降のシグナルでは、何も追加しない。
 5. ジョブの終了を観測する(回収する)。`exit_code`(シグナル終了なら `None`)と `terminated_by_signal` を読み、直後に合図が立っているので
-   `interrupted = true`、`signal_number = 15` を足す。
+   `interrupted_by = Some(15)` を足す(結果は `Exited`)。
 6. 分類で「エラー、`128 + 15 = 143`」となり、Orchestrator はこの結果をステートに**エラーとして**記録する(再開位置はそのジョブ)。
 7. `conductor` は **143** で終わる(`pipeline` は次のジョブを起動しない)。
 
@@ -320,7 +321,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
   Ctrl+C(SIGINT)は、フォアグラウンドのプロセスグループに配られるため、ジョブには直接届かず、`conductor` が受けて 1 回転送する
   (SIGINT のとき、ジョブは `terminated_by_signal = 2` で終わるのが典型)。
 - 転送の許可集合にない番号で合図が立った場合(runtime を直接使う場合のみ起こりうる。`conductor` 本体の監視は 4 つだけを受ける)は、
-  送信せず、ジョブが自分で終わるのを待ち、終わりを観測した後に `interrupted = true`、`signal_number = その番号` を足す
+  送信せず、ジョブが自分で終わるのを待ち、終わりを観測した後に `interrupted_by = Some(その番号)` を足す
   (ジョブの終了コードは `exit_code` に残るが、分類では見ない)。
 - ほぼ同時に複数のシグナルが届いたとき、`signal-hook` が **番号の小さい順**に返すため、「最初の番号」は到着順でなく小さい方になりうる
   (例: INT(2)と HUP(1)なら HUP の 1)。時間を空けて届いたときは、到着順(INT のあとの HUP でも 2 が残る)。
@@ -339,7 +340,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 3. WaitLoop は転送を試みるが、Windows の `forward_signal` は **何もしない**(追加の送信をしない)。
 4. ジョブは、OS から受け取った Ctrl+C で(既定の動作で)終了する。
 5. 終了を観測する。`termination_signal` は常に `None`、`exit_code` は OS の終了コード(Ctrl+C による終了コード)。直後に合図が立っているので
-   `interrupted = true`、`signal_number = 2`。
+   `interrupted_by = Some(2)`。
 6. 分類で「エラー、`128 + 2 = 130`」。ステートに**エラーとして**記録し、**130** で終わる。
 
 その他:
@@ -355,12 +356,12 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 | 合図が立った時点 | 動作 | ステートの記録 | 終了コード |
 |------------------|------|----------------|------------|
-| `run_job` の呼び出しの前(`started = false`) | ジョブを起動しない | 分類なし。エラーとしては記録しない。再開位置はそのジョブ(`apply_outcome` が、起動していない扱いで記録する) | `128 + 番号` |
+| `run_job` の呼び出しの前(`NotStarted`) | ジョブを起動しない | 分類なし。エラーとしては記録しない。再開位置はそのジョブ(`apply_outcome` が、起動していない扱いで記録する) | `128 + 番号` |
 | ジョブの実行中 | 1 回転送(UNIX)。ジョブの終了を待つ | そのジョブを**エラー**として記録(ジョブが 0 で終わっても) | `128 + 番号` |
-| ジョブの終了の観測の直後(転送が間に合わなかった場合を含む) | 起動済みで `interrupted = true`(上の行と同じ扱い) | エラー | `128 + 番号` |
+| ジョブの終了の観測の直後(転送が間に合わなかった場合を含む) | 起動済みで `Exited` に `interrupted_by`(上の行と同じ扱い) | エラー | `128 + 番号` |
 | `pipeline` のジョブとジョブのあいだ(ジョブの結果は成功か警告で、完了ではない) | 次のジョブを起動しない | `resume_point_on_interrupt`(記述順で、まだ起動していない最初のジョブ。エラーのジョブが先にあればそれ)を再開位置にして、中断を記録。エラーとは記録しない。`-v` で `interrupted by signal N` | `128 + 番号` |
 | `pipeline` の最後のジョブが完了した直後(`completed`) | 完了の処理(`--remove-on-complete` ならステートを削除)をして終わる | 完了 | 0(合図は無視される) |
-| リトライの待機中(v0.8.0 以降) | 待機を打ち切る。`started = false`、`interrupted = true`、`signal_number = Some(番号)` の実行結果を作る。次の実行はしない | 分類なし、再開位置はそのジョブ。エラーとしては記録しない | `128 + 番号` |
+| リトライの待機中(v0.8.0 以降) | 待機を打ち切る。`NotStarted { signal: 番号 }` の実行結果を作る。次の実行はしない | 分類なし、再開位置はそのジョブ。エラーとしては記録しない | `128 + 番号` |
 | 定義の検査・ステートの読み込み・照合の途中 | 検査は最後まで進める | (定義の誤り 64、ステートの誤り 65、拒否 66、スキップ 0 の終了コードが、中断の終了コードより優先する) | 各検査の値 |
 
 ### 7.5 リトライの待機(`wait_for`)
@@ -422,7 +423,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 分割の全規則(3 章の表) | `crates/runtime/src/split.rs` の単体テスト |
 | メタ文字が引数にそのまま渡る、配列の要素がそのまま渡る、環境変数と作業ディレクトリの引き継ぎ、起動失敗、終了コード(0・3・255・300) | `crates/runtime/tests/runner_basic.rs` |
 | `env` 引数が子の環境に足される(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ。v0.9.0 以降) | `crates/runtime/tests/runner_env.rs` |
-| 起動前の合図で起動しない、終了の観測の直後の合図で `interrupted` | 同上 |
+| 起動前の合図で起動しない(`NotStarted`)、終了の観測の直後の合図で `interrupted_by` | 同上 |
 | SIGTERM / SIGINT の転送、許可外の番号は送らない、新しいプロセスグループ、転送は 1 回だけ、先に終わったジョブは転送なし | `crates/runtime/tests/runner_signal.rs`(UNIX) |
 | 待ちの間隔(1,2,4,8,10,10)、転送 1 回 | `crates/runtime/src/runner.rs` の単体テスト |
 | `wait_for` の 1 秒以内の打ち切り | `crates/runtime/tests/wait_interruptible.rs` |

@@ -76,7 +76,8 @@
 | `Command` | `Line(String)` / `Argv(Vec<String>)`。`program_name() -> Option<&str>` |
 | `Transition` / `TransitionOn` / `TransitionTarget` | `{ on, next }` / `Success`・`Warning`(`as_str()` で `success`・`warning`)/ `Job(String)`・`End` |
 | `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`multiplier: Option<u32>`、`max_interval_secs: Option<u64>` |
-| `JobExecution` | `job_id`、`command`、`started`、`exit_code: Option<i32>`、`terminated_by_signal: Option<i32>`、`start_failure`、`interrupted`、`signal_number: Option<i32>`。`JobExecution::exited(job, exit_code)` は、起動して終了コードで終わった結果を作る(`--dry-run` の模擬が使う)。05 の 1.2 |
+| `JobExecution` | `job_id`、`command`、`result: ExecutionResult`。組み立ての関数は `new(job, result)`、`exited(job, exit_code)`(起動して終了コードで終わった結果。`--dry-run` の模擬が使う)、`not_started(job, signal)`、`start_failed(job)`。v0.9.5 までは `started`・`exit_code`・`terminated_by_signal`・`start_failure`・`interrupted`・`signal_number` の項目だった。05 の 1.2 |
+| `ExecutionResult` | 起動の結果の 3 つの場合: `NotStarted { signal: i32 }`(起動しなかった中断)、`StartFailed`(起動の失敗)、`Exited { exit_code: Option<i32>, terminated_by_signal: Option<i32>, interrupted_by: Option<i32> }`(終了を観測した)。05 の 1.2 |
 | `JobStatus` / `SkipReason` | `Pending`・`Success`・`Warning`・`Error`・`Skipped` / `ByTransition`・`ByEnd`。どちらも `as_str()` と `parse(&str) -> Option<Self>` で、ステートファイルの語(`pending` など、`byTransition`・`byEnd`)と行き来する |
 | `JobState` | `job_id`、`status`、`exit_code: Option<i32>`、`skip_reason: Option<SkipReason>`。`JobState::pending(id)` |
 | `PipelineState` | `definition_key`、`pipeline_name`、`definition_path`、`job_order: Vec<String>`、`job_states: Vec<JobState>`、`resume_job_id: Option<String>`、`end_reached`、`completed`、`run_id: Option<String>`。06 章 |
@@ -280,7 +281,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | ファイル | 責務 |
 |----------|------|
 | `lib.rs` | 公開の再公開 |
-| `types.rs` | 共有する型(2.1)。型と語の対応(`as_str`、`parse`)、`DEFAULT_SUCCESS_EXIT_CODES`、`JobExecution::exited` |
+| `types.rs` | 共有する型(2.1)。型と語の対応(`as_str`、`parse`)、`DEFAULT_SUCCESS_EXIT_CODES`、`JobExecution` の組み立ての関数と `ExecutionResult` |
 | `consistency.rs` | ステートと定義の照合 `check_consistency`、`ConsistencyResult`、`MismatchKind`(純粋。`conductor-runtime` が再公開する) |
 | `error.rs` | `DefinitionErrorKind`(33 種)、`DefinitionError`、`escape_display`、`sanitize`、`quote_key`、`Locate`(位置→行番号)、ファイル名の表示の上限 `MAX_FILE_DISPLAY_CHARS`(256。`envfile` と共通) |
 | `envfile/mod.rs`(v0.9.0 以降) | `.env` の型(`EnvFileErrorKind` 13 種、`EnvFileError`、`EnvWarning`、`EnvEntry`、`EnvFileContent`、`LoadedEnvFiles`、`EnvContext`、`EnvOrigin`、`EffectiveEntry`、`EffectiveEnv`)、定数(`MAX_ENV_FILE_BYTES = 1_048_576`、`MAX_ENV_ENTRIES = 10_000`、`MAX_REPORTED_ERRORS = 20`、`RESERVED_ENV_PREFIX`)、`is_reserved_env_name`、`env_file_refs`、`summarize_errors` |

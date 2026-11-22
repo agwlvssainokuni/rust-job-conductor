@@ -24,16 +24,17 @@
 
 ### 1.2 1 回の実行結果(`JobExecution`)
 
-| フィールド | 意味 |
-|---|---|
-| `started` | 起動した(spawn に成功した)か。「合図(シグナル)が、起動の前に立っていたため起動しなかった」ときだけ `false`。ほかの起動失敗でも、`started` は `true` のまま(下の `start_failure`) |
-| `exit_code` | プロセスの終了コード(`i32`)。取れないとき(シグナル終了、起動失敗)は無し |
-| `terminated_by_signal` | ジョブがシグナルで終了したときの番号(UNIX 系のみ) |
-| `start_failure` | 起動に失敗した。command を分けられない、spawn の失敗、終了状態を取得できない、のいずれか |
-| `interrupted` | conductor がシグナルを受け取り、中断の合図が立っている(ジョブの終了を観測した直後に立っていた場合を含む) |
-| `signal_number` | `interrupted` のとき、最初に受け取ったシグナルの番号 |
+`JobExecution` は `job_id`、`command`、`result: ExecutionResult` を持つ。`result` は、あり得る 3 つの場合だけを表す。
 
-ジョブの起動手順(runtime の `run_job`): command を分ける(失敗なら `start_failure = true` で終わり)→ 合図が立っていれば `started = false, interrupted = true, signal_number = 番号` で終わり(起動しない)→ spawn(失敗なら `start_failure = true`)→ 終了まで待つ(待機中に合図が立てば、子プロセスに同じシグナルを 1 回だけ転送して終了を待つ)→ 終了コードとシグナル終了を記録 → 終了観測の直後に合図が立っていれば `interrupted = true, signal_number = 番号`。
+| 場合 | 意味 |
+|---|---|
+| `NotStarted { signal }` | 起動しなかった。合図(シグナル)が起動の前に立っていた(`run_job`)か、リトライの待機中に立った(§7.5)。`signal` は最初に受け取ったシグナルの番号 |
+| `StartFailed` | 起動に失敗した。command を分けられない、spawn の失敗、終了状態を取得できない、のいずれか。終了コード・シグナル・中断の番号を持たない |
+| `Exited { exit_code, terminated_by_signal, interrupted_by }` | 起動して、終了を観測した。`exit_code` はプロセスの終了コード(`i32`。シグナル終了では無し)。`terminated_by_signal` はシグナルで終了したときの番号(UNIX 系のみ)。`interrupted_by` は、終了を観測した直後に中断の合図が立っていたときの、最初に受け取ったシグナルの番号 |
+
+v0.9.5 までは、`started`、`exit_code`、`terminated_by_signal`、`start_failure`、`interrupted`、`signal_number` の 6 つの項目で表した(あり得ない組み合わせも表せた)。
+
+ジョブの起動手順(runtime の `run_job`): command を分ける(失敗なら `StartFailed` で終わり)→ 合図が立っていれば `NotStarted { signal: 番号 }` で終わり(起動しない)→ spawn(失敗なら `StartFailed`)→ 終了まで待つ(待機中に合図が立てば、子プロセスに同じシグナルを 1 回だけ転送して終了を待つ)→ `Exited` に終了コードとシグナル終了を記録 → 終了観測の直後に合図が立っていれば `interrupted_by = 番号`。
 
 ### 1.3 結果(`JobOutcome`)
 
@@ -97,12 +98,11 @@ return low
 
 | 順 | 条件 | classification | reported_exit_code | conductor_error |
 |---|---|---|---|---|
-| 1 | `started = false` かつ `interrupted` | なし(`None`) | `128 + signal_number`(無ければ `128 + 0`)、飽和加算 | false |
-| 1' | `started = false` かつ `interrupted` でない(あり得ない組み合わせ) | error | 127 | false |
-| 2 | `interrupted`(起動済み) | error | `128 + signal_number`。ジョブ自身の終了コードは見ない | false |
-| 3 | `start_failure` | error | 127 | false |
-| 4 | `terminated_by_signal = Some(n)` | error | `128 + n` | false |
-| 5 | `exit_code = None`(起動して終わったのに終了コードがない) | error | 1 | **true** |
+| 1 | `NotStarted { signal }` | なし(`None`) | `128 + signal`、飽和加算 | false |
+| 2 | `Exited { interrupted_by: Some(n), .. }`(起動済みの中断) | error | `128 + n`。ジョブ自身の終了コードとシグナルは見ない | false |
+| 3 | `StartFailed` | error | 127 | false |
+| 4 | `Exited { terminated_by_signal: Some(n), .. }` | error | `128 + n` | false |
+| 5 | `Exited { exit_code: None, .. }`(起動して終わったのに終了コードがない) | error | 1 | **true** |
 | 6 | `exit_code ∈ 成功コード` | success | 0 | false |
 | 7 | `exit_code ∈ 警告コード` | warning | 0 | false |
 | 8 | `exit_code = 0`(成功コードに無い) | error | 1 | **true** |
@@ -295,7 +295,7 @@ run_step(session, base, job, command, mode): # base は Option(値で受ける)�
   (outcome, next) = classify_and_decide(job, exec, b.job_states, def, mode)
   表示(§5.5)
   rec = apply_outcome(b, job.id, exec, outcome, next)
-  after = exec.started なら「ジョブは実行されました」、そうでなければ「起動していません」
+  after = exec.result が NotStarted なら「起動していません」、そうでなければ「ジョブは実行されました」
   write(rec, Durable)                        # 失敗: 65、文脈=after
   return StepResult { recorded: rec, outcome, next, after }
 
@@ -467,11 +467,10 @@ else: RunId::parse(value) が失敗なら 68(`invalid value: '<subject>'`)、成
 
 次の**すべて**が成り立つときだけ真。
 
-1. `started = true`
-2. `interrupted = false`
-3. `start_failure = false`
-4. `terminated_by_signal` が無い
-5. `exit_code` があり、`exit_codes` に含まれる
+1. 結果が `Exited`(起動して終了を観測した。`NotStarted` と `StartFailed` は対象でない)
+2. `interrupted_by` が無い
+3. `terminated_by_signal` が無い
+4. `exit_code` があり、`exit_codes` に含まれる
 
 分類(成功・警告・エラー)は見ない。対象の終了コードは成功・警告と重ならない(検証済み)ので、結果として対象はエラーの終了コードだけ。ジョブ自身が 127 で終わった場合は、`exit_codes` に 127 を書いていれば対象(conductor が付けた起動失敗の 127 は対象にならない)。
 
@@ -523,15 +522,14 @@ loop:
             表示: 常に 1 行(§7.6)。retry_number = retries_done + 1
             match wait(wait_secs, signal):
                 Elapsed:        retries_done += 1; last_wait_secs = wait_secs; continue
-                Interrupted(n): return JobExecution{ started=false, interrupted=true, signal_number=Some(n),
-                                                      exit_code=None, start_failure=false, terminated_by_signal=None }
+                Interrupted(n): return JobExecution::not_started(job, n)   # result = NotStarted{ signal: n }
 ```
 
 - 返された最後の結果だけが、分類・表示・ステート記録の対象(ステートは最終の結果で 1 回だけ書かれ、途中では書かれない)。リトライの回数・直前の待ち時間はローカルな値で、ステートファイルに書かない。
 - したがって、conductor が落ちたあとの再開では、そのジョブを最初の実行から数え直す。
 - 使い切った(`retries_done == max` で、まだ対象の終了コード): `Stop` → 通常のエラーと同じ(最後の実行の終了コードで終わり、再開位置はそのジョブ)。再実行の結果が成功・警告なら通常どおり遷移へ進む。
 - 総実行回数: 最大 `max + 1`。知らせの回数: 実際に実行し直す(または待機に入る)回数。
-- 起動前に中断された(合図が立っていた)ジョブはリトライせず、その場で `started = false` の結果を返す。
+- 起動前に中断された(合図が立っていた)ジョブはリトライせず、その場で `NotStarted` の結果を返す。
 
 ### 7.6 待機とシグナル(`wait_for(secs, signal)`)
 
@@ -564,7 +562,7 @@ loop:
 | 受信のタイミング | ジョブの結果 | ステートの記録 | 終了コード |
 |---|---|---|---|
 | ジョブの起動の前(最初のジョブ、`run`) | 起動しない。分類なし | ジョブの状態は変えない。`resume_job_id` = そのジョブ(初期ステートは書かれている) | 128 + n |
-| ジョブの実行中 | 子に同じシグナルを 1 回転送。終了を待つ。`interrupted`。分類 error | そのジョブを `error` で記録(`exit_code` はジョブの値があればそれ) | 128 + n |
+| ジョブの実行中 | 子に同じシグナルを 1 回転送。終了を待つ。`Exited` に `interrupted_by`。分類 error | そのジョブを `error` で記録(`exit_code` はジョブの値があればそれ) | 128 + n |
 | リトライの待機中 | 分類なし(§7.6) | 状態は変えない。再開位置 = そのジョブ | 128 + n |
 | `pipeline` で、ジョブを実行・記録した直後(まだ完了していない) | - | `resume_point_on_interrupt`(§9)で再開位置を記録 | `signal_exit_code(n)` = 128 + n |
 | 定義の検査・ステートの確認の途中 | 検査は最後まで進む | 64・65・66・スキップ(0)が優先 | それぞれ |
@@ -892,7 +890,7 @@ unused_assumptions = 仮定のうち、WillRun の項目にならなかったジ
 ```
 
 - `skip_disposition(reason)`: `AlreadyExecuted` → `AlreadyExecuted`、`AfterEnd` → `SkippedAfterEnd`、`SkipTarget`・`OutOfOrder` → `SkippedByTransition`。
-- `simulate_job`: 合成した `JobExecution { started: true, exit_code: Some(code), 他は false/None }` を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。戻り値は `(SimulatedResult, JobExecution, JobOutcome, NextStep)`(記録に使う実行と分類の結果も返し、分類を 2 回しない)。
+- `simulate_job`: 合成した `JobExecution::exited(job, code)`(`result` は `Exited { exit_code: Some(code), terminated_by_signal: None, interrupted_by: None }`)を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。戻り値は `(SimulatedResult, JobExecution, JobOutcome, NextStep)`(記録に使う実行と分類の結果も返し、分類を 2 回しない)。
 - 模擬のステート `S` の更新は、本番と同じ `apply_skip`・`apply_outcome` で行う(規則は §3.3〜§3.5)。`S` は関数の中だけで持ち、返さず、保存しない。
 - 項目 `PlanEntry`: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 }).names()`(名前と出どころ。値は持たない)。
 - 状態の探索は、ジョブの数に比例する時間で済む(`decide_before_run` は、記録が同じ位置にあればそれを使い、なければ `record_of` と同じに引く。1,000 ジョブの計画の性能のため。挙動は変わらない)。

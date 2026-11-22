@@ -133,7 +133,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 壊れた TOML・ランダムなバイト列のステート | `read_state` が失敗を返し、パニックしない。正しいステートを壊した入力、巨大な値のステートも同様 | `runtime/tests/nfr_robust.rs` |
 | ランダムな `command` | 文字集合 `ab ⇥⏎'"\;|&$*あ` から長さ 0〜39 の文字列を 2,000 件。分割が成功したら `program` は空でない | 同上 |
 | 大きな `command` | 約 30 万引数(`prog ` + `'a b' "c\"d" e ` を 10 万回)が分割できる。閉じない引用符は誤り。再帰がないのでスタックを使わない | 同上 |
-| 起動できない `command` | 空文字列、`'`、`''`、存在しない名前、ディレクトリのパス、`/` は、すべて `start_failure`。範囲外のシグナル番号(`i32::MAX`、`i32::MIN`、0、-1、1,000,000)の合図でも、起動せず `interrupted` | 同上 |
+| 起動できない `command` | 空文字列、`'`、`''`、存在しない名前、ディレクトリのパス、`/` は、すべて起動失敗(`StartFailed`)。範囲外のシグナル番号(`i32::MAX`、`i32::MIN`、0、-1、1,000,000)の合図でも、起動しない(`NotStarted`) | 同上 |
 | 入れ子の深い TOML | 深さ 1,000 の入力で異常終了せず失敗を返す(テストのスレッドの標準のスタック約 2 MiB で) | `core/tests/library_capability.rs`、`runtime/tests/toml_depth.rs` |
 | 製品のコードの書き方 | runtime の製品のコードに `.unwrap()`、`.expect(`、`panic!(`、`unreachable!(`、`todo!(`、`unimplemented!(` がない。converter も入力経路で `unwrap`/`panic` を使わない | `runtime/tests/nfr_source.rs`、`converter/tests/nfr_security.rs` |
 | 内部の誤り | パニックのフックが、固定の英語 `conductor: error: internal error` を標準エラーに書き、終了コード 70。標準エラーが閉じていても 70 | `cli/tests/panic_hook.rs` |
