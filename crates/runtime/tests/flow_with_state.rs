@@ -15,6 +15,10 @@
 //! ジョブの一連の流れのテスト。conductor-core の判断(`decide_before_run`、`classify_and_decide`)と、
 //! この Unit の `run_job`(補助の実行ファイル)・`apply_*`・`write_state`・`read_state`・
 //! `reset_state` を組み合わせて、Cli の流れを、小さな試験用の関数で再現する(契約 C2 の順序の続き)。
+//!
+//! 補助は、今の cli(`run.rs`・`pipeline.rs`・`step.rs`)と同じ順にする: スキップは変わったときだけ
+//! 書く、削除は `remove_on_complete` のときだけ(既定は完了のステートを残し、`read_state` は空として
+//! 返す)、`pipeline` はステートを 1 回だけ読み、定義の記述順に決める。
 
 mod common;
 
@@ -23,8 +27,9 @@ use std::sync::Arc;
 
 use common::*;
 use conductor_core::{
-    Decision, JobDefinition, JobStatus, PipelineDefinition, RunMode, Transition, TransitionOn,
-    TransitionTarget, classify_and_decide, decide_before_run,
+    Classification, Decision, JobDefinition, JobOutcome, JobStatus, NextStep, PipelineDefinition,
+    PipelineState, RunMode, SkipCause, Transition, TransitionOn, TransitionTarget,
+    classify_and_decide, decide_before_run,
 };
 use conductor_runtime::{
     ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateError, StateErrorKind,
@@ -117,17 +122,128 @@ impl From<StateError> for Failure {
     }
 }
 
+/// 1 つのジョブの結果(スキップは `ran = false`)。
 #[derive(Debug)]
 struct Done {
     /// スケジューラへ返す終了コード。
     exit: i32,
-    next_job: Option<String>,
     completed: bool,
     /// ジョブを起動したか。
     ran: bool,
 }
 
-/// Cli の 1 回の呼び出し(1 つのジョブ)を再現する。
+/// 呼び出しの指定。
+#[derive(Debug, Clone, Copy, Default)]
+struct Call {
+    /// 実効の `remove_on_complete`(真なら、完了でステートを消す。既定は偽で、完了のステートは残る)。
+    remove_on_complete: bool,
+    /// 真なら、ジョブの終了のあと、記録の前に止まる(強制終了の再現)。
+    stop_before_record: bool,
+}
+
+/// ステートを読み、定義と照合する(cli の `read_checked_state`。完了のステートは空として読む)。
+fn load_checked(
+    def_path: &Path,
+    definition: &PipelineDefinition,
+) -> Result<Option<PipelineState>, Failure> {
+    let loaded = read_state(def_path)?;
+    if let Some(state) = &loaded
+        && let ConsistencyResult::Mismatch(kind) = check_consistency(state, definition)
+    {
+        return Err(Failure::Mismatch(kind));
+    }
+    Ok(loaded)
+}
+
+/// ステートから判断する(cli の `step::decide`。空なら、状態の一覧は空)。
+fn decide(
+    job_id: &str,
+    definition: &PipelineDefinition,
+    state: Option<&PipelineState>,
+) -> Decision {
+    match state {
+        Some(s) => decide_before_run(
+            job_id,
+            definition,
+            &s.job_states,
+            s.resume_job_id.as_deref(),
+            s.end_reached,
+        ),
+        None => decide_before_run(job_id, definition, &[], None, false),
+    }
+}
+
+/// スキップを記録する(cli の `step::record_skip`)。土台(無ければ初期ステート)に `apply_skip` し、
+/// 変わったときだけ `Durable` で書く。記録と、変わったかを返す。
+fn record_skip(
+    def_path: &Path,
+    definition: &PipelineDefinition,
+    base: Option<&PipelineState>,
+    job_id: &str,
+    reason: SkipCause,
+) -> Result<(PipelineState, bool), Failure> {
+    let base = base
+        .cloned()
+        .unwrap_or_else(|| initial_state(definition, def_path));
+    let recorded = apply_skip(&base, job_id, reason, definition);
+    let changed = recorded != base;
+    if changed {
+        write_state(def_path, &recorded, Durability::Durable)?;
+    }
+    Ok((recorded, changed))
+}
+
+/// 実行した 1 つのジョブの記録(cli の `step::StepResult`)。
+struct Step {
+    recorded: PipelineState,
+    outcome: JobOutcome,
+    next: NextStep,
+    started: bool,
+}
+
+/// ジョブを 1 つ実行して記録する(cli の `step::run_step`)。空なら初期ステートを `Fast` で書き、
+/// 実行・分類・記録・`Durable` で書く。`stop_before_record` なら、記録の前に `None` で止まる。
+fn run_step(
+    def_path: &Path,
+    definition: &PipelineDefinition,
+    base: Option<PipelineState>,
+    job: &JobDefinition,
+    mode: RunMode,
+    signal: &InterruptSignal,
+    stop_before_record: bool,
+) -> Result<Option<Step>, Failure> {
+    let base = match base {
+        Some(state) => state,
+        None => {
+            let initial = initial_state(definition, def_path);
+            write_state(def_path, &initial, Durability::Fast)?;
+            initial
+        }
+    };
+    let execution = run_job(job, &[], signal);
+    if stop_before_record {
+        return Ok(None);
+    }
+    let (outcome, next) = classify_and_decide(job, &execution, &base.job_states, definition, mode);
+    let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
+    write_state(def_path, &recorded, Durability::Durable)?;
+    Ok(Some(Step {
+        recorded,
+        outcome,
+        next,
+        started: execution.started,
+    }))
+}
+
+/// 完了のあとの削除(cli の `step::remove_if_requested`)。`remove_on_complete` が真のときだけ消す。
+fn remove_if_requested(def_path: &Path, remove_on_complete: bool) -> Result<(), Failure> {
+    if remove_on_complete {
+        reset_state(def_path)?;
+    }
+    Ok(())
+}
+
+/// Cli の `run <job-id>` の 1 回の呼び出しを再現する(既定の指定。完了のステートは残る)。
 /// `stop_before_record` が `true` なら、ジョブの終了のあと、記録の前に止まる(強制終了の再現)。
 fn invoke_inner(
     def_path: &Path,
@@ -137,68 +253,67 @@ fn invoke_inner(
     signal: &InterruptSignal,
     stop_before_record: bool,
 ) -> Result<Done, Failure> {
-    let loaded = read_state(def_path)?;
-    let is_empty = loaded.is_none();
-    if let Some(state) = &loaded
-        && let ConsistencyResult::Mismatch(kind) = check_consistency(state, definition)
-    {
-        return Err(Failure::Mismatch(kind));
-    }
-    let state = loaded.unwrap_or_else(|| initial_state(definition, def_path));
+    let call = Call {
+        stop_before_record,
+        ..Call::default()
+    };
+    invoke_with(def_path, definition, job_id, mode, signal, call)
+}
 
-    let decision = decide_before_run(
-        job_id,
-        definition,
-        &state.job_states,
-        state.resume_job_id.as_deref(),
-        state.end_reached,
-    );
-    match decision {
+/// Cli の `run <job-id>`(`run_individual`)と同じ順で、1 つのジョブを処理する。
+fn invoke_with(
+    def_path: &Path,
+    definition: &PipelineDefinition,
+    job_id: &str,
+    mode: RunMode,
+    signal: &InterruptSignal,
+    call: Call,
+) -> Result<Done, Failure> {
+    let state = load_checked(def_path, definition)?;
+    match decide(job_id, definition, state.as_ref()) {
         Decision::Reject(_) => Err(Failure::Rejected),
         Decision::Skip(reason) => {
-            let next = apply_skip(&state, job_id, reason, definition);
-            write_state(def_path, &next, Durability::Durable)?;
-            let completed = next.completed;
-            if completed {
-                reset_state(def_path)?;
+            let (recorded, changed) =
+                record_skip(def_path, definition, state.as_ref(), job_id, reason)?;
+            // run は、記録が変わって完了したときだけ、消すかを決める。
+            if changed && recorded.completed {
+                remove_if_requested(def_path, call.remove_on_complete)?;
             }
             Ok(Done {
                 exit: 0,
-                next_job: None,
-                completed,
+                completed: recorded.completed,
                 ran: false,
             })
         }
         Decision::Run => {
-            if is_empty {
-                write_state(def_path, &state, Durability::Fast)?;
-            }
             let job = definition
                 .job
                 .iter()
                 .find(|j| j.id == job_id)
                 .expect("定義にある");
-            let execution = run_job(job, &[], signal);
-            if stop_before_record {
+            let Some(step) = run_step(
+                def_path,
+                definition,
+                state,
+                job,
+                mode,
+                signal,
+                call.stop_before_record,
+            )?
+            else {
                 return Ok(Done {
                     exit: -1,
-                    next_job: None,
                     completed: false,
                     ran: true,
                 });
-            }
-            let (outcome, next) =
-                classify_and_decide(job, &execution, &state.job_states, definition, mode);
-            let recorded = apply_outcome(&state, job_id, &execution, &outcome, &next);
-            write_state(def_path, &recorded, Durability::Durable)?;
-            if next.completed {
-                reset_state(def_path)?;
+            };
+            if step.next.completed {
+                remove_if_requested(def_path, call.remove_on_complete)?;
             }
             Ok(Done {
-                exit: outcome.reported_exit_code,
-                next_job: next.next_job_id,
-                completed: next.completed,
-                ran: execution.started,
+                exit: step.outcome.reported_exit_code,
+                completed: step.next.completed,
+                ran: step.started,
             })
         }
     }
@@ -210,41 +325,126 @@ fn invoke(
     job_id: &str,
     mode: RunMode,
 ) -> Result<Done, Failure> {
+    invoke_call(scene, definition, job_id, mode, Call::default())
+}
+
+fn invoke_call(
+    scene: &Scene,
+    definition: &PipelineDefinition,
+    job_id: &str,
+    mode: RunMode,
+    call: Call,
+) -> Result<Done, Failure> {
     let def = scene.def_path();
     let definition = definition.clone();
     let job_id = job_id.to_string();
     run_with_limit(
         || {},
         move || {
-            invoke_inner(
+            invoke_with(
                 &def,
                 &definition,
                 &job_id,
                 mode,
                 &InterruptSignal::new(),
-                false,
+                call,
             )
         },
     )
 }
 
-/// 一連の実行(`pipeline`): ステートの再開位置(なければ先頭)から、最後か停止まで。
-fn pipeline(scene: &Scene, definition: &PipelineDefinition) -> Result<Vec<Done>, Failure> {
-    let start = read_state(&scene.def_path())?
-        .and_then(|s| s.resume_job_id)
-        .unwrap_or_else(|| definition.job[0].id.clone());
+/// Cli の `pipeline <name>`(`run_pipeline`)と同じ順で、一連の実行を再現する。ステートを 1 回だけ読み、
+/// 照合し、定義の記述順に各ジョブを決める(スキップ・実行・エラーでの停止・完了)。各ジョブの結果を返す。
+fn pipeline_inner(
+    def_path: &Path,
+    definition: &PipelineDefinition,
+    remove_on_complete: bool,
+) -> Result<Vec<Done>, Failure> {
+    let signal = InterruptSignal::new();
+    let mut current = load_checked(def_path, definition)?;
     let mut done = Vec::new();
-    let mut current = Some(start);
-    while let Some(id) = current {
-        let d = invoke(scene, definition, &id, RunMode::Pipeline)?;
-        current = d.next_job.clone();
-        done.push(d);
+    for job in &definition.job {
+        match decide(&job.id, definition, current.as_ref()) {
+            Decision::Reject(_) => return Err(Failure::Rejected),
+            Decision::Skip(reason) => {
+                // pipeline は、記録が変わらなくても、完了なら消すかを決める。
+                let (recorded, _changed) =
+                    record_skip(def_path, definition, current.as_ref(), &job.id, reason)?;
+                let completed = recorded.completed;
+                done.push(Done {
+                    exit: 0,
+                    completed,
+                    ran: false,
+                });
+                current = Some(recorded);
+                if completed {
+                    remove_if_requested(def_path, remove_on_complete)?;
+                    return Ok(done);
+                }
+            }
+            Decision::Run => {
+                let step = run_step(
+                    def_path,
+                    definition,
+                    current.take(),
+                    job,
+                    RunMode::Pipeline,
+                    &signal,
+                    false,
+                )?
+                .expect("記録の前に止めない");
+                let stop = step.outcome.classification == Some(Classification::Error)
+                    || step.outcome.classification.is_none();
+                done.push(Done {
+                    exit: step.outcome.reported_exit_code,
+                    completed: step.next.completed,
+                    ran: step.started,
+                });
+                if stop {
+                    // エラーで停止する(再試行しない)。
+                    return Ok(done);
+                }
+                if step.next.completed {
+                    remove_if_requested(def_path, remove_on_complete)?;
+                    return Ok(done);
+                }
+                current = Some(step.recorded);
+            }
+        }
     }
-    Ok(done)
+    panic!("記述順のジョブがなくなったのに、完了していない");
+}
+
+/// 一連の実行(既定の指定。完了のステートは残る)。
+fn pipeline(scene: &Scene, definition: &PipelineDefinition) -> Result<Vec<Done>, Failure> {
+    pipeline_with(scene, definition, false)
+}
+
+fn pipeline_with(
+    scene: &Scene,
+    definition: &PipelineDefinition,
+    remove_on_complete: bool,
+) -> Result<Vec<Done>, Failure> {
+    let def = scene.def_path();
+    let definition = definition.clone();
+    run_with_limit(
+        || {},
+        move || pipeline_inner(&def, &definition, remove_on_complete),
+    )
+}
+
+/// 完了のステートが残っていることを確かめる(ファイルはあり、`read_state` は空として返す)。
+fn assert_completed_state_kept(scene: &Scene) {
+    assert!(scene.state_path().exists(), "完了のステートが残る");
+    assert_eq!(
+        read_state(&scene.def_path()).expect("読める"),
+        None,
+        "完了のステートは空として読む"
+    );
 }
 
 #[test]
-fn ac4_2_1_個別実行で最後まで行くとステートが初期化される() {
+fn ac4_2_1_個別実行で最後まで行くと完了のステートが残る() {
     let scene = Scene::new();
     let def = scene.definition(vec![
         scene.job("a", 0),
@@ -264,8 +464,22 @@ fn ac4_2_1_個別実行で最後まで行くとステートが初期化される
 
     let d = invoke(&scene, &def, "c", RunMode::Individual).expect("実行できる");
     assert!(d.completed);
-    assert!(!scene.state_path().exists(), "完了でステートが初期化される");
+    assert_completed_state_kept(&scene);
     assert_eq!(scene.ran(), ["a", "b", "c"]);
+
+    // `remove_on_complete` が真なら、完了でステートが消える(完了のステートは空なので、a から動く)。
+    let removing = Call {
+        remove_on_complete: true,
+        ..Call::default()
+    };
+    for id in ["a", "b"] {
+        let d = invoke_call(&scene, &def, id, RunMode::Individual, removing).expect("実行できる");
+        assert!(!d.completed);
+    }
+    let d = invoke_call(&scene, &def, "c", RunMode::Individual, removing).expect("実行できる");
+    assert!(d.completed);
+    assert!(!scene.state_path().exists(), "完了でステートが消える");
+    assert_eq!(scene.ran(), ["a", "b", "c", "a", "b", "c"]);
 }
 
 #[test]
@@ -296,7 +510,7 @@ fn ac4_2_2_end_のあと最後のジョブのスキップで完了する() {
 
     let d = invoke(&scene, &def, "b", RunMode::Individual).expect("スキップできる");
     assert_eq!((d.exit, d.ran, d.completed), (0, false, true));
-    assert!(!scene.state_path().exists());
+    assert_completed_state_kept(&scene);
     assert_eq!(scene.ran(), ["a"], "b は起動されない");
 }
 
@@ -320,7 +534,7 @@ fn ac4_2_3_end_のあとの個別実行は最後のジョブのスキップで�
 
     let d = invoke(&scene, &def, "c", RunMode::Individual).expect("スキップできる");
     assert!(d.completed);
-    assert!(!scene.state_path().exists());
+    assert_completed_state_kept(&scene);
     assert_eq!(scene.ran(), ["a"]);
 }
 
@@ -343,11 +557,11 @@ fn 遷移によるスキップのあと最後のジョブの実行で完了す�
     let d = invoke(&scene, &def, "c", RunMode::Individual).expect("実行できる");
     assert!(d.completed);
     assert_eq!(scene.ran(), ["a", "c"]);
-    assert!(!scene.state_path().exists());
+    assert_completed_state_kept(&scene);
 }
 
 #[test]
-fn ac4_2_4_一連の実行の_end_で完了しステートが初期化される() {
+fn ac4_2_4_一連の実行の_end_で完了し完了のステートが残る() {
     let scene = Scene::new();
     let def = scene.definition(vec![
         on_success_go(scene.job("a", 0), TransitionTarget::End),
@@ -357,7 +571,7 @@ fn ac4_2_4_一連の実行の_end_で完了しステートが初期化される(
     let done = pipeline(&scene, &def).expect("実行できる");
     assert_eq!(done.len(), 1);
     assert!(done[0].completed);
-    assert!(!scene.state_path().exists());
+    assert_completed_state_kept(&scene);
     assert_eq!(scene.ran(), ["a"]);
 }
 
@@ -388,7 +602,7 @@ fn ac4_3_1_ac4_3_2_エラーからの再開() {
     let done = pipeline(&scene, &fixed).expect("実行できる");
     assert!(done.last().is_some_and(|d| d.completed));
     assert_eq!(scene.ran(), ["a", "b", "b", "c"]);
-    assert!(!scene.state_path().exists());
+    assert_completed_state_kept(&scene);
 }
 
 #[test]
