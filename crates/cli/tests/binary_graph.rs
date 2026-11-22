@@ -201,9 +201,9 @@ fn 同じ行き先の定義は_合流の行のレーンの図で出る() {
     assert_eq!(text(&out.stderr), "");
 }
 
-/// 成功と警告の両方が飛び越す定義(例 D1)の text が、通常の飛び越しと同じ線(主線の線だけ省く)で出る。交差は、辺の一覧に残る。
+/// 成功と警告の両方が飛び越す定義(例 D1)の text が、通常の飛び越しと同じ線(主線の線だけ省く)で出る。交差に同じ行き先が混ざる形は、辺の一覧に残る。
 #[test]
-fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_交差は辺の一覧のまま() {
+fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_交差と同じ行き先は辺の一覧のまま() {
     let ok = helper_command("exit 0");
     let both = "[[job.transitions]]\non = \"warning\"\nnext = \"c\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"c\"\n";
     let jobs = [
@@ -220,17 +220,16 @@ fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_
         "*   a\n \\\n* | b\n /\n* c\n* d\no @end\n"
     );
 
-    // 交差する形(a→d、b→e)は、辺の一覧と、広い言い方の注記。
+    // 交差し、かつ同じ行き先(a→e と c→e)を含む形は、辺の一覧と、広い言い方の注記。
+    let to_e = "[[job.transitions]]\non = \"success\"\nnext = \"e\"\n";
+    let to_f = "[[job.transitions]]\non = \"success\"\nnext = \"f\"\n";
     let crossing = [
-        job_block("a", &ok, A_TO_D),
-        job_block(
-            "b",
-            &ok,
-            "[[job.transitions]]\non = \"success\"\nnext = \"e\"\n",
-        ),
-        job_block("c", &ok, ""),
+        job_block("a", &ok, to_e),
+        job_block("b", &ok, to_f),
+        job_block("c", &ok, to_e),
         job_block("d", &ok, ""),
         job_block("e", &ok, ""),
+        job_block("f", &ok, ""),
     ];
     let project = Project::new(&definition("p", &crossing));
     let out = project.run(&["graph"]);
@@ -242,6 +241,28 @@ fn 両方の飛び越しの定義は_通常の飛び越しと同じ線で描き_
         "{}",
         text(&out.stdout)
     );
+}
+
+/// 交差する飛び越し(a→d、b→e。例 C1)の定義の text が、交差の行を含むレーンの図で出る。
+#[test]
+fn 交差する飛び越しの定義は_交差の行を含むレーンの図で出る() {
+    let ok = helper_command("exit 0");
+    let to = |t: &str| format!("[[job.transitions]]\non = \"success\"\nnext = \"{t}\"\n");
+    let jobs = [
+        job_block("a", &ok, &to("d")),
+        job_block("b", &ok, &to("e")),
+        job_block("c", &ok, ""),
+        job_block("d", &ok, ""),
+        job_block("e", &ok, ""),
+    ];
+    let project = Project::new(&definition("p", &jobs));
+    let out = project.run(&["graph"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(
+        text(&out.stdout),
+        "*   a\n|\\\n* \\   b\n|\\ \\\n* | | c\n| |/\n|/|\n* | d\n|/\n* e\no @end\n"
+    );
+    assert_eq!(text(&out.stderr), "");
 }
 
 /// 分岐(a の成功が c、警告が d。例 B1)の定義の text が、2 本の線を同時に開くレーンの図で出る。

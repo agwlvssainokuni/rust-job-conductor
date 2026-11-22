@@ -54,6 +54,9 @@ fn text_of(
 
 const A_TO_D: &[(&str, &str)] = &[("a", "d")];
 const IDS5: [&str; 5] = ["a", "b", "c", "d", "e"];
+/// 交差し、かつ同じ行き先を含む形(辺の一覧になる)。
+const E1_IDS: [&str; 7] = ["a", "b", "c", "d", "e", "f", "g"];
+const E1_SKIPS: [(&str, &str); 3] = [("a", "e"), ("b", "f"), ("c", "e")];
 
 #[test]
 fn レーンの図の例_g1_から_g4_と_g6() {
@@ -94,20 +97,17 @@ fn レーンの図の例_g1_から_g4_と_g6() {
 
 #[test]
 fn 辺の一覧の例_e1_交差と_状態つき() {
-    let e1 = definition(
-        &["a", "b", "c", "d", "e", "f"],
-        &[("a", "d"), ("b", "e")],
-        "",
-    );
+    // 交差し、さらに同じ行き先(a→e と c→e)を含む形は、範囲の外なので辺の一覧(BR2.1)。
+    let e1 = definition(&E1_IDS, &E1_SKIPS, "");
     assert_eq!(
         text_of(Language::Ja, &e1, None, false),
         "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
-         ジョブ:\n  a\n  b\n  c\n  d\n  e\n  f\n\
-         辺:\n  a -> b (警告)\n  a -> d (成功)\n  b -> c (警告)\n  b -> e (成功)\n  c -> d\n  d -> e\n  e -> f\n  f -> @end\n"
+         ジョブ:\n  a\n  b\n  c\n  d\n  e\n  f\n  g\n\
+         辺:\n  a -> b (警告)\n  a -> e (成功)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
     );
-    // E2: 交差する形に、状態を重ねる。
+    // E2: 辺の一覧の形に、状態を重ねる。
     let overlay = StateOverlay {
-        states: ["a", "b", "c", "d", "e", "f"]
+        states: ["a", "b", "c", "d", "e", "f", "g"]
             .iter()
             .map(|id| (id.to_string(), NodeState::Pending))
             .collect(),
@@ -116,8 +116,8 @@ fn 辺の一覧の例_e1_交差と_状態つき() {
     assert_eq!(
         text_of(Language::Ja, &e1, Some(&overlay), false),
         "注記: 飛び越しが交差するなどの形のため、レーンの図の代わりに、辺の一覧を出します。\n\
-         ジョブ:\n  [  ] a\n  [  ] b\n  [  ] c\n  [  ] d\n  [  ] e\n  [  ] f\n\
-         辺:\n  a -> b (警告)\n  a -> d (成功)\n  b -> c (警告)\n  b -> e (成功)\n  c -> d\n  d -> e\n  e -> f\n  f -> @end\n"
+         ジョブ:\n  [  ] a\n  [  ] b\n  [  ] c\n  [  ] d\n  [  ] e\n  [  ] f\n  [  ] g\n\
+         辺:\n  a -> b (警告)\n  a -> e (成功)\n  b -> c (警告)\n  b -> f (成功)\n  c -> d (警告)\n  c -> e (成功)\n  d -> e\n  e -> f\n  f -> g\n  g -> @end\n"
     );
 }
 
@@ -225,7 +225,7 @@ fn 分岐の図に_v_の詳細と_state_を重ねる() {
 
 #[test]
 fn 英語の注記は_レーンの図で描けない形を含む言い方() {
-    let e1 = definition(&IDS5, &[("a", "d"), ("b", "e")], "");
+    let e1 = definition(&E1_IDS, &E1_SKIPS, "");
     let text = text_of(Language::En, &e1, None, false);
     assert!(
         text.starts_with(
@@ -344,12 +344,12 @@ fn v_は_リトライと配列のコマンドと英語の文を出し_辺の一�
         "{ja}"
     );
 
-    // 辺の一覧(交差)の `-v` は、ジョブの行の下に、4 つの空白で字下げした詳細。
-    let crossing = definition(&["a", "b", "c", "d", "e"], &[("a", "d"), ("b", "e")], "");
+    // 辺の一覧(交差と同じ行き先)の `-v` は、ジョブの行の下に、4 つの空白で字下げした詳細。
+    let crossing = definition(&E1_IDS, &E1_SKIPS, "");
     let list = text_of(Language::En, &crossing, None, true);
     assert!(
         list.contains(
-            "Jobs:\n  a\n    command: echo a\n    success -> d (skips b, c), warning -> b\n  b\n"
+            "Jobs:\n  a\n    command: echo a\n    success -> e (skips b, c, d), warning -> b\n  b\n"
         ),
         "{list}"
     );
@@ -411,4 +411,61 @@ fn mermaid_のラベルは_特別な文字をエスケープし_idを壊さな�
     .unwrap();
     let out = render_mermaid(Language::En, &build_graph(&def, None));
     assert!(out.contains("n0[\"end\"]\n  n1[\"取得\"]\n"), "{out}");
+}
+
+const C1_TEXT: &str = "*   a\n|\\\n* \\   b\n|\\ \\\n* | | c\n| |/\n|/|\n* | d\n|/\n* e\no @end\n";
+
+#[test]
+fn 交差の例_c1_は_交差の行を含むレーンの図で出る() {
+    let c1 = definition(&IDS5, &[("a", "d"), ("b", "e")], "");
+    assert_eq!(text_of(Language::Ja, &c1, None, false), C1_TEXT);
+    // 英語でも図は同じ(ラベルはジョブ ID)。
+    assert_eq!(text_of(Language::En, &c1, None, false), C1_TEXT);
+}
+
+#[test]
+fn 交差の例_c2_は_3_本の線が続けて交差し_横線を含む() {
+    let c2 = definition(
+        &["a", "b", "c", "d", "e", "f", "g"],
+        &[("a", "d"), ("b", "e"), ("c", "f")],
+        "",
+    );
+    let text = text_of(Language::Ja, &c2, None, false);
+    assert_eq!(
+        text,
+        "*   a\n|\\\n* \\   b\n|\\ \\\n* \\ \\   c\n|\\ \\ \\\n| |_|/\n|/| |\n* | | d\n| |/\n|/|\n* | e\n|/\n* f\n* g\no @end\n"
+    );
+}
+
+#[test]
+fn 交差の図の_v_は_交差の行の置き場所を変えず_詳細の行を足す() {
+    let c1 = definition(&IDS5, &[("a", "d"), ("b", "e")], "");
+    let text = text_of(Language::En, &c1, None, true);
+    assert_eq!(
+        text,
+        "*   a\n|\\\n| | command: echo a\n| | success -> d (skips b, c), warning -> b\n\
+         * \\   b\n|\\ \\\n| | | command: echo b\n| | | success -> e (skips c, d), warning -> c\n\
+         * | | c\n| | | command: echo c\n| |/\n|/|\n\
+         * | d\n| | command: echo d\n|/\n* e\n| command: echo e\no @end\n"
+    );
+}
+
+#[test]
+fn 交差の図に_state_の状態を重ねる() {
+    let c1 = definition(&IDS5, &[("a", "d"), ("b", "e")], "");
+    let overlay = StateOverlay {
+        states: vec![
+            ("a".into(), NodeState::Ok),
+            ("b".into(), NodeState::Ok),
+            ("c".into(), NodeState::Error),
+            ("d".into(), NodeState::Pending),
+            ("e".into(), NodeState::Pending),
+        ],
+        resume_job_id: Some("c".into()),
+    };
+    let text = text_of(Language::Ja, &c1, Some(&overlay), false);
+    assert_eq!(
+        text,
+        "*   [OK] a\n|\\\n* \\   [OK] b\n|\\ \\\n* | | [NG] c  <- 再開位置\n| |/\n|/|\n* | [  ] d\n|/\n* [  ] e\no @end\n"
+    );
 }
