@@ -95,8 +95,6 @@ pub mod platform;
 pub mod report;
 mod retry;
 mod run;
-// 次のコミットで run・pipeline から呼ぶ。それまでの未使用の警告を抑える。
-#[allow(dead_code)]
 mod step;
 pub mod types;
 
