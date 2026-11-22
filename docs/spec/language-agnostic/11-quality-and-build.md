@@ -577,22 +577,22 @@ job:
 
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-206 | TOML から YAML | `T/in.toml` = `CV1` | `convert in.toml --to yaml` | 終了 0。ERR 空。OUT は YAML で、`format_version: 1` と `id: extract` を含む。OUT を YAML として読んだ木が `CV1` の木と等しい。マップのキーは辞書順、インデントは 2 スペース、シーケンスは親のキーより 2 スペース深い(`job:` の次の行に `  - command: …`)。末尾は改行 | `convert_ac::ac_7_1_1_toml_to_yaml`、`binary_basic::convert は変換結果だけを標準出力に出す` |
-| AC-207 | YAML から TOML(アンカー展開) | `T/in.yaml` = `CV2` | `convert in.yaml --to toml` | 0。OUT に `<<` がなく、`[[job]]` を含む。OUT を TOML として読んだ木が、`CV2` を展開した木と等しい(`transform` の `success_exit_codes` は `[0]`、`extract` は `[0, 2]`) | `convert_ac::ac_7_1_2_yaml_with_anchors_to_toml` |
+| AC-206 | TOML から YAML | `T/in.toml` = `CV1` | `convert in.toml --to yaml` | 終了 0。ERR 空。OUT は YAML で、`format_version: 1` と `id: extract` を含む。OUT を YAML として読んだ木が `CV1` の木と等しい。マップのキーは辞書順、インデントは 2 スペース、シーケンスは親のキーより 2 スペース深い(`job:` の次の行に `  - command: …`)。末尾は改行 | `convert_ac::ac_7_1_1_toml_から_yaml`、`binary_basic::convert は変換結果だけを標準出力に出す` |
+| AC-207 | YAML から TOML(アンカー展開) | `T/in.yaml` = `CV2` | `convert in.yaml --to toml` | 0。OUT に `<<` がなく、`[[job]]` を含む。OUT を TOML として読んだ木が、`CV2` を展開した木と等しい(`transform` の `success_exit_codes` は `[0]`、`extract` は `[0, 2]`) | `convert_ac::ac_7_1_2_アンカーつきの_yaml_から_toml` |
 | AC-208 | 変換の出力は標準出力だけ | `T/in.yaml` = `format_version: 1⏎pipeline:⏎  name: p⏎job:⏎  - id: a⏎    command: echo a` | `convert in.yaml --to toml` | 0。ERR 空。OUT に `[[job]]` と `format_version = 1` | `binary_basic::convert は変換結果だけを標準出力に出す` |
-| AC-209 | 入力形式は `--to` の反対で、拡張子は見ない | `T/looks-like.toml` = `a: 1⏎b: [x, y]` | `convert looks-like.toml --to toml` / `convert looks-like.toml --to yaml` | 前者: 0、OUT に `a = 1`。後者: 67(TOML として読んで `syntax error`) | `convert_ac::input_format_is_the_opposite_of_target_and_extension_is_ignored` |
+| AC-209 | 入力形式は `--to` の反対で、拡張子は見ない | `T/looks-like.toml` = `a: 1⏎b: [x, y]` | `convert looks-like.toml --to toml` / `convert looks-like.toml --to yaml` | 前者: 0、OUT に `a = 1`。後者: 67(TOML として読んで `syntax error`) | `convert_ac::入力の形式は変換後の反対で_拡張子は見ない` |
 | AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to toml` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:1: syntax error: 文法の誤りです` | `binary_basic::convert は…失敗: 標準出力は空 67`、`convert_ac::ac_7_1_3` |
 | AC-211 | 入力がない | なし | `convert nofile --to toml` | 67。ERR = `conductor: error: nofile: input file does not exist: 指定の場所にファイルがありません` | `flow_aux::convert の入力がないときも 67` |
-| AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to toml` | 67。`cannot read input file` | `convert_ac::convert_reports_file_level_failures_in_order` |
-| AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::convert_reports_file_level_failures_in_order` |
-| AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::exactly_one_mib_of_valid_input_converts` |
-| AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to toml` | 67。`cannot read input file`(文法を見る前) | `convert_ac::convert_reports_file_level_failures_in_order` |
+| AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to toml` | 67。`cannot read input file` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
+| AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
+| AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::ちょうど1_mibの正しい入力は変換できる` |
+| AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to toml` | 67。`cannot read input file`(文法を見る前) | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to toml` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` | `flow_aux::convert は表せない値を場所つきで表示する`、`read_resolve::first_unrepresentable_value_in_input_order_with_key_path` |
 | AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x`。TOML: `d = 1979-05-27T07:32:00Z` / `d = 1979-05-27` / `t = 07:32:00` | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(3 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(2 つ)、`文字列でないキーは表せません`(2 つ)、`日時の値は表せません`(3 つ) | `read_resolve::null_forms_and_other_unrepresentable_kinds / toml_datetime_is_unrepresentable` |
 | AC-218 | 複数の文書 | `a: 1⏎---⏎b: 2` | `convert in.yaml --to toml` | 67。`value cannot be represented in the target format: 複数の文書は表せません` | `read_resolve::multiple_documents_are_unrepresentable` |
 | AC-219 | 最上位がマップでない | `- 1⏎- 2` | `convert in.yaml --to toml` | 67。`top level is not a map: 最上位がマップではありません`(行 1) | `read_resolve::root_must_be_a_map` |
 | AC-220 | 空の YAML | 空ファイル(または `# c` だけ) | `convert in.yaml --to toml` | 67。`top level is not a map: 文書が空です` | `read_resolve`(09 章 5.3 節) |
-| AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::input_with_comments_converts_and_comments_are_dropped` |
+| AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::コメントつきの入力は変換でき_コメントは捨てる` |
 | AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_roundtrip::output_is_deterministic`) |
 | AC-223 | 空のマップ | `{}`(YAML)、空(TOML) | `convert in.yaml --to toml` / `convert in.toml --to yaml` | 0。TOML の出力は空文字列。YAML の出力は `{}` | 09 章 9 節 |
 | AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to toml` | 0。`d` は `x = 1`、`y = 9`(自身のキーが優先) | `read_resolve::merge_key_single_list_and_priority` |

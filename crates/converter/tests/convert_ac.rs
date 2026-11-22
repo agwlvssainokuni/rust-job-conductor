@@ -37,7 +37,7 @@ fn request(path: PathBuf, target: TargetFormat) -> ConversionRequest {
 }
 
 #[test]
-fn ac_7_1_1_toml_to_yaml() {
+fn ac_7_1_1_toml_から_yaml() {
     let out = convert(&request(fixture("pipeline.toml"), TargetFormat::Yaml)).unwrap();
     assert_eq!(
         yaml(&out.text).unwrap(),
@@ -48,7 +48,7 @@ fn ac_7_1_1_toml_to_yaml() {
 }
 
 #[test]
-fn ac_7_1_2_yaml_with_anchors_to_toml() {
+fn ac_7_1_2_アンカーつきの_yaml_から_toml() {
     let out = convert(&request(fixture("pipeline.yaml"), TargetFormat::Toml)).unwrap();
     assert_eq!(
         toml(&out.text).unwrap(),
@@ -60,7 +60,7 @@ fn ac_7_1_2_yaml_with_anchors_to_toml() {
 }
 
 #[test]
-fn ac_7_1_3_broken_input_returns_kind_and_line_and_no_output() {
+fn ac_7_1_3_壊れた入力は種類と行を返し_出力しない() {
     let e = convert(&request(fixture("broken.yaml"), TargetFormat::Toml)).unwrap_err();
     assert_eq!(e.kind, K::Syntax);
     assert!(e.line.is_some());
@@ -75,7 +75,7 @@ fn ac_7_1_3_broken_input_returns_kind_and_line_and_no_output() {
 }
 
 #[test]
-fn input_format_is_the_opposite_of_target_and_extension_is_ignored() {
+fn 入力の形式は変換後の反対で_拡張子は見ない() {
     // 拡張子が `.toml` でも、`--to toml` なら、YAML として読む(BR1.1)
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("looks-like.toml");
@@ -88,7 +88,7 @@ fn input_format_is_the_opposite_of_target_and_extension_is_ignored() {
 }
 
 #[test]
-fn convert_reports_file_level_failures_in_order() {
+fn 変換はファイルの失敗を決まった順で報告する() {
     let dir = tempfile::tempdir().unwrap();
 
     let missing = dir.path().join("none.yaml");
@@ -124,7 +124,7 @@ fn convert_reports_file_level_failures_in_order() {
 }
 
 #[test]
-fn exactly_one_mib_of_valid_input_converts() {
+fn ちょうど1_mibの正しい入力は変換できる() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("max.yaml");
     let head = "a: \"";
@@ -137,7 +137,7 @@ fn exactly_one_mib_of_valid_input_converts() {
 }
 
 #[test]
-fn convert_text_does_not_touch_files_and_uses_the_label() {
+fn convert_text_はファイルに触れず_ラベルを使う() {
     let e = convert_text("a: [1\n", TargetFormat::Toml, "my-label.yaml").unwrap_err();
     assert_eq!(e.file, "my-label.yaml");
     let out = convert_text("a: 1\n", TargetFormat::Toml, "x").unwrap();
@@ -145,7 +145,7 @@ fn convert_text_does_not_touch_files_and_uses_the_label() {
 }
 
 #[test]
-fn input_with_comments_converts_and_comments_are_dropped() {
+fn コメントつきの入力は変換でき_コメントは捨てる() {
     let out = convert_text(
         "# 先頭のコメント\na: 1 # 末尾のコメント\n",
         TargetFormat::Toml,
