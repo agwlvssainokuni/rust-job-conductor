@@ -583,3 +583,83 @@ fn 同じ行き先が混ざる交差の図に_state_の状態を重ねる() {
         "*   [OK] a\n|\\\n* \\   [OK] b\n|\\ \\\n* \\ \\   [NG] c  <- 再開位置\n|\\ \\ \\\n| |/ /\n|/| /\n| |/\n* / [  ] d\n|/\n* [  ] e\no @end\n"
     );
 }
+
+const IDS6: [&str; 6] = ["a", "b", "c", "d", "e", "f"];
+
+/// N1: 「両方の飛び越し」`a` が `d` へと、通常の飛び越し `b` の成功が `e` へが交差する。
+fn n1_definition() -> PipelineDefinition {
+    definition(&IDS6, &[("b", "e")], &both_skip_extra("d"))
+}
+
+const N1_TEXT: &str =
+    "*   a\n \\\n* \\   b\n \\ \\\n* | | c\n  |/\n /|\n* | d\n|/\n* e\n* f\no @end\n";
+
+#[test]
+fn n1_の図は_text_の全文で出る() {
+    // a は次のジョブへの辺がなく、b、c は実行されないので、その下の行の列 0 は空白(BR1.4)。
+    assert_eq!(
+        text_of(Language::Ja, &n1_definition(), None, false),
+        N1_TEXT
+    );
+}
+
+#[test]
+fn n1_の_v_の詳細の行の列0は_図の行と同じ規則() {
+    // 詳細の行の列 0 も、そのジョブが実行されうる、かつ次のジョブへの辺を持つときだけ `|`(BR1.4)。
+    assert_eq!(
+        text_of(Language::En, &n1_definition(), None, true),
+        "*   a\n \\\n  | command: echo a\n  | success, warning -> d (skips b, c)\n\
+         * \\   b\n \\ \\\n  | | command: echo b\n  | | success -> e (skips c, d), warning -> c\n\
+         * | | c\n  | | command: echo c\n  |/\n /|\n\
+         * | d\n| | command: echo d\n|/\n\
+         * e\n| command: echo e\n* f\n| command: echo f\no @end\n"
+    );
+}
+
+#[test]
+fn n2_の_v_の詳細の行の列0は_図の行と同じ規則() {
+    // N2: 分岐 a の成功が c、警告が e と、通常の飛び越し b の成功が d へが交差する。
+    let n2 = definition(&IDS6, &[("b", "d")], &branch_extra("c", "e"));
+    assert_eq!(
+        text_of(Language::En, &n2, None, true),
+        "*     a\n \\ \\\n  | | command: echo a\n  | | success -> c (skips b), warning -> e (skips b, c, d)\n\
+         * \\ \\   b\n \\ \\ \\\n  | | | command: echo b\n  | | | success -> d (skips c), warning -> c\n\
+         \x20 |/ /\n /| |\n\
+         * | | c\n| | | command: echo c\n|/ /\n\
+         * / d\n| | command: echo d\n|/\n\
+         * e\n| command: echo e\n* f\n| command: echo f\no @end\n"
+    );
+}
+
+#[test]
+fn n5_の_v_の詳細は_合流の行のあとに置き_列0は図の行と同じ規則() {
+    // N5: 分岐 a の成功が c、警告が e の線に、c の成功が e へ合流する。
+    let n5 = definition(&IDS6, &[("c", "e")], &branch_extra("c", "e"));
+    assert_eq!(
+        text_of(Language::En, &n5, None, true),
+        "*     a\n \\ \\\n  | | command: echo a\n  | | success -> c (skips b), warning -> e (skips b, c, d)\n\
+         * | | b\n  | | command: echo b\n / /\n\
+         * | c\n|\\|\n| | command: echo c\n| | success -> e (skips d), warning -> d\n\
+         * | d\n| | command: echo d\n|/\n\
+         * e\n| command: echo e\n* f\n| command: echo f\no @end\n"
+    );
+}
+
+#[test]
+fn n1_の図に_state_の状態を重ねる() {
+    let overlay = StateOverlay {
+        states: vec![
+            ("a".into(), NodeState::Ok),
+            ("b".into(), NodeState::Skipped),
+            ("c".into(), NodeState::Skipped),
+            ("d".into(), NodeState::Error),
+            ("e".into(), NodeState::Pending),
+            ("f".into(), NodeState::Pending),
+        ],
+        resume_job_id: Some("d".into()),
+    };
+    assert_eq!(
+        text_of(Language::Ja, &n1_definition(), Some(&overlay), false),
+        "*   [OK] a\n \\\n* \\   [--] b\n \\ \\\n* | | [--] c\n  |/\n /|\n* | [NG] d  <- 再開位置\n|/\n* [  ] e\n* [  ] f\no @end\n"
+    );
+}

@@ -309,3 +309,40 @@ fn 分岐の定義は_2本の線を同時に開くレーンの図で出る() {
     );
     assert_eq!(text(&out.stderr), "");
 }
+
+/// 「両方の飛び越し」(a が d へ)と通常の飛び越し(b の成功が e へ)が交差する定義(例 N1)の text と `-v` が、
+/// レーンの図で出る。詳細の行の列 0 も、図の行と同じ規則(BR1.4、BR2.1)。
+#[test]
+fn 両方の飛び越しと通常の飛び越しが交差する定義_n1_はレーンの図で出る() {
+    let ok = helper_command("exit 0");
+    let both_to_d = "[[job.transitions]]\non = \"warning\"\nnext = \"d\"\n\n[[job.transitions]]\non = \"success\"\nnext = \"d\"\n";
+    let to_e = "[[job.transitions]]\non = \"success\"\nnext = \"e\"\n";
+    let jobs = [
+        job_block("a", &ok, both_to_d),
+        job_block("b", &ok, to_e),
+        job_block("c", &ok, ""),
+        job_block("d", &ok, ""),
+        job_block("e", &ok, ""),
+        job_block("f", &ok, ""),
+    ];
+    let project = Project::new(&definition("p", &jobs));
+    let out = project.run(&["graph"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(
+        text(&out.stdout),
+        "*   a\n \\\n* \\   b\n \\ \\\n* | | c\n  |/\n /|\n* | d\n|/\n* e\n* f\no @end\n"
+    );
+    assert_eq!(text(&out.stderr), "");
+
+    // `-v`: 実行されない b、c と、次のジョブへの辺がない a の下の詳細の行は、列 0 が空白。
+    let verbose = project.run(&["graph", "-v"]);
+    assert_eq!(verbose.status.code(), Some(0), "{}", text(&verbose.stderr));
+    let stdout = text(&verbose.stdout);
+    // 詳細のうち、コマンドの行(ジョブごとに 1 行。補助の実行ファイルの `exit 0`)の列 0: a、b、c は空白、d、e、f は `|`。
+    let firsts: Vec<char> = stdout
+        .lines()
+        .filter(|l| !l.starts_with('*') && l.ends_with("exit 0"))
+        .filter_map(|l| l.chars().next())
+        .collect();
+    assert_eq!(firsts, vec![' ', ' ', ' ', '|', '|', '|'], "{stdout}");
+}
