@@ -741,47 +741,56 @@ target_position(i, on):
 
 ### 15.4 「対応する形」の判定(`is_lane_drawable`、`skip_targets`)
 
-レーンの図(`git log --graph` と同じ見た目)で描けるのは、ジョブが主線(左の列)に記述順に並び、飛び越しの辺が、主線の右隣(列 1)から始まる線になる形だけ。`skip_targets(graph) -> Option<Vec<Option<usize>>>` が、各ジョブの飛び越しの行き先(節の位置。終点は `n`)を返す。次の 3 つの条件のどれか 1 つでも満たさなければ `None`(全体が「対応しない形」)。
+レーンの図(`git log --graph` と同じ見た目)で描けるのは、ジョブが主線(左の列)に記述順に並び、飛び越しの辺が、主線の右隣(列 1)から始まる線になる形だけ。`skip_targets(graph) -> Option<SkipPlan>` が、配置の途中結果 `SkipPlan`(core の内部。公開しない)を返す。`SkipPlan` は、`targets`(各ジョブの飛び越しの行き先。節の位置。終点は `n`。昇順の並びで、0 個は飛び越しなし、1 個は通常の飛び越し、2 個は分岐)と、`off_main`(各ジョブが、主線につながらないか。分岐と「両方の飛び越し」が真)を持つ。次の 3 つの条件のどれか 1 つでも満たさなければ `None`(全体が「対応しない形」)。
 
-1. 各ジョブから出る辺は、記述順の次の節(位置 `i+1`)への辺を**持ち**、それ以外の辺(飛び越し)は、**多くて 1 つ**。(辺の行き先が、元より後ろでなければ `None`。)ただし、辺が 1 つだけで、種類が成功と警告の両方(`kinds` が 2 つ)で、行き先が次の節でないジョブ(「両方の飛び越し」)は、次の節への辺を要らない。その辺は、通常の飛び越しと同じ線(`skip[i] = Some(行き先)`)として描く。このジョブは「両方の飛び越し」の印(`both[i]`)を持つ(辺が 1 つだけで `kinds` が 2 つのときだけ真)。交差と同じ行き先への合流の判定は、通常の飛び越しと変わらない。
+1. 各ジョブから出る辺は、記述順の次の節(位置 `i+1`)への辺を**持ち**、それ以外の辺(飛び越し)は、**多くて 1 つ**。(辺の行き先が、元より後ろでなければ `None`。)ただし、次の節への辺を要らないジョブが 2 種類ある。(a) 辺が 1 つだけで、種類が成功と警告の両方(`kinds` が 2 つ)で、行き先が次の節でないジョブ(「両方の飛び越し」)。その辺は、通常の飛び越しと同じ線(`targets[i] = [行き先]`)として描く。(b) 辺がちょうど 2 本で、どちらも次の節でなく、行き先が異なるジョブ(「分岐」。成功と警告のどちらが近いかは問わない)。近い順に `t1 < t2` として `targets[i] = [t1, t2]` とし、2 本の線を同時に開く。どちらも `off_main[i]` が真。それ以外で、次の節への辺を持たないジョブ、飛び越しの辺が 3 本以上のジョブは `None`。交差と同じ行き先への合流の判定は、通常の飛び越しと変わらない。
 2. 飛び越しの区間が**交差しない**(元 1 < 元 2 < 行き先 1 < 行き先 2 になる組がない)。行き先が、最も内側の線の行き先と**同じ**飛び越しは、交差ではなく、その線への合流(JoinLane)である。合流は、`open` に載せない。
+3. 分岐は、積み上げが空なら、常に載せられる。空でなければ、`t2 < 最も内側の線の行き先` のときだけ載せられる(それ以外は `None`。これで、すでに開いている線と、行き先が同じにも、交差にもならない)。載せるときは、外側 `t2`、内側 `t1` の順に積み、2 本とも「分岐が開いた線」の印(`by_branch`)を付ける。後のジョブが、「分岐が開いた線」に同じ行き先で合流する形(`t == 最も内側の線の行き先` で、その線が `by_branch`)は `None`(正解データにない形を、未検証のまま図にしないため)。
 
 (行き先がすべて違うことは、条件ではない。最後のジョブの、終点への辺は、次の節への辺なので、飛び越しではない。)
 
-条件 2 は、記述順にジョブを見ながら、開いている飛び越しの行き先を積んだ列(積み上げ。最後が最も内側)で、1 回の走査で確かめる。
+条件 2、3 は、記述順にジョブを見ながら、開いている飛び越しの行き先を積んだ列(積み上げ。最後が最も内側。各要素は、行き先と `by_branch`)で、1 回の走査で確かめる。
 
 ```text
 open = []
 for i in 0..n:
-    if open の最後 == i: open を 1 つ取り出す                 # 位置 i で、最も内側の線が閉じる
-    if open に i が(取り出したあとにも)含まれる: return None   # 内側でない線が、ここで終わる → 交差
-    if skip[i] = Some(t):
-        if open が空でなく、t > open の最後: return None         # 行き先が、内側の線より遠い → 交差
-        if open が空でなく、t == open の最後: 何もしない         # 同じ行き先 → 合流(積まない)
-        else: open に t を積む
-return Some(skip)
+    if open の最後の行き先 == i: open を 1 つ取り出す          # 位置 i で、最も内側の線が閉じる
+    if open に行き先 i が(取り出したあとにも)含まれる: return None   # 内側でない線が、ここで終わる → 交差
+    match targets[i]:
+        []: 何もしない
+        [t]:
+            if open が空でなく、t > open の最後の行き先: return None   # 行き先が、内側の線より遠い → 交差
+            if open が空でなく、t == open の最後の行き先:              # 同じ行き先 → 合流(積まない)
+                if open の最後が by_branch: return None                # 分岐の線への合流 → 辺の一覧
+            else: open に (t, by_branch = 偽) を積む
+        [t1, t2]:                                                      # 分岐
+            if open が空でなく、t2 >= open の最後の行き先: return None   # 内側の線より遠い → 交差
+            open に (t2, 真)、(t1, 真) の順に積む
+return Some(SkipPlan)
 ```
 
-対応する形の例: 飛び越しが 1 本、入れ子の 2 本(`a→f`、`b→e`)、続く 2 本(`a→c`、`d→f`)。同じ行き先に 2 本(`a→d` と `b→d`。合流)、成功と警告のどちらも同じ行き先へ飛ぶ(両方の飛び越し。通常の飛び越しと同じ線で、主線の `|` だけ省く)。対応しない形(辺の一覧): 交差(`a→d` と `b→e`)、1 つのジョブが異なる行き先への飛び越しを 2 つ持つ(成功が `c`、警告が `e`)、後ろ向きの辺など。
+対応する形の例: 飛び越しが 1 本、入れ子の 2 本(`a→f`、`b→e`)、続く 2 本(`a→c`、`d→f`)。同じ行き先に 2 本(`a→d` と `b→d`。合流)、成功と警告のどちらも同じ行き先へ飛ぶ(両方の飛び越し。通常の飛び越しと同じ線で、主線の `|` だけ省く)、成功と警告が異なる、どちらも次でない行き先へ進む(分岐。成功が `c`、警告が `e` など。2 本の線を同時に開き、主線の `|` を省く)。対応しない形(辺の一覧): 交差(`a→d` と `b→e`)、分岐の遠い行き先が、すでに開いている最も内側の線の行き先以上(`b→d` の線が開いている間に、`c` が `e` と `f` へ分岐する)、後のジョブが分岐の線へ同じ行き先で合流する(`a` が `c` と `f` へ分岐し、`d` が `f` へ飛ぶ)、後ろ向きの辺など。
 
-### 15.5 レーンの配置(`layout_graph`、`lane_layout(skip)`)
+### 15.5 レーンの配置(`layout_graph`、`lane_layout(plan)`)
 
-対応する形なら `GraphLayout::Lanes`、そうでなければ `GraphLayout::EdgeList`。レーンの配置は、節を記述順に処理して、行(`LaneRow`)を作る。`open` = 開いている飛び越しの行き先(最後が列 1、最も内側)、`open_all_both` = `open` と同じ長さで、その線に合流する辺がすべて「両方の飛び越し」か、`after_fork` = 直前の行が分岐の行か。
+対応する形なら `GraphLayout::Lanes`、そうでなければ `GraphLayout::EdgeList`。レーンの配置は、節を記述順に処理して、行(`LaneRow`)を作る。`open` = 開いている飛び越しの行き先(最後が列 1、最も内側)、`open_all_off_main` = `open` と同じ長さで、その線を開いたジョブがすべて主線につながらない(分岐、「両方の飛び越し」)か、`after_fork` = 直前の行が分岐の行か。`has_branch` = 図に分岐が 1 つでもあるか。
 
 節 `i`(`0..=n`。`n` は終点)ごとに、次の順で行を作る。
 
-1. **合流の行**: `open` の最後が `i`(この節が、飛び越しの行き先)なら、`merge_row(open の数 - 1, open_all_both の最後)` を作り、`open` と `open_all_both` から取り出し、`after_fork = false` にする。`merge_row(r, all_both)` = `[Line, Join]`(`all_both` なら `[Empty, Join]`。` /`)に、`[Empty, Join]` を `r` 回足したもの(`|/`、`|/ /`、…)。
+1. **合流の行**: `open` の最後が `i`(この節が、飛び越しの行き先)なら、`merge_row(open の数 - 1, open_all_off_main の最後)` を作り、`open` と `open_all_off_main` から取り出し、`after_fork = false` にする。`merge_row(r, off_main)` = `[Line, Join]`(`off_main` なら `[Empty, Join]`。` /`)に、`[Empty, Join]` を `r` 回足したもの(`|/`、`|/ /`、…)。列 0 は、その線を開いたジョブが、すべて主線につながらないときだけ空で、通常の飛び越しが 1 つでも同じ線にあれば `|` のまま。
 2. **ノードの行**: `existing` = `open` の数(合流の行のあと)。
    - `i == n`(終点)なら、`[EndNode, Empty]`(`o `)で、配置を終える。
-   - それ以外: ジョブ `i` の飛び越し `target = skip[i]`。すでにある右の線(`existing` 本)の記号 `existing_glyph`:
-     - NewLane(`target` があり、`open` の最後と等しくない): `after_fork` なら `Fork`(`\`)、そうでなければ `Line`(`|`)。
-     - NewLane でない(`target` がない、または JoinLane)、かつ、この節が合流の行き先で(直前の 1 が行を作った)、`open` の最後が `i + 1`(次の節も合流の行き先)なら `Join`(`/`)。
+   - それ以外: ジョブ `i` の飛び越し `targets[i]`(0〜2 個)。`new` = 新しい線の数(0 個なら 0、JoinLane なら 0、1 個の NewLane なら 1、分岐なら 2)。すでにある右の線(`existing` 本)の記号 `existing_glyph`:
+     - `new > 0`(NewLane、分岐): `after_fork` なら `Fork`(`\`)、そうでなければ `Line`(`|`)。
+     - `new == 0`(飛び越しなし、または JoinLane)、かつ、この節が合流の行き先で(直前の 1 が行を作った)、`open` の最後が `i + 1`(次の節も合流の行き先)、かつ `has_branch` が偽なら `Join`(`/`)。(`has_branch` が真の図では、`/` を使わず `Line` で描く。分岐を含む形の正解データがそう定めている。)
      - それ以外 `Line`。
-   - 幅 = `2 × (1 + existing + (NewLane なら 1))`。行 = `[Node]` に、`[Empty, existing_glyph]` を `existing` 回足し、幅まで `Empty` で埋めたもの。**ラベル(ジョブID、`@end`)を置く位置は、この幅**。
-3. **分岐の行、または、同じ行き先への合流の行**: NewLane なら、`fork_row(existing, both[i])` を作り、`open` に `target` を、`open_all_both` に `both[i]` を積む。`fork_row(e, b)` = `[Line, Fork]`(`b` なら `[Empty, Fork]`。` \`)に、`[Empty, Fork]` を `e` 回足したもの(`|\`、`|\ \`、…)。JoinLane(`target` が `open` の最後と等しい)なら、`join_lane_row(existing - 1, both[i])` を作り、`open` には積まず、`open_all_both` の最後を `both[i]` との論理積にする。`join_lane_row(o, b)` = `[Line, Fork, Line]`(`b` なら `[Empty, Fork, Line]`。` \|`)に、`[Empty, Line]` を `o` 回(外側の線の数)足したもの(`|\|`、`|\| |`、…)。`target` がない(NoLane)ジョブは、行を足さない。「両方の飛び越し」は、通常の飛び越しと同じく NewLane か JoinLane になる。
-4. `after_fork = (NewLane か)`。JoinLane と NoLane のあとは偽(真のままだと、次の NewLane のノードの行で、既存の線が `\` になってしまう)。
+   - 幅 = `2 × (1 + existing + new)`(分岐なら `2 × (1 + existing + 2)`)。行 = `[Node]` に、`[Empty, existing_glyph]` を `existing` 回足し、幅まで `Empty` で埋めたもの。**ラベル(ジョブID、`@end`)を置く位置は、この幅**。
+3. **分岐の行、または、同じ行き先への合流の行**: `new > 0` なら、`fork_row(existing, new, off_main[i])` を作り、`open` に、行き先を遠い順(分岐なら `t2`、`t1` の順。外側が遠い行き先、内側が近い行き先)に積み、`open_all_off_main` に `off_main[i]` を、積んだ数だけ積む。`fork_row(e, k, b)` = `[Line, Fork]`(`b` なら `[Empty, Fork]`。` \`)に、`[Empty, Fork]` を `e + k - 1` 回足したもの(`|\`、`|\ \`、…。分岐は、`b` が真なので ` \ \`、…。新しい線 2 本と、既存の線 `e` 本の、`e + 2` 個の `\`)。JoinLane(`targets[i]` が 1 個で、`open` の最後と等しい)なら、`join_lane_row(existing - 1, off_main[i])` を作り、`open` には積まず、`open_all_off_main` の最後を `off_main[i]` との論理積にする。`join_lane_row(o, b)` = `[Line, Fork, Line]`(`b` なら `[Empty, Fork, Line]`。` \|`)に、`[Empty, Line]` を `o` 回(外側の線の数)足したもの(`|\|`、`|\| |`、…)。`targets[i]` が空(NoLane)のジョブは、行を足さない。「両方の飛び越し」は、通常の飛び越しと同じく NewLane か JoinLane になる。
+4. `after_fork = (new > 0 か)`(NewLane か分岐か)。JoinLane と NoLane のあとは偽(真のままだと、次の NewLane のノードの行で、既存の線が `\` になってしまう)。
 
-全ノードが、ちょうど 1 回ずつ、記述順(最後が終点)に現れる。配置は、`crates/core/tests/fixtures/graph_layout_oracle.md`(正解データ。行き先がすべて違う形。537 例)、`graph_layout_oracle_same_target.md`(同じ行き先を含む形。1,517 例。`git log --graph` の実際の出力)、例 G1〜G6 と、「両方の飛び越し」の例(`graph_lane_polish.rs`)で確かめる(`graph_layout_oracle.rs`)。この配置の規則は、正解データの例から導いたもので、正解データが原本である。
+全ノードが、ちょうど 1 回ずつ、記述順(最後が終点)に現れる。配置は、`crates/core/tests/fixtures/graph_layout_oracle.md`(正解データ。行き先がすべて違う形。537 例)、`graph_layout_oracle_same_target.md`(同じ行き先を含む形。1,517 例。`git log --graph` の実際の出力)、`graph_layout_oracle_branch.md`(分岐を含む形。871 例。**`git log --graph` の出力ではなく、規則から導いた図**。git は、起点からたどれるコミットだけを描くので、分岐のジョブの次のジョブが図に出ない)、例 G1〜G6、「両方の飛び越し」の例(`graph_lane_polish.rs`)、分岐の例 B1〜B4(`graph_branch_lanes.rs`)で確かめる(`graph_layout_oracle.rs`)。この配置の規則は、正解データの例から導いたもので、正解データが原本である。
+
+分岐の図の例 B1〜B4 の全文は、08 の 11 章にある。
 
 ### 15.6 text の整形(`render_text`)
 
