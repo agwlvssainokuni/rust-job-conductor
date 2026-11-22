@@ -58,7 +58,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     // ステートが空のあいだは `None`。最初のジョブが `Run` と決まったあとに、初期ステートを書く。
     let mut current: Option<PipelineState> = session.state.clone();
 
-    for job in &definition.job {
+    for (job, command) in definition.job.iter().zip(&session.commands) {
         match decide(&job.id, definition, current.as_ref()) {
             Decision::Reject(reason) => {
                 ctx.show(&DisplayEvent::Rejected {
@@ -85,7 +85,14 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 }
             }
             Decision::Run => {
-                let step = match run_step(ctx, &session, current.take(), job, RunMode::Pipeline) {
+                let step = match run_step(
+                    ctx,
+                    &session,
+                    current.take(),
+                    job,
+                    command,
+                    RunMode::Pipeline,
+                ) {
                     Ok(step) => step,
                     Err(code) => return code,
                 };

@@ -83,6 +83,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 &session,
                 session.state.clone(),
                 job,
+                &session.commands[index],
                 RunMode::Individual,
             ) {
                 Ok(step) => step,

@@ -14,15 +14,15 @@
 
 //! `--dry-run` の流れ(`pipeline` と `run`。WF2〜WF4。BR1.1、BR3.4、BR4.1〜BR4.5)。
 //!
-//! 準備(`prepare_checked`。定義、`--assume` のジョブID、run ID、`.env`、ステートの読み込みと照合)→
-//! 各ジョブのコマンドの分割 → 計画の生成(`conductor-core`)→ 整形 → 標準出力に 1 回で書く。
+//! 準備(`prepare_checked`。定義とコマンドの分割、`--assume` のジョブID、run ID、`.env`、ステートの
+//! 読み込みと照合)→ 計画の生成(`conductor-core`)→ 整形 → 標準出力に 1 回で書く。
 //! ジョブは起動せず、ステートは読むだけで書かない・消さない。シグナルの準備もしない(BR1.1)。
 //! 環境変数の値は、計画にも出力にも含めない(BR5.1)。
 
 use conductor_core::{PlanInput, plan_pipeline, plan_run};
 
 use crate::ctx::Ctx;
-use crate::exit::{EXIT_DEFINITION, EXIT_OK, EXIT_REJECTED, EXIT_STATE};
+use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE};
 use crate::report::DisplayEvent;
 use crate::report::plan_text::render_plan;
 use crate::types::CliCommand;
@@ -50,30 +50,17 @@ pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: DryRunTar
     };
     let definition = &checked.definition;
 
-    // コマンドの分割(定義の検査で済んでいるので、誤りは起きない。起きたら、本番と同じに 64)。
-    let mut commands: Vec<Vec<String>> = Vec::with_capacity(definition.job.len());
-    let mut command_errors = Vec::new();
-    for job in &definition.job {
-        match ctx.runtime.check_command(&job.command) {
-            Ok(line) => {
-                let mut words = Vec::with_capacity(line.args.len() + 1);
-                words.push(line.program);
-                words.extend(line.args);
-                commands.push(words);
-            }
-            Err(error) => {
-                command_errors.push((job.id.clone(), error));
-                commands.push(Vec::new());
-            }
-        }
-    }
-    if !command_errors.is_empty() {
-        ctx.show(&DisplayEvent::CommandErrors {
-            definition: &checked.definition_path,
-            errors: &command_errors,
-        });
-        return EXIT_DEFINITION;
-    }
+    // コマンドの分割は、定義の検査で済んでいる。計画には、コマンド名と引数を並べた語の列で渡す。
+    let commands: Vec<Vec<String>> = checked
+        .commands
+        .iter()
+        .map(|line| {
+            let mut words = Vec::with_capacity(line.args.len() + 1);
+            words.push(line.program.clone());
+            words.extend(line.args.iter().cloned());
+            words
+        })
+        .collect();
 
     let input = PlanInput {
         definition,

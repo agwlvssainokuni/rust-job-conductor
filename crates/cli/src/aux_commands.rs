@@ -98,7 +98,8 @@ pub(crate) fn check_definition_and_env(
     ctx: &mut Ctx<'_>,
     cmd: &CliCommand,
 ) -> Result<(PathBuf, PipelineDefinition), i32> {
-    let (path, definition) = ctx.check_definition(cmd, cmd.pipeline_name.as_deref())?;
+    let checked = ctx.check_definition(cmd, cmd.pipeline_name.as_deref())?;
+    let (path, definition) = (checked.path, checked.definition);
     // `pipeline` と同じ範囲の `.env` を読む(BR7.1)。重複キーの警告は、誤りでないので 0(BR7.2)。
     let loaded = ctx.load_env_files(&path, &definition, None)?;
     let warnings: Vec<_> = loaded

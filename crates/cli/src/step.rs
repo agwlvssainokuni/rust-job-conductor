@@ -33,7 +33,7 @@ use conductor_core::{
     Decision, DecisionReason, JobDefinition, JobOutcome, NextStep, PipelineDefinition,
     PipelineState, RunMode, classify_and_decide, decide_before_run,
 };
-use conductor_runtime::{Durability, apply_outcome, apply_skip, initial_state};
+use conductor_runtime::{CommandLine, Durability, apply_outcome, apply_skip, initial_state};
 
 use crate::ctx::{Ctx, Session};
 use crate::report::StateContext;
@@ -110,12 +110,14 @@ pub(crate) fn record_skip(
 /// 5. `apply_outcome` で記録し、`Durable` で書く(文脈は、起動したかで決まる)。
 ///
 /// `base` は値で受ける(`run` は `session.state.clone()`、`pipeline` は `current.take()` を渡す)。
+/// `command` は、定義の検査で分割したそのジョブのコマンド(`session.commands` の同じ位置)。
 /// 書き込みの失敗は、終了コードを `Err` で返す。
 pub(crate) fn run_step(
     ctx: &mut Ctx<'_>,
     session: &Session,
     base: Option<PipelineState>,
     job: &JobDefinition,
+    command: &CommandLine,
     mode: RunMode,
 ) -> Result<StepResult, i32> {
     let definition = &session.definition;
@@ -138,7 +140,7 @@ pub(crate) fn run_step(
 
     let execution = run_job_with_retry(ctx, session, job);
     let (outcome, next) = classify_and_decide(job, &execution, &base.job_states, definition, mode);
-    ctx.report_execution(job, &execution, &outcome, &next);
+    ctx.report_execution(job, command, &execution, &outcome, &next);
 
     let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
     // 起動前の中断(started = false)は、ジョブが実行されていない。

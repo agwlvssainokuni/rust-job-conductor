@@ -28,7 +28,7 @@ use conductor_core::{
 };
 use conductor_runtime::ConsistencyResult;
 use conductor_runtime::{
-    Durability, InterruptSignal, StateError, StateLocation, check_consistency,
+    CommandLine, Durability, InterruptSignal, StateError, StateLocation, check_consistency,
 };
 
 use crate::args::resolve_run_id;
@@ -50,10 +50,20 @@ pub(crate) struct Ctx<'a> {
     pub reporter: Reporter<'a>,
 }
 
+/// 検査を終えた定義(`check_definition` の結果)。
+pub(crate) struct CheckedDefinition {
+    pub path: PathBuf,
+    pub definition: PipelineDefinition,
+    /// 各ジョブの `command` を分割したもの(ジョブと同じ並び。分割は、定義の検査の 1 回だけ)。
+    pub commands: Vec<CommandLine>,
+}
+
 /// シグナルの準備を除く、実行の前の検査を終えた材料(`prepare_checked` の結果)。
 pub(crate) struct Checked {
     pub definition_path: PathBuf,
     pub definition: PipelineDefinition,
+    /// 各ジョブの `command` を分割したもの(ジョブと同じ並び)。
+    pub commands: Vec<CommandLine>,
     pub run_id: Option<RunId>,
     pub state: Option<PipelineState>,
     pub remove_on_complete: bool,
@@ -64,6 +74,8 @@ pub(crate) struct Checked {
 pub(crate) struct Session {
     pub definition_path: PathBuf,
     pub definition: PipelineDefinition,
+    /// 各ジョブの `command` を分割したもの(ジョブと同じ並び)。
+    pub commands: Vec<CommandLine>,
     /// この実行の run ID(`None` は、run ID なし)。ステートのパスと、`run_id` の照合に使う。
     pub run_id: Option<RunId>,
     /// ステート(`None` は空。完了のまま残ったものも空として返る)。
@@ -122,6 +134,7 @@ impl Ctx<'_> {
         Ok(Session {
             definition_path: checked.definition_path,
             definition: checked.definition,
+            commands: checked.commands,
             run_id: checked.run_id,
             state: checked.state,
             remove_on_complete: checked.remove_on_complete,
@@ -143,7 +156,11 @@ impl Ctx<'_> {
         require_job: Option<&str>,
         also_known_jobs: &[&str],
     ) -> Result<Checked, i32> {
-        let (path, definition) = self.check_definition(cmd, expected_pipeline)?;
+        let CheckedDefinition {
+            path,
+            definition,
+            commands,
+        } = self.check_definition(cmd, expected_pipeline)?;
 
         if let Some(job_id) = require_job
             && definition.job_index(job_id).is_none()
@@ -173,6 +190,7 @@ impl Ctx<'_> {
         Ok(Checked {
             definition_path: path,
             definition,
+            commands,
             run_id,
             state,
             remove_on_complete,
@@ -256,27 +274,26 @@ impl Ctx<'_> {
     /// 定義の読み込みと検証(64)、全ジョブの `command` の検査(64)。`prepare` と `validate` が共有する。
     ///
     /// シグナル・ステートには触れない。誤りは表示して、終了コードを `Err` で返す。
+    /// `command` の誤りは、全ジョブの分を集めてから表示する。分割したコマンドは、ジョブと同じ並びで返す。
     pub(crate) fn check_definition(
         &mut self,
         cmd: &CliCommand,
         expected_pipeline: Option<&str>,
-    ) -> Result<(PathBuf, PipelineDefinition), i32> {
+    ) -> Result<CheckedDefinition, i32> {
         let path = definition_path(cmd);
         let definition = match self.runtime.load_definition(&path, expected_pipeline) {
             Ok(definition) => definition,
             Err(errors) => return Err(self.definition_errors(&errors)),
         };
 
-        let command_errors: Vec<_> = definition
-            .job
-            .iter()
-            .filter_map(|job| {
-                self.runtime
-                    .check_command(&job.command)
-                    .err()
-                    .map(|e| (job.id.clone(), e))
-            })
-            .collect();
+        let mut commands = Vec::with_capacity(definition.job.len());
+        let mut command_errors = Vec::new();
+        for job in &definition.job {
+            match self.runtime.check_command(&job.command) {
+                Ok(line) => commands.push(line),
+                Err(error) => command_errors.push((job.id.clone(), error)),
+            }
+        }
         if !command_errors.is_empty() {
             self.show(&DisplayEvent::CommandErrors {
                 definition: &path,
@@ -284,7 +301,11 @@ impl Ctx<'_> {
             });
             return Err(EXIT_DEFINITION);
         }
-        Ok((path, definition))
+        Ok(CheckedDefinition {
+            path,
+            definition,
+            commands,
+        })
     }
 
     pub(crate) fn definition_errors(&mut self, errors: &[DefinitionError]) -> i32 {
@@ -327,10 +348,12 @@ impl Ctx<'_> {
     }
 
     /// ジョブを実行したあとの表示(BR2.6、BR6.3、BR6.4)。`-v` の結果・遷移・中断と、
-    /// 常に表示する起動の失敗・成功コードに含まれない 0。
+    /// 常に表示する起動の失敗・成功コードに含まれない 0。`command` は、定義の検査で分割したそのジョブの
+    /// コマンド(起動の失敗の表示に、コマンド名を使う)。
     pub(crate) fn report_execution(
         &mut self,
         job: &JobDefinition,
+        command: &CommandLine,
         execution: &JobExecution,
         outcome: &JobOutcome,
         next: &NextStep,
@@ -352,14 +375,9 @@ impl Ctx<'_> {
         });
 
         if detail == ResultDetail::StartFailure {
-            let name = self
-                .runtime
-                .check_command(&job.command)
-                .map(|line| line.program)
-                .unwrap_or_else(|_| job.command.program_name().unwrap_or_default().to_string());
             self.show(&DisplayEvent::StartFailure {
                 job_id: &job.id,
-                command: &name,
+                command: &command.program,
             });
         }
         if outcome.conductor_error {
