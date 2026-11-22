@@ -149,11 +149,15 @@ pub fn apply_skip(
         out.end_reached = true;
     }
 
-    let status_of = |id: &str| {
-        out.job_states
+    // 状態は、定義の位置で引く(位置が一致すれば O(1)、一致しなければ探す。`decide.rs` の
+    // `status_at` と同じ考え)。これで 1 回の `apply_skip` は O(n) になる(BR2.3)。
+    let status_at = |index: usize, id: &str| match out.job_states.get(index) {
+        Some(j) if j.job_id == id => j.status,
+        _ => out
+            .job_states
             .iter()
             .find(|j| j.job_id == id)
-            .map_or(JobStatus::Pending, |j| j.status)
+            .map_or(JobStatus::Pending, |j| j.status),
     };
     if out.job_states.iter().any(|j| j.status == JobStatus::Error) {
         return out;
@@ -161,8 +165,9 @@ pub fn apply_skip(
     let first_pending = definition
         .job
         .iter()
-        .find(|j| status_of(&j.id) == JobStatus::Pending)
-        .map(|j| j.id.clone());
+        .enumerate()
+        .find(|(i, j)| status_at(*i, &j.id) == JobStatus::Pending)
+        .map(|(_, j)| j.id.clone());
     let is_last = definition.job.last().is_some_and(|j| j.id == job_id);
     out.completed = is_last && first_pending.is_none();
     out.resume_job_id = first_pending;
