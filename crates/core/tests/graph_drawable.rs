@@ -66,7 +66,30 @@ fn 対応する形_並びと_元が別の行き先になる連続() {
 }
 
 #[test]
-fn 対応しない形_交差と行き先の共有() {
+fn 対応する形_同じ行き先と終点の共有() {
+    // a→d、b→d は、既存の線に合流する。
+    assert!(drawable(
+        &IDS,
+        &[("a", Success, Some("d")), ("b", Success, Some("d"))]
+    ));
+    // 終点を共有する形(a→@end、b→@end)。
+    assert!(drawable(
+        &IDS,
+        &[("a", Success, None), ("b", Success, None)]
+    ));
+}
+
+#[test]
+fn 対応する形_成功と警告の両方が飛び越す() {
+    // 両方が d へ。線なしで描ける。
+    assert!(drawable(
+        &IDS,
+        &[("a", Success, Some("d")), ("a", Warning, Some("d"))]
+    ));
+}
+
+#[test]
+fn 対応しない形_交差() {
     // a→d、b→e は交差する。
     let crossing = [("a", Success, Some("d")), ("b", Success, Some("e"))];
     assert!(!drawable(&IDS, &crossing));
@@ -74,26 +97,11 @@ fn 対応しない形_交差と行き先の共有() {
         layout_graph(&build_graph(&definition(&IDS, &crossing), None)),
         GraphLayout::EdgeList
     );
-    // a→d、b→d は、行き先を共有する。
-    assert!(!drawable(
-        &IDS,
-        &[("a", Success, Some("d")), ("b", Success, Some("d"))]
-    ));
-    // 終点を共有する形(a→@end、b→@end)。
-    assert!(!drawable(
-        &IDS,
-        &[("a", Success, None), ("b", Success, None)]
-    ));
 }
 
 #[test]
-fn 対応しない形_成功と警告の両方が飛び越す() {
-    // 次のジョブ b への辺がない(両方が d へ。到達できないジョブが生じる)。
-    assert!(!drawable(
-        &IDS,
-        &[("a", Success, Some("d")), ("a", Warning, Some("d"))]
-    ));
-    // 次のジョブへの辺がなく、飛び越しが 2 つ。
+fn 対応しない形_異なる行き先が_2つ() {
+    // 成功が c、警告が e。次のジョブへの辺がなく、飛び越しが 2 つ。
     assert!(!drawable(
         &IDS,
         &[("a", Success, Some("c")), ("a", Warning, Some("e"))]
