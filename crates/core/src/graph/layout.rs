@@ -21,41 +21,39 @@ use std::collections::{HashMap, HashSet};
 
 use super::{EdgeTarget, FlowGraph, GraphLayout, LaneGlyph, LaneLayout, LaneRow};
 
-/// 配置の途中結果(core の内部)。ジョブごとの飛び越しの行き先と、主線につながらないかの印。
+/// ジョブの飛び越しの種類(BR1.1。functional-spec.md の §6b の 3)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SkipKind {
+    /// 飛び越しなし: 辺は、次の節への 1 本。
+    NoSkip,
+    /// 通常の飛び越し: 次の節への辺と、それ以外への辺 1 本。
+    Ordinary,
+    /// 「両方の飛び越し」: 辺は 1 本(成功と警告の両方)で、行き先は次の節でない。
+    BothSkip,
+    /// 分岐: 辺は 2 本で、どちらも次の節でなく、行き先が異なる。
+    Branch,
+}
+
+/// 配置の途中結果(core の内部)。ジョブごとの、次の節への辺の有無、飛び越しの種類、行き先(BR1.1)。
 struct SkipPlan {
-    /// 飛び越しの行き先(節の位置。終点は、ジョブの数)の昇順の並び。0 個は飛び越しなし、
-    /// 1 個は通常の飛び越し、2 個は分岐(BR1.1)。
+    /// 次の節(記述順の次のジョブ、または終点)への辺を持つか。
+    has_next: Vec<bool>,
+    /// 飛び越しの種類。
+    kinds: Vec<SkipKind>,
+    /// 飛び越しの行き先(節の位置。終点は、ジョブの数)の昇順の並び(0〜2 個)。
+    /// 分岐では、近い行き先が先(内側の線になる。BR1.3)。
     targets: Vec<Vec<usize>>,
-    /// 主線につながらないジョブか(分岐と「両方の飛び越し」)。その線の主線側の `|` を描かない。
-    off_main: Vec<bool>,
-    /// 「通常の飛び越しだけのグラフ」か(BR1.1)。真なら `ordinary_layout`、偽なら `lane_layout` で配置する。
-    ordinary: bool,
 }
 
-/// 開いている線(積み上げの 1 要素)。判定の走査の中だけで使う。
-struct OpenLane {
-    target: usize,
-    /// 分岐が開いた線か。後のジョブが同じ行き先で合流する形は、辺の一覧にする(BR2.2)。
-    by_branch: bool,
-}
-
-/// 各ジョブの飛び越しの行き先と、主線につながらないかの印。
+/// 各ジョブの、次の節への辺の有無、飛び越しの種類、行き先(BR1.1)。
 ///
-/// 「対応する形」でなければ、全体が `None`(BR2.4)。ただし、交差を許す範囲(BR1.1。`is_crossing_class`)の
-/// グラフは、条件 2、3 を調べず、交差してもよい。条件は 3 つ:
+/// すべてのジョブが、次のどれかなら、レーンの図にする。1 つでも違えば、全体が `None`(辺の一覧)。
+/// 交差と同じ行き先は、どの組み合わせでも、図にする(BR2.1)。
 ///
-/// 1. 各ジョブから出る辺は、記述順の次の節への辺を持ち、それ以外の辺(飛び越し)は、多くて 1 つ。
-///    ただし、次の節への辺を要らないジョブが 2 種類ある。
-///    - 「両方の飛び越し」: 辺が 1 つだけで、種類が成功と警告の両方で、行き先が次の節でない(BR2.1)。
-///      その辺は、通常の飛び越しと同じ線で描く。
-///    - 「分岐」: 辺が 2 本で、どちらも次の節でなく、行き先が異なる(BR1.1)。2 本の線を同時に開く。
-/// 2. 飛び越しの区間が交差しない(元 1 < 元 2 < 行き先 1 < 行き先 2 になる組がない)。
-///    行き先が同じ辺は、交差ではなく、合流になる(BR1.1)。
-/// 3. 分岐は、積み上げが空か、遠いほうの行き先が最も内側の線の行き先より近いときだけ載せる(BR2.1)。
-///    分岐が開いた線に、後のジョブが同じ行き先で合流する形は、辺の一覧にする(BR2.2)。
-///
-/// 条件 2 と 3 は、記述順に節を見ながら、開いている飛び越しの行き先を積んだ列(積み上げ)で、
-/// 1 回の走査で確かめる。合流する辺は、積み上げに載せない。
+/// - 飛び越しなし: 辺は、次の節への 1 本。
+/// - 通常の飛び越し: 次の節への辺と、それ以外への辺 1 本。
+/// - 「両方の飛び越し」: 辺は 1 本(成功と警告の両方)で、行き先は次の節でない。
+/// - 分岐: 辺は 2 本で、どちらも次の節でなく、行き先が異なる(辺は行き先ごとにまとまるので、異なる)。
 fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
     let job_count = graph.nodes.len().checked_sub(1)?;
     let position: HashMap<&str, usize> = graph
@@ -71,119 +69,48 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
         }
     };
 
-    // 条件 1: 元のジョブごとに、次の節への辺と、飛び越しの辺を分ける。
+    // 元のジョブごとに、次の節への辺と、飛び越しの辺を分ける。
     let mut has_next = vec![false; job_count];
     let mut targets: Vec<Vec<usize>> = vec![Vec::new(); job_count];
-    let mut edge_count = vec![0usize; job_count];
-    let mut both_skip = vec![false; job_count];
+    let mut both_kinds = vec![false; job_count];
     for edge in &graph.edges {
         let from = *position.get(edge.from_job.as_str())?;
         let to = to_position(&edge.to)?;
         if from >= job_count || to <= from {
             return None;
         }
-        edge_count[from] += 1;
         if to == from + 1 {
             has_next[from] = true;
         } else {
-            if edge.kinds.len() == 2 {
-                both_skip[from] = true;
-            }
+            both_kinds[from] = edge.kinds.len() == 2;
             targets[from].push(to);
         }
     }
-    let mut off_main = vec![false; job_count];
+    let mut kinds = Vec::with_capacity(job_count);
     for i in 0..job_count {
         targets[i].sort_unstable();
-        match targets[i].len() {
-            0 => {
-                if !has_next[i] {
-                    return None;
-                }
-            }
-            1 => {
-                if both_skip[i] && edge_count[i] == 1 {
-                    // 「両方の飛び越し」: 次の節への辺は要らない(通常の飛び越しと同じ線で描く)。
-                    off_main[i] = true;
-                } else if !has_next[i] {
-                    return None;
-                }
-            }
-            2 => {
-                // 「分岐」: 次の節への辺がなく、辺は 2 本だけ(行き先は、辺がまとまるので異なる)。
-                if edge_count[i] != 2 || targets[i][0] == targets[i][1] {
-                    return None;
-                }
-                off_main[i] = true;
-            }
+        let kind = match (has_next[i], targets[i].as_slice()) {
+            (true, []) => SkipKind::NoSkip,
+            (true, [_]) => SkipKind::Ordinary,
+            (false, [_]) if both_kinds[i] => SkipKind::BothSkip,
+            (false, [t1, t2]) if t1 != t2 => SkipKind::Branch,
+            // 次の節への辺も飛び越しもない、成功だけの辺が 1 本、辺が 3 本以上など(辺の一覧)。
             _ => return None,
-        }
-    }
-
-    // 通常の飛び越しだけのグラフ(BR1.1): グラフ全体で、すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本、
-    // 「両方の飛び越し」と分岐がない。行き先の重なりと交差の有無によらず、常に図にできる。
-    if is_ordinary_skip_graph(&targets, &has_next, &off_main) {
-        return Some(SkipPlan {
-            targets,
-            off_main,
-            ordinary: true,
-        });
-    }
-
-    // 条件 2、3: 開いている行き先の積み上げ(上が最も内側)。
-    let mut open: Vec<OpenLane> = Vec::new();
-    for (i, ts) in targets.iter().enumerate() {
-        if open.last().is_some_and(|l| l.target == i) {
-            open.pop();
-        }
-        // 最も内側でない線が、ここで終わるなら、交差している。
-        if open.iter().any(|l| l.target == i) {
-            return None;
-        }
-        match ts.as_slice() {
-            [] => {}
-            &[t] => match open.last() {
-                Some(top) if t > top.target => return None,
-                // 最も内側の線と行き先が同じなら、合流する(積み上げは変えない)。
-                // 分岐が開いた線への合流は、辺の一覧にする(BR2.2)。
-                Some(top) if t == top.target => {
-                    if top.by_branch {
-                        return None;
-                    }
-                }
-                _ => open.push(OpenLane {
-                    target: t,
-                    by_branch: false,
-                }),
-            },
-            &[t1, t2] => {
-                // 積み上げが空でなければ、t2 が最も内側の線より近いときだけ載せる(BR2.1)。
-                if open.last().is_some_and(|top| t2 >= top.target) {
-                    return None;
-                }
-                for target in [t2, t1] {
-                    open.push(OpenLane {
-                        target,
-                        by_branch: true,
-                    });
-                }
-            }
-            _ => return None,
-        }
+        };
+        kinds.push(kind);
     }
     Some(SkipPlan {
+        has_next,
+        kinds,
         targets,
-        off_main,
-        ordinary: false,
     })
 }
 
-/// 通常の飛び越しだけのグラフか(BR1.1)。すべてのジョブが次の節への辺を持ち、飛び越しは高々 1 本で、
-/// 主線につながらないジョブ(「両方の飛び越し」、分岐)がない。行き先の重なりと交差は問わない。
-fn is_ordinary_skip_graph(targets: &[Vec<usize>], has_next: &[bool], off_main: &[bool]) -> bool {
-    has_next.iter().all(|&h| h)
-        && !off_main.iter().any(|&o| o)
-        && targets.iter().all(|ts| ts.len() <= 1)
+/// 通常の飛び越しだけのグラフか(すべてのジョブが、飛び越しなしか、通常の飛び越し)。
+fn is_ordinary_skip_graph(plan: &SkipPlan) -> bool {
+    plan.kinds
+        .iter()
+        .all(|k| matches!(k, SkipKind::NoSkip | SkipKind::Ordinary))
 }
 
 /// 図の形が、レーンの図(`git log --graph` と同じ見た目)で描ける「対応する形」か(BR2.4)。
@@ -196,7 +123,7 @@ pub fn is_lane_drawable(graph: &FlowGraph) -> bool {
 /// 図の配置を決める。「対応する形」ならレーンの図、そうでなければ辺の一覧(BR2.4、BR2.8)。
 pub fn layout_graph(graph: &FlowGraph) -> GraphLayout {
     match skip_targets(graph) {
-        Some(plan) if plan.ordinary => GraphLayout::Lanes(ordinary_layout(&plan)),
+        Some(plan) if is_ordinary_skip_graph(&plan) => GraphLayout::Lanes(ordinary_layout(&plan)),
         Some(plan) => GraphLayout::Lanes(lane_layout(&plan)),
         None => GraphLayout::EdgeList,
     }
@@ -329,7 +256,7 @@ fn lane_layout(plan: &SkipPlan) -> LaneLayout {
             glyphs,
             node_index: Some(i),
         });
-        let off_main = plan.off_main[i];
+        let off_main = !plan.has_next[i];
         if joins {
             if let Some(last) = open_all_off_main.last_mut() {
                 *last &= off_main;
