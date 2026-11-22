@@ -287,7 +287,7 @@ impl Ctx<'_> {
             .run_id_env
             .as_deref()
             .unwrap_or(DEFAULT_RUN_ID_ENV);
-        match resolve_run_id(cmd.run_id.as_deref(), env_name, self.env) {
+        match resolve_run_id(cmd.run_id.as_ref(), env_name, self.env) {
             Ok(run_id) => Ok(run_id),
             Err(error) => Err(self.usage_error(&error)),
         }

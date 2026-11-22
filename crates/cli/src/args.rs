@@ -53,12 +53,12 @@
 use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
-use conductor_core::{Assumption, RunId};
+use conductor_core::Assumption;
 use lexopt::prelude::*;
 
 use crate::types::CommandKind as C;
 use crate::types::{
-    CliCommand, CommandKind, GraphFormat, ParsedArgs, UsageError, UsageErrorKind as Kind,
+    CliCommand, CommandKind, GraphFormat, ParsedArgs, RunIdArg, UsageError, UsageErrorKind as Kind,
 };
 
 /// オプションの識別子(`-h`・`--help`・`-V`・`--version` を除く。BR1.1)。
@@ -572,18 +572,12 @@ fn parse_graph_format(value: &OsString) -> Result<GraphFormat, UsageError> {
 
 /// `--run-id` の値の検査。空は有効(run ID なしに固定する)。UTF-8 でない値、規則に反する値は、
 /// `invalidValue`(対象は `--run-id` で、値は含めない)。
-fn parse_run_id_option(value: OsString) -> Result<String, UsageError> {
-    let invalid = || UsageError::with_subject(Kind::InvalidValue, "--run-id");
-    let text = value.into_string().map_err(|_| invalid())?;
-    if !text.is_empty() {
-        RunId::parse(&text).map_err(|_| invalid())?;
-    }
-    Ok(text)
+fn parse_run_id_option(value: OsString) -> Result<RunIdArg, UsageError> {
+    let text = value
+        .into_string()
+        .map_err(|_| UsageError::with_subject(Kind::InvalidValue, "--run-id"))?;
+    RunIdArg::parse(&text)
 }
-
-/// 置き場所を [`crate::run_id`] に移した。段 4 で `CliCommand.run_id` の型と一緒に、テストの呼ぶ道を
-/// 移すまでの、移行のための再公開。
-pub use crate::run_id::resolve_run_id;
 
 fn unexpected_argument(value: &OsString) -> UsageError {
     UsageError::with_subject(

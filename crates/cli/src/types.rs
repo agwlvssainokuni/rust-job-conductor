@@ -20,7 +20,37 @@
 use std::ffi::OsString;
 
 use conductor_converter::TargetFormat;
-use conductor_core::Assumption;
+use conductor_core::{Assumption, RunId};
+
+/// `--run-id` の指定(検査済み。FR1.2〜FR1.4)。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RunIdArg {
+    /// `--run-id ""`: run ID なしに固定する(環境変数を見ない)。
+    Empty,
+    /// 規則を満たす run ID。
+    Id(RunId),
+}
+
+impl RunIdArg {
+    /// `--run-id` の値を検査する(空は `Empty`)。規則に反する値は `invalidValue`(対象は `--run-id`。
+    /// 値は含めない)。
+    pub fn parse(text: &str) -> Result<Self, UsageError> {
+        if text.is_empty() {
+            return Ok(Self::Empty);
+        }
+        RunId::parse(text)
+            .map(Self::Id)
+            .map_err(|_| UsageError::with_subject(UsageErrorKind::InvalidValue, "--run-id"))
+    }
+
+    /// 書かれた値(`Empty` は空文字)。
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Empty => "",
+            Self::Id(id) => id.as_str(),
+        }
+    }
+}
 
 /// コマンドの種類(BR1.1)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,9 +174,9 @@ pub struct CliCommand {
     pub config_path: Option<OsString>,
     /// `-v` / `--verbose`。run・pipeline・validate・graph のときのみ指定できる。
     pub verbose: bool,
-    /// `--run-id <値>`。run・pipeline・watch・reset のときと、`--state` つきの graph のとき。検査済み(空は「run ID なしに固定」)。
-    /// 指定がなければ `None`(環境変数を見る)。
-    pub run_id: Option<String>,
+    /// `--run-id <値>`。run・pipeline・watch・reset のときと、`--state` つきの graph のとき。検査済み
+    /// ([`RunIdArg::Empty`] は「run ID なしに固定」)。指定がなければ `None`(環境変数を見る)。
+    pub run_id: Option<RunIdArg>,
     /// `--all`。reset のときのみ。
     pub all: bool,
     /// `--remove-on-complete`。run・pipeline のときのみ。指定があれば、完了でステートを削除する。

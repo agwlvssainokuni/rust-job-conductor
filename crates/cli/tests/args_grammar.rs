@@ -17,8 +17,8 @@
 use std::ffi::OsString;
 
 use conductor_cli::{
-    CliCommand, CommandKind, GraphFormat, InitOptions, InitTarget, ParsedArgs, UsageError,
-    UsageErrorKind, parse_args,
+    CliCommand, CommandKind, GraphFormat, InitOptions, InitTarget, ParsedArgs, RunIdArg,
+    UsageError, UsageErrorKind, parse_args,
 };
 use conductor_converter::TargetFormat;
 
@@ -480,17 +480,27 @@ fn run_id_は_4_つのコマンドで解釈される() {
     ] {
         let cmd = command(args);
         assert_eq!(cmd.kind, kind, "{args:?}");
-        assert_eq!(cmd.run_id.as_deref(), Some("r1"), "{args:?}");
+        assert_eq!(
+            cmd.run_id.as_ref().map(RunIdArg::as_str),
+            Some("r1"),
+            "{args:?}"
+        );
         assert!(!cmd.all);
     }
     // 指定なし、空(固定)の区別
     assert_eq!(command(&["run", "a"]).run_id, None);
     assert_eq!(
-        command(&["run", "a", "--run-id", ""]).run_id.as_deref(),
+        command(&["run", "a", "--run-id", ""])
+            .run_id
+            .as_ref()
+            .map(RunIdArg::as_str),
         Some("")
     );
     assert_eq!(
-        command(&["run", "a", "--run-id="]).run_id.as_deref(),
+        command(&["run", "a", "--run-id="])
+            .run_id
+            .as_ref()
+            .map(RunIdArg::as_str),
         Some("")
     );
 }
@@ -619,7 +629,8 @@ fn env_of(pairs: &[(&str, &str)]) -> MapEnv {
 }
 
 fn resolved(option: Option<&str>, env: &[(&str, &str)]) -> Result<Option<String>, UsageError> {
-    conductor_cli::args::resolve_run_id(option, "RID", &env_of(env))
+    let option = option.map(RunIdArg::parse).transpose()?;
+    conductor_cli::run_id::resolve_run_id(option.as_ref(), "RID", &env_of(env))
         .map(|r| r.map(|id| id.as_str().to_string()))
 }
 
@@ -697,7 +708,7 @@ fn graph_は_全オプションを受け取り_既定は_text_で_状態なし()
     ]);
     assert_eq!(cmd.graph.format, GraphFormat::Mermaid);
     assert!(cmd.graph.with_state && cmd.verbose);
-    assert_eq!(cmd.run_id.as_deref(), Some("r1"));
+    assert_eq!(cmd.run_id.as_ref().map(RunIdArg::as_str), Some("r1"));
     assert_eq!(cmd.pipeline_name.as_deref(), Some("nightly"));
     // `--format=text` の形も受け付ける。
     assert_eq!(
@@ -790,7 +801,7 @@ fn dry_run_と_assume_は_run_と_pipeline_で_複数回指定できる() {
             .map(|a| (a.job_id.as_str(), a.exit_code))
             .collect();
         assert_eq!(pairs, [("a", 3), ("b", 255)], "{kind}");
-        assert_eq!(cmd.run_id.as_deref(), Some("r1"));
+        assert_eq!(cmd.run_id.as_ref().map(RunIdArg::as_str), Some("r1"));
         assert!(cmd.remove_on_complete);
     }
     // 指定がなければ、既定は偽で空。値の `=` は、最初の `=` で分ける(終了コードに `=` があれば誤り)。

@@ -26,29 +26,31 @@ use conductor_core::{DEFAULT_RUN_ID_ENV, RunId};
 
 use crate::ctx::Ctx;
 use crate::deps::Env;
-use crate::types::{CliCommand, UsageError, UsageErrorKind};
+use crate::types::{CliCommand, RunIdArg, UsageError, UsageErrorKind};
 
 /// run ID を決める(FR1.2〜FR1.4)。
 ///
-/// - `option` が `Some`(`--run-id` あり): 環境変数は見ない。空なら run ID なし(固定)。
-/// - `option` が `None`: 環境変数 `env_name` を読み、未定義と空は run ID なし。
-///
-/// `--run-id` の値は、引数の段階で検査済みだが、ここでも検査する(環境変数の値と同じ関数)。
-/// 規則に反する値は、`invalidValue`(対象は、どこから来たか=オプションか環境変数かだけ。値は含めない)。
+/// - `option` が `Some`(`--run-id` あり): 環境変数は見ない。[`RunIdArg::Empty`] なら run ID なし(固定)、
+///   [`RunIdArg::Id`] ならその値(引数の段階で検査済みなので、検査し直さない)。
+/// - `option` が `None`: 環境変数 `env_name` を読み、未定義と空は run ID なし。規則に反する値は、
+///   `invalidValue`(対象は環境変数であることだけ。値は含めない)。
 pub fn resolve_run_id(
-    option: Option<&str>,
+    option: Option<&RunIdArg>,
     env_name: &str,
     env: &dyn Env,
 ) -> Result<Option<RunId>, UsageError> {
-    let (value, subject) = match option {
-        Some(v) => (Some(v.to_string()), "--run-id"),
-        None => (env.var(env_name), "run ID (environment variable)"),
-    };
-    match value.as_deref() {
-        None | Some("") => Ok(None),
-        Some(v) => RunId::parse(v)
-            .map(Some)
-            .map_err(|_| UsageError::with_subject(UsageErrorKind::InvalidValue, subject)),
+    match option {
+        Some(RunIdArg::Empty) => Ok(None),
+        Some(RunIdArg::Id(id)) => Ok(Some(id.clone())),
+        None => match env.var(env_name).as_deref() {
+            None | Some("") => Ok(None),
+            Some(v) => RunId::parse(v).map(Some).map_err(|_| {
+                UsageError::with_subject(
+                    UsageErrorKind::InvalidValue,
+                    "run ID (environment variable)",
+                )
+            }),
+        },
     }
 }
 
@@ -62,7 +64,7 @@ pub(crate) fn aux_run_id(
     path: &Path,
 ) -> Result<Option<RunId>, UsageError> {
     if cmd.run_id.is_some() {
-        return resolve_run_id(cmd.run_id.as_deref(), DEFAULT_RUN_ID_ENV, ctx.env);
+        return resolve_run_id(cmd.run_id.as_ref(), DEFAULT_RUN_ID_ENV, ctx.env);
     }
     let env_name = ctx.runtime.run_id_env(path);
     resolve_run_id(
