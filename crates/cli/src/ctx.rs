@@ -15,15 +15,14 @@
 //! 流れの共通部分(Orchestrator の土台)。
 //!
 //! `run` と `pipeline` に共通の、実行の前の検査(W2 の 1〜5。BR2.1、BR2.2、BR3.1)と、
-//! ジョブを実行したあとの表示、ステートの書き込みの失敗の表示を持つ。
+//! ステートの書き込み・初期化とその失敗の表示を持つ。ジョブを実行したあとの表示は `step` にある。
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
-    Classification, DefinitionError, JobDefinition, JobExecution, JobOutcome, LoadedEnvFiles,
-    NextStep, PipelineDefinition, PipelineState, RunId, env_file_refs,
+    DefinitionError, LoadedEnvFiles, PipelineDefinition, PipelineState, RunId, env_file_refs,
 };
 use conductor_runtime::ConsistencyResult;
 use conductor_runtime::{
@@ -32,10 +31,8 @@ use conductor_runtime::{
 
 use crate::args::resolve_run_id;
 use crate::deps::{Env, Runtime, SignalError, Signals, Sink};
-use crate::exit::{
-    EXIT_DEFINITION, EXIT_INTERNAL, EXIT_OK, EXIT_STATE, EXIT_USAGE, outcome_exit_code,
-};
-use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
+use crate::exit::{EXIT_DEFINITION, EXIT_INTERNAL, EXIT_OK, EXIT_STATE, EXIT_USAGE};
+use crate::report::{DisplayEvent, Reporter, StateContext};
 use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// 流れが使う、差し替え口と表示の束。
@@ -411,7 +408,8 @@ impl Ctx<'_> {
         Ok(checked)
     }
 
-    pub(crate) fn definition_errors(&mut self, errors: &[DefinitionError]) -> i32 {
+    /// 定義の誤りを表示して、64 を返す。
+    fn definition_errors(&mut self, errors: &[DefinitionError]) -> i32 {
         self.show(&DisplayEvent::DefinitionErrors(errors));
         EXIT_DEFINITION
     }
@@ -449,54 +447,6 @@ impl Ctx<'_> {
             Err(error) => Err(self.state_error(&error, context)),
         }
     }
-
-    /// ジョブを実行したあとの表示(BR2.6、BR6.3、BR6.4)。`-v` の結果・遷移・中断と、
-    /// 常に表示する起動の失敗・成功コードに含まれない 0。`command` は、定義の検査で分割したそのジョブの
-    /// コマンド(起動の失敗の表示に、コマンド名を使う)。
-    pub(crate) fn report_execution(
-        &mut self,
-        job: &JobDefinition,
-        command: &CommandLine,
-        execution: &JobExecution,
-        outcome: &JobOutcome,
-        next: &NextStep,
-    ) {
-        let conductor_exit = outcome_exit_code(outcome);
-        let detail = result_detail(execution);
-        self.show(&DisplayEvent::JobResult {
-            job_id: &job.id,
-            result: outcome.classification,
-            detail,
-            conductor_exit,
-        });
-
-        if detail == ResultDetail::StartFailure {
-            self.show(&DisplayEvent::StartFailure {
-                job_id: &job.id,
-                command: &command.program,
-            });
-        }
-        if outcome.conductor_error {
-            self.show(&DisplayEvent::SuccessCodeNotListed { job_id: &job.id });
-        }
-
-        if let Some(on) = outcome
-            .classification
-            .and_then(Classification::transition_on)
-            && let Some(transition) = job.transition_for(on)
-        {
-            self.show(&DisplayEvent::Transition {
-                on,
-                target: &transition.next,
-                skipped: &next.skipped_job_ids,
-            });
-        }
-        if execution.interrupted {
-            self.show(&DisplayEvent::Interrupted {
-                signal: execution.signal_number.unwrap_or(0),
-            });
-        }
-    }
 }
 
 /// ステートを読んだときの表示の文脈。run ID があるときは、案内を `reset --run-id` にする。
@@ -526,31 +476,4 @@ pub(crate) fn aux_run_id(
         env_name.as_deref().unwrap_or(DEFAULT_RUN_ID_ENV),
         ctx.env,
     )
-}
-
-/// 実行の結果の補足(`classify` の判定の順序と同じ)。
-fn result_detail(execution: &JobExecution) -> ResultDetail {
-    if !execution.started {
-        return if execution.interrupted {
-            ResultDetail::Interrupted {
-                signal: execution.signal_number.unwrap_or(0),
-                started: false,
-            }
-        } else {
-            ResultDetail::StartFailure
-        };
-    }
-    if execution.interrupted {
-        return ResultDetail::Interrupted {
-            signal: execution.signal_number.unwrap_or(0),
-            started: true,
-        };
-    }
-    if execution.start_failure {
-        return ResultDetail::StartFailure;
-    }
-    if let Some(signal) = execution.terminated_by_signal {
-        return ResultDetail::Signal(signal);
-    }
-    ResultDetail::ExitCode(execution.exit_code.unwrap_or(0))
 }

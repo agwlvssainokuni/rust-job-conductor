@@ -14,7 +14,7 @@
 
 //! 1 つのジョブを処理する共通の手順(BR1.1、BR1.2)。`run`(個別実行)と `pipeline`(一括実行)が呼ぶ。
 //!
-//! 手順は 4 つ:
+//! 手順は 4 つ(と、実行のあとの表示):
 //!
 //! | 関数 | 中身 |
 //! |------|------|
@@ -22,6 +22,7 @@
 //! | [`record_skip`] | 土台(ステート、無ければ初期ステート)に `apply_skip`。変わったときだけ `Durable` で書く |
 //! | [`run_step`] | 空なら初期ステートを `Fast` で書く → リトライつきの実行 → 分類 → 表示 → 記録 → `Durable` で書く |
 //! | [`remove_if_requested`] | `remove_on_complete` が真なら、ステートを削除する |
+//! | `report_execution`(非公開) | `run_step` の表示。結果・起動の失敗・成功コードに含まれない 0・遷移・中断 |
 //!
 //! 書く順序、`Durability`、表示の文脈(`StateContext`)は、まとめる前の `run.rs`・`pipeline.rs` と同じ。
 //! 書き込みの失敗は、表示したうえで、終了コード(65)を `Err` で返す。呼び出し側は、それで終わる。
@@ -30,13 +31,14 @@
 //! (BR1.2)。
 
 use conductor_core::{
-    Decision, DecisionReason, JobDefinition, JobOutcome, NextStep, PipelineDefinition,
-    PipelineState, RunMode, classify_and_decide, decide_before_run,
+    Classification, Decision, DecisionReason, JobDefinition, JobExecution, JobOutcome, NextStep,
+    PipelineDefinition, PipelineState, RunMode, classify_and_decide, decide_before_run,
 };
 use conductor_runtime::{CommandLine, Durability, apply_outcome, apply_skip, initial_state};
 
 use crate::ctx::{Ctx, Session};
-use crate::report::StateContext;
+use crate::exit::outcome_exit_code;
+use crate::report::{DisplayEvent, ResultDetail, StateContext};
 use crate::retry::run_job_with_retry;
 
 /// 1 つのジョブを実行し、記録したあとの結果([`run_step`] の戻り値)。
@@ -140,7 +142,7 @@ pub(crate) fn run_step(
 
     let execution = run_job_with_retry(ctx, session, job);
     let (outcome, next) = classify_and_decide(job, &execution, &base.job_states, definition, mode);
-    ctx.report_execution(job, command, &execution, &outcome, &next);
+    report_execution(ctx, job, command, &execution, &outcome, &next);
 
     let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
     // 起動前の中断(started = false)は、ジョブが実行されていない。
@@ -170,4 +172,79 @@ pub(crate) fn remove_if_requested(
         return Ok(());
     }
     ctx.reset(&session.definition_path, session.run_id.as_ref(), context)
+}
+
+/// ジョブを実行したあとの表示(BR2.6、BR6.3、BR6.4)。`-v` の結果・遷移・中断と、
+/// 常に表示する起動の失敗・成功コードに含まれない 0。`command` は、定義の検査で分割したそのジョブの
+/// コマンド(起動の失敗の表示に、コマンド名を使う)。
+fn report_execution(
+    ctx: &mut Ctx<'_>,
+    job: &JobDefinition,
+    command: &CommandLine,
+    execution: &JobExecution,
+    outcome: &JobOutcome,
+    next: &NextStep,
+) {
+    let conductor_exit = outcome_exit_code(outcome);
+    let detail = result_detail(execution);
+    ctx.show(&DisplayEvent::JobResult {
+        job_id: &job.id,
+        result: outcome.classification,
+        detail,
+        conductor_exit,
+    });
+
+    if detail == ResultDetail::StartFailure {
+        ctx.show(&DisplayEvent::StartFailure {
+            job_id: &job.id,
+            command: &command.program,
+        });
+    }
+    if outcome.conductor_error {
+        ctx.show(&DisplayEvent::SuccessCodeNotListed { job_id: &job.id });
+    }
+
+    if let Some(on) = outcome
+        .classification
+        .and_then(Classification::transition_on)
+        && let Some(transition) = job.transition_for(on)
+    {
+        ctx.show(&DisplayEvent::Transition {
+            on,
+            target: &transition.next,
+            skipped: &next.skipped_job_ids,
+        });
+    }
+    if execution.interrupted {
+        ctx.show(&DisplayEvent::Interrupted {
+            signal: execution.signal_number.unwrap_or(0),
+        });
+    }
+}
+
+/// 実行の結果の補足(`classify` の判定の順序と同じ)。
+fn result_detail(execution: &JobExecution) -> ResultDetail {
+    if !execution.started {
+        return if execution.interrupted {
+            ResultDetail::Interrupted {
+                signal: execution.signal_number.unwrap_or(0),
+                started: false,
+            }
+        } else {
+            ResultDetail::StartFailure
+        };
+    }
+    if execution.interrupted {
+        return ResultDetail::Interrupted {
+            signal: execution.signal_number.unwrap_or(0),
+            started: true,
+        };
+    }
+    if execution.start_failure {
+        return ResultDetail::StartFailure;
+    }
+    if let Some(signal) = execution.terminated_by_signal {
+        return ResultDetail::Signal(signal);
+    }
+    ResultDetail::ExitCode(execution.exit_code.unwrap_or(0))
 }
