@@ -26,12 +26,15 @@ use crate::run_id::is_valid_env_name;
 /// 1 つでもあれば、項目は返さず誤りの並びを返す。誤りに値は含めない。
 pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvFileError>> {
     let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
-    let mut entries: Vec<EnvEntry> = Vec::new();
+    // 項目は書いた順に足し、完全に同じ名前の重複は、前の項目を「消した」印(`None`)にする。最後に印の
+    // 付いた項目を除くと、「各名前の最後の項目を、最後に現れた順に並べたもの」になる(2d)。
+    let mut entries: Vec<Option<EnvEntry>> = Vec::new();
     let mut warnings: Vec<EnvWarning> = Vec::new();
     let mut errors: Vec<EnvFileError> = Vec::new();
     let mut taken = 0usize;
-    // 小文字にした名前 → 綴り(大文字小文字だけが違う名前と、完全な重複を見分ける)。
-    let mut seen: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    // 小文字にした名前 → (綴り, いまの項目の位置)(大文字小文字だけが違う名前と、完全な重複を見分ける)。
+    let mut seen: std::collections::HashMap<String, (String, usize)> =
+        std::collections::HashMap::new();
 
     for (i, raw) in text.split('\n').enumerate() {
         let line_no = i + 1;
@@ -74,11 +77,12 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
             break;
         }
 
-        match seen.get(&key.to_ascii_lowercase()) {
-            Some(exact) if exact == key => {
-                if let Some(pos) = entries.iter().position(|e| e.name == key) {
-                    entries.remove(pos);
-                }
+        let new_pos = entries.len();
+        match seen.get_mut(&key.to_ascii_lowercase()) {
+            Some((exact, pos)) if exact == key => {
+                // 前の項目を消した印にし、新しい項目の位置を覚える。
+                entries[*pos] = None;
+                *pos = new_pos;
                 warnings.push(EnvWarning {
                     file: file.to_string(),
                     line: line_no,
@@ -91,20 +95,20 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
                 continue;
             }
             None => {
-                seen.insert(key.to_ascii_lowercase(), key.to_string());
+                seen.insert(key.to_ascii_lowercase(), (key.to_string(), new_pos));
             }
         }
-        entries.push(EnvEntry {
+        entries.push(Some(EnvEntry {
             name: key.to_string(),
             value,
             line: line_no,
-        });
+        }));
     }
 
     if errors.is_empty() {
         Ok(EnvFileContent {
             path: file.to_string(),
-            entries,
+            entries: entries.into_iter().flatten().collect(),
             warnings,
         })
     } else {
