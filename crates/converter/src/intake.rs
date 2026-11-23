@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 取り込み(Intake)。入力ファイルを開き、大きさを確認して読み取る。
+//! 取り込み(Intake)。入力ファイルの種別をパスで見て、通常のファイルだけを開き、大きさを確認して
+//! 読み取る(定義ファイルの読み込みと同じ順)。
 //!
 //! この Unit で、ファイルシステムに触れるのはここだけである(NFR4.5)。読み取りは
 //! 「上限 + 1 バイト」までに制限し、確認と読み取りのあいだにファイルが変わっても、
 //! 上限を超えて読まない(NFR4.2)。失敗の順序は BR1.12 の 1〜4:
-//! fileMissing → unreadable(権限・通常でない)→ tooLarge → unreadable(UTF-8 でない)。
+//! fileMissing → unreadable(通常でない・権限)→ tooLarge → unreadable(UTF-8 でない)。
 
 use std::fs::File;
 use std::io::{ErrorKind, Read};
@@ -47,26 +48,30 @@ fn io_reason(kind: ErrorKind) -> &'static str {
 /// 入力ファイルを読み取って、文字列として返す。
 pub(crate) fn read_input(path: &Path) -> Result<String, ConversionError> {
     let file = file_label(path);
-
-    // BR1.12 の 1〜2: 先に開く(ない → fileMissing、権限など → unreadable)
-    let handle = File::open(path).map_err(|e| match e.kind() {
+    // パスのメタデータと、開くときの失敗(ない → fileMissing、権限など → unreadable)
+    let open_error = |e: std::io::Error| match e.kind() {
         ErrorKind::NotFound => error(
             &file,
             ConversionErrorKind::FileMissing,
             reason::FILE_MISSING,
         ),
-        k => {
-            // Windows ではディレクトリを開くと権限のエラーになるので、通常でないことを見分ける
-            let not_regular = std::fs::metadata(path).is_ok_and(|m| !m.is_file());
-            let why = if not_regular {
-                reason::NOT_REGULAR
-            } else {
-                io_reason(k)
-            };
-            error(&file, ConversionErrorKind::Unreadable, why)
-        }
-    })?;
-    // BR1.12 の 3: 大きさは、開いたハンドルから取る(権限のないファイルは、ここへ来ない)
+        k => error(&file, ConversionErrorKind::Unreadable, io_reason(k)),
+    };
+
+    // BR1.12 の 1: 先にパスで種別だけを見る(通常のファイルでなければ開かない。書き手のいない
+    // 名前付きパイプを開いて待ち続けないため。大きさは見ない)
+    let path_meta = std::fs::metadata(path).map_err(open_error)?;
+    if !path_meta.is_file() {
+        return Err(error(
+            &file,
+            ConversionErrorKind::Unreadable,
+            reason::NOT_REGULAR,
+        ));
+    }
+    // BR1.12 の 2: 開く(ない → fileMissing、権限など → unreadable)
+    let handle = File::open(path).map_err(open_error)?;
+    // BR1.12 の 3: 種別と大きさは、開いたハンドルから取る(1 のあとに差し替わっても、開いたものを見る。
+    // 権限のないファイルは、ここへ来ない)
     let meta = handle
         .metadata()
         .map_err(|e| error(&file, ConversionErrorKind::Unreadable, io_reason(e.kind())))?;
