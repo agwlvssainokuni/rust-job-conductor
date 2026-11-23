@@ -33,8 +33,8 @@ pub fn put(dir: &Path, name: &str, content: &str) {
 }
 
 /// `command` を分けた結果(`check_command`。分けられる command だけを渡す)。
-pub fn command_line(command: impl Into<Command>) -> CommandLine {
-    check_command(&command.into()).expect("分けられる")
+pub fn command_line(command: impl Into<String>) -> CommandLine {
+    check_command(&Command::Line(command.into())).expect("分けられる")
 }
 
 /// 定義ファイル `conductor.toml` のパス(ファイルそのものは無くてよい)と、そのステートファイルのパス。
@@ -65,10 +65,10 @@ pub fn helper_command(out: &Path, rest: &str) -> String {
     )
 }
 
-pub fn job(id: &str, command: impl Into<Command>) -> JobDefinition {
+pub fn job(id: &str, command: impl Into<String>) -> JobDefinition {
     JobDefinition {
         id: id.to_string(),
-        command: command.into(),
+        command: Command::Line(command.into()),
         warning_exit_codes: vec![],
         success_exit_codes: None,
         transitions: vec![],

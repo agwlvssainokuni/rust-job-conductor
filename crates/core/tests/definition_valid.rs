@@ -46,7 +46,10 @@ fn 正しい定義をファイルから読める() {
     );
 
     let extract: &JobDefinition = &def.job[0];
-    assert_eq!(extract.command, "extract --all --since yesterday".into());
+    assert_eq!(
+        extract.command,
+        Command::Line("extract --all --since yesterday".into())
+    );
     assert!(extract.warning_exit_codes.is_empty());
     assert_eq!(extract.success_exit_codes, None);
     assert_eq!(extract.effective_success_codes(), &[0], "既定の成功コード");
@@ -76,7 +79,10 @@ fn 正しい定義をファイルから読める() {
 fn コマンドの文字列はそのまま保持される() {
     let def = load_definition(Some(&fixture("valid_pipeline.toml")), None).unwrap();
     // 引用符も `$HOME` も、展開や解釈をしない(NFR4.5)。
-    assert_eq!(def.job[1].command, "transform \"in dir\" $HOME".into());
+    assert_eq!(
+        def.job[1].command,
+        Command::Line("transform \"in dir\" $HOME".into())
+    );
 }
 
 #[test]

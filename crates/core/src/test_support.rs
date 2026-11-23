@@ -15,13 +15,13 @@
 //! 単体テストの共通の補助(定義とジョブの組み立て)。各モジュールの補助は、これと構造体の更新の
 //! 書き方で、違う所だけを書く。
 
-use crate::types::{JobDefinition, PipelineDefinition};
+use crate::types::{Command, JobDefinition, PipelineDefinition};
 
 /// ID `id`、コマンド `c` のジョブ(ほかは空。成功コードは既定)。
 pub(crate) fn job(id: &str) -> JobDefinition {
     JobDefinition {
         id: id.into(),
-        command: "c".into(),
+        command: Command::Line("c".into()),
         warning_exit_codes: Vec::new(),
         success_exit_codes: None,
         transitions: Vec::new(),

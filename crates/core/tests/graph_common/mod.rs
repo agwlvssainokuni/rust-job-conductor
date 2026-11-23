@@ -22,7 +22,7 @@ use conductor_core::graph::{
     layout_graph,
 };
 use conductor_core::{
-    JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget,
+    Command, JobDefinition, PipelineDefinition, Transition, TransitionOn, TransitionTarget,
 };
 
 /// 遷移の指定。`(元のジョブ、結果、行き先)`。行き先 `None` は `@end`。
@@ -34,7 +34,7 @@ pub fn definition(ids: &[&str], transitions: &[Spec<'_>]) -> PipelineDefinition 
         .iter()
         .map(|id| JobDefinition {
             id: (*id).to_string(),
-            command: format!("echo {id}").as_str().into(),
+            command: Command::Line(format!("echo {id}")),
             warning_exit_codes: vec![3],
             success_exit_codes: None,
             transitions: transitions

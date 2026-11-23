@@ -20,11 +20,11 @@ use common::*;
 use conductor_core::{Command, ExecutionResult};
 use conductor_runtime::{CommandLine, InterruptSignal, check_command, run_job};
 
-fn run(command: impl Into<Command> + Send + 'static) -> conductor_core::JobExecution {
+fn run(command: Command) -> conductor_core::JobExecution {
     run_with_limit(
         || {},
         move || {
-            let line = command_line(command);
+            let line = check_command(&command).expect("分けられる");
             run_job(&line, &[], &InterruptSignal::new())
         },
     )
@@ -38,7 +38,7 @@ fn 引数のメタ文字がそのまま渡る() {
         &out,
         r#"echo 'a;b' '&&' '|' '$HOME' '*' '>x' "q\"r" 'it works' '' "#,
     );
-    let e = run(command);
+    let e = run(Command::Line(command));
     assert_eq!(
         e.result,
         ExecutionResult::Exited {
@@ -122,10 +122,10 @@ fn 配列の_command_で存在しないプログラムは起動失敗() {
 fn 環境変数と作業ディレクトリを引き継ぐ() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
-    let e = run(helper_command(
+    let e = run(Command::Line(helper_command(
         &out,
         "env CARGO_PKG_NAME CONDUCTOR_NO_SUCH_ENV_ZZ",
-    ));
+    )));
     assert!(matches!(
         e.result,
         ExecutionResult::Exited {
@@ -143,14 +143,16 @@ fn 環境変数と作業ディレクトリを引き継ぐ() {
     );
 
     let out2 = dir.path().join("out2.txt");
-    run(helper_command(&out2, "cwd"));
+    run(Command::Line(helper_command(&out2, "cwd")));
     let cwd = std::env::current_dir().ok();
     assert_eq!(lines(&out2), [format!("cwd={cwd:?}")]);
 }
 
 #[test]
 fn 存在しないコマンドは起動失敗() {
-    let e = run("conductor-no-such-command-zzz a b".to_string());
+    let e = run(Command::Line(
+        "conductor-no-such-command-zzz a b".to_string(),
+    ));
     assert_eq!(e.result, ExecutionResult::StartFailed);
 }
 
@@ -159,7 +161,7 @@ fn 実行できないファイルは起動失敗() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let not_exec = dir.path().join("data.txt");
     std::fs::write(&not_exec, "plain text").expect("書ける");
-    let e = run(q(&not_exec.display().to_string()));
+    let e = run(Command::Line(q(&not_exec.display().to_string())));
     assert_eq!(e.result, ExecutionResult::StartFailed);
 }
 
@@ -168,9 +170,9 @@ fn 実行できないファイルは起動失敗() {
 fn 渡した分割済みのコマンドで起動し_command_を分け直さない() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
-    let line = check_command(&helper_command(&out, "exit 3").into()).expect("分けられる");
+    let line = command_line(helper_command(&out, "exit 3"));
     // 定義の command は分けられない文字列。分け直せば起動失敗になる。
-    assert!(check_command(&Command::from("'")).is_err());
+    assert!(check_command(&Command::Line("'".into())).is_err());
     let e = run_with_limit(|| {}, move || run_job(&line, &[], &InterruptSignal::new()));
     assert_eq!(
         e.result,
@@ -187,7 +189,7 @@ fn 終了コードの返り方() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
     for (arg, want) in [(0, 0), (3, 3), (255, 255)] {
-        let e = run(helper_command(&out, &format!("exit {arg}")));
+        let e = run(Command::Line(helper_command(&out, &format!("exit {arg}"))));
         assert!(
             matches!(
                 e.result,
@@ -197,7 +199,7 @@ fn 終了コードの返り方() {
         );
     }
     // 大きな値: UNIX 系は下位 8 ビット、Windows はそのまま。
-    let e = run(helper_command(&out, "exit 300"));
+    let e = run(Command::Line(helper_command(&out, "exit 300")));
     let want = if cfg!(unix) { 300 & 0xff } else { 300 };
     assert!(matches!(
         e.result,
@@ -227,7 +229,7 @@ fn 起動前の合図が立っていれば起動しない() {
 fn 実行中に合図が立たなければ_interrupted_にならない() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
-    let e = run(helper_command(&out, "exit 1"));
+    let e = run(Command::Line(helper_command(&out, "exit 1")));
     assert!(matches!(
         e.result,
         ExecutionResult::Exited {
@@ -289,7 +291,7 @@ fn cmd_への危険な引数は注入にならない() {
         q(&script.display().to_string()),
         marker.display()
     );
-    let e = run(command);
+    let e = run(Command::Line(command));
     assert!(
         !matches!(e.result, ExecutionResult::NotStarted { .. }),
         "{e:?}"
@@ -329,7 +331,10 @@ fn cmd_への安全な引数は起動できる() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let script = dir.path().join("ok.cmd");
     std::fs::write(&script, "@echo off\r\nexit /b 7\r\n").expect("書ける");
-    let e = run(format!("{} plain", q(&script.display().to_string())));
+    let e = run(Command::Line(format!(
+        "{} plain",
+        q(&script.display().to_string())
+    )));
     assert!(
         matches!(
             e.result,

@@ -17,7 +17,7 @@
 
 mod common;
 
-use conductor_core::ExecutionResult;
+use conductor_core::{Command, ExecutionResult};
 use conductor_runtime::{InterruptSignal, check_command, read_state, run_job};
 
 /// 小さな疑似乱数(xorshift64)。
@@ -147,7 +147,7 @@ fn ランダムな_command_の文字列でパニックしない() {
         let s: String = (0..len)
             .map(|_| alphabet[rng.below(alphabet.len())])
             .collect();
-        if let Ok(line) = check_command(&s.into()) {
+        if let Ok(line) = check_command(&Command::Line(s)) {
             assert!(!line.program.is_empty());
         }
     }
@@ -157,10 +157,10 @@ fn ランダムな_command_の文字列でパニックしない() {
 fn 大きな入力の_command_でも分けられる() {
     // 入れ子はなく、再帰を使わないため、長さに対して、スタックを使わない。
     let long = format!("prog {}", "'a b' \"c\\\"d\" e ".repeat(100_000));
-    let line = check_command(&long.into()).expect("分けられる");
+    let line = check_command(&Command::Line(long)).expect("分けられる");
     assert_eq!(line.args.len(), 300_000);
     let unclosed = format!("prog {}'", "a ".repeat(100_000));
-    assert!(check_command(&unclosed.into()).is_err());
+    assert!(check_command(&Command::Line(unclosed)).is_err());
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn 起動できないコマンドや範囲外の番号でパニックしない()
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     // 分けられない command は、`run_job` に渡せない。誤りを値で返すことを、`check_command` で確かめる。
     for command in [String::new(), "'".to_string(), "''".to_string()] {
-        assert!(check_command(&command.into()).is_err());
+        assert!(check_command(&Command::Line(command)).is_err());
     }
     let cases = [
         "conductor-no-such-command-zzz".to_string(),

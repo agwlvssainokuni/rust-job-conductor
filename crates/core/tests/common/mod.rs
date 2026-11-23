@@ -23,7 +23,8 @@ use std::time::Duration;
 use conductor_core::DefinitionErrorKind as K;
 use conductor_core::envfile::{EnvFileContent, LoadedEnvFiles};
 use conductor_core::{
-    JobDefinition, JobExecution, JobState, JobStatus, PipelineState, SkipReason, parse_definition,
+    Command, JobDefinition, JobExecution, JobState, JobStatus, PipelineState, SkipReason,
+    parse_definition,
 };
 
 /// `.env` の内容を足し、定義に書かれた文字列 `reference` から引けるようにする(本番の読み取りと
@@ -59,7 +60,7 @@ pub fn median(mut samples: Vec<Duration>) -> Duration {
 pub fn job(id: &str) -> JobDefinition {
     JobDefinition {
         id: id.to_string(),
-        command: "c".into(),
+        command: Command::Line("c".into()),
         warning_exit_codes: vec![],
         success_exit_codes: None,
         transitions: vec![],

@@ -78,18 +78,6 @@ pub enum Command {
     Argv(Vec<String>),
 }
 
-impl From<&str> for Command {
-    fn from(line: &str) -> Self {
-        Command::Line(line.to_string())
-    }
-}
-
-impl From<String> for Command {
-    fn from(line: String) -> Self {
-        Command::Line(line)
-    }
-}
-
 /// 1 つのジョブの定義(契約 C1)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobDefinition {
@@ -585,15 +573,6 @@ mod tests {
         let def = crate::test_support::definition("p", vec![job("a"), job("b")]);
         assert_eq!(def.job_index("b"), Some(1));
         assert_eq!(def.job_index("zz"), None);
-    }
-
-    #[test]
-    fn 文字列から_line_を作れる() {
-        assert_eq!(Command::from("echo a"), Command::Line("echo a".into()));
-        assert_eq!(
-            Command::from(String::from("echo a")),
-            Command::Line("echo a".into())
-        );
     }
 
     #[test]

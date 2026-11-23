@@ -226,7 +226,8 @@ mod tests {
     }
 
     fn line(command: &str) -> CommandLine {
-        crate::split::check_command(&command.into()).expect("分けられる")
+        crate::split::check_command(&conductor_core::Command::Line(command.into()))
+            .expect("分けられる")
     }
 
     #[test]

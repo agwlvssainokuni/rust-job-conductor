@@ -268,10 +268,10 @@ mod tests {
 
     #[test]
     fn check_command_は分けた結果を返す() {
-        let line = check_command(&"a 'b c'".into()).expect("検査を通る");
+        let line = check_command(&Command::Line("a 'b c'".into())).expect("検査を通る");
         assert_eq!(line.program, "a");
         assert_eq!(line.args, ["b c"]);
-        assert!(check_command(&"a 'b".into()).is_err());
+        assert!(check_command(&Command::Line("a 'b".into())).is_err());
     }
 
     #[test]
