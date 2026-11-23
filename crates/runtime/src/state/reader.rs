@@ -63,14 +63,8 @@ pub fn read_state_raw(
     definition_path: &Path,
     run_id: Option<&RunId>,
 ) -> Result<Option<PipelineState>, StateError> {
-    read_state_file_raw(StateLocation::of(definition_path, run_id).path(), run_id)
-}
-
-/// ステートファイルのパスを、直接指定して、完了のものも含めて読む。`run_id` は、ファイル名の run ID。
-fn read_state_file_raw(
-    path: &Path,
-    run_id: Option<&RunId>,
-) -> Result<Option<PipelineState>, StateError> {
+    let location = StateLocation::of(definition_path, run_id);
+    let path = location.path();
     let bytes = match read_bounded(path) {
         Ok(Some(bytes)) => bytes,
         Ok(None) => return Ok(None),
@@ -139,7 +133,7 @@ pub(crate) fn inspect_run_state(path: &Path, run_id: &RunId) -> Inspected {
     let Ok(Some(bytes)) = read_bounded(path) else {
         return Inspected::Broken;
     };
-    match parse_state_for(&bytes, Some(run_id)) {
+    match parse_state_raw_for(&bytes, Some(run_id)) {
         // 空のファイルは、中身の run_id がなく、だれのものか分からない。
         Ok(None) if bytes.is_empty() => Inspected::NotOurs,
         Ok(_) => Inspected::Ours,
@@ -193,19 +187,10 @@ fn run_id_mismatch() -> ParseFailure {
     }
 }
 
-/// 読み取ったバイト列を、ステートにする。空のステートは `Ok(None)`。
+/// 読み取ったバイト列を、ステートにする。空のファイルは `Ok(None)`。完了のステートも、そのまま返す
+/// (空として扱うのは [`read_state`]。BR2.3、FR3.1、FR3.4)。
 ///
-/// `expected_run_id` は、ファイル名の run ID。中身の `run_id` と一致しなければ `corrupt`
-/// (`completed` の判定より前に検査する。FR3.2)。
-fn parse_state_for(
-    bytes: &[u8],
-    expected_run_id: Option<&RunId>,
-) -> Result<Option<PipelineState>, ParseFailure> {
-    // 完了のまま残ったステートは、空として扱う(BR2.3)。
-    Ok(parse_state_raw_for(bytes, expected_run_id)?.filter(|state| !state.completed))
-}
-
-/// `parse_state_for` と同じ検査で、完了のステートも、そのまま返す(FR3.1、FR3.4)。
+/// `expected_run_id` は、ファイル名の run ID。中身の `run_id` と一致しなければ `corrupt`(FR3.2)。
 fn parse_state_raw_for(
     bytes: &[u8],
     expected_run_id: Option<&RunId>,
@@ -236,7 +221,7 @@ fn parse_state_raw_for(
 /// 引数なしの検査(run ID なしの期待)。単体テストが使う。
 #[cfg(test)]
 fn parse_state(bytes: &[u8]) -> Result<Option<PipelineState>, ParseFailure> {
-    parse_state_for(bytes, None)
+    parse_state_raw_for(bytes, None).map(|s| s.filter(|s| !s.completed))
 }
 
 const TOP_KEYS: [&str; 10] = [
