@@ -22,7 +22,7 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::Path;
 
-use crate::temp_file::{create_temp_beside, dir_or_current};
+use crate::temp_file::{ReplaceError, dir_or_current, replace_via_temp};
 
 /// ファイルの作成の成功の結果(BR1.4)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,28 +130,18 @@ fn replace_file(path: &Path, bytes: &[u8]) -> Result<CreateOutcome, CreateError>
         Err(_) => false,
     };
 
-    let (temp_path, mut file) =
-        create_temp_beside(dir, &name).map_err(|error| classify_kind(error.kind()))?;
-
-    let written = file.write_all(bytes).and_then(|()| file.flush());
-    // 置き換えと後始末の前に、閉じる(Windows では、開いたままのファイルは、移せず、消せない)。
-    drop(file);
-    let result = match written {
-        Ok(()) => fs::rename(&temp_path, path),
-        Err(error) => Err(error),
-    };
-    match result {
+    match replace_via_temp(dir, &name, path, |file| {
+        file.write_all(bytes).and_then(|()| file.flush())
+    }) {
         Ok(()) => Ok(if existed {
             CreateOutcome::Replaced
         } else {
             CreateOutcome::Created
         }),
-        Err(error) => {
-            let _ = fs::remove_file(&temp_path);
-            Err(match error.kind() {
-                io::ErrorKind::PermissionDenied => CreateError::PermissionDenied,
-                _ => CreateError::OtherIo,
-            })
-        }
+        Err(ReplaceError::CreateTemp(kind)) => Err(classify_kind(kind)),
+        Err(ReplaceError::WriteOrRename(kind)) => Err(match kind {
+            io::ErrorKind::PermissionDenied => CreateError::PermissionDenied,
+            _ => CreateError::OtherIo,
+        }),
     }
 }

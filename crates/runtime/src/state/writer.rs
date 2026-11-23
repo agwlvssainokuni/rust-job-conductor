@@ -32,7 +32,7 @@ use std::fs::OpenOptions;
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
 use crate::state::reader::FORMAT_VERSION;
-use crate::temp_file::{create_temp_beside, dir_or_current, temp_prefix};
+use crate::temp_file::{dir_or_current, replace_via_temp, temp_prefix};
 use crate::types::{Durability, StateLocation};
 
 /// 残った一時ファイルを、後始末で消す古さ(24 時間)。
@@ -78,16 +78,10 @@ pub(crate) fn write_state_file(
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .ok_or_else(fail)?;
-    let (temp_path, mut file) = create_temp_beside(dir, &state_name).map_err(|_| fail())?;
-
-    let written = persist(&mut file, text.as_bytes(), durability, |f| f.sync_all());
-    // 置き換えと後始末の前に、閉じる(Windows では、開いたままのファイルは、移せず、消せない)。
-    drop(file);
-    let result = written.and_then(|()| fs::rename(&temp_path, path));
-    if result.is_err() {
-        let _ = fs::remove_file(&temp_path);
-        return Err(fail());
-    }
+    replace_via_temp(dir, &state_name, path, |file| {
+        persist(file, text.as_bytes(), durability, |f| f.sync_all())
+    })
+    .map_err(|_| fail())?;
 
     if durability == Durability::Durable {
         platform::sync_dir(dir);

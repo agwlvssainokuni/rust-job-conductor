@@ -15,7 +15,7 @@
 //! 一時ファイルと親のディレクトリの扱い(ステートの書き込みと、`init` の出力先の置き換えが共有する。
 //! BR2.8)。`state` と `file_create` と `platform` は、ここを使い、互いの内部を使わない。
 
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -70,7 +70,7 @@ pub(crate) fn create_temp(
 ///
 /// 名前は `.<名前>.tmp.<プロセス番号>.<時刻>.<連番>`。名前が重なったら連番を進めて、
 /// 最大 16 回まで作り直す([`create_temp`])。`dir` は、呼び出し側が渡したまま使う。
-pub(crate) fn create_temp_beside(dir: &Path, target_name: &str) -> io::Result<(PathBuf, File)> {
+fn create_temp_beside(dir: &Path, target_name: &str) -> io::Result<(PathBuf, File)> {
     let pid = std::process::id();
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -82,6 +82,40 @@ pub(crate) fn create_temp_beside(dir: &Path, target_name: &str) -> io::Result<(P
             .wrapping_add(attempt);
         temp_name(target_name, pid, nanos, seq)
     })
+}
+
+/// [`replace_via_temp`] の失敗。誤りの種類の写し方は、呼び出し側が決める。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ReplaceError {
+    /// 一時ファイルを作れない。
+    CreateTemp(io::ErrorKind),
+    /// 書き込み・同期・置き換えのどれかの失敗(作った一時ファイルは消した)。
+    WriteOrRename(io::ErrorKind),
+}
+
+/// 一時ファイルに書いて、対象のファイル `target` を置き換える(ステートの書き込みと、`init --force`
+/// の出力先の置き換えが共有する 1 か所。BR2.8)。
+///
+/// 順は、`dir` に対象の名前 `target_name` の一時ファイルを新規作成([`create_temp_beside`])→
+/// `write` で書く → 閉じる(Windows では、開いたままのファイルは、移せず、消せない)→ `rename` で
+/// 置き換える。書き込みか置き換えに失敗したら、作った一時ファイルを消す。
+pub(crate) fn replace_via_temp(
+    dir: &Path,
+    target_name: &str,
+    target: &Path,
+    write: impl FnOnce(&mut File) -> io::Result<()>,
+) -> Result<(), ReplaceError> {
+    let (temp_path, mut file) =
+        create_temp_beside(dir, target_name).map_err(|e| ReplaceError::CreateTemp(e.kind()))?;
+    let written = write(&mut file);
+    drop(file);
+    match written.and_then(|()| fs::rename(&temp_path, target)) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let _ = fs::remove_file(&temp_path);
+            Err(ReplaceError::WriteOrRename(error.kind()))
+        }
+    }
 }
 
 #[cfg(test)]
