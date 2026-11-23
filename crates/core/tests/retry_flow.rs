@@ -15,8 +15,8 @@
 //! リトライの判断 `retry_decision` のテスト(U2。BR2.1〜BR2.3、BR2.9、BR2.16。FR1.2、FR2.1、FR2.2、FR3.1、FR3.2、FR3.6)。
 
 use conductor_core::{
-    ExecutionResult, JobDefinition, JobExecution, RetryDecision, RetryPolicy, parse_definition,
-    retry_decision,
+    Backoff, ExecutionResult, JobDefinition, JobExecution, RetryDecision, RetryPolicy,
+    parse_definition, retry_decision,
 };
 
 const WITH_RETRY: &str = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n[job.retry]\nexit_codes = [75, 127]\nmax = 3\ninterval = \"30s\"\n";
@@ -157,8 +157,7 @@ fn ジョブ自身の_127_でも_一覧になければ_停止する() {
         exit_codes: vec![75],
         max: 3,
         interval_secs: 1,
-        multiplier: None,
-        max_interval_secs: None,
+        backoff: None,
     });
     assert_eq!(
         retry_decision(&j, &exited(&j, 127), 0, 0),
@@ -186,8 +185,10 @@ fn backoff(interval: u64, multiplier: u32, max_interval: u64, max: u32) -> JobDe
         exit_codes: vec![75],
         max,
         interval_secs: interval,
-        multiplier: Some(multiplier),
-        max_interval_secs: Some(max_interval),
+        backoff: Some(Backoff {
+            multiplier,
+            max_interval_secs: max_interval,
+        }),
     })
 }
 

@@ -75,7 +75,7 @@
 | `JobDefinition` | `id`、`command: Command`、`warning_exit_codes: Vec<i32>`、`success_exit_codes: Option<Vec<i32>>`、`transitions: Vec<Transition>`、`retry: Option<RetryPolicy>`、`env: Vec<EnvVar>`、`env_file: Vec<String>`(後ろの 2 つは v0.9.0 以降)。`effective_success_codes() -> &[i32]`(省略時は `DEFAULT_SUCCESS_EXIT_CODES` = `[0]`)、`transition_for(TransitionOn) -> Option<&Transition>` |
 | `Command` | `Line(String)` / `Argv(Vec<String>)` |
 | `Transition` / `TransitionOn` / `TransitionTarget` | `{ on, next }` / `Success`・`Warning`(`as_str()` で `success`・`warning`)/ `Job(String)`・`End` |
-| `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`multiplier: Option<u32>`、`max_interval_secs: Option<u64>` |
+| `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`backoff: Option<Backoff>`(`Backoff { multiplier: u32, max_interval_secs: u64 }`。`Copy`。倍率と上限は両方あるときだけ) |
 | `JobExecution` | `job_id`、`command`、`result: ExecutionResult`。組み立ての関数は `new(job, result)`、`exited(job, exit_code)`(起動して終了コードで終わった結果。`--dry-run` の模擬が使う)、`not_started(job, signal)`、`start_failed(job)`。v0.9.5 までは `started`・`exit_code`・`terminated_by_signal`・`start_failure`・`interrupted`・`signal_number` の項目だった。05 の 1.2 |
 | `ExecutionResult` | 起動の結果の 3 つの場合: `NotStarted { signal: i32 }`(起動しなかった中断)、`StartFailed`(起動の失敗)、`Exited { exit_code: Option<i32>, terminated_by_signal: Option<i32>, interrupted_by: Option<i32> }`(終了を観測した)。05 の 1.2 |
 | `JobStatus` / `SkipReason` | `Pending`・`Success`・`Warning`・`Error`・`Skipped` / `ByTransition`・`ByEnd`。どちらも `as_str()` と `parse(&str) -> Option<Self>` で、ステートファイルの語(`pending` など、`byTransition`・`byEnd`)と行き来する |

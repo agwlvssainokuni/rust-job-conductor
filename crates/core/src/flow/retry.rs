@@ -48,17 +48,17 @@ pub(crate) fn is_retry_target(policy: &RetryPolicy, execution: &JobExecution) ->
 /// 固定の間隔(倍率と上限がない)なら `interval_secs`。倍率と上限があるときは、1 回目は
 /// `interval_secs`、2 回目以降は「直前の待ち時間 × 倍率」を上限で頭打ちにする。計算は飽和で行う。
 fn next_wait_secs(policy: &RetryPolicy, retries_done: u32, last_wait_secs: u64) -> u64 {
-    match (policy.multiplier, policy.max_interval_secs) {
-        (Some(multiplier), Some(max_interval)) => {
+    match policy.backoff {
+        Some(backoff) => {
             if retries_done == 0 {
-                policy.interval_secs.min(max_interval)
+                policy.interval_secs.min(backoff.max_interval_secs)
             } else {
                 last_wait_secs
-                    .saturating_mul(u64::from(multiplier))
-                    .min(max_interval)
+                    .saturating_mul(u64::from(backoff.multiplier))
+                    .min(backoff.max_interval_secs)
             }
         }
-        _ => policy.interval_secs,
+        None => policy.interval_secs,
     }
 }
 

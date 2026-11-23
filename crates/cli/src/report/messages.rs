@@ -593,7 +593,8 @@ pub fn graph_retry_summary(lang: Language, retry: &conductor_core::RetryPolicy) 
                 retry.max,
                 retry.interval_secs
             );
-            if let (Some(m), Some(max)) = (retry.multiplier, retry.max_interval_secs) {
+            if let Some(b) = retry.backoff {
+                let (m, max) = (b.multiplier, b.max_interval_secs);
                 text.push_str(&format!(" (x{m}, max {max} s)"));
             }
             text
@@ -605,7 +606,8 @@ pub fn graph_retry_summary(lang: Language, retry: &conductor_core::RetryPolicy) 
                 retry.max,
                 retry.interval_secs
             );
-            if let (Some(m), Some(max)) = (retry.multiplier, retry.max_interval_secs) {
+            if let Some(b) = retry.backoff {
+                let (m, max) = (b.multiplier, b.max_interval_secs);
                 text.push_str(&format!("(倍率 {m}、上限 {max} 秒)"));
             }
             text

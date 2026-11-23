@@ -486,7 +486,7 @@ return Retry { wait_secs: next_wait_secs(policy, retries_done, last_wait_secs) }
 
 ```text
 next_wait_secs:
-  if multiplier と max_interval が両方ある:
+  if backoff(multiplier と max_interval の組)がある:
       if retries_done == 0: min(interval, max_interval)          # = interval(検証で interval <= max_interval)
       else:                 min(saturating_mul(last_wait_secs, multiplier), max_interval)
   else:

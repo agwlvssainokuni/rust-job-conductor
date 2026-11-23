@@ -59,8 +59,7 @@ fn 固定の間隔の設定を読める() {
             exit_codes: vec![75],
             max: 3,
             interval_secs: 30,
-            multiplier: None,
-            max_interval_secs: None,
+            backoff: None,
         }
     );
 }
@@ -68,8 +67,8 @@ fn 固定の間隔の設定を読める() {
 #[test]
 fn 倍率と上限つきの設定を読める() {
     let p = policy(&base("multiplier = 2\nmax_interval = \"10m\"\n"));
-    assert_eq!(p.multiplier, Some(2));
-    assert_eq!(p.max_interval_secs, Some(600));
+    assert_eq!(p.backoff.map(|b| b.multiplier), Some(2));
+    assert_eq!(p.backoff.map(|b| b.max_interval_secs), Some(600));
     assert_eq!(p.interval_secs, 30);
 }
 
@@ -82,8 +81,8 @@ fn 最小値の境界を受理する() {
     assert_eq!(p.exit_codes, vec![1]);
     assert_eq!(p.max, 1);
     assert_eq!(p.interval_secs, 1);
-    assert_eq!(p.multiplier, Some(2));
-    assert_eq!(p.max_interval_secs, Some(1));
+    assert_eq!(p.backoff.map(|b| b.multiplier), Some(2));
+    assert_eq!(p.backoff.map(|b| b.max_interval_secs), Some(1));
 }
 
 #[test]
@@ -95,8 +94,8 @@ fn 最大値の境界を受理する() {
     assert_eq!(p.exit_codes, vec![255]);
     assert_eq!(p.max, 100);
     assert_eq!(p.interval_secs, 86_400);
-    assert_eq!(p.multiplier, Some(10));
-    assert_eq!(p.max_interval_secs, Some(86_400));
+    assert_eq!(p.backoff.map(|b| b.multiplier), Some(10));
+    assert_eq!(p.backoff.map(|b| b.max_interval_secs), Some(86_400));
 }
 
 #[test]

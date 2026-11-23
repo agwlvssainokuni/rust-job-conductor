@@ -68,8 +68,8 @@ fn readme_の例の定義を実際の読み取りに通すとリトライの設�
     assert_eq!(retry.exit_codes, vec![75, 111]);
     assert_eq!(retry.max, 5);
     assert_eq!(retry.interval_secs, 10);
-    assert_eq!(retry.multiplier, Some(2));
-    assert_eq!(retry.max_interval_secs, Some(60));
+    assert_eq!(retry.backoff.map(|b| b.multiplier), Some(2));
+    assert_eq!(retry.backoff.map(|b| b.max_interval_secs), Some(60));
 }
 
 #[test]

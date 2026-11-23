@@ -122,10 +122,18 @@ pub struct RetryPolicy {
     pub max: u32,
     /// 最初の待ち時間(秒。1 秒〜24 時間。BR1.10)。
     pub interval_secs: u64,
-    /// 待ち時間にかける倍率(2〜10)。`max_interval_secs` と同時に指定する(BR1.11、BR1.12)。
-    pub multiplier: Option<u32>,
+    /// 倍率と上限(同時に指定する。BR1.11、BR1.12)。書かなければ `None`(固定の間隔)。
+    pub backoff: Option<Backoff>,
+}
+
+/// 待ち時間を伸ばす設定(`multiplier` と `max_interval` の組。BR1.10〜BR1.13)。
+/// 両方あるか両方ないかは、定義の読み取りで検証済み(片方だけの組は作れない)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Backoff {
+    /// 待ち時間にかける倍率(2〜10。BR1.11)。
+    pub multiplier: u32,
     /// 待ち時間の上限(秒)。`interval_secs` 以上(BR1.10、BR1.13)。
-    pub max_interval_secs: Option<u64>,
+    pub max_interval_secs: u64,
 }
 
 /// `success_exit_codes` を省略したときの、成功の終了コード(BR1.11、BR2.1)。
@@ -503,8 +511,7 @@ mod tests {
             exit_codes: vec![75],
             max: 3,
             interval_secs: 30,
-            multiplier: None,
-            max_interval_secs: None,
+            backoff: None,
         }
     }
 
@@ -525,8 +532,10 @@ mod tests {
     #[test]
     fn 倍率と上限つきの設定は値で比較される() {
         let mut p = policy();
-        p.multiplier = Some(2);
-        p.max_interval_secs = Some(600);
+        p.backoff = Some(Backoff {
+            multiplier: 2,
+            max_interval_secs: 600,
+        });
         assert_ne!(p, policy());
         assert_eq!(p, p.clone());
     }

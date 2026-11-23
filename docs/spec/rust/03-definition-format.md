@@ -238,8 +238,8 @@ Parse に成功した木を走査し、入れ子の深さを数える。
 | `exit_codes` | 整数の配列 | 必須 | 空でない。各要素は 1 以上 255 以下の整数 | 昇順に並べ、重複をまとめる(`[75, 3, 75, 3, 12]` → `[3, 12, 75]`) |
 | `max` | 整数 | 必須 | 1 以上 100 以下 | `u32` |
 | `interval` | 文字列 | 必須 | `<整数><s|m|h>`、1 秒以上 24 時間以下 | 秒(`u64`) |
-| `multiplier` | 整数 | 任意 | 2 以上 10 以下 | `Option<u32>` |
-| `max_interval` | 文字列 | 任意 | `interval` と同じ書式、`interval` 以上 | 秒(`Option<u64>`) |
+| `multiplier` | 整数 | 任意 | 2 以上 10 以下 | `u32`(`Option<Backoff>` の `multiplier`) |
+| `max_interval` | 文字列 | 任意 | `interval` と同じ書式、`interval` 以上 | 秒(`u64`。`Option<Backoff>` の `max_interval_secs`) |
 
 - 127 などの値も受理する(`[127, 1]` → `[1, 127]`)。
 - `multiplier` と `max_interval` は、**両方を書くか、両方とも書かない**か。片方だけなら `retryBackoffIncomplete`。両方なしなら、待ち時間は毎回 `interval`。
@@ -602,8 +602,11 @@ RetryPolicy {
     exit_codes: Vec<i32>,              // 昇順・重複なし・各 1〜255・空でない
     max: u32,                          // 1〜100
     interval_secs: u64,                // 1〜86400
-    multiplier: Option<u32>,           // 2〜10。max_interval_secs と同時に Some
-    max_interval_secs: Option<u64>,    // interval_secs 以上。multiplier と同時に Some
+    backoff: Option<Backoff>,          // multiplier と max_interval の両方を書いたときだけ Some
+}
+Backoff {                              // Copy。片方だけの組は作れない
+    multiplier: u32,                   // 2〜10
+    max_interval_secs: u64,            // interval_secs 以上
 }
 ```
 

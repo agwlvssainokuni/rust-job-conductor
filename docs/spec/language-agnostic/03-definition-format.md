@@ -772,8 +772,11 @@ RetryPolicy {
     exit_codes: list<int>           // 昇順・重複なし・各 1〜255・空でない
     max: int                        // 1〜100
     interval_secs: int              // 1〜86400
-    multiplier: int?                // 2〜10。max_interval_secs と同時に有り
-    max_interval_secs: int?         // interval_secs 以上。multiplier と同時に有り
+    backoff: Backoff?               // multiplier と max_interval の両方を書いたときだけ有り
+}
+Backoff {                           // 片方だけの組は作れない
+    multiplier: int                 // 2〜10
+    max_interval_secs: int          // interval_secs 以上
 }
 ```
 
