@@ -126,10 +126,9 @@ impl StateLocation {
 pub use conductor_core::{ConsistencyResult, MismatchKind};
 
 /// ステートの書き込みの耐久性の指定(BR2.4 の差分)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Durability {
     /// ファイルの内容を同期してから置き換える(結果・スキップ・中断の書き込み)。
-    #[default]
     Durable,
     /// 同期を省く(起動前の初期ステートの書き込み。NFR1.1)。
     Fast,
@@ -204,10 +203,5 @@ mod tests {
         );
         let empty = StateLocation::of(Path::new(""), None);
         assert_eq!(empty.path(), Path::new(".state"));
-    }
-
-    #[test]
-    fn 耐久性の既定は_durable() {
-        assert_eq!(Durability::default(), Durability::Durable);
     }
 }
