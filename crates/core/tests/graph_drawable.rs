@@ -18,8 +18,8 @@ mod graph_common;
 
 use conductor_core::TransitionOn::{Success, Warning};
 use conductor_core::graph::{
-    EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, build_graph,
-    is_lane_drawable, layout_graph,
+    EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeKind,
+    build_graph, is_lane_drawable, layout_graph,
 };
 use graph_common::{Spec, both, definition, graph_with_extra_edge, lanes_text, letter_definition};
 
@@ -246,14 +246,12 @@ fn 辺の一覧に残る形_後ろ向きの辺() {
         nodes: ["a", "b", "c"]
             .iter()
             .map(|id| GraphNode {
-                job_id: Some((*id).to_string()),
-                is_end: false,
+                kind: NodeKind::Job((*id).to_string()),
                 state: None,
                 is_resume: false,
             })
             .chain(std::iter::once(GraphNode {
-                job_id: None,
-                is_end: true,
+                kind: NodeKind::End,
                 state: None,
                 is_resume: false,
             }))

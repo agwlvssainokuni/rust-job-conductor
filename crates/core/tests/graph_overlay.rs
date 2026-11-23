@@ -26,9 +26,9 @@ use graph_common::definition;
 fn 図の節は記述順で最後に終点で_状態を重ねない図には状態がない() {
     let graph = build_graph(&definition(&["a", "b", "c"], &[]), None);
     assert_eq!(graph.nodes.len(), 4);
-    let ids: Vec<_> = graph.nodes.iter().map(|n| n.job_id.as_deref()).collect();
+    let ids: Vec<_> = graph.nodes.iter().map(|n| n.job_id()).collect();
     assert_eq!(ids, [Some("a"), Some("b"), Some("c"), None]);
-    assert!(graph.nodes[3].is_end && !graph.nodes[0].is_end);
+    assert!(graph.nodes[3].is_end() && !graph.nodes[0].is_end());
     assert!(
         graph
             .nodes

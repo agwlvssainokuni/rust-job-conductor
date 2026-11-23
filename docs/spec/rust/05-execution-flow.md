@@ -735,7 +735,7 @@ return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
 | `FlowEdge` | `{ from_job, to: EdgeTarget, kinds: Vec<EdgeKind>, skipped_jobs: Vec<String>, explicit: bool }`。`kinds` は 1 つ以上(成功、警告の順)。`skipped_jobs` は、元と行き先のあいだのジョブの ID(記述順)。`explicit` は、定義に遷移として書かれた辺か(書かずに記述順の次へ進む辺は `false`) |
 | `NodeState` | `Ok`(成功と警告をまとめる)、`Skipped`、`Error`、`Pending` |
 | `StateOverlay` | `{ states: Vec<(job_id, NodeState)>, resume_job_id: Option<String> }`。環境変数もコマンドも持たない |
-| `GraphNode` | `{ job_id: Option<String>(終点は None), is_end, state: Option<NodeState>(--state のときだけ), is_resume }` |
+| `GraphNode` | `{ kind: NodeKind(Job(ID) または終点 End), state: Option<NodeState>(--state のときだけ), is_resume }`。`NodeKind` は `TransitionTarget` の別名。読み方の補助 `job_id() -> Option<&str>`(終点は None)、`is_end()` |
 | `FlowGraph` | `{ nodes: Vec<GraphNode>(定義の記述順、最後に終点), edges: Vec<FlowEdge> }` |
 | `LaneGlyph` | `Empty`、`Node`(`*`)、`EndNode`(`o`)、`Line`(`\|`)、`Fork`(`\`)、`Join`(`/`)、`Underscore`(`_`。交差の行の横線) |
 | `LaneRow` | `{ glyphs: Vec<LaneGlyph>, node_index: Option<usize> }`。ノードの行では、`glyphs` の長さが、ラベルを置く位置 |
@@ -764,7 +764,7 @@ target_position(i, on):
 - `node_state_of(status)`: `Success`・`Warning` → `Ok`、`Skipped` → `Skipped`、`Error` → `Error`、`Pending` → `Pending`。
 - `overlay_from_state(state)`: ステートの各ジョブの状態を重ねる。再開位置 `resume_job_id` は、**完了していないステートのときだけ**使う(完了したステート、`completed = true`、は、状態の記号は重ねるが、再開位置は示さない)。
 - `pending_overlay(definition)`: ステートがないとき。すべてのジョブが `Pending`、再開位置なし。
-- `build_graph(definition, overlay)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`job_id = None`、`is_end = true`、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `Pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。
+- `build_graph(definition, overlay)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`kind = NodeKind::End`、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `Pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。
 
 ### 15.4 「対応する形」の判定(`is_lane_drawable`、`skip_targets`)
 

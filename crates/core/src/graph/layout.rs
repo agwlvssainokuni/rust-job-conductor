@@ -62,7 +62,7 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
         .nodes
         .iter()
         .enumerate()
-        .filter_map(|(i, n)| n.job_id.as_deref().map(|id| (id, i)))
+        .filter_map(|(i, n)| n.job_id().map(|id| (id, i)))
         .collect();
     let to_position = |to: &EdgeTarget| -> Option<usize> {
         match to {

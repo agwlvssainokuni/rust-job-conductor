@@ -17,7 +17,7 @@
 use conductor_core::JobStatus;
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, LaneLayout,
-    LaneRow, NodeState, StateOverlay,
+    LaneRow, NodeKind, NodeState, StateOverlay,
 };
 
 #[test]
@@ -55,14 +55,12 @@ fn 図の構造は節と辺を持ち_終点の節にはジョブidがない() {
     let graph = FlowGraph {
         nodes: vec![
             GraphNode {
-                job_id: Some("a".into()),
-                is_end: false,
+                kind: NodeKind::Job("a".into()),
                 state: Some(NodeState::Pending),
                 is_resume: false,
             },
             GraphNode {
-                job_id: None,
-                is_end: true,
+                kind: NodeKind::End,
                 state: None,
                 is_resume: false,
             },
@@ -70,7 +68,7 @@ fn 図の構造は節と辺を持ち_終点の節にはジョブidがない() {
         edges: Vec::new(),
     };
     assert_eq!(graph.nodes.len(), 2);
-    assert!(graph.nodes[1].job_id.is_none() && graph.nodes[1].is_end);
+    assert!(graph.nodes[1].job_id().is_none() && graph.nodes[1].is_end());
 }
 
 #[test]

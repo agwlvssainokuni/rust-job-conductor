@@ -76,16 +76,34 @@ pub struct StateOverlay {
     pub resume_job_id: Option<String>,
 }
 
+/// 節の種類(`Job(ID)`、または終点 `End` = `@end`)。
+/// 遷移の行き先 [`TransitionTarget`](crate::types::TransitionTarget) の別名(同じ形の型を増やさない。D1)。
+pub use crate::types::TransitionTarget as NodeKind;
+
 /// 図の節。ジョブ 1 つ、または終点。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphNode {
-    /// ジョブの ID。終点では `None`。
-    pub job_id: Option<String>,
-    pub is_end: bool,
+    /// ジョブ(その ID)か、終点か。
+    pub kind: NodeKind,
     /// `--state` のときだけ。
     pub state: Option<NodeState>,
     /// 再開位置のジョブか。
     pub is_resume: bool,
+}
+
+impl GraphNode {
+    /// ジョブの ID。終点では `None`。読み方の補助。
+    pub fn job_id(&self) -> Option<&str> {
+        match &self.kind {
+            NodeKind::Job(id) => Some(id),
+            NodeKind::End => None,
+        }
+    }
+
+    /// 終点か。読み方の補助。
+    pub fn is_end(&self) -> bool {
+        self.kind == NodeKind::End
+    }
 }
 
 /// 図の構造。節は、定義の記述順で、最後に終点(BR2.1)。

@@ -14,7 +14,7 @@
 
 //! 図の構造と状態の重ね合わせ(BR2.1、BR4.1、BR4.2)。
 
-use super::{FlowGraph, GraphNode, NodeState, StateOverlay, flow_edges};
+use super::{FlowGraph, GraphNode, NodeKind, NodeState, StateOverlay, flow_edges};
 use crate::types::{JobStatus, PipelineDefinition, PipelineState};
 
 /// ステートの内容から、重ね合わせを作る(BR4.1〜BR4.3)。
@@ -62,16 +62,14 @@ pub fn build_graph(definition: &PipelineDefinition, overlay: Option<&StateOverla
             });
             let is_resume = overlay.is_some_and(|o| o.resume_job_id.as_deref() == Some(&job.id));
             GraphNode {
-                job_id: Some(job.id.clone()),
-                is_end: false,
+                kind: NodeKind::Job(job.id.clone()),
                 state,
                 is_resume,
             }
         })
         .collect();
     nodes.push(GraphNode {
-        job_id: None,
-        is_end: true,
+        kind: NodeKind::End,
         state: None,
         is_resume: false,
     });

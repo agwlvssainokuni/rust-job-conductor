@@ -21,8 +21,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use conductor_core::TransitionTarget;
-use conductor_core::graph::{EdgeTarget, FlowGraph};
+use conductor_core::graph::{EdgeTarget, FlowGraph, NodeKind};
 
 use super::graph_text::{is_main_edge, kind_label, state_symbol};
 use crate::types::Language;
@@ -55,8 +54,8 @@ pub fn render_mermaid(lang: Language, graph: &FlowGraph) -> String {
     let mut ids: HashMap<&str, String> = HashMap::new();
     let mut resume: Option<String> = None;
     for (index, node) in graph.nodes.iter().enumerate() {
-        match &node.job_id {
-            Some(job_id) => {
+        match &node.kind {
+            NodeKind::Job(job_id) => {
                 let node_id = format!("n{index}");
                 let label = format!("{}{}", state_symbol(node.state), escape_label(job_id));
                 let _ = writeln!(out, "  {node_id}[\"{label}\"]");
@@ -65,8 +64,8 @@ pub fn render_mermaid(lang: Language, graph: &FlowGraph) -> String {
                 }
                 ids.insert(job_id.as_str(), node_id);
             }
-            None => {
-                let _ = writeln!(out, "  nend([\"{}\"])", TransitionTarget::END_LABEL);
+            NodeKind::End => {
+                let _ = writeln!(out, "  nend([\"{}\"])", NodeKind::END_LABEL);
             }
         }
     }

@@ -287,7 +287,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `envfile/mod.rs`(v0.9.0 以降) | `.env` の型(`EnvFileErrorKind` 13 種、`EnvFileError`、`EnvWarning`、`EnvEntry`、`EnvFileContent`、`LoadedEnvFiles`、`EnvContext`、`EnvOrigin`、`EffectiveEntry`、`EffectiveEnv`)、定数(`MAX_ENV_FILE_BYTES = 1_048_576`、`MAX_ENV_ENTRIES = 10_000`、`MAX_REPORTED_ERRORS = 20`、`RESERVED_ENV_PREFIX`)、`is_reserved_env_name`、`env_file_refs`、`summarize_errors` |
 | `envfile/parse.rs`(同) | `parse_env_file`(`.env` の解析) |
 | `envfile/merge.rs`(同) | `merge_env`(層の統合と自動の変数) |
-| `graph/mod.rs`、`edges.rs`、`layout.rs`、`overlay.rs`(同) | 図の型(`FlowEdge`、`FlowGraph`、`GraphNode`、`NodeState`、`StateOverlay`、`LaneGlyph`、`LaneRow`、`LaneLayout`、`GraphLayout`)、辺の取り出し、「対応する形」の判定とレーンの配置、状態の重ね合わせ |
+| `graph/mod.rs`、`edges.rs`、`layout.rs`、`overlay.rs`(同) | 図の型(`FlowEdge`、`FlowGraph`、`GraphNode`、`NodeKind`(`TransitionTarget` の別名)、`NodeState`、`StateOverlay`、`LaneGlyph`、`LaneRow`、`LaneLayout`、`GraphLayout`)、辺の取り出し、「対応する形」の判定とレーンの配置、状態の重ね合わせ |
 | `plan/mod.rs`、`simulate.rs`(同) | 計画の型と、模擬(`plan_pipeline`、`plan_run`)。模擬のステートの更新は `flow/record.rs` の関数を呼ぶ |
 | `run_id.rs` | `RunId`、`RunIdError`、`is_valid_env_name`、`peek_run_id_env`、`DEFAULT_RUN_ID_ENV`、`MAX_RUN_ID_LEN` |
 | `definition/mod.rs` | `load_definition`、`parse_definition`(5 段階の流れ) |

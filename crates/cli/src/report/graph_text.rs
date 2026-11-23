@@ -19,11 +19,10 @@
 //! (ジョブ ID、コマンド)は、制御文字をエスケープして出す。
 
 use conductor_core::graph::{
-    EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeState,
+    EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeKind,
+    NodeState,
 };
-use conductor_core::{
-    Classification, Command, JobDefinition, PipelineDefinition, TransitionTarget,
-};
+use conductor_core::{Classification, Command, JobDefinition, PipelineDefinition};
 
 use super::escape::escape_path;
 use super::messages::{
@@ -47,8 +46,9 @@ pub fn state_symbol(state: Option<NodeState>) -> &'static str {
 
 /// ジョブの節のラベル(状態の記号、ジョブ ID、再開位置の注記)。終点は `@end`(BR4.1、BR4.2)。
 fn node_label(lang: Language, node: &GraphNode) -> String {
-    let Some(id) = &node.job_id else {
-        return TransitionTarget::END_LABEL.to_string();
+    let id = match &node.kind {
+        NodeKind::Job(id) => id,
+        NodeKind::End => return NodeKind::END_LABEL.to_string(),
     };
     let mut label = format!("{}{}", state_symbol(node.state), escape_path(id));
     if node.is_resume {
@@ -193,7 +193,7 @@ fn render_lanes(
         line.push_str(&node_label(lang, &graph.nodes[node_index]));
         push_line(&mut out, &line);
         i += 1;
-        if !verbose || graph.nodes[node_index].is_end {
+        if !verbose || graph.nodes[node_index].is_end() {
             continue;
         }
         // 詳細の行は、ノードの行と、続く分岐の行のあと(合流の行の前)に置く(BR3.1)。
@@ -235,7 +235,7 @@ fn render_edge_list(
     let mut out = String::new();
     push_line(&mut out, GRAPH_EDGE_LIST_NOTE.get(lang));
     push_line(&mut out, GRAPH_JOBS_HEADING.get(lang));
-    for (index, node) in graph.nodes.iter().enumerate().filter(|(_, n)| !n.is_end) {
+    for (index, node) in graph.nodes.iter().enumerate().filter(|(_, n)| !n.is_end()) {
         push_line(&mut out, &format!("  {}", node_label(lang, node)));
         if verbose && let Some(job) = definition.job.get(index) {
             for sentence in detail_sentences(lang, job, graph) {

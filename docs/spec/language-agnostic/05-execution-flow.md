@@ -747,7 +747,7 @@ return EffectiveEnv { job_id: job.id, entries }
 | `FlowEdge` | `{ from_job, to: EdgeTarget, kinds: list<EdgeKind>, skipped_jobs: list<string>, explicit: bool }`。`kinds` は 1 つ以上(成功、警告の順)。`skipped_jobs` は、元と行き先のあいだのジョブの ID(記述順)。`explicit` は、定義に遷移として書かれた辺か(書かずに記述順の次へ進む辺は `false`) |
 | `NodeState` | `ok`(成功と警告をまとめる)、`skipped`、`error`、`pending` |
 | `StateOverlay` | `{ states: list<(job_id, NodeState)>, resume_job_id: string? }`。環境変数もコマンドも持たない |
-| `GraphNode` | `{ job_id: string?(終点は無し), is_end, state: NodeState?(--state のときだけ), is_resume }` |
+| `GraphNode` | `{ kind(ジョブ(その ID)か終点か。遷移の行き先と同じ形), state: NodeState?(--state のときだけ), is_resume }` |
 | `FlowGraph` | `{ nodes: list<GraphNode>(定義の記述順、最後に終点), edges: list<FlowEdge> }` |
 | `LaneGlyph` | `empty`、`node`(`*`)、`endNode`(`o`)、`line`(`\|`)、`fork`(`\`)、`join`(`/`)、`underscore`(`_`。交差の行の横線) |
 | `LaneRow` | `{ glyphs: list<LaneGlyph>, node_index: int? }`。ノードの行では、`glyphs` の長さが、ラベルを置く位置 |
@@ -775,7 +775,7 @@ target_position(i, on):
 - `node_state_of(status)`: `success`・`warning` → `ok`、`skipped` → `skipped`、`error` → `error`、`pending` → `pending`。
 - `overlay_from_state(state)`: ステートの各ジョブの状態を重ねる。再開位置 `resume_job_id` は、**完了していないステートのときだけ**使う(完了したステート、`completed = true`、は、状態の記号は重ねるが、再開位置は示さない)。
 - `pending_overlay(definition)`: ステートがないとき。すべてのジョブが `pending`、再開位置なし。
-- `build_graph(definition, overlay?)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`job_id` なし、`is_end = true`、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。
+- `build_graph(definition, overlay?)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`kind` が終点、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。
 
 ### 15.4 「対応する形」の判定
 
