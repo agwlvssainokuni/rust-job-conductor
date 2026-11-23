@@ -105,13 +105,14 @@ fn 上限ちょうどは受理し_1_バイト超えは_too_large() {
 
 #[cfg(unix)]
 #[test]
-fn 終わりのない入力でも上限で止まる() {
-    // 大きさが 0 と報告されるが、読むと終わらないファイル。
+fn 文字デバイスへのリンクのステートは開かずに_unreadable() {
+    // `/dev/zero`(通常のファイルでないもの)へのシンボリックリンクのステートは、開かずに `unreadable`
+    // (形 B。終わりのない読み取りに入らない)。
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let (def, state) = paths(dir.path());
     std::os::unix::fs::symlink("/dev/zero", &state).expect("リンクを作れる");
     let e = common::run_with_limit(|| {}, move || read_state(&def)).expect_err("拒否される");
-    assert_eq!(e.kind, StateErrorKind::TooLarge);
+    assert_eq!(e.kind, StateErrorKind::Unreadable);
 }
 
 #[test]

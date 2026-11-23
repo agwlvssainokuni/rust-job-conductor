@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 上限つきの読み取り(`.env` の読み込みが使う。NFR4.3、NFR4.7)。
+//! 上限つきの読み取り(`.env` とステートの読み込みが共有する。NFR4.3、NFR4.7)。
 //!
 //! 通常のファイルを、開く前にパスで種別を見て(通常のファイルでなければ開かない。名前付きパイプで
 //! 待たない)、開いたものの種別と大きさを見てから、上限 + 1 バイトまでで読む(形 B)。失敗は、すべて
@@ -78,7 +78,7 @@ fn read_opened<R: Read>(reader: R, limit: u64) -> Result<Vec<u8>, ReadFailure> {
 }
 
 /// 読み取りを、上限 + 1 バイトまでに制限する(終わりのない入力でも、そこで止まる)。
-pub(crate) fn read_limited<R: Read>(reader: R, limit: u64) -> io::Result<Vec<u8>> {
+fn read_limited<R: Read>(reader: R, limit: u64) -> io::Result<Vec<u8>> {
     let mut bytes = Vec::new();
     reader
         .take(limit.saturating_add(1))
