@@ -53,8 +53,6 @@ impl std::fmt::Display for ConversionErrorKind {
     }
 }
 
-impl std::error::Error for ConversionErrorKind {}
-
 impl ConversionErrorKind {
     /// 種類の文(日本語。表示と、cli の日本語の表示が使う。D10)。
     pub fn label(self) -> &'static str {
