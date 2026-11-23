@@ -1,13 +1,13 @@
 # 00. README(rust 版 conductor 仕様書の案内)
 
-この仕様書は、Rust 製のコマンドラインツール `conductor` の **v0.9.6(v0.9.0 の機能を含む)の現在の実装** を、忠実に書き起こしたものである。「この仕様書だけを渡された実装者(人または AI)が、ゼロから、同じ挙動のツールを実装できる」ことを目標とする。
+この仕様書は、Rust 製のコマンドラインツール `conductor` の **v0.9.7(v0.9.0 の機能を含む)の現在の実装** を、忠実に書き起こしたものである。「この仕様書だけを渡された実装者(人または AI)が、ゼロから、同じ挙動のツールを実装できる」ことを目標とする。
 
 ## 1. 範囲と版
 
 | 項目 | 内容 |
 |------|------|
 | 対象 | `conductor`(実行ファイル名 `conductor`)と、それを構成する 4 つのクレート(`conductor-core`、`conductor-runtime`、`conductor-converter`、`conductor-cli`) |
-| 版 | v0.9.0 の機能(環境変数の注入と `.env`、`graph`、`--dry-run`、`init`)を含む。4 クレートの `Cargo.toml` の版は `0.9.6` である(`--version` の表示は `conductor 0.9.6`) |
+| 版 | v0.9.0 の機能(環境変数の注入と `.env`、`graph`、`--dry-run`、`init`)を含む。4 クレートの `Cargo.toml` の版は `0.9.7` である(`--version` の表示は `conductor 0.9.7`) |
 | 言語・環境 | Rust(MSRV 1.100、edition 2024)。対応 OS は Linux、macOS、Windows |
 | 根拠 | `crates/*/src` の実装と `crates/*/tests` のテスト。README(利用者向け)との差は、各文書の末尾の「実装と README の差」に書き、全件を [12-rebuild-guide.md](12-rebuild-guide.md) の 3 章に集めた |
 | 方針 | 実装が正である。README と実装が食い違うときは実装に従い、食い違いを明記する。推測で書かない。確認できなかった点は「未確認」と書き、全件を [12-rebuild-guide.md](12-rebuild-guide.md) の 4 章に集めた |

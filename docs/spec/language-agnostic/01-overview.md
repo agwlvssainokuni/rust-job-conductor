@@ -1,6 +1,6 @@
 # 01. 概要(目的・設計方針・制約)
 
-対象: `conductor` v0.9.6 までの挙動。用語は [00-README.md](00-README.md) の用語集に従う。
+対象: `conductor` v0.9.7 までの挙動。用語は [00-README.md](00-README.md) の用語集に従う。
 
 ## 1. 目的
 

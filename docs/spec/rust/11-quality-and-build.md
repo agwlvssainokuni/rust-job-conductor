@@ -20,12 +20,12 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 
 | クレート | 種別 | 依存する内部クレート | 配布物 |
 |----------|------|----------------------|--------|
-| `conductor-core`(0.9.6) | lib | なし | 含まれる(`conductor` に静的に入る) |
-| `conductor-runtime`(0.9.6) | lib + テスト補助 bin | core | 同上。補助 bin は配布しない |
-| `conductor-converter`(0.9.6) | lib | なし | 同上 |
-| `conductor-cli`(0.9.6) | lib + bin `conductor` + テスト補助 bin | core、runtime、converter | bin `conductor` だけ |
+| `conductor-core`(0.9.7) | lib | なし | 含まれる(`conductor` に静的に入る) |
+| `conductor-runtime`(0.9.7) | lib + テスト補助 bin | core | 同上。補助 bin は配布しない |
+| `conductor-converter`(0.9.7) | lib | なし | 同上 |
+| `conductor-cli`(0.9.7) | lib + bin `conductor` + テスト補助 bin | core、runtime、converter | bin `conductor` だけ |
 
-4 つのクレートの版は同じ 0.9.6。版の上げ方は手動(すべての `Cargo.toml` を書き換えるコミット)。リリースの検査が見るのは `crates/cli/Cargo.toml` の版だけ(7 章)。
+4 つのクレートの版は同じ 0.9.7。版の上げ方は手動(すべての `Cargo.toml` を書き換えるコミット)。リリースの検査が見るのは `crates/cli/Cargo.toml` の版だけ(7 章)。
 `publish = false`(crates.io には公開しない)。
 
 ### 1.1 ワークスペース共通の設定(ルートの `Cargo.toml`)
@@ -120,7 +120,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 図の辺の取り出し(v0.9.7 以降)。ジョブ 1,000 個、遷移 1,996 個の `flow_edges` を 100 回(P4) | 5 回の中央値が 600 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
 | `.env` の解析の重複キー(v0.9.7 以降)。10,000 行で後半 5,000 行が前半の名前の逆順の重複の `parse_env_file` を 1 回(P5) | 5 回の中央値が 100 ms 以内(debug) | **強制** | `core/tests/env_parse_perf.rs` |
 
-P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 約 31 ms、P3 約 71 ms、P4 約 118 ms、P5 約 22 ms)の約 5 倍の、余裕のある値で、遅い CI(特に Windows の debug)で落ちず、大きな退行だけを止める。直す前の形(v0.9.6 まで。手元の debug で P1 約 95 ms、P2 約 104 ms、P3 約 369 ms、P4 約 689 ms、P5 約 103 ms)に戻ったことは、このテストでは検知できない。各テストは、時間と一緒に結果の中身(扱いの並び、重ね合わせの状態、辺の数と行き先、`.env` の項目の並びと値と警告)も確かめる。
+P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 約 31 ms、P3 約 71 ms、P4 約 118 ms、P5 約 22 ms)の約 5 倍の、余裕のある値で、遅い CI(特に Windows の debug)で落ちず、大きな退行だけを止める。直す前の形(v0.9.6 までは、手元の debug で P1 約 95 ms、P2 約 104 ms、P3 約 369 ms、P4 約 689 ms、P5 約 103 ms)に戻ったことは、このテストでは検知できない。各テストは、時間と一緒に結果の中身(扱いの並び、重ね合わせの状態、辺の数と行き先、`.env` の項目の並びと値と警告)も確かめる。
 
 測定のしくみ: p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は `[bench] <行>` として標準エラーに出し、環境変数 `GITHUB_STEP_SUMMARY`
 があれば、そのファイルに `- <行>` として追記する。基準を超えたときは `警告: ...` を出す。環境変数 `STARTUP_BENCH_ENFORCE` が文字列 `true` のときだけ、
@@ -517,7 +517,7 @@ cargo audit                                               # 警告のみ(マー�
 | 項目 | README | 実装・CI |
 |------|--------|----------|
 | テストの案内 | 「ビルドしたあとの確認には、テストが使える」として `cargo test --workspace --locked` | 一致。ただし CI は 3 OS + MSRV。README は CI、カバレッジ、clippy、`startup-bench` を説明しない(開発者向けの情報は README にない) |
-| リリース | 成果物の名前・`SHA256SUMS`・Intel macOS はクロスビルドで動作未確認 | 一致(`release.yml`)。README の `<版>` の例が `0.7.0`(現行は 0.9.6。例なので誤りではない) |
+| リリース | 成果物の名前・`SHA256SUMS`・Intel macOS はクロスビルドで動作未確認 | 一致(`release.yml`)。README の `<版>` の例が `0.7.0`(現行は 0.9.7。例なので誤りではない) |
 | MSRV | `Rust(1.100 以降)` | 一致(`msrv_consistency.rs` が強制) |
 | 性能の測定の表示 | 記載なし | `nfr_perf.rs` の出力文言は「debug ビルド」だが、CI の `startup-bench` は `--release`(文言と実態の差。基準の判定には影響しない) |
 | カバレッジ・clippy・audit | 記載なし | CI で強制/警告(6 章)。README に書かれていない |
