@@ -317,13 +317,13 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `split.rs` | `command` の分割(状態機械)、`check_command` |
 | `runner.rs` | `run_job`(分割済みのコマンドでの起動・待ち・シグナルの転送。分け直さない。v0.9.0 以降は環境変数を足す)、`wait_loop` |
 | `envfile.rs`(v0.9.0 以降) | `load_env_files`(パスの解決、種別の確認 → 開く → 開いたものから大きさの検査(v0.9.7 以降。定義ファイルと同じ順)、上限 + 1 バイトの読み取り(この 4 つは `bounded_read::read_regular_file`)、UTF-8、`parse_env_file` への委譲、同じパスの 1 回だけの読み取り) |
-| `bounded_read.rs` | 上限つきの読み取り。`read_regular_file`(形 B: パスで種別 → 通常のファイルだけ開く → 開いたものの種別と大きさ → 上限 + 1 バイトまで。失敗は `ReadFailure`(`Missing`・`Unreadable`・`TooLarge`))、その 4 の段の `read_opened`、`read_limited` |
+| `bounded_read.rs` | 上限つきの読み取り(`.env` とステートの読み込みが共有する)。`read_regular_file`(形 B: パスで種別 → 通常のファイルだけ開く → 開いたものの種別と大きさ → 上限 + 1 バイトまで。失敗は `ReadFailure`(`Missing`・`Unreadable`・`TooLarge`))、その 4 の段の `read_opened`、`read_limited` |
 | `file_create.rs`(同) | `create_file`、`CreateOutcome`、`CreateError`(排他的な作成、`--force` の置き換え) |
 | `wait.rs` | `wait_for`(リトライの待機) |
 | `temp_file.rs` | 一時ファイルと親のディレクトリの扱い(`dir_or_current`、`temp_prefix`、`temp_name`、`create_temp`、連番 1 つ、`create_temp_beside`)と、一時ファイルに書いて置き換える `replace_via_temp`(ステートの書き込みと `init --force` が共有する。失敗は `ReplaceError`(一時ファイルを作れない / 書き込み・置き換えの失敗)で、誤りの種類の写し方は呼び出し側が決める)。`state`・`file_create`・`platform` が共有し、互いの内部を使わない |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | プロセスグループ(`configure_spawn`)、シグナルの送信(`forward_signal`)、シグナル終了の読み取り(`termination_signal`)、ディレクトリの同期(`sync_dir`)。`unsafe` は `unix.rs` の `libc::kill` だけ |
 | `state/mod.rs` | 下位モジュールの束ね |
-| `state/reader.rs` | ステートの読み込み、検査、`read_state`/`read_state_raw`、`inspect_run_state`(`reset --all` 用)。上限つきの読み取りは `read_bounded` の 1 か所(上限 + 1 バイトまでの読み取りは `bounded_read::read_limited`) |
+| `state/reader.rs` | ステートの読み込み、検査、`read_state`/`read_state_raw`、`inspect_run_state`(`reset --all` 用)。上限つきの読み取りは `bounded_read::read_regular_file`(形 B。`.env` の読み込みと共有。v0.9.7 までは先に開く `read_bounded`) |
 | `state/writer.rs` | 原子的な書き込み(一時ファイル、同期、rename、古い一時ファイルの掃除)、`reset_state`、TOML への書き出し(状態の語は `JobStatus::as_str` など) |
 | `state/reset_all.rs` | `reset --all` の対象の判定と削除 |
 | `bin/conductor-test-helper.rs` | テスト補助の実行ファイル |

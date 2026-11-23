@@ -216,27 +216,30 @@ status = "error"
 
 ### 5.1 手順
 
-入力: 定義ファイルのパス、run ID(ファイル名側の期待値)。上から順に、最初に当てはまる結果で終わる。1〜3 の上限つきの読み取りは、`crates/runtime/src/state/reader.rs` の `read_bounded` の 1 か所で、`reset --all` の `inspect_run_state`(8 章)も同じ関数で読む。
+入力: 定義ファイルのパス、run ID(ファイル名側の期待値)。上から順に、最初に当てはまる結果で終わる。1〜4 の上限つきの読み取りは、`crates/runtime/src/bounded_read.rs` の `read_regular_file`(`.env` の読み込みと共有する 1 か所)で、`reset --all` の `inspect_run_state`(8 章)も同じ関数で読む。
 
 | 順 | 処理 | 結果 |
 |---|---|---|
-| 1 | ファイルを開く | 存在しない → **空**(`Ok(None)`)。その他の開く失敗(権限、ディレクトリを読めない等)→ `unreadable` |
-| 2 | 開いたハンドルの大きさ(メタデータ)を確認 | 取得失敗 → `unreadable`。1 MiB(1,048,576 バイト)**超** → `tooLarge` |
-| 3 | 上限 + 1 バイトまで読む(終わりのない入力でも止まる) | 読み取り失敗 → `unreadable`。読めたバイト数が上限超 → `tooLarge`(ちょうど上限は受理) |
-| 4 | 長さ 0 | **空** |
-| 5 | UTF-8 として解釈 | 失敗 → `corrupt`(理由 `UTF-8 の文字列ではありません`) |
-| 6 | TOML として解析(最上位はテーブル) | 失敗 → `corrupt`(`TOML として読めません`) |
-| 7 | `format_version` の確認(**ほかの検査より先**。将来の版が、未知のキーで corrupt にならないように) | キー無し → `corrupt`(`format_version がありません`)。整数以外 → `corrupt`(`format_version が整数ではありません`)。整数で 1 以外(0 や 2 を含む)→ `versionMismatch`(`対応していない版です(reset が必要です)`) |
-| 8 | 最上位に未知のキーがある | `corrupt`(`知らないキーがあります`) |
-| 9 | `run_id` の取り出しと照合 | 型が文字列でない → `corrupt`(`値の型が誤っています`)。中身の `run_id`(無ければ「なし」)がファイル名の run ID(無ければ「なし」)と一致しない → `corrupt`(`run_id がファイル名の run ID と一致しません`) |
-| 10 | 必須キーの取り出し: `definition_key`、`definition_path`、`pipeline_name`、`end_reached`、`completed`、`job_order`、`job`(この順) | 無い → `corrupt`(`必須のキーがありません`)。型が違う → `corrupt`(`値の型が誤っています`) |
-| 11 | `job` の各テーブルを順に検査(§2.3、§2.4 の最後の 2 項) | 未知のキー、`id`/`status` 欠落、`status`/`skip_reason` の不正値、`exit_code` の型・範囲、`skip_reason` と `status` の不整合、`exit_code` と `status` の不整合 → `corrupt` |
-| 12 | `resume_job_id` の型 | 文字列でない → `corrupt` |
-| 13 | 内容の矛盾(この順): ジョブIDの重複 → `job` の並びと `job_order` の不一致 → `resume_job_id` が `job_order` に無い → `completed` かつ `resume_job_id` あり | いずれも `corrupt`(それぞれ `ジョブIDが重複しています`、`job の並びが job_order と一致しません`、`resume_job_id が job_order にありません`、`completed と resume_job_id が両立しません`) |
-| 14 | `read_state` のみ: `completed = true` | **空**(完了のまま残ったステート。ファイルは消さない) |
+| 1 | パスの種別(メタデータ。シンボリックリンクは辿る)を確認 | 存在しない → **空**(`Ok(None)`)。取得失敗 → `unreadable`。通常のファイルでない(ディレクトリ、名前付きパイプ、デバイスへのリンクなど)→ `unreadable`(**開かない**) |
+| 2 | ファイルを開く | 存在しない(1 のあとに消えた)→ **空**。その他の開く失敗(権限など)→ `unreadable` |
+| 3 | 開いたハンドルの種別と大きさ(メタデータ)を確認 | 取得失敗・通常のファイルでない → `unreadable`。1 MiB(1,048,576 バイト)**超** → `tooLarge` |
+| 4 | 上限 + 1 バイトまで読む(終わりのない入力でも止まる) | 読み取り失敗 → `unreadable`。読めたバイト数が上限超 → `tooLarge`(ちょうど上限は受理) |
+| 5 | 長さ 0 | **空** |
+| 6 | UTF-8 として解釈 | 失敗 → `corrupt`(理由 `UTF-8 の文字列ではありません`) |
+| 7 | TOML として解析(最上位はテーブル) | 失敗 → `corrupt`(`TOML として読めません`) |
+| 8 | `format_version` の確認(**ほかの検査より先**。将来の版が、未知のキーで corrupt にならないように) | キー無し → `corrupt`(`format_version がありません`)。整数以外 → `corrupt`(`format_version が整数ではありません`)。整数で 1 以外(0 や 2 を含む)→ `versionMismatch`(`対応していない版です(reset が必要です)`) |
+| 9 | 最上位に未知のキーがある | `corrupt`(`知らないキーがあります`) |
+| 10 | `run_id` の取り出しと照合 | 型が文字列でない → `corrupt`(`値の型が誤っています`)。中身の `run_id`(無ければ「なし」)がファイル名の run ID(無ければ「なし」)と一致しない → `corrupt`(`run_id がファイル名の run ID と一致しません`) |
+| 11 | 必須キーの取り出し: `definition_key`、`definition_path`、`pipeline_name`、`end_reached`、`completed`、`job_order`、`job`(この順) | 無い → `corrupt`(`必須のキーがありません`)。型が違う → `corrupt`(`値の型が誤っています`) |
+| 12 | `job` の各テーブルを順に検査(§2.3、§2.4 の最後の 2 項) | 未知のキー、`id`/`status` 欠落、`status`/`skip_reason` の不正値、`exit_code` の型・範囲、`skip_reason` と `status` の不整合、`exit_code` と `status` の不整合 → `corrupt` |
+| 13 | `resume_job_id` の型 | 文字列でない → `corrupt` |
+| 14 | 内容の矛盾(この順): ジョブIDの重複 → `job` の並びと `job_order` の不一致 → `resume_job_id` が `job_order` に無い → `completed` かつ `resume_job_id` あり | いずれも `corrupt`(それぞれ `ジョブIDが重複しています`、`job の並びが job_order と一致しません`、`resume_job_id が job_order にありません`、`completed と resume_job_id が両立しません`) |
+| 15 | `read_state` のみ: `completed = true` | **空**(完了のまま残ったステート。ファイルは消さない) |
 
-- `read_state_raw`(`watch` が使う)は、14 を行わない(完了のステートもそのまま返す)。1〜13 は同じ。
-- 検査の `run_id` 照合(9)は、`completed` の判定(14)より前なので、完了のステートでも run ID の食い違いは `corrupt`。
+- `read_state_raw`(`watch` と `graph --state` が使う)は、15 を行わない(完了のステートもそのまま返す)。1〜14 は同じ。
+- 検査の `run_id` 照合(10)は、`completed` の判定(15)より前なので、完了のステートでも run ID の食い違いは `corrupt`。
+- ステートのパスが通常のファイルでない(書き手のいない名前付きパイプ、ディレクトリ、`/dev/zero` などのデバイスへのシンボリックリンク)とき、開かずに `unreadable`(理由は `開く、または読み取ることができません`)。名前付きパイプでも止まらない。v0.9.7 までは、先に開いたため、書き手のいない名前付きパイプのステートで止まり、`/dev/zero` へのリンクは開いて読み、上限 + 1 バイトで止めて `tooLarge` だった。
+- 読む権限のないステートは、1 MiB を超えていても `unreadable`(開く操作が大きさの確認より先に失敗する)。
 - 読み取りでは、ファイルを**消さない・書き換えない**。
 - 「空」= ステートが無いのと同じ扱い。呼び出し側は、すべて pending のステートとして扱い、最初の `Run` の前に初期ステートを書く。
 
@@ -370,7 +373,7 @@ conductor: warning: kept state files that could not be read (remove one with `co
 ### 8.1 完了のステートの扱い
 
 - 完了(`completed = true`)の条件は 05 §10。完了のステートは、`completed = true` のまま**残る**(自動では消えない)。書式は変わらない(`format_version = 1`)。
-- 読み込み(`read_state`)は、完了のステートを「空」として返す(§5.1 の 14)。したがって次の `pipeline` は先頭から始まり、`run` は最初のジョブ以外が順序外(66)になる。
+- 読み込み(`read_state`)は、完了のステートを「空」として返す(§5.1 の 15)。したがって次の `pipeline` は先頭から始まり、`run` は最初のジョブ以外が順序外(66)になる。
 - `watch` は `read_state_raw` で完了のステートを読み、表の下に完了を示す行(英語 `completed`、日本語 `完了`)を足す。`no state (nothing has run yet)` を出すのは、ファイルが無いか長さ 0 のときだけ。壊れた完了のステートは 65。
 - `reset`・`reset --all` は完了のステートも消す。
 
