@@ -16,8 +16,9 @@
 //!
 //! 実行と同じ判断(`decide_before_run`、`classify_and_decide`)を、ジョブを起動する代わりに、
 //! 仮定した終了コード(なければ 0)の実行結果で進める。模擬の途中のステート(`PipelineState`)は、
-//! この関数の中だけで持ち、返さず、保存しない。ステートの更新は、本番と同じ関数
-//! (`flow::record` の `initial_state`、`apply_skip`、`apply_outcome`)で行う(BR1.8)。
+//! この関数の中だけで持ち、返さず、保存しない。ステートの更新は、本番と同じ手順
+//! (`flow::record` の `initial_state`、`apply_skip`・`apply_outcome` のその場で書き換える版
+//! `apply_skip_in`・`apply_outcome_in`)で行う(BR1.8)。ステートは出発点の 1 回だけ複製する(2a)。
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -30,7 +31,7 @@ use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env};
 use crate::flow::classify::classify_exit_code;
 use crate::flow::retry::is_retry_target;
 use crate::flow::{
-    apply_outcome, apply_skip, classify_and_decide, decide_before_run, initial_state,
+    apply_outcome_in, apply_skip_in, classify_and_decide, decide_before_run, initial_state,
 };
 use crate::types::{
     Classification, Decision, JobDefinition, JobExecution, JobOutcome, JobState, NextStep,
@@ -86,9 +87,10 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
         match decision {
             Decision::Reject(reason) => return Err(rejection(&job.id, reason)),
             Decision::Skip(reason) => {
-                // スキップは、本番と同じ `apply_skip` で記録する(BR1.8)。
+                // スキップは、本番と同じ手順(`apply_skip` のその場で書き換える版)で記録する(BR1.8)。
+                // ステートは複製しない。記録は定義の位置から探す(2a、D8)。
                 entries.push(entry(input, index, skip_disposition(reason), is_resume));
-                state = apply_skip(&state, &job.id, reason, def);
+                apply_skip_in(&mut state, index, &job.id, reason, def);
             }
             Decision::Run => {
                 let (code, assumed) = assumed_exit_code(input.assumptions, &job.id);
@@ -100,8 +102,16 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
                     assumed,
                     RunMode::Pipeline,
                 );
-                // 結果は、本番と同じ `apply_outcome` で記録する(再開位置と `end_reached` も含む)。
-                state = apply_outcome(&state, &job.id, &execution, &outcome, &next);
+                // 結果は、本番と同じ手順(`apply_outcome` のその場で書き換える版)で記録する(再開位置と
+                // `end_reached` も含む。ステートは複製しない。2a、D8)。
+                apply_outcome_in(
+                    &mut state,
+                    Some(index),
+                    &job.id,
+                    &execution,
+                    &outcome,
+                    &next,
+                );
                 if result.classification == Classification::Error {
                     stopped = Some(job.id.clone());
                 }

@@ -64,8 +64,18 @@ fn has_result(status: JobStatus) -> bool {
     )
 }
 
-fn find_mut<'a>(state: &'a mut PipelineState, job_id: &str) -> Option<&'a mut JobState> {
-    state.job_states.iter_mut().find(|j| j.job_id == job_id)
+/// ジョブ `job_id` の記録の位置。`states[from..]` を先に、無ければ `states[..from]` を探す(2a、D8)。
+///
+/// `from = 0` は、先頭から探して最初に一致したもの(公開の関数の今の動き)。模擬は、定義の位置を
+/// 手がかりに渡す(ステートのジョブ ID は一意という前提。定義の検証と読み込みが重複を拒む)。
+/// ステートが定義の順に並んでいれば、各探索は O(1) で済む。
+fn locate(states: &[JobState], from: usize, job_id: &str) -> Option<usize> {
+    let from = from.min(states.len());
+    states[from..]
+        .iter()
+        .position(|j| j.job_id == job_id)
+        .map(|i| from + i)
+        .or_else(|| states[..from].iter().position(|j| j.job_id == job_id))
 }
 
 /// ジョブの結果を記録する(`apply_outcome`。BR2.8)。
@@ -87,7 +97,24 @@ pub fn apply_outcome(
     next: &NextStep,
 ) -> PipelineState {
     let mut out = state.clone();
-    if let Some(job) = find_mut(&mut out, job_id) {
+    apply_outcome_in(&mut out, None, job_id, execution, outcome, next);
+    out
+}
+
+/// [`apply_outcome`] の、その場で書き換える版(crate の中だけ。2a、D8)。
+///
+/// `hint` は、記録を探し始める位置(模擬は定義の位置)。`hint` があれば、スキップの並びは直前に
+/// 見つけた位置の次から探す。`None`(公開の関数)は、どの探索も先頭から行う(今と同じ、最初に一致したもの)。
+pub(crate) fn apply_outcome_in(
+    state: &mut PipelineState,
+    hint: Option<usize>,
+    job_id: &str,
+    execution: &JobExecution,
+    outcome: &JobOutcome,
+    next: &NextStep,
+) {
+    if let Some(index) = locate(&state.job_states, hint.unwrap_or(0), job_id) {
+        let job = &mut state.job_states[index];
         if let Some(classification) = outcome.classification {
             // 分類から状態へ(`From<Classification> for JobStatus`)。
             job.status = <JobStatus as From<Classification>>::from(classification);
@@ -103,20 +130,22 @@ pub fn apply_outcome(
         }
     }
     let reason = next.skip_reason_kind.unwrap_or(SkipReason::ByTransition);
+    let mut from = hint;
     for skipped in &next.skipped_job_ids {
         if skipped == job_id {
             continue;
         }
-        if let Some(job) = find_mut(&mut out, skipped) {
+        if let Some(index) = locate(&state.job_states, from.unwrap_or(0), skipped) {
+            let job = &mut state.job_states[index];
             job.status = JobStatus::Skipped;
             job.exit_code = None;
             job.skip_reason = Some(reason);
+            from = from.map(|_| index + 1);
         }
     }
-    out.resume_job_id = next.resume_job_id.clone();
-    out.completed = next.completed;
-    out.end_reached = state.end_reached || next.end_reached;
-    out
+    state.resume_job_id = next.resume_job_id.clone();
+    state.completed = next.completed;
+    state.end_reached = state.end_reached || next.end_reached;
 }
 
 /// スキップを記録する(`apply_skip`。BR2.8)。
@@ -133,39 +162,56 @@ pub fn apply_skip(
     reason: SkipCause,
     definition: &PipelineDefinition,
 ) -> PipelineState {
+    let mut out = state.clone();
+    apply_skip_in(&mut out, 0, job_id, reason, definition);
+    out
+}
+
+/// [`apply_skip`] の、その場で書き換える版(crate の中だけ。2a、D8)。`hint` は、記録を探し始める位置
+/// (模擬は定義の位置。公開の関数は 0 で、先頭から探す今の動きと同じ)。
+pub(crate) fn apply_skip_in(
+    state: &mut PipelineState,
+    hint: usize,
+    job_id: &str,
+    reason: SkipCause,
+    definition: &PipelineDefinition,
+) {
     let skip_reason = match reason {
         SkipCause::SkipTarget => SkipReason::ByTransition,
         SkipCause::AfterEnd => SkipReason::ByEnd,
-        SkipCause::AlreadyExecuted => return state.clone(),
+        SkipCause::AlreadyExecuted => return,
     };
-    let mut out = state.clone();
-    match find_mut(&mut out, job_id) {
-        Some(job) => {
+    match locate(&state.job_states, hint, job_id) {
+        Some(index) => {
+            let job = &mut state.job_states[index];
             job.status = JobStatus::Skipped;
             job.exit_code = None;
             job.skip_reason = Some(skip_reason);
         }
-        None => return out,
+        None => return,
     }
     if reason == SkipCause::AfterEnd {
-        out.end_reached = true;
+        state.end_reached = true;
     }
 
     // 状態は、定義の位置で引く([`status_at`]。位置が一致すれば O(1)、一致しなければ探す)。
     // これで 1 回の `apply_skip` は O(n) になる(BR2.3)。
-    if out.job_states.iter().any(|j| j.status == JobStatus::Error) {
-        return out;
+    if state
+        .job_states
+        .iter()
+        .any(|j| j.status == JobStatus::Error)
+    {
+        return;
     }
     let first_pending = definition
         .job
         .iter()
         .enumerate()
-        .find(|(i, j)| status_at(&out.job_states, *i, &j.id) == JobStatus::Pending)
+        .find(|(i, j)| status_at(&state.job_states, *i, &j.id) == JobStatus::Pending)
         .map(|(_, j)| j.id.clone());
     let is_last = definition.job.last().is_some_and(|j| j.id == job_id);
-    out.completed = is_last && first_pending.is_none();
-    out.resume_job_id = first_pending;
-    out
+    state.completed = is_last && first_pending.is_none();
+    state.resume_job_id = first_pending;
 }
 
 /// ジョブを起動しない中断、またはジョブのあいだの中断を記録する(`apply_interrupt`)。
@@ -174,10 +220,15 @@ pub fn apply_skip(
 /// エラーとしては記録しない。
 pub fn apply_interrupt(state: &PipelineState, resume_point: &ResumePoint) -> PipelineState {
     let mut out = state.clone();
-    out.resume_job_id = resume_point.resume_job_id.clone();
-    out.completed = resume_point.completed;
-    out.end_reached = state.end_reached || resume_point.end_reached;
+    apply_interrupt_in(&mut out, resume_point);
     out
+}
+
+/// [`apply_interrupt`] の、その場で書き換える版(crate の中だけ。2a)。
+pub(crate) fn apply_interrupt_in(state: &mut PipelineState, resume_point: &ResumePoint) {
+    state.resume_job_id = resume_point.resume_job_id.clone();
+    state.completed = resume_point.completed;
+    state.end_reached = state.end_reached || resume_point.end_reached;
 }
 
 #[cfg(test)]

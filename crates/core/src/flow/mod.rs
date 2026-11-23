@@ -31,6 +31,7 @@ pub use decide::decide_before_run;
 pub use next_step::classify_and_decide;
 pub(crate) use next_step::{TransitionResolution, resolve_transition};
 pub use record::{apply_interrupt, apply_outcome, apply_skip, initial_state};
+pub(crate) use record::{apply_outcome_in, apply_skip_in};
 pub use resume::resume_point_on_interrupt;
 pub use retry::{RetryDecision, retry_decision};
 
