@@ -80,7 +80,7 @@ macro_rules! env_name_rule {
 pub(crate) use env_name_rule;
 
 /// 環境変数の名前の形(`A-Za-z_` で始まり、`A-Za-z0-9_` が続く。1 文字以上)か。
-pub fn is_valid_env_name(name: &str) -> bool {
+pub(crate) fn is_valid_env_name(name: &str) -> bool {
     let mut bytes = name.bytes();
     match bytes.next() {
         Some(b) if b.is_ascii_alphabetic() || b == b'_' => {}
