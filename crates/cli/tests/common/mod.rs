@@ -22,7 +22,9 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
+use conductor_cli::{
+    Deps, Env, Language, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with,
+};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
     Command, DefinitionError, EnvFileError, ExecutionResult, JobExecution, JobStatus,
@@ -61,6 +63,14 @@ impl FakeEnv {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
             ..Self::default()
+        }
+    }
+
+    /// 言語 `lang` のロケール(`LANG`)だけを持つ環境。
+    pub fn for_language(lang: Language) -> Self {
+        match lang {
+            Language::En => Self::with(&[("LANG", "en_US.UTF-8")]),
+            Language::Ja => Self::with(&[("LANG", "ja_JP.UTF-8")]),
         }
     }
 }
@@ -270,7 +280,8 @@ pub fn state_error(path: &Path, kind: StateErrorKind) -> StateError {
     StateError {
         path: path.to_path_buf(),
         kind,
-        reason: "テスト用の固定の理由",
+        // 英語の表示を ASCII と確かめるテスト(`report_messages.rs`)とも共有するので、ASCII の文にする。
+        reason: "reason",
     }
 }
 
@@ -643,15 +654,13 @@ impl Harness {
     }
 
     pub fn run_os(&mut self, args: Vec<OsString>) -> Outcome {
-        let code = {
-            let mut deps = Deps {
-                runtime: &self.runtime,
-                sink: &mut self.sink,
-                env: &self.env,
-                signals: &self.signals,
-            };
-            run_cli_with(args, &mut deps)
-        };
+        let code = run_with_fakes(
+            &self.runtime,
+            &mut self.sink,
+            &self.env,
+            &self.signals,
+            args,
+        );
         let outcome = Outcome {
             code,
             out: self.sink.out_text(),
@@ -828,16 +837,31 @@ pub fn run_mem(runtime: &MemRuntime, args: &[&str]) -> (i32, FakeSink) {
     let mut sink = FakeSink::default();
     let env = FakeEnv::default();
     let signals = FakeSignals::new(SignalMode::Noop);
-    let code = {
-        let mut deps = Deps {
-            runtime,
-            sink: &mut sink,
-            env: &env,
-            signals: &signals,
-        };
-        run_cli_with(args.iter().map(OsString::from), &mut deps)
-    };
+    let code = run_with_fakes(
+        runtime,
+        &mut sink,
+        &env,
+        &signals,
+        args.iter().map(OsString::from).collect(),
+    );
     (code, sink)
+}
+
+/// 偽の差し替え口(`Runtime`、出力、環境、シグナル)で `Deps` を組み、`run_cli_with` を呼ぶ。
+pub fn run_with_fakes(
+    runtime: &dyn Runtime,
+    sink: &mut FakeSink,
+    env: &FakeEnv,
+    signals: &FakeSignals,
+    args: Vec<OsString>,
+) -> i32 {
+    let mut deps = Deps {
+        runtime,
+        sink,
+        env,
+        signals,
+    };
+    run_cli_with(args, &mut deps)
 }
 
 /// ステートの中の、ジョブ `id` の状態(ジョブが無ければ失敗する)。

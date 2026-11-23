@@ -19,9 +19,9 @@ mod common;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use common::{FakeEnv, FakeSignals, FakeSink, ScriptedRuntime, SignalMode};
+use common::{FakeEnv, FakeSignals, FakeSink, ScriptedRuntime, SignalMode, run_with_fakes};
+use conductor_cli::Language;
 use conductor_cli::report::init_template::render_template;
-use conductor_cli::{Deps, Language, run_cli_with};
 use conductor_runtime::{CreateError, CreateOutcome};
 
 struct Run {
@@ -40,21 +40,16 @@ fn run_with(
 ) -> Run {
     let runtime = ScriptedRuntime::default();
     *runtime.create_override.borrow_mut() = Some(result);
-    let env = match lang {
-        Language::En => FakeEnv::with(&[("LANG", "en_US.UTF-8")]),
-        Language::Ja => FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]),
-    };
+    let env = FakeEnv::for_language(lang);
     let signals = FakeSignals::new(SignalMode::Noop);
     let mut sink = sink;
-    let code = {
-        let mut deps = Deps {
-            runtime: &runtime,
-            sink: &mut sink,
-            env: &env,
-            signals: &signals,
-        };
-        run_cli_with(args.iter().map(OsString::from), &mut deps)
-    };
+    let code = run_with_fakes(
+        &runtime,
+        &mut sink,
+        &env,
+        &signals,
+        args.iter().map(OsString::from).collect(),
+    );
     Run {
         code,
         sink,

@@ -133,13 +133,7 @@ fn utf8_でない引数でパニックしない() {
         ],
         vec![bad.clone()],
     ] {
-        let mut deps = conductor_cli::Deps {
-            runtime: &runtime,
-            sink: &mut sink,
-            env: &env,
-            signals: &signals,
-        };
-        let code = conductor_cli::run_cli_with(args, &mut deps);
+        let code = run_with_fakes(&runtime, &mut sink, &env, &signals, args);
         assert!((0..=255).contains(&code));
     }
 }

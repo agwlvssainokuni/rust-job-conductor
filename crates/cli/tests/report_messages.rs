@@ -32,18 +32,11 @@ use conductor_runtime::{
 };
 
 fn env_for(lang: Language) -> FakeEnv {
-    match lang {
-        Language::En => FakeEnv::with(&[("LANG", "en_US.UTF-8")]),
-        Language::Ja => FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]),
-    }
+    FakeEnv::for_language(lang)
 }
 
 fn state_error(kind: StateErrorKind) -> StateError {
-    StateError {
-        path: Path::new("dir/c.toml.state").to_path_buf(),
-        kind,
-        reason: "reason",
-    }
+    common::state_error(Path::new("dir/c.toml.state"), kind)
 }
 
 fn pipeline_state() -> PipelineState {
