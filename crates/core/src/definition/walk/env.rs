@@ -16,6 +16,8 @@
 //!
 //! `[pipeline]` とジョブの走査の中で、親のモジュールから呼ばれる。
 
+use std::collections::HashSet;
+
 use toml::de::{DeTable, DeValue};
 
 use super::Walker;
@@ -39,7 +41,8 @@ impl Walker<'_> {
         let mut items: Vec<_> = table.iter().collect();
         items.sort_by_key(|(k, _)| k.span().start);
         let mut out = Vec::new();
-        let mut seen: Vec<String> = Vec::new();
+        // 見た名前(ASCII の小文字にしたもの)。大文字小文字だけが違う名前を、項目の数に比例する時間で見つける。
+        let mut seen: HashSet<String> = HashSet::new();
         for (key, val) in items {
             let name = key.get_ref().as_ref();
             let at = key.span().start;
@@ -69,7 +72,7 @@ impl Walker<'_> {
                 );
                 continue;
             }
-            if seen.iter().any(|s| s.eq_ignore_ascii_case(name)) {
+            if !seen.insert(name.to_ascii_lowercase()) {
                 self.push(
                     at,
                     Kind::EnvNameCaseConflict,
@@ -80,7 +83,6 @@ impl Walker<'_> {
                 );
                 continue;
             }
-            seen.push(name.to_string());
             match val.get_ref() {
                 DeValue::String(s) => {
                     if s.contains('\0') {
