@@ -181,3 +181,31 @@ fn 文法の誤りの理由は形式ごとの文で_種類の文と重ならな�
     );
     assert!(!shown.contains("文法の誤りです: 文法の誤りです"), "{shown}");
 }
+
+/// 書き手のいない名前付きパイプの入力は、開かずに `unreadable`(待ち続けない。2a)。
+#[cfg(unix)]
+#[test]
+fn 名前付きパイプの入力は開かずに_unreadable() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let path = dir.path().join("pipe.toml");
+    let status = std::process::Command::new("mkfifo")
+        .arg(&path)
+        .status()
+        .expect("mkfifo を起動できる");
+    assert!(status.success(), "mkfifo が失敗した");
+    // 止まったときに落ちるよう、別のスレッドで呼び、5 秒で打ち切る。
+    let (tx, rx) = std::sync::mpsc::channel();
+    let input = path.clone();
+    std::thread::spawn(move || {
+        let _ = tx.send(convert(&request(input, TargetFormat::Yaml)));
+    });
+    let r = rx
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("5 秒以内に返る(開いて待たない)");
+    let e = r.expect_err("誤り");
+    assert_eq!(e.kind, K::Unreadable);
+    assert_eq!(e.reason, "通常のファイルではありません");
+    assert!(e.line.is_none());
+    // 名前付きパイプは、そのまま残る(読まない・消さない)。
+    assert!(path.exists());
+}
