@@ -25,7 +25,7 @@
 mod merge;
 mod parse;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use thiserror::Error;
@@ -365,18 +365,19 @@ impl EffectiveEnv {
 /// `job_id` が `None` なら `[pipeline].env_file` とすべてのジョブの `env_file`(`pipeline`、`validate`)、
 /// `Some` ならそのジョブの分だけ(`run`)。同じ記述は 1 つにまとめ、書いた順を保つ。
 pub fn env_file_refs(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<String> {
+    let jobs = def
+        .job
+        .iter()
+        .filter(|job| job_id.is_none_or(|id| id == job.id))
+        .map(|job| &job.env_file);
     let mut out: Vec<String> = Vec::new();
-    let mut add = |refs: &[String]| {
+    // 見た記述(記述の数に比例する時間で、重複を除く)。
+    let mut seen: HashSet<&str> = HashSet::new();
+    for refs in std::iter::once(&def.env_file).chain(jobs) {
         for r in refs {
-            if !out.contains(r) {
+            if seen.insert(r.as_str()) {
                 out.push(r.clone());
             }
-        }
-    };
-    add(&def.env_file);
-    for job in &def.job {
-        if job_id.is_none_or(|id| id == job.id) {
-            add(&job.env_file);
         }
     }
     out
