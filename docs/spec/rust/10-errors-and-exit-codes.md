@@ -117,7 +117,7 @@ conductor: error: internal error
 
 | 型 | 内容 |
 |----|------|
-| `DefinitionErrorKind`(33 種) | 識別子(変種の名前の先頭を小文字にしたもの)・日本語の文(`Display`)・英語の文は 08 章 4.3 に全件 |
+| `DefinitionErrorKind`(33 種) | 識別子(変種の名前の先頭を小文字にしたもの)・日本語の文(`label()`)・英語の文は 08 章 4.3 に全件 |
 | `EnvFileErrorKind`(13 種。v0.9.0 以降) | `fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`。すべて終了コード 64。識別子・条件は 03 の 6.7、文言は 08 の 4.12。`reason()` |
 | `EnvFileError { file, line: Option<usize>, kind }`(同。理由は種類の固定の文 `kind.reason()`。v0.9.6 までは `reason` をフィールドに持った) | `Display` は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: …`)。`file` は制御文字をエスケープして 256 文字で切る(ライブラリ側の表示のみ)。CLI は自前の形式で、言語に従った種類の文と理由を、`file` を切らずに表示する(08 の 4.12)。理由は固定の文で、値を含めない |
 | `EnvWarning { file, line, name, kind: DuplicateKey }`(同) | 誤りではない(重複キー)。`validate` と `graph` が表示する |

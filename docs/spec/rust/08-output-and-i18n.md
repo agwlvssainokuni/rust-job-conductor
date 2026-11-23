@@ -125,7 +125,7 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 
 ### 4.3 定義の誤り(`definition_kind`)
 
-`messages.rs` の `definition_kind(kind) -> Text`。日本語は `conductor-core` の `DefinitionErrorKind::label()`(`Display` もこれを書く。cli は日本語の文を持たない)。英語は `messages.rs` の表。表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>`(`reason`)は `conductor-core` が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。
+`messages.rs` の `definition_kind(kind) -> Text`。日本語は `conductor-core` の `DefinitionErrorKind::label()`(誤りの `Display` もこれを書く。cli は日本語の文を持たない)。英語は `messages.rs` の表。表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>`(`reason`)は `conductor-core` が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。
 
 | 識別子 | 英語 | 日本語 |
 |--------|------|--------|

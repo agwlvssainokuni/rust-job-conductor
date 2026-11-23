@@ -56,7 +56,7 @@ fn 値を持つ型の_debug_は値を伏せる() {
 fn 定義の誤りの種類は_33_種で表示が空でない() {
     // 33 種であることと重複の無いことは、写しの型とコンパイル時の確かめが保つ。
     for k in DEFINITION_ERROR_KINDS {
-        assert!(!k.to_string().is_empty());
+        assert!(!k.label().is_empty());
     }
 }
 
@@ -66,7 +66,7 @@ fn env_file_の誤りの種類は_13_種で理由が重複しない() {
     let reasons: HashSet<_> = ENV_FILE_ERROR_KINDS.iter().map(|k| k.reason()).collect();
     assert_eq!(reasons.len(), 13);
     for k in ENV_FILE_ERROR_KINDS {
-        assert!(!k.to_string().is_empty());
+        assert!(!k.label().is_empty());
         assert!(!k.reason().is_empty());
     }
 }

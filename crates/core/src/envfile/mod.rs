@@ -68,7 +68,7 @@ pub(crate) fn is_reserved_env_name(name: &str) -> bool {
 
 /// `.env` の読み取りの誤りの種類(13 種)。
 ///
-/// 種類の文(日本語)は [`EnvFileErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+/// 種類の文(日本語)は [`EnvFileErrorKind::label`] の 1 か所に持ち、誤りの表示(`EnvFileError`)はそれを書く(D10)。
 /// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `NotUtf8` は `notUtf8`)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EnvFileErrorKind {
@@ -86,14 +86,6 @@ pub enum EnvFileErrorKind {
     TrailingGarbage,
     NulInValue,
 }
-
-impl fmt::Display for EnvFileErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.label())
-    }
-}
-
-impl std::error::Error for EnvFileErrorKind {}
 
 impl EnvFileErrorKind {
     /// 種類の文(日本語。表示と、cli の日本語の表示が使う。D10)。
