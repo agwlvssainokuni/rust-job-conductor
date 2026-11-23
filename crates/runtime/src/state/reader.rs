@@ -107,8 +107,8 @@ pub(crate) fn inspect_run_state(path: &Path, run_id: &RunId) -> Inspected {
     };
     match parse_state_raw_for(&bytes, Some(run_id)) {
         // 空のファイルは、中身の run_id がなく、だれのものか分からない。
-        Ok(None) if bytes.is_empty() => Inspected::NotOurs,
-        Ok(_) => Inspected::Ours,
+        Ok(None) => Inspected::NotOurs,
+        Ok(Some(_)) => Inspected::Ours,
         Err(ParseFailure {
             cause: FailureCause::RunIdMismatch,
             ..

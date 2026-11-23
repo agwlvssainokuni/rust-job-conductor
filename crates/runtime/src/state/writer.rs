@@ -23,11 +23,6 @@ use std::path::Path;
 use std::time::{Duration, SystemTime};
 
 use conductor_core::{JobState, PipelineState, RunId};
-// 単体テスト(`mod tests` の `use super::*`)が使う。
-#[cfg(test)]
-use conductor_core::JobStatus;
-#[cfg(test)]
-use std::fs::OpenOptions;
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
@@ -232,7 +227,9 @@ fn serialize(state: &PipelineState) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conductor_core::JobStatus;
     use std::cell::Cell;
+    use std::fs::OpenOptions;
 
     fn state() -> PipelineState {
         PipelineState {
