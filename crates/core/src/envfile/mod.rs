@@ -287,12 +287,6 @@ impl LoadedEnvFiles {
         self.by_ref.insert(reference.into(), index);
     }
 
-    /// 内容を足し、同じ文字列から引けるようにする(偽の実装やテストの便宜)。
-    pub fn add(&mut self, reference: impl Into<String>, content: EnvFileContent) {
-        let index = self.push_file(content);
-        self.link(reference, index);
-    }
-
     /// 定義に書かれた文字列から、読み取った内容を引く。
     pub fn get(&self, reference: &str) -> Option<&EnvFileContent> {
         self.by_ref.get(reference).and_then(|&i| self.files.get(i))

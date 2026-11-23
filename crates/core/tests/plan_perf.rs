@@ -14,9 +14,12 @@
 
 //! 1,000 ジョブでの計画の生成の性能(U3。BR6.3、NFR1。plan-state-unify の BR2.3)。1 秒以内。
 
+mod common;
+
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+use common::add_env_file;
 use conductor_core::{
     EnvEntry, EnvFileContent, JobExecution, LoadedEnvFiles, PlanDisposition, PlanEnd, PlanInput,
     RunMode, apply_outcome, classify_and_decide, initial_state, parse_definition, plan_pipeline,
@@ -41,7 +44,8 @@ fn 千個のジョブがすべて実行する計画は_1秒以内に作れる() 
         .map(|j| vec!["echo".to_string(), j.id.clone()])
         .collect();
     let mut files = LoadedEnvFiles::new();
-    files.add(
+    add_env_file(
+        &mut files,
         "p.env",
         EnvFileContent {
             path: "p.env".into(),

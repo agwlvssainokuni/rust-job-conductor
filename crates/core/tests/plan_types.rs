@@ -16,7 +16,7 @@
 
 mod common;
 
-use common::SECRET;
+use common::{SECRET, add_env_file};
 use conductor_core::{
     Assumption, Classification, EnvEntry, EnvFileContent, EnvOrigin, LoadedEnvFiles,
     PlanDisposition, PlanEntry, PlanInput, SimulatedResult, parse_definition, plan_pipeline,
@@ -59,7 +59,8 @@ fn 計画は環境変数の値を持たない_名前と出どころだけ() {
     )
     .expect("正しい定義");
     let mut files = LoadedEnvFiles::new();
-    files.add(
+    add_env_file(
+        &mut files,
         "p.env",
         EnvFileContent {
             path: "p.env".into(),

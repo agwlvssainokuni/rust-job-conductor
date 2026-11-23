@@ -16,7 +16,7 @@
 
 mod common;
 
-use common::SECRET;
+use common::{SECRET, add_env_file};
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvFileContent, EnvOrigin, LoadedEnvFiles, PipelineDefinition,
     env_file_refs, merge_env, parse_definition, parse_env_file,
@@ -75,9 +75,13 @@ V = \"job-env\"
 fn 層の優先順位は_pipeline_env_file_から_job_env_の順に後ろが勝つ() {
     let d = def(LAYERED);
     let mut files = LoadedEnvFiles::new();
-    files.add("p.env", content("V=pipeline-file\nP=p\nW=p-file\n"));
-    files.add("j1.env", content("W=job-file-1\nQ=1\n"));
-    files.add("j2.env", content("W=job-file-2\n"));
+    add_env_file(
+        &mut files,
+        "p.env",
+        content("V=pipeline-file\nP=p\nW=p-file\n"),
+    );
+    add_env_file(&mut files, "j1.env", content("W=job-file-1\nQ=1\n"));
+    add_env_file(&mut files, "j2.env", content("W=job-file-2\n"));
     let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
     assert_eq!(get(&env, "V"), Some("job-env"), "job.env が最も強い");
     assert_eq!(
@@ -105,9 +109,9 @@ fn 層の優先順位は_pipeline_env_file_から_job_env_の順に後ろが勝�
 fn 並びは層の順で完全に同じ名前は後ろの層の位置に移る() {
     let d = def(LAYERED);
     let mut files = LoadedEnvFiles::new();
-    files.add("p.env", content("V=pf\nP=p\n"));
-    files.add("j1.env", content("J1=1\n"));
-    files.add("j2.env", content("P=again\n"));
+    add_env_file(&mut files, "p.env", content("V=pf\nP=p\n"));
+    add_env_file(&mut files, "j1.env", content("J1=1\n"));
+    add_env_file(&mut files, "j2.env", content("P=again\n"));
     let env = merge_env(&d, &d.job[0], &files, &ctx(Some("r1"), 1));
     assert_eq!(
         names(&env),
@@ -169,7 +173,7 @@ fn 読み込まれていない_env_file_の記述は何も足さない() {
 fn names_は値を含まず出どころを持ち_additions_は並びの順() {
     let d = def(LAYERED);
     let mut files = LoadedEnvFiles::new();
-    files.add("p.env", content(&format!("P={SECRET}\n")));
+    add_env_file(&mut files, "p.env", content(&format!("P={SECRET}\n")));
     let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
     let shown = format!("{:?} {:?}", origins(&env), env);
     assert!(!shown.contains(SECRET), "{shown}");

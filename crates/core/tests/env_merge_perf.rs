@@ -24,7 +24,7 @@ mod common;
 
 use std::time::{Duration, Instant};
 
-use common::median;
+use common::{add_env_file, median};
 use conductor_core::envfile::MAX_ENV_ENTRIES;
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvOrigin, LoadedEnvFiles,
@@ -112,7 +112,7 @@ fn a3a_一万項目の_env_file_一つの統合は_50ms_以内() {
     let names: Vec<String> = (0..MAX_ENV_ENTRIES).map(|i| format!("K{i}")).collect();
     let d = def(false);
     let mut files = LoadedEnvFiles::new();
-    files.add("p.env", content("p.env", &names));
+    add_env_file(&mut files, "p.env", content("p.env", &names));
 
     let (m, samples, env) = measure(&d, &files);
     eprintln!("A3a: 中央値 {m:?}(各回 {samples:?})");
@@ -135,8 +135,8 @@ fn a3b_同じ名前の一万項目の_env_file_二つの統合は_100ms_以内�
     let reversed: Vec<String> = names.iter().rev().cloned().collect();
     let d = def(true);
     let mut files = LoadedEnvFiles::new();
-    files.add("p.env", content("p.env", &names));
-    files.add("j.env", content("j.env", &reversed));
+    add_env_file(&mut files, "p.env", content("p.env", &names));
+    add_env_file(&mut files, "j.env", content("j.env", &reversed));
 
     let (m, samples, env) = measure(&d, &files);
     eprintln!("A3b: 中央値 {m:?}(各回 {samples:?})");

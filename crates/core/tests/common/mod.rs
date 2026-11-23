@@ -19,9 +19,17 @@
 use std::time::Duration;
 
 use conductor_core::DefinitionErrorKind as K;
+use conductor_core::envfile::{EnvFileContent, LoadedEnvFiles};
 use conductor_core::{
     JobDefinition, JobExecution, JobState, JobStatus, PipelineState, SkipReason, parse_definition,
 };
+
+/// `.env` の内容を足し、定義に書かれた文字列 `reference` から引けるようにする(本番の読み取りと
+/// 同じ手順で、`push_file` してから `link` する)。
+pub fn add_env_file(files: &mut LoadedEnvFiles, reference: &str, content: EnvFileContent) {
+    let index = files.push_file(content);
+    files.link(reference, index);
+}
 
 /// 誤りの文やステートに現れてはいけない、秘密の値(NFR4.6)。
 pub const SECRET: &str = "s3cr3t-VALUE-do-not-print";
