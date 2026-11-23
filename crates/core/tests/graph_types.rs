@@ -19,7 +19,7 @@ mod common;
 use conductor_core::JobStatus;
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, LaneLayout,
-    LaneRow, NodeKind, NodeState, StateOverlay,
+    LaneRow, NodeKind, NodeState,
 };
 
 #[test]
@@ -38,18 +38,6 @@ fn 辺は_kinds_を1つ以上持ち_行き先はジョブか終点() {
         ..edge.clone()
     };
     assert_ne!(end, edge);
-}
-
-#[test]
-fn 状態の重ね合わせの既定は空で_再開位置もない() {
-    let overlay = StateOverlay::default();
-    assert!(overlay.states.is_empty());
-    assert!(overlay.resume_job_id.is_none());
-    let overlay = StateOverlay {
-        states: vec![("a".into(), NodeState::Ok)],
-        resume_job_id: Some("b".into()),
-    };
-    assert_eq!(overlay.states[0].1, NodeState::Ok);
 }
 
 #[test]

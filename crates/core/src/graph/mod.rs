@@ -70,7 +70,7 @@ pub enum NodeState {
 }
 
 /// `--state` で重ねる入力(BR4.1、BR4.2)。ステートの内容から作る。環境変数も、コマンドも持たない。
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateOverlay {
     /// ジョブごとの状態。
     pub states: Vec<(String, NodeState)>,

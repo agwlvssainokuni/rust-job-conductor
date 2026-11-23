@@ -107,7 +107,10 @@ fn ステートがないときは_すべてのジョブが未実行で_再開位
     assert_eq!(graph.nodes[1].state, Some(NodeState::Pending));
     assert!(graph.nodes.iter().all(|n| !n.is_resume));
     // 重ね合わせに無いジョブも未実行として扱う。
-    let partial = conductor_core::graph::StateOverlay::default();
+    let partial = conductor_core::graph::StateOverlay {
+        states: vec![],
+        resume_job_id: None,
+    };
     let graph = build_graph(&def, Some(&partial));
     assert_eq!(graph.nodes[1].state, Some(NodeState::Pending));
 }
