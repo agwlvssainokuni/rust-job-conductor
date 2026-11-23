@@ -78,7 +78,7 @@ pub fn decide_before_run(
         .iter()
         .enumerate()
         .all(|(i, j)| is_settled(status_at(job_states, i, &j.id)));
-    if status == JobStatus::Pending && predecessors_settled {
+    if predecessors_settled {
         return Decision::Run;
     }
     // 7
