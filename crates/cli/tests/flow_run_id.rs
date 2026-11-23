@@ -307,7 +307,6 @@ fn reset_all_は何も出力せず_0_で環境変数の値を見ない() {
 fn reset_all_は残したファイルを警告に出し_終了コードは_0() {
     let mut h = Harness::new(THREE_JOBS);
     *h.runtime.reset_all_override.borrow_mut() = Some(ResetAllReport {
-        removed: 2,
         kept: vec!["conductor.toml.c.state".into(), "x\u{1b}[31m.state".into()],
     });
     let out = h.run(&["reset", "--all"]);

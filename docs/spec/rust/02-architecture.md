@@ -114,7 +114,7 @@
 | `read_state_raw` | 同上 | 完了のものも返す(`watch` 用)。ファイルなし・長さ 0 のときだけ `None` |
 | `write_state` | `(definition_path, run_id: Option<&RunId>, state: &PipelineState, durability: Durability) -> Result<(), StateError>` | 一時ファイル → (Durable なら同期)→ rename。06 の 4 章 |
 | `reset_state` | `(definition_path: &Path, run_id: Option<&RunId>) -> Result<(), StateError>` | ステートファイルを消す(なくても成功) |
-| `reset_all_states` | `(definition_path: &Path) -> Result<ResetAllReport, StateError>` | 定義の全ステートを消す。`ResetAllReport { removed: usize, kept: Vec<String> }` |
+| `reset_all_states` | `(definition_path: &Path) -> Result<ResetAllReport, StateError>` | 定義の全ステートを消す。`ResetAllReport { kept: Vec<String> }` |
 | `check_consistency` | `(state: &PipelineState, definition: &PipelineDefinition) -> ConsistencyResult` | 定義との照合。`Ok` / `Mismatch(PipelineName \| JobIds \| JobOrder)` |
 | `initial_state` | `(definition: &PipelineDefinition, definition_path: &Path, run_id: Option<&RunId>) -> PipelineState` | 全ジョブ `pending` の初期ステート(この行から `apply_interrupt` までの 4 つは、`conductor_core` の再公開) |
 | `apply_outcome` | `(state, job_id: &str, execution: &JobExecution, outcome: &JobOutcome, next: &NextStep) -> PipelineState` | 結果の記録(メモリ上。純粋) |

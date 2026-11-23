@@ -287,7 +287,6 @@ fn 名前付きパイプと権限のない大きなステートは開かずに_u
     let e = within_5s(move || read_state_raw(&d, Some(&run_id))).expect_err("拒否される");
     assert_eq!(e.kind, StateErrorKind::Unreadable);
     let report = within_5s(move || reset_all_states(&def2)).expect("成功");
-    assert_eq!(report.removed, 0);
     assert!(report.kept.is_empty(), "{:?}", report.kept);
     assert!(pipe.exists(), "名前付きパイプは消さない");
 

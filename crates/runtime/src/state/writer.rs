@@ -96,15 +96,15 @@ fn write_state_file(
 /// 削除に失敗したら `removeFailed`。
 pub fn reset_state(definition_path: &Path, run_id: Option<&RunId>) -> Result<(), StateError> {
     let location = StateLocation::of(definition_path, run_id);
-    remove_state_file(location.path()).map(|_| ())
+    remove_state_file(location.path())
 }
 
-/// ステートファイルを消す。`true` は消した、`false` は無かった(成功)。ほかの失敗は `removeFailed`
+/// ステートファイルを消す。無かったときも成功。ほかの失敗は `removeFailed`
 /// (`reset_state` と `reset_all_states` が使う 1 か所。BR2.6)。
-pub(crate) fn remove_state_file(path: &Path) -> Result<bool, StateError> {
+pub(crate) fn remove_state_file(path: &Path) -> Result<(), StateError> {
     match fs::remove_file(path) {
-        Ok(()) => Ok(true),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(_) => Err(StateError::new(
             path,
             StateErrorKind::RemoveFailed,

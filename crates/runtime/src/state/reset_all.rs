@@ -38,8 +38,6 @@ use crate::types::StateLocation;
 /// `reset --all` の結果。
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ResetAllReport {
-    /// 消したファイルの数。
-    pub removed: usize,
     /// 読めない・壊れているために残したファイルの名前(並べ替え済み)。
     pub kept: Vec<String>,
 }
@@ -51,7 +49,7 @@ pub fn reset_all_states(definition_path: &Path) -> Result<ResetAllReport, StateE
     // run ID なしのステート。読まずに消す(`reset` と同じ)。通常のファイルだけ。
     let plain = StateLocation::of(definition_path, None);
     if is_regular_file(plain.path()) {
-        remove(plain.path(), &mut report)?;
+        remove_state_file(plain.path())?;
     }
 
     let Some(base) = definition_path.file_name().and_then(|n| n.to_str()) else {
@@ -94,7 +92,7 @@ pub fn reset_all_states(definition_path: &Path) -> Result<ResetAllReport, StateE
             }
         }
         match inspect_run_state(&path, &id) {
-            Inspected::Ours => remove(&path, &mut report)?,
+            Inspected::Ours => remove_state_file(&path)?,
             Inspected::NotOurs => {}
             Inspected::Broken => report.kept.push(name),
         }
@@ -113,13 +111,6 @@ fn is_regular_file(path: &Path) -> bool {
     fs::symlink_metadata(path)
         .map(|m| m.file_type().is_file())
         .unwrap_or(false)
-}
-
-fn remove(path: &Path, report: &mut ResetAllReport) -> Result<(), StateError> {
-    if remove_state_file(path)? {
-        report.removed += 1;
-    }
-    Ok(())
 }
 
 #[cfg(test)]

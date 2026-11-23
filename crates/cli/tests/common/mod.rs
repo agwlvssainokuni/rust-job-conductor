@@ -811,13 +811,9 @@ impl Runtime for MemRuntime {
     }
 
     fn reset_all_states(&self, _path: &Path) -> Result<ResetAllReport, StateError> {
-        let removed =
-            usize::from(self.state.borrow_mut().take().is_some()) + self.run_states.borrow().len();
+        *self.state.borrow_mut() = None;
         self.run_states.borrow_mut().clear();
-        Ok(ResetAllReport {
-            removed,
-            kept: Vec::new(),
-        })
+        Ok(ResetAllReport { kept: Vec::new() })
     }
 
     fn run_id_env(&self, _path: &Path) -> Option<String> {

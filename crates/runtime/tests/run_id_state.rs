@@ -227,7 +227,6 @@ fn reset_all_は対象だけを消し_別の定義と壊れたものと一時フ
     put(p, "xx.toml.a.state", &text(Some("a")));
 
     let report = reset_all_states(&def(p)).expect("成功");
-    assert_eq!(report.removed, 3);
     assert_eq!(report.kept, ["x.toml.c.state"]);
     assert_eq!(
         names(p),
@@ -256,7 +255,6 @@ fn reset_all_は別の定義のステートで_run_id_のないものを消さ�
     // 定義 `x.toml.a` の run ID なしのステートは `x.toml.a.state`。`x.toml` の run ID `a` と同じ名前。
     put(p, "x.toml.a.state", &text(None));
     let report = reset_all_states(&def(p)).expect("成功");
-    assert_eq!(report.removed, 0);
     assert!(report.kept.is_empty(), "壊れてはいないので、警告もしない");
     assert!(exists(p, "x.toml.a.state"));
 }
@@ -273,7 +271,6 @@ fn reset_all_は何もなくても成功し_ほかのディレクトリに触れ
     // 名前がステートに見えるディレクトリは消さない
     std::fs::create_dir(p.join("x.toml.d.state")).unwrap();
     let report = reset_all_states(&def(p)).expect("成功");
-    assert_eq!(report.removed, 0);
     assert!(report.kept.is_empty());
     assert!(exists(&p.join("sub"), "x.toml.state"));
     assert!(exists(&p.join("sub"), "x.toml.a.state"));
@@ -293,8 +290,7 @@ fn reset_all_は完了のまま残った一致するステートを消す() {
     let p = dir.path();
     let done = "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = true\ncompleted = true\nrun_id = \"a\"\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n";
     put(p, "x.toml.a.state", done);
-    let report = reset_all_states(&def(p)).expect("成功");
-    assert_eq!(report.removed, 1);
+    reset_all_states(&def(p)).expect("成功");
     assert!(!exists(p, "x.toml.a.state"));
 }
 
@@ -310,8 +306,9 @@ fn reset_all_は大きすぎる_空_版違いのファイルを消さずに報�
     );
     put(p, "x.toml.empty.state", "");
     let report = reset_all_states(&def(p)).expect("成功");
-    assert_eq!(report.removed, 0);
     assert_eq!(report.kept, ["x.toml.big.state", "x.toml.ver.state"]);
+    assert!(exists(p, "x.toml.big.state"));
+    assert!(exists(p, "x.toml.ver.state"));
     assert!(
         exists(p, "x.toml.empty.state"),
         "空は、だれのものか分からないので残す"
@@ -337,7 +334,6 @@ fn reset_all_はシンボリックリンクを辿らず消さない() {
     symlink(p.join("nowhere"), p.join("x.toml.dead.state")).unwrap();
 
     let report = reset_all_states(&def(p)).expect("成功");
-    assert_eq!(report.removed, 0);
     assert!(report.kept.is_empty());
     assert!(exists(p, "x.toml.a.state"));
     assert!(exists(p, "x.toml.state"));
