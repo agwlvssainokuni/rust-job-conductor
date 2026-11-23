@@ -17,13 +17,13 @@
 use crate::types::{Classification, ExecutionResult, JobDefinition, JobExecution, JobOutcome};
 
 /// 起動に失敗したときの終了コード(BR2.3)。
-pub(crate) const EXIT_START_FAILURE: i32 = 127;
+const EXIT_START_FAILURE: i32 = 127;
 
 /// シグナルによる終了コードの基準(128 + シグナル番号)。
-pub(crate) const EXIT_SIGNAL_BASE: i32 = 128;
+const EXIT_SIGNAL_BASE: i32 = 128;
 
 /// 成功コードに含まれない 0 のときに返す終了コード(BR2.2)。
-pub(crate) const EXIT_UNLISTED_ZERO: i32 = 1;
+const EXIT_UNLISTED_ZERO: i32 = 1;
 
 /// `128 + シグナル番号`(あふれるときは `i32::MAX` で止める)。中断の番号は、型で必ずある(BR1.1)。
 fn signal_exit(signal: i32) -> i32 {

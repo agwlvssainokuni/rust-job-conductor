@@ -50,7 +50,7 @@ pub(crate) fn enter_flow<'c>(
 }
 
 /// `--dry-run` を実行し、終了コードを返す(計画を出せたら 0。BR4.4)。
-pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: FlowTarget<'_>) -> i32 {
+fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: FlowTarget<'_>) -> i32 {
     let assumptions = &cmd.dry_run.assumptions;
     let assume_ids: Vec<&str> = assumptions.iter().map(|a| a.job_id.as_str()).collect();
     let checked = match ctx.prepare_checked(cmd, target, &assume_ids) {
