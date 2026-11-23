@@ -122,7 +122,7 @@ conductor: error: internal error
 | `EnvFileError { file, line: Option<usize>, kind }`(同。理由は種類の固定の文 `kind.reason()`。v0.9.6 までは `reason` をフィールドに持った) | `Display` は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: …`)。`file` は制御文字をエスケープして 256 文字で切る(ライブラリ側の表示のみ)。CLI は自前の形式で、言語に従った種類の文と理由を、`file` を切らずに表示する(08 の 4.12)。理由は固定の文で、値を含めない |
 | `EnvWarning { file, line, name, kind: DuplicateKey }`(同) | 誤りではない(重複キー)。`validate` と `graph` が表示する |
 | `DefinitionError { file, line: Option<usize>, kind, reason }` | `Display` は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。`Display` では、`file` を制御文字のエスケープのうえ 256 文字で切る(ライブラリ側の表示のみ)。CLI は `Display` を使わず、自前の形式で、`file` をエスケープだけして切らずに表示する(08 章)。`reason` は core が作る日本語の固定の文。キー名は `` `キー名` `` の形で入り、64 文字で切る |
-| `RunIdError`(4 種) | `Empty`, `TooLong`, `InvalidChar`, `LeadingDot`。CLI では、すべて `invalid value`(68)にまとめられ、値は含めない |
+| `RunIdError` | 種類を持たない(`struct RunIdError;`)。05 の 6.1 の 4 つの条件のどれかで返す。CLI では `invalid value`(68)になり、値は含めない |
 
 `DefinitionErrorKind` の一覧(識別子順):
 `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`, `reservedEnvName`, `envNameCaseConflict`, `invalidEnvValue`(最後の 3 つは v0.9.0 以降)。すべて終了コード 64。

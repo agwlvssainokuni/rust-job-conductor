@@ -26,40 +26,25 @@ const MAX_RUN_ID_LEN: usize = 64;
 /// 環境変数の名前を省略したときの既定。
 pub const DEFAULT_RUN_ID_ENV: &str = "CONDUCTOR_RUN_ID";
 
-/// run ID の検査に通らなかった理由(値は持たない)。
+/// run ID の検査に通らなかった(値は持たない。理由は区別しない)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RunIdError {
-    /// 空。
-    Empty,
-    /// 64 文字を超える。
-    TooLong,
-    /// `A-Za-z0-9._-` 以外の文字がある。
-    InvalidChar,
-    /// 先頭が `.`(`..` を含む)。
-    LeadingDot,
-}
+pub struct RunIdError;
 
 /// 検査済みの run ID。`A-Za-z0-9._-` の 1〜64 文字で、先頭が `.` でない。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RunId(String);
 
 impl RunId {
-    /// 値を検査して、run ID にする。
+    /// 値を検査して、run ID にする。空、64 バイト超、`A-Za-z0-9._-` 以外の文字、先頭が `.` のどれかなら誤り。
     pub fn parse(value: &str) -> Result<RunId, RunIdError> {
-        if value.is_empty() {
-            return Err(RunIdError::Empty);
-        }
-        if value.len() > MAX_RUN_ID_LEN {
-            return Err(RunIdError::TooLong);
-        }
-        if !value
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+        if value.is_empty()
+            || value.len() > MAX_RUN_ID_LEN
+            || !value
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+            || value.starts_with('.')
         {
-            return Err(RunIdError::InvalidChar);
-        }
-        if value.starts_with('.') {
-            return Err(RunIdError::LeadingDot);
+            return Err(RunIdError);
         }
         Ok(RunId(value.to_string()))
     }
@@ -131,15 +116,15 @@ mod tests {
     #[test]
     fn 長さの境界は_64_と_65() {
         assert!(RunId::parse(&"a".repeat(64)).is_ok());
-        assert_eq!(RunId::parse(&"a".repeat(65)), Err(RunIdError::TooLong));
-        assert_eq!(RunId::parse(""), Err(RunIdError::Empty));
+        assert_eq!(RunId::parse(&"a".repeat(65)), Err(RunIdError));
+        assert_eq!(RunId::parse(""), Err(RunIdError));
     }
 
     #[test]
     fn 先頭のドットは拒否する() {
-        assert_eq!(RunId::parse(".a"), Err(RunIdError::LeadingDot));
-        assert_eq!(RunId::parse(".."), Err(RunIdError::LeadingDot));
-        assert_eq!(RunId::parse("."), Err(RunIdError::LeadingDot));
+        assert_eq!(RunId::parse(".a"), Err(RunIdError));
+        assert_eq!(RunId::parse(".."), Err(RunIdError));
+        assert_eq!(RunId::parse("."), Err(RunIdError));
         assert!(RunId::parse("a..b").is_ok());
     }
 
@@ -149,7 +134,7 @@ mod tests {
             "a/b", "a\\b", "a b", "é", "a\u{0}b", "a\nb", "a\tb", "a:b", "a*", "日本", "a\u{7f}",
             "../a", "a/..", "~",
         ] {
-            assert_eq!(RunId::parse(v), Err(RunIdError::InvalidChar), "{v:?}");
+            assert_eq!(RunId::parse(v), Err(RunIdError), "{v:?}");
         }
     }
 
