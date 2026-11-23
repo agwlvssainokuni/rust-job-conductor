@@ -119,6 +119,9 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 図の重ね合わせ(v0.9.7 以降)。ジョブ 1,000 個の `build_graph(def, Some(overlay))` を 100 回(P3) | 5 回の中央値が 350 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
 | 図の辺の取り出し(v0.9.7 以降)。ジョブ 1,000 個、遷移 1,996 個の `flow_edges` を 100 回(P4) | 5 回の中央値が 600 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
 | `.env` の解析の重複キー(v0.9.7 以降)。10,000 行で後半 5,000 行が前半の名前の逆順の重複の `parse_env_file` を 1 回(P5) | 5 回の中央値が 100 ms 以内(debug) | **強制** | `core/tests/env_parse_perf.rs` |
+| 定義の `env` の表の大文字小文字の検査(v0.9.8 以降)。`[pipeline.env]` に別々の名前 10,000 個(118,977 バイト)の `parse_definition` を 1 回(P1。結果の並びと、大文字小文字だけが違う名前を足すと誤り 1 件も確かめる) | 5 回の中央値が 350 ms 以内(debug) | **強制** | `core/tests/definition_perf.rs` |
+| 遷移の重複の確認(v0.9.8 以降)。1 つのジョブに `success` の遷移 20,000 個、続けて `warning` の遷移 20,000 個の `parse_definition` を 1 回(P2。`duplicateTransition` 39,998 件と、その位置の順も確かめる) | 5 回の中央値が 1,600 ms 以内(debug) | **強制** | `core/tests/definition_perf.rs` |
+| 読む対象の `env_file` の一覧(v0.9.8 以降)。`[pipeline].env_file` に別々の記述 10,000 個と、ジョブの `env_file` に同じ 10,000 個の `env_file_refs(def, None)` を 1 回(P3。並びも確かめる) | 5 回の中央値が 40 ms 以内(debug) | **強制** | `core/tests/env_refs_perf.rs` |
 
 P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 約 31 ms、P3 約 71 ms、P4 約 118 ms、P5 約 22 ms)の約 5 倍の、余裕のある値で、遅い CI(特に Windows の debug)で落ちず、大きな退行だけを止める。直す前の形(v0.9.6 までは、手元の debug で P1 約 95 ms、P2 約 104 ms、P3 約 369 ms、P4 約 689 ms、P5 約 103 ms)に戻ったことは、このテストでは検知できない。各テストは、時間と一緒に結果の中身(扱いの並び、重ね合わせの状態、辺の数と行き先、`.env` の項目の並びと値と警告)も確かめる。
 
@@ -212,6 +215,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `plan_types.rs`、`plan_pipeline.rs`、`plan_run.rs`、`plan_assume.rs`、`plan_perf.rs` | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `flow_perf.rs`、`env_merge_perf.rs` | `@end` に着いたときの残りのジョブの列挙(ジョブ 1,000 個)と、`merge_env`(`.env` 10,000 項目)の性能(3.1 節の表)。結果の中身(並び、出どころ)も確かめる |
 | `plan_simulate_perf.rs`、`graph_lookup_perf.rs`、`env_parse_perf.rs` | v0.9.7 以降。計画の模擬(P1、P2)、図の重ね合わせ(P3)と辺の取り出し(P4)、`.env` の解析の重複キー(P5)の性能(3.1 節の表)。結果の中身も確かめる |
+| `definition_perf.rs`、`env_refs_perf.rs` | v0.9.8 以降。定義の `env` の表の大文字小文字の検査(P1)と遷移の重複の確認(P2)、読む対象の `env_file` の一覧(P3)の性能(3.1 節の表)。結果の中身も確かめる |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
 | `common/mod.rs` | 補助(`SECRET`、`run`・`kinds`(定義の検査の結果)、`median`、`state(jobs, resume, completed)`、`job(id)`、`exited(job_id, code)`) |
 
@@ -230,7 +234,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `flow_with_state.rs` | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ(今の cli と同じ順で: スキップは変わったときだけ書く、削除は `remove_on_complete` のときだけ、`pipeline` は記述順に決める。完了のステートは既定で残る) |
 | `toml_depth.rs` | 深い入れ子の TOML |
 | `nfr_content.rs`、`nfr_performance.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
-| `common/mod.rs` | 補助(`helper_path`、`helper_command`、`job`、`definition(name, jobs)`、`without_run_id`(run ID なしの `read_state`・`reset_state`・`initial_state`・`write_state`)、`lines`、`wait_for_line`、`pid_in`、`force_kill`、`is_root`、`run_with_limit`) |
+| `common/mod.rs` | 補助(`helper_path`、`helper_command`、`job`、`definition(name, jobs)`、`command_line(command)`(`check_command` の結果)、`def`・`put`・`paths`(ステートのテストの定義ファイルのパスとファイルの書き込み)、`without_run_id`(run ID なしの `read_state`・`reset_state`・`initial_state`・`write_state`)、`lines`、`wait_for_line`、`pid_in`、`force_kill`、`is_root`、`run_with_limit`) |
 
 #### conductor-converter(`crates/converter/tests/`)
 
@@ -268,7 +272,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `docs_retry.rs` | README のリトライの説明の検査(見出し、5 つのキー名、TOML の例が実際の読み取りに通ること) |
 | `unix_demo.rs`(UNIX)、`windows_demo.rs`(Windows) | デモの検査(9.5 節) |
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
-| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、ステートの中の状態 `status_in`・`status_of` |
+| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of` |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
 | `docs_support/mod.rs` | README を検査するテストの補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`) |
 | `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
