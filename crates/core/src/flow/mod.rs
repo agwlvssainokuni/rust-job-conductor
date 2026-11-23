@@ -19,12 +19,13 @@
 //! 結果を決める(NFR5.1、ADR-005)。失敗せず、必ず結果を返す(契約 C2)。
 //! 各ジョブの記録(`JobState`)が無いジョブは、pending と同じ扱いにする。
 
-pub mod classify;
-pub mod decide;
-pub mod next_step;
+// 下位モジュールは crate の中。関数と型は、下の再公開の名前(`flow::classify` など)で出る。
+mod classify;
+mod decide;
+mod next_step;
 mod record;
-pub mod resume;
-pub mod retry;
+mod resume;
+mod retry;
 
 pub use classify::classify;
 pub use decide::decide_before_run;
@@ -33,6 +34,7 @@ pub(crate) use next_step::{TransitionResolution, resolve_transition};
 pub use record::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub(crate) use record::{apply_outcome_in, apply_skip_in};
 pub use resume::resume_point_on_interrupt;
+pub(crate) use retry::is_retry_target;
 pub use retry::{RetryDecision, retry_decision};
 
 use crate::types::{JobState, JobStatus, SkipReason};

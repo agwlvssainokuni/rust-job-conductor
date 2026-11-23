@@ -28,9 +28,9 @@ use super::{
     PlanRejection, ResumeInfo, SimulatedResult,
 };
 use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names};
-use crate::flow::retry::is_retry_target;
 use crate::flow::{
     apply_outcome_in, apply_skip_in, classify_and_decide, decide_before_run, initial_state,
+    is_retry_target,
 };
 use crate::types::{
     Classification, Decision, JobDefinition, JobExecution, JobOutcome, JobState, NextStep,
