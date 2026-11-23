@@ -348,7 +348,7 @@ conductor: error: <ファイル>[:<行>]: <種類の文>: <理由>
 conductor: error: x.env:3: not in KEY=VALUE form: write a line as `KEY=VALUE`
 ```
 
-**警告**(`DisplayEvent::EnvWarnings`。標準エラー。`validate` だけが出す。重複キー): 警告 1 件につき 1 行。誤りではないので、終了コードに影響しない(`validate` の終了コードは 0)。
+**警告**(`DisplayEvent::EnvWarnings`。標準エラー。`validate` と `graph` が出す。重複キー): 警告 1 件につき 1 行。誤りではないので、終了コードに影響しない(`validate` の終了コードは 0)。
 
 ```text
 conductor: warning: <ファイル>:<後ろの行>: duplicate key `<名前>` (the last one wins)

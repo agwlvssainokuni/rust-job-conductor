@@ -144,7 +144,7 @@
 
 run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通り)は、利用者には区別を見せず、すべて `invalid value`(68)にまとめ、値を含めない。
 
-**`.env` の誤り(v0.9.0 以降。終了コード 64)**: 13 種(`fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`)。識別子・条件は 03 の 7.7、文言は 08 の 4.12。誤りが持つ情報: ファイル(解決済みのパス)、行(あれば)、種類、理由(**言語に従う**固定の文。値を含めない)。表示は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: <種類の文>: <理由>`)。重複キーの警告(ファイル、後ろの行、名前)は誤りではなく、`validate` だけが表示する。
+**`.env` の誤り(v0.9.0 以降。終了コード 64)**: 13 種(`fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`)。識別子・条件は 03 の 7.7、文言は 08 の 4.12。誤りが持つ情報: ファイル(解決済みのパス)、行(あれば)、種類、理由(**言語に従う**固定の文。値を含めない)。表示は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: <種類の文>: <理由>`)。重複キーの警告(ファイル、後ろの行、名前)は誤りではなく、`validate` と `graph` が表示する。
 
 **ファイルの作成の誤り(v0.9.0 以降)**: 5 種。`alreadyExists`(終了コード 69)、`parentMissing`, `isDirectory`, `permissionDenied`, `otherIo`(終了コード 65)。`init` が使う。文言は 08 の 4.13、作成の規則は 06 の 14 章。OS のエラーの文は持たない。
 

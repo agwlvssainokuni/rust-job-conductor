@@ -120,7 +120,7 @@ conductor: error: internal error
 | `DefinitionErrorKind`(33 種) | 識別子(変種の名前の先頭を小文字にしたもの)・日本語の文(`Display`)・英語の文は 08 章 4.3 に全件 |
 | `EnvFileErrorKind`(13 種。v0.9.0 以降) | `fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`。すべて終了コード 64。識別子・条件は 03 の 6.7、文言は 08 の 4.12。`reason()` |
 | `EnvFileError { file, line: Option<usize>, kind }` と `reason()`(同。理由は種類の固定の文。v0.9.6 までは `reason` をフィールドに持った) | `Display` は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: …`)。`file` は制御文字をエスケープして 256 文字で切る(ライブラリ側の表示のみ)。CLI は自前の形式で、言語に従った種類の文と理由を、`file` を切らずに表示する(08 の 4.12)。理由は固定の文で、値を含めない |
-| `EnvWarning { file, line, name, kind: DuplicateKey }`(同) | 誤りではない(重複キー)。`validate` だけが表示する |
+| `EnvWarning { file, line, name, kind: DuplicateKey }`(同) | 誤りではない(重複キー)。`validate` と `graph` が表示する |
 | `DefinitionError { file, line: Option<usize>, kind, reason }` | `Display` は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。`Display` では、`file` を制御文字のエスケープのうえ 256 文字で切る(ライブラリ側の表示のみ)。CLI は `Display` を使わず、自前の形式で、`file` をエスケープだけして切らずに表示する(08 章)。`reason` は core が作る日本語の固定の文。キー名は `` `キー名` `` の形で入り、64 文字で切る |
 | `RunIdError`(4 種) | `Empty`, `TooLong`, `InvalidChar`, `LeadingDot`。CLI では、すべて `invalid value`(68)にまとめられ、値は含めない |
 

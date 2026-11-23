@@ -410,7 +410,7 @@ LOG_LEVEL = "debug"
 
 - 誤りに、値を含めない(理由は固定の文)。表示の書式は `<ファイル>[:<行>]: <種類の文>: <理由>`(ライブラリの `Display`)。CLI の表示は 08 の 4.12。
 - 表示の件数: 先頭の最大 **20 件**を表示し、超えた分は「ほか N 件」の 1 行にする(`summarize_errors(errors) -> (&[EnvFileError], usize)`。crate の中の定数 `MAX_REPORTED_ERRORS = 20`)。
-- 重複キーの警告(`EnvWarning`)は誤りではない。`validate` だけが表示する(04 の 7.5)。
+- 重複キーの警告(`EnvWarning`)は誤りではない。`validate` と `graph` が表示する(04 の 7.5、7.7)。
 
 ## 7. 検査の順序とエラーの集約・並び
 
