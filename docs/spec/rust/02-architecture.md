@@ -316,7 +316,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `error.rs` | `CommandError`、`StateError`(種類の文、理由の固定の日本語の文) |
 | `split.rs` | `command` の分割(状態機械)、`check_command` |
 | `runner.rs` | `run_job`(分割済みのコマンドでの起動・待ち・シグナルの転送。分け直さない。v0.9.0 以降は環境変数を足す)、`wait_loop` |
-| `envfile.rs`(v0.9.0 以降) | `load_env_files`(パスの解決、大きさの検査、上限 + 1 バイトの読み取り、UTF-8、`parse_env_file` への委譲、同じパスの 1 回だけの読み取り) |
+| `envfile.rs`(v0.9.0 以降) | `load_env_files`(パスの解決、種別の確認 → 開く → 開いたものから大きさの検査(v0.9.7 以降。定義ファイルと同じ順)、上限 + 1 バイトの読み取り、UTF-8、`parse_env_file` への委譲、同じパスの 1 回だけの読み取り) |
 | `file_create.rs`(同) | `create_file`、`CreateOutcome`、`CreateError`(排他的な作成、`--force` の置き換え) |
 | `wait.rs` | `wait_for`(リトライの待機) |
 | `temp_file.rs` | 一時ファイルと親のディレクトリの扱い(`dir_or_current`、`temp_prefix`、`temp_name`、`create_temp`、連番 1 つ、`create_temp_beside`)。`state`・`file_create`・`platform` が共有し、互いの内部を使わない |
