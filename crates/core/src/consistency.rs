@@ -48,7 +48,9 @@ pub fn check_consistency(
         return ConsistencyResult::Mismatch(MismatchKind::PipelineName);
     }
     let defined: Vec<&str> = definition.job.iter().map(|j| j.id.as_str()).collect();
-    let recorded: Vec<&str> = state.job_order.iter().map(String::as_str).collect();
+    // 記録の並びは `job_states` のジョブIDの並び(ファイルの `job_order` との一致は、
+    // 読み込みで確かめ済み)。
+    let recorded: Vec<&str> = state.job_states.iter().map(|j| j.job_id.as_str()).collect();
     if defined == recorded {
         return ConsistencyResult::Ok;
     }
@@ -77,10 +79,8 @@ mod tests {
 
     fn state(name: &str, ids: &[&str]) -> PipelineState {
         PipelineState {
-            definition_key: "other/place.toml".into(),
             pipeline_name: name.into(),
             definition_path: "other/place.toml".into(),
-            job_order: ids.iter().map(|s| s.to_string()).collect(),
             job_states: ids.iter().map(|s| JobState::pending(*s)).collect(),
             resume_job_id: None,
             end_reached: false,

@@ -36,7 +36,7 @@
 | キー | 型 | 必須 | 意味・値 |
 |---|---|---|---|
 | `format_version` | 整数 | 必須 | 常に `1`。読み込みでは最初に検査される(§5) |
-| `definition_key` | 文字列 | 必須 | 定義ファイルのパス(`definition_path` と**同じ文字列**を書く。読むときは別々に保持するが、どちらも照合に使わない) |
+| `definition_key` | 文字列 | 必須 | 定義ファイルのパス(`definition_path` と**同じ文字列**を書く。読むときは存在と型を確かめるだけで、型には持たない。どちらも照合に使わない) |
 | `definition_path` | 文字列 | 必須 | 定義ファイルのパス(`--config` の文字列。UTF-8 に変換できない部分は置換される)。空でもよい |
 | `pipeline_name` | 文字列 | 必須 | 記録時の `[pipeline].name`。照合に使う(§6) |
 | `job_order` | 文字列の配列 | 必須 | 記録時のジョブIDを、定義の記述順に並べたもの |
@@ -296,7 +296,7 @@ conductor: error: c2.toml.r3.state: state file is corrupt: run_id がファイ�
 ```text
 if state.pipeline_name != definition.name:              Mismatch(PipelineName)
 defined  = 定義のジョブIDの記述順の配列
-recorded = state.job_order
+recorded = state.job_states の ID の並び                # 読み込みで job_order との一致を確かめ済み
 if defined == recorded:                                  Ok
 if sorted(defined) == sorted(recorded):                  Mismatch(JobOrder)    # 並びだけが違う
 else:                                                    Mismatch(JobIds)      # 追加・削除・改名

@@ -78,10 +78,8 @@ pub fn exited(_job_id: &str, code: i32) -> JobExecution {
 /// (終了コードは無し。`Skipped` の理由は `ByTransition`)。
 pub fn state(jobs: &[(&str, JobStatus)], resume: Option<&str>, completed: bool) -> PipelineState {
     PipelineState {
-        definition_key: "t.toml".into(),
         pipeline_name: "p".into(),
         definition_path: "t.toml".into(),
-        job_order: jobs.iter().map(|(id, _)| id.to_string()).collect(),
         job_states: jobs
             .iter()
             .map(|(id, status)| JobState {

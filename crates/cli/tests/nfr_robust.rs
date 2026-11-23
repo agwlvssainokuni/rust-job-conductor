@@ -164,10 +164,8 @@ fn random_state(rng: &mut Rng) -> PipelineState {
         .collect();
     let resume = ["a", "b", "c", "zzz", ""][rng.below(5)];
     PipelineState {
-        definition_key: "k".into(),
         pipeline_name: "p".into(),
         definition_path: "mem.toml".into(),
-        job_order: ids.iter().map(|s| s.to_string()).collect(),
         job_states,
         resume_job_id: if rng.below(3) == 0 {
             None

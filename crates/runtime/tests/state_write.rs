@@ -28,10 +28,8 @@ use conductor_runtime::{Durability, StateErrorKind};
 
 fn sample() -> PipelineState {
     PipelineState {
-        definition_key: "dir/conductor.toml".into(),
         pipeline_name: "nightly".into(),
         definition_path: "dir/conductor.toml".into(),
-        job_order: vec!["a".into(), "b".into(), "c".into(), "d".into()],
         job_states: vec![
             JobState {
                 job_id: "a".into(),

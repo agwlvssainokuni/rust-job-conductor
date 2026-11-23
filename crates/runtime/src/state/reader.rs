@@ -234,7 +234,8 @@ fn walk(
         return Err(run_id_mismatch());
     }
 
-    let definition_key = as_string(required(table, "definition_key")?)?;
+    // `definition_key` は必須のキーとして、存在と型(文字列)を確かめるだけで、持たない。
+    as_string(required(table, "definition_key")?)?;
     let definition_path = as_string(required(table, "definition_path")?)?;
     let pipeline_name = as_string(required(table, "pipeline_name")?)?;
     let end_reached = as_bool(required(table, "end_reached")?)?;
@@ -283,11 +284,10 @@ fn walk(
         }
     }
 
+    // `job_order` は、上の検査(`job_states` の並びとの一致、再開位置を含むこと)だけに使い、持たない。
     Ok(PipelineState {
-        definition_key,
         pipeline_name,
         definition_path,
-        job_order,
         job_states,
         resume_job_id,
         end_reached,
@@ -373,7 +373,8 @@ status = "pending"
             .flatten()
             .expect("読める");
         assert_eq!(state.pipeline_name, "p");
-        assert_eq!(state.job_order, ["a", "b"]);
+        let ids: Vec<&str> = state.job_states.iter().map(|j| j.job_id.as_str()).collect();
+        assert_eq!(ids, ["a", "b"]);
         assert_eq!(state.resume_job_id.as_deref(), Some("b"));
         assert_eq!(state.job_states[0].status, JobStatus::Success);
         assert_eq!(state.job_states[0].exit_code, Some(0));

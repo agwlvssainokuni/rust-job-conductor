@@ -175,6 +175,7 @@ fn job_table(job: &JobState) -> toml::Table {
 }
 
 /// ステートを、TOML の文字列にする(E3)。`definition_key` と `definition_path` は、同じ文字列。
+/// `job_order` は、`job_states` のジョブIDの並び。
 fn serialize(state: &PipelineState) -> Option<String> {
     let mut t = toml::Table::new();
     t.insert(
@@ -197,9 +198,9 @@ fn serialize(state: &PipelineState) -> Option<String> {
         "job_order".into(),
         toml::Value::Array(
             state
-                .job_order
+                .job_states
                 .iter()
-                .map(|id| toml::Value::String(id.clone()))
+                .map(|j| toml::Value::String(j.job_id.clone()))
                 .collect(),
         ),
     );
@@ -235,10 +236,8 @@ mod tests {
 
     fn state() -> PipelineState {
         PipelineState {
-            definition_key: "d/conductor.toml".into(),
             pipeline_name: "p".into(),
             definition_path: "d/conductor.toml".into(),
-            job_order: vec!["a".into(), "b".into()],
             job_states: vec![
                 JobState {
                     job_id: "a".into(),

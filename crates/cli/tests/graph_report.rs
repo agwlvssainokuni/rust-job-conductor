@@ -295,10 +295,8 @@ fn state_の重ね合わせは_状態の記号と再開位置を行に添える(
 fn 完了したステートは_状態の記号があり_再開位置は示さない() {
     let g2 = definition(&IDS5, A_TO_D, "");
     let completed = conductor_core::PipelineState {
-        definition_key: "k".into(),
         pipeline_name: "p".into(),
         definition_path: "c.toml".into(),
-        job_order: IDS5.iter().map(|s| s.to_string()).collect(),
         job_states: [
             ("a", conductor_core::JobStatus::Success),
             ("b", conductor_core::JobStatus::Skipped),

@@ -358,15 +358,14 @@ impl JobState {
 }
 
 /// 定義ファイル 1 つに対する、実行状態の全体(契約 C1。保持は conductor-runtime)。
+///
+/// ステートファイルの `definition_key`(`definition_path` と同じ文字列)と `job_order`(`job_states` の
+/// ジョブIDの並び)は、書き出しと読み込みの検査だけに使い、型には持たない(06 章)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PipelineState {
-    /// 定義ファイルのパス(`definition_path` と同じ文字列)。ステートファイルの必須のキーで、
-    /// 照合には使わない(06 章)。
-    pub definition_key: String,
     pub pipeline_name: String,
     pub definition_path: String,
-    /// 記録時のジョブIDと記述順。
-    pub job_order: Vec<String>,
+    /// ジョブごとの状態。並びは、記録時のジョブの記述順。
     pub job_states: Vec<JobState>,
     /// 次に実行する、または再開するジョブのID。
     pub resume_job_id: Option<String>,

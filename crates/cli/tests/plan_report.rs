@@ -84,10 +84,8 @@ impl Case {
 
 fn state(jobs: &[(&str, JobStatus)], resume: Option<&str>, run_id: Option<&str>) -> PipelineState {
     PipelineState {
-        definition_key: "t.toml".into(),
         pipeline_name: "demo".into(),
         definition_path: "t.toml".into(),
-        job_order: jobs.iter().map(|(id, _)| id.to_string()).collect(),
         job_states: jobs
             .iter()
             .map(|(id, status)| JobState {

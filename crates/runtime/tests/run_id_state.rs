@@ -31,10 +31,8 @@ fn id(v: &str) -> RunId {
 
 fn state(run_id: Option<&str>, completed: bool) -> PipelineState {
     PipelineState {
-        definition_key: "x.toml".into(),
         pipeline_name: "p".into(),
         definition_path: "x.toml".into(),
-        job_order: vec!["a".into(), "b".into()],
         job_states: vec![JobState::pending("a"), JobState::pending("b")],
         resume_job_id: if completed { None } else { Some("a".into()) },
         end_reached: false,

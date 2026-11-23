@@ -80,7 +80,7 @@
 | `ExecutionResult` | 起動の結果の 3 つの場合: `NotStarted { signal: i32 }`(起動しなかった中断)、`StartFailed`(起動の失敗)、`Exited { exit_code: Option<i32>, terminated_by_signal: Option<i32>, interrupted_by: Option<i32> }`(終了を観測した)。05 の 1.2 |
 | `JobStatus` / `SkipReason` | `Pending`・`Success`・`Warning`・`Error`・`Skipped` / `ByTransition`・`ByEnd`。どちらも `as_str()` と `parse(&str) -> Option<Self>` で、ステートファイルの語(`pending` など、`byTransition`・`byEnd`)と行き来する |
 | `JobState` | `job_id`、`status`、`exit_code: Option<i32>`、`skip_reason: Option<SkipReason>`。`JobState::pending(id)` |
-| `PipelineState` | `definition_key`、`pipeline_name`、`definition_path`、`job_order: Vec<String>`、`job_states: Vec<JobState>`、`resume_job_id: Option<String>`、`end_reached`、`completed`、`run_id: Option<String>`。06 章 |
+| `PipelineState` | `pipeline_name`、`definition_path`、`job_states: Vec<JobState>`、`resume_job_id: Option<String>`、`end_reached`、`completed`、`run_id: Option<String>`。ファイルの `definition_key` と `job_order` は、書き出しと読み込みの検査だけに使い、型には持たない(`job_order` は `job_states` のジョブIDの並び)。06 章 |
 | `Decision` / `SkipCause` / `RejectReason` | `Run` / `Skip(SkipCause)` / `Reject(RejectReason)`。スキップの理由 `SkipCause` は `SkipTarget`・`AfterEnd`・`AlreadyExecuted`、拒否の理由 `RejectReason` は `OutOfOrder` だけ(ステートに書く `SkipReason { ByTransition, ByEnd }` とは別の型) |
 | `TransitionTarget` / `TransitionOn` | `TransitionTarget::END_LABEL`(`@end`)、`label()`(ジョブID か `@end`)。`TransitionOn::parse`(`as_str` の逆)。`From<Classification> for JobStatus` |
 | `Classification` / `JobOutcome` | `Success`・`Warning`・`Error`(`as_str()`、遷移を引く `transition_on() -> Option<TransitionOn>`。エラーは `None`)/ `{ classification: Option<Classification>, reported_exit_code: i32, conductor_error: bool }`(v0.9.6 までは読まれない `job_id` も持った) |

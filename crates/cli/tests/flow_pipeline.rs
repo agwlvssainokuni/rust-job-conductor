@@ -439,10 +439,8 @@ fn 完了の判定ができないときは_65_で_初期化しない() {
     // すべて成功・警告で記録済みなのに、completed でない(起こらない想定の、壊れた内容)
     let jobs = ["a", "b", "c"];
     let state = PipelineState {
-        definition_key: h.def_path().to_string_lossy().into_owned(),
         pipeline_name: "p".into(),
         definition_path: h.def_path().to_string_lossy().into_owned(),
-        job_order: jobs.iter().map(|s| s.to_string()).collect(),
         job_states: jobs
             .iter()
             .map(|id| JobState {

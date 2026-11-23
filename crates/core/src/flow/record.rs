@@ -41,10 +41,8 @@ pub fn initial_state(
 ) -> PipelineState {
     let path = definition_path.to_string_lossy().into_owned();
     PipelineState {
-        definition_key: path.clone(),
         pipeline_name: definition.name.clone(),
         definition_path: path,
-        job_order: definition.job.iter().map(|j| j.id.clone()).collect(),
         job_states: definition
             .job
             .iter()
@@ -291,14 +289,13 @@ mod tests {
     #[test]
     fn 初期ステートはすべて_pending() {
         let s = initial_state(&definition(&["a", "b"]), Path::new("dir/c.toml"));
-        assert_eq!(s.job_order, ["a", "b"]);
+        let ids: Vec<&str> = s.job_states.iter().map(|j| j.job_id.as_str()).collect();
+        assert_eq!(ids, ["a", "b"]);
         assert!(
             s.job_states
                 .iter()
                 .all(|j| *j == JobState::pending(j.job_id.clone()))
         );
-        assert_eq!(s.definition_key, "dir/c.toml");
-        assert_eq!(s.definition_key, s.definition_path);
         assert_eq!(
             (s.resume_job_id, s.end_reached, s.completed),
             (None, false, false)

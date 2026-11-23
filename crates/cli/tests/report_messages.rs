@@ -51,15 +51,8 @@ fn pipeline_state() -> PipelineState {
         skip_reason,
     };
     PipelineState {
-        definition_key: "c.toml".into(),
         pipeline_name: "nightly".into(),
         definition_path: "c.toml".into(),
-        job_order: vec![
-            "extract".into(),
-            "transform".into(),
-            "load".into(),
-            "x".into(),
-        ],
         job_states: vec![
             job("extract", JobStatus::Warning, Some(1), None),
             job(
