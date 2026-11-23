@@ -177,16 +177,14 @@ fn 起動できないコマンドや範囲外の番号でパニックしない()
         "/".to_string(),
     ];
     for command in cases {
-        let j = common::job("j", command);
-        let line = check_command(&j.command).expect("分けられる");
+        let line = common::command_line(command);
         let e = run_job(&line, &[], &InterruptSignal::new());
         assert_eq!(e.result, ExecutionResult::StartFailed, "{e:?}");
     }
     for number in [i32::MAX, i32::MIN, 0, -1, 1_000_000] {
         let s = InterruptSignal::new();
         s.raise(number);
-        let j = common::job("j", "anything");
-        let line = check_command(&j.command).expect("分けられる");
+        let line = common::command_line("anything");
         let e = run_job(&line, &[], &s);
         assert!(matches!(e.result, ExecutionResult::NotStarted { .. }));
     }

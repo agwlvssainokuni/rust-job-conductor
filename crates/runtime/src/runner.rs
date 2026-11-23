@@ -225,23 +225,8 @@ mod tests {
         assert_eq!(forwards, 0);
     }
 
-    use conductor_core::JobDefinition;
-
-    fn job(command: &str) -> JobDefinition {
-        JobDefinition {
-            id: "j".into(),
-            command: command.into(),
-            warning_exit_codes: vec![],
-            success_exit_codes: None,
-            transitions: vec![],
-            retry: None,
-            env: vec![],
-            env_file: vec![],
-        }
-    }
-
-    fn line(job: &JobDefinition) -> CommandLine {
-        crate::split::check_command(&job.command).expect("分けられる")
+    fn line(command: &str) -> CommandLine {
+        crate::split::check_command(&command.into()).expect("分けられる")
     }
 
     #[test]
@@ -260,15 +245,17 @@ mod tests {
     fn 起動前の合図は起動しない() {
         let s = InterruptSignal::new();
         s.raise(2);
-        let j = job("definitely-not-run");
-        let e = run_job(&line(&j), &[], &s);
+        let e = run_job(&line("definitely-not-run"), &[], &s);
         assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
     }
 
     #[test]
     fn 存在しないコマンドは起動失敗() {
-        let j = job("conductor-no-such-command-zzz --flag");
-        let e = run_job(&line(&j), &[], &InterruptSignal::new());
+        let e = run_job(
+            &line("conductor-no-such-command-zzz --flag"),
+            &[],
+            &InterruptSignal::new(),
+        );
         assert_eq!(e.result, ExecutionResult::StartFailed);
     }
 }

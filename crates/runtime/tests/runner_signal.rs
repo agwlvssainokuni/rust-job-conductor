@@ -26,7 +26,7 @@ use std::time::Duration;
 
 use common::*;
 use conductor_core::{ExecutionResult, JobExecution};
-use conductor_runtime::{InterruptSignal, check_command, run_job};
+use conductor_runtime::{InterruptSignal, run_job};
 
 /// ジョブを別のスレッドで動かし、起動して準備ができたところで合図を立て、結果を受け取る。
 fn run_and_raise(command: String, out: &Path, number: i32) -> JobExecution {
@@ -35,8 +35,7 @@ fn run_and_raise(command: String, out: &Path, number: i32) -> JobExecution {
     {
         let signal = signal.clone();
         std::thread::spawn(move || {
-            let j = job("j", command);
-            let line = check_command(&j.command).expect("分けられる");
+            let line = command_line(command);
             let _ = tx.send(run_job(&line, &[], &signal));
         });
     }
@@ -116,8 +115,7 @@ fn ジョブは新しいプロセスグループで起動される() {
     {
         let signal = signal.clone();
         std::thread::spawn(move || {
-            let j = job("j", command);
-            let line = check_command(&j.command).expect("分けられる");
+            let line = command_line(command);
             let _ = tx.send(run_job(&line, &[], &signal));
         });
     }
@@ -153,8 +151,7 @@ fn シグナルは_1回だけ転送される() {
     {
         let signal = signal.clone();
         std::thread::spawn(move || {
-            let j = job("j", command);
-            let line = check_command(&j.command).expect("分けられる");
+            let line = command_line(command);
             let _ = tx.send(run_job(&line, &[], &signal));
         });
     }
@@ -196,8 +193,7 @@ fn 先に終わったジョブは転送なしで観測される() {
         let command = helper_command(&out, "exit 4");
         move || {
             let s = InterruptSignal::new();
-            let j = job("j", command);
-            let line = check_command(&j.command).expect("分けられる");
+            let line = command_line(command);
             let e = run_job(&line, &[], &s);
             s.raise(15);
             e

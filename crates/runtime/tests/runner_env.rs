@@ -19,15 +19,14 @@ mod common;
 
 use common::*;
 use conductor_core::ExecutionResult;
-use conductor_runtime::{InterruptSignal, check_command, run_job};
+use conductor_runtime::{InterruptSignal, run_job};
 
 /// 子で `env <names...>` を実行し、出力の行を返す。
 fn child_env(env: &[(&str, &str)], names: &[&str]) -> Vec<String> {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
     let command = helper_command(&out, &format!("env {}", names.join(" ")));
-    let j = job("j", command);
-    let line = check_command(&j.command).expect("分けられる");
+    let line = command_line(command);
     let e = run_job(&line, env, &InterruptSignal::new());
     assert!(matches!(
         e.result,

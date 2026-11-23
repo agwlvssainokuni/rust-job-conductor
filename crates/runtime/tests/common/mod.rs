@@ -20,6 +20,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use conductor_core::{Command, JobDefinition, PipelineDefinition};
+use conductor_runtime::{CommandLine, check_command};
 
 /// ディレクトリ `dir` の定義ファイル `x.toml` のパス(ファイルそのものは無くてよい)。
 pub fn def(dir: &Path) -> PathBuf {
@@ -29,6 +30,11 @@ pub fn def(dir: &Path) -> PathBuf {
 /// ディレクトリ `dir` に、名前 `name` のファイルを内容 `content` で書く。
 pub fn put(dir: &Path, name: &str, content: &str) {
     std::fs::write(dir.join(name), content).expect("書ける");
+}
+
+/// `command` を分けた結果(`check_command`。分けられる command だけを渡す)。
+pub fn command_line(command: impl Into<Command>) -> CommandLine {
+    check_command(&command.into()).expect("分けられる")
 }
 
 /// 定義ファイル `conductor.toml` のパス(ファイルそのものは無くてよい)と、そのステートファイルのパス。
