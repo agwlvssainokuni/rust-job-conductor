@@ -129,7 +129,7 @@ fn assumptions_text(assumptions: &[Assumption]) -> String {
 
 /// ジョブの見出しの行と、詳細の行(BR3.2、BR3.3)。
 fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry) {
-    let mut word = plan_disposition(lang, entry.disposition).to_string();
+    let mut word = plan_disposition(entry.disposition).get(lang).to_string();
     if let Some(note) = assumption_note(lang, entry) {
         // 「実行する」「run」に、括弧の補足を続ける。
         // 英語は、語と括弧のあいだに空白を置く(`run (assumed: ...)`)。日本語は置かない。

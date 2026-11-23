@@ -525,7 +525,7 @@ fn place_of(file: &str, line: Option<usize>) -> String {
 fn definition_line(lang: Language, e: &DefinitionError) -> String {
     let place = place_of(&e.file, e.line);
     let reason = escape_path(&e.reason);
-    error_line(&place, &definition_kind(lang, e.kind), Some(&reason))
+    error_line(&place, definition_kind(e.kind).get(lang), Some(&reason))
 }
 
 /// `.env` の誤りの行(最大 20 件。残りは「ほか N 件」。値は含めない。BR2.8、BR8.1)。
@@ -536,8 +536,8 @@ fn env_file_lines(lang: Language, errors: &[EnvFileError]) -> String {
         let place = place_of(&e.file, e.line);
         out.push_str(&error_line(
             &place,
-            &env_file_kind(lang, e.kind),
-            Some(&env_file_reason(lang, e.kind)),
+            env_file_kind(e.kind).get(lang),
+            Some(env_file_reason(e.kind).get(lang)),
         ));
     }
     if rest > 0 {
@@ -615,7 +615,7 @@ fn conversion_line(lang: Language, e: &ConversionError) -> String {
             escape_path(path)
         ));
     }
-    error_line(&place, &conversion_kind(lang, e.kind), Some(&cause))
+    error_line(&place, conversion_kind(e.kind).get(lang), Some(&cause))
 }
 
 fn job_result_line(

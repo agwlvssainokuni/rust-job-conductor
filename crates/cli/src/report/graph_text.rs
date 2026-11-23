@@ -80,8 +80,8 @@ fn command_text(command: &Command) -> String {
 /// 辺の種類のラベル(成功だけ、警告だけ、両方)。text と Mermaid が使う。
 pub(crate) fn kind_label(lang: Language, kinds: &[EdgeKind]) -> &'static str {
     match kinds {
-        [EdgeKind::Success] => class_word(lang, Classification::Success),
-        [EdgeKind::Warning] => class_word(lang, Classification::Warning),
+        [EdgeKind::Success] => class_word(Classification::Success).get(lang),
+        [EdgeKind::Warning] => class_word(Classification::Warning).get(lang),
         _ => GRAPH_KIND_BOTH.get(lang),
     }
 }

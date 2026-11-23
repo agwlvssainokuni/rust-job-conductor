@@ -250,13 +250,10 @@ pub fn usage_kind(kind: UsageErrorKind) -> Text {
 
 // ---- 定義・command・ステート・変換の種類の文 ----
 
-/// 定義の誤りの種類の文。日本語は、conductor-core の表示(`Display`)と同じ。
-pub fn definition_kind(lang: Language, kind: DefinitionErrorKind) -> String {
-    if lang == Language::Ja {
-        return kind.to_string();
-    }
+/// 定義の誤りの種類の文。日本語は、conductor-core の `DefinitionErrorKind::label()`(cli に持たない)。
+pub fn definition_kind(kind: DefinitionErrorKind) -> Text {
     use DefinitionErrorKind as K;
-    let text = match kind {
+    let en = match kind {
         K::FileMissing => "definition file does not exist",
         K::Unreadable => "cannot read definition file",
         K::TooLarge => "definition file is too large",
@@ -293,16 +290,13 @@ pub fn definition_kind(lang: Language, kind: DefinitionErrorKind) -> String {
         K::EnvNameCaseConflict => "environment variable names differ only in letter case",
         K::InvalidEnvValue => "invalid environment variable value",
     };
-    text.to_string()
+    Text::new(en, kind.label())
 }
 
-/// `.env` の誤りの種類の文。日本語は、conductor-core の表示(`Display`)と同じ。
-pub fn env_file_kind(lang: Language, kind: EnvFileErrorKind) -> String {
-    if lang == Language::Ja {
-        return kind.to_string();
-    }
+/// `.env` の誤りの種類の文。日本語は、conductor-core の `EnvFileErrorKind::label()`(cli に持たない)。
+pub fn env_file_kind(kind: EnvFileErrorKind) -> Text {
     use EnvFileErrorKind as K;
-    let text = match kind {
+    let en = match kind {
         K::FileMissing => "environment file does not exist",
         K::Unreadable => "cannot read environment file",
         K::TooLarge => "environment file is too large",
@@ -317,20 +311,18 @@ pub fn env_file_kind(lang: Language, kind: EnvFileErrorKind) -> String {
         K::TrailingGarbage => "unexpected characters after the closing quote",
         K::NulInValue => "value contains NUL",
     };
-    text.to_string()
+    Text::new(en, kind.label())
 }
 
 // 次の英語の文の「1 MiB」「10,000」と、conductor-core の上限の定数が食い違えば、コンパイルできない。
 const _: () = assert!(conductor_core::envfile::MAX_ENV_FILE_BYTES == 1_048_576);
 const _: () = assert!(conductor_core::envfile::MAX_ENV_ENTRIES == 10_000);
 
-/// `.env` の誤りの理由(固定の文。値を含まない)。日本語は、conductor-core の理由と同じ。
-pub fn env_file_reason(lang: Language, kind: EnvFileErrorKind) -> String {
-    if lang == Language::Ja {
-        return kind.reason().to_string();
-    }
+/// `.env` の誤りの理由(固定の文。値を含まない)。日本語は、conductor-core の
+/// `EnvFileErrorKind::reason()`(cli に持たない)。
+pub fn env_file_reason(kind: EnvFileErrorKind) -> Text {
     use EnvFileErrorKind as K;
-    let text = match kind {
+    let en = match kind {
         K::FileMissing => "the file named in `env_file` was not found",
         K::Unreadable => "the file named in `env_file` cannot be read",
         K::TooLarge => "the file is larger than the limit (1 MiB)",
@@ -349,7 +341,7 @@ pub fn env_file_reason(lang: Language, kind: EnvFileErrorKind) -> String {
         K::TrailingGarbage => "only spaces and a comment can follow the closing quote",
         K::NulInValue => "a value cannot contain NUL (U+0000)",
     };
-    text.to_string()
+    Text::new(en, kind.reason())
 }
 
 /// 誤りの打ち切りの行(`.env` の誤りが 20 件を超えたとき。BR2.8)。
@@ -378,31 +370,17 @@ pub fn command_kind(kind: CommandErrorKind) -> Text {
     }
 }
 
-/// ステートの誤りの種類の文。日本語は、conductor-runtime の表示と同じ。
+/// ステートの誤りの種類の文。日本語は、conductor-runtime の `StateErrorKind::label()`(cli に持たない)。
 pub fn state_kind(kind: StateErrorKind) -> Text {
-    match kind {
-        StateErrorKind::Unreadable => {
-            Text::new("cannot read state file", "ステートファイルを読めません")
-        }
-        StateErrorKind::TooLarge => {
-            Text::new("state file is too large", "ステートファイルが大きすぎます")
-        }
-        StateErrorKind::Corrupt => {
-            Text::new("state file is corrupt", "ステートファイルが壊れています")
-        }
-        StateErrorKind::VersionMismatch => Text::new(
-            "state file version is not supported",
-            "ステートファイルの版が合いません",
-        ),
-        StateErrorKind::WriteFailed => Text::new(
-            "cannot write state file",
-            "ステートファイルを書き込めません",
-        ),
-        StateErrorKind::RemoveFailed => Text::new(
-            "cannot remove state file",
-            "ステートファイルを削除できません",
-        ),
-    }
+    let en = match kind {
+        StateErrorKind::Unreadable => "cannot read state file",
+        StateErrorKind::TooLarge => "state file is too large",
+        StateErrorKind::Corrupt => "state file is corrupt",
+        StateErrorKind::VersionMismatch => "state file version is not supported",
+        StateErrorKind::WriteFailed => "cannot write state file",
+        StateErrorKind::RemoveFailed => "cannot remove state file",
+    };
+    Text::new(en, kind.label())
 }
 
 /// 読んだステートの誤りに、`reset` を案内する種類か。
@@ -449,13 +427,10 @@ pub const JOB_EXECUTED: Text = Text::new(
     "ジョブは実行されました",
 );
 
-/// 変換の誤りの種類の文。日本語は、conductor-converter の表示と同じ。
-pub fn conversion_kind(lang: Language, kind: ConversionErrorKind) -> String {
-    if lang == Language::Ja {
-        return kind.to_string();
-    }
+/// 変換の誤りの種類の文。日本語は、conductor-converter の `ConversionErrorKind::label()`(cli に持たない)。
+pub fn conversion_kind(kind: ConversionErrorKind) -> Text {
     use ConversionErrorKind as K;
-    let text = match kind {
+    let en = match kind {
         K::FileMissing => "input file does not exist",
         K::Unreadable => "cannot read input file",
         K::TooLarge => "input is too large",
@@ -463,7 +438,7 @@ pub fn conversion_kind(lang: Language, kind: ConversionErrorKind) -> String {
         K::Unrepresentable => "value cannot be represented in the target format",
         K::RootNotMap => "top level is not a map",
     };
-    text.to_string()
+    Text::new(en, kind.label())
 }
 
 pub const AT_KEY: Text = Text::new("at", "場所");
@@ -682,8 +657,8 @@ pub fn plan_resume_after_stop(lang: Language, escaped_job_id: &str) -> String {
 }
 
 /// ジョブの扱いの語(括弧の中の補足を除く)。
-pub fn plan_disposition(lang: Language, disposition: PlanDisposition) -> &'static str {
-    let text = match disposition {
+pub fn plan_disposition(disposition: PlanDisposition) -> Text {
+    match disposition {
         PlanDisposition::WillRun(_) => Text::new("run", "実行する"),
         PlanDisposition::AlreadyExecuted => ALREADY_EXECUTED,
         PlanDisposition::SkippedByTransition => Text::new("skip (transition)", "スキップ(遷移)"),
@@ -691,18 +666,16 @@ pub fn plan_disposition(lang: Language, disposition: PlanDisposition) -> &'stati
         PlanDisposition::NotReached => {
             Text::new("not run (after stop)", "実行されない(停止のあと)")
         }
-    };
-    text.get(lang)
+    }
 }
 
 /// 結果の分類の語(計画の仮定の補足と、graph の辺の種類が使う)。
-pub fn class_word(lang: Language, classification: Classification) -> &'static str {
-    let text = match classification {
+pub fn class_word(classification: Classification) -> Text {
+    match classification {
         Classification::Success => Text::new("success", "成功"),
         Classification::Warning => Text::new("warning", "警告"),
         Classification::Error => Text::new("error", "エラー"),
-    };
-    text.get(lang)
+    }
 }
 
 /// 仮定(指定、または既定の終了コード 0)の結果の補足(括弧の中。BR3.2)。
@@ -714,7 +687,7 @@ pub fn plan_assumed(
     classification: Classification,
     retry_target: bool,
 ) -> String {
-    let class = class_word(lang, classification);
+    let class = class_word(classification).get(lang);
     match lang {
         Language::En => {
             let word = if assumed { "assumed" } else { "default" };

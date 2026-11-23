@@ -125,7 +125,7 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 
 ### 4.3 定義の誤り(`definition_kind`)
 
-日本語は `conductor-core` の `DefinitionErrorKind` の `Display`(thiserror の文)と同じ。英語は `messages.rs` の表。表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>`(`reason`)は `conductor-core` が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。
+`messages.rs` の `definition_kind(kind) -> Text`。日本語は `conductor-core` の `DefinitionErrorKind::label()`(`Display` もこれを書く。cli は日本語の文を持たない)。英語は `messages.rs` の表。表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>`(`reason`)は `conductor-core` が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。
 
 | 識別子(`code()`) | 英語 | 日本語 |
 |--------------------|------|--------|
@@ -183,7 +183,7 @@ conductor: error: nonexist.toml: 定義ファイルが存在しません: 指定
 
 ### 4.5 ステートの誤り(`state_kind`)
 
-表示: `conductor: error: <ステートのパス>: <種類の文>: <原因>[<補足>]`。`<原因>` は `conductor-runtime` の固定の日本語の文(言語を切り替えない。一覧は 10 章)。
+表示: `conductor: error: <ステートのパス>: <種類の文>: <原因>[<補足>]`。種類の文は `messages.rs` の `state_kind(kind) -> Text` で、日本語は `conductor-runtime` の `StateErrorKind::label()`(cli は日本語の文を持たない)。`<原因>` は `conductor-runtime` の固定の日本語の文(言語を切り替えない。一覧は 10 章)。
 
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
@@ -246,7 +246,7 @@ conductor: error: job 'step3': cannot start command 'nonexistent_prog_x'
 
 ### 4.8 変換の誤り(`conversion_kind`)
 
-表示: `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>[ (<AT_KEY>: <キーの位置>)]`。日本語の種類の文は `conductor-converter` の `Display`。`<原因>`(`reason`)は converter の固定の日本語(10 章)。`AT_KEY` は英語 `at`、日本語 `場所`。キーの位置(`key_path`)があるときだけ付く。
+表示: `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>[ (<AT_KEY>: <キーの位置>)]`。種類の文は `messages.rs` の `conversion_kind(kind) -> Text` で、日本語は `conductor-converter` の `ConversionErrorKind::label()`(`Display` もこれを書く。cli は日本語の文を持たない)。`<原因>`(`reason`)は converter の固定の日本語(10 章)。`AT_KEY` は英語 `at`、日本語 `場所`。キーの位置(`key_path`)があるときだけ付く。
 
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
@@ -320,7 +320,7 @@ conductor: error: <ファイル>[:<行>]: <種類の文>: <理由>
 ```
 
 - `<ファイル>` は解決済みのパス(`escape_path`。切らない)。`<行>` は、行番号があるときだけ(無い誤り: `fileMissing`、`unreadable`、`tooLarge`、`notUtf8`)。
-- 種類の文と理由は、**言語に従う**(定義の誤りの `<原因>` が常に日本語なのと違う)。日本語は `conductor-core` の `EnvFileErrorKind` の `Display`(種類の文)と `reason()`(理由)と同じ。英語は次の表(`messages.rs` の `env_file_kind`、`env_file_reason`)。
+- 種類の文と理由は、**言語に従う**(定義の誤りの `<原因>` が常に日本語なのと違う)。日本語は `conductor-core` の `EnvFileErrorKind::label()`(種類の文)と `reason()`(理由)で、cli は日本語の文を持たない。英語は次の表(`messages.rs` の `env_file_kind(kind) -> Text`、`env_file_reason(kind) -> Text`)。
 - 先頭の最大 20 件を表示し、超えたら、最後に 1 行 `conductor: error: and <N> more`(日本語 `conductor: error: ほか <N> 件`)を出す(`<N>` = 残りの件数)。
 - **値は、どの行にも含めない**(名前も含めない)。
 
