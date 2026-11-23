@@ -85,18 +85,18 @@ pub fn read_definition(path: &Path) -> Result<String, DefinitionError> {
         )
     };
 
-    let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
+    // パスのメタデータと、開くときの失敗(無い → `fileMissing`、ほか → `unreadable`)。
+    let open_error = |e: std::io::Error| match e.kind() {
         ErrorKind::NotFound => missing(),
         k => error(&file, DefinitionErrorKind::Unreadable, io_reason(k)),
-    })?;
+    };
+
+    let meta = std::fs::metadata(path).map_err(open_error)?;
     if !meta.is_file() {
         return Err(not_regular());
     }
 
-    let handle = File::open(path).map_err(|e| match e.kind() {
-        ErrorKind::NotFound => missing(),
-        k => error(&file, DefinitionErrorKind::Unreadable, io_reason(k)),
-    })?;
+    let handle = File::open(path).map_err(open_error)?;
     let opened = handle
         .metadata()
         .map_err(|e| error(&file, DefinitionErrorKind::Unreadable, io_reason(e.kind())))?;

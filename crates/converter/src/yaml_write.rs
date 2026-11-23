@@ -47,16 +47,16 @@ fn pad(out: &mut String, n: usize) {
     }
 }
 
-/// 1行に収まる表現(スカラー、空の配列、空のマップ)。コレクションは `None`。
+/// 1行に収まる表現(スカラー、空の配列、空のマップ)。空でないコレクションは `None`。
 fn scalar_or_empty(value: &Value) -> Option<String> {
     match value {
-        Value::Array(a) if a.is_empty() => Some("[]".to_string()),
-        Value::Map(m) if m.is_empty() => Some("{}".to_string()),
-        Value::Array(_) | Value::Map(_) => None,
+        Value::Array(a) if !a.is_empty() => None,
+        Value::Map(m) if !m.is_empty() => None,
         other => Some(inline(other)),
     }
 }
 
+/// 1 行の表現。コレクションは空として `[]`・`{}` にする(呼び出し側は、空のものだけを渡す)。
 fn inline(value: &Value) -> String {
     match value {
         Value::Str(s) => quote_string(s),

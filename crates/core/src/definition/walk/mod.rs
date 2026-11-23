@@ -61,6 +61,9 @@ const JOB_KEYS: &[&str] = &[
 ];
 const TRANSITION_KEYS: &[&str] = &["on", "next"];
 
+/// ジョブが 1 つもないときの理由(`job` が無い、または空の配列)。
+const NO_JOBS_REASON: &str = "ジョブ(`job`)が 1 つもありません";
+
 /// `[pipeline]` から取り出した値。
 struct PipelineHead {
     name: String,
@@ -522,16 +525,12 @@ pub fn walk(
 
     let raw_jobs: Vec<RawJob> = match root.get("job") {
         None => {
-            w.push(0, Kind::NoJobs, "ジョブ(`job`)が 1 つもありません");
+            w.push(0, Kind::NoJobs, NO_JOBS_REASON);
             Vec::new()
         }
         Some(value) => match value.get_ref() {
             DeValue::Array(items) if items.is_empty() => {
-                w.push(
-                    value.span().start,
-                    Kind::NoJobs,
-                    "ジョブ(`job`)が 1 つもありません",
-                );
+                w.push(value.span().start, Kind::NoJobs, NO_JOBS_REASON);
                 Vec::new()
             }
             DeValue::Array(items) => items.iter().map(|item| w.job(item)).collect(),
