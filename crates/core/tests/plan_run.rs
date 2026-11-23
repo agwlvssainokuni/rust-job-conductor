@@ -18,8 +18,9 @@ mod common;
 
 use common::state;
 use conductor_core::{
-    Assumption, ExecutionPlan, JobStatus, LoadedEnvFiles, PipelineState, PlanDisposition as D,
-    PlanInput, PlanMode, PlanRejection, RejectReason, ResumeInfo, parse_definition, plan_run,
+    Assumption, ExecutionPlan, JobStatus, LoadedEnvFiles, NextStepNote, PipelineState,
+    PlanDisposition as D, PlanInput, PlanMode, PlanRejection, RejectReason, ResumeInfo,
+    parse_definition, plan_run,
 };
 
 const THREE: &str = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\nwarning_exit_codes = [3]\n[[job]]\nid = \"b\"\ncommand = \"echo b\"\n[[job]]\nid = \"c\"\ncommand = \"echo c\"\n";
@@ -75,8 +76,10 @@ fn run_の計画は_対象の_1_ジョブと次の動きを持ち_再開位置�
     assert!(!plan.entries[0].is_resume);
     assert_eq!(plan.resume, ResumeInfo::Individual("b".into()));
     let note = plan.next_step_note.expect("次の動き");
-    assert_eq!(note.next_job_id.as_deref(), Some("c"));
-    assert!(!note.stopped && !note.completed && !note.end_reached);
+    assert!(
+        matches!(&note, NextStepNote::NextJob { job_id, .. } if job_id == "c"),
+        "{note:?}"
+    );
 }
 
 #[test]
@@ -86,15 +89,19 @@ fn run_の次の動きは_遷移のスキップ_end_完了_停止を区別する
         .expect("計画")
         .next_step_note
         .expect("次の動き");
-    assert_eq!(note.next_job_id.as_deref(), Some("c"));
-    assert_eq!(note.skipped_job_ids, ["b"]);
+    assert_eq!(
+        note,
+        NextStepNote::NextJob {
+            job_id: "c".into(),
+            skipped_job_ids: vec!["b".into()],
+        }
+    );
     // `@end` に到達(個別実行では、後ろは列挙しない)。
     let note = run_plan(END, "a", None, &[])
         .expect("計画")
         .next_step_note
         .expect("次の動き");
-    assert!(note.end_reached && !note.completed);
-    assert!(note.skipped_job_ids.is_empty() && note.next_job_id.is_none());
+    assert_eq!(note, NextStepNote::EndReached);
     // 最後のジョブの成功は、完了。
     let s = state(
         &[
@@ -109,7 +116,7 @@ fn run_の次の動きは_遷移のスキップ_end_完了_停止を区別する
         .expect("計画")
         .next_step_note
         .expect("次の動き");
-    assert!(note.completed && note.next_job_id.is_none());
+    assert_eq!(note, NextStepNote::Completed);
     // 仮定でエラーなら、停止。
     let s = state(
         &[("a", JobStatus::Success), ("b", JobStatus::Pending)],
@@ -120,7 +127,7 @@ fn run_の次の動きは_遷移のスキップ_end_完了_停止を区別する
         .expect("計画")
         .next_step_note
         .expect("次の動き");
-    assert!(note.stopped);
+    assert_eq!(note, NextStepNote::Stopped);
 }
 
 #[test]

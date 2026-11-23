@@ -868,7 +868,7 @@ target_position(i, on):
 | 計画の方式 | `pipeline`、`individual` |
 | `ResumeInfo` | 3 つの場合のどれか: `fromStart`(ステートなし、または完了したステート)、`afterStop`(前回の停止で再開位置あり。再開位置のジョブ ID を持つ)、`individual`(`run` の対象。対象のジョブ ID を持つ) |
 | `PlanEnd` | `completed`、`endReached`(`@end` に到達)、`stoppedAtError(job_id)` |
-| `NextStepNote` | `{ next_job_id, skipped_job_ids, completed, end_reached, stopped }`(`run` の、仮定の結果による次の動き) |
+| `NextStepNote` | 4 つの場合のどれか: `nextJob`(次のジョブの ID と、遷移で飛び越すジョブの ID の並びを持つ)、`endReached`(未完了のまま `@end` に到達。後ろは呼ばれたときにスキップ)、`completed`(完了)、`stopped`(エラーで停止)(`run` の、仮定の結果による次の動き) |
 | `ExecutionPlan` | `{ pipeline_name, run_id, mode, resume, assumptions, unused_assumptions: list<string>, entries, end, next_step_note? }` |
 | `PlanRejection` | `{ job_id, reason }`。本番なら順序外として拒否されるとき |
 | 計画の入力 | `{ definition, state?, commands: list<list<string>>(記述順。分割済み)、env_files, run_id?, assumptions }` |
@@ -916,7 +916,8 @@ match decide_before_run(job_id, def, states, resume, end_reached):
         (code, assumed) = 仮定または (0, false)
         (result, next) = simulate_job(..., Individual)
         stopped = (result.classification == error)
-        note = NextStepNote{ next.next_job_id, next.skipped_job_ids, next.completed, next.end_reached, stopped }
+        note = stopped なら stopped、next.next_job_id があれば nextJob(その ID, next.skipped_job_ids)、
+               next.end_reached かつ completed でなければ endReached、それ以外は completed
         end = stopped なら stoppedAtError(job_id)、next.end_reached なら endReached、なければ completed
         項目 = willRun(result つき)
 resume 情報 = individual(job_id)、entries = [項目]、unused_assumptions = 仮定のうち、job_id が willRun でないもの

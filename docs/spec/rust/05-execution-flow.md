@@ -858,7 +858,7 @@ target_position(i, on):
 | `PlanMode` | `Pipeline`、`Individual`。`RunMode` の別名(`ExecutionPlan.mode` の型は `RunMode`) |
 | `ResumeInfo` | 列挙型。`FromStart`(ステートなし、または完了したステート)、`AfterStop(String)`(前回の停止で再開位置あり。再開位置のジョブ ID)、`Individual(String)`(`run` の対象。対象のジョブ ID)。あり得る 3 つの場合だけを表す |
 | `PlanEnd` | `Completed`、`EndReached`(`@end` に到達)、`StoppedAtError(job_id)` |
-| `NextStepNote` | `{ next_job_id, skipped_job_ids, completed, end_reached, stopped }`(`run` の、仮定の結果による次の動き) |
+| `NextStepNote` | 列挙型。`NextJob { job_id, skipped_job_ids }`(次のジョブ。遷移で飛び越すジョブ)、`EndReached`(未完了のまま `@end` に到達。後ろは呼ばれたときにスキップ)、`Completed`(完了)、`Stopped`(エラーで停止)(`run` の、仮定の結果による次の動き)。`EndReached` は `PlanEnd::EndReached`(`@end` に到達して完了)と意味が違うため、型を共有しない |
 | `ExecutionPlan` | `{ pipeline_name, run_id, mode, resume, assumptions, unused_assumptions: Vec<String>, entries, end, next_step_note: Option<NextStepNote> }` |
 | `PlanRejection` | `{ job_id, reason: RejectReason }`。本番なら順序外として拒否されるとき |
 | `PlanInput<'a>` | `{ definition, state: Option<&PipelineState>, commands: &[Vec<String>](記述順。分割済み)、env_files: &LoadedEnvFiles, run_id: Option<&str>, assumptions: &[Assumption] }` |
@@ -907,7 +907,8 @@ match decide_before_run(job_id, def, states, resume, end_reached):
         (code, assumed) = 仮定または (0, false)
         (result, _, _, next) = simulate_job(..., Individual)              # ステートは更新しない
         stopped = (result.classification == Error)
-        note = NextStepNote{ next.next_job_id, next.skipped_job_ids, next.completed, next.end_reached, stopped }
+        note = stopped なら Stopped、next.next_job_id があれば NextJob{ その ID, next.skipped_job_ids }、
+               next.end_reached かつ completed でなければ EndReached、それ以外は Completed
         end = stopped なら StoppedAtError(job_id)、next.end_reached なら EndReached、なければ Completed
         項目 = WillRun(result つき)
 resume 情報 = Individual(job_id)、entries = [項目]、unused_assumptions = 仮定のうち、job_id が WillRun でないもの

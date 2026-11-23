@@ -143,16 +143,23 @@ pub enum PlanEnd {
     StoppedAtError(String),
 }
 
-/// `run <job> --dry-run` の、仮定の結果による次の動き(BR1.6)。
+/// `run <job> --dry-run` の、仮定の結果による次の動き(BR1.6)。あり得る 4 つの場合だけを表す。
+///
+/// `EndReached` は「未完了のまま `@end` に到達した」で、[`PlanEnd::EndReached`](「`@end` に到達して
+/// 完了」)と意味が違うため、型を共有しない。
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NextStepNote {
-    pub next_job_id: Option<String>,
-    pub skipped_job_ids: Vec<String>,
-    pub completed: bool,
-    /// `@end` に到達したとき(後ろに未処理のジョブがあれば、呼ばれたときにスキップされる)。
-    pub end_reached: bool,
-    /// エラーで停止するとき。
-    pub stopped: bool,
+pub enum NextStepNote {
+    /// 次のジョブ(遷移で飛び越すジョブ。無ければ空)。
+    NextJob {
+        job_id: String,
+        skipped_job_ids: Vec<String>,
+    },
+    /// `@end` に到達した(後ろのジョブは、呼ばれたときにスキップされる)。完了していない。
+    EndReached,
+    /// 完了する。
+    Completed,
+    /// エラーで停止する。
+    Stopped,
 }
 
 /// 実行計画の全体(契約 C7 の出力)。

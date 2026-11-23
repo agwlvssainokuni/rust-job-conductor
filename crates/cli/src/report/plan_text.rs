@@ -200,12 +200,6 @@ fn assumption_note(lang: Language, entry: &PlanEntry) -> Option<String> {
 
 /// 次の動きの行(`run`。BR1.6)。仮定(または既定)の結果が警告かエラーのときは、先頭に補足を添える。
 fn next_step_line(lang: Language, note: &NextStepNote, entry: &PlanEntry) -> String {
-    let escaped_next = note.next_job_id.as_deref().map(escape_path);
-    let escaped_skipped: Vec<String> = note
-        .skipped_job_ids
-        .iter()
-        .map(|id| escape_path(id))
-        .collect();
     let mut text = String::new();
     if let Some(result) = entry.disposition.result()
         && result.classification != Classification::Success
@@ -219,11 +213,6 @@ fn next_step_line(lang: Language, note: &NextStepNote, entry: &PlanEntry) -> Str
         );
         text.push_str(&format!("({inner}) "));
     }
-    text.push_str(&plan_next_step(
-        lang,
-        note,
-        escaped_next.as_deref(),
-        &escaped_skipped,
-    ));
+    text.push_str(&plan_next_step(lang, note, escape_path));
     format!("{}{text}", PLAN_NEXT_LABEL.get(lang))
 }

@@ -744,28 +744,30 @@ pub fn plan_stopped_at_error(lang: Language, escaped_job_id: &str) -> String {
     }
 }
 
-/// `run` の次の動きの語(BR1.6)。ジョブ ID は、エスケープ済みで渡す。
+/// `run` の次の動きの語(BR1.6)。ジョブ ID は、渡された `escape` でエスケープして出す。
 pub fn plan_next_step(
     lang: Language,
     note: &NextStepNote,
-    escaped_next: Option<&str>,
-    escaped_skipped: &[String],
+    escape: impl Fn(&str) -> String,
 ) -> String {
-    if note.stopped {
-        return Text::new("stop", "停止").get(lang).to_string();
-    }
-    if note.end_reached && !note.completed {
-        return Text::new(
-            "reached @end (the rest are skipped when called)",
-            "@end に到達(残りのジョブは、呼ばれたときにスキップ)",
-        )
-        .get(lang)
-        .to_string();
-    }
-    if note.completed {
-        return Text::new("done", "完了").get(lang).to_string();
-    }
-    let next = escaped_next.unwrap_or_default();
+    let (next, skipped) = match note {
+        NextStepNote::Stopped => return Text::new("stop", "停止").get(lang).to_string(),
+        NextStepNote::EndReached => {
+            return Text::new(
+                "reached @end (the rest are skipped when called)",
+                "@end に到達(残りのジョブは、呼ばれたときにスキップ)",
+            )
+            .get(lang)
+            .to_string();
+        }
+        NextStepNote::Completed => return Text::new("done", "完了").get(lang).to_string(),
+        NextStepNote::NextJob {
+            job_id,
+            skipped_job_ids,
+        } => (job_id, skipped_job_ids),
+    };
+    let next = escape(next);
+    let escaped_skipped: Vec<String> = skipped.iter().map(|id| escape(id)).collect();
     match lang {
         Language::En if escaped_skipped.is_empty() => format!("next job {next}"),
         Language::En => format!("next job {next} (skipped: {})", escaped_skipped.join(", ")),

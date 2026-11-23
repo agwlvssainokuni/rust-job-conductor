@@ -178,13 +178,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
             let (result, _, _, next) =
                 simulate_job(job, def, states, code, assumed, RunMode::Individual);
             let stopped = result.classification == Classification::Error;
-            note = Some(NextStepNote {
-                next_job_id: next.next_job_id.clone(),
-                skipped_job_ids: next.skipped_job_ids.clone(),
-                completed: next.completed,
-                end_reached: next.end_reached,
-                stopped,
-            });
+            note = Some(next_step_note(stopped, &next));
             let end = if stopped {
                 PlanEnd::StoppedAtError(job_id.to_string())
             } else if next.end_reached {
@@ -216,6 +210,23 @@ fn rejection(job_id: &str, reason: RejectReason) -> PlanRejection {
     PlanRejection {
         job_id: job_id.to_string(),
         reason,
+    }
+}
+
+/// 仮定の結果による次の動き(BR1.6)。エラー → 停止、次のジョブがある → 次のジョブ、
+/// 未完了の `@end` → `@end` に到達、それ以外 → 完了(D7: 次のジョブが無く完了でも `@end` でもない組は
+/// `classify_and_decide` が作らないが、来ても完了に写す)。
+fn next_step_note(stopped: bool, next: &NextStep) -> NextStepNote {
+    if stopped {
+        return NextStepNote::Stopped;
+    }
+    match &next.next_job_id {
+        Some(job_id) => NextStepNote::NextJob {
+            job_id: job_id.clone(),
+            skipped_job_ids: next.skipped_job_ids.clone(),
+        },
+        None if next.end_reached && !next.completed => NextStepNote::EndReached,
+        None => NextStepNote::Completed,
     }
 }
 
