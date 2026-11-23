@@ -288,7 +288,7 @@ fn ジョブのあいだの中断の再開位置() {
 fn 起動しなかった中断は再開位置になり_128_足す番号を返す() {
     let def = definition("");
     let job = &def.job[0];
-    let e = JobExecution::not_started(job, 15);
+    let e = JobExecution::not_started(15);
     let (o, step) = classify_and_decide(job, &e, &[], &def, RunMode::Pipeline);
     assert_eq!(o.classification, None);
     assert_eq!(o.reported_exit_code, 143);

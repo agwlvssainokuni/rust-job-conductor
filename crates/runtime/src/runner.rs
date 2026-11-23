@@ -99,17 +99,17 @@ pub(crate) fn wait_loop<C: Waitable>(
 ///
 /// 失敗は、すべて戻り値(`JobExecution`)で返し、パニックしない(NFR4.7)。
 pub fn run_job(
-    job: &JobDefinition,
+    _job: &JobDefinition,
     line: &CommandLine,
     env: &[(&str, &str)],
     signal: &InterruptSignal,
 ) -> JobExecution {
     if line.program.trim().is_empty() {
-        return JobExecution::start_failed(job);
+        return JobExecution::start_failed();
     }
 
     if let Some(number) = signal.signal_number() {
-        return JobExecution::not_started(job, number);
+        return JobExecution::not_started(number);
     }
 
     let mut command = Command::new(&line.program);
@@ -120,7 +120,7 @@ pub fn run_job(
     platform::configure_spawn(&mut command);
     let mut child = match command.spawn() {
         Ok(child) => child,
-        Err(_) => return JobExecution::start_failed(job),
+        Err(_) => return JobExecution::start_failed(),
     };
 
     let waited = wait_loop(
@@ -130,16 +130,13 @@ pub fn run_job(
         &mut std::thread::sleep,
     );
     match waited {
-        Waited::Exited(status) => JobExecution::new(
-            job,
-            ExecutionResult::Exited {
-                exit_code: status.code(),
-                terminated_by_signal: platform::termination_signal(&status),
-                interrupted_by: signal.signal_number(),
-            },
-        ),
+        Waited::Exited(status) => JobExecution::new(ExecutionResult::Exited {
+            exit_code: status.code(),
+            terminated_by_signal: platform::termination_signal(&status),
+            interrupted_by: signal.signal_number(),
+        }),
         // 終了の状態を取得できない。起動失敗として返し、conductor-core がエラー(127)として扱う(安全側)。
-        Waited::WaitFailed => JobExecution::start_failed(job),
+        Waited::WaitFailed => JobExecution::start_failed(),
     }
 }
 

@@ -162,7 +162,7 @@ fn assert_same_as_execution(def: &PipelineDefinition) {
         for (kind, code) in [(Success, 0), (Warning, 3)] {
             let (_, step) = classify_and_decide(
                 job,
-                &JobExecution::exited(job, code),
+                &JobExecution::exited(code),
                 &[],
                 def,
                 RunMode::Pipeline,

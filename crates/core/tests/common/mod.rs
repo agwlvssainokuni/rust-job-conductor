@@ -59,9 +59,9 @@ pub fn job(id: &str) -> JobDefinition {
     }
 }
 
-/// ジョブ `job_id`([`job`])が、終了コード `code` で終わった実行結果。
-pub fn exited(job_id: &str, code: i32) -> JobExecution {
-    JobExecution::exited(&job(job_id), code)
+/// 終了コード `code` で終わった実行結果。ジョブ ID は読みやすさのため。値は使わない。
+pub fn exited(_job_id: &str, code: i32) -> JobExecution {
+    JobExecution::exited(code)
 }
 
 /// パイプライン `p` のステート(定義のキーとパスは `t.toml`)。`jobs` はジョブ ID と状態の並び

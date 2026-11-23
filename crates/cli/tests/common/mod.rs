@@ -331,7 +331,7 @@ impl Runtime for ScriptedRuntime {
             .push((job.id.clone(), line.clone()));
         if let Some(number) = signal.signal_number() {
             self.push(format!("skip-run:{}", job.id));
-            return JobExecution::not_started(job, number);
+            return JobExecution::not_started(number);
         }
         self.push(format!("run:{}", job.id));
         if let Some(hook) = self.during_job.borrow().as_ref() {
@@ -358,7 +358,7 @@ impl Runtime for ScriptedRuntime {
             },
             Exec::StartFailure => ExecutionResult::StartFailed,
         };
-        let execution = JobExecution::new(job, result);
+        let execution = JobExecution::new(result);
         if let Some(hook) = self.after_job.borrow().as_ref() {
             hook(&job.id, signal);
         }
@@ -715,17 +715,15 @@ impl Runtime for MemRuntime {
 
     fn run_job(
         &self,
-        job: &JobDefinition,
+        _job: &JobDefinition,
         _line: &CommandLine,
         _env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
         // 合図を先に見て、起動するときだけ台本を消費する(`ScriptedRuntime` と同じ順)。
         match signal.signal_number() {
-            Some(n) => JobExecution::not_started(job, n),
-            None => {
-                JobExecution::exited(job, self.exit_codes.borrow_mut().pop_front().unwrap_or(0))
-            }
+            Some(n) => JobExecution::not_started(n),
+            None => JobExecution::exited(self.exit_codes.borrow_mut().pop_front().unwrap_or(0)),
         }
     }
 

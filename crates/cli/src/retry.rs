@@ -86,7 +86,7 @@ pub(crate) fn run_job_with_retry(
                 last_wait_secs = wait_secs;
             }
             WaitOutcome::Interrupted(number) => {
-                return JobExecution::not_started(job, number);
+                return JobExecution::not_started(number);
             }
         }
     }

@@ -138,7 +138,7 @@ mod tests {
     }
 
     fn exec(result: ExecutionResult) -> JobExecution {
-        JobExecution::new(&job(None, Vec::new()), result)
+        JobExecution::new(result)
     }
 
     fn code(c: i32) -> JobExecution {

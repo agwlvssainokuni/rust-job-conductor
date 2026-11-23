@@ -76,7 +76,7 @@
 | `Command` | `Line(String)` / `Argv(Vec<String>)` |
 | `Transition` / `TransitionOn` / `TransitionTarget` | `{ on, next }` / `Success`・`Warning`(`as_str()` で `success`・`warning`)/ `Job(String)`・`End` |
 | `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`backoff: Option<Backoff>`(`Backoff { multiplier: u32, max_interval_secs: u64 }`。`Copy`。倍率と上限は両方あるときだけ) |
-| `JobExecution` | `job_id`、`command`、`result: ExecutionResult`。組み立ての関数は `new(job, result)`、`exited(job, exit_code)`(起動して終了コードで終わった結果。`--dry-run` の模擬が使う)、`not_started(job, signal)`、`start_failed(job)`。v0.9.5 までは `started`・`exit_code`・`terminated_by_signal`・`start_failure`・`interrupted`・`signal_number` の項目だった。05 の 1.2 |
+| `JobExecution` | `result: ExecutionResult`。組み立ての関数は `new(result)`、`exited(exit_code)`(起動して終了コードで終わった結果。`--dry-run` の模擬が使う)、`not_started(signal)`、`start_failed()`。v0.9.6 までは、読まれない `job_id`・`command` も持ち、組み立ての関数は先頭に `job` を受け取った。v0.9.5 までは `started`・`exit_code`・`terminated_by_signal`・`start_failure`・`interrupted`・`signal_number` の項目だった。05 の 1.2 |
 | `ExecutionResult` | 起動の結果の 3 つの場合: `NotStarted { signal: i32 }`(起動しなかった中断)、`StartFailed`(起動の失敗)、`Exited { exit_code: Option<i32>, terminated_by_signal: Option<i32>, interrupted_by: Option<i32> }`(終了を観測した)。05 の 1.2 |
 | `JobStatus` / `SkipReason` | `Pending`・`Success`・`Warning`・`Error`・`Skipped` / `ByTransition`・`ByEnd`。どちらも `as_str()` と `parse(&str) -> Option<Self>` で、ステートファイルの語(`pending` など、`byTransition`・`byEnd`)と行き来する |
 | `JobState` | `job_id`、`status`、`exit_code: Option<i32>`、`skip_reason: Option<SkipReason>`。`JobState::pending(id)` |

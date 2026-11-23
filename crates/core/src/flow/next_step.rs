@@ -222,8 +222,8 @@ mod tests {
         }
     }
 
-    fn exec(job_id: &str, code: i32) -> JobExecution {
-        JobExecution::exited(&job(job_id, vec![]), code)
+    fn exec(_job_id: &str, code: i32) -> JobExecution {
+        JobExecution::exited(code)
     }
 
     fn run(
@@ -343,24 +343,18 @@ mod tests {
         let d = def(vec![]);
         let j = &d.job[1];
         let variants = [
-            JobExecution::start_failed(j),
-            JobExecution::new(
-                j,
-                ExecutionResult::Exited {
-                    exit_code: None,
-                    terminated_by_signal: Some(9),
-                    interrupted_by: None,
-                },
-            ),
-            JobExecution::new(
-                j,
-                ExecutionResult::Exited {
-                    exit_code: Some(0),
-                    terminated_by_signal: None,
-                    interrupted_by: Some(2),
-                },
-            ),
-            JobExecution::not_started(j, 2),
+            JobExecution::start_failed(),
+            JobExecution::new(ExecutionResult::Exited {
+                exit_code: None,
+                terminated_by_signal: Some(9),
+                interrupted_by: None,
+            }),
+            JobExecution::new(ExecutionResult::Exited {
+                exit_code: Some(0),
+                terminated_by_signal: None,
+                interrupted_by: Some(2),
+            }),
+            JobExecution::not_started(2),
         ];
         for e in variants {
             let (_, s) = classify_and_decide(j, &e, &[], &d, RunMode::Pipeline);

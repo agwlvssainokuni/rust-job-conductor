@@ -176,7 +176,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 `run_job(job, line, env, signal) -> JobExecution`(`line: &CommandLine` は、実行の前の検査で `check_command` が分割したコマンド。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数(v0.9.0 以降)。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
 
-1. 返す `JobExecution` の `job_id` と `command` は、`job` から写す。結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。
+1. 返す `JobExecution` の結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。v0.9.6 までは、`job` から写した `job_id` と `command` も持った(読まれなかった)。
 2. `line.program` が空(空白だけを含む)なら、`StartFailed` で返す(分割はしない。この確認は、次の合図の確認より先)。
 3. **起動の前**に合図が立っていれば、起動せずに返す: `NotStarted { signal: 番号 }`。
    (ジョブは実行されない。)
@@ -209,7 +209,6 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 | 項目 | 意味 |
 |------|------|
-| `job_id`, `command` | 定義のジョブIDと `command` |
 | `result` | 起動の結果(`ExecutionResult`)。下の 3 つの場合のどれか 1 つ |
 | `NotStarted { signal }` | 起動の前に合図が立っていた(リトライの待機中に立ったときも、cli がこの場合を作る)。`signal` は**最初に受け取った**シグナルの番号 |
 | `StartFailed` | 空のプログラム名(`line.program` が空・空白だけ)、`spawn` の失敗、`try_wait` の失敗のいずれか(v0.9.5 までは、空のプログラム名の代わりに分割の失敗) |
@@ -217,7 +216,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | `Exited { terminated_by_signal, .. }` | UNIX のシグナル終了の番号。Windows は常に `None` |
 | `Exited { interrupted_by, .. }` | 終了の観測の直後に合図が立っていたとき、**最初に受け取った**シグナルの番号 |
 
-組み立ての関数は `JobExecution::new(job, result)`、`exited(job, exit_code)`、`not_started(job, signal)`、`start_failed(job)`。v0.9.5 までは、
+`JobExecution` が持つのは `result` だけ(v0.9.6 までは、読まれない `job_id` と `command` も持った)。組み立ての関数は `JobExecution::new(result)`、`exited(exit_code)`、`not_started(signal)`、`start_failed()`(v0.9.6 までは、どれも先頭に `job` を受け取った)。v0.9.5 までは、
 `started`、`exit_code`、`terminated_by_signal`、`start_failure`、`interrupted`、`signal_number` の 6 つの項目で表した(あり得ない組み合わせも表せた)。
 
 ### 4.4 分類(終了コードの決定。`conductor-core` の `classify`)

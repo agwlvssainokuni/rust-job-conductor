@@ -110,7 +110,7 @@ fn ステートファイルに_command_と環境変数の値が現れない() {
     let def_path = dir.path().join("conductor.toml");
     let d = definition();
     let state = initial_state(&d, &def_path);
-    let execution = JobExecution::exited(&d.job[0], 3);
+    let execution = JobExecution::exited(3);
     let outcome = JobOutcome {
         classification: Some(Classification::Error),
         reported_exit_code: 3,

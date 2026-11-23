@@ -224,15 +224,12 @@ mod tests {
         }
     }
 
-    fn exec(job: &str, code: Option<i32>) -> JobExecution {
-        JobExecution::new(
-            &definition(&[job]).job[0],
-            ExecutionResult::Exited {
-                exit_code: code,
-                terminated_by_signal: None,
-                interrupted_by: None,
-            },
-        )
+    fn exec(_job: &str, code: Option<i32>) -> JobExecution {
+        JobExecution::new(ExecutionResult::Exited {
+            exit_code: code,
+            terminated_by_signal: None,
+            interrupted_by: None,
+        })
     }
 
     fn outcome(_job: &str, c: Option<Classification>) -> JobOutcome {

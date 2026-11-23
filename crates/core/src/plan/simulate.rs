@@ -269,7 +269,7 @@ fn simulate_job(
     assumed: bool,
     mode: RunMode,
 ) -> (SimulatedResult, JobExecution, JobOutcome, NextStep) {
-    let execution = JobExecution::exited(job, exit_code);
+    let execution = JobExecution::exited(exit_code);
     let (outcome, next) = classify_and_decide(job, &execution, states, definition, mode);
     let classification = classify_exit_code(job, exit_code).classification;
     let retryable = job

@@ -212,9 +212,7 @@ pub struct Transition {
 /// core の `--dry-run` の模擬)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobExecution {
-    pub job_id: String,
-    pub command: Command,
-    /// 起動の結果(あり得る 3 つの場合だけを表す)。
+    /// 起動の結果(あり得る 3 つの場合だけを表す)。v0.9.6 までは、読まれない `job_id` と `command` も持った。
     pub result: ExecutionResult,
 }
 
@@ -238,35 +236,28 @@ pub enum ExecutionResult {
 }
 
 impl JobExecution {
-    /// ジョブ `job` の、結果 `result` の実行結果(BR1.1)。`job_id` と `command` は `job` から写す。
-    pub fn new(job: &JobDefinition, result: ExecutionResult) -> Self {
-        Self {
-            job_id: job.id.clone(),
-            command: job.command.clone(),
-            result,
-        }
+    /// 結果 `result` の実行結果(BR1.1)。
+    pub fn new(result: ExecutionResult) -> Self {
+        Self { result }
     }
 
     /// ジョブが起動し、終了コード `exit_code` で終わった実行結果(シグナル、中断なし)。
-    pub fn exited(job: &JobDefinition, exit_code: i32) -> Self {
-        Self::new(
-            job,
-            ExecutionResult::Exited {
-                exit_code: Some(exit_code),
-                terminated_by_signal: None,
-                interrupted_by: None,
-            },
-        )
+    pub fn exited(exit_code: i32) -> Self {
+        Self::new(ExecutionResult::Exited {
+            exit_code: Some(exit_code),
+            terminated_by_signal: None,
+            interrupted_by: None,
+        })
     }
 
     /// 合図(シグナル番号 `signal`)が立っていて、ジョブを起動しなかった実行結果(BR1.1)。
-    pub fn not_started(job: &JobDefinition, signal: i32) -> Self {
-        Self::new(job, ExecutionResult::NotStarted { signal })
+    pub fn not_started(signal: i32) -> Self {
+        Self::new(ExecutionResult::NotStarted { signal })
     }
 
     /// 起動に失敗した実行結果(BR1.1)。
-    pub fn start_failed(job: &JobDefinition) -> Self {
-        Self::new(job, ExecutionResult::StartFailed)
+    pub fn start_failed() -> Self {
+        Self::new(ExecutionResult::StartFailed)
     }
 }
 
