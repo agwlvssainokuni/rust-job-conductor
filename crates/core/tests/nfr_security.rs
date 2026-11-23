@@ -17,8 +17,6 @@
 
 mod common;
 
-use std::collections::HashSet;
-
 use common::kinds::DEFINITION_ERROR_KINDS;
 use conductor_core::{Command, DefinitionErrorKind, load_definition, parse_definition};
 
@@ -189,7 +187,7 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
 
 #[test]
 fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
-    let mut seen: HashSet<DefinitionErrorKind> = HashSet::new();
+    let mut seen: Vec<DefinitionErrorKind> = Vec::new();
     for (kind, text) in cases() {
         let errs = parse_definition(&text, "t.toml", None).unwrap_err();
         assert!(
@@ -199,7 +197,7 @@ fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
         for e in &errs {
             let shown = e.to_string();
             assert!(!shown.contains(SENTINEL), "{kind:?}: {shown}");
-            seen.insert(e.kind);
+            seen.push(e.kind);
         }
     }
 
@@ -210,24 +208,24 @@ fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
     let errs = parse_definition(&text, "t.toml", Some(&format!("{SENTINEL}_arg"))).unwrap_err();
     assert_eq!(errs[0].kind, DefinitionErrorKind::PipelineNameMismatch);
     assert!(!errs[0].to_string().contains(SENTINEL));
-    seen.insert(errs[0].kind);
+    seen.push(errs[0].kind);
 
     // ファイルの取り込みの種類: 内容の値は出ない。
     let dir = tempfile::tempdir().unwrap();
     let missing = load_definition(Some(&dir.path().join("none.toml")), None).unwrap_err();
-    seen.insert(missing[0].kind);
+    seen.push(missing[0].kind);
     let big = dir.path().join("big.toml");
     std::fs::write(&big, format!("# {SENTINEL}\n{}", "#".repeat(1024 * 1024))).unwrap();
     let too_large = load_definition(Some(&big), None).unwrap_err();
     assert!(!too_large[0].to_string().contains(SENTINEL));
-    seen.insert(too_large[0].kind);
+    seen.push(too_large[0].kind);
     let bad = dir.path().join("bad.toml");
     let mut bytes = SENTINEL.as_bytes().to_vec();
     bytes.push(0xff);
     std::fs::write(&bad, bytes).unwrap();
     let unreadable = load_definition(Some(&bad), None).unwrap_err();
     assert!(!unreadable[0].to_string().contains(SENTINEL));
-    seen.insert(unreadable[0].kind);
+    seen.push(unreadable[0].kind);
 
     for kind in DEFINITION_ERROR_KINDS {
         assert!(seen.contains(&kind), "{kind:?} のテストがない");

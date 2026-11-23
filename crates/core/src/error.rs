@@ -30,7 +30,7 @@ pub(crate) const MAX_FILE_DISPLAY_CHARS: usize = 256;
 ///
 /// 種類の文(日本語)は [`DefinitionErrorKind::label`] の 1 か所に持ち、誤りの表示(`DefinitionError`)はそれを書く(D10)。
 /// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `FileMissing` は `fileMissing`)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefinitionErrorKind {
     FileMissing,
     Unreadable,
