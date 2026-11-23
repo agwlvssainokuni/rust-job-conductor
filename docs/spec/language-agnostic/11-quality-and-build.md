@@ -375,6 +375,7 @@ next = "nowhere"
 | AC-095 | 拒否: `\\"` で閉じない | `echo "a\\" b` | 同上 | 同上 |
 | AC-096 | 拒否: パスの末尾の `\"` | `prog "C:\dir\"` | 同上 | 同上 |
 | AC-097 | 拒否: 空の語だけ | `''`、`'' x` | `command is empty` | 同上 |
+| AC-097a | 拒否: 空白だけの先頭の語(v0.9.8 以降) | `'  '`、`'  ' x`、`"⇥"` | `command is empty`(64。ジョブを起動しない。v0.9.7 までは起動の失敗 127) | `split` の単体、`flow_validate::空白だけのコマンド名は_64_で_ジョブを起動しない` |
 | AC-098 | 拒否: 区切りだけ | `␣⇥⏎`(TOML では `"  \t\n"`)。定義の検査が、空白だけの `command` を先に拒否する | `required value is empty`(定義の検査。64) | `core::definition_errors::fr1_5`(派生) |
 
 起動と実行環境。
