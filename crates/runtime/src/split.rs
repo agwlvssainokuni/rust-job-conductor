@@ -47,8 +47,8 @@ fn is_separator(c: char) -> bool {
 /// - 引用符の外のバックスラッシュも、そのままの文字。
 /// - 引用符で囲んだ部分と囲んでいない部分は、つなげて 1 つの引数にする。`''` と `""` は空の引数。
 ///
-/// 閉じていない引用符は [`CommandErrorKind::UnclosedQuote`]、コマンド名がなければ
-/// [`CommandErrorKind::Empty`]。
+/// 閉じていない引用符は [`CommandErrorKind::UnclosedQuote`]、コマンド名がなければ(先頭の語が空、
+/// または空白だけ)[`CommandErrorKind::Empty`]。
 fn split(command: &str) -> Result<CommandLine, CommandError> {
     let mut words: Vec<String> = Vec::new();
     let mut current = String::new();
@@ -120,7 +120,8 @@ fn split(command: &str) -> Result<CommandLine, CommandError> {
 
     let mut iter = words.into_iter();
     match iter.next() {
-        Some(program) if !program.is_empty() => Ok(CommandLine {
+        // 先頭の語が空、または空白だけ(`'  '` など)は、配列の枝と同じくコマンド名がない。
+        Some(program) if !program.trim().is_empty() => Ok(CommandLine {
             program,
             args: iter.collect(),
         }),
