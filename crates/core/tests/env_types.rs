@@ -19,6 +19,7 @@ mod common;
 use std::collections::HashSet;
 
 use common::SECRET;
+use common::kinds::{DEFINITION_ERROR_KINDS, ENV_FILE_ERROR_KINDS};
 use conductor_core::{
     DefinitionErrorKind, EffectiveEntry, EnvEntry, EnvFileError, EnvFileErrorKind, EnvOrigin,
     EnvVar, summarize_errors,
@@ -53,10 +54,10 @@ fn 値を持つ型の_debug_は値を伏せる() {
 
 #[test]
 fn 定義の誤りの種類は_33_種で識別子が重複せず表示が空でない() {
-    assert_eq!(DefinitionErrorKind::ALL.len(), 33);
-    let codes: HashSet<_> = DefinitionErrorKind::ALL.iter().map(|k| k.code()).collect();
+    assert_eq!(DEFINITION_ERROR_KINDS.len(), 33);
+    let codes: HashSet<_> = DEFINITION_ERROR_KINDS.iter().map(|k| k.code()).collect();
     assert_eq!(codes.len(), 33);
-    for k in DefinitionErrorKind::ALL {
+    for k in DEFINITION_ERROR_KINDS {
         assert!(!k.to_string().is_empty());
     }
     for code in ["reservedEnvName", "envNameCaseConflict", "invalidEnvValue"] {
@@ -66,12 +67,12 @@ fn 定義の誤りの種類は_33_種で識別子が重複せず表示が空で�
 
 #[test]
 fn env_file_の誤りの種類は_13_種で識別子と理由が重複しない() {
-    assert_eq!(EnvFileErrorKind::ALL.len(), 13);
-    let codes: HashSet<_> = EnvFileErrorKind::ALL.iter().map(|k| k.code()).collect();
+    assert_eq!(ENV_FILE_ERROR_KINDS.len(), 13);
+    let codes: HashSet<_> = ENV_FILE_ERROR_KINDS.iter().map(|k| k.code()).collect();
     assert_eq!(codes.len(), 13);
-    let reasons: HashSet<_> = EnvFileErrorKind::ALL.iter().map(|k| k.reason()).collect();
+    let reasons: HashSet<_> = ENV_FILE_ERROR_KINDS.iter().map(|k| k.reason()).collect();
     assert_eq!(reasons.len(), 13);
-    for k in EnvFileErrorKind::ALL {
+    for k in ENV_FILE_ERROR_KINDS {
         assert!(!k.to_string().is_empty());
         assert!(!k.reason().is_empty());
     }
@@ -271,20 +272,20 @@ const DEFINITION_KIND_TEXTS: [(DefinitionErrorKind, &str); 33] = [
 #[test]
 fn 誤りの理由は種類の固定の文で_種類の文は変更前と同じ() {
     // `.env` の誤りの理由は、種類の固定の文(フィールドの写しを持たない。1h)。
-    for kind in EnvFileErrorKind::ALL {
+    for kind in ENV_FILE_ERROR_KINDS {
         let e = EnvFileError::new("a.env", Some(1), kind);
         assert_eq!(e.reason(), kind.reason(), "{kind:?}");
         assert!(e.to_string().contains(kind.reason()), "{kind:?}");
     }
     // 種類の文は、変更前の文と 1 文字も違わない(表は ALL と同じ順で、すべての種類を持つ)。
     let env_kinds: Vec<EnvFileErrorKind> = ENV_FILE_KIND_TEXTS.iter().map(|(k, _)| *k).collect();
-    assert_eq!(env_kinds, EnvFileErrorKind::ALL);
+    assert_eq!(env_kinds, ENV_FILE_ERROR_KINDS);
     for (kind, text) in ENV_FILE_KIND_TEXTS {
         assert_eq!(kind.label(), text, "{kind:?}");
     }
     let def_kinds: Vec<DefinitionErrorKind> =
         DEFINITION_KIND_TEXTS.iter().map(|(k, _)| *k).collect();
-    assert_eq!(def_kinds, DefinitionErrorKind::ALL);
+    assert_eq!(def_kinds, DEFINITION_ERROR_KINDS);
     for (kind, text) in DEFINITION_KIND_TEXTS {
         assert_eq!(kind.label(), text, "{kind:?}");
     }

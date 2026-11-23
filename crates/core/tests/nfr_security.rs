@@ -15,8 +15,11 @@
 //! NFR4.5(検証は副作用を持たず、コマンドを解釈しない)と
 //! NFR4.6(エラーの表示に入力の値が出ない)、NFR4.7(パニックしない)のテスト。
 
+mod common;
+
 use std::collections::HashSet;
 
+use common::kinds::DEFINITION_ERROR_KINDS;
 use conductor_core::{DefinitionErrorKind, load_definition, parse_definition};
 
 const SENTINEL: &str = "SENTINEL_VALUE_9f3a";
@@ -226,7 +229,7 @@ fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
     assert!(!unreadable[0].to_string().contains(SENTINEL));
     seen.insert(unreadable[0].kind);
 
-    for kind in DefinitionErrorKind::ALL {
+    for kind in DEFINITION_ERROR_KINDS {
         assert!(seen.contains(&kind), "{kind:?} のテストがない");
     }
 }

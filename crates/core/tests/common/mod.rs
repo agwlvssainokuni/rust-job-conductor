@@ -16,6 +16,8 @@
 //! ジョブと実行結果)。
 #![allow(dead_code)]
 
+pub mod kinds;
+
 use std::time::Duration;
 
 use conductor_core::DefinitionErrorKind as K;
