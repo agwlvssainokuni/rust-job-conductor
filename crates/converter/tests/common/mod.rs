@@ -16,6 +16,8 @@
 
 #![allow(dead_code)]
 
+pub mod kinds;
+
 use std::sync::mpsc;
 use std::time::Duration;
 

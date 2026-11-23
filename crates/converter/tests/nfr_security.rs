@@ -19,6 +19,7 @@ mod common;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+use common::kinds::CONVERSION_ERROR_KINDS;
 use conductor_converter::{
     ConversionError, ConversionErrorKind as K, ConversionRequest, TargetFormat, convert,
     convert_text,
@@ -311,7 +312,7 @@ fn all_kind_errors() -> Vec<ConversionError> {
 fn 表示は_どの種類でも入力の値を含まない() {
     let errors = all_kind_errors();
     let kinds: BTreeSet<&str> = errors.iter().map(|e| e.kind.code()).collect();
-    for kind in K::ALL {
+    for kind in CONVERSION_ERROR_KINDS {
         assert!(
             kinds.contains(kind.code()),
             "{} のテストがない",
