@@ -27,7 +27,7 @@ use super::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
     PlanRejection, ResumeInfo, SimulatedResult,
 };
-use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env};
+use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names};
 use crate::flow::classify::classify_exit_code;
 use crate::flow::retry::is_retry_target;
 use crate::flow::{
@@ -314,8 +314,8 @@ fn entry(
         run_id: input.run_id,
         attempt: 1,
     };
-    let env_names = merge_env(def, job, input.env_files, &ctx)
-        .names()
+    // 名前と出どころだけを作る(値を読まず、秘密の値の写しを作らない。2e)。
+    let env_names = merge_env_names(def, job, input.env_files, &ctx)
         .into_iter()
         .map(|(name, origin)| EnvNameEntry {
             name: name.to_string(),

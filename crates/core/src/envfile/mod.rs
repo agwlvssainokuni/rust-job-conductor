@@ -33,6 +33,7 @@ use crate::run_id::env_name_rule;
 use crate::types::PipelineDefinition;
 
 pub use merge::merge_env;
+pub(crate) use merge::merge_env_names;
 pub use parse::parse_env_file;
 
 /// `.env` の大きさの上限(1 MiB。BR3.1)。
