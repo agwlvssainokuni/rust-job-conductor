@@ -82,7 +82,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `ctx.rs`(`prepare_run`・`prepare_pipeline`: シグナル → 検査の並び `check_job`・`check_pipeline`: 定義(64)→ `command`(64。分割したコマンドを `Checked` が持ち、`Session { checked, signal }` が包む)→ ジョブID(68。`prepare_run` は位置を返す)→ run ID(68)→ ステートの読み込み(65)→ 照合(65)→ 削除の実効値。run ID の決定は `definition_run_id`、ステートの読み込みと照合は `read_checked_state`)、`retry.rs`、`run.rs`、`pipeline.rs`、`aux_commands.rs`(`watch`・`reset`・`validate`・`convert`)、`platform/`(UNIX: `signal-hook` の専用スレッド。Windows: `ctrlc`)、`main.rs`、`lib.rs`(`run_cli`・`run_cli_with`) |
+| 作るもの | `ctx.rs`(`prepare_session`: シグナル → 渡された検査の並び `check_job`・`check_pipeline`: 定義(64)→ `command`(64。分割したコマンドを `Checked.base` が持ち、`Session { checked, signal }` が包む)→ ジョブID(68。`check_job` は位置も返す)→ run ID(68)→ ステートの読み込み(65)→ 照合(65)→ 削除の実効値。run ID の決定は `definition_run_id`、ステートの読み込みと照合は `read_checked_state`)、`retry.rs`、`run.rs`、`pipeline.rs`、`aux_commands.rs`(`watch`・`reset`・`validate`・`convert`)、`platform/`(UNIX: `signal-hook` の専用スレッド。Windows: `ctrlc`)、`main.rs`、`lib.rs`(`run_cli`・`run_cli_with`) |
 | 完了条件 | 偽の `Runtime`・`Env`・`Sink`・`Signals` で、05 の状態遷移の例(`a → b → c`)、`@end` の例、リトライの例、中断の表(05 の 8 章)が再現する。実ファイルと実プロセスで、`run`・`pipeline`・`watch`・`reset`・`validate`・`convert` が、04・05・06 の挙動と終了コード(10 の 1 章の全件)を返す |
 | 確認の観点 | 検査の順序(10 の 2 章の 13 段)。ステートの書き込みの失敗は、ジョブの終了コードより優先して 65 で、「ジョブは実行されました」を表示。完了の判定は、中断の合図の判定より先。リトライの知らせは `-v` によらず常に標準エラー |
 | 参照 | 04、05、06、07 の 7 章、10 章 |

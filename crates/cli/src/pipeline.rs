@@ -40,8 +40,11 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(name) => name,
         Err(code) => return code,
     };
-    let session = match ctx.prepare_pipeline(cmd, name) {
-        Ok(session) => session,
+    let session = match ctx.prepare_session(|c| {
+        c.check_pipeline(cmd, name, &[])
+            .map(|checked| (checked, ()))
+    }) {
+        Ok((session, ())) => session,
         Err(code) => return code,
     };
     let definition = &session.checked.base.definition;

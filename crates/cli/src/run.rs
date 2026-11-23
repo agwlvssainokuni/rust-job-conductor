@@ -39,7 +39,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(job_id) => job_id,
         Err(code) => return code,
     };
-    let (session, index) = match ctx.prepare_run(cmd, job_id) {
+    let (session, index) = match ctx.prepare_session(|c| c.check_job(cmd, job_id, &[])) {
         Ok(prepared) => prepared,
         Err(code) => return code,
     };
@@ -72,7 +72,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             EXIT_OK
         }
         Decision::Run => {
-            // 位置は、検査(`prepare_run`)で確かめたもの。
+            // 位置は、検査(`prepare_session` に渡した `check_job`)で確かめたもの。
             let job = &definition.job[index];
 
             let step = match run_step(

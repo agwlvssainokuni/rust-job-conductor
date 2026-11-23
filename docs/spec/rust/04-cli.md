@@ -231,7 +231,7 @@ conductor --help | --version
 
 ### 7.9 `run`・`pipeline` の `--dry-run`(v0.9.0 以降)
 
-ジョブを実行せずに、実行計画を標準出力に出す。ジョブを起動せず、ステートに書かず・消さず(読むだけ)、シグナルの準備もしない。`--remove-on-complete` は、何も消さないので効果がない。実装は `crates/cli/src/dry_run.rs` の `run_dry_run`。`run_individual`・`run_pipeline` の先頭の共通の入口 `enter_flow` で、ジョブID(`run`)・パイプライン名(`pipeline`)を取り出したあとに呼ばれ、`--dry-run` なら、通常の準備(`prepare_run`・`prepare_pipeline`)の代わりにこの流れに入る。
+ジョブを実行せずに、実行計画を標準出力に出す。ジョブを起動せず、ステートに書かず・消さず(読むだけ)、シグナルの準備もしない。`--remove-on-complete` は、何も消さないので効果がない。実装は `crates/cli/src/dry_run.rs` の `run_dry_run`。`run_individual`・`run_pipeline` の先頭の共通の入口 `enter_flow` で、ジョブID(`run`)・パイプライン名(`pipeline`)を取り出したあとに呼ばれ、`--dry-run` なら、通常の準備(`prepare_session`)の代わりにこの流れに入る。
 
 順序(誤りの終了コードを括弧に示す):
 

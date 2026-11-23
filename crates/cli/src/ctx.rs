@@ -126,31 +126,20 @@ impl Ctx<'_> {
         }
     }
 
-    /// `run <job-id>` の実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを `Err` で返す。
-    /// 材料と、定義の中のそのジョブの位置を返す。
+    /// `run`・`pipeline` の本番の実行の前の検査(BR2.1、BR2.2、BR3.1)。誤りは表示して、終了コードを
+    /// `Err` で返す(D3)。
     ///
-    /// 順序: シグナルの準備(定義の検査より前。BR4.1)→ 定義(64)→ command(64)→ ジョブID(68)→
-    /// run ID の決定(68)→ `.env` の読み取り(64)→ ステートの読み込み(65)→ 照合(65)。
-    pub(crate) fn prepare_run(
+    /// シグナルの監視を始めてから(定義の検査より前。BR4.1。この決まりはここ 1 か所)、渡された検査
+    /// `check` を呼ぶ。`run` は [`Ctx::check_job`] で定義の中のジョブの位置も、`pipeline` は
+    /// [`Ctx::check_pipeline`] で `()` を受け取る。検査の順序: 定義(64)→ command(64)→
+    /// ジョブID(68。`run` のみ)→ run ID の決定(68)→ `.env` の読み取り(64)→ ステートの読み込み(65)→ 照合(65)。
+    pub(crate) fn prepare_session<T>(
         &mut self,
-        cmd: &CliCommand,
-        job_id: &str,
-    ) -> Result<(Session, usize), i32> {
+        check: impl FnOnce(&mut Self) -> Result<(Checked, T), i32>,
+    ) -> Result<(Session, T), i32> {
         let signal = self.start_signals()?;
-        let (checked, index) = self.check_job(cmd, job_id, &[])?;
-        Ok((Session { checked, signal }, index))
-    }
-
-    /// `pipeline <name>` の実行の前の検査(BR2.1、BR2.2、BR3.1)。順序は [`Ctx::prepare_run`] から
-    /// ジョブIDの検査を除いたもの。`name` は、定義のパイプライン名の照合に渡す。
-    pub(crate) fn prepare_pipeline(
-        &mut self,
-        cmd: &CliCommand,
-        name: &str,
-    ) -> Result<Session, i32> {
-        let signal = self.start_signals()?;
-        let checked = self.check_pipeline(cmd, name, &[])?;
-        Ok(Session { checked, signal })
+        let (checked, extra) = check(self)?;
+        Ok((Session { checked, signal }, extra))
     }
 
     /// 本番の検査の、シグナルの準備を除いた部分(定義の検査、ジョブの存在、run ID の決定、`.env` の
@@ -177,7 +166,7 @@ impl Ctx<'_> {
     /// `.env` 64 → ステート 65)。材料と、定義の中のそのジョブの位置を返す。
     ///
     /// `also_known_jobs` が空なら、`--assume` の検査は何もしない(表示もしない)。
-    fn check_job(
+    pub(crate) fn check_job(
         &mut self,
         cmd: &CliCommand,
         job_id: &str,
@@ -192,7 +181,7 @@ impl Ctx<'_> {
 
     /// `pipeline <name>` の検査([`Ctx::check_job`] からジョブIDの検査を除いた同じ順)。`name` は、
     /// 定義のパイプライン名の照合に渡す。
-    fn check_pipeline(
+    pub(crate) fn check_pipeline(
         &mut self,
         cmd: &CliCommand,
         name: &str,

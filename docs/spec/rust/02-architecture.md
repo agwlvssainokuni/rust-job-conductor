@@ -183,9 +183,9 @@ parsed = parse_args(args)
 ```text
 cli::pipeline::run_pipeline
  ├─ dry_run::enter_flow(名前が無ければ 68、--dry-run なら run_dry_run へ)
- ├─ Ctx::prepare_pipeline → Session { checked: Checked, signal }
+ ├─ Ctx::prepare_session(check_pipeline を渡す)→ (Session { checked: Checked, signal }, ())
  │    ├─ Ctx::start_signals → Signals::start(signal)  → 失敗 70(登録済みは続行)
- │    └─ Ctx::check_pipeline(--assume のジョブIDは空。require_known は何もしない)
+ │    └─ 渡された検査 Ctx::check_pipeline(--assume のジョブIDは空。require_known は何もしない)
  │         ├─ Ctx::check_definition                         → CheckedDefinition(分割したコマンドを含む)
  │         │    ├─ Runtime::load_definition(path, name)    → core::load_definition   → 失敗 64
  │         │    └─ Runtime::check_command(各ジョブ)         → runtime::check_command  → 失敗 64(全件を集める)
@@ -195,10 +195,10 @@ cli::pipeline::run_pipeline
  │              └─ Ctx::read_checked_state(StateRead::Live)
  │                   ├─ Runtime::read_state(path, run_id)  → runtime::read_state     → 失敗 65(完了のものは None)
  │                   └─ check_consistency(state, definition) → 食い違い 65
- └─ for (job, command) in definition.job と session.checked.commands (記述順):
+ └─ for (job, command) in definition.job と session.checked.base.commands (記述順):
       ├─ step::decide → core::decide_before_run(...)  → Run / Skip / Reject
       │    ├─ Reject → 表示、return 66
-      │    ├─ Skip   → step::record_skip(runtime::apply_skip → 変化があれば Runtime::write_state(Durable))
+      │    ├─ Skip   → step::record_skip(runtime::apply_skip → 変化があれば Runtime::write_state(Durable)。SkipRecord { state, written })
       │    │           → 表示 → 完了なら finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
       │    └─ Run    → step::run_step:
       │         ├─ 状態が空なら runtime::initial_state → Runtime::write_state(Fast)
@@ -216,7 +216,7 @@ cli::pipeline::run_pipeline
  └─ ループを抜けても完了していない → "cannot determine whether the pipeline is complete"、return 65
 ```
 
-`run` は、`prepare_run`(`start_signals` のあと `check_job`。ジョブIDの存在の検査を含み、ジョブの位置を返す)のあと、指定した 1 ジョブについて、同じ `step` の関数(`decide`、`record_skip`、`run_step`、`remove_if_requested`)で「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。いつ消すかと終了コードの決め方は、`run` と `pipeline` で違い、それぞれに残る(05 §5.1a〜§5.3)。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
+`run` は、`prepare_session` に `check_job` を渡して(`start_signals` のあと `check_job`。ジョブIDの存在の検査を含み、ジョブの位置を返す)から、指定した 1 ジョブについて、同じ `step` の関数(`decide`、`record_skip`、`run_step`、`remove_if_requested`)で「判断 → 実行 → 分類 → 記録」を行い、`classify_and_decide` は `RunMode::Individual` で呼ぶ。いつ消すかと終了コードの決め方は、`run` と `pipeline` で違い、それぞれに残る(05 §5.1a〜§5.3)。`watch`・`reset`・`validate`・`convert` は、シグナルを準備せず、それぞれ `read_state_raw`/`reset_state`・`reset_all_states`/`check_definition`(v0.9.0 以降は、続けて `.env` の読み取り)/`convert` を呼ぶ(04 の 7 章)。
 
 v0.9.0 以降の 3 つの流れ(05 の 15〜17 章、04 の 7.7〜7.9):
 
@@ -353,9 +353,9 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `run_id.rs` | run ID の解決(`resolve_run_id`。`watch`・`reset` の `aux_run_id`) |
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
-| `ctx.rs` | `run`・`pipeline` に共通の前処理(`prepare_run` はジョブの位置も返す、`prepare_pipeline`。どちらも `Session { checked: Checked, signal }` を返す。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。検査の並びは `check_job`(`run`)と `check_pipeline`(`pipeline`)の 1 か所で、部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助(`usage_error`、`show_output`、`state_error`、`write`、`reset`) |
+| `ctx.rs` | `run`・`pipeline` に共通の前処理(本番の入口は総称の `prepare_session` の 1 つ。シグナルの監視を始めてから、渡された検査を呼び、`(Session { checked: Checked, signal }, T)` を返す。`run` は `check_job` を渡してジョブの位置を、`pipeline` は `check_pipeline` を渡して `()` を受け取る。v0.9.6 までは `prepare_run`・`prepare_pipeline` の 2 つだった。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。`Checked` は検査を終えた定義を `base: CheckedDefinition` に持つ。検査の並びは `check_job`(`run`)と `check_pipeline`(`pipeline`)の 1 か所で、部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助(`usage_error`、`show_output`、`state_error`、`write`、`reset`) |
 | `step.rs` | 1 つのジョブの共通の手順(`decide`、`record_skip`、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)。`run` と `pipeline` が呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
-| `run.rs` | `run_individual`(個別実行)。`prepare_run` が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
+| `run.rs` | `run_individual`(個別実行)。`prepare_session`(`check_job`)が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
 | `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
 | `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`。どの試行も、検査で分割した同じコマンドを渡す) |
 | `aux_commands.rs` | `watch`・`reset`・`validate`・`convert` |

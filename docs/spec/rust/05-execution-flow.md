@@ -254,9 +254,9 @@ return low
 
 ## 5. 実行の流れ
 
-### 5.1 共通の前処理(`run` は `prepare_run`、`pipeline` は `prepare_pipeline`)
+### 5.1 共通の前処理(`prepare_session`。`run` は `check_job`、`pipeline` は `check_pipeline` を渡す)
 
-順序は固定。最初に誤りがあった時点で、その終了コードで終わる(以降は行わない)。どちらも 1 のあと、検査の並びの 1 か所(`run` は `check_job`、`pipeline` は `check_pipeline`)を呼び、`Session { checked: Checked, signal }` を返す。部品は `crates/cli/src/ctx.rs` の(1 は `start_signals`、2〜3 は `check_definition`、4 は `require_job`、5〜7 は `check_run_inputs`。5 は `definition_run_id`、6〜7 は `read_checked_state`)を、この順に呼ぶ。`prepare_run` は、4 で確かめたジョブの位置も返す。
+順序は固定。最初に誤りがあった時点で、その終了コードで終わる(以降は行わない)。`prepare_session` は 1 のあと、渡された検査の並びの 1 か所(`run` は `check_job`、`pipeline` は `check_pipeline`)を呼び、`(Session { checked: Checked, signal }, T)` を返す。部品は `crates/cli/src/ctx.rs` の(1 は `start_signals`、2〜3 は `check_definition`、4 は `require_job`、5〜7 は `check_run_inputs`。5 は `definition_run_id`、6〜7 は `read_checked_state`)を、この順に呼ぶ。`run`(`check_job`)は、4 で確かめたジョブの位置を `T` として受け取り、`pipeline`(`check_pipeline`)は `()` を受け取る。v0.9.6 までは、入口は `prepare_run`・`prepare_pipeline` の 2 つだった。
 
 | 順 | 処理 | 誤りのときの終了コード |
 |---|---|---|
@@ -308,7 +308,7 @@ remove_if_requested(session, context):
 ### 5.2 `conductor run <job-id>` の擬似アルゴリズム
 
 ```text
-(session, index) = prepare_run(...)         # 5.1。誤りなら終了。index はジョブの位置
+(session, index) = prepare_session(check_job(...))   # 5.1。誤りなら終了。index はジョブの位置
 match decide(job_id, def, session.checked.state):   # 5.1a
   Reject(r):  表示、return 66
   Skip(r):
@@ -319,7 +319,7 @@ match decide(job_id, def, session.checked.state):   # 5.1a
     return 0
   Run:
     job = def.job[index]                     # 検査済み(5.1 の 4)
-    step = run_step(session, session.checked.state, job, session.checked.commands[index], Individual)   # 5.1a
+    step = run_step(session, session.checked.state, job, session.checked.base.commands[index], Individual)   # 5.1a
     if step.next.completed:
         remove_if_requested(文脈=step.after)
     return exit_code_for(step.outcome.reported_exit_code, step.outcome.classification == Error)
@@ -341,9 +341,9 @@ match decide(job_id, def, session.checked.state):   # 5.1a
 `pipeline` は、「次のジョブ」を `NextStep.next_job_id` で決めない。定義の記述順に全ジョブを 1 つずつ見て、`decide_before_run` で決める(遷移先・スキップは、ステートが運ぶ)。
 
 ```text
-session = prepare_pipeline(...)              # 引数の名前が無ければ 68(入口の enter_flow)
+(session, ()) = prepare_session(check_pipeline(...))   # 引数の名前が無ければ 68(入口の enter_flow)
 current = session.checked.state              # 空なら None
-for (job, command) in def.job と session.checked.commands (記述順):
+for (job, command) in def.job と session.checked.base.commands (記述順):
   match decide(job.id, def, current):        # 5.1a
     Reject(r): 表示、return 66
     Skip(r):
