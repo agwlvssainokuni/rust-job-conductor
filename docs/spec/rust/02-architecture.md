@@ -83,8 +83,8 @@
 | `PipelineState` | `definition_key`、`pipeline_name`、`definition_path`、`job_order: Vec<String>`、`job_states: Vec<JobState>`、`resume_job_id: Option<String>`、`end_reached`、`completed`、`run_id: Option<String>`。06 章 |
 | `Decision` / `SkipCause` / `RejectReason` | `Run` / `Skip(SkipCause)` / `Reject(RejectReason)`。スキップの理由 `SkipCause` は `SkipTarget`・`AfterEnd`・`AlreadyExecuted`、拒否の理由 `RejectReason` は `OutOfOrder` だけ(ステートに書く `SkipReason { ByTransition, ByEnd }` とは別の型) |
 | `TransitionTarget` / `TransitionOn` | `TransitionTarget::END_LABEL`(`@end`)、`label()`(ジョブID か `@end`)。`TransitionOn::parse`(`as_str` の逆)。`From<Classification> for JobStatus` |
-| `Classification` / `JobOutcome` | `Success`・`Warning`・`Error`(`as_str()`、遷移を引く `transition_on() -> Option<TransitionOn>`。エラーは `None`)/ `{ job_id, classification: Option<Classification>, reported_exit_code: i32, conductor_error: bool }` |
-| `NextStep` | `{ job_id, next_job_id, skipped_job_ids, skip_reason_kind, end_reached, completed, resume_job_id }` |
+| `Classification` / `JobOutcome` | `Success`・`Warning`・`Error`(`as_str()`、遷移を引く `transition_on() -> Option<TransitionOn>`。エラーは `None`)/ `{ classification: Option<Classification>, reported_exit_code: i32, conductor_error: bool }`(v0.9.6 までは読まれない `job_id` も持った) |
+| `NextStep` | `{ next_job_id, skipped_job_ids, skip_reason_kind, end_reached, completed, resume_job_id }`(v0.9.6 までは読まれない `job_id` も持った) |
 | `RunMode` | `Individual` / `Pipeline` |
 | `ResumePoint` | `{ resume_job_id, end_reached, completed }` |
 | `RetryDecision` | `Stop` / `Retry { wait_secs: u64, last_exit_code: i32, max: u32 }`(リトライの対象になった最後の終了コードと、最大回数を持つ) |

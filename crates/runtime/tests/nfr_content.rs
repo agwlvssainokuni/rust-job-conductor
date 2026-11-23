@@ -112,13 +112,11 @@ fn ステートファイルに_command_と環境変数の値が現れない() {
     let state = initial_state(&d, &def_path);
     let execution = JobExecution::exited(&d.job[0], 3);
     let outcome = JobOutcome {
-        job_id: "a".into(),
         classification: Some(Classification::Error),
         reported_exit_code: 3,
         conductor_error: false,
     };
     let next = NextStep {
-        job_id: "a".into(),
         next_job_id: None,
         skipped_job_ids: vec![],
         skip_reason_kind: None,

@@ -30,14 +30,8 @@ fn signal_exit(signal: i32) -> i32 {
     EXIT_SIGNAL_BASE.saturating_add(signal)
 }
 
-fn outcome(
-    job: &JobDefinition,
-    class: Option<Classification>,
-    code: i32,
-    conductor_error: bool,
-) -> JobOutcome {
+fn outcome(class: Option<Classification>, code: i32, conductor_error: bool) -> JobOutcome {
     JobOutcome {
-        job_id: job.id.clone(),
         classification: class,
         reported_exit_code: code,
         conductor_error,
@@ -62,16 +56,16 @@ fn outcome(
 pub fn classify(job: &JobDefinition, execution: &JobExecution) -> JobOutcome {
     let (exit_code, terminated_by_signal) = match execution.result {
         ExecutionResult::NotStarted { signal } => {
-            return outcome(job, None, signal_exit(signal), false);
+            return outcome(None, signal_exit(signal), false);
         }
         ExecutionResult::Exited {
             interrupted_by: Some(signal),
             ..
         } => {
-            return outcome(job, Some(Classification::Error), signal_exit(signal), false);
+            return outcome(Some(Classification::Error), signal_exit(signal), false);
         }
         ExecutionResult::StartFailed => {
-            return outcome(job, Some(Classification::Error), EXIT_START_FAILURE, false);
+            return outcome(Some(Classification::Error), EXIT_START_FAILURE, false);
         }
         ExecutionResult::Exited {
             exit_code,
@@ -80,14 +74,13 @@ pub fn classify(job: &JobDefinition, execution: &JobExecution) -> JobOutcome {
         } => (exit_code, terminated_by_signal),
     };
     if let Some(sig) = terminated_by_signal {
-        return outcome(job, Some(Classification::Error), signal_exit(sig), false);
+        return outcome(Some(Classification::Error), signal_exit(sig), false);
     }
     let Some(code) = exit_code else {
-        return outcome(job, Some(Classification::Error), EXIT_UNLISTED_ZERO, true);
+        return outcome(Some(Classification::Error), EXIT_UNLISTED_ZERO, true);
     };
     let c = classify_exit_code(job, code);
     outcome(
-        job,
         Some(c.classification),
         c.reported_exit_code,
         c.conductor_error,
@@ -174,7 +167,6 @@ mod tests {
             assert_eq!(o.classification, Some(class), "終了コード {c}");
             assert_eq!(o.reported_exit_code, reported, "終了コード {c}");
             assert_eq!(o.conductor_error, ce, "終了コード {c}");
-            assert_eq!(o.job_id, "a");
         }
     }
 

@@ -445,7 +445,6 @@ impl Classification {
 /// 実行したジョブの結果の分類と、スケジューラへ返す終了コード。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobOutcome {
-    pub job_id: String,
     /// 分類。ジョブを起動しなかった中断(BR2.4)は分類しないため `None`。
     pub classification: Option<Classification>,
     /// スケジューラへ返す終了コード(BR2.2〜BR2.4)。
@@ -457,7 +456,6 @@ pub struct JobOutcome {
 /// 結果の分類を受けた、次の動き。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NextStep {
-    pub job_id: String,
     /// 次に実行するジョブ。完了または停止のときは `None`。
     pub next_job_id: Option<String>,
     /// この時点でスキップとして記録するジョブ。`ByTransition`(間のジョブ)と、`Pipeline` での

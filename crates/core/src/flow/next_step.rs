@@ -89,9 +89,8 @@ pub fn resolve_transition(
 }
 
 /// 何も決まっていない次の動き(次のジョブなし、スキップなし、完了でなく、再開位置なし)。
-fn empty_step(job: &JobDefinition) -> NextStep {
+fn empty_step() -> NextStep {
     NextStep {
-        job_id: job.id.clone(),
         next_job_id: None,
         skipped_job_ids: Vec::new(),
         skip_reason_kind: None,
@@ -105,7 +104,7 @@ fn empty_step(job: &JobDefinition) -> NextStep {
 fn stop(job: &JobDefinition) -> NextStep {
     NextStep {
         resume_job_id: Some(job.id.clone()),
-        ..empty_step(job)
+        ..empty_step()
     }
 }
 
@@ -129,7 +128,7 @@ fn next_step(
     let jobs = &definition.job;
     let is_last = index + 1 == jobs.len();
 
-    let mut step = empty_step(job);
+    let mut step = empty_step();
 
     // 範囲の先頭の記述順の位置 `start` から、状態を位置で引く([`status_at`])。ジョブの数に
     // 比例する時間で済む(BR2.1)。

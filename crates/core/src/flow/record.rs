@@ -235,18 +235,16 @@ mod tests {
         )
     }
 
-    fn outcome(job: &str, c: Option<Classification>) -> JobOutcome {
+    fn outcome(_job: &str, c: Option<Classification>) -> JobOutcome {
         JobOutcome {
-            job_id: job.into(),
             classification: c,
             reported_exit_code: 0,
             conductor_error: false,
         }
     }
 
-    fn step(job: &str) -> NextStep {
+    fn step(_job: &str) -> NextStep {
         NextStep {
-            job_id: job.into(),
             next_job_id: None,
             skipped_job_ids: vec![],
             skip_reason_kind: None,
