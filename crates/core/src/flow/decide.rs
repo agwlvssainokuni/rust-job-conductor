@@ -297,4 +297,70 @@ mod tests {
             Decision::Skip(SkipCause::SkipTarget)
         );
     }
+
+    #[test]
+    fn ステートが無いときは_記録が空で再開位置も_end_もないときと同じ判断() {
+        let d = def(3);
+        let state =
+            |job_states: Vec<JobState>, resume: Option<&str>, end_reached: bool| PipelineState {
+                pipeline_name: "p".into(),
+                definition_path: "t.toml".into(),
+                job_states,
+                resume_job_id: resume.map(str::to_string),
+                end_reached,
+                completed: false,
+                run_id: None,
+            };
+
+        // (1) ステートが無い: すべてのジョブで、記録が空・再開位置なし・end_reached 偽と同じ。
+        for id in ["j0", "j1", "j2"] {
+            assert_eq!(
+                decide_from_state(id, &d, None),
+                decide_before_run(id, &d, &[], None, false),
+                "{id}"
+            );
+        }
+        assert_eq!(decide_from_state("j0", &d, None), Decision::Run);
+        assert_eq!(
+            decide_from_state("j1", &d, None),
+            Decision::Reject(RejectReason::OutOfOrder)
+        );
+
+        // (2) end_reached が渡る: 先頭が成功で end_reached なら、2 つ目は @end の後。
+        let ended = state(
+            vec![
+                st("j0", Success, None),
+                st("j1", Pending, None),
+                st("j2", Pending, None),
+            ],
+            None,
+            true,
+        );
+        assert_eq!(
+            decide_from_state("j1", &d, Some(&ended)),
+            Decision::Skip(SkipCause::AfterEnd)
+        );
+
+        // (3) 再開位置が渡る: 前のジョブが pending でも、再開位置のジョブは実行する。
+        let resumed = state(
+            vec![
+                st("j0", Pending, None),
+                st("j1", Pending, None),
+                st("j2", Pending, None),
+            ],
+            Some("j1"),
+            false,
+        );
+        assert_eq!(decide_from_state("j1", &d, Some(&resumed)), Decision::Run);
+
+        // 定義にないジョブIDは、ステートの有無によらず順序外。
+        assert_eq!(
+            decide_from_state("zz", &d, None),
+            Decision::Reject(RejectReason::OutOfOrder)
+        );
+        assert_eq!(
+            decide_from_state("zz", &d, Some(&resumed)),
+            Decision::Reject(RejectReason::OutOfOrder)
+        );
+    }
 }
