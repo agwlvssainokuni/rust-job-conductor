@@ -29,23 +29,22 @@ pub enum CommandErrorKind {
     Empty,
 }
 
-/// command の文字列を分けられないときの報告。ジョブを起動する前に検知できる。
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-#[error("{}", .reason)]
-pub struct CommandError {
-    pub kind: CommandErrorKind,
-    /// 固定の文。入力の値は含めない。
-    pub reason: &'static str,
+impl CommandErrorKind {
+    /// 種類の理由(固定の文。入力の値は含めない)。
+    pub fn reason(self) -> &'static str {
+        match self {
+            Self::UnclosedQuote => reason::UNCLOSED_QUOTE,
+            Self::Empty => reason::EMPTY_COMMAND,
+        }
+    }
 }
 
-impl CommandError {
-    pub(crate) fn new(kind: CommandErrorKind) -> Self {
-        let reason = match kind {
-            CommandErrorKind::UnclosedQuote => reason::UNCLOSED_QUOTE,
-            CommandErrorKind::Empty => reason::EMPTY_COMMAND,
-        };
-        Self { kind, reason }
-    }
+/// command の文字列を分けられないときの報告。ジョブを起動する前に検知できる。表示は、種類の理由
+/// ([`CommandErrorKind::reason`])。
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[error("{}", .kind.reason())]
+pub struct CommandError {
+    pub kind: CommandErrorKind,
 }
 
 /// ステートの読み書きの失敗の種類。
@@ -147,9 +146,13 @@ mod tests {
 
     #[test]
     fn コマンドエラーの表示は固定の文() {
-        let e = CommandError::new(CommandErrorKind::UnclosedQuote);
+        let e = CommandError {
+            kind: CommandErrorKind::UnclosedQuote,
+        };
         assert_eq!(e.to_string(), reason::UNCLOSED_QUOTE);
-        let e = CommandError::new(CommandErrorKind::Empty);
+        let e = CommandError {
+            kind: CommandErrorKind::Empty,
+        };
         assert_eq!(e.to_string(), reason::EMPTY_COMMAND);
     }
 

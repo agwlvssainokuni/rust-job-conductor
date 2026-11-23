@@ -165,7 +165,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 | 項目 | 内容 |
 |------|------|
-| エラー型 | `CommandError { kind, reason }`。`kind` は `UnclosedQuote` か `Empty` |
+| エラー型 | `CommandError { kind }`。`kind` は `UnclosedQuote` か `Empty`。理由の固定の文は `CommandErrorKind::reason()` |
 | `Display` の文 | 固定の文(`reason`)。`UnclosedQuote` は `引用符が閉じていません`、`Empty` は `コマンド名がありません`。**入力の値を含めない**(秘密の値が `command` に入っていても表示に出ない) |
 | 利用者への表示(標準エラー) | `conductor: error: <定義ファイルのパス>: job '<ジョブID>': <文>`。文は表示言語に従う。英語は `command has an unclosed quote` / `command is empty`、日本語は `command の引用符が閉じていません` / `command が空です` |
 | 検査の時点 | `run` / `pipeline` / `validate` は、定義の読み込みと検証のあと、**全ジョブ**の `command` を `check_command` で検査し、誤りのあるジョブをすべて報告して、終了コード 64 で終わる。ジョブは 1 つも起動せず、ステートにも触れない。分割は、この検査(`Ctx::check_definition`)の 1 回だけで、結果(`CommandLine` の並び)を、起動の失敗の表示(`report_execution` のコマンド名)と `--dry-run` の計画が使い回す |

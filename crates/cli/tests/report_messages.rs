@@ -112,14 +112,12 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
             "a".to_string(),
             CommandError {
                 kind: CommandErrorKind::UnclosedQuote,
-                reason: "reason",
             },
         ),
         (
             "b".to_string(),
             CommandError {
                 kind: CommandErrorKind::Empty,
-                reason: "reason",
             },
         ),
     ];
@@ -465,7 +463,6 @@ fn 入力に由来する文字列は_エスケープされる() {
                 evil.to_string(),
                 CommandError {
                     kind: CommandErrorKind::Empty,
-                    reason: "r",
                 },
             )],
         }),

@@ -134,7 +134,7 @@ conductor: error: internal error
 | 型 | 内容 |
 |----|------|
 | `CommandErrorKind`(2 種) | `UnclosedQuote`(原因: `引用符が閉じていません`)、`Empty`(原因: `コマンド名がありません`)。CLI の表示は、種類の文だけ(08 章 4.4)。終了コード 64 |
-| `CommandError { kind, reason }` | `Display` は `reason` だけ |
+| `CommandError { kind }` | `Display` は `kind.reason()`(種類の理由の固定の文)だけ |
 | `StateErrorKind`(6 種) | `Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。終了コード 65 |
 | `StateError { path, kind, reason }` | `Display`(runtime 内)は `<種類の日本語の文>: <パス> (<原因>)`。CLI は自前の形式で表示する(08 章 4.5) |
 | `MismatchKind`(3 種) | `PipelineName`, `JobIds`, `JobOrder`(定義との食い違い。終了コード 65)。定めるのは `conductor-core`(`consistency.rs`)で、`conductor-runtime` が再公開する |

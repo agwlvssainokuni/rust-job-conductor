@@ -112,7 +112,9 @@ fn split(command: &str) -> Result<CommandLine, CommandError> {
     }
 
     if !matches!(state, State::Plain) {
-        return Err(CommandError::new(CommandErrorKind::UnclosedQuote));
+        return Err(CommandError {
+            kind: CommandErrorKind::UnclosedQuote,
+        });
     }
     if in_word {
         words.push(current);
@@ -125,7 +127,9 @@ fn split(command: &str) -> Result<CommandLine, CommandError> {
             program,
             args: iter.collect(),
         }),
-        _ => Err(CommandError::new(CommandErrorKind::Empty)),
+        _ => Err(CommandError {
+            kind: CommandErrorKind::Empty,
+        }),
     }
 }
 
@@ -147,7 +151,9 @@ pub fn check_command(command: &Command) -> Result<CommandLine, CommandError> {
                     program: program.clone(),
                     args: iter.cloned().collect(),
                 }),
-                _ => Err(CommandError::new(CommandErrorKind::Empty)),
+                _ => Err(CommandError {
+                    kind: CommandErrorKind::Empty,
+                }),
             }
         }
     }
