@@ -104,7 +104,7 @@ pub struct ConversionError {
     pub key_path: Option<String>,
     pub kind: ConversionErrorKind,
     /// 固定の文。入力の値と、ライブラリのエラー文は含まない。
-    pub reason: String,
+    pub reason: &'static str,
 }
 
 impl ConversionError {
@@ -113,14 +113,14 @@ impl ConversionError {
         line: Option<usize>,
         key_path: Option<String>,
         kind: ConversionErrorKind,
-        reason: &str,
+        reason: &'static str,
     ) -> Self {
         Self {
             file: file.to_string(),
             line,
             key_path,
             kind,
-            reason: reason.to_string(),
+            reason,
         }
     }
 

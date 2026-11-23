@@ -196,14 +196,14 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
             line: Some(2),
             key_path: Some("job[1].note".into()),
             kind,
-            reason: "reason".into(),
+            reason: "reason",
         }));
         f(&DisplayEvent::Conversion(&ConversionError {
             file: "in.yaml".into(),
             line: None,
             key_path: None,
             kind,
-            reason: "reason".into(),
+            reason: "reason",
         }));
     }
     f(&DisplayEvent::OutputFailed);
@@ -1070,7 +1070,7 @@ fn 日本語の誤りの表示は_各クレートの_label_を使う() {
             line: Some(3),
             key_path: None,
             kind,
-            reason: "R".into(),
+            reason: "R",
         };
         let text = reporter.render(&DisplayEvent::Conversion(&error));
         assert_eq!(

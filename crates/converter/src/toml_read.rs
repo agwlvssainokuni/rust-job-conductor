@@ -21,7 +21,7 @@
 use crate::error::{ConversionError, ConversionErrorKind, reason};
 use crate::raw::{MAX_DEPTH, RawKind, RawNode, RawScalar, RawTree, Tag};
 
-fn syntax(file: &str, line: Option<usize>, why: &str) -> ConversionError {
+fn syntax(file: &str, line: Option<usize>, why: &'static str) -> ConversionError {
     ConversionError::new(file, line, None, ConversionErrorKind::Syntax, why)
 }
 

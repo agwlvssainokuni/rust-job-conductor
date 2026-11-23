@@ -325,7 +325,7 @@ fn 表示は_どの種類でも入力の値を含まない() {
         assert!(!format!("{:?}", e.key_path).contains(SECRET));
         // 固定の文と場所だけ: 理由は、種類ごとの固定の文
         assert!(!e.reason.is_empty());
-        assert!(shown.contains(&e.reason), "{shown}");
+        assert!(shown.contains(e.reason), "{shown}");
     }
 }
 

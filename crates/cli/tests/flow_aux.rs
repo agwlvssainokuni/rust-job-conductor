@@ -361,7 +361,7 @@ fn convert_は表せない値を場所つきで表示する() {
         line: Some(4),
         key_path: Some("job[1].note".into()),
         kind: ConversionErrorKind::Unrepresentable,
-        reason: "null は表せません".into(),
+        reason: "null は表せません",
     }));
     let out = h.run_raw(&["convert", "in.yaml", "--to", "toml"]);
     assert_eq!(out.code, 67);

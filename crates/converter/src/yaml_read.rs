@@ -84,7 +84,7 @@ struct Doc {
     root: Option<usize>,
 }
 
-fn syntax(file: &str, line: usize, why: &str) -> ConversionError {
+fn syntax(file: &str, line: usize, why: &'static str) -> ConversionError {
     ConversionError::new(file, Some(line), None, ConversionErrorKind::Syntax, why)
 }
 

@@ -132,7 +132,7 @@
 | `ConversionRequest { input_path: PathBuf, target_format: TargetFormat }` | 要求 |
 | `TargetFormat { Yaml, Toml }` | 変換**後**の形式。入力の形式は、その反対とみなす(`opposite()`) |
 | `ConvertedText { text: String }` | 結果 |
-| `ConversionError { file, line, key_path, kind, reason }` / `ConversionErrorKind`(6 種) | 10 の 7.3 |
+| `ConversionError { file, line, key_path, kind, reason }`(`reason: &'static str`。固定の文。v0.9.7 までは `String`)/ `ConversionErrorKind`(6 種) | 10 の 7.3 |
 | `testing::{Value, read_tree}`(`#[doc(hidden)]`) | 往復テスト用に、途中の表現 `Value` へ読む |
 
 内部の途中の表現 `Value`: `Str` / `Int(i64)` / `Float(f64)` / `Bool` / `Array` / `Map(Vec<(String, Value)>)`(`null`・日時などは持たない)。

@@ -66,7 +66,7 @@ pub(crate) fn root_check(read: YamlRead, file: &str) -> Result<RawTree, Conversi
             reason::MULTI_DOCUMENT,
         ));
     }
-    let root_not_map = |why: &str, line: Option<usize>| {
+    let root_not_map = |why: &'static str, line: Option<usize>| {
         ConversionError::new(file, line, None, ConversionErrorKind::RootNotMap, why)
     };
     let Some(tree) = read.tree else {
@@ -177,7 +177,12 @@ impl<'a> Walker<'a> {
         })
     }
 
-    fn error_at(&self, node: usize, kind: ConversionErrorKind, why: &str) -> ConversionError {
+    fn error_at(
+        &self,
+        node: usize,
+        kind: ConversionErrorKind,
+        why: &'static str,
+    ) -> ConversionError {
         ConversionError::new(
             self.file,
             self.tree.line_of(node),

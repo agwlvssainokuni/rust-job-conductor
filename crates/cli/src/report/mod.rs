@@ -609,7 +609,7 @@ fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
 
 fn conversion_line(lang: Language, e: &ConversionError) -> String {
     let place = place_of(&e.file, e.line);
-    let mut cause = escape_full(&e.reason);
+    let mut cause = escape_full(e.reason);
     if let Some(path) = &e.key_path {
         cause.push_str(&format!(
             " ({}: {})",

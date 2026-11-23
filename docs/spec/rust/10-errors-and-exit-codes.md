@@ -175,7 +175,7 @@ conductor: error: internal error
 | 型 | 内容 |
 |----|------|
 | `ConversionErrorKind`(6 種) | `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `unrepresentable`, `rootNotMap`。終了コード 67 |
-| `ConversionError { file, line, key_path, kind, reason }` | `Display`(converter 内)は `<ファイル>:<行>: <種類の文>: <原因>`(行なしは `<ファイル>: …`)に、`key_path` があれば `(場所: <位置>)` を続ける。CLI は 08 章 4.8 の形式で表示する |
+| `ConversionError { file, line, key_path, kind, reason }` | `reason` は `&'static str`(固定の文。v0.9.7 までは `String`)。`Display`(converter 内)は `<ファイル>:<行>: <種類の文>: <原因>`(行なしは `<ファイル>: …`)に、`key_path` があれば `(場所: <位置>)` を続ける。CLI は 08 章 4.8 の形式で表示する |
 
 `reason`(固定の日本語。言語を切り替えない):
 

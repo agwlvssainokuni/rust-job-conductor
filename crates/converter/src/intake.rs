@@ -34,7 +34,7 @@ pub(crate) fn file_label(path: &Path) -> String {
     path.display().to_string()
 }
 
-fn error(file: &str, kind: ConversionErrorKind, why: &str) -> ConversionError {
+fn error(file: &str, kind: ConversionErrorKind, why: &'static str) -> ConversionError {
     ConversionError::new(file, None, None, kind, why)
 }
 
