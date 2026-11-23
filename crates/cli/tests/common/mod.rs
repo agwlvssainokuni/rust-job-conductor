@@ -142,7 +142,6 @@ impl Sink for FakeSink {
 pub enum SignalMode {
     Noop,
     Fail,
-    Already,
     /// `start` の時点で、合図を立てる(検査より前に届いたシグナル)。
     RaiseOnStart(i32),
 }
@@ -167,7 +166,6 @@ impl Signals for FakeSignals {
         match self.mode {
             SignalMode::Noop => Ok(()),
             SignalMode::Fail => Err(SignalError::Failed),
-            SignalMode::Already => Err(SignalError::AlreadyRegistered),
             SignalMode::RaiseOnStart(n) => {
                 signal.raise(n);
                 Ok(())

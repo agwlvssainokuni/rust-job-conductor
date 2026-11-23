@@ -192,11 +192,11 @@ impl Ctx<'_> {
         self.check_run_inputs(cmd, checked, None)
     }
 
-    /// シグナルの監視を始める(BR4.1)。すでに登録済みなら、そのまま使う。失敗は表示して、70 を `Err` で返す。
+    /// シグナルの監視を始める(BR4.1)。失敗は表示して、70 を `Err` で返す。
     fn start_signals(&mut self) -> Result<Arc<InterruptSignal>, i32> {
         let signal = Arc::new(InterruptSignal::new());
         match self.signals.start(&signal) {
-            Ok(()) | Err(SignalError::AlreadyRegistered) => Ok(signal),
+            Ok(()) => Ok(signal),
             Err(SignalError::Failed) => {
                 self.show(&DisplayEvent::SignalSetupFailed);
                 Err(EXIT_INTERNAL)

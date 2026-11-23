@@ -14,9 +14,8 @@
 
 //! 本番のシグナルの監視(`SystemSignals`。NFR4.3)。UNIX 系だけ。
 //!
-//! このテストのプロセスは、シグナルの監視を登録する(プロセスで 1 回だけ登録できる)。
-//! 登録は 1 つのテストだけで行う。2 つのシグナルを続けて送っても、最初の番号が残ること、
-//! 2 回目の `start` が `AlreadyRegistered` になることを確かめる。
+//! このテストのプロセスは、シグナルの監視を登録する(登録はプロセスで 1 回だけ)。
+//! 登録は 1 つのテストだけで行う。2 つのシグナルを続けて送っても、最初の番号が残ることを確かめる。
 
 #![cfg(unix)]
 
@@ -25,7 +24,7 @@ mod signal_support;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use conductor_cli::{SignalError, Signals, SystemSignals};
+use conductor_cli::{Signals, SystemSignals};
 use conductor_runtime::InterruptSignal;
 use signal_support::send_self;
 
@@ -41,7 +40,7 @@ fn wait_for(signal: &InterruptSignal) -> Option<i32> {
 }
 
 #[test]
-fn 最初のシグナルの番号だけが残り_2_回目の登録は登録済みになる() {
+fn 最初のシグナルの番号だけが残る() {
     let signal = Arc::new(InterruptSignal::new());
     assert_eq!(SystemSignals.start(&signal), Ok(()));
     assert!(!signal.is_raised());
@@ -53,14 +52,4 @@ fn 最初のシグナルの番号だけが残り_2_回目の登録は登録済�
     send_self("HUP");
     std::thread::sleep(Duration::from_millis(200));
     assert_eq!(signal.signal_number(), Some(15));
-
-    // 2 回目の登録は、登録済み(別の合図には、配線されない)
-    let other = Arc::new(InterruptSignal::new());
-    assert_eq!(
-        SystemSignals.start(&other),
-        Err(SignalError::AlreadyRegistered)
-    );
-    send_self("QUIT");
-    std::thread::sleep(Duration::from_millis(200));
-    assert!(!other.is_raised(), "配線されていない");
 }

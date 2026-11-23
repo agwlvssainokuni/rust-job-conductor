@@ -144,7 +144,7 @@
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
 | `run_cli` | `<I: IntoIterator<Item = OsString>>(args: I, env: &dyn Env, sink: &mut dyn Sink) -> i32` | 本番の `Runtime`・`Signals` で `run_cli_with` を呼ぶ |
-| `run_cli_with` | `<I>(args: I, deps: &mut Deps<'_>) -> i32` | 引数の解釈 → コマンドごとの処理 → 終了コード。`-h`/`-V` と使い方の誤りはここで処理 |
+| `run_cli_with` | `<I>(args: I, deps: &mut Deps<'_>) -> i32` | 引数の解釈 → コマンドごとの処理 → 終了コード。`-h`/`-V` と使い方の誤りはここで処理。シグナルの監視の登録はプロセスで 1 回だけ。本番の `SystemSignals` を渡して、`run`・`pipeline` をプロセスで 2 回実行すると、2 回目の登録は契約の外(Windows は登録に失敗して 70 で終わる。UNIX 系は監視が 2 つになる)。`run_cli` も同じ |
 | `parse_args` | `<I>(args: I) -> Result<ParsedArgs, UsageError>` | 引数の解釈。04 章 |
 | `exit_code_for` | `(reported: i32, is_error: bool) -> i32` | 0〜255 への整形。05 の 2.2 |
 | `signal_exit_code` | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
@@ -184,7 +184,7 @@ parsed = parse_args(args)
 cli::pipeline::run_pipeline
  ├─ dry_run::enter_flow(名前が無ければ 68、--dry-run なら run_dry_run へ)
  ├─ Ctx::prepare_session(check_pipeline を渡す)→ (Session { checked: Checked, signal }, ())
- │    ├─ Ctx::start_signals → Signals::start(signal)  → 失敗 70(登録済みは続行)
+ │    ├─ Ctx::start_signals → Signals::start(signal)  → 失敗 70
  │    └─ 渡された検査 Ctx::check_pipeline(--assume のジョブIDは空。require_known は何もしない)
  │         ├─ Ctx::check_definition                         → CheckedDefinition(分割したコマンドを含む)
  │         │    ├─ Runtime::load_definition(path, name)    → core::load_definition   → 失敗 64
@@ -255,7 +255,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(line, env, signal)`(runtime の `run_job` と同じ形。`env` は v0.9.0 以降。v0.9.5 までは分割済みの `line` なし。v0.9.7 までは `run_job(job, line, env, signal)` で、`job` は偽物がジョブ ID を記録するためだけに受け取った)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
 | `Sink` | `StdSink` | `write_out(bytes)`、`write_err(bytes)`(書くたびに flush) |
 | `Env` | `SystemEnv` | `var(name) -> Option<String>`(UTF-8 でない値・未設定は `None`)、`stdout_is_terminal() -> bool` |
-| `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`AlreadyRegistered` / `Failed`) |
+| `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`Failed`)。プロセスで 1 回だけ呼ぶ(本番は `prepare_session` の 1 か所)。2 回呼んだときの動きは契約の外(UNIX 系は監視が 2 つになり、Windows は `Failed`) |
 
 `SystemRuntime` は、`conductor_core`・`conductor_runtime`・`conductor_converter` の関数への薄い委譲である(`run_id_env` だけは、定義ファイルを取り込みと同じ大きさの上限で読み、`peek_run_id_env` を呼ぶ。読めなければ `None`)。
 
@@ -265,7 +265,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 |------|------|
 | `FakeEnv` | 環境変数の表(`with(&[(名前, 値)])`)。ロケールを読んだかを記録する |
 | `FakeSink` | 標準出力・標準エラーを文字列に溜める(`out_text()`、`err_text()`) |
-| `FakeSignals` | `SignalMode`(`Noop`・`Fail`・`Already`・`RaiseOnStart(番号)`)に応じて、登録の成功・失敗・登録済み・開始時の合図を再現する |
+| `FakeSignals` | `SignalMode`(`Noop`・`Fail`・`RaiseOnStart(番号)`)に応じて、登録の成功・失敗・開始時の合図を再現する |
 | `ScriptedRuntime` | ジョブごとの結果(`Exec`)を台本で返す `Runtime`。呼び出しの記録(`log()`、`ran()`)、`run_job` に渡された環境(`run_envs`)と分割済みのコマンド(`run_lines`)。ジョブ ID は、渡された環境の `CONDUCTOR_JOB_ID` から取る(`job_id_of`。無ければパニック) |
 | `MemRuntime` | ステートをメモリに持つ `Runtime`(ファイルなし。大きなジョブ数の流れの測定にも使う) |
 | `Harness` | 実ファイルの一時ディレクトリで、定義の書き換え・実行・ステートの読み取りをする補助 |

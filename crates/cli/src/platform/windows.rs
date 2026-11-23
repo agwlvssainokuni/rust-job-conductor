@@ -25,8 +25,5 @@ use crate::deps::SignalError;
 const CTRL_C_NUMBER: i32 = 2;
 
 pub(super) fn spawn_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
-    ctrlc::set_handler(move || signal.raise(CTRL_C_NUMBER)).map_err(|e| match e {
-        ctrlc::Error::MultipleHandlers => SignalError::AlreadyRegistered,
-        _ => SignalError::Failed,
-    })
+    ctrlc::set_handler(move || signal.raise(CTRL_C_NUMBER)).map_err(|_| SignalError::Failed)
 }

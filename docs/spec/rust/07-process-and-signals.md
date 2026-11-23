@@ -291,10 +291,10 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
   `watch`・`reset`・`validate`・`convert` は監視せず、OS の既定の動作で終わる。v0.9.0 以降の `graph`・`init` も監視しない。
   `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare_session` の代わりに、シグナルを除く `prepare_checked` を呼ぶ。検査の並び `check_job`・`check_pipeline` は本番と共有する)。
 - `InterruptSignal` を 1 つ作り、`Arc` で SignalWatcher に渡す。
-- 監視の登録は **プロセスで 1 回だけ**。2 回目の呼び出しは `AlreadyRegistered` になり、流れは成功と同様に続ける
-  (2 回目に渡した合図には配線されない)。登録に失敗したとき(`Failed`)は、標準エラーに
+- 監視の登録(`Signals::start`)を呼ぶのは **プロセスで 1 回**(`prepare_session` の 1 か所。1 回の `run_cli` は
+  1 つのコマンドだけを実行し、`main` は `run_cli` を 1 回だけ呼ぶ)。2 回呼んだときの動きは契約の外(UNIX 系は監視が
+  2 つになり、Windows は `Failed`)。登録に失敗したとき(`Failed`)は、標準エラーに
   `conductor: error: failed to set up signal handling` を書き、終了コード **70** で終わる(定義の検査もジョブの起動もしない)。
-  登録に失敗した場合は、次の登録を許す(登録済みの印を戻す)。
 - 「最初の番号」は、`raise` が呼ばれた順の最初。
 
 ### 7.2 UNIX 系(Linux、macOS)
@@ -333,7 +333,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 ### 7.3 Windows
 
 実装: `ctrlc` クレートの `set_handler`(ライブラリが専用のスレッドでハンドラを呼ぶ)。ハンドラは `signal.raise(2)`
-(Ctrl+C の番号 2)。`ctrlc::Error::MultipleHandlers` は `AlreadyRegistered`、それ以外の失敗は `Failed` にする。
+(Ctrl+C の番号 2)。`set_handler` の失敗は、種類によらず `Failed` にする。
 
 時系列(ジョブの実行中に、利用者が Ctrl+C を押したとき):
 
@@ -431,7 +431,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 待ちの間隔(1,2,4,8,10,10)、転送 1 回 | `crates/runtime/src/runner.rs` の単体テスト |
 | `wait_for` の 1 秒以内の打ち切り | `crates/runtime/tests/wait_interruptible.rs` |
 | 実バイナリで SIGTERM → 143、ステートに再開位置、孤児なし。HUP のあとの INT → 129 | `crates/cli/tests/binary_signal.rs`(UNIX) |
-| 監視の登録(最初の番号が残る、2 回目の登録は `AlreadyRegistered`) | `crates/cli/tests/signals_real.rs`、`signals_order.rs`(UNIX。各ファイルにテストは 1 つだけ。登録がプロセスで 1 回のため) |
+| 監視の登録(最初の番号が残る) | `crates/cli/tests/signals_real.rs`、`signals_order.rs`(UNIX。各ファイルにテストは 1 つだけで、登録は 1 回だけ。登録がプロセスで 1 回のため) |
 | Windows の Ctrl+C | 手動(`WINDOWS_CTRL_C_CHECKLIST.md`) |
 | `cmd` への危険な引数が注入にならない | `runner_basic.rs` の Windows 専用の 3 テスト |
 

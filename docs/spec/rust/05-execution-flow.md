@@ -260,7 +260,7 @@ return low
 
 | 順 | 処理 | 誤りのときの終了コード |
 |---|---|---|
-| 1 | 中断の合図(`InterruptSignal`)を作り、シグナルの監視を開始(定義の検査より前)。すでに登録済みは無視して続行 | 準備の失敗: 70(`conductor: error: failed to set up signal handling`) |
+| 1 | 中断の合図(`InterruptSignal`)を作り、シグナルの監視を開始(定義の検査より前。登録はプロセスで 1 回だけ) | 準備の失敗: 70(`conductor: error: failed to set up signal handling`) |
 | 2 | 定義ファイルの読み込みと検証。`pipeline` は、引数の名前と定義の `[pipeline].name` を照合 | 64 |
 | 3 | 全ジョブの `command` の検査(引用符の閉じ忘れ・空)。誤りは全ジョブ分を集めて表示する。分割したコマンドは、ジョブと同じ並びで持ち、実行(起動の失敗の表示)と `--dry-run` の計画が使い回す | 64 |
 | 4 | `run` のとき、ジョブIDが定義にあるか | 68(`unknown job`) |

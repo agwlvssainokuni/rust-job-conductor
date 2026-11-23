@@ -265,7 +265,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`binary_init.rs` | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
 | `docs_env.rs`、`docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
 | `binary_signal.rs`(UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
-| `signals_real.rs`、`signals_order.rs`(UNIX) | 本番のシグナル監視(最初の番号が残る、2 回目の登録は `AlreadyRegistered`、時間を空けた INT のあとの HUP) |
+| `signals_real.rs`、`signals_order.rs`(UNIX) | 本番のシグナル監視(最初の番号が残る、時間を空けた INT のあとの HUP。各ファイルで登録は 1 回だけ) |
 | `panic_hook.rs` | パニックのフック |
 | `nfr_perf.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
 | `msrv_consistency.rs` | MSRV の記載の一致(1.2 節) |

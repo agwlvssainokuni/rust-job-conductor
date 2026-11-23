@@ -694,14 +694,6 @@ fn シグナルの準備に失敗したら_70_で_固定の英語の文() {
 }
 
 #[test]
-fn すでに登録済みでも_流れは成功と同様に続ける() {
-    let mut h = Harness::new(THREE_JOBS);
-    h.signals = FakeSignals::new(SignalMode::Already);
-    assert_eq!(h.run(&["run", "a"]).code, 0);
-    assert_eq!(h.runtime.ran(), ["a"]);
-}
-
-#[test]
 fn 標準エラーが閉じていても_本来の終了コードで終わる() {
     let mut h = Harness::new(THREE_JOBS);
     h.sink.fail_err = true;

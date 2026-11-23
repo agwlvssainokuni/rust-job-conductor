@@ -29,7 +29,7 @@
 | 順 | 検査 | 失敗時 |
 |----|------|--------|
 | 0 | 引数の解釈(`-h`/`-V` は先に 0。それ以外の使い方の誤り) | 68 |
-| 1 | シグナルの監視の準備(定義の検査より前)。「すでに登録済み」は成功と同じに扱う | 70 |
+| 1 | シグナルの監視の準備(定義の検査より前) | 70 |
 | 2 | 定義の読み込みと検証(パイプライン名の照合を含む。誤りは全部まとめて 1 行ずつ表示) | 64 |
 | 3 | 全ジョブの `command` の検査(誤りのあるジョブごとに 1 行) | 64 |
 | 4 | `run` のジョブIDが定義にあるか | 68 |
@@ -96,7 +96,7 @@
 - Windows: Ctrl+C(番号 2)だけ。
 - `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は既定の動作で終わる(v0.9.0 以降の `graph`・`init`、`--dry-run` も同じ)。
 - 起動済みのジョブが中断されると、`128 + 番号`、エラーとして記録する。起動前、またはジョブのあいだ、リトライの待機中に中断されたときは、エラーとして記録せず、再開位置を記録して `128 + 番号` で終わる。
-- 準備の失敗(`SignalError::Failed`)は、`conductor: error: failed to set up signal handling` を出して 70。`AlreadyRegistered`(プロセスで 2 回目)は成功と同じに扱う。
+- 準備の失敗(`SignalError::Failed`)は、`conductor: error: failed to set up signal handling` を出して 70。登録を呼ぶのはプロセスで 1 回だけ(2 回呼んだときの動きは契約の外)。
 
 ## 6. パニックのフック
 
@@ -217,7 +217,7 @@ conductor: error: internal error
 |----|------|
 | `UsageErrorKind`(8 種) | `UnknownCommand`, `MissingArgument`, `UnexpectedArgument`, `UnknownOption`, `OptionNotAllowed`, `MissingValue`, `InvalidValue`, `UnknownJob`。すべて終了コード 68。文言は 08 章 4.2 |
 | `UsageError { kind, subject: Option<String> }` | `subject` は、誤りの対象の語(知らないコマンド、オプション名、ジョブID、`run ID (environment variable)` など)。入力の値は、それ以外には含めない(`--run-id` の値、環境変数の値は含めない) |
-| `SignalError`(2 種) | `AlreadyRegistered`(成功と同じ扱い)、`Failed`(70) |
+| `SignalError`(1 種) | `Failed`(70) |
 
 `UsageError` の例(`subject` と発生条件):
 

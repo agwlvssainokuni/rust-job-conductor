@@ -37,7 +37,7 @@
 //! | [`Runtime`] | [`SystemRuntime`] | `load_definition`・`check_command`・`load_env_files`・`run_job`・`wait`・`read_state`・`read_state_raw`・`write_state`・`reset_state`・`reset_all_states`・`run_id_env`・`convert`・`create_file` |
 //! | [`Sink`] | [`StdSink`] | 標準出力・標準エラーへの書き込み(失敗は値で返す) |
 //! | [`Env`] | [`SystemEnv`] | 環境変数、標準出力が端末か |
-//! | [`Signals`] | [`SystemSignals`] | シグナルの監視の開始(プロセスで 1 回。2 回目は `AlreadyRegistered`) |
+//! | [`Signals`] | [`SystemSignals`] | シグナルの監視の開始(プロセスで 1 回だけ呼ぶ。2 回目は契約の外) |
 //!
 //! 純粋な関数(`decide_before_run`、`classify_and_decide`、`apply_*`、`check_consistency` など)は、
 //! trait を通さず、流れが直接呼ぶ。
@@ -121,6 +121,9 @@ use report::{DisplayEvent, Reporter};
 /// 本番の依存で、`args`(プログラム名を除く)のコマンドを実行し、終了コードを返す。
 ///
 /// `main` は、この結果で、1 回だけ `std::process::exit` を呼ぶ。
+///
+/// シグナルの監視の登録はプロセスで 1 回だけ。`run`・`pipeline` をプロセスで 2 回実行すると、2 回目の
+/// 登録は契約の外(Windows は登録に失敗して 70 で終わる。UNIX 系は監視が 2 つになる)。
 pub fn run_cli<I>(args: I, env: &dyn Env, sink: &mut dyn Sink) -> i32
 where
     I: IntoIterator<Item = OsString>,
@@ -137,6 +140,10 @@ where
 }
 
 /// 差し替えた依存で、コマンドを実行し、終了コードを返す(W1〜W6)。
+///
+/// シグナルの監視の登録はプロセスで 1 回だけ。本番の [`SystemSignals`] を渡して、`run`・`pipeline` を
+/// プロセスで 2 回実行すると、2 回目の登録は契約の外(Windows は登録に失敗して 70 で終わる。UNIX 系は
+/// 監視が 2 つになる)。
 pub fn run_cli_with<I>(args: I, deps: &mut Deps<'_>) -> i32
 where
     I: IntoIterator<Item = OsString>,

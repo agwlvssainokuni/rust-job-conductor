@@ -20,7 +20,6 @@
 //! - 端末の色が使える OS か(UNIX 系だけ。Windows は色なし。BR6.5)。
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use conductor_runtime::InterruptSignal;
 
@@ -31,19 +30,10 @@ mod unix;
 #[cfg(windows)]
 mod windows;
 
-/// プロセスで、監視を登録したか(2 回目の呼び出しを見分ける)。
-static REGISTERED: AtomicBool = AtomicBool::new(false);
-
-/// シグナルの監視を始める。プロセスで 1 回だけ登録できる。2 回目は `AlreadyRegistered`。
+/// シグナルの監視を始める。プロセスで 1 回だけ呼ぶ(本番は `Ctx::prepare_session` の 1 か所)。
+/// 2 回呼んだときの動きは契約の外(UNIX 系は監視が 2 つになり、Windows は `Failed`)。
 pub(crate) fn start_signal_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
-    if REGISTERED.swap(true, Ordering::SeqCst) {
-        return Err(SignalError::AlreadyRegistered);
-    }
-    let result = spawn_watcher(signal);
-    if result.is_err() {
-        REGISTERED.store(false, Ordering::SeqCst);
-    }
-    result
+    spawn_watcher(signal)
 }
 
 #[cfg(unix)]

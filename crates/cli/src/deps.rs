@@ -56,8 +56,6 @@ pub trait Sink {
 /// シグナルの準備の失敗。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SignalError {
-    /// すでに登録済み(プロセスで 1 回だけ登録できる)。流れは、成功と同様に続ける。
-    AlreadyRegistered,
     /// 登録できなかった。内部の誤り(終了コード 70)。
     Failed,
 }
@@ -71,6 +69,9 @@ pub trait Signals {
     /// 「最初の番号」は、監視が `raise` を呼んだ順の最初である。ほぼ同時に複数のシグナルが届くと、
     /// `signal-hook` の `Signals` が、番号の小さい順に返すため、到着順ではなく、小さい番号が
     /// 先になりうる(例: INT(2)と HUP(1)なら HUP)。時間を空けて届いたときは、到着順である。
+    ///
+    /// プロセスで 1 回だけ呼ぶ(本番は `prepare_session` の 1 か所)。2 回呼んだときの動きは契約の外
+    /// (UNIX 系は監視が 2 つになり、Windows は `Failed`)。
     fn start(&self, signal: &Arc<InterruptSignal>) -> Result<(), SignalError>;
 }
 
