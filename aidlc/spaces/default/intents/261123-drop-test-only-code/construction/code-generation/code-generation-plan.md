@@ -17,26 +17,26 @@
 
 ## 削除(コミット 1〜9)
 
-- [ ] Step 1: `Command` の `From<&str>`・`From<String>` を消す(1a。テストの補助は D5 の形に)。コミット 1。
-- [ ] Step 2: `RunIdArg::as_str`(1b)と、`InterruptSignal` の `is_raised`・`PartialEq`・`Eq`(1c。`Default` は残す D1、`Debug` は `signal_number()` で書く D8)を消す。コミット 2〜3。
-- [ ] Step 3: 本番で使われない `Default` 4 つ(1d。`JobStatus`、`Durability`、`StateOverlay`、cli `Language`)を消す。コミット 4〜7。
-- [ ] Step 4: `sanitize`(1e。呼ぶ所は `escape_display` に)と `EnvFileError::reason()`(1f)を消す。コミット 8〜9。
+- [x] Step 1: `Command` の `From<&str>`・`From<String>` を消す(1a。テストの補助は D5 の形に)。コミット 1。
+- [x] Step 2: `RunIdArg::as_str`(1b)と、`InterruptSignal` の `is_raised`・`PartialEq`・`Eq`(1c。`Default` は残す D1、`Debug` は `signal_number()` で書く D8)を消す。コミット 2〜3。
+- [x] Step 3: 本番で使われない `Default` 4 つ(1d。`JobStatus`、`Durability`、`StateOverlay`、cli `Language`)を消す。コミット 4〜7。
+- [x] Step 4: `sanitize`(1e。呼ぶ所は `escape_display` に)と `EnvFileError::reason()`(1f)を消す。コミット 8〜9。
 
 ## 公開範囲を狭める(コミット 10〜18)
 
-- [ ] Step 5: core の `decide_before_run`(2a。テストの補助 `decide` を消して `decide_from_state` を直接呼ぶ D7)、`flow::classify`(2b)、`MAX_RUN_ID_LEN`・`is_valid_env_name`・`is_reserved_env_name`・`effective_success_codes`(2c)を、使う範囲に合わせて最も狭くする(D6)。コミット 10〜15。
-- [ ] Step 6: cli の `escape_display` の再公開(2d)、`pub mod` 4 つ(2e)、根の `GraphOptions`・`DryRunOptions` の再公開(2f)をやめる。コミット 16〜18。
+- [x] Step 5: core の `decide_before_run`(2a。テストの補助 `decide` を消して `decide_from_state` を直接呼ぶ D7)、`flow::classify`(2b)、`MAX_RUN_ID_LEN`・`is_valid_env_name`・`is_reserved_env_name`・`effective_success_codes`(2c)を、使う範囲に合わせて最も狭くする(D6)。コミット 10〜15。
+- [x] Step 6: cli の `escape_display` の再公開(2d)、`pub mod` 4 つ(2e)、根の `GraphOptions`・`DryRunOptions` の再公開(2f)をやめる。コミット 16〜18。
 
 ## 判断が要ったもの(コミット 19〜24)
 
-- [ ] Step 7: `RunIdError` を単位構造体 1 つに(3a。D2。language-agnostic の仕様書は変えない D4)。コミット 19。
-- [ ] Step 8: runtime の core の再公開をやめ、使う所を `conductor_core` に(3b。2 つのコミットにまたがる import は §8 の表の形)。コミット 20。
-- [ ] Step 9: 誤りの種類の `Display`・`Error`(3c)と、本番で使われない `Hash`(3d)を消す。コミット 21〜24。
+- [x] Step 7: `RunIdError` を単位構造体 1 つに(3a。D2。language-agnostic の仕様書は変えない D4)。コミット 19。
+- [x] Step 8: runtime の core の再公開をやめ、使う所を `conductor_core` に(3b。2 つのコミットにまたがる import は §8 の表の形)。コミット 20。
+- [x] Step 9: 誤りの種類の `Display`・`Error`(3c)と、本番で使われない `Hash`(3d)を消す。コミット 21〜24。
 
 ## 最後
 
-- [ ] Step 10: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索、テスト名の一覧の前後の比較、件数(見込み 1,153)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 11: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更・消したテストの一覧、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 10: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索、テスト名の一覧の前後の比較、件数(見込み 1,153)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 11: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更・消したテストの一覧、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
