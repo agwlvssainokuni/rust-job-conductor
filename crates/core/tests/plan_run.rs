@@ -67,7 +67,11 @@ fn run_の計画は_対象の_1_ジョブと次の動きを持ち_再開位置�
     assert_eq!(plan.mode, PlanMode::Individual);
     assert_eq!(plan.entries.len(), 1);
     assert_eq!(plan.entries[0].job_id, "b");
-    assert_eq!(plan.entries[0].disposition, D::WillRun);
+    assert!(
+        matches!(plan.entries[0].disposition, D::WillRun(_)),
+        "{:?}",
+        plan.entries[0].disposition
+    );
     assert!(!plan.entries[0].is_resume);
     assert_eq!(plan.resume, ResumeInfo::Individual("b".into()));
     let note = plan.next_step_note.expect("次の動き");
@@ -128,7 +132,7 @@ fn run_で実行済みのジョブは_実行済みで_次の動きを持たな�
     );
     let plan = run_plan(THREE, "a", Some(&s), &[]).expect("計画");
     assert_eq!(plan.entries[0].disposition, D::AlreadyExecuted);
-    assert!(plan.entries[0].result.is_none());
+    assert!(plan.entries[0].disposition.result().is_none());
     assert!(plan.next_step_note.is_none());
 }
 
@@ -157,7 +161,7 @@ fn run_の対象でないジョブへの仮定は_使われなかった仮定に
     )
     .expect("計画");
     assert_eq!(plan.unused_assumptions, ["c"]);
-    let r = plan.entries[0].result.expect("結果");
+    let r = plan.entries[0].disposition.result().expect("結果");
     assert_eq!(r.exit_code, 3);
     assert!(r.assumed);
 }

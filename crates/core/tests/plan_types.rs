@@ -26,20 +26,19 @@ use conductor_core::{
 fn 計画の項目は_扱いと結果と名前の要約を持つ() {
     let entry = PlanEntry {
         job_id: "a".into(),
-        disposition: PlanDisposition::WillRun,
-        is_resume: true,
-        command_words: vec!["echo".into(), "a".into()],
-        env_names: Vec::new(),
-        retry: None,
-        result: Some(SimulatedResult {
+        disposition: PlanDisposition::WillRun(SimulatedResult {
             exit_code: 3,
             classification: Classification::Warning,
             assumed: true,
             retryable: false,
         }),
+        is_resume: true,
+        command_words: vec!["echo".into(), "a".into()],
+        env_names: Vec::new(),
+        retry: None,
     };
     assert_eq!(entry.clone(), entry);
-    assert_eq!(entry.result.map(|r| r.exit_code), Some(3));
+    assert_eq!(entry.disposition.result().map(|r| r.exit_code), Some(3));
 }
 
 #[test]

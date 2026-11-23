@@ -70,7 +70,7 @@ fn 千個のジョブがすべて実行する計画は_1秒以内に作れる() 
     assert!(
         plan.entries
             .iter()
-            .all(|e| e.disposition == PlanDisposition::WillRun)
+            .all(|e| matches!(e.disposition, PlanDisposition::WillRun(_)))
     );
     assert_eq!(plan.end, PlanEnd::Completed);
     assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");

@@ -61,12 +61,22 @@ fn dispositions(plan: &ExecutionPlan) -> Vec<D> {
 #[test]
 fn すべて成功する流れは_全ジョブを実行して完了する() {
     let plan = plan_with(THREE, None, &[]);
-    assert_eq!(dispositions(&plan), [D::WillRun, D::WillRun, D::WillRun]);
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::WillRun(_), D::WillRun(_), D::WillRun(_)]
+        ),
+        "{:?}",
+        dispositions(&plan)
+    );
     assert_eq!(plan.end, PlanEnd::Completed);
     assert_eq!(plan.resume, ResumeInfo::FromStart);
     assert!(plan.unused_assumptions.is_empty());
     for entry in &plan.entries {
-        let result = entry.result.expect("実行するジョブは結果を持つ");
+        let result = entry
+            .disposition
+            .result()
+            .expect("実行するジョブは結果を持つ");
         assert_eq!(result.classification, Classification::Success);
         assert!(!result.assumed);
     }
@@ -75,29 +85,47 @@ fn すべて成功する流れは_全ジョブを実行して完了する() {
 #[test]
 fn 仮定で警告になっても_次のジョブへ進み_完了する() {
     let plan = plan_with(THREE, None, &[Assumption::new("a", 3)]);
-    let a = plan.entries[0].result.expect("結果");
+    let a = plan.entries[0].disposition.result().expect("結果");
     assert_eq!(
         (a.exit_code, a.classification, a.assumed),
         (3, Classification::Warning, true)
     );
-    assert_eq!(dispositions(&plan), [D::WillRun, D::WillRun, D::WillRun]);
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::WillRun(_), D::WillRun(_), D::WillRun(_)]
+        ),
+        "{:?}",
+        dispositions(&plan)
+    );
     assert_eq!(plan.end, PlanEnd::Completed);
 }
 
 #[test]
 fn 仮定でエラーになると停止し_以降は実行されない() {
     let plan = plan_with(THREE, None, &[Assumption::new("b", 1)]);
-    assert_eq!(dispositions(&plan), [D::WillRun, D::WillRun, D::NotReached]);
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::WillRun(_), D::WillRun(_), D::NotReached]
+        ),
+        "{:?}",
+        dispositions(&plan)
+    );
     assert_eq!(plan.end, PlanEnd::StoppedAtError("b".into()));
-    assert!(plan.entries[2].result.is_none());
+    assert!(plan.entries[2].disposition.result().is_none());
 }
 
 #[test]
 fn 遷移で飛び越されたジョブは_遷移でスキップになる() {
     let plan = plan_with(JUMP, None, &[Assumption::new("a", 3)]);
-    assert_eq!(
-        dispositions(&plan),
-        [D::WillRun, D::SkippedByTransition, D::WillRun]
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::WillRun(_), D::SkippedByTransition, D::WillRun(_)]
+        ),
+        "{:?}",
+        dispositions(&plan)
     );
     assert_eq!(plan.end, PlanEnd::Completed);
 }
@@ -105,9 +133,13 @@ fn 遷移で飛び越されたジョブは_遷移でスキップになる() {
 #[test]
 fn end_に到達すると_以降は_end_のあとでスキップになる() {
     let plan = plan_with(END, None, &[Assumption::new("a", 3)]);
-    assert_eq!(
-        dispositions(&plan),
-        [D::WillRun, D::SkippedAfterEnd, D::SkippedAfterEnd]
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::WillRun(_), D::SkippedAfterEnd, D::SkippedAfterEnd]
+        ),
+        "{:?}",
+        dispositions(&plan)
     );
     assert_eq!(plan.end, PlanEnd::EndReached);
 }
@@ -124,9 +156,13 @@ fn 前回の停止から再開する_実行済みと再開位置() {
         false,
     );
     let plan = plan_with(THREE, Some(&s), &[]);
-    assert_eq!(
-        dispositions(&plan),
-        [D::AlreadyExecuted, D::WillRun, D::WillRun]
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::AlreadyExecuted, D::WillRun(_), D::WillRun(_)]
+        ),
+        "{:?}",
+        dispositions(&plan)
     );
     assert_eq!(plan.resume, ResumeInfo::AfterStop("b".into()));
     let resumes: Vec<bool> = plan.entries.iter().map(|e| e.is_resume).collect();
@@ -152,7 +188,14 @@ fn 完了したステートは_ステートなしと同じ扱いで最初から(
         true,
     );
     let plan = plan_with(THREE, Some(&s), &[]);
-    assert_eq!(dispositions(&plan), [D::WillRun, D::WillRun, D::WillRun]);
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::WillRun(_), D::WillRun(_), D::WillRun(_)]
+        ),
+        "{:?}",
+        dispositions(&plan)
+    );
     assert_eq!(plan.resume, ResumeInfo::FromStart);
 }
 
@@ -169,9 +212,13 @@ fn ステートの遷移のスキップの記録は_遷移でスキップとし�
     );
     s.job_states[1].skip_reason = Some(SkipReason::ByTransition);
     let plan = plan_with(JUMP, Some(&s), &[]);
-    assert_eq!(
-        dispositions(&plan),
-        [D::AlreadyExecuted, D::SkippedByTransition, D::WillRun]
+    assert!(
+        matches!(
+            dispositions(&plan).as_slice(),
+            [D::AlreadyExecuted, D::SkippedByTransition, D::WillRun(_)]
+        ),
+        "{:?}",
+        dispositions(&plan)
     );
 }
 

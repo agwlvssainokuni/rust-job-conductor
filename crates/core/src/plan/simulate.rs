@@ -73,13 +73,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
     for (index, job) in def.job.iter().enumerate() {
         let is_resume = initial_resume.as_deref() == Some(job.id.as_str());
         if stopped.is_some() {
-            entries.push(entry(
-                input,
-                index,
-                PlanDisposition::NotReached,
-                is_resume,
-                None,
-            ));
+            entries.push(entry(input, index, PlanDisposition::NotReached, is_resume));
             continue;
         }
         let decision = decide_before_run(
@@ -93,13 +87,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
             Decision::Reject(reason) => return Err(rejection(&job.id, reason)),
             Decision::Skip(reason) => {
                 // スキップは、本番と同じ `apply_skip` で記録する(BR1.8)。
-                entries.push(entry(
-                    input,
-                    index,
-                    skip_disposition(reason),
-                    is_resume,
-                    None,
-                ));
+                entries.push(entry(input, index, skip_disposition(reason), is_resume));
                 state = apply_skip(&state, &job.id, reason, def);
             }
             Decision::Run => {
@@ -120,9 +108,8 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
                 entries.push(entry(
                     input,
                     index,
-                    PlanDisposition::WillRun,
+                    PlanDisposition::WillRun(result),
                     is_resume,
-                    Some(result),
                 ));
             }
         }
@@ -139,7 +126,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
     };
     let ran: HashSet<&str> = entries
         .iter()
-        .filter(|e| e.disposition == PlanDisposition::WillRun)
+        .filter(|e| matches!(e.disposition, PlanDisposition::WillRun(_)))
         .map(|e| e.job_id.as_str())
         .collect();
     let unused = unused_assumptions(input.assumptions, &ran);
@@ -183,7 +170,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
     let (item, end) = match decision {
         Decision::Reject(reason) => return Err(rejection(job_id, reason)),
         Decision::Skip(reason) => (
-            entry(input, index, skip_disposition(reason), false, None),
+            entry(input, index, skip_disposition(reason), false),
             PlanEnd::Completed,
         ),
         Decision::Run => {
@@ -207,7 +194,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
             };
             ran.insert(job_id);
             (
-                entry(input, index, PlanDisposition::WillRun, false, Some(result)),
+                entry(input, index, PlanDisposition::WillRun(result), false),
                 end,
             )
         }
@@ -297,7 +284,6 @@ fn entry(
     index: usize,
     disposition: PlanDisposition,
     is_resume: bool,
-    result: Option<SimulatedResult>,
 ) -> PlanEntry {
     let def = input.definition;
     let job = &def.job[index];
@@ -322,7 +308,6 @@ fn entry(
         command_words: input.commands.get(index).cloned().unwrap_or_default(),
         env_names,
         retry: job.retry.clone(),
-        result,
     }
 }
 

@@ -58,8 +58,8 @@ impl Assumption {
 /// 計画の中のジョブの扱い(BR1.3)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlanDisposition {
-    /// 実行する。
-    WillRun,
+    /// 実行する(模擬での結果を持つ。BR1.7)。
+    WillRun(SimulatedResult),
     /// 実行済み(成功・警告で記録済み)。
     AlreadyExecuted,
     /// 遷移でスキップ。
@@ -70,7 +70,17 @@ pub enum PlanDisposition {
     NotReached,
 }
 
-/// 模擬での、ジョブの結果(`WillRun` のジョブだけ。BR1.7)。
+impl PlanDisposition {
+    /// 模擬での結果(`WillRun` のときだけ `Some`)。読み方の補助。
+    pub fn result(self) -> Option<SimulatedResult> {
+        match self {
+            PlanDisposition::WillRun(result) => Some(result),
+            _ => None,
+        }
+    }
+}
+
+/// 模擬での、ジョブの結果(`PlanDisposition::WillRun` が持つ。BR1.7)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SimulatedResult {
     /// 仮定した(または既定の)終了コード。
@@ -105,8 +115,6 @@ pub struct PlanEntry {
     /// 渡される環境変数の名前と出どころ(試行 1)。
     pub env_names: Vec<EnvNameEntry>,
     pub retry: Option<RetryPolicy>,
-    /// `WillRun` のときだけ。
-    pub result: Option<SimulatedResult>,
 }
 
 /// 計画の方式(`Pipeline` は `pipeline <name> --dry-run`、`Individual` は `run <job> --dry-run`)。

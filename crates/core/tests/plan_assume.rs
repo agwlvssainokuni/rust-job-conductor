@@ -59,19 +59,25 @@ fn 実行されないジョブの仮定は_使われなかった仮定になる_
 #[test]
 fn リトライの対象の終了コードを仮定すると_注記される() {
     let plan = make_plan(DEF, &[Assumption::new("a", 75)]);
-    let r = plan.entries[0].result.expect("結果");
+    let r = plan.entries[0].disposition.result().expect("結果");
     assert_eq!(r.classification, Classification::Error);
     assert!(r.retryable);
     assert_eq!(plan.end, PlanEnd::StoppedAtError("a".into()));
     // リトライの対象でない終了コード。
     let plan = make_plan(DEF, &[Assumption::new("a", 1)]);
-    assert!(!plan.entries[0].result.expect("結果").retryable);
+    assert!(
+        !plan.entries[0]
+            .disposition
+            .result()
+            .expect("結果")
+            .retryable
+    );
 }
 
 #[test]
 fn 成功コードに_0_を含まないジョブは_既定の_0_でエラーになる() {
     let plan = make_plan(NO_ZERO, &[]);
-    let r = plan.entries[0].result.expect("結果");
+    let r = plan.entries[0].disposition.result().expect("結果");
     assert_eq!(
         (r.exit_code, r.classification, r.assumed),
         (0, Classification::Error, false)
@@ -87,7 +93,7 @@ fn 成功コードに_0_を含まないジョブは_既定の_0_でエラーに�
 fn 終了コード_127_以上の仮定は_通常の終了コードとして分類される() {
     for code in [127, 130, 255] {
         let plan = make_plan(DEF, &[Assumption::new("a", code)]);
-        let r = plan.entries[0].result.expect("結果");
+        let r = plan.entries[0].disposition.result().expect("結果");
         assert_eq!(
             (r.exit_code, r.classification),
             (code, Classification::Error),
@@ -103,8 +109,8 @@ fn 複数のジョブへの仮定は_それぞれのジョブに効く() {
         NO_ZERO,
         &[Assumption::new("a", 10), Assumption::new("b", 3)],
     );
-    let a = plan.entries[0].result.expect("結果");
-    let b = plan.entries[1].result.expect("結果");
+    let a = plan.entries[0].disposition.result().expect("結果");
+    let b = plan.entries[1].disposition.result().expect("結果");
     assert_eq!(
         (a.classification, b.classification),
         (Classification::Success, Classification::Error)

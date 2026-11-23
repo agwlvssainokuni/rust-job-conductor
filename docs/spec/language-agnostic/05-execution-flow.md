@@ -862,9 +862,9 @@ target_position(i, on):
 | 名前 | 内容 |
 |------|------|
 | `Assumption` | `{ job_id, exit_code: 整数 }`。終了コードの範囲は 0〜255 |
-| `PlanDisposition` | `willRun`(実行する)、`alreadyExecuted`(実行済み)、`skippedByTransition`(遷移でスキップ)、`skippedAfterEnd`(`@end` のあとでスキップ)、`notReached`(模擬でエラーの停止のあとのため、実行されない) |
-| `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`willRun` のジョブだけ |
-| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<(name, origin)>(試行 1 で渡される名前と出どころ), retry: RetryPolicy?, result: SimulatedResult? }`。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
+| `PlanDisposition` | `willRun`(実行する。模擬での結果 `SimulatedResult` を持つ)、`alreadyExecuted`(実行済み)、`skippedByTransition`(遷移でスキップ)、`skippedAfterEnd`(`@end` のあとでスキップ)、`notReached`(模擬でエラーの停止のあとのため、実行されない) |
+| `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`willRun` が持つ |
+| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<(name, origin)>(試行 1 で渡される名前と出どころ), retry: RetryPolicy? }`(模擬の結果は `disposition` の `willRun` が持つ)。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
 | 計画の方式 | `pipeline`、`individual` |
 | `ResumeInfo` | 3 つの場合のどれか: `fromStart`(ステートなし、または完了したステート)、`afterStop`(前回の停止で再開位置あり。再開位置のジョブ ID を持つ)、`individual`(`run` の対象。対象のジョブ ID を持つ) |
 | `PlanEnd` | `completed`、`endReached`(`@end` に到達)、`stoppedAtError(job_id)` |

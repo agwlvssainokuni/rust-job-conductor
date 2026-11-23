@@ -851,10 +851,10 @@ target_position(i, on):
 | 型 | 内容 |
 |----|------|
 | `Assumption` | `{ job_id, exit_code: i32 }`。`Assumption::new`。`exit_code_in_range(code)` = 0〜255(定数 `ASSUME_EXIT_CODE_MIN = 0`、`ASSUME_EXIT_CODE_MAX = 255`) |
-| `PlanDisposition` | `WillRun`(実行する)、`AlreadyExecuted`(実行済み)、`SkippedByTransition`(遷移でスキップ)、`SkippedAfterEnd`(`@end` のあとでスキップ)、`NotReached`(模擬でエラーの停止のあとのため、実行されない) |
-| `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`WillRun` のジョブだけ |
+| `PlanDisposition` | `WillRun(SimulatedResult)`(実行する。模擬での結果を持つ)、`AlreadyExecuted`(実行済み)、`SkippedByTransition`(遷移でスキップ)、`SkippedAfterEnd`(`@end` のあとでスキップ)、`NotReached`(模擬でエラーの停止のあとのため、実行されない)。読み方の補助 `result(self) -> Option<SimulatedResult>`(`WillRun` のときだけ `Some`) |
+| `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`WillRun` が持つ |
 | `EnvNameEntry` | `{ name, origin: EnvOrigin }`。値を持たない |
-| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前と出どころ), retry: Option<RetryPolicy>, result: Option<SimulatedResult> }`。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
+| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前と出どころ), retry: Option<RetryPolicy> }`(模擬の結果は `disposition` の `WillRun` が持つ)。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
 | `PlanMode` | `Pipeline`、`Individual`。`RunMode` の別名(`ExecutionPlan.mode` の型は `RunMode`) |
 | `ResumeInfo` | 列挙型。`FromStart`(ステートなし、または完了したステート)、`AfterStop(String)`(前回の停止で再開位置あり。再開位置のジョブ ID)、`Individual(String)`(`run` の対象。対象のジョブ ID)。あり得る 3 つの場合だけを表す |
 | `PlanEnd` | `Completed`、`EndReached`(`@end` に到達)、`StoppedAtError(job_id)` |

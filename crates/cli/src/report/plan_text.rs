@@ -142,9 +142,9 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
     }
     push_line(out, &line);
 
-    if entry.disposition != PlanDisposition::WillRun {
+    let PlanDisposition::WillRun(_) = entry.disposition else {
         return;
-    }
+    };
     let words: Vec<String> = entry
         .command_words
         .iter()
@@ -185,7 +185,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
 
 /// 仮定の補足(括弧の中)。指定したジョブ、または既定の結果が成功でないジョブに付ける(BR3.2)。
 fn assumption_note(lang: Language, entry: &PlanEntry) -> Option<String> {
-    let result = entry.result.as_ref()?;
+    let result = entry.disposition.result()?;
     if !result.assumed && result.classification == Classification::Success {
         return None;
     }
@@ -207,7 +207,7 @@ fn next_step_line(lang: Language, note: &NextStepNote, entry: &PlanEntry) -> Str
         .map(|id| escape_path(id))
         .collect();
     let mut text = String::new();
-    if let Some(result) = &entry.result
+    if let Some(result) = entry.disposition.result()
         && result.classification != Classification::Success
     {
         let inner = plan_assumed(

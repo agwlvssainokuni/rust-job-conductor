@@ -682,7 +682,7 @@ pub fn plan_resume_after_stop(lang: Language, escaped_job_id: &str) -> String {
 /// ジョブの扱いの語(括弧の中の補足を除く)。
 pub fn plan_disposition(lang: Language, disposition: PlanDisposition) -> &'static str {
     let text = match disposition {
-        PlanDisposition::WillRun => Text::new("run", "実行する"),
+        PlanDisposition::WillRun(_) => Text::new("run", "実行する"),
         PlanDisposition::AlreadyExecuted => ALREADY_EXECUTED,
         PlanDisposition::SkippedByTransition => Text::new("skip (transition)", "スキップ(遷移)"),
         PlanDisposition::SkippedAfterEnd => Text::new("skip (after @end)", "スキップ(@end のあと)"),
