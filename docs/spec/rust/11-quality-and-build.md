@@ -117,7 +117,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `.env` の層の統合(`merge_env`)。1 ファイル 10,000 項目(すべて別の名前)/ 2 ファイル 10,000 項目ずつ(同じ名前。後ろが勝つ) | 5 回の中央値が 50 ms / 100 ms 以内 | **強制** | `core/tests/env_merge_perf.rs` |
 | 計画の模擬(v0.9.7 以降)。ジョブ 1,000 個がすべて実行する計画(ステート・`.env` なし。P1)/ `run j0` で `@end` に着いた後のステートから、残り 999 個を `@end` のあとでスキップする計画(P2)を、それぞれ 1 回 | 5 回の中央値が 150 ms / 150 ms 以内(debug) | **強制** | `core/tests/plan_simulate_perf.rs` |
 | 図の重ね合わせ(v0.9.7 以降)。ジョブ 1,000 個の `build_graph(def, Some(overlay))` を 100 回(P3) | 5 回の中央値が 350 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
-| 図の辺の取り出し(v0.9.7 以降)。ジョブ 1,000 個、遷移 1,996 個の `flow_edges` を 100 回(P4) | 5 回の中央値が 600 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
+| 図の辺の取り出し(v0.9.7 以降)。ジョブ 1,000 個、遷移 1,996 個の `build_graph`(重ね合わせなし)の辺を 100 回(P4) | 5 回の中央値が 600 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
 | `.env` の解析の重複キー(v0.9.7 以降)。10,000 行で後半 5,000 行が前半の名前の逆順の重複の `parse_env_file` を 1 回(P5) | 5 回の中央値が 100 ms 以内(debug) | **強制** | `core/tests/env_parse_perf.rs` |
 | 定義の `env` の表の大文字小文字の検査(v0.9.8 以降)。`[pipeline.env]` に別々の名前 10,000 個(118,977 バイト)の `parse_definition` を 1 回(P1。結果の並びと、大文字小文字だけが違う名前を足すと誤り 1 件も確かめる) | 5 回の中央値が 350 ms 以内(debug) | **強制** | `core/tests/definition_perf.rs` |
 | 遷移の重複の確認(v0.9.8 以降)。1 つのジョブに `success` の遷移 20,000 個、続けて `warning` の遷移 20,000 個の `parse_definition` を 1 回(P2。`duplicateTransition` 39,998 件と、その位置の順も確かめる) | 5 回の中央値が 1,600 ms 以内(debug) | **強制** | `core/tests/definition_perf.rs` |

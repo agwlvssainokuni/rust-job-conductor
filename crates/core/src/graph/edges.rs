@@ -47,7 +47,7 @@ fn target_position(
 /// - 並びは、元のジョブの記述順。同じ元の中では、行き先が近い辺が先(記述順の次のジョブへの辺が
 ///   先、終点が最後。BR1.2)。
 /// - `skipped_jobs` は、元と行き先のあいだのジョブ(終点なら、末尾まで。BR1.4)。
-pub fn flow_edges(definition: &PipelineDefinition) -> Vec<FlowEdge> {
+pub(crate) fn flow_edges(definition: &PipelineDefinition) -> Vec<FlowEdge> {
     let jobs = &definition.job;
     // 遷移先の位置の表を 1 回だけ作る(最初に現れた位置を残す。`job_index` と同じ結果。2c)。
     let mut positions: HashMap<&str, usize> = HashMap::with_capacity(jobs.len());

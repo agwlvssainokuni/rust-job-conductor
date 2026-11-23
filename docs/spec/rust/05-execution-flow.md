@@ -745,7 +745,7 @@ return EffectiveEnv { entries: keep_last(items) }
 | `LaneLayout` | `{ rows: Vec<LaneRow>, main_line: Vec<LaneGlyph> }`。`main_line` は、ノードごと(`FlowGraph.nodes` の位置)の主線の列 0 の記号(15.5)。`-v` の詳細の行の列 0 にも使う(15.6) |
 | `GraphLayout` | `Lanes(LaneLayout)`(対応する形)、`EdgeList`(それ以外) |
 
-### 15.2 辺の取り出し(`flow_edges(definition) -> Vec<FlowEdge>`)
+### 15.2 辺の取り出し(`flow_edges(definition) -> Vec<FlowEdge>`。crate の中。外からは `build_graph` の `edges`)
 
 ジョブ(位置 `i`、`0` 始まり)ごとに、成功と警告の行き先の位置を決める。位置は、ジョブなら `0..n-1`、終点なら `n`(`n` = ジョブの数)。
 
@@ -765,7 +765,7 @@ target_position(i, on):
 
 ### 15.3 状態の重ね合わせ
 
-- `node_state_of(status)`: `Success`・`Warning` → `Ok`、`Skipped` → `Skipped`、`Error` → `Error`、`Pending` → `Pending`。
+- `node_state_of(status)`(`graph/overlay.rs` の中だけ。`overlay_from_state` が使う): `Success`・`Warning` → `Ok`、`Skipped` → `Skipped`、`Error` → `Error`、`Pending` → `Pending`。
 - `overlay_from_state(state)`: ステートの各ジョブの状態を重ねる。再開位置 `resume_job_id` は、**完了していないステートのときだけ**使う(完了したステート、`completed = true`、は、状態の記号は重ねるが、再開位置は示さない)。
 - `pending_overlay(definition)`: ステートがないとき。すべてのジョブが `Pending`、再開位置なし。
 - `build_graph(definition, overlay)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`kind = NodeKind::End`、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `Pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。

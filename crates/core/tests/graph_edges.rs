@@ -16,11 +16,16 @@
 
 mod graph_common;
 
-use conductor_core::graph::{EdgeKind, EdgeTarget, FlowEdge, flow_edges};
+use conductor_core::graph::{EdgeKind, EdgeTarget, FlowEdge, build_graph};
 use conductor_core::{
     JobExecution, PipelineDefinition, RunMode, TransitionOn, classify_and_decide,
 };
 use graph_common::{Spec, definition};
+
+/// 定義の図の辺(公開の `build_graph` の、重ね合わせなしの辺)。
+fn edges(def: &PipelineDefinition) -> Vec<FlowEdge> {
+    build_graph(def, None).edges
+}
 
 use EdgeKind::{Success, Warning};
 use TransitionOn::{Success as OnSuccess, Warning as OnWarning};
@@ -47,7 +52,7 @@ fn edge(
 
 #[test]
 fn 遷移がなければ_記述順の次のジョブへの辺が1つで_最後は終点() {
-    let edges = flow_edges(&definition(&["a", "b", "c"], &[]));
+    let edges = edges(&definition(&["a", "b", "c"], &[]));
     assert_eq!(
         edges,
         vec![
@@ -60,7 +65,7 @@ fn 遷移がなければ_記述順の次のジョブへの辺が1つで_最後�
 
 #[test]
 fn 成功だけの遷移は_成功の辺と警告の辺に分かれ_次のジョブへの辺が先() {
-    let edges = flow_edges(&definition(
+    let edges = edges(&definition(
         &["a", "b", "c", "d"],
         &[("a", OnSuccess, Some("d"))],
     ));
@@ -75,7 +80,7 @@ fn 成功だけの遷移は_成功の辺と警告の辺に分かれ_次のジョ
 
 #[test]
 fn 警告だけの遷移も_次のジョブへの辺が先() {
-    let edges = flow_edges(&definition(
+    let edges = edges(&definition(
         &["a", "b", "c"],
         &[("a", OnWarning, Some("c"))],
     ));
@@ -90,7 +95,7 @@ fn 警告だけの遷移も_次のジョブへの辺が先() {
 
 #[test]
 fn 成功と警告が同じ行き先なら_1つの辺で_kinds_が両方() {
-    let edges = flow_edges(&definition(
+    let edges = edges(&definition(
         &["a", "b", "c"],
         &[("a", OnSuccess, Some("c")), ("a", OnWarning, Some("c"))],
     ));
@@ -104,7 +109,7 @@ fn 成功と警告が同じ行き先なら_1つの辺で_kinds_が両方() {
 
 #[test]
 fn 成功と警告が違う遠い行き先なら_近い辺が先で_終点が最後() {
-    let edges = flow_edges(&definition(
+    let edges = edges(&definition(
         &["a", "b", "c", "d"],
         &[("a", OnSuccess, None), ("a", OnWarning, Some("c"))],
     ));
@@ -119,7 +124,7 @@ fn 成功と警告が違う遠い行き先なら_近い辺が先で_終点が最
 
 #[test]
 fn 終点へ飛ぶと_元より後ろのすべてのジョブを飛び越す() {
-    let edges = flow_edges(&definition(&["a", "b", "c"], &[("a", OnSuccess, None)]));
+    let edges = edges(&definition(&["a", "b", "c"], &[("a", OnSuccess, None)]));
     assert_eq!(
         edges[..2],
         [
@@ -131,7 +136,7 @@ fn 終点へ飛ぶと_元より後ろのすべてのジョブを飛び越す() {
 
 #[test]
 fn 最後のジョブから終点への辺は_飛び越しなし() {
-    let edges = flow_edges(&definition(&["a", "b"], &[("b", OnSuccess, None)]));
+    let edges = edges(&definition(&["a", "b"], &[("b", OnSuccess, None)]));
     let last = edges.last().unwrap();
     // 成功は明示、警告は既定だが、どちらも終点なので 1 つにまとまる。
     assert_eq!(
@@ -142,7 +147,7 @@ fn 最後のジョブから終点への辺は_飛び越しなし() {
 
 #[test]
 fn ジョブが1個なら_終点への辺が1つだけ() {
-    let edges = flow_edges(&definition(&["only"], &[]));
+    let edges = edges(&definition(&["only"], &[]));
     assert_eq!(
         edges,
         vec![edge(
@@ -157,7 +162,7 @@ fn ジョブが1個なら_終点への辺が1つだけ() {
 
 /// 実行の判断(`classify_and_decide`)の次のジョブと、図の辺の行き先が、同じになること(BR1.5)。
 fn assert_same_as_execution(def: &PipelineDefinition) {
-    let edges = flow_edges(def);
+    let edges = edges(def);
     for job in &def.job {
         for (kind, code) in [(Success, 0), (Warning, 3)] {
             let (_, step) = classify_and_decide(

@@ -14,6 +14,8 @@
 
 //! 図の型(entities.md。BR4.1)のテスト。
 
+mod common;
+
 use conductor_core::JobStatus;
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, LaneLayout,
@@ -89,10 +91,31 @@ fn レーンの配置は行の並びで_配置の結果はレーンか辺の一�
 
 #[test]
 fn ジョブの状態は成功と警告を_ok_にまとめる() {
-    use conductor_core::graph::node_state_of;
-    assert_eq!(node_state_of(JobStatus::Success), NodeState::Ok);
-    assert_eq!(node_state_of(JobStatus::Warning), NodeState::Ok);
-    assert_eq!(node_state_of(JobStatus::Skipped), NodeState::Skipped);
-    assert_eq!(node_state_of(JobStatus::Error), NodeState::Error);
-    assert_eq!(node_state_of(JobStatus::Pending), NodeState::Pending);
+    use conductor_core::graph::overlay_from_state;
+    let state = common::state(
+        &[
+            ("a", JobStatus::Success),
+            ("b", JobStatus::Warning),
+            ("c", JobStatus::Skipped),
+            ("d", JobStatus::Error),
+            ("e", JobStatus::Pending),
+        ],
+        None,
+        false,
+    );
+    let states: Vec<NodeState> = overlay_from_state(&state)
+        .states
+        .into_iter()
+        .map(|(_, s)| s)
+        .collect();
+    assert_eq!(
+        states,
+        [
+            NodeState::Ok,
+            NodeState::Ok,
+            NodeState::Skipped,
+            NodeState::Error,
+            NodeState::Pending,
+        ]
+    );
 }

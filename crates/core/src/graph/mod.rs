@@ -31,9 +31,9 @@ mod edges;
 mod layout;
 mod overlay;
 
-pub use edges::flow_edges;
+pub(crate) use edges::flow_edges;
 pub use layout::layout_graph;
-pub use overlay::{build_graph, node_state_of, overlay_from_state, pending_overlay};
+pub use overlay::{build_graph, overlay_from_state, pending_overlay};
 
 /// 辺が、どの結果のときに通るか(`Success`、`Warning`)。エラーには辺がない(ジョブが止まるため。BR1.3)。
 /// 遷移の結果 [`TransitionOn`](crate::types::TransitionOn) の別名(同じ意味の型を 1 つにする。BR4.3)。

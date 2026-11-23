@@ -91,7 +91,7 @@ pub fn build_graph(definition: &PipelineDefinition, overlay: Option<&StateOverla
 }
 
 /// ジョブの状態から、図の状態を決める(BR4.1)。成功と警告は `Ok` にまとめる。
-pub fn node_state_of(status: JobStatus) -> NodeState {
+fn node_state_of(status: JobStatus) -> NodeState {
     match status {
         JobStatus::Success | JobStatus::Warning => NodeState::Ok,
         JobStatus::Skipped => NodeState::Skipped,

@@ -23,9 +23,7 @@ mod common;
 use std::time::{Duration, Instant};
 
 use common::median;
-use conductor_core::graph::{
-    EdgeKind, EdgeTarget, NodeState, StateOverlay, build_graph, flow_edges,
-};
+use conductor_core::graph::{EdgeKind, EdgeTarget, NodeState, StateOverlay, build_graph};
 use conductor_core::{PipelineDefinition, parse_definition};
 
 const N: usize = 1000;
@@ -137,7 +135,7 @@ fn p4_千個のジョブの辺の取り出しを_100_回くり返しても_600ms
     let def = parse_definition(&text, "t.toml", None).expect("正しい定義");
 
     // 結果の中身: 辺は 1,998 本(`j0`〜`j997` は 2 本ずつ、`j998` と `j999` は 1 本ずつ)。
-    let edges = flow_edges(&def);
+    let edges = build_graph(&def, None).edges;
     assert_eq!(edges.len(), 1998);
     for i in 0..N - 2 {
         let success = &edges[2 * i];
@@ -162,7 +160,7 @@ fn p4_千個のジョブの辺の取り出しを_100_回くり返しても_600ms
     assert!(!j999.explicit);
 
     let m = measure("P4", || {
-        assert_eq!(flow_edges(&def).len(), 1998);
+        assert_eq!(build_graph(&def, None).edges.len(), 1998);
     });
     assert!(
         m < LIMIT_EDGES,
