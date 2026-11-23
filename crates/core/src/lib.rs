@@ -110,9 +110,7 @@ pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
     PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run,
 };
-pub use run_id::{
-    DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env,
-};
+pub use run_id::{DEFAULT_RUN_ID_ENV, RunId, RunIdError, is_valid_env_name, peek_run_id_env};
 pub use types::{
     Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition,
     JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState,

@@ -21,7 +21,7 @@
 use toml::de::{DeTable, DeValue};
 
 /// run ID の最大の長さ(文字数。すべて ASCII なので、バイト数と同じ)。
-pub const MAX_RUN_ID_LEN: usize = 64;
+const MAX_RUN_ID_LEN: usize = 64;
 
 /// 環境変数の名前を省略したときの既定。
 pub const DEFAULT_RUN_ID_ENV: &str = "CONDUCTOR_RUN_ID";
