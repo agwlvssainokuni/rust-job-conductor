@@ -126,14 +126,9 @@ mod tests {
 
     fn job(success: Option<Vec<i32>>, warning: Vec<i32>) -> JobDefinition {
         JobDefinition {
-            id: "a".into(),
-            command: "c".into(),
             warning_exit_codes: warning,
             success_exit_codes: success,
-            transitions: vec![],
-            retry: None,
-            env: Vec::new(),
-            env_file: Vec::new(),
+            ..crate::test_support::job("a")
         }
     }
 

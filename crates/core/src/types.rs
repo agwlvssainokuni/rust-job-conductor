@@ -483,16 +483,7 @@ mod tests {
     use super::*;
 
     fn job(id: &str) -> JobDefinition {
-        JobDefinition {
-            id: id.to_string(),
-            command: "echo".into(),
-            warning_exit_codes: vec![],
-            success_exit_codes: None,
-            transitions: vec![],
-            retry: None,
-            env: Vec::new(),
-            env_file: Vec::new(),
-        }
+        crate::test_support::job(id)
     }
 
     fn policy() -> RetryPolicy {
@@ -592,16 +583,7 @@ mod tests {
 
     #[test]
     fn ジョブの位置は記述順() {
-        let def = PipelineDefinition {
-            name: "p".into(),
-            description: None,
-            run_id_env: None,
-            remove_on_complete: false,
-            format_version: 1,
-            job: vec![job("a"), job("b")],
-            env: Vec::new(),
-            env_file: Vec::new(),
-        };
+        let def = crate::test_support::definition("p", vec![job("a"), job("b")]);
         assert_eq!(def.job_index("b"), Some(1));
         assert_eq!(def.job_index("zz"), None);
     }

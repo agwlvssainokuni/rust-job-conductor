@@ -229,7 +229,7 @@ pub fn apply_interrupt(state: &PipelineState, resume_point: &ResumePoint) -> Pip
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Classification, JobDefinition};
+    use crate::types::Classification;
 
     /// run ID なしの初期ステート(既存のテストの書き方を保つ)。
     fn initial_state(definition: &PipelineDefinition, path: &Path) -> PipelineState {
@@ -246,28 +246,10 @@ mod tests {
     }
 
     fn definition(ids: &[&str]) -> PipelineDefinition {
-        PipelineDefinition {
-            name: "p".into(),
-            description: None,
-            run_id_env: None,
-            remove_on_complete: false,
-            format_version: 1,
-            job: ids
-                .iter()
-                .map(|id| JobDefinition {
-                    id: (*id).into(),
-                    command: "echo".into(),
-                    warning_exit_codes: vec![],
-                    success_exit_codes: None,
-                    transitions: vec![],
-                    retry: None,
-                    env: vec![],
-                    env_file: vec![],
-                })
-                .collect(),
-            env: vec![],
-            env_file: vec![],
-        }
+        crate::test_support::definition(
+            "p",
+            ids.iter().map(|id| crate::test_support::job(id)).collect(),
+        )
     }
 
     fn exec(code: Option<i32>) -> JobExecution {

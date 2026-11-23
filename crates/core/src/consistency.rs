@@ -66,31 +66,13 @@ pub fn check_consistency(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{JobDefinition, JobState};
+    use crate::types::JobState;
 
     fn definition(name: &str, ids: &[&str]) -> PipelineDefinition {
-        PipelineDefinition {
-            name: name.into(),
-            description: None,
-            run_id_env: None,
-            remove_on_complete: false,
-            format_version: 1,
-            job: ids
-                .iter()
-                .map(|id| JobDefinition {
-                    id: (*id).into(),
-                    command: "echo".into(),
-                    warning_exit_codes: vec![],
-                    success_exit_codes: None,
-                    transitions: vec![],
-                    retry: None,
-                    env: vec![],
-                    env_file: vec![],
-                })
-                .collect(),
-            env: vec![],
-            env_file: vec![],
-        }
+        crate::test_support::definition(
+            name,
+            ids.iter().map(|id| crate::test_support::job(id)).collect(),
+        )
     }
 
     fn state(name: &str, ids: &[&str]) -> PipelineState {

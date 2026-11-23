@@ -194,34 +194,23 @@ mod tests {
 
     fn job(id: &str, transitions: Vec<Transition>) -> JobDefinition {
         JobDefinition {
-            id: id.into(),
-            command: "c".into(),
             warning_exit_codes: vec![3],
-            success_exit_codes: None,
             transitions,
-            retry: None,
-            env: Vec::new(),
-            env_file: Vec::new(),
+            ..crate::test_support::job(id)
         }
     }
 
     /// j0 -> j1 -> j2 -> j3 の定義。j0 の遷移だけを差し替えられる。
     fn def(j0_transitions: Vec<Transition>) -> PipelineDefinition {
-        PipelineDefinition {
-            name: "p".into(),
-            description: None,
-            run_id_env: None,
-            remove_on_complete: false,
-            format_version: 1,
-            job: vec![
+        crate::test_support::definition(
+            "p",
+            vec![
                 job("j0", j0_transitions),
                 job("j1", vec![]),
                 job("j2", vec![]),
                 job("j3", vec![]),
             ],
-            env: Vec::new(),
-            env_file: Vec::new(),
-        }
+        )
     }
 
     fn exec(code: i32) -> JobExecution {

@@ -53,30 +53,15 @@ pub fn resume_point_on_interrupt(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{JobDefinition, SkipReason};
+    use crate::types::SkipReason;
 
     fn def(n: usize) -> PipelineDefinition {
-        PipelineDefinition {
-            name: "p".into(),
-            description: None,
-            run_id_env: None,
-            remove_on_complete: false,
-            format_version: 1,
-            job: (0..n)
-                .map(|i| JobDefinition {
-                    id: format!("j{i}"),
-                    command: "c".into(),
-                    warning_exit_codes: vec![],
-                    success_exit_codes: None,
-                    transitions: vec![],
-                    retry: None,
-                    env: Vec::new(),
-                    env_file: Vec::new(),
-                })
+        crate::test_support::definition(
+            "p",
+            (0..n)
+                .map(|i| crate::test_support::job(&format!("j{i}")))
                 .collect(),
-            env: Vec::new(),
-            env_file: Vec::new(),
-        }
+        )
     }
 
     fn st(id: &str, status: JobStatus, reason: Option<SkipReason>) -> JobState {

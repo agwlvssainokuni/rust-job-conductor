@@ -90,6 +90,8 @@ pub mod flow;
 pub mod graph;
 pub mod plan;
 pub mod run_id;
+#[cfg(test)]
+mod test_support;
 pub mod types;
 
 pub use consistency::{ConsistencyResult, MismatchKind, check_consistency};
