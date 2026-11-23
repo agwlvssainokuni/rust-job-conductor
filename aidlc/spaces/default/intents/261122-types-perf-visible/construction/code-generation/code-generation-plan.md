@@ -15,28 +15,28 @@
 
 ## 段 1: 型と構造(コミット 1〜21)
 
-- [ ] Step 1: 計画の型(`ResumeInfo`、`PlanDisposition::WillRun`、`NextStepNote`。1a、1b、1e)と図の節(`NodeKind`、D1。1c)。T1〜T8。
-- [ ] Step 2: `Backoff`(1d)と `RetryDecision::Retry` の `last_exit_code`・`max`(1f)、N1。T9、T10、T16、T26。
-- [ ] Step 3: 読まれない項目を消す(`JobOutcome`・`NextStep` の `job_id`、`JobExecution` の `job_id`・`command`、組み立ての関数と `run_job` の `job` の引数。1g、D2)。T5、T10〜T14、★ T17a、T17b、T18〜T23。仕様書に「v0.9.6 までは `run_job(job, line, env, signal)`」。
-- [ ] Step 4: `EnvFileError::reason()` と `render_error`(1h)、N2。T15。
-- [ ] Step 5: cli の `Checked.base`、`prepare_session`(D3)、`SkipRecord`(1i)。
-- [ ] Step 6: 種類の `label()`(D10)と `messages.rs` の関数の形の統一(1j)、N3。
-- [ ] Step 7: 外から使われない `pub` を狭める(1k、D9)。段 1 の後の件数を記録(見込み 1,149)。
+- [x] Step 1: 計画の型(`ResumeInfo`、`PlanDisposition::WillRun`、`NextStepNote`。1a、1b、1e)と図の節(`NodeKind`、D1。1c)。T1〜T8。
+- [x] Step 2: `Backoff`(1d)と `RetryDecision::Retry` の `last_exit_code`・`max`(1f)、N1。T9、T10、T16、T26。
+- [x] Step 3: 読まれない項目を消す(`JobOutcome`・`NextStep` の `job_id`、`JobExecution` の `job_id`・`command`、組み立ての関数と `run_job` の `job` の引数。1g、D2)。T5、T10〜T14、★ T17a、T17b、T18〜T23。仕様書に「v0.9.6 までは `run_job(job, line, env, signal)`」。
+- [x] Step 4: `EnvFileError::reason()` と `render_error`(1h)、N2。T15。
+- [x] Step 5: cli の `Checked.base`、`prepare_session`(D3)、`SkipRecord`(1i)。
+- [x] Step 6: 種類の `label()`(D10)と `messages.rs` の関数の形の統一(1j)、N3。
+- [x] Step 7: 外から使われない `pub` を狭める(1k、D9)。段 1 の後の件数を記録(見込み 1,149)。
 
 ## 段 2: 計算量(コミット 22〜30)
 
-- [ ] Step 8: 計画の模擬は複製しない(`apply_*_in`、D8。2a)と N4・N5。重ね合わせ(2b)と `flow_edges`(2c)を表で引くことと N6・N7。`.env` の重複を位置の表で(2d)と N8。`merge_env_names`(2e)。各項目で、直す前の木でもテストを走らせて時間を記録する。上限は §5.2 の表(P1・P2 150 ms、P3 350 ms、P4 600 ms、P5 100 ms。debug、5 回の中央値)。仕様書 11 章の性能の表。段 2 の後の件数を記録(見込み 1,154)。
+- [x] Step 8: 計画の模擬は複製しない(`apply_*_in`、D8。2a)と N4・N5。重ね合わせ(2b)と `flow_edges`(2c)を表で引くことと N6・N7。`.env` の重複を位置の表で(2d)と N8。`merge_env_names`(2e)。各項目で、直す前の木でもテストを走らせて時間を記録する。上限は §5.2 の表(P1・P2 150 ms、P3 350 ms、P4 600 ms、P5 100 ms。debug、5 回の中央値)。仕様書 11 章の性能の表。段 2 の後の件数を記録(見込み 1,154)。
 
 ## 段 3: 利用者から見える変更と版(コミット 31〜37)
 
-- [ ] Step 9: 文法の誤りの理由を形式ごとに(「TOML として読めません」「YAML として読めません」、内部の守り 2 か所は「入力の構造を解釈できません」。3a、D4、D5)、★ T24、N10、仕様書と「v0.9.6 までは…」の注記。
-- [ ] Step 10: `.env` の読み込みを形 B に(3b)、N11(直す前の木で落ちることを記録)、N12(直す前と後の両方で通ることを記録)、仕様書と「v0.9.6 までは…」の注記。
-- [ ] Step 11: 版を 0.9.7 にする(`ee9f409` と同じ範囲。★ T25)。段 3 の後の件数を記録(見込み 1,157)。
+- [x] Step 9: 文法の誤りの理由を形式ごとに(「TOML として読めません」「YAML として読めません」、内部の守り 2 か所は「入力の構造を解釈できません」。3a、D4、D5)、★ T24、N10、仕様書と「v0.9.6 までは…」の注記。
+- [x] Step 10: `.env` の読み込みを形 B に(3b)、N11(直す前の木で落ちることを記録)、N12(直す前と後の両方で通ることを記録)、仕様書と「v0.9.6 までは…」の注記。
+- [x] Step 11: 版を 0.9.7 にする(`ee9f409` と同じ範囲。★ T25)。段 3 の後の件数を記録(見込み 1,157)。
 
 ## 最後
 
-- [ ] Step 12: `functional-spec.md` §7 の確かめ方(検索と、段の前後の `cargo test --locked --workspace -- --list` の比較)を走らせて結果を記録する。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 13: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更の一覧、性能の直す前と後の時間、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 12: `functional-spec.md` §7 の確かめ方(検索と、段の前後の `cargo test --locked --workspace -- --list` の比較)を走らせて結果を記録する。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 13: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更の一覧、性能の直す前と後の時間、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
