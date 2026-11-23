@@ -44,16 +44,13 @@ pub(crate) fn temp_prefix(target_name: &str) -> String {
 }
 
 /// 一時ファイルの名前 `.<名前>.tmp.<プロセス番号>.<時刻>.<連番>`。
-pub(crate) fn temp_name(target_name: &str, pid: u32, nanos: u128, seq: u32) -> String {
+fn temp_name(target_name: &str, pid: u32, nanos: u128, seq: u32) -> String {
     format!("{}{pid}.{nanos}.{seq}", temp_prefix(target_name))
 }
 
 /// 一時ファイルを、新規作成で作る(既存なら失敗するため、他のファイルを上書きしない)。
 /// 名前が重なったら、`name_for(試行の番号)` で名前を変えて、最大 16 回まで作り直す。
-pub(crate) fn create_temp(
-    dir: &Path,
-    mut name_for: impl FnMut(u32) -> String,
-) -> io::Result<(PathBuf, File)> {
+fn create_temp(dir: &Path, mut name_for: impl FnMut(u32) -> String) -> io::Result<(PathBuf, File)> {
     let mut last = io::Error::from(io::ErrorKind::AlreadyExists);
     for attempt in 0..TEMP_ATTEMPTS {
         let path = dir.join(name_for(attempt));

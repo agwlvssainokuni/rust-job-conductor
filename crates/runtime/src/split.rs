@@ -49,7 +49,7 @@ fn is_separator(c: char) -> bool {
 ///
 /// 閉じていない引用符は [`CommandErrorKind::UnclosedQuote`]、コマンド名がなければ
 /// [`CommandErrorKind::Empty`]。
-pub(crate) fn split(command: &str) -> Result<CommandLine, CommandError> {
+fn split(command: &str) -> Result<CommandLine, CommandError> {
     let mut words: Vec<String> = Vec::new();
     let mut current = String::new();
     let mut in_word = false;

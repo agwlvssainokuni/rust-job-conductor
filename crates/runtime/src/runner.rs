@@ -32,7 +32,7 @@ const FIRST_INTERVAL_MS: u64 = 1;
 const MAX_INTERVAL_MS: u64 = 10;
 
 /// `try_wait` と pid だけを持つ、子プロセスの見え方(待ちのくり返しを、プロセスなしで試すため)。
-pub(crate) trait Waitable {
+trait Waitable {
     fn id(&self) -> u32;
     fn try_wait(&mut self) -> io::Result<Option<ExitStatus>>;
 }
@@ -47,7 +47,7 @@ impl Waitable for Child {
 }
 
 /// 待ちのくり返しの結果。
-pub(crate) enum Waited {
+enum Waited {
     /// 終了を観測した(回収した)。
     Exited(ExitStatus),
     /// 終了の状態を取得できなかった。
@@ -58,7 +58,7 @@ pub(crate) enum Waited {
 ///
 /// 直前の `try_wait` が「まだ」を返した回にだけ、合図を見て、立っていれば `forward` を 1 回だけ
 /// 呼ぶ(`forward(pid, シグナル番号)`)。`try_wait` の失敗は、`WaitFailed`。
-pub(crate) fn wait_loop<C: Waitable>(
+fn wait_loop<C: Waitable>(
     child: &mut C,
     signal: &InterruptSignal,
     forward: &mut dyn FnMut(u32, i32),

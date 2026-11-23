@@ -63,7 +63,7 @@ pub fn write_state(
     )
 }
 
-pub(crate) fn write_state_file(
+fn write_state_file(
     path: &Path,
     state: &PipelineState,
     durability: Durability,
@@ -114,7 +114,7 @@ pub(crate) fn remove_state_file(path: &Path) -> Result<bool, StateError> {
 }
 
 /// 内容を書き、`Durable` のときだけ同期する。
-pub(crate) fn persist<W: Write>(
+fn persist<W: Write>(
     file: &mut W,
     bytes: &[u8],
     durability: Durability,
@@ -129,7 +129,7 @@ pub(crate) fn persist<W: Write>(
 }
 
 /// 同じ名前の型で、更新から 24 時間以上たった一時ファイルを消す(失敗は無視)。
-pub(crate) fn remove_stale_temps(dir: &Path, state_name: &str, now: SystemTime) {
+fn remove_stale_temps(dir: &Path, state_name: &str, now: SystemTime) {
     let prefix = temp_prefix(state_name);
     let dir = dir_or_current(dir);
     let Ok(entries) = fs::read_dir(dir) else {
@@ -174,7 +174,7 @@ fn job_table(job: &JobState) -> toml::Table {
 }
 
 /// ステートを、TOML の文字列にする(E3)。`definition_key` と `definition_path` は、同じ文字列。
-pub(crate) fn serialize(state: &PipelineState) -> Option<String> {
+fn serialize(state: &PipelineState) -> Option<String> {
     let mut t = toml::Table::new();
     t.insert(
         "format_version".into(),
