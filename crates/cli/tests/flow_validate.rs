@@ -164,6 +164,33 @@ fn command_の誤りは_64_で_run_と同じ誤りの文() {
 }
 
 #[test]
+fn 空白だけのコマンド名は_64_で_ジョブを起動しない() {
+    // 文字列の command の先頭の語が、引用符の中の空白だけ(2c)。
+    let mut h = Harness::new(
+        "format_version = 1\n\n[pipeline]\nname = \"p\"\n\n[[job]]\nid = \"a\"\ncommand = \"'   ' x\"\n",
+    );
+    h.env = FakeEnv::for_language(conductor_cli::Language::En);
+    let validate = h.run(&["validate"]);
+    assert_eq!(validate.code, 64, "{}", validate.err);
+    assert_eq!(validate.out, "");
+    assert!(
+        validate.err.contains("command is empty"),
+        "{}",
+        validate.err
+    );
+    assert!(validate.err.contains("job 'a'"), "{}", validate.err);
+    assert!(
+        !validate.err.contains("'   '"),
+        "入力の値を含めない: {}",
+        validate.err
+    );
+    let run = h.run(&["run", "a"]);
+    assert_eq!(run.code, 64, "{}", run.err);
+    assert_eq!(validate.err, run.err, "run と同じ文");
+    assert_eq!(h.runtime.run_calls.get(), 0, "ジョブを起動しない");
+}
+
+#[test]
 fn パイプライン名は_一致で_0_不一致で_64_省略で照合しない() {
     let mut h = Harness::new(THREE_JOBS);
     assert_eq!(h.run(&["validate", "p"]).code, 0);

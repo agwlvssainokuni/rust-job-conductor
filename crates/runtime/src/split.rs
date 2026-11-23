@@ -246,6 +246,16 @@ mod tests {
     }
 
     #[test]
+    fn 空白だけの先頭の語はコマンド名がない() {
+        for input in ["'  '", "\"\t\"", "'  ' x", "\"  \" x"] {
+            assert_eq!(err(input), CommandErrorKind::Empty, "{input:?}");
+        }
+        // 空白を含むが空白だけでない先頭の語は、そのままコマンド名。
+        assert_eq!(ok("' a'"), [" a"]);
+        assert_eq!(ok("' my prog' x"), [" my prog", "x"]);
+    }
+
+    #[test]
     fn マルチバイトの文字() {
         assert_eq!(ok("echo 'あ い' う"), ["echo", "あ い", "う"]);
     }
