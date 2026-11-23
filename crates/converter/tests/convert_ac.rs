@@ -156,3 +156,28 @@ fn コメントつきの入力は変換でき_コメントは捨てる() {
     let out = convert_text("# comment\na = 1 # c\n", TargetFormat::Yaml, "t").unwrap();
     assert!(!out.text.contains('#'), "{}", out.text);
 }
+
+#[test]
+fn 文法の誤りの理由は形式ごとの文で_種類の文と重ならない() {
+    // YAML: 理由は「YAML として読めません」。表示は「<ファイル>:<行>: 文法の誤りです: YAML として読めません」。
+    let e = convert(&request(fixture("broken.yaml"), TargetFormat::Toml)).unwrap_err();
+    assert_eq!(e.kind, K::Syntax);
+    assert_eq!(e.reason, "YAML として読めません");
+    let shown = e.to_string();
+    assert!(
+        shown.contains(": 文法の誤りです: YAML として読めません"),
+        "{shown}"
+    );
+    assert!(!shown.contains("文法の誤りです: 文法の誤りです"), "{shown}");
+
+    // TOML: 理由は「TOML として読めません」。
+    let e = convert(&request(fixture("broken.toml"), TargetFormat::Yaml)).unwrap_err();
+    assert_eq!(e.kind, K::Syntax);
+    assert_eq!(e.reason, "TOML として読めません");
+    let shown = e.to_string();
+    assert!(
+        shown.contains(":7: 文法の誤りです: TOML として読めません"),
+        "{shown}"
+    );
+    assert!(!shown.contains("文法の誤りです: 文法の誤りです"), "{shown}");
+}
