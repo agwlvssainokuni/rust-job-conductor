@@ -1039,3 +1039,73 @@ fn 使い方に_init_と_force_がある() {
         assert!(usage.contains("--force"), "{usage}");
     }
 }
+
+// ---- 種類の文の出どころ(1j、D10) ----
+
+#[test]
+fn 日本語の誤りの表示は_各クレートの_label_を使う() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    // 定義の誤り(33 種)。
+    for kind in DefinitionErrorKind::ALL {
+        let errors = [DefinitionError::new("c.toml", Some(1), kind, "R")];
+        let text = reporter.render(&DisplayEvent::DefinitionErrors(&errors));
+        assert_eq!(
+            text,
+            format!("conductor: error: c.toml:1: {}: R\n", kind.label()),
+            "{kind:?}"
+        );
+    }
+    // `.env` の誤り(13 種)。種類の文と理由の両方。
+    for kind in EnvFileErrorKind::ALL {
+        let errors = [EnvFileError::new("x.env", Some(2), kind)];
+        let text = reporter.render(&DisplayEvent::EnvFileErrors(&errors));
+        assert_eq!(
+            text,
+            format!(
+                "conductor: error: x.env:2: {}: {}\n",
+                kind.label(),
+                kind.reason()
+            ),
+            "{kind:?}"
+        );
+    }
+    // 変換の誤り(6 種)。
+    for kind in ConversionErrorKind::ALL {
+        let error = ConversionError {
+            file: "in.yaml".into(),
+            line: Some(3),
+            key_path: None,
+            kind,
+            reason: "R".into(),
+        };
+        let text = reporter.render(&DisplayEvent::Conversion(&error));
+        assert_eq!(
+            text,
+            format!("conductor: error: in.yaml:3: {}: R\n", kind.label()),
+            "{kind:?}"
+        );
+    }
+    // ステートの誤り(6 種)。
+    for kind in [
+        StateErrorKind::Unreadable,
+        StateErrorKind::TooLarge,
+        StateErrorKind::Corrupt,
+        StateErrorKind::VersionMismatch,
+        StateErrorKind::WriteFailed,
+        StateErrorKind::RemoveFailed,
+    ] {
+        let error = state_error(kind);
+        let text = reporter.render(&DisplayEvent::State {
+            error: &error,
+            context: StateContext::Plain,
+        });
+        assert!(
+            text.starts_with(&format!(
+                "conductor: error: dir/c.toml.state: {}: ",
+                kind.label()
+            )),
+            "{kind:?}: {text}"
+        );
+    }
+}
