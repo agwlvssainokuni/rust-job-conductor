@@ -585,7 +585,7 @@ job:
 | AC-207 | YAML から TOML(アンカー展開) | `T/in.yaml` = `CV2` | `convert in.yaml --to toml` | 0。OUT に `<<` がなく、`[[job]]` を含む。OUT を TOML として読んだ木が、`CV2` を展開した木と等しい(`transform` の `success_exit_codes` は `[0]`、`extract` は `[0, 2]`) | `convert_ac::ac_7_1_2_アンカーつきの_yaml_から_toml` |
 | AC-208 | 変換の出力は標準出力だけ | `T/in.yaml` = `format_version: 1⏎pipeline:⏎  name: p⏎job:⏎  - id: a⏎    command: echo a` | `convert in.yaml --to toml` | 0。ERR 空。OUT に `[[job]]` と `format_version = 1` | `binary_basic::convert は変換結果だけを標準出力に出す` |
 | AC-209 | 入力形式は `--to` の反対で、拡張子は見ない | `T/looks-like.toml` = `a: 1⏎b: [x, y]` | `convert looks-like.toml --to toml` / `convert looks-like.toml --to yaml` | 前者: 0、OUT に `a = 1`。後者: 67(TOML として読んで `syntax error`) | `convert_ac::入力の形式は変換後の反対で_拡張子は見ない` |
-| AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to toml` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:1: syntax error: 文法の誤りです` | `binary_basic::convert は…失敗: 標準出力は空 67`、`convert_ac::ac_7_1_3` |
+| AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to toml` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:1: syntax error: YAML として読めません`(v0.9.6 までは、理由が `文法の誤りです`) | `binary_basic::convert は…失敗: 標準出力は空 67`、`convert_ac::ac_7_1_3` |
 | AC-211 | 入力がない | なし | `convert nofile --to toml` | 67。ERR = `conductor: error: nofile: input file does not exist: 指定の場所にファイルがありません` | `flow_aux::convert の入力がないときも 67` |
 | AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to toml` | 67。`cannot read input file` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |

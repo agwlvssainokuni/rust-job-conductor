@@ -246,7 +246,7 @@ conductor: error: job 'step3': cannot start command 'nonexistent_prog_x'
 
 ### 4.8 変換の誤り(`conversion_kind`)
 
-表示: `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>[ (<AT_KEY>: <キーの位置>)]`。種類の文は `messages.rs` の `conversion_kind(kind) -> Text` で、日本語は `conductor-converter` の `ConversionErrorKind::label()`(`Display` もこれを書く。cli は日本語の文を持たない)。`<原因>`(`reason`)は converter の固定の日本語(10 章)。`AT_KEY` は英語 `at`、日本語 `場所`。キーの位置(`key_path`)があるときだけ付く。
+表示: `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>[ (<AT_KEY>: <キーの位置>)]`。種類の文は `messages.rs` の `conversion_kind(kind) -> Text` で、日本語は `conductor-converter` の `ConversionErrorKind::label()`(`Display` もこれを書く。cli は日本語の文を持たない)。`<原因>`(`reason`)は converter の固定の日本語(10 章)で、英語のロケールでも日本語のまま(定義の誤りの `<原因>` と同じ規則。文法の誤りの理由は、v0.9.7 以降、形式ごとの `TOML として読めません` / `YAML として読めません`)。`AT_KEY` は英語 `at`、日本語 `場所`。キーの位置(`key_path`)があるときだけ付く。
 
 | 種類 | 英語 | 日本語 |
 |------|------|--------|
