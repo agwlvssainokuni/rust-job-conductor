@@ -19,5 +19,5 @@
 
 ## Open questions
 <!-- example: 2026-05-29T10:14:32Z — confirm the retention window with compliance before the next stage hardens the schema -->
-- 2026-11-23T00:00:00Z — language-agnostic の「すでに登録済み」の契約の文を、参照実装に合わせて直すか(ユーザーの判断)。
+- 2026-11-23T00:00:00Z — (解決)language-agnostic の「すでに登録済み」の契約の文は、ユーザーの決定で直した(6dac72e。AC-299 は番号を残して該当なし)。runtime の flow_with_state.rs:140 のコメントも、ユーザーの決定で直した(e47877a)。
 - 2026-11-23T00:00:00Z — Linux・Windows での全テストと P4 の CI での時間は CI で確かめる(ローカルは macOS だけ。Windows はクロスの clippy だけ通した)。
