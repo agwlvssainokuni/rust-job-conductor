@@ -1,6 +1,6 @@
 # コード生成のまとめ(Code Summary): 残りの整理と読み込みの順序のそろえ
 
-計画 `code-generation-plan.md` の Step 1〜13 を実装した。基準は HEAD 78f6040(v0.9.7。計画のコミット)。コードと仕様書のコミットは 45 件(段 1: 35、段 2: 10)。`functional-spec.md` §8 の並び 1〜46 のうち、**コミット 23(1g-4、`ConversionError.reason` を `&'static str` に)は進めなかった**(「計画からのずれ」の 1)。ほかに、この記録のコミットが 1 件。push、タグ、リリースはしていない。版は最後のコミットで 0.9.8 にした。
+計画 `code-generation-plan.md` の Step 1〜13 を実装した。基準は HEAD 78f6040(v0.9.7。計画のコミット)。コードと仕様書のコミットは 46 件(段 1: 36、段 2: 10)。`functional-spec.md` §8 の並び 1〜46 と対応するが、**コミット 23(1g-4、`ConversionError.reason` を `&'static str` に)は、いったん止めて報告し、ユーザーが T25 を認めた(2026-11-23)あと、版の更新の後のコミット `5202feb` として足した**(「計画からのずれ」の 1)。ほかに、この記録のコミットが 2 件。push、タグ、リリースはしていない。版は最後のコミットで 0.9.8 にした。
 
 ## コミットの一覧
 
@@ -28,7 +28,7 @@
 | 20 | 20 | 1 | `3037c5c` | cli: escape_path を escape_full に(1g-1。T16、T17) |
 | 21 | 21 | 1 | `7ff6033` | cli: run ID の有無を StateContext で渡す(1g-2。T18) |
 | 22 | 22 | 1 | `8cc74a4` | converter: 行番号を Option<usize> に(1g-3) |
-| — | 23 | 1 | (なし) | **進めなかった**(1g-4。下の「計画からのずれ」の 1) |
+| — | 23 | 1 | (後ろの 46 へ) | 1g-4 は版の更新の後に足した(下の「計画からのずれ」の 1) |
 | 23 | 24 | 1 | `f2399c7` | core: env の表の大文字小文字の検査を HashSet に(1h-1) |
 | 24 | 25 | 1 | `66f20fb` | core: 遷移の重複の確認を種類ごとの真偽値に(1h-2) |
 | 25 | 26 | 1 | `c5ac260` | core: env_file_refs の重複の確認を HashSet に(1h-3) |
@@ -52,6 +52,7 @@
 | 43 | 44 | 2 | `a3dcfc5` | runtime・cli のテスト: N6、N7 |
 | 44 | 45 | 2 | `5e12c92` | 仕様書: 空白だけのコマンド名(rust・language-agnostic 07、rust 12、language-agnostic 11 の AC-097a) |
 | 45 | 46 | 2 | `5b34d7f` | 版を 0.9.8 にする(★ T22。7239aa2 と同じ 22 ファイル) |
+| 46 | 23 | 1 | `5202feb` | converter・cli: `ConversionError.reason` を `&'static str` に(1g-4。T19、T25。仕様書 rust 02・10) |
 
 ## 件数の移り変わり(`cargo test --locked --workspace`、macOS、rustc 1.100.0、debug)
 
@@ -60,6 +61,7 @@
 | 基準(78f6040) | 383(単体 115、統合 268) | 195(68、127) | 118 + 1 無視(54、64 + 1) | 461 | **1,157 通過、1 無視** |
 | 段 1 の後(aeaec20) | 384(113、271) | 195(68、127) | 116 + 1 無視(53、63 + 1) | 461 | **1,156 通過、1 無視**(見込み 1,156) |
 | 段 2 の後(5b34d7f) | 384(113、271) | 198(70、128) | 117 + 1 無視(53、64 + 1) | 462 | **1,161 通過、1 無視、0 失敗**(見込み 1,161) |
+| 1g-4 の後(5202feb) | 384 | 198 | 117 + 1 無視 | 462 | **1,161 通過、1 無視、0 失敗**(テスト名の一覧は 5b34d7f と同じ) |
 
 途中: N1〜N3 の追加で 1,160、§4.6 の削除で 1,158 → 1,156、N4 で 1,157、N5・N8 で 1,159、N6・N7 で 1,161。各コミットの前に fmt・build・clippy(`-D warnings`)・全テストを通した。
 
@@ -81,7 +83,8 @@
 | T15 | cli `tests/common/mod.rs`: 偽物の `run_job` から `job` を外し `job_id_of(env)`(D1)、`state_error` の理由を `"reason"`(D12)、`run_os`・`run_mem` は `run_with_fakes`、`FakeEnv::for_language` | `c42262e`、`0329fea` |
 | T16・T17 | cli `tests/escape_table.rs`・`graph_long_id.rs` の `escape_path` を `escape_full` に | `3037c5c` |
 | T18 | cli `tests/report_messages.rs` の `with_run_id: false` を `context: StateContext::Read` に | `7ff6033` |
-| T19 | **進めなかった**(1g-4 を進めなかったため不要) | — |
+| T19 | cli `tests/report_messages.rs`(3 か所)・`flow_aux.rs`(1 か所)の `ConversionError` の組み立ての `reason: "…".into()` の `.into()` を外す | `5202feb` |
+| T25 | converter `tests/nfr_security.rs:328` の `shown.contains(&e.reason)` を `shown.contains(e.reason)` に(`clippy::needless_borrows_for_generic_args` のため。ユーザーが 2026-11-23 に追加を認めた) | `5202feb` |
 | T20 | cli `tests/report_messages.rs` の `env_for`・`state_error` を 1 行の包みに | `0329fea` |
 | T21 | cli `tests/flow_init.rs` の `run_with` を `for_language` と `run_with_fakes` に | `0329fea` |
 | ★ T22 | cli `tests/binary_basic.rs` の `"conductor 0.9.7\n"` を `"conductor 0.9.8\n"` に | `5b34d7f` |
@@ -144,7 +147,7 @@
 | `grep -rn "job: &JobDefinition" crates/cli/src/deps.rs crates/cli/tests/common/mod.rs` | 0 件 |
 | `grep -rn "escape_path" crates` | 0 件(仕様書 rust 08 の旧名の注記 1 件だけ) |
 | `grep -rn "with_run_id" crates/cli` | 0 件 |
-| `grep -n "line: 0\|pub reason: String" crates/converter/src` | 1 件(`error.rs:107` の `pub reason: String`。1g-4 を進めなかったため残る)。`line: 0` は 0 件 |
+| `grep -n "line: 0\|pub reason: String" crates/converter/src` | 0 件(5202feb の後。5b34d7f の時点では `error.rs:107` の 1 件が残っていた) |
 | `grep -n "seen.iter().any\|out.iter().any\|out.contains" crates/core/src/definition/walk crates/core/src/envfile/mod.rs -r` | 0 件 |
 | `grep -n "filter(\|e\| e.from_job" crates/cli/src/report/graph_text.rs` | 0 件 |
 | `grep -n "\.cloned()" crates/cli/src/step.rs` | 0 件 |
@@ -166,7 +169,7 @@
 
 ## 計画からのずれ
 
-1. **1g-4(§8 のコミット 23。`ConversionError.reason` を `&'static str` に)を進めなかった**。型を変えると、承認済みの T 表に無い既存のテスト `crates/converter/tests/nfr_security.rs:328`(`assert!(shown.contains(&e.reason), "{shown}")`)が `clippy::needless_borrows_for_generic_args`(`-D warnings`)で止まる。設計(inventory 1g-4)は「`shown.contains(&e.reason)` はそのまま通る」としていたが、コンパイルは通るものの clippy で止まる。T1〜T24 の外のテストを変えないと進めないので、指示どおりこの項目は進めず(作業中の変更は捨てた)、ほかの項目は続けた。そのため T19 も行っていない。続けるには、`nfr_security.rs:328` の `&e.reason` を `e.reason` にする変更の承認が要る。
+1. **1g-4(§8 のコミット 23。`ConversionError.reason` を `&'static str` に)は、順序を変えて版の更新の後に足した**(`5202feb`)。型を変えると、当初の T 表に無い既存のテスト `crates/converter/tests/nfr_security.rs:328`(`assert!(shown.contains(&e.reason), "{shown}")`)が `clippy::needless_borrows_for_generic_args`(`-D warnings`)で止まった(設計の inventory 1g-4 は「そのまま通る」としていたが、コンパイルは通るものの clippy で止まる)。T1〜T24 の外のテストを変えないと進めないので、指示どおりいったん止めて(作業中の変更は捨てた)ほかの項目を続け、報告した。ユーザーが T25(この 1 行の `&e.reason` を `e.reason` に)を認めた(2026-11-23。functional-spec §4 に追記)ので、1g-4・T19・T25 と仕様書 rust 02・10 を 1 つのコミットにした。そのため、版の更新(`5b34d7f`)の後に段 1 の変更のコミットが 1 つ来る。このコミットの後も、件数 1,161、テスト名の一覧は同じ、fmt・clippy・全テストが通り、行カバレッジは 98.13%。
 2. コミット 8(1c-4c)で `record.rs` の製品のコードの import から `Classification` を外したため(`JobStatus::from(classification)` にすると使われなくなる)、同じファイルの単体テストの `use crate::types::JobDefinition;` を `use crate::types::{Classification, JobDefinition};` にした(T2 の対象のファイルの import の 1 行。確かめる中身は変えていない)。なお、このコミットは最初、clippy の失敗を見落として作り、直してから `--amend` で作り直した(`b519b4e`。push 前)。
 3. 1a-2: inventory の目標は「v0.9.6 までは `run_job(job, line, env, signal)` で…」を足す、だったが、指示「コードのコメントに版の番号を書かない」に従い、「以前の `run_job(job, line, env, signal)` の `job` は使われなかった」と版の番号なしで書いた。
 4. コミット 11 で `create_temp_beside` も非公開にした(inventory 1f の「1c-1 のあとは `temp_file.rs` の中だけになるので、そのとき非公開にする」に従った)。
@@ -174,4 +177,4 @@
 6. 1c-4b と同じ形の失敗の写しのクロージャを、2a の converter の `read_input` にも使った(パスのメタデータと開くときの失敗)。Windows でディレクトリを開いたときの特別扱いは、形 B の 1 の段で同じ結果になるので消した。
 7. 段 2 の仕様書の受け入れ基準には、新しい行 `AC-212a`(名前付きパイプの converter)と `AC-097a`(空白だけの先頭の語)を足した。性能の表と新しい AC の行には「v0.9.8 以降」と書いた。
 8. 性能 P2 の入力は、誤りの位置の順を行番号で確かめるため 1 行に 1 つの遷移にした(1,000,146 バイト。1 MiB 以内)。
-9. 計画の Step 6 のチェックボックスは、1g-4 が残るので付けていない。
+9. 計画の Step 6 のチェックボックスは、1g-4 を足した後に付けた。

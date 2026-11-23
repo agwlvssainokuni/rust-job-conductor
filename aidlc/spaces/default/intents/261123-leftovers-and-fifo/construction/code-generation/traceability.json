@@ -20,7 +20,7 @@
     {"id": "BR1.3", "status": "OK", "target": "crates/runtime/src/temp_file.rs"},
     {"id": "BR1.4", "status": "OK", "target": "crates/cli/src/deps.rs"},
     {"id": "BR1.5", "status": "OK", "target": "crates/core/src/flow/mod.rs"},
-    {"id": "BR1.6", "status": "GAP", "target": "crates/converter/src/error.rs"},
+    {"id": "BR1.6", "status": "OK", "target": "crates/converter/src/error.rs"},
     {"id": "BR1.7", "status": "OK", "target": "crates/core/src/definition/walk/env.rs"},
     {"id": "BR1.8", "status": "OK", "target": "crates/core/src/test_support.rs"},
     {"id": "BR1.9", "status": "OK", "target": "crates/core/src/definition/depth.rs"},

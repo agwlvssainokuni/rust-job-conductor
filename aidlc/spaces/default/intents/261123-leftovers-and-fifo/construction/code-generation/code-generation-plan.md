@@ -21,7 +21,7 @@
 - [x] Step 3: 二重の処理(`replace_via_temp`、ステートの読み込みの段、`bounded_read.rs`(`read_limited` は段 2 まで `pub(crate)`)、`build_retry`(D3)、ごく小さい整理)。T4。コミット 11〜15。
 - [x] Step 4: cli の `Runtime::run_job` から `job` を外す(1d、Q3、D1)。T15 の偽物。コミット 16。
 - [x] Step 5: 公開範囲を狭める(1e、1f。`read_limited` を除く)。T5。コミット 17〜19。
-- [ ] Step 6: 型と名前(`escape_full`(D6)、`StateContext`(D5)、converter の行番号と `reason`)。T16〜T19。コミット 20〜23。
+- [x] Step 6: 型と名前(`escape_full`(D6)、`StateContext`(D5)、converter の行番号と `reason`)。T16〜T19。コミット 20〜23。
 - [x] Step 7: 計算量(1h)と N1〜N3。上限は P1 350 ms、P2 1,600 ms、P3 40 ms(D9。debug、5 回の中央値)。直す前の木でも走らせて時間を記録する。`-v` の図と `record_skip` は前後の時間だけ記録する(D8)。コミット 24〜29。
 - [x] Step 8: テストの補助の整理(1i。T6〜T13、T15 の残り、T20、T21、T24)と、重複したテストを消す(§4.6 の 4 つ、D10)。仕様書 11 章。コミット 30〜36。段 1 の後の件数を記録(見込み 1,156。基準 1,157 − 4 + 3)。
 
