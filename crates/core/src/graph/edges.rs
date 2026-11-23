@@ -14,7 +14,7 @@
 
 //! 辺の取り出し(BR1.1〜BR1.5)。
 //!
-//! 行き先は、実行のときに次のジョブを決める判断と同じ関数([`resolve_transition`])で決める。
+//! 行き先は、実行のときに次のジョブを決める判断と同じ関数(crate の中の `resolve_transition`)で決める。
 //! 図と実行で、判断を二重に書かない(BR1.5、FR2.4)。
 
 use super::{EdgeKind, EdgeTarget, FlowEdge};

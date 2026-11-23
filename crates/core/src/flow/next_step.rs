@@ -59,7 +59,7 @@ pub fn classify_and_decide(
 
 /// 遷移の解決の結果(BR1.5、FR2.4)。次のジョブの判断と、図の辺の取り出しが、共有する。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TransitionResolution {
+pub(crate) enum TransitionResolution {
     /// `@end` への遷移。
     End,
     /// 記述順で後ろのジョブ(位置。元のジョブの位置より大きい)への遷移。
@@ -72,7 +72,7 @@ pub enum TransitionResolution {
 /// 位置 `index` のジョブ `job` が、結果 `on` で終わったときの遷移を解決する(BR1.1、BR1.5)。
 ///
 /// 純粋な関数。`classify_and_decide` と、図の辺の取り出しが、同じこの関数を呼ぶ。
-pub fn resolve_transition(
+pub(crate) fn resolve_transition(
     job: &JobDefinition,
     on: TransitionOn,
     definition: &PipelineDefinition,

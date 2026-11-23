@@ -39,7 +39,7 @@ pub fn resolve_path(path: Option<&Path>) -> PathBuf {
 }
 
 /// 表示用のファイル名。
-pub fn file_label(path: &Path) -> String {
+pub(crate) fn file_label(path: &Path) -> String {
     path.display().to_string()
 }
 

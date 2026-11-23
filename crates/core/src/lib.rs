@@ -48,10 +48,10 @@
 //! | [`types`] | 共有する型(Types) | データの形だけ(契約 C1) |
 //! | [`error`] | 表示用の組み立て(Describe)、位置の変換(Locate) | 固定の文だけでエラーを表示する。バイトの位置から行番号を求める |
 //! | [`definition::intake`] | 取り込み(Intake) | 場所の決定、大きさの確認、上限 + 1 バイトまでの読み取り |
-//! | [`definition::parse`] | 読み取り(Parse) | 位置を保つ文書の木にする。文法の誤りは `syntax` |
-//! | [`definition::depth`] | 深さの検査(Depth) | 入れ子 32 段の上限 |
-//! | [`definition::version`] | 版の確認(VersionCheck) | `format_version` が 1 であること。通らなければ、そこで終える |
-//! | [`definition::walk`] | 構造の検査(Walk) | キー、型、構造の制約、遷移、終了コード、名前。誤りはすべて集める |
+//! | `definition::parse` | 読み取り(Parse) | 位置を保つ文書の木にする。文法の誤りは `syntax` |
+//! | `definition::depth` | 深さの検査(Depth) | 入れ子 32 段の上限 |
+//! | `definition::version` | 版の確認(VersionCheck) | `format_version` が 1 であること。通らなければ、そこで終える |
+//! | `definition::walk` | 構造の検査(Walk) | キー、型、構造の制約、遷移、終了コード、名前。誤りはすべて集める |
 //! | [`flow`] | 判断(Flow) | 起動前の判断、分類、次の動き、完了、再開位置 |
 //! | `flow::record` | 記録(Recorder) | `initial_state`、`apply_*`(純粋。本番と模擬が共に使う) |
 //! | [`consistency`] | 照合(Consistency) | ステートと定義の、パイプライン名、ジョブIDの集合、並び(純粋) |
@@ -99,11 +99,12 @@ pub use envfile::{
     EnvFileErrorKind, EnvOrigin, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs,
     is_reserved_env_name, merge_env, parse_env_file, summarize_errors,
 };
-pub use error::*;
+pub use error::{
+    DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display, sanitize,
+};
 pub use flow::{
-    RetryDecision, TransitionResolution, apply_interrupt, apply_outcome, apply_skip,
-    classify_and_decide, decide_before_run, initial_state, resolve_transition,
-    resume_point_on_interrupt, retry_decision,
+    RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide,
+    decide_before_run, initial_state, resume_point_on_interrupt, retry_decision,
 };
 pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
@@ -112,4 +113,9 @@ pub use plan::{
 pub use run_id::{
     DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env,
 };
-pub use types::*;
+pub use types::{
+    Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition,
+    JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState,
+    RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition,
+    TransitionOn, TransitionTarget,
+};

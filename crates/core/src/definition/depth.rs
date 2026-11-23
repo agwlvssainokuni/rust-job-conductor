@@ -28,7 +28,7 @@ use crate::error::{DefinitionError, DefinitionErrorKind, Locate};
 pub const MAX_NESTING_DEPTH: usize = 32;
 
 /// 深さの上限を超える要素があれば、その位置(バイト)を返す。
-pub fn find_too_deep(root: &DeTable<'_>) -> Option<usize> {
+fn find_too_deep(root: &DeTable<'_>) -> Option<usize> {
     walk_table(root, 0)
 }
 

@@ -17,12 +17,12 @@
 //! 流れは Intake → Parse → Depth → VersionCheck → Walk(Locate を使う)。
 //! 入出力に触れるのは Intake だけで、それ以外は、文字列だけを受け取る純粋な処理である。
 
-pub mod depth;
+mod depth;
 pub(crate) mod duration;
 pub mod intake;
-pub mod parse;
-pub mod version;
-pub mod walk;
+mod parse;
+mod version;
+mod walk;
 
 use std::path::Path;
 

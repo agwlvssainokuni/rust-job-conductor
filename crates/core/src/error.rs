@@ -309,7 +309,7 @@ fn is_format_char(c: char) -> bool {
 }
 
 /// キー名を、エラーの理由に入れる形(引用符つき、エスケープと 64 文字の切り詰め)にする。
-pub fn quote_key(key: &str) -> String {
+pub(crate) fn quote_key(key: &str) -> String {
     format!("`{}`", sanitize(key, MAX_KEY_DISPLAY_CHARS))
 }
 
@@ -317,7 +317,7 @@ pub fn quote_key(key: &str) -> String {
 ///
 /// 改行は LF と CRLF のどちらも、LF の数で数える。
 #[derive(Debug, Clone)]
-pub struct Locate {
+pub(crate) struct Locate {
     /// 各行の先頭のバイトの位置。
     line_starts: Vec<usize>,
 }
