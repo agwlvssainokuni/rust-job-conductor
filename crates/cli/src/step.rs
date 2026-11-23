@@ -24,7 +24,7 @@
 //! | [`remove_if_requested`] | `remove_on_complete` が真なら、ステートを削除する |
 //! | `report_execution`(非公開) | `run_step` の表示。結果・起動の失敗・成功コードに含まれない 0・遷移・中断 |
 //!
-//! 書く順序、`Durability`、表示の文脈(`StateContext`)は、まとめる前の `run.rs`・`pipeline.rs` と同じ。
+//! 書く順序、`Durability`、表示の文脈(`StateContext`)は、各関数の説明のとおり。
 //! 書き込みの失敗は、表示したうえで、終了コード(65)を `Err` で返す。呼び出し側は、それで終わる。
 //!
 //! いつ消すか(完了の扱い)と、終了コードの決め方は、`run` と `pipeline` で違うため、呼び出し側に残す

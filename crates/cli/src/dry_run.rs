@@ -29,8 +29,8 @@ use crate::types::{CliCommand, UsageError, UsageErrorKind};
 
 /// `run` と `pipeline` の入口(共通)。位置引数 `arg` を、`target` で対象にする。
 ///
-/// 位置引数が無ければ、使い方の誤り(68)。コマンドからは `parse_args` が先に止めるが、公開の型
-/// `CliCommand` を直接組み立てて呼ばれたときの守り。
+/// 位置引数が無ければ、使い方の誤り(68)。`parse_args` を通る限り起こらない、内部の不変条件の守り
+/// (位置引数の無い `run`・`pipeline` は `parse_args` が 68 で止める)。
 /// `--dry-run` なら、計画を出して、その終了コードを `Err` で返す。どちらでもなければ、位置引数を返す。
 pub(crate) fn enter_flow<'c>(
     ctx: &mut Ctx<'_>,

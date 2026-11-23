@@ -204,7 +204,6 @@ pub fn definition_valid(lang: Language, job_count: usize) -> String {
 /// リトライの前の知らせの本文(先頭の `conductor: retry: ` と改行は含まない。BR2.4、BR2.15)。
 ///
 /// 固定の文と整数と、エスケープ済みのジョブIDだけで組み立てる(入力の値は入れない)。
-/// 最初の文言(最終の確定は U3)。
 pub fn retry_scheduled(
     lang: Language,
     escaped_job_id: &str,

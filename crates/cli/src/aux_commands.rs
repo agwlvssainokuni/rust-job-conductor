@@ -93,6 +93,8 @@ pub(crate) fn run_validate(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
 }
 
 /// `conductor convert <file> --to <format>`: 変換結果を、全部作ってから、標準出力に 1 回で書く(BR7.3)。
+///
+/// 入力か形式が無ければ、使い方の誤り(68)。`parse_args` を通る限り起こらない、内部の不変条件の守り。
 pub(crate) fn run_convert(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     let (Some(input), Some(target)) = (&cmd.convert_input, cmd.convert_target) else {
         let error = UsageError::new(UsageErrorKind::MissingArgument);
