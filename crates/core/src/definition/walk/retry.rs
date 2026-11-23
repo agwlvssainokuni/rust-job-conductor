@@ -244,14 +244,14 @@ impl Walker<'_> {
     }
 }
 
-/// 読み取り結果から `RetryPolicy` を組み立てる。`[job.retry]` がなければ `None`(BR1.1)。
+/// 読み取り結果から `RetryPolicy` を組み立てる(値は移す)。値が欠けていれば `None`。
 ///
-/// 誤りがあれば、定義の組み立てに入る前に失敗している。値が欠けていても、`None` にして続ける。
+/// 誤りがあれば、定義の組み立てに入る前に失敗しているので、欠けた組はここに来ない。来たときは、呼び出し側が
+/// 遷移と同じくジョブを組み立てない(書いたリトライが黙って消えないように)。
 /// 倍率と上限は、両方あるときだけ `Backoff` にする(片方だけの組はここに来ないが、来ても固定の間隔)。
-pub(super) fn build_retry(raw: Option<&RawRetry>) -> Option<RetryPolicy> {
-    let raw = raw?;
+pub(super) fn build_retry(raw: RawRetry) -> Option<RetryPolicy> {
     Some(RetryPolicy {
-        exit_codes: raw.exit_codes.as_ref()?.0.clone(),
+        exit_codes: raw.exit_codes?.0,
         max: raw.max?,
         interval_secs: raw.interval?.0,
         backoff: raw.multiplier.zip(raw.max_interval.map(|(s, _)| s)).map(

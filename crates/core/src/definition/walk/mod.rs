@@ -600,7 +600,11 @@ fn build_jobs(raw: Vec<RawJob>) -> Option<Vec<JobDefinition>> {
                     SuccessCodes::Absent | SuccessCodes::Invalid => None,
                 },
                 transitions,
-                retry: build_retry(job.retry.as_ref()),
+                // `[job.retry]` がなければ `None`(BR1.1)。書いたのに値が欠けていれば、組み立てない。
+                retry: match job.retry {
+                    None => None,
+                    Some(raw) => Some(build_retry(raw)?),
+                },
                 env: job.env,
                 env_file: job.env_file,
             })
