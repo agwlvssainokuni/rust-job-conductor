@@ -335,6 +335,8 @@ impl<'a> Walker<'a> {
             return Vec::new();
         };
         let mut out: Vec<RawTransition> = Vec::new();
+        // 前に同じ結果(`on`)の遷移があったか。種類ごとの真偽値(`Success`、`Warning` の 2 つ)で持つ。
+        let mut seen = [false; 2];
         for item in items.iter() {
             let offset = item.span().start;
             let DeValue::Table(t) = item.get_ref() else {
@@ -344,12 +346,19 @@ impl<'a> Walker<'a> {
             self.check_keys(t, TRANSITION_KEYS);
             let on = self.transition_on(t, offset);
             let next = self.string(t, "next", offset, true);
-            if on.is_some_and(|on| out.iter().any(|r| r.on == Some(on))) {
-                self.push(
-                    offset,
-                    Kind::DuplicateTransition,
-                    "同じ結果(`on`)の遷移が 2 つ以上あります",
-                );
+            if let Some(on) = on {
+                let slot = match on {
+                    TransitionOn::Success => &mut seen[0],
+                    TransitionOn::Warning => &mut seen[1],
+                };
+                if *slot {
+                    self.push(
+                        offset,
+                        Kind::DuplicateTransition,
+                        "同じ結果(`on`)の遷移が 2 つ以上あります",
+                    );
+                }
+                *slot = true;
             }
             out.push(RawTransition { on, next });
         }
