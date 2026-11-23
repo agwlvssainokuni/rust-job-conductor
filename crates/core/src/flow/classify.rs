@@ -79,22 +79,7 @@ pub fn classify(job: &JobDefinition, execution: &JobExecution) -> JobOutcome {
     let Some(code) = exit_code else {
         return outcome(Some(Classification::Error), EXIT_UNLISTED_ZERO, true);
     };
-    let c = classify_exit_code(job, code);
-    outcome(
-        Some(c.classification),
-        c.reported_exit_code,
-        c.conductor_error,
-    )
-}
-
-/// 終了コードの分類の結果([`classify`] の手順 5)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ExitCodeClass {
-    classification: Classification,
-    /// スケジューラへ返す終了コード。
-    reported_exit_code: i32,
-    /// conductor のエラーか(成功コードに含まれない 0。BR2.2)。
-    conductor_error: bool,
+    classify_exit_code(job, code)
 }
 
 /// 終了コード `code` を、成功・警告・エラーに分類し、返す終了コードを決める([`classify`] の
@@ -102,21 +87,15 @@ struct ExitCodeClass {
 ///
 /// 成功コード → 成功・0、警告コード → 警告・0、成功コードに含まれない 0 → エラー・1・
 /// `conductor_error`、そのほか → エラー・その終了コード。
-fn classify_exit_code(job: &JobDefinition, code: i32) -> ExitCodeClass {
-    let (classification, reported_exit_code, conductor_error) =
-        if job.effective_success_codes().contains(&code) {
-            (Classification::Success, 0, false)
-        } else if job.warning_exit_codes.contains(&code) {
-            (Classification::Warning, 0, false)
-        } else if code == 0 {
-            (Classification::Error, EXIT_UNLISTED_ZERO, true)
-        } else {
-            (Classification::Error, code, false)
-        };
-    ExitCodeClass {
-        classification,
-        reported_exit_code,
-        conductor_error,
+fn classify_exit_code(job: &JobDefinition, code: i32) -> JobOutcome {
+    if job.effective_success_codes().contains(&code) {
+        outcome(Some(Classification::Success), 0, false)
+    } else if job.warning_exit_codes.contains(&code) {
+        outcome(Some(Classification::Warning), 0, false)
+    } else if code == 0 {
+        outcome(Some(Classification::Error), EXIT_UNLISTED_ZERO, true)
+    } else {
+        outcome(Some(Classification::Error), code, false)
     }
 }
 
