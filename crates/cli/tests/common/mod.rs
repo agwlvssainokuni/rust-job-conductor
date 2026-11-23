@@ -25,8 +25,8 @@ use std::sync::Arc;
 use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, EnvFileError, ExecutionResult, JobDefinition, JobExecution,
-    JobStatus, LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
+    Command, DefinitionError, EnvFileError, ExecutionResult, JobExecution, JobStatus,
+    LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
@@ -230,6 +230,18 @@ pub struct ScriptedRuntime {
 /// `create_file` に渡された、(パス、内容、`force`)。
 pub type CreateCall = (PathBuf, Vec<u8>, bool);
 
+/// 偽の `run_job` が使う、足す環境の `CONDUCTOR_JOB_ID`(ジョブ ID)。
+///
+/// 本物の `run_job` はジョブ ID を受け取らないので、偽物は、core の `merge_env` が自動の変数の層で
+/// いつも足す `CONDUCTOR_JOB_ID` から取る(利用者は予約の接頭辞 `CONDUCTOR_` を書けないので、ほかの値に
+/// 上書きされない)。無いときは、契約が崩れたので、パニックで止める(D1)。
+pub fn job_id_of(env: &[(&str, &str)]) -> String {
+    env.iter()
+        .find(|(name, _)| *name == "CONDUCTOR_JOB_ID")
+        .map(|(_, value)| value.to_string())
+        .expect("CONDUCTOR_JOB_ID がありません(core の merge_env がいつも足す)")
+}
+
 /// 偽の `wait` の共通の処理(`ScriptedRuntime` と `MemRuntime`)。待たずに、待ち時間を `waits` に記録する。
 ///
 /// 合図がすでに立っていれば `Interrupted`。`interrupt_wait` が `(N, 番号)` で、これが N 回目(0 始まり)の
@@ -314,33 +326,33 @@ impl Runtime for ScriptedRuntime {
 
     fn run_job(
         &self,
-        job: &JobDefinition,
         line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
+        let job_id = job_id_of(env);
         self.run_calls.set(self.run_calls.get() + 1);
         self.run_envs.borrow_mut().push((
-            job.id.clone(),
+            job_id.clone(),
             env.iter()
                 .map(|(n, v)| (n.to_string(), v.to_string()))
                 .collect(),
         ));
         self.run_lines
             .borrow_mut()
-            .push((job.id.clone(), line.clone()));
+            .push((job_id.clone(), line.clone()));
         if let Some(number) = signal.signal_number() {
-            self.push(format!("skip-run:{}", job.id));
+            self.push(format!("skip-run:{job_id}"));
             return JobExecution::not_started(number);
         }
-        self.push(format!("run:{}", job.id));
+        self.push(format!("run:{job_id}"));
         if let Some(hook) = self.during_job.borrow().as_ref() {
-            hook(&job.id, signal);
+            hook(&job_id, signal);
         }
         let spec = self
             .scripts
             .borrow_mut()
-            .get_mut(&job.id)
+            .get_mut(&job_id)
             .and_then(VecDeque::pop_front)
             .unwrap_or(Exec::Exit(0));
         // 結果は台本で決める。実行中の合図は、本物と同じく `Exited` のときだけ足す。
@@ -360,7 +372,7 @@ impl Runtime for ScriptedRuntime {
         };
         let execution = JobExecution::new(result);
         if let Some(hook) = self.after_job.borrow().as_ref() {
-            hook(&job.id, signal);
+            hook(&job_id, signal);
         }
         execution
     }
@@ -715,7 +727,6 @@ impl Runtime for MemRuntime {
 
     fn run_job(
         &self,
-        _job: &JobDefinition,
         _line: &CommandLine,
         _env: &[(&str, &str)],
         signal: &InterruptSignal,

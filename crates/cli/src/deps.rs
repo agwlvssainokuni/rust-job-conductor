@@ -27,8 +27,8 @@ use std::sync::Arc;
 
 use conductor_converter::{ConversionError, ConversionRequest, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, EnvFileError, JobDefinition, JobExecution, LoadedEnvFiles,
-    PipelineDefinition, PipelineState, RunId,
+    Command, DefinitionError, EnvFileError, JobExecution, LoadedEnvFiles, PipelineDefinition,
+    PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
@@ -93,7 +93,6 @@ pub trait Runtime {
     /// ジョブを、分割済みのコマンド `line` で、`env` を足した環境で起動し、終了を待つ(`run_job`。BR2.2)。
     fn run_job(
         &self,
-        job: &JobDefinition,
         line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
@@ -174,12 +173,10 @@ impl Runtime for SystemRuntime {
 
     fn run_job(
         &self,
-        _job: &JobDefinition,
         line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        // 本物の起動は、ジョブ ID を使わない(偽物は、ジョブ ID を記録するために受け取る)。
         conductor_runtime::run_job(line, env, signal)
     }
 

@@ -203,7 +203,7 @@ cli::pipeline::run_pipeline
       │    └─ Run    → step::run_step:
       │         ├─ 状態が空なら runtime::initial_state → Runtime::write_state(Fast)
       │         ├─ retry::run_job_with_retry(job, command)   # command は検査で分割済み。分け直さない
-      │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(job, command, 足す環境, signal) → core::retry_decision
+      │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(command, 足す環境, signal) → core::retry_decision
       │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
       │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
       │         ├─ step::report_execution: 表示(-v のときの結果行・遷移行。常時のエラー行)
@@ -252,7 +252,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 
 | trait | 本番の実装 | 責務(メソッド) |
 |-------|-----------|----------------|
-| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(job, line, env, signal)`(`env` は v0.9.0 以降。v0.9.5 までは分割済みの `line` なし。`job` は偽物がジョブ ID を記録するために受け取り、`SystemRuntime` は runtime の `run_job(line, env, signal)` に渡さない)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
+| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(line, env, signal)`(runtime の `run_job` と同じ形。`env` は v0.9.0 以降。v0.9.5 までは分割済みの `line` なし。v0.9.7 までは `run_job(job, line, env, signal)` で、`job` は偽物がジョブ ID を記録するためだけに受け取った)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
 | `Sink` | `StdSink` | `write_out(bytes)`、`write_err(bytes)`(書くたびに flush) |
 | `Env` | `SystemEnv` | `var(name) -> Option<String>`(UTF-8 でない値・未設定は `None`)、`stdout_is_terminal() -> bool` |
 | `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`AlreadyRegistered` / `Failed`) |
@@ -266,7 +266,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `FakeEnv` | 環境変数の表(`with(&[(名前, 値)])`)。ロケールを読んだかを記録する |
 | `FakeSink` | 標準出力・標準エラーを文字列に溜める(`out_text()`、`err_text()`) |
 | `FakeSignals` | `SignalMode`(`Noop`・`Fail`・`Already`・`RaiseOnStart(番号)`)に応じて、登録の成功・失敗・登録済み・開始時の合図を再現する |
-| `ScriptedRuntime` | ジョブごとの結果(`Exec`)を台本で返す `Runtime`。呼び出しの記録(`log()`、`ran()`)、`run_job` に渡された環境(`run_envs`)と分割済みのコマンド(`run_lines`) |
+| `ScriptedRuntime` | ジョブごとの結果(`Exec`)を台本で返す `Runtime`。呼び出しの記録(`log()`、`ran()`)、`run_job` に渡された環境(`run_envs`)と分割済みのコマンド(`run_lines`)。ジョブ ID は、渡された環境の `CONDUCTOR_JOB_ID` から取る(`job_id_of`。無ければパニック) |
 | `MemRuntime` | ステートをメモリに持つ `Runtime`(ファイルなし。大きなジョブ数の流れの測定にも使う) |
 | `Harness` | 実ファイルの一時ディレクトリで、定義の書き換え・実行・ステートの読み取りをする補助 |
 

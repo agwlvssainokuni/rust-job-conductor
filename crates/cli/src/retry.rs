@@ -60,7 +60,7 @@ pub(crate) fn run_job_with_retry(
                 attempt: retries_done + 1,
             },
         );
-        let execution = ctx.runtime.run_job(job, line, &env.additions(), signal);
+        let execution = ctx.runtime.run_job(line, &env.additions(), signal);
         // `Retry` は、リトライの対象になった最後の終了コードと、最大回数を持つ(BR2.4)。
         let RetryDecision::Retry {
             wait_secs,
