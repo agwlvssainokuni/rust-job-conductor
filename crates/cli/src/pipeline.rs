@@ -64,12 +64,11 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 return EXIT_REJECTED;
             }
             Decision::Skip(reason) => {
-                // pipeline は `changed` を使わない。記録が変わらなくても、完了なら消す(run と違う。BR1.2)。
-                let (recorded, _changed) =
-                    match record_skip(ctx, &session, current.as_ref(), &job.id, reason) {
-                        Ok(result) => result,
-                        Err(code) => return code,
-                    };
+                // pipeline は `written` を使わない。記録が変わらなくても、完了なら消す(run と違う。BR1.2)。
+                let recorded = match record_skip(ctx, &session, current.as_ref(), &job.id, reason) {
+                    Ok(record) => record.state,
+                    Err(code) => return code,
+                };
                 ctx.show(&DisplayEvent::JobSkipped {
                     job_id: &job.id,
                     reason,

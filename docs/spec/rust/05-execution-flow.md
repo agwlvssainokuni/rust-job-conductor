@@ -285,9 +285,9 @@ decide(job_id, def, state):                  # state は Option(空なら None)
 record_skip(session, base, job_id, r):       # base は Option
   b   = base か initial_state(...)
   rec = apply_skip(b, job_id, r, def)
-  changed = (rec != b)
-  if changed: write(rec, Durable)            # 失敗: 65、文脈=ジョブ起動前
-  return (rec, changed)
+  written = (rec != b)
+  if written: write(rec, Durable)            # 失敗: 65、文脈=ジョブ起動前
+  return SkipRecord { state: rec, written }  # v0.9.6 までは組 (rec, changed) を返した
 
 run_step(session, base, job, command, mode): # base は Option(値で受ける)。command は分割済み(5.1 の 3)
   b = base か、(空なら) initial_state を Fast で書いたもの   # 書けなければ 65、ジョブは起動しない
@@ -312,8 +312,8 @@ remove_if_requested(session, context):
 match decide(job_id, def, session.checked.state):   # 5.1a
   Reject(r):  表示、return 66
   Skip(r):
-    (rec, changed) = record_skip(session, session.checked.state, job_id, r)     # 5.1a
-    if changed and rec.completed:
+    rec = record_skip(session, session.checked.state, job_id, r)     # 5.1a
+    if rec.written and rec.state.completed:
         remove_if_requested(文脈=ジョブ起動前)                            # 表示の前に消す
     -v なら skipped 表示
     return 0
@@ -327,7 +327,7 @@ match decide(job_id, def, session.checked.state):   # 5.1a
 
 `pipeline` との違い:
 
-- Skip で消すのは、記録が変わり(`changed`)、かつ完了したときだけで、`skipped` の表示の**前**。
+- Skip で消すのは、記録が変わり(`written`)、かつ完了したときだけで、`skipped` の表示の**前**。
 - Run のあとは、分類によらず、完了なら消してから、常に `exit_code_for` で終わる。
 
 注意:
@@ -347,7 +347,7 @@ for (job, command) in def.job と session.checked.base.commands (記述順):
   match decide(job.id, def, current):        # 5.1a
     Reject(r): 表示、return 66
     Skip(r):
-      (rec, _) = record_skip(session, current, job.id, r)   # 5.1a。changed は使わない
+      rec = record_skip(session, current, job.id, r).state   # 5.1a。written は使わない
       -v なら skipped 表示
       current = rec
       if rec.completed: return finish(文脈=ジョブ起動前)    # 表示のあとで消す。記録が変わらなくても

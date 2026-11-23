@@ -71,18 +71,25 @@ pub(crate) fn decide(
     decide_before_run(job_id, definition, states, resume, end_reached)
 }
 
+/// スキップの記録の結果([`record_skip`] が返す)。
+pub(crate) struct SkipRecord {
+    /// 記録後のステート。
+    pub state: PipelineState,
+    /// 土台から変わり、書いたか。`run` はこれで削除するかを決め、`pipeline` は使わない(BR1.2)。
+    pub written: bool,
+}
+
 /// スキップを記録する(BR1.1)。土台は `base`(無ければ初期ステート)。`apply_skip` の結果が土台から
 /// 変わったときだけ、`Durable` で書く(文脈は「起動前」)。
 ///
-/// 記録後のステートと、土台から変わったか(`changed`)を返す。`run` は `changed` で削除するかを決め、
-/// `pipeline` は使わない(BR1.2)。書き込みの失敗は、終了コードを `Err` で返す。
+/// 記録後のステートと、書いたかを [`SkipRecord`] で返す。書き込みの失敗は、終了コードを `Err` で返す。
 pub(crate) fn record_skip(
     ctx: &mut Ctx<'_>,
     session: &Session,
     base: Option<&PipelineState>,
     job_id: &str,
     reason: SkipCause,
-) -> Result<(PipelineState, bool), i32> {
+) -> Result<SkipRecord, i32> {
     let definition = &session.checked.base.definition;
     let path = &session.checked.base.path;
     let run_id = session.checked.run_id.as_ref();
@@ -100,7 +107,10 @@ pub(crate) fn record_skip(
             StateContext::JobNotStarted,
         )?;
     }
-    Ok((recorded, changed))
+    Ok(SkipRecord {
+        state: recorded,
+        written: changed,
+    })
 }
 
 /// ジョブを 1 つ実行して記録する(BR1.1)。順序は固定:

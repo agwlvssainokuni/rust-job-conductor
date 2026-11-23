@@ -51,7 +51,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
             EXIT_REJECTED
         }
         Decision::Skip(reason) => {
-            let (recorded, changed) = match record_skip(
+            let record = match record_skip(
                 ctx,
                 &session,
                 session.checked.state.as_ref(),
@@ -62,8 +62,8 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 Err(code) => return code,
             };
             // run は、記録が変わって完了したときだけ、表示の前に消す(pipeline と違う。BR1.2)。
-            if changed
-                && recorded.completed
+            if record.written
+                && record.state.completed
                 && let Err(code) = remove_if_requested(ctx, &session, StateContext::JobNotStarted)
             {
                 return code;
