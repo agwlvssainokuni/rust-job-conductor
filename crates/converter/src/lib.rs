@@ -107,8 +107,6 @@ mod types;
 mod yaml_read;
 mod yaml_write;
 
-use std::path::Path;
-
 pub use error::{ConversionError, ConversionErrorKind};
 pub use types::{ConversionRequest, ConvertedText, TargetFormat};
 
@@ -125,7 +123,7 @@ use types::Value;
 /// 作られない。複数の失敗が同時にあるときの、返す種類の順序は、クレートの文書(BR1.12)のとおり。
 pub fn convert(request: &ConversionRequest) -> Result<ConvertedText, ConversionError> {
     let file = intake::file_label(&request.input_path);
-    let text = intake::read_input(Path::new(&request.input_path))?;
+    let text = intake::read_input(&request.input_path)?;
     convert_text(&text, request.target_format, &file)
 }
 
