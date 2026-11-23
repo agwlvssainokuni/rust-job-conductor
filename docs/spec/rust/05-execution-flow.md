@@ -169,7 +169,7 @@ return low
 
 §3.3〜§3.5 の関数(と `initial_state`)は、`crates/core/src/flow/record.rs` にある。本番の流れ(cli)と、`--dry-run` の模擬(§16.2)が、同じ関数でステートを更新する(更新の規則は、ここに 1 回だけ書く)。
 
-入力: 現在のステート `S`、ジョブID、`JobExecution`、`JobOutcome`、`NextStep`。`S` を複製して更新する(公開の関数)。`--dry-run` の模擬は、crate の中の「その場で書き換える」版(`apply_outcome_in`・`apply_skip_in`・`apply_interrupt_in`)を使い、ステートを複製しない(手順と結果は同じ。v0.9.7 以降。記録は定義の位置を手がかりに探す。ステートのジョブ ID は一意という前提で、定義の検証と読み込みが重複を拒む)。
+入力: 現在のステート `S`、ジョブID、`JobExecution`、`JobOutcome`、`NextStep`。`S` を複製して更新する(公開の関数)。`--dry-run` の模擬は、crate の中の「その場で書き換える」版(`apply_outcome_in`・`apply_skip_in`)を使い、ステートを複製しない(手順と結果は同じ。v0.9.7 以降。記録は定義の位置を手がかりに探す。ステートのジョブ ID は一意という前提で、定義の検証と読み込みが重複を拒む)。
 
 1. 対象ジョブ(`S.job_states` から id で探す。見つからなければ 1 を飛ばす):
    - `classification` があれば `status` を success / warning / error にし、`skip_reason` を消す。分類なし(起動前の中断)なら `status` は**変えない**。

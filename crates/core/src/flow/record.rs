@@ -220,15 +220,10 @@ pub(crate) fn apply_skip_in(
 /// エラーとしては記録しない。
 pub fn apply_interrupt(state: &PipelineState, resume_point: &ResumePoint) -> PipelineState {
     let mut out = state.clone();
-    apply_interrupt_in(&mut out, resume_point);
+    out.resume_job_id = resume_point.resume_job_id.clone();
+    out.completed = resume_point.completed;
+    out.end_reached = out.end_reached || resume_point.end_reached;
     out
-}
-
-/// [`apply_interrupt`] の、その場で書き換える版(crate の中だけ。2a)。
-pub(crate) fn apply_interrupt_in(state: &mut PipelineState, resume_point: &ResumePoint) {
-    state.resume_job_id = resume_point.resume_job_id.clone();
-    state.completed = resume_point.completed;
-    state.end_reached = state.end_reached || resume_point.end_reached;
 }
 
 #[cfg(test)]
