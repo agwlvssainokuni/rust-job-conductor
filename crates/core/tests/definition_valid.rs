@@ -52,12 +52,11 @@ fn 正しい定義をファイルから読める() {
     );
     assert!(extract.warning_exit_codes.is_empty());
     assert_eq!(extract.success_exit_codes, None);
-    assert_eq!(extract.effective_success_codes(), &[0], "既定の成功コード");
     assert!(extract.transitions.is_empty());
 
     let transform = &def.job[1];
     assert_eq!(transform.warning_exit_codes, vec![3, 4]);
-    assert_eq!(transform.effective_success_codes(), &[0, 2]);
+    assert_eq!(transform.success_exit_codes, Some(vec![0, 2]));
     assert_eq!(
         transform.transitions,
         vec![Transition {

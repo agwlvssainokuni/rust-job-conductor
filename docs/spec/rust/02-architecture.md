@@ -73,7 +73,7 @@
 |----|------|
 | `PipelineDefinition` | `name`、`description: Option<String>`、`run_id_env: Option<String>`、`remove_on_complete: bool`、`format_version: u32`、`job: Vec<JobDefinition>`、`env: Vec<EnvVar>`、`env_file: Vec<String>`(後ろの 2 つは v0.9.0 以降)。`job_index(&str) -> Option<usize>` |
 | `EnvVar`(v0.9.0 以降) | `{ name: String, value: String }`。`Debug` は値を `"***"` と表示する |
-| `JobDefinition` | `id`、`command: Command`、`warning_exit_codes: Vec<i32>`、`success_exit_codes: Option<Vec<i32>>`、`transitions: Vec<Transition>`、`retry: Option<RetryPolicy>`、`env: Vec<EnvVar>`、`env_file: Vec<String>`(後ろの 2 つは v0.9.0 以降)。`effective_success_codes() -> &[i32]`(省略時は `DEFAULT_SUCCESS_EXIT_CODES` = `[0]`)、`transition_for(TransitionOn) -> Option<&Transition>` |
+| `JobDefinition` | `id`、`command: Command`、`warning_exit_codes: Vec<i32>`、`success_exit_codes: Option<Vec<i32>>`、`transitions: Vec<Transition>`、`retry: Option<RetryPolicy>`、`env: Vec<EnvVar>`、`env_file: Vec<String>`(後ろの 2 つは v0.9.0 以降)。`effective_success_codes() -> &[i32]`(crate の中。省略時は `DEFAULT_SUCCESS_EXIT_CODES` = `[0]`)、`transition_for(TransitionOn) -> Option<&Transition>` |
 | `Command` | `Line(String)` / `Argv(Vec<String>)` |
 | `Transition` / `TransitionOn` / `TransitionTarget` | `{ on, next }` / `Success`・`Warning`(`as_str()` で `success`・`warning`)/ `Job(String)`・`End` |
 | `RetryPolicy` | `exit_codes: Vec<i32>`、`max: u32`、`interval_secs: u64`、`backoff: Option<Backoff>`(`Backoff { multiplier: u32, max_interval_secs: u64 }`。`Copy`。倍率と上限は両方あるときだけ) |
