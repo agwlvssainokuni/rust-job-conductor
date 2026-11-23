@@ -76,7 +76,8 @@ pub(crate) fn run_reset(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     }
 }
 
-/// `conductor validate [<name>]`: 定義の検証と、全ジョブの `command` の検査だけを行う。
+/// `conductor validate [<name>]`: 定義の検証、全ジョブの `command` の検査、`pipeline` と同じ範囲の
+/// `.env` の読み取りと検査を行う(重複キーは警告で、誤りではない)。
 ///
 /// ジョブは実行しない。シグナルの準備、ステートの読み書き、リセットもしない。
 /// 成功は何も出さない(`-v` のときだけ、標準エラーに 1 行)。誤りは `run` と同じ表示で 64。

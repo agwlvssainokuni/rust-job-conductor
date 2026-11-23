@@ -322,7 +322,7 @@ impl EffectiveEnv {
 /// 読む対象の `env_file` の記述の一覧を作る(BR6.1)。
 ///
 /// `job_id` が `None` なら `[pipeline].env_file` とすべてのジョブの `env_file`(`pipeline`、`validate`)、
-/// `Some` ならそのジョブの分だけ(`run`)。同じ記述は 1 つにまとめ、書いた順を保つ。
+/// `Some` なら `[pipeline].env_file` とそのジョブの分(`run`)。同じ記述は 1 つにまとめ、書いた順を保つ。
 pub fn env_file_refs(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<String> {
     let jobs = def
         .job

@@ -98,7 +98,7 @@ pub enum DisplayEvent<'a> {
     DefinitionErrors(&'a [DefinitionError]),
     /// `.env` の誤り(20 件で打ち切り、残りは件数。値は含めない。BR2.8)。
     EnvFileErrors(&'a [EnvFileError]),
-    /// `.env` の警告(重複キー。`validate` だけが出す。BR7.2)。
+    /// `.env` の警告(重複キー。`validate` と `graph` が出す(`check_definition_and_env`)。BR7.2)。
     EnvWarnings(&'a [EnvWarning]),
     CommandErrors {
         definition: &'a Path,
@@ -286,7 +286,7 @@ impl<'a> Reporter<'a> {
         })
     }
 
-    /// 水準に従って出す。`error` は常に、`verbose` は `-v` のときだけ標準エラーへ(書き込みの失敗は
+    /// 水準に従って出す。`error` と `notice` は常に、`verbose` は `-v` のときだけ標準エラーへ(書き込みの失敗は
     /// 無視)。`output` は標準出力へ。戻り値は、`output` の書き込みの結果(失敗は `false`)。
     pub fn show(&self, sink: &mut dyn Sink, event: &DisplayEvent<'_>) -> bool {
         match event.level() {

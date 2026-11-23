@@ -60,12 +60,13 @@
 //! | `split` | 分け方(Split) | BR1.1 の規則を、文字を 1 つずつ読む状態機械で実装する(再帰なし) |
 //! | `runner` | 起動(Spawn)、待ちのくり返し(WaitLoop) | 直接起動し、`try_wait` のくり返し(1ms から 10ms)で待つ。回収はここだけ |
 //! | `platform` | 送信(platform::signal)ほか | OS 固有のコードは、ここだけ。`unsafe` は、UNIX 系の `kill` の呼び出し 1 か所だけ |
-//! | `state::reader` | ステートの読み込み(StateReader) | 上限 + 1 バイトの読み取り、版の確認(先)、走査、矛盾の検査 |
-//! | `state::writer` | ステートの書き込み(StateWriter)、初期化(Reset) | 一時ファイルの新規作成、同期、置き換え、後始末 |
+//! | `bounded_read` | 上限つきの読み取り(BoundedRead) | 通常のファイルだけを開き、上限 + 1 バイトまで読む(形 B)。`.env` とステートが共有する |
+//! | `state::reader` | ステートの読み込み(StateReader) | 読み取りは `bounded_read`。長さ 0 は空、版の確認(先)、走査、矛盾の検査 |
+//! | `state::writer` | ステートの書き込み(StateWriter)、初期化(Reset) | 内容の組み立てと同期。置き換えは `temp_file::replace_via_temp`。古い一時ファイルの後始末 |
 //! | `state::reset_all` | すべてのステートの初期化(ResetAll) | その定義のステート(run ID の有無によらない)を探して消す |
 //! | `envfile` | `.env` の読み込み(EnvFileLoader) | `env_file` の場所の決定と読み取り。解析は `conductor-core` の `envfile` |
 //! | `file_create` | ファイルの作成(RuntimeFileCreate) | `init` の出力先を、排他的に作る、または置き換える |
-//! | `temp_file` | 一時ファイル(TempFile) | 一時ファイルの名前と新規作成、連番(1 つ)、親のディレクトリの扱い。`state`・`file_create`・`platform` が共有する |
+//! | `temp_file` | 一時ファイル(TempFile) | 一時ファイルの名前と新規作成、連番(1 つ)、親のディレクトリの扱い、一時ファイルに書いて置き換える処理(`replace_via_temp`)。`state`・`file_create`・`platform` が共有する |
 //! | `wait` | 待機(Wait) | リトライの前の待機と、中断の合図の確認 |
 //! | `src/bin/conductor-test-helper.rs` | テスト専用の補助の実行ファイル | 引数・環境変数・終了コード・シグナルの受信を出力する。配布には使わない |
 //!
@@ -107,7 +108,8 @@
 //!
 //! - `platform` モジュール(OS 固有の呼び出し)、待ちのくり返し(WaitLoop)、一時ファイルの作成と
 //!   後始末の内部関数。
-//! - ジョブの強制終了(SIGKILL)、時間の上限、自動の再試行、ステートの場所の指定、ファイルのロック
+//! - ジョブの強制終了(SIGKILL)、時間の上限、自動の再試行(リトライは cli が `[job.retry]` に従い、
+//!   [`wait_for`] で待って [`run_job`] を呼び直す)、ステートの場所の指定、ファイルのロック
 //!   (いずれも、この版では提供しない)。
 
 #![deny(unsafe_code)]

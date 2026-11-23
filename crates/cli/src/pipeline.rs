@@ -17,7 +17,7 @@
 //! 定義の記述順に、1 つずつ、`decide_before_run` で決める(次のジョブを `NextStep` で決めない。
 //! 遷移先とスキップは、ステートが運ぶ)。結果、またはスキップを記録するたびに、`completed` を
 //! 確かめ、true なら、完了のステートを残して 0 で終わる。削除を求められている(`--remove-on-complete`
-//! または定義の `remove_on_complete`)ときだけ、`reset_state` する。エラーで停止し、再試行しない。
+//! または定義の `remove_on_complete`)ときだけ、`reset_state` する。エラー(`[job.retry]` のリトライを使い切った後の結果)で停止する。
 //! ジョブのあいだで合図が立っていれば、再開位置を記録して、128 + 番号で終わる。
 //!
 //! 1 つのジョブの手順(判断、スキップの記録、実行と記録、削除)は、`run` と共通の
@@ -99,7 +99,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 } = step;
                 let is_error = outcome.classification == Some(Classification::Error);
                 if is_error || outcome.classification.is_none() {
-                    // エラーで停止する(再試行しない)。中断で起動しなかった場合も、ここで終える。
+                    // エラーで停止する(リトライは `run_job_with_retry` で済んでいる)。中断で起動しなかった場合も、ここで終える。
                     return outcome_exit_code(&outcome);
                 }
                 if next.completed {
