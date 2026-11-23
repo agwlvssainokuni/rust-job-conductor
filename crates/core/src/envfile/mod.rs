@@ -19,9 +19,11 @@
 //!
 //! ファイルにも環境変数にも触れない。値を持つ型(`EnvEntry`、`EffectiveEntry`)の `Debug` は、
 //! 値を伏せ字にする。誤りの理由は固定の文だけで、入力の値を含めない(BR8.1)。
+//!
+//! `parse`・`merge` は crate の中。関数は、下の再公開の名前(`envfile::merge_env` など)で出る。
 
-pub mod merge;
-pub mod parse;
+mod merge;
+mod parse;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -41,7 +43,7 @@ pub const MAX_ENV_FILE_BYTES: usize = 1_048_576;
 /// 1 つの `.env` の項目の数の上限(BR3.2)。
 pub const MAX_ENV_ENTRIES: usize = 10_000;
 /// 誤りを表示する件数の上限(BR2.8)。
-pub const MAX_REPORTED_ERRORS: usize = 20;
+pub(crate) const MAX_REPORTED_ERRORS: usize = 20;
 
 // 理由の文([`EnvFileErrorKind::reason`])の「1 MiB」「10,000」と、上限の定数を結ぶ(BR3.1、BR3.2)。
 const _: () = assert!(MAX_ENV_FILE_BYTES == 1_048_576);
@@ -55,7 +57,7 @@ macro_rules! reserved_env_prefix {
 pub(crate) use reserved_env_prefix;
 
 /// 予約名の接頭辞(BR1.3)。
-pub const RESERVED_ENV_PREFIX: &str = reserved_env_prefix!();
+pub(crate) const RESERVED_ENV_PREFIX: &str = reserved_env_prefix!();
 
 /// 予約名(ASCII の大文字にして `CONDUCTOR_` で始まる名前)か(BR1.3)。
 pub fn is_reserved_env_name(name: &str) -> bool {

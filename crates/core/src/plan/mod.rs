@@ -14,13 +14,13 @@
 
 //! 実行計画(`--dry-run`。U3。BR1.1〜BR1.8、BR2.1〜BR2.4、BR4.3、BR5.1)。
 //!
-//! 計画の型(この `mod.rs`)と、計画の生成([`simulate`])を持つ。計画の生成は純粋な関数で、
+//! 計画の型(この `mod.rs`)と、計画の生成(`simulate`。crate の中)を持つ。計画の生成は純粋な関数で、
 //! ファイルにも、プロセスにも、環境変数にも触れない。実行と同じ判断(`decide_before_run`、
 //! `classify_and_decide`)を、実行の代わりに、仮定した終了コードで進める(BR1.2)。
 //!
 //! 環境変数の値は、この module のどの型にも持たない。持つのは、名前と出どころだけ(BR5.1、FR1.12)。
 
-pub mod simulate;
+mod simulate;
 
 use crate::envfile::EnvOrigin;
 use crate::types::{Classification, RejectReason, RetryPolicy, RunMode};
@@ -28,9 +28,9 @@ use crate::types::{Classification, RejectReason, RetryPolicy, RunMode};
 pub use simulate::{PlanInput, plan_pipeline, plan_run};
 
 /// 仮定する終了コードの最小(プロセスの終了コードの範囲。BR2.1)。
-pub const ASSUME_EXIT_CODE_MIN: i32 = 0;
+pub(crate) const ASSUME_EXIT_CODE_MIN: i32 = 0;
 /// 仮定する終了コードの最大(BR2.1)。
-pub const ASSUME_EXIT_CODE_MAX: i32 = 255;
+pub(crate) const ASSUME_EXIT_CODE_MAX: i32 = 255;
 
 /// `--assume <ジョブID>=<終了コード>` の 1 つ分(BR2.1)。
 #[derive(Debug, Clone, PartialEq, Eq)]

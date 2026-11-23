@@ -16,7 +16,7 @@
 | 68 | `EXIT_USAGE` | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないオプション、使えないオプション、値の欠落・誤り、知らないジョブID、run ID の値の誤り〔引数・環境変数とも〕、重複、`--all` と `--run-id` の併用)。v0.9.0 以降: `--assume` の誤り(書式・範囲外・重複・定義にないジョブID)、`--dry-run` なしの `--assume`、`--format` の値の誤り、`graph` 以外の `--format`・`--state`、`--state` なしの `graph --run-id`、`init` の名前が空、`init` に許されないオプション、`init` 以外への `--force`、`run`・`pipeline` 以外の `--dry-run` | 引数の解釈、`enter_flow`、`prepare_session`・`prepare_checked`(`require_job`・`require_known`・`definition_run_id`)、`watch`/`reset` |
 | 69 | `EXIT_EXISTS` | (v0.9.0 以降)`init` の作る先に、ファイルが既にある(`--force` なし。何も変えない) | `init` |
 | 70 | `EXIT_INTERNAL` | 内部の誤り: パニック、シグナルの準備の失敗 | パニックのフック、`start_signals`(`prepare_session`) |
-| 127 | `EXIT_START_FAILURE` | ジョブを起動できなかった(実行ファイルがない・実行権限がない、など。終了の状態を取得できない場合も安全側で起動失敗扱い) | `classify` |
+| 127 | `EXIT_START_FAILURE` | ジョブを起動できなかった(実行ファイルがない・実行権限がない、など。終了の状態を取得できない場合も安全側で起動失敗扱い) | `classify`(定数は core の crate の中) |
 | 128 + 番号 | `EXIT_SIGNAL_BASE` | ジョブがシグナルで終了した、または `conductor` が中断された(例: SIGHUP = 129、SIGINT = 130、SIGQUIT = 131、SIGTERM = 143)。リトライの待機中の中断も含む | `classify`, `signal_exit_code` |
 
 - 64〜70(69 を含む)は、ジョブ自身の終了コードと重なりうる。区別は、標準エラーの `conductor: error: ...` の行で行う(70 は固定の英語の文)。

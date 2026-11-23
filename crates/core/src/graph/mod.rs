@@ -21,13 +21,15 @@
 //!
 //! | モジュール | 内容 |
 //! |------------|------|
-//! | [`edges`] | 辺の取り出し(BR1.1〜BR1.5)。実行と同じ「遷移の解決」を使う |
-//! | [`overlay`] | 図の構造と、状態の重ね合わせ(BR2.1、BR4.1、BR4.2) |
-//! | [`layout`] | 「対応する形」の判定(BR2.4)と、レーンの配置(BR2.1〜BR2.7) |
+//! | `edges` | 辺の取り出し(BR1.1〜BR1.5)。実行と同じ「遷移の解決」を使う |
+//! | `overlay` | 図の構造と、状態の重ね合わせ(BR2.1、BR4.1、BR4.2) |
+//! | `layout` | 「対応する形」の判定(BR2.4)と、レーンの配置(BR2.1〜BR2.7) |
+//!
+//! 下位モジュールは crate の中。関数は、下の再公開の名前(`graph::build_graph` など)で出る。
 
-pub mod edges;
-pub mod layout;
-pub mod overlay;
+mod edges;
+mod layout;
+mod overlay;
 
 pub use edges::flow_edges;
 pub use layout::{is_lane_drawable, layout_graph};

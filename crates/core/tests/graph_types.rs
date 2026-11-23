@@ -89,7 +89,7 @@ fn レーンの配置は行の並びで_配置の結果はレーンか辺の一�
 
 #[test]
 fn ジョブの状態は成功と警告を_ok_にまとめる() {
-    use conductor_core::graph::overlay::node_state_of;
+    use conductor_core::graph::node_state_of;
     assert_eq!(node_state_of(JobStatus::Success), NodeState::Ok);
     assert_eq!(node_state_of(JobStatus::Warning), NodeState::Ok);
     assert_eq!(node_state_of(JobStatus::Skipped), NodeState::Skipped);

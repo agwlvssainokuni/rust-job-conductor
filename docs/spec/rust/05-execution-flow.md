@@ -854,7 +854,7 @@ target_position(i, on):
 
 | 型 | 内容 |
 |----|------|
-| `Assumption` | `{ job_id, exit_code: i32 }`。`Assumption::new`。`exit_code_in_range(code)` = 0〜255(定数 `ASSUME_EXIT_CODE_MIN = 0`、`ASSUME_EXIT_CODE_MAX = 255`) |
+| `Assumption` | `{ job_id, exit_code: i32 }`。`Assumption::new`。`exit_code_in_range(code)` = 0〜255(crate の中の定数 `ASSUME_EXIT_CODE_MIN = 0`、`ASSUME_EXIT_CODE_MAX = 255`) |
 | `PlanDisposition` | `WillRun(SimulatedResult)`(実行する。模擬での結果を持つ)、`AlreadyExecuted`(実行済み)、`SkippedByTransition`(遷移でスキップ)、`SkippedAfterEnd`(`@end` のあとでスキップ)、`NotReached`(模擬でエラーの停止のあとのため、実行されない)。読み方の補助 `result(self) -> Option<SimulatedResult>`(`WillRun` のときだけ `Some`) |
 | `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`WillRun` が持つ |
 | `EnvNameEntry` | `{ name, origin: EnvOrigin }`。値を持たない |
