@@ -34,7 +34,7 @@
 
 v0.9.5 までは、`started`、`exit_code`、`terminated_by_signal`、`start_failure`、`interrupted`、`signal_number` の 6 つの項目で表した(あり得ない組み合わせも表せた)。
 
-ジョブの起動手順(runtime の `run_job(job, line, env, signal)`): 実行の前の検査(5.1 の 3)で分割したコマンド `line` を受け取る(分け直さない。`line.program` が空・空白だけなら `StartFailed` で終わり。v0.9.5 までは `run_job(job, env, signal)` で、中で command を分け直した)→ 合図が立っていれば `NotStarted { signal: 番号 }` で終わり(起動しない)→ spawn(失敗なら `StartFailed`)→ 終了まで待つ(待機中に合図が立てば、子プロセスに同じシグナルを 1 回だけ転送して終了を待つ)→ `Exited` に終了コードとシグナル終了を記録 → 終了観測の直後に合図が立っていれば `interrupted_by = 番号`。
+ジョブの起動手順(runtime の `run_job(line, env, signal)`。v0.9.6 までは `run_job(job, line, env, signal)`): 実行の前の検査(5.1 の 3)で分割したコマンド `line` を受け取る(分け直さない。`line.program` が空・空白だけなら `StartFailed` で終わり。v0.9.5 までは `run_job(job, env, signal)` で、中で command を分け直した)→ 合図が立っていれば `NotStarted { signal: 番号 }` で終わり(起動しない)→ spawn(失敗なら `StartFailed`)→ 終了まで待つ(待機中に合図が立てば、子プロセスに同じシグナルを 1 回だけ転送して終了を待つ)→ `Exited` に終了コードとシグナル終了を記録 → 終了観測の直後に合図が立っていれば `interrupted_by = 番号`。
 
 ### 1.3 結果(`JobOutcome`)
 
@@ -518,7 +518,7 @@ retries_done = 0; last_wait_secs = 0
 loop:
     # v0.9.0 以降: 試行ごとに、足す環境を作り直す(14 章)。attempt = retries_done + 1
     env  = merge_env(def, job, session.checked.env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: retries_done + 1 })
-    exec = run_job(job, line, env.additions(), signal) # line は検査で分割済み(どの試行も同じ)。v0.9.5 までは run_job(job, env, signal) で、中で分け直した。v0.8.0 以前は run_job(job, signal)
+    exec = Runtime::run_job(job, line, env.additions(), signal) # 本物は runtime の run_job(line, env, signal)(v0.9.6 までは run_job(job, line, env, signal))。line は検査で分割済み(どの試行も同じ)。v0.9.5 までは run_job(job, env, signal) で、中で分け直した。v0.8.0 以前は run_job(job, signal)
     match retry_decision(job, exec, retries_done, last_wait_secs):
         Stop: return exec                          # 最後の結果
         Retry{wait_secs, last_exit_code, max}:
@@ -695,7 +695,7 @@ return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
 - `CONDUCTOR_ATTEMPT` = (その呼び出しの中での、これまでのリトライの回数) + 1。リトライのたびに環境を**作り直す**(1、2、3、…)。リトライの回数はローカルな値で、ステートに書かないので、`conductor` が落ちた(または中断された)あとの再開では、また 1 から数える。
 - 利用者は `CONDUCTOR_` で始まる名前を書けない(予約名)ので、自動の変数が利用者の値に上書きされることはない。ただし、引き継いだ環境に同名があれば、上書きする。
 
-### 14.4 起動への反映(`run_job(job, line, env, signal)`)
+### 14.4 起動への反映(`run_job(line, env, signal)`。v0.9.6 までは `run_job(job, line, env, signal)`)
 
 `run_job` は、`Command` を作ったあと、`env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足す。引き継いだ環境は、そのまま残る(同じ名前は上書きされる)。同じ名前が並びに 2 回あれば、後ろが勝つ(`merge_env` は完全に同じ名前を 1 つにするので、通常は起きない)。値の展開はしない。
 

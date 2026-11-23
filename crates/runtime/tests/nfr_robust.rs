@@ -179,7 +179,7 @@ fn 起動できないコマンドや範囲外の番号でパニックしない()
     for command in cases {
         let j = common::job("j", command);
         let line = check_command(&j.command).expect("分けられる");
-        let e = run_job(&j, &line, &[], &InterruptSignal::new());
+        let e = run_job(&line, &[], &InterruptSignal::new());
         assert_eq!(e.result, ExecutionResult::StartFailed, "{e:?}");
     }
     for number in [i32::MAX, i32::MIN, 0, -1, 1_000_000] {
@@ -187,7 +187,7 @@ fn 起動できないコマンドや範囲外の番号でパニックしない()
         s.raise(number);
         let j = common::job("j", "anything");
         let line = check_command(&j.command).expect("分けられる");
-        let e = run_job(&j, &line, &[], &s);
+        let e = run_job(&line, &[], &s);
         assert!(matches!(e.result, ExecutionResult::NotStarted { .. }));
     }
 }

@@ -174,7 +174,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 ### 4.1 手順(時系列)
 
-`run_job(job, line, env, signal) -> JobExecution`(`line: &CommandLine` は、実行の前の検査で `check_command` が分割したコマンド。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数(v0.9.0 以降)。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
+`run_job(line, env, signal) -> JobExecution`(v0.9.6 までは `run_job(job, line, env, signal)`。`line: &CommandLine` は、実行の前の検査で `check_command` が分割したコマンド。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数(v0.9.0 以降)。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
 
 1. 返す `JobExecution` の結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。v0.9.6 までは、`job` から写した `job_id` と `command` も持った(読まれなかった)。
 2. `line.program` が空(空白だけを含む)なら、`StartFailed` で返す(分割はしない。この確認は、次の合図の確認より先)。

@@ -26,7 +26,7 @@ fn run(command: impl Into<Command> + Send + 'static) -> conductor_core::JobExecu
         move || {
             let j = job("j", command);
             let line = check_command(&j.command).expect("分けられる");
-            run_job(&j, &line, &[], &InterruptSignal::new())
+            run_job(&line, &[], &InterruptSignal::new())
         },
     )
 }
@@ -105,11 +105,8 @@ fn 配列の_command_の先頭が空なら起動失敗() {
             program: iter.next().unwrap_or_default(),
             args: iter.collect(),
         };
-        let j = job("j", Command::Argv(argv));
-        let e = run_with_limit(
-            || {},
-            move || run_job(&j, &line, &[], &InterruptSignal::new()),
-        );
+        let _j = job("j", Command::Argv(argv));
+        let e = run_with_limit(|| {}, move || run_job(&line, &[], &InterruptSignal::new()));
         assert_eq!(e.result, ExecutionResult::StartFailed);
     }
 }
@@ -177,10 +174,7 @@ fn 渡した分割済みのコマンドで起動し_command_を分け直さな�
     // 定義の command は分けられない文字列。分け直せば起動失敗になる。
     let j = job("j", "'");
     assert!(check_command(&j.command).is_err());
-    let e = run_with_limit(
-        || {},
-        move || run_job(&j, &line, &[], &InterruptSignal::new()),
-    );
+    let e = run_with_limit(|| {}, move || run_job(&line, &[], &InterruptSignal::new()));
     assert_eq!(
         e.result,
         ExecutionResult::Exited {
@@ -226,7 +220,7 @@ fn 起動前の合図が立っていれば起動しない() {
             signal.raise(2);
             let j = job("j", command);
             let line = check_command(&j.command).expect("分けられる");
-            run_job(&j, &line, &[], &signal)
+            run_job(&line, &[], &signal)
         },
     );
     assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
@@ -270,7 +264,7 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
             });
             let j = job("j", command);
             let line = check_command(&j.command).expect("分けられる");
-            let e = run_job(&j, &line, &[], &signal);
+            let e = run_job(&line, &[], &signal);
             let _ = t.join();
             e
         },

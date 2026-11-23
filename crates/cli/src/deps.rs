@@ -174,12 +174,13 @@ impl Runtime for SystemRuntime {
 
     fn run_job(
         &self,
-        job: &JobDefinition,
+        _job: &JobDefinition,
         line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        conductor_runtime::run_job(job, line, env, signal)
+        // 本物の起動は、ジョブ ID を使わない(偽物は、ジョブ ID を記録するために受け取る)。
+        conductor_runtime::run_job(line, env, signal)
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

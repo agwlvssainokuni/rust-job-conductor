@@ -105,7 +105,7 @@
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
-| `run_job` | `(job: &JobDefinition, line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution` | 分割済みのコマンド `line`(`check_command` の結果)で、シェルを介さず直接起動し、終了を待つ。中で `command` を分け直さない(`line.program` が空・空白だけなら起動せず `StartFailed`)。`env` を、並びの順に、引き継いだ環境へ足す(v0.9.0 以降。v0.8.0 以前は `env` 引数なし)。パニックしない。シグナルを子へ 1 回転送。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。07 の 4 章 |
+| `run_job` | `(line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution`(v0.9.6 までは `run_job(job, line, env, signal)`。`job` は使われなかった) | 分割済みのコマンド `line`(`check_command` の結果)で、シェルを介さず直接起動し、終了を待つ。中で `command` を分け直さない(`line.program` が空・空白だけなら起動せず `StartFailed`)。`env` を、並びの順に、引き継いだ環境へ足す(v0.9.0 以降。v0.8.0 以前は `env` 引数なし)。パニックしない。シグナルを子へ 1 回転送。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。07 の 4 章 |
 | `load_env_files`(v0.9.0 以降) | `(definition_path: &Path, refs: &[String]) -> Result<LoadedEnvFiles, Vec<EnvFileError>>` | `env_file` の `.env` を、すべて読む(パスの解決、1 MiB の上限、UTF-8、解析)。誤りは全ファイル分を集めて返す。03 の 6.7 |
 | `create_file`(v0.9.0 以降) | `(path: &Path, bytes: &[u8], force: bool) -> Result<CreateOutcome, CreateError>` | 排他的な作成(`force` なら一時ファイルから置き換え)。`CreateOutcome::{Created, Replaced}`、`CreateError::{AlreadyExists, ParentMissing, IsDirectory, PermissionDenied, OtherIo}`(`ALL: [CreateError; 5]`)。04 の 7.8 |
 | `check_command` | `(command: &Command) -> Result<CommandLine, CommandError>` | 起動せずに `command` を検査(分割)する。07 の 3 章 |
@@ -252,7 +252,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 
 | trait | 本番の実装 | 責務(メソッド) |
 |-------|-----------|----------------|
-| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(job, line, env, signal)`(`env` は v0.9.0 以降。v0.9.5 までは分割済みの `line` なし)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
+| `Runtime` | `SystemRuntime` | `load_definition(path, expected_pipeline_name)`、`check_command(command)`、`load_env_files(definition_path, refs)`(v0.9.0 以降)、`run_job(job, line, env, signal)`(`env` は v0.9.0 以降。v0.9.5 までは分割済みの `line` なし。`job` は偽物がジョブ ID を記録するために受け取り、`SystemRuntime` は runtime の `run_job(line, env, signal)` に渡さない)、`wait(secs, signal)`、`read_state(path, run_id)`、`read_state_raw`、`write_state(path, run_id, state, durability)`、`reset_state`、`reset_all_states`、`run_id_env(path)`(ゆるく読む)、`convert(input, target)`、`create_file(path, bytes, force)`(v0.9.0 以降) |
 | `Sink` | `StdSink` | `write_out(bytes)`、`write_err(bytes)`(書くたびに flush) |
 | `Env` | `SystemEnv` | `var(name) -> Option<String>`(UTF-8 でない値・未設定は `None`)、`stdout_is_terminal() -> bool` |
 | `Signals` | `SystemSignals` | `start(signal: &Arc<InterruptSignal>) -> Result<(), SignalError>`(`AlreadyRegistered` / `Failed`) |

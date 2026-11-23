@@ -22,7 +22,7 @@ use std::io;
 use std::process::{Child, Command, ExitStatus};
 use std::time::Duration;
 
-use conductor_core::{ExecutionResult, JobDefinition, JobExecution};
+use conductor_core::{ExecutionResult, JobExecution};
 
 use crate::platform;
 use crate::types::{CommandLine, InterruptSignal};
@@ -98,12 +98,7 @@ pub(crate) fn wait_loop<C: Waitable>(
 /// - 終了を観測したら `Exited`。その直後に合図が立っていれば、`interrupted_by` にその番号(BR1.7)。
 ///
 /// 失敗は、すべて戻り値(`JobExecution`)で返し、パニックしない(NFR4.7)。
-pub fn run_job(
-    _job: &JobDefinition,
-    line: &CommandLine,
-    env: &[(&str, &str)],
-    signal: &InterruptSignal,
-) -> JobExecution {
+pub fn run_job(line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution {
     if line.program.trim().is_empty() {
         return JobExecution::start_failed();
     }
@@ -230,6 +225,8 @@ mod tests {
         assert_eq!(forwards, 0);
     }
 
+    use conductor_core::JobDefinition;
+
     fn job(command: &str) -> JobDefinition {
         JobDefinition {
             id: "j".into(),
@@ -254,7 +251,7 @@ mod tests {
                 program: program.into(),
                 args: vec![],
             };
-            let e = run_job(&job("x"), &empty, &[], &InterruptSignal::new());
+            let e = run_job(&empty, &[], &InterruptSignal::new());
             assert_eq!(e.result, ExecutionResult::StartFailed);
         }
     }
@@ -264,14 +261,14 @@ mod tests {
         let s = InterruptSignal::new();
         s.raise(2);
         let j = job("definitely-not-run");
-        let e = run_job(&j, &line(&j), &[], &s);
+        let e = run_job(&line(&j), &[], &s);
         assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
     }
 
     #[test]
     fn 存在しないコマンドは起動失敗() {
         let j = job("conductor-no-such-command-zzz --flag");
-        let e = run_job(&j, &line(&j), &[], &InterruptSignal::new());
+        let e = run_job(&line(&j), &[], &InterruptSignal::new());
         assert_eq!(e.result, ExecutionResult::StartFailed);
     }
 }

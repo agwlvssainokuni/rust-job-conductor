@@ -28,7 +28,7 @@ fn child_env(env: &[(&str, &str)], names: &[&str]) -> Vec<String> {
     let command = helper_command(&out, &format!("env {}", names.join(" ")));
     let j = job("j", command);
     let line = check_command(&j.command).expect("分けられる");
-    let e = run_job(&j, &line, env, &InterruptSignal::new());
+    let e = run_job(&line, env, &InterruptSignal::new());
     assert!(matches!(
         e.result,
         ExecutionResult::Exited {
