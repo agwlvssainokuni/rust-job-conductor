@@ -591,6 +591,7 @@ job:
 | AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to toml` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:1: syntax error: YAML として読めません`(v0.9.6 までは、理由が `文法の誤りです`) | `binary_basic::convert は…失敗: 標準出力は空 67`、`convert_ac::ac_7_1_3` |
 | AC-211 | 入力がない | なし | `convert nofile --to toml` | 67。ERR = `conductor: error: nofile: input file does not exist: 指定の場所にファイルがありません` | `flow_aux::convert の入力がないときも 67` |
 | AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to toml` | 67。`cannot read input file` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
+| AC-212a | 書き手のいない名前付きパイプを入力に(UNIX 系。v0.9.8 以降) | `T/pipe.toml` が名前付きパイプ(`mkfifo`) | `convert pipe.toml --to yaml` | 止まらずに 67。`cannot read input file`(理由 `通常のファイルではありません`。開かない)。v0.9.7 までは、開くところで止まった | `convert_ac::名前付きパイプの入力は開かずに_unreadable` |
 | AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::ちょうど1_mibの正しい入力は変換できる` |
 | AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to toml` | 67。`cannot read input file`(文法を見る前) | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
