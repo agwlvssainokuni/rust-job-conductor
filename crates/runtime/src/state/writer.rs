@@ -85,7 +85,7 @@ fn write_state_file(
 
     if durability == Durability::Durable {
         platform::sync_dir(dir);
-        remove_stale_temps(dir, &state_name, SystemTime::now());
+        remove_stale_temps(dir, &state_name);
     }
     Ok(())
 }
@@ -129,7 +129,8 @@ fn persist<W: Write>(
 }
 
 /// 同じ名前の型で、更新から 24 時間以上たった一時ファイルを消す(失敗は無視)。
-fn remove_stale_temps(dir: &Path, state_name: &str, now: SystemTime) {
+fn remove_stale_temps(dir: &Path, state_name: &str) {
+    let now = SystemTime::now();
     let prefix = temp_prefix(state_name);
     let dir = dir_or_current(dir);
     let Ok(entries) = fs::read_dir(dir) else {
@@ -321,7 +322,7 @@ mod tests {
             .expect("更新時刻を変えられる");
         drop((f, g));
 
-        remove_stale_temps(dir.path(), "c.toml.state", SystemTime::now());
+        remove_stale_temps(dir.path(), "c.toml.state");
         assert!(!old.exists(), "古い一時ファイルは消える");
         assert!(fresh.exists(), "新しい一時ファイルは残る");
         assert!(other.exists(), "別のステートの一時ファイルは触らない");
@@ -330,10 +331,6 @@ mod tests {
 
     #[test]
     fn 読めないディレクトリの後始末は何もしない() {
-        remove_stale_temps(
-            Path::new("/definitely/not/existing"),
-            "x",
-            SystemTime::now(),
-        );
+        remove_stale_temps(Path::new("/definitely/not/existing"), "x");
     }
 }
