@@ -881,7 +881,7 @@ for (index, job) in def.job (記述順):
         Reject(reason): return Err(PlanRejection{ job.id, reason })
         Skip(reason):
             entries に skip_disposition(reason) を足す
-            apply_skip_in(&mut S, index, job.id, reason, def)               # §3.4。複製しない
+            apply_skip_in(&mut S, Some(index), job.id, reason, def)         # §3.4。複製しない
         Run:
             (code, assumed) = job.id の仮定があれば (その終了コード, true)、なければ (0, false)
             (result, execution, outcome, next) = simulate_job(job, def, S.job_states, code, assumed, Pipeline)

@@ -24,8 +24,8 @@ use std::path::Path;
 use super::status_at;
 use crate::run_id::RunId;
 use crate::types::{
-    Classification, ExecutionResult, JobExecution, JobOutcome, JobState, JobStatus, NextStep,
-    PipelineDefinition, PipelineState, ResumePoint, SkipCause, SkipReason,
+    ExecutionResult, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition,
+    PipelineState, ResumePoint, SkipCause, SkipReason,
 };
 
 /// 空のステートを、定義から作る(`initial_state`)。
@@ -117,7 +117,7 @@ pub(crate) fn apply_outcome_in(
         let job = &mut state.job_states[index];
         if let Some(classification) = outcome.classification {
             // 分類から状態へ(`From<Classification> for JobStatus`)。
-            job.status = <JobStatus as From<Classification>>::from(classification);
+            job.status = JobStatus::from(classification);
             job.skip_reason = None;
         }
         job.exit_code = match execution.result {
@@ -163,15 +163,15 @@ pub fn apply_skip(
     definition: &PipelineDefinition,
 ) -> PipelineState {
     let mut out = state.clone();
-    apply_skip_in(&mut out, 0, job_id, reason, definition);
+    apply_skip_in(&mut out, None, job_id, reason, definition);
     out
 }
 
 /// [`apply_skip`] の、その場で書き換える版(crate の中だけ。2a、D8)。`hint` は、記録を探し始める位置
-/// (模擬は定義の位置。公開の関数は 0 で、先頭から探す今の動きと同じ)。
+/// (模擬は定義の位置。`None`(公開の関数)は、先頭から探す。[`apply_outcome_in`] と同じ)。
 pub(crate) fn apply_skip_in(
     state: &mut PipelineState,
-    hint: usize,
+    hint: Option<usize>,
     job_id: &str,
     reason: SkipCause,
     definition: &PipelineDefinition,
@@ -181,7 +181,7 @@ pub(crate) fn apply_skip_in(
         SkipCause::AfterEnd => SkipReason::ByEnd,
         SkipCause::AlreadyExecuted => return,
     };
-    match locate(&state.job_states, hint, job_id) {
+    match locate(&state.job_states, hint.unwrap_or(0), job_id) {
         Some(index) => {
             let job = &mut state.job_states[index];
             job.status = JobStatus::Skipped;
@@ -229,7 +229,7 @@ pub fn apply_interrupt(state: &PipelineState, resume_point: &ResumePoint) -> Pip
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::JobDefinition;
+    use crate::types::{Classification, JobDefinition};
 
     /// run ID なしの初期ステート(既存のテストの書き方を保つ)。
     fn initial_state(definition: &PipelineDefinition, path: &Path) -> PipelineState {

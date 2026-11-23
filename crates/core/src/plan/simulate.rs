@@ -89,7 +89,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
                 // スキップは、本番と同じ手順(`apply_skip` のその場で書き換える版)で記録する(BR1.8)。
                 // ステートは複製しない。記録は定義の位置から探す(2a、D8)。
                 entries.push(entry(input, index, skip_disposition(reason), is_resume));
-                apply_skip_in(&mut state, index, &job.id, reason, def);
+                apply_skip_in(&mut state, Some(index), &job.id, reason, def);
             }
             Decision::Run => {
                 let (code, assumed) = assumed_exit_code(input.assumptions, &job.id);
