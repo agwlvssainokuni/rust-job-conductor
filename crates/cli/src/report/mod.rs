@@ -286,18 +286,6 @@ impl<'a> Reporter<'a> {
         })
     }
 
-    /// 言語の判定を、すでに行ったか(遅延のテスト用。契約の外)。
-    #[doc(hidden)]
-    pub fn language_resolved(&self) -> bool {
-        self.language.get().is_some()
-    }
-
-    /// 色の判定を、すでに行ったか(遅延のテスト用。契約の外)。
-    #[doc(hidden)]
-    pub fn color_resolved(&self) -> bool {
-        self.color.get().is_some()
-    }
-
     /// 水準に従って出す。`error` は常に、`verbose` は `-v` のときだけ標準エラーへ(書き込みの失敗は
     /// 無視)。`output` は標準出力へ。戻り値は、`output` の書き込みの結果(失敗は `false`)。
     pub fn show(&self, sink: &mut dyn Sink, event: &DisplayEvent<'_>) -> bool {

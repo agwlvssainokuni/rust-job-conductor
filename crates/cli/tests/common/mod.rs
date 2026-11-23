@@ -56,6 +56,12 @@ impl FakeEnv {
             .any(|n| matches!(n.as_str(), "LC_ALL" | "LC_MESSAGES" | "LANG"))
     }
 
+    /// 色の判定のための問い合わせ(`NO_COLOR` を読んだ、または端末かを問い合わせた)があったか
+    /// (色の判定の遅延を確かめる)。
+    pub fn color_read(&self) -> bool {
+        self.terminal_calls.get() > 0 || self.names.borrow().iter().any(|n| n == "NO_COLOR")
+    }
+
     pub fn with(vars: &[(&str, &str)]) -> Self {
         Self {
             vars: vars

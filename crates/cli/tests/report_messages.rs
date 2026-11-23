@@ -661,16 +661,16 @@ fn ロケールの判定() {
 fn 言語と色の判定は_最初に必要になるまで行われない() {
     let env = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
     let reporter = Reporter::new(&env, false);
-    assert!(!reporter.language_resolved() && !reporter.color_resolved());
+    assert!(!env.locale_read() && !env.color_read());
     assert_eq!(env.var_calls.get() + env.terminal_calls.get(), 0);
     // -v なしの verbose イベントは、組み立てない
     let mut sink = FakeSink::default();
     reporter.show(&mut sink, &DisplayEvent::Interrupted { signal: 2 });
-    assert!(!reporter.language_resolved());
+    assert!(!env.locale_read());
     assert_eq!(env.var_calls.get(), 0);
     // 最初の表示で、言語だけが判定され、結果が保たれる
     reporter.show(&mut sink, &DisplayEvent::OutputFailed);
-    assert!(reporter.language_resolved() && !reporter.color_resolved());
+    assert!(env.locale_read() && !env.color_read());
     let calls = env.var_calls.get();
     assert!(calls > 0);
     reporter.show(&mut sink, &DisplayEvent::OutputFailed);
@@ -701,7 +701,7 @@ fn バージョンとシグナルの準備の失敗は_ロケールを判定し�
             .starts_with("conductor ")
     );
     assert_eq!(env.var_calls.get(), 0);
-    assert!(!reporter.language_resolved());
+    assert!(!env.locale_read());
 }
 
 #[test]
