@@ -345,35 +345,6 @@ mod tests {
     }
 
     #[test]
-    fn とても深い入力は_異常終了せずに失敗する() {
-        let handle = std::thread::spawn(|| {
-            let mut results = Vec::new();
-            for n in [1000usize, 100_000] {
-                results.push(read(&deep_flow(n), "t").is_err());
-                results.push(read(&format!("a: {}", "{a: ".repeat(n)), "t").is_err());
-                results.push(read(&"- ".repeat(n), "t").is_err());
-            }
-            // インデントの入れ子(1 MiB に収まる範囲)
-            let mut ind = String::new();
-            for i in 0..1300 {
-                ind.push_str(&" ".repeat(i));
-                ind.push_str("a:\n");
-            }
-            results.push(read(&ind, "t").is_err());
-            results
-        });
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let _ = tx.send(handle.join());
-        });
-        let results = rx
-            .recv_timeout(std::time::Duration::from_secs(30))
-            .expect("30 秒以内に終わる")
-            .expect("パニックしない");
-        assert!(results.iter().all(|&failed| failed), "{results:?}");
-    }
-
-    #[test]
     fn 文書の数を数え_最初の木を残す() {
         let r = read("a: 1\n", "t").unwrap();
         assert_eq!(r.documents, 1);

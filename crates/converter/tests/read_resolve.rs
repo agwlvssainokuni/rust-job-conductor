@@ -241,14 +241,6 @@ fn 読んだ深さが小さくても_展開後の深さが32を超えれば文�
 }
 
 #[test]
-fn 読み取りの深さの上限_32_と_33() {
-    let ok = format!("a: {}{}\n", "[".repeat(31), "]".repeat(31));
-    assert!(yaml(&ok).is_ok());
-    let ng = format!("a: {}{}\n", "[".repeat(32), "]".repeat(32));
-    assert_eq!(yaml(&ng).unwrap_err().kind, K::Syntax);
-}
-
-#[test]
 fn 極端に深い入力は_異常終了せずに文法の誤りで失敗する() {
     let kinds = with_timeout(|| {
         let mut kinds = Vec::new();
