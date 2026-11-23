@@ -53,7 +53,7 @@ fn outcome(class: Option<Classification>, code: i32, conductor_error: bool) -> J
 ///    `conductor_error` を `true` にする(BR2.2)。
 ///
 /// 起動して終わったのに終了コードがない場合は、エラー(1、`conductor_error`)とする。
-pub fn classify(job: &JobDefinition, execution: &JobExecution) -> JobOutcome {
+pub(super) fn classify(job: &JobDefinition, execution: &JobExecution) -> JobOutcome {
     let (exit_code, terminated_by_signal) = match execution.result {
         ExecutionResult::NotStarted { signal } => {
             return outcome(None, signal_exit(signal), false);
