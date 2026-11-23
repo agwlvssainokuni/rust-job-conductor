@@ -137,7 +137,7 @@ fn load_checked(
     Ok(loaded)
 }
 
-/// ステートから判断する(cli の `step::decide`。空なら、状態の一覧は空)。
+/// ステートから判断する(core の `flow::decide_from_state` と同じ。空なら、状態の一覧は空)。
 fn decide(
     job_id: &str,
     definition: &PipelineDefinition,
