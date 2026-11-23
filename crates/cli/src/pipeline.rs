@@ -24,14 +24,16 @@
 //! `crate::step` を呼ぶ(BR1.1)。ジョブのループ、いつ消すか、エラーでの停止、ジョブのあいだの
 //! 中断、「完了を判定できない」は、ここに残す(BR1.2)。
 
-use conductor_core::{Classification, Decision, PipelineState, RunMode, resume_point_on_interrupt};
+use conductor_core::{
+    Classification, Decision, PipelineState, RunMode, decide_from_state, resume_point_on_interrupt,
+};
 use conductor_runtime::{Durability, StateLocation, apply_interrupt};
 
 use crate::ctx::{Ctx, FlowTarget, Session};
 use crate::dry_run::enter_flow;
 use crate::exit::{EXIT_OK, EXIT_REJECTED, EXIT_STATE, outcome_exit_code, signal_exit_code};
 use crate::report::{DisplayEvent, StateContext};
-use crate::step::{StepResult, decide, record_skip, remove_if_requested, run_step};
+use crate::step::{StepResult, record_skip, remove_if_requested, run_step};
 use crate::types::CliCommand;
 
 /// `conductor pipeline <pipeline-name>` を実行し、終了コードを返す。
@@ -55,7 +57,7 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     let mut current: Option<PipelineState> = session.checked.state.clone();
 
     for (job, command) in definition.job.iter().zip(&session.checked.base.commands) {
-        match decide(&job.id, definition, current.as_ref()) {
+        match decide_from_state(&job.id, definition, current.as_ref()) {
             Decision::Reject(reason) => {
                 ctx.show(&DisplayEvent::Rejected {
                     job_id: &job.id,

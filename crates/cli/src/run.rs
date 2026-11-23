@@ -23,13 +23,13 @@
 //! 1 つのジョブの手順(判断、スキップの記録、実行と記録、削除)は、`pipeline` と共通の
 //! `crate::step` を呼ぶ(BR1.1)。いつ消すかと、終了コードの決め方は、ここに残す(BR1.2)。
 
-use conductor_core::{Decision, RunMode};
+use conductor_core::{Decision, RunMode, decide_from_state};
 
 use crate::ctx::{Ctx, FlowTarget};
 use crate::dry_run::enter_flow;
 use crate::exit::{EXIT_OK, EXIT_REJECTED, outcome_exit_code};
 use crate::report::{DisplayEvent, StateContext};
-use crate::step::{decide, record_skip, remove_if_requested, run_step};
+use crate::step::{record_skip, remove_if_requested, run_step};
 use crate::types::CliCommand;
 
 /// `conductor run <job-id>` を実行し、終了コードを返す。
@@ -44,7 +44,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     };
     let definition = &session.checked.base.definition;
 
-    match decide(job_id, definition, session.checked.state.as_ref()) {
+    match decide_from_state(job_id, definition, session.checked.state.as_ref()) {
         Decision::Reject(reason) => {
             ctx.show(&DisplayEvent::Rejected { job_id, reason });
             EXIT_REJECTED

@@ -14,7 +14,7 @@
 
 //! 計画の生成(模擬。WF3。BR1.2〜BR1.8、BR2.3、BR2.4、BR4.3)。純粋な関数。
 //!
-//! 実行と同じ判断(`decide_before_run`、`classify_and_decide`)を、ジョブを起動する代わりに、
+//! 実行と同じ判断(`decide_from_state`、`classify_and_decide`)を、ジョブを起動する代わりに、
 //! 仮定した終了コード(なければ 0)の実行結果で進める。模擬の途中のステート(`PipelineState`)は、
 //! この関数の中だけで持ち、返さず、保存しない。ステートの更新は、本番と同じ手順
 //! (`flow::record` の `initial_state`、`apply_skip`・`apply_outcome` のその場で書き換える版
@@ -29,7 +29,7 @@ use super::{
 };
 use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names};
 use crate::flow::{
-    apply_outcome_in, apply_skip_in, classify_and_decide, decide_before_run, initial_state,
+    apply_outcome_in, apply_skip_in, classify_and_decide, decide_from_state, initial_state,
     is_retry_target,
 };
 use crate::types::{
@@ -76,13 +76,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
             entries.push(entry(input, index, PlanDisposition::NotReached, is_resume));
             continue;
         }
-        let decision = decide_before_run(
-            &job.id,
-            def,
-            &state.job_states,
-            state.resume_job_id.as_deref(),
-            state.end_reached,
-        );
+        let decision = decide_from_state(&job.id, def, Some(&state));
         match decision {
             Decision::Reject(reason) => return Err(rejection(&job.id, reason)),
             Decision::Skip(reason) => {
@@ -163,16 +157,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
         return Err(rejection(job_id, RejectReason::OutOfOrder));
     };
     let job = &def.job[index];
-    let (states, resume, end_reached): (&[JobState], Option<&str>, bool) = match active_state(input)
-    {
-        Some(state) => (
-            state.job_states.as_slice(),
-            state.resume_job_id.as_deref(),
-            state.end_reached,
-        ),
-        None => (&[][..], None, false),
-    };
-    let decision = decide_before_run(job_id, def, states, resume, end_reached);
+    let decision = decide_from_state(job_id, def, active_state(input));
 
     let mut note = None;
     let mut ran = HashSet::new();
@@ -184,6 +169,8 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
         ),
         Decision::Run => {
             let (code, assumed) = assumed_exit_code(input.assumptions, job_id);
+            // 模擬の分類と遷移に渡す、各ジョブの状態の記録(ステートが無ければ空)。
+            let states: &[JobState] = active_state(input).map_or(&[], |s| s.job_states.as_slice());
             let (result, _, _, next) =
                 simulate_job(job, def, states, code, assumed, RunMode::Individual);
             let stopped = result.classification == Classification::Error;

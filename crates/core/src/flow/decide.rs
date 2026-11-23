@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 起動前の判断(`decide_before_run`)。BR3.5、BR3.8。
+//! 起動前の判断(`decide_before_run`、ステートからの `decide_from_state`)。BR3.5、BR3.8。
 
 use super::{is_settled, record_of, status_at};
 use crate::types::{
-    Decision, JobState, JobStatus, PipelineDefinition, RejectReason, SkipCause, SkipReason,
+    Decision, JobState, JobStatus, PipelineDefinition, PipelineState, RejectReason, SkipCause,
+    SkipReason,
 };
 
 /// ジョブを起動する前に、実行・スキップ・拒否を決める(W2、BR3.5)。
@@ -83,6 +84,26 @@ pub fn decide_before_run(
     }
     // 7
     Decision::Reject(RejectReason::OutOfOrder)
+}
+
+/// ステート(無いこともある)から、ジョブを起動する前の判断を決める(W2、BR3.5)。
+///
+/// ステートが無い(`None`)なら、各ジョブの状態の記録は空、再開位置なし、`end_reached` は偽として、
+/// [`decide_before_run`] を呼ぶ。`run`・`pipeline` と、計画(`plan_run`・`plan_pipeline`)が使う。
+pub fn decide_from_state(
+    job_id: &str,
+    definition: &PipelineDefinition,
+    state: Option<&PipelineState>,
+) -> Decision {
+    let (job_states, resume_job_id, end_reached) = match state {
+        Some(state) => (
+            state.job_states.as_slice(),
+            state.resume_job_id.as_deref(),
+            state.end_reached,
+        ),
+        None => (&[][..], None, false),
+    };
+    decide_before_run(job_id, definition, job_states, resume_job_id, end_reached)
 }
 
 #[cfg(test)]

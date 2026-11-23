@@ -200,7 +200,7 @@ return low
 
 ### 4.1 入力と出力
 
-入力: ジョブID、定義、各ジョブの状態の一覧、`resume_job_id`(ステートの同名の値)、`end_reached`。ステートが空(ファイルなし・長さ 0・完了のまま残ったもの)のときは、状態一覧は空、`resume_job_id = None`、`end_reached = false` を渡す。
+入力: ジョブID、定義、各ジョブの状態の一覧、`resume_job_id`(ステートの同名の値)、`end_reached`。ステートが空(ファイルなし・長さ 0・完了のまま残ったもの)のときは、状態一覧は空、`resume_job_id = None`、`end_reached = false` を渡す。ステート(`Option<&PipelineState>`)から取り出して呼ぶのは `decide_from_state(job_id, definition, state)` の 1 か所で、ステートが無いときは、記録が空、再開位置なし、`end_reached` は偽として判断する(`run`・`pipeline` と、計画の `plan_run`・`plan_pipeline` が使う)。
 
 出力: `Run`(実行する)/ `Skip(理由)`(実行せず 0 で終わる)/ `Reject(OutOfOrder)`(実行せず、ステートも変えず、66)。
 
@@ -274,10 +274,10 @@ return low
 
 ### 5.1a 1 つのジョブの共通の手順(`crates/cli/src/step.rs`。`run`・`pipeline`)
 
-`run`(§5.2)と `pipeline`(§5.3)は、1 つのジョブを処理する手順を、次の 4 つの関数で共有する。書く順序、`Durability`、誤りの表示の文脈は、ここに 1 回だけ書く。書き込み・削除の失敗は、誤りを表示して 65 を返し、呼び出し側はそれで終わる。
+`run`(§5.2)と `pipeline`(§5.3)は、1 つのジョブを処理する手順を、次の 4 つの関数で共有する(`decide_from_state` は core、残りの 3 つは cli の `step.rs`)。書く順序、`Durability`、誤りの表示の文脈は、ここに 1 回だけ書く。書き込み・削除の失敗は、誤りを表示して 65 を返し、呼び出し側はそれで終わる。
 
 ```text
-decide(job_id, def, state):                  # state は Option(空なら None)
+decide_from_state(job_id, def, state):       # core。state は Option(空なら None)
   (states, resume, end_reached) = state の job_states / resume_job_id / end_reached
                                   (空なら [], None, false)
   return decide_before_run(job_id, def, states, resume, end_reached)
@@ -309,7 +309,7 @@ remove_if_requested(session, context):
 
 ```text
 (session, index) = prepare_session(check_job(...))   # 5.1。誤りなら終了。index はジョブの位置
-match decide(job_id, def, session.checked.state):   # 5.1a
+match decide_from_state(job_id, def, session.checked.state):   # 5.1a
   Reject(r):  表示、return 66
   Skip(r):
     rec = record_skip(session, session.checked.state, job_id, r)     # 5.1a
@@ -344,7 +344,7 @@ match decide(job_id, def, session.checked.state):   # 5.1a
 (session, ()) = prepare_session(check_pipeline(...))   # 引数の名前が無ければ 68(入口の enter_flow)
 current = session.checked.state              # 空なら None
 for (job, command) in def.job と session.checked.base.commands (記述順):
-  match decide(job.id, def, current):        # 5.1a
+  match decide_from_state(job.id, def, current):        # 5.1a
     Reject(r): 表示、return 66
     Skip(r):
       rec = record_skip(session, current, job.id, r).state   # 5.1a。written は使わない
@@ -877,7 +877,7 @@ stopped = None
 for (index, job) in def.job (記述順):
     is_resume = (initial_resume == job.id)
     if stopped: entries に NotReached を足し、continue
-    match decide_before_run(job.id, def, S.job_states, S.resume_job_id, S.end_reached):
+    match decide_from_state(job.id, def, Some(S)):
         Reject(reason): return Err(PlanRejection{ job.id, reason })
         Skip(reason):
             entries に skip_disposition(reason) を足す
@@ -903,8 +903,7 @@ unused_assumptions = 仮定のうち、WillRun の項目にならなかったジ
 
 ```text
 index = def.job_index(job_id); なければ Err(PlanRejection{ job_id, OutOfOrder })      # 通常は、68 で先に止まる
-(states, resume, end_reached) = active があれば (active.job_states, active.resume_job_id, active.end_reached)、なければ ([], None, false)
-match decide_before_run(job_id, def, states, resume, end_reached):
+match decide_from_state(job_id, def, active):      # active が無ければ ([], None, false) と同じ判断
     Reject(reason): return Err(PlanRejection)
     Skip(reason):   項目 = skip_disposition(reason)、end = Completed、note = None
     Run:

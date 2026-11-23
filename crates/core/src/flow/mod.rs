@@ -28,7 +28,7 @@ mod resume;
 mod retry;
 
 pub use classify::classify;
-pub use decide::decide_before_run;
+pub use decide::{decide_before_run, decide_from_state};
 pub use next_step::classify_and_decide;
 pub(crate) use next_step::{TransitionResolution, resolve_transition};
 pub use record::{apply_interrupt, apply_outcome, apply_skip, initial_state};

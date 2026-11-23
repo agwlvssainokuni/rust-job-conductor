@@ -106,7 +106,7 @@ pub use error::{
 };
 pub use flow::{
     RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide,
-    decide_before_run, initial_state, resume_point_on_interrupt, retry_decision,
+    decide_before_run, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision,
 };
 pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,

@@ -14,11 +14,11 @@
 
 //! 1 つのジョブを処理する共通の手順(BR1.1、BR1.2)。`run`(個別実行)と `pipeline`(一括実行)が呼ぶ。
 //!
-//! 手順は 4 つ(と、実行のあとの表示):
+//! 起動前の判断は、`conductor_core::decide_from_state`(ステートが無いときの扱いを含む)を、呼び出し側が
+//! 直接呼ぶ。手順は 3 つ(と、実行のあとの表示):
 //!
 //! | 関数 | 中身 |
 //! |------|------|
-//! | [`decide`] | ステートから状態の一覧・再開位置・`end_reached` を取り出し、`decide_before_run` で決める |
 //! | [`record_skip`] | 土台(ステート、無ければ初期ステート)に `apply_skip`。変わったときだけ `Durable` で書く |
 //! | [`run_step`] | 空なら初期ステートを `Fast` で書く → リトライつきの実行 → 分類 → 表示 → 記録 → `Durable` で書く |
 //! | [`remove_if_requested`] | `remove_on_complete` が真なら、ステートを削除する |
@@ -31,8 +31,8 @@
 //! (BR1.2)。
 
 use conductor_core::{
-    Classification, Decision, ExecutionResult, JobDefinition, JobExecution, JobOutcome, NextStep,
-    PipelineDefinition, PipelineState, RunMode, SkipCause, classify_and_decide, decide_before_run,
+    Classification, ExecutionResult, JobDefinition, JobExecution, JobOutcome, NextStep,
+    PipelineState, RunMode, SkipCause, classify_and_decide,
 };
 use conductor_runtime::{CommandLine, Durability, apply_outcome, apply_skip, initial_state};
 
@@ -51,24 +51,6 @@ pub(crate) struct StepResult {
     pub next: NextStep,
     /// ジョブが起動したかによる文脈(この後の書き込みと削除の誤りの表示に使う)。
     pub after: StateContext,
-}
-
-/// ジョブを起動する前の判断(BR1.1)。ステートが空(`None`)なら、状態の一覧は空、再開位置なし、
-/// `end_reached` は偽として、`decide_before_run` を呼ぶ。
-pub(crate) fn decide(
-    job_id: &str,
-    definition: &PipelineDefinition,
-    state: Option<&PipelineState>,
-) -> Decision {
-    let (states, resume, end_reached) = match state {
-        Some(state) => (
-            state.job_states.as_slice(),
-            state.resume_job_id.as_deref(),
-            state.end_reached,
-        ),
-        None => (&[][..], None, false),
-    };
-    decide_before_run(job_id, definition, states, resume, end_reached)
 }
 
 /// スキップの記録の結果([`record_skip`] が返す)。
