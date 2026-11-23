@@ -111,3 +111,181 @@ fn 誤りの要約は_20_件で打ち切り残りの件数を返す() {
     assert_eq!((shown.len(), rest), (20, 5));
     assert_eq!(shown[19].line, Some(20));
 }
+
+/// `.env` の誤りの種類の文(13 種)。変更前の文を固定の文字列で書く(1h、1j、D10)。
+const ENV_FILE_KIND_TEXTS: [(EnvFileErrorKind, &str); 13] = [
+    (
+        EnvFileErrorKind::FileMissing,
+        "環境変数ファイルが存在しません",
+    ),
+    (EnvFileErrorKind::Unreadable, "環境変数ファイルを読めません"),
+    (EnvFileErrorKind::TooLarge, "環境変数ファイルが大きすぎます"),
+    (
+        EnvFileErrorKind::NotUtf8,
+        "環境変数ファイルが UTF-8 ではありません",
+    ),
+    (
+        EnvFileErrorKind::TooManyEntries,
+        "環境変数ファイルの項目が多すぎます",
+    ),
+    (
+        EnvFileErrorKind::InvalidName,
+        "環境変数の名前が正しくありません",
+    ),
+    (
+        EnvFileErrorKind::ReservedName,
+        "予約された環境変数の名前です",
+    ),
+    (
+        EnvFileErrorKind::CaseConflict,
+        "大文字小文字だけが違う環境変数の名前があります",
+    ),
+    (
+        EnvFileErrorKind::MissingEquals,
+        "`KEY=VALUE` の形ではありません",
+    ),
+    (
+        EnvFileErrorKind::UnterminatedQuote,
+        "引用符が閉じていません",
+    ),
+    (EnvFileErrorKind::InvalidEscape, "許されないエスケープです"),
+    (
+        EnvFileErrorKind::TrailingGarbage,
+        "閉じた引用符のあとに余計な文字があります",
+    ),
+    (EnvFileErrorKind::NulInValue, "値に NUL が含まれています"),
+];
+
+/// 定義の誤りの種類の文(33 種)。変更前の文を固定の文字列で書く(1j、D10)。
+const DEFINITION_KIND_TEXTS: [(DefinitionErrorKind, &str); 33] = [
+    (
+        DefinitionErrorKind::FileMissing,
+        "定義ファイルが存在しません",
+    ),
+    (DefinitionErrorKind::Unreadable, "定義ファイルを読めません"),
+    (DefinitionErrorKind::TooLarge, "定義ファイルが大きすぎます"),
+    (DefinitionErrorKind::Syntax, "文法の誤りです"),
+    (
+        DefinitionErrorKind::TypeMismatch,
+        "値の型が正しくありません",
+    ),
+    (DefinitionErrorKind::UnknownKey, "定義にないキーです"),
+    (DefinitionErrorKind::VersionMissing, "書式の版がありません"),
+    (
+        DefinitionErrorKind::VersionUnsupported,
+        "対応していない書式の版です",
+    ),
+    (
+        DefinitionErrorKind::UnknownTarget,
+        "遷移先のジョブが定義にありません",
+    ),
+    (
+        DefinitionErrorKind::ErrorTransition,
+        "エラー結果には遷移先を書けません",
+    ),
+    (
+        DefinitionErrorKind::BackwardOrSelfTarget,
+        "遷移先は、記述順で後ろのジョブまたは @end のみです",
+    ),
+    (
+        DefinitionErrorKind::OverlappingExitCodes,
+        "成功と警告の終了コードが重なっています",
+    ),
+    (
+        DefinitionErrorKind::ZeroAsWarning,
+        "0 は警告の終了コードにできません",
+    ),
+    (
+        DefinitionErrorKind::PipelineNameMismatch,
+        "パイプライン名が定義と一致しません",
+    ),
+    (
+        DefinitionErrorKind::DuplicateJobId,
+        "ジョブIDが重複しています",
+    ),
+    (
+        DefinitionErrorKind::InvalidJobId,
+        "ジョブIDが正しくありません",
+    ),
+    (DefinitionErrorKind::NoJobs, "ジョブが 1 つもありません"),
+    (DefinitionErrorKind::EmptyField, "必須の値が空です"),
+    (
+        DefinitionErrorKind::DuplicateTransition,
+        "同じ結果の遷移が重複しています",
+    ),
+    (
+        DefinitionErrorKind::InvalidEnvName,
+        "環境変数の名前が正しくありません",
+    ),
+    (DefinitionErrorKind::RetryNotTable, "retry は表で書きます"),
+    (
+        DefinitionErrorKind::RetryMissingKey,
+        "retry の必須のキーがありません",
+    ),
+    (
+        DefinitionErrorKind::RetryExitCodesEmpty,
+        "retry の終了コードの一覧が空です",
+    ),
+    (
+        DefinitionErrorKind::RetryExitCodeInvalid,
+        "retry の終了コードが正しくありません",
+    ),
+    (
+        DefinitionErrorKind::RetryExitCodesOverlap,
+        "retry の終了コードが、成功または警告の終了コードと重なっています",
+    ),
+    (
+        DefinitionErrorKind::RetryMaxInvalid,
+        "retry の最大回数が正しくありません",
+    ),
+    (
+        DefinitionErrorKind::RetryDurationInvalid,
+        "retry の間隔が正しくありません",
+    ),
+    (
+        DefinitionErrorKind::RetryBackoffIncomplete,
+        "retry の倍率と間隔の上限は、両方を書くか、両方とも書きません",
+    ),
+    (
+        DefinitionErrorKind::RetryMultiplierInvalid,
+        "retry の倍率が正しくありません",
+    ),
+    (
+        DefinitionErrorKind::RetryMaxIntervalTooSmall,
+        "retry の間隔の上限が、間隔より小さくなっています",
+    ),
+    (
+        DefinitionErrorKind::ReservedEnvName,
+        "予約された環境変数の名前です",
+    ),
+    (
+        DefinitionErrorKind::EnvNameCaseConflict,
+        "大文字小文字だけが違う環境変数の名前があります",
+    ),
+    (
+        DefinitionErrorKind::InvalidEnvValue,
+        "環境変数の値が正しくありません",
+    ),
+];
+
+#[test]
+fn 誤りの理由は種類の固定の文で_種類の文は変更前と同じ() {
+    // `.env` の誤りの理由は、種類の固定の文(フィールドの写しを持たない。1h)。
+    for kind in EnvFileErrorKind::ALL {
+        let e = EnvFileError::new("a.env", Some(1), kind);
+        assert_eq!(e.reason(), kind.reason(), "{kind:?}");
+        assert!(e.to_string().contains(kind.reason()), "{kind:?}");
+    }
+    // 種類の文は、変更前の文と 1 文字も違わない(表は ALL と同じ順で、すべての種類を持つ)。
+    let env_kinds: Vec<EnvFileErrorKind> = ENV_FILE_KIND_TEXTS.iter().map(|(k, _)| *k).collect();
+    assert_eq!(env_kinds, EnvFileErrorKind::ALL);
+    for (kind, text) in ENV_FILE_KIND_TEXTS {
+        assert_eq!(kind.to_string(), text, "{kind:?}");
+    }
+    let def_kinds: Vec<DefinitionErrorKind> =
+        DEFINITION_KIND_TEXTS.iter().map(|(k, _)| *k).collect();
+    assert_eq!(def_kinds, DefinitionErrorKind::ALL);
+    for (kind, text) in DEFINITION_KIND_TEXTS {
+        assert_eq!(kind.to_string(), text, "{kind:?}");
+    }
+}
