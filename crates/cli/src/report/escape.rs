@@ -21,7 +21,7 @@
 pub use conductor_core::escape_display;
 
 /// ジョブID・キー名などを表示するときの最大の文字数(NFR4.2。conductor-core と同じ 64)。
-pub const MAX_DISPLAY_CHARS: usize = conductor_core::MAX_KEY_DISPLAY_CHARS;
+const MAX_DISPLAY_CHARS: usize = conductor_core::MAX_KEY_DISPLAY_CHARS;
 
 /// ジョブID・名前など(64 文字で切る)。
 pub fn escape_name(input: &str) -> String {

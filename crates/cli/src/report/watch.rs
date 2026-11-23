@@ -28,7 +28,7 @@ use super::push_line;
 use crate::types::Language;
 
 /// 状態を表す文字(言語に関わらず英語のまま。[`JobStatus::as_str`] と同じ)。
-pub fn status_word(status: JobStatus) -> &'static str {
+fn status_word(status: JobStatus) -> &'static str {
     status.as_str()
 }
 
@@ -73,7 +73,7 @@ fn pad(text: &str, to: usize) -> String {
 }
 
 /// 表の全体(最後の改行を含む)。
-pub fn render_table(lang: Language, state: &PipelineState, color: bool) -> String {
+pub(crate) fn render_table(lang: Language, state: &PipelineState, color: bool) -> String {
     let rows: Vec<(String, JobStatus, String)> = state
         .job_states
         .iter()

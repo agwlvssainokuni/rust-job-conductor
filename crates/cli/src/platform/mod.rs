@@ -35,7 +35,7 @@ mod windows;
 static REGISTERED: AtomicBool = AtomicBool::new(false);
 
 /// シグナルの監視を始める。プロセスで 1 回だけ登録できる。2 回目は `AlreadyRegistered`。
-pub fn start_signal_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
+pub(crate) fn start_signal_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
     if REGISTERED.swap(true, Ordering::SeqCst) {
         return Err(SignalError::AlreadyRegistered);
     }
@@ -57,6 +57,6 @@ fn spawn_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
 }
 
 /// 端末に、色(ANSI の制御文字)を出してよい OS か。
-pub fn color_supported() -> bool {
+pub(crate) fn color_supported() -> bool {
     cfg!(unix)
 }

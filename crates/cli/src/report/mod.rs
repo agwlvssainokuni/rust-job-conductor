@@ -28,9 +28,9 @@ pub mod escape;
 pub mod graph_mermaid;
 pub mod graph_text;
 pub mod init_template;
-pub mod messages;
+pub(crate) mod messages;
 pub mod plan_text;
-pub mod watch;
+mod watch;
 
 use std::cell::OnceCell;
 use std::path::Path;
@@ -286,12 +286,14 @@ impl<'a> Reporter<'a> {
         })
     }
 
-    /// 言語の判定を、すでに行ったか(遅延のテスト用)。
+    /// 言語の判定を、すでに行ったか(遅延のテスト用。契約の外)。
+    #[doc(hidden)]
     pub fn language_resolved(&self) -> bool {
         self.language.get().is_some()
     }
 
-    /// 色の判定を、すでに行ったか(遅延のテスト用)。
+    /// 色の判定を、すでに行ったか(遅延のテスト用。契約の外)。
+    #[doc(hidden)]
     pub fn color_resolved(&self) -> bool {
         self.color.get().is_some()
     }

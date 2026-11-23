@@ -34,7 +34,7 @@ use super::push_line;
 use crate::types::Language;
 
 /// 状態の記号(BR4.1)。`--state` でなければ、空。
-pub fn state_symbol(state: Option<NodeState>) -> &'static str {
+pub(crate) fn state_symbol(state: Option<NodeState>) -> &'static str {
     match state {
         Some(NodeState::Ok) => "[OK] ",
         Some(NodeState::Skipped) => "[--] ",
@@ -160,7 +160,7 @@ pub fn render_text(
 }
 
 /// レーンの 1 マスの文字(BR2.2。すべて ASCII)。
-pub fn glyph_char(glyph: &LaneGlyph) -> char {
+fn glyph_char(glyph: &LaneGlyph) -> char {
     match glyph {
         LaneGlyph::Empty => ' ',
         LaneGlyph::Node => '*',
