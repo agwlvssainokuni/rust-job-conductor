@@ -890,3 +890,1227 @@
 **Stage**: intent-capture
 
 ---
+
+## Stage Skip
+**Timestamp**: 2026-11-22T23:26:06Z
+**Event**: STAGE_SKIPPED
+**Stage**: reverse-engineering
+**Reason**: the survey just done covers the code in detail; the design stage reads the code directly
+**Skip Kind**: conditional-runtime
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-22T23:26:06Z
+**Event**: PHASE_COMPLETED
+**From phase**: inception
+**To phase**: construction
+**Stages completed**: 4
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-22T23:26:06Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: inception → construction
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-22T23:26:06Z
+**Event**: PHASE_STARTED
+**Phase**: construction
+**Scope**: refactor
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-22T23:26:06Z
+**Event**: STAGE_STARTED
+**Stage**: functional-design
+**Agent**: aidlc-architect-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-22T23:26:58Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architect-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T23:50:27Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:50:56Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T23:54:17Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:54:38Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T23:55:25Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T23:55:59Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-22T23:56:03Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+**Context**: construction > functional-design > traceability.json
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:56:09Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-22T23:56:54Z
+**Event**: HOST_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-22T23:56:55Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architect-agent
+**Agent ID**: a06144b8a8d971a2a
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-22T23:58:11Z
+**Event**: HUMAN_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: person
+**Source**: picker
+**Picked**: ["推奨どおり","余裕のある上限"]
+**Message Id**: 328a4dbb
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-22T23:58:12Z
+**Event**: QUESTION_REPLIED
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Question**: D1〜D5、D7〜D10 を推奨どおりにしてよいですか？\n・D1 図の節の種類は、遷移先の型(TransitionTarget)の別名にする\n・D2 JobExecution の読まれない項目を消し、run_job などから job の引数も外す(runtime のテスト 13 か所に波及)\n・D3 準備の入口は 1 つの prepare_session にし、「シグナルが先」の決まりを 1 か所に\n・D4 converter の内部の守り 2 か所の理由は「入力の構造を解釈できません」\n・D5 文法の誤りの理由は「TOML として読めません」「YAML として読めません」\n・D7 次の動きの列挙型で作れなくなる組は「完了」に写す\n・D8 計画の模擬の探索は、ジョブ ID が一意という前提(今も頼っている)で位置から引く\n・D9 テスト専用の 2 つの関数に #[doc(hidden)]\n・D10 core と converter に日本語の文の label() を足し、cli の表示もそれを使う
+**Reply**: 推奨どおり
+**Options**: ["推奨どおり","個別に決める"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-22T23:58:12Z
+**Event**: QUESTION_REPLIED
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Question**: D6. 性能のテストの上限: 今回は直しても 3〜5 倍しか速くならず(前々回は 50 倍)、例えば計画 1,000 ジョブは 99 ms → 約 31 ms の見込みです。提案の上限(80 ms など)だと、手元より遅い CI(特に Windows)で落ちるおそれがあります。どうしますか？
+**Reply**: 余裕のある上限
+**Options**: ["余裕のある上限","提案どおり","測るだけ"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:10Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:12Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:14Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:20Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:23Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:24Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:42Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:44Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:49Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:51Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:53Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:55Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-22T23:59:57Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:00Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:02Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:04Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:05Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:08Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:19Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:20Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:22Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:24Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:46Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:47Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:49Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:50Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:52Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:53Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:54Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:56Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:57Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:00:59Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:01Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:02Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:05Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Context**: construction > functional-design > entities.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:08Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:15Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:17Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:18Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:19Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:21Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:22Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:24Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:25Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:01:35Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-23T00:01:52Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architect-agent
+**Agent ID**: a06144b8a8d971a2a
+**Message**: ユーザーの決定を設計の文書に反映しました。コードは変えていません。コミットもしていません。決めたことに番号を付けた行が 10 行あることを数えて確かめ、traceability.json は JSON として読めることを確かめました。\n\n## 変えた箇所\n\n**functional-spec.md**\n- §10:決定の列を足し、D1〜D10 のすべてに「決定: …(ユーザー、2026-11-23
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-23T00:02:06Z
+**Event**: HOST_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-23T00:02:06Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architect-agent
+**Agent ID**: a06144b8a8d971a2a
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:02:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 141262c9
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:02:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 141262c9
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Duration ms**: 79
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:02:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: c7adbfb5
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: c7adbfb5
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Duration ms**: 96
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: 99bd0f1b
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: 99bd0f1b
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: 68434118
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: 68434118
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: 4e445af1
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: 4e445af1
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7b208473
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+
+---
+
+## Sensor Failed
+**Timestamp**: 2026-11-23T00:02:12Z
+**Event**: SENSOR_FAILED
+**Fire id**: 7b208473
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+**Detail path**: aidlc/spaces/default/intents/261122-types-perf-visible/.aidlc-engine/sensors/functional-design/traceability-7b208473.md
+**Findings count**: 1
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:02:45Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:02:52Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:02:53Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-23T00:02:55Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:bc19a05f3014e56b72fc7293616e232257cef600d90ad1948757bcc34e6581c8
+**Request Id**: review:3c0c1324b7a913a628c1cb28911222b6
+**Review File**: .aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.3c0c1324b7a913a628c1cb28911222b6.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-23T00:03:19Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-23T00:07:31Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/.aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.3c0c1324b7a913a628c1cb28911222b6.review.md
+**Context**: .aidlc-engine > reviews > functional-design > stage > af59601fc559c843 > 1.3c0c1324b7a913a628c1cb28911222b6.review.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-23T00:07:41Z
+**Event**: HOST_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-23T00:07:41Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a0c1c8ccca860c61b
+**Review File Digest**: .aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.3c0c1324b7a913a628c1cb28911222b6.review.md=a25f7f38dc26a774407417048100645fa6f666ff46e6f40a20a4d94d36f18a0d
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-23T00:07:46Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:bc19a05f3014e56b72fc7293616e232257cef600d90ad1948757bcc34e6581c8
+**Artifact Fingerprint**: sha256:bc19a05f3014e56b72fc7293616e232257cef600d90ad1948757bcc34e6581c8
+**Request Id**: review:3c0c1324b7a913a628c1cb28911222b6
+**Review Record**: .aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json
+**Review Record Digest**: sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:32Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:34Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:35Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:39Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:42Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:45Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:56Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:58Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:08:59Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:01Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:02Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:04Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:06Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:16Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:19Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Context**: construction > functional-design > rules.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:09:31Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/inventory.md
+**Context**: construction > functional-design > inventory.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-23T00:09:46Z
+**Event**: HOST_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-23T00:09:46Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architect-agent
+**Agent ID**: a06144b8a8d971a2a
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-23T00:09:52Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: functional-design
+**Checkpoint**: review-receipt
+**Changed**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md, aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Recorded**: sha256:bc19a05f3014e56b72fc7293616e232257cef600d90ad1948757bcc34e6581c8
+**Current**: sha256:fffa94a5c93beba82c79138058493703e3644cc4e995a528e7ab88be5ca3b958
+**Details**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md, aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md changed after the Functional Design review; carrying on.
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: 309afbe0
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: 309afbe0
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: a68d59d9
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: a68d59d9
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Duration ms**: 87
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: f54880f3
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: f54880f3
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Duration ms**: 79
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6269c82b
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6269c82b
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:09:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: 3e4015e5
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:09:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: 3e4015e5
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-23T00:09:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: 338cb111
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-23T00:09:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: 338cb111
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Output path**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json
+**Duration ms**: 80
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-23T00:09:54Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: functional-design
+**Next Stage**: code-generation
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md=passed; required-sections@aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md=passed; required-sections@aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md=passed; required-sections@aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json=passed; upstream-coverage@aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/entities.md=passed; traceability@aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/traceability.json=passed
+**Open Decisions**: 0
+**Question Id**: 4f3a3da2
+**Question Type**: gate
+**Question Chat**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Question Shows**: sha256:4a3e0c03af72e9cf541fe3b163f199bbd9572a0f8b18201e4b701af9d9c9335f
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-23T00:21:53Z
+**Event**: HUMAN_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: person
+**Source**: typed
+**Message Id**: 921b91d1
+**Open Questions**: 4f3a3da2
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-23T00:21:59Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md
+**Context**: construction > functional-design > functional-spec.md
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-23T00:22:03Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: functional-design
+**Checkpoint**: review-receipt
+**Changed**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md, aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md
+**Recorded**: sha256:bc19a05f3014e56b72fc7293616e232257cef600d90ad1948757bcc34e6581c8
+**Current**: sha256:a7009c490aed64d69732710bc0bdd1eb3ea7bd657585373157fd9f47bfbd9fd3
+**Details**: aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md, aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/rules.md changed after the Functional Design review; carrying on.
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-23T00:22:03Z
+**Event**: GATE_APPROVED
+**Stage**: functional-design
+**User Input**: Approve
+**Person Reply**: 推奨どおり\n余裕のある上限\n承認
+**Message Id**: 921b91d1
+**Message Ids**: 328a4dbb,921b91d1
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:6dd18896d8496f25e884e5677bf3363a06dc2a522d0227e3092c50de8c363106","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json","digest":"sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9"}},{"artifact":"aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:f6e609cc0c76c006d2bbdc1d094a12e79bd8746556ac37734425776656e9dd39","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json","digest":"sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9"}},{"artifact":"aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:0fa6597a555d68d48404dde0df457ade2146e22918fd16809414ff88766ea76d","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json","digest":"sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9"}},{"artifact":"aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md","id":"R-04","fingerprint":"sha256:00104cafeb2117bbefecb0ff9e4dcc53e4e092c3670ba5440676a5b23a694672","status":"Changed after review","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json","digest":"sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9"}},{"artifact":"aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:a6a7afd0bb7f0e19c065ad22c6aeb4062bb0b4d4dde70b1eaad22efb9b0181ad","status":"Changed after review","decided_at_severity":"info","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json","digest":"sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9"}},{"artifact":"aidlc/spaces/default/intents/261122-types-perf-visible/construction/functional-design/functional-spec.md","id":"R-06","fingerprint":"sha256:8fa727aac047789fb23309fcdfd690739d2340434b732e610a02c3c5e4b30ee2","status":"Changed after review","decided_at_severity":"info","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/af59601fc559c843/1.json","digest":"sha256:1b3843d25f93ea50710cd3f9a1327a737ee4463f7f984ea874fd057c054d74c9"}}]}
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-23T00:22:03Z
+**Event**: STAGE_COMPLETED
+**Stage**: functional-design
+**Validation Basis**: {"graphContract":"sha256:9bcda5bd8a06c0847db3e05cd9c841a992450b498f36fead53d3737b78517a4e","inputs":[{"artifact":"components","contentHash":"sha256:5c0d9cb82d79a022910842be63481e319fe902471c20776d6243db86e64aadd1","instanceCount":1,"presentCount":0,"producer":"domain-design","required":true,"structureHash":"sha256:566f9dd217063011a9433be66e3cd4448ce4e2b7646e4b8f73f8533a30d87d88"},{"artifact":"requirements","contentHash":"sha256:6899748bfaf899bdb76af9783adb789fb3cacc99acc542f7e0c4ad4b3e8274cc","instanceCount":1,"presentCount":0,"producer":"requirements-analysis","required":true,"structureHash":"sha256:250844e6f683906c3bd1e5727b37f694b43c2e9dd0c776e3acd0ac43e4554935"},{"artifact":"unit-of-work","contentHash":"sha256:51e0dc774cc6c53cbae6d50184b5f7a886055861ca83cef3c7b71379a5d19d36","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:c40a2a1838c4d578044a9820018f757341250d8050cb4382882ee3243d50c9af"}],"outputs":[{"artifact":"entities","contentHash":"sha256:51262f34a1733318258256358e7a1e245f18db847d1a98e730c10e83ffd1cb76","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:4b3a013eca65bd8a4a4df8786e4f012bc08b5cdef7979550744933f6660faac2"},{"artifact":"functional-spec","contentHash":"sha256:7bd2f2131147b8b4cc78362b567fd75e2972c14668e2e3fa1db7907ae69e9683","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:acece76dde462bfb5be9c11aab88e7129d064ed666d5ef21a8a84bbf0ba731d1"},{"artifact":"rules","contentHash":"sha256:bf44046cd0df3fb85bc6a25f04a9e96b24bb6bc3f9cfbb6d8856977c5f2225f5","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:b7af7cfa3abafae0ec47ad93e4dc6d0cec5396377859c81535c9b98913252611"},{"artifact":"traceability","contentHash":"sha256:1db97a809128a6eba1097e038d4ae8cf8949b7a1676920dea969df56ef5f1124","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:18a4e82c895776f48d9fdcd3fe6a854c4535460b94a47d4ef8fca6f8b1a8709f"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Functional Design approved by gate
+**Tokens In**: 383
+**Tokens Out**: 232020
+**Cache Read**: 65148779
+**Cache Write**: 1390284
+**Cost USD**: 23.62
+**By Model**: opus-5-5=22.50; sonnet-5-5=1.11
+**By Agent**: main=3.81; aidlc-architect-agent=18.69; aidlc-architecture-reviewer-agent=1.11
+**Tokens By Model**: opus-5-5=319/202k/61.3M/1.2M; sonnet-5-5=64/30.1k/3.8M/170.5k
+**Tokens By Agent**: main=55/16.4k/16.1M/34.3k; aidlc-architect-agent=264/185.5k/45.3M/1.2M; aidlc-architecture-reviewer-agent=64/30.1k/3.8M/170.5k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-23T00:22:03Z
+**Event**: STAGE_STARTED
+**Stage**: code-generation
+**Agent**: aidlc-developer-agent
+**Answer Mode**: guide (reused from intent-capture)
+**Source Baseline**: sha256:8e5a627e00e7679e58ae9f67c2fc1f850a6c0fb0cb6d4aa5ef48f04512eecb36
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-23T00:22:04Z
+**Event**: MEMORY_EMPTY
+**Stage**: functional-design
+
+---
