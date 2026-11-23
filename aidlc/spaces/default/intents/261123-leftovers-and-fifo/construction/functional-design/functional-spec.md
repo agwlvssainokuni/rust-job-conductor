@@ -144,6 +144,7 @@ grep -rn "Deps {\|run_cli_with(" crates/cli/tests
 | T20 | `tests/report_messages.rs:34-39`(`env_for`)、`:41-47`(`state_error`) | 2 | `env_for` は `FakeEnv::for_language(lang)` の 1 行の包みに、`state_error(kind)` は `common::state_error(Path::new("dir/c.toml.state"), kind)` の 1 行の包みに(呼ぶ所 33 か所と 3 か所は変えない。パスと理由の値は今と同じ) | 1i-2 |
 | T21 | `tests/flow_init.rs:35-64`(`run_with`) | 1 | 言語の `match` を `FakeEnv::for_language(lang)` に、`Deps` の組み立てと `run_cli_with` を `run_with_fakes` に | 1i-2 |
 | T24 | `tests/nfr_robust.rs:136-142`(`utf8_でない引数でパニックしない` の中の `Deps` の組み立てと `run_cli_with`) | 1 | 4 か所目の「`Deps` を組んで `run_cli_with` を呼ぶ形」。`run_with_fakes(&runtime, &mut sink, &env, &signals, args)` に寄せる(同じ `sink` を使い回すので、引数の形がそのまま合う。終了コードの範囲の確認は変えない) | 1i-2 |
+| T25 | converter の `tests/nfr_security.rs:328` | 1 | `assert!(shown.contains(&e.reason), …)` の `&e.reason` を `e.reason` に(`reason` が `&'static str` になると `clippy::needless_borrows_for_generic_args` に当たるため。確かめる中身は同じ)。実装の中で見つかった一覧の漏れで、ユーザーが 2026-11-23 に追加を認めた | 1g-4 |
 | T22 ★ | `tests/binary_basic.rs:246` | 1 | **`"conductor 0.9.7\n"` を `"conductor 0.9.8\n"` に**(版の更新。前回 `7239aa2` と同じ) | 2d |
 
 ### 4.5 テストを変えずに通るもの(参考)
