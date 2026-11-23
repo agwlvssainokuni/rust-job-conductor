@@ -19,7 +19,7 @@ mod common;
 use common::state;
 use conductor_core::{
     Assumption, ExecutionPlan, JobStatus, LoadedEnvFiles, PipelineState, PlanDisposition as D,
-    PlanInput, PlanMode, PlanRejection, RejectReason, ResumeKind, parse_definition, plan_run,
+    PlanInput, PlanMode, PlanRejection, RejectReason, ResumeInfo, parse_definition, plan_run,
 };
 
 const THREE: &str = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\nwarning_exit_codes = [3]\n[[job]]\nid = \"b\"\ncommand = \"echo b\"\n[[job]]\nid = \"c\"\ncommand = \"echo c\"\n";
@@ -69,8 +69,7 @@ fn run_の計画は_対象の_1_ジョブと次の動きを持ち_再開位置�
     assert_eq!(plan.entries[0].job_id, "b");
     assert_eq!(plan.entries[0].disposition, D::WillRun);
     assert!(!plan.entries[0].is_resume);
-    assert_eq!(plan.resume.kind, ResumeKind::Individual);
-    assert_eq!(plan.resume.job_id.as_deref(), Some("b"));
+    assert_eq!(plan.resume, ResumeInfo::Individual("b".into()));
     let note = plan.next_step_note.expect("次の動き");
     assert_eq!(note.next_job_id.as_deref(), Some("c"));
     assert!(!note.stopped && !note.completed && !note.end_reached);

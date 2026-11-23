@@ -24,7 +24,7 @@ use std::path::Path;
 
 use super::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
-    PlanRejection, ResumeInfo, ResumeKind, SimulatedResult,
+    PlanRejection, ResumeInfo, SimulatedResult,
 };
 use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env};
 use crate::flow::classify::classify_exit_code;
@@ -134,14 +134,8 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
         None => PlanEnd::Completed,
     };
     let resume_info = match &initial_resume {
-        Some(id) => ResumeInfo {
-            kind: ResumeKind::AfterStop,
-            job_id: Some(id.clone()),
-        },
-        None => ResumeInfo {
-            kind: ResumeKind::FromStart,
-            job_id: None,
-        },
+        Some(id) => ResumeInfo::AfterStop(id.clone()),
+        None => ResumeInfo::FromStart,
     };
     let ran: HashSet<&str> = entries
         .iter()
@@ -222,10 +216,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
         pipeline_name: def.name.clone(),
         run_id: input.run_id.map(str::to_string),
         mode: RunMode::Individual,
-        resume: ResumeInfo {
-            kind: ResumeKind::Individual,
-            job_id: Some(job_id.to_string()),
-        },
+        resume: ResumeInfo::Individual(job_id.to_string()),
         assumptions: input.assumptions.to_vec(),
         unused_assumptions: unused_assumptions(input.assumptions, &ran),
         entries: vec![item],

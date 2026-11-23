@@ -866,7 +866,7 @@ target_position(i, on):
 | `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`willRun` のジョブだけ |
 | `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<(name, origin)>(試行 1 で渡される名前と出どころ), retry: RetryPolicy?, result: SimulatedResult? }`。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
 | 計画の方式 | `pipeline`、`individual` |
-| `ResumeInfo` | `kind`: `fromStart`(ステートなし、または完了したステート)、`afterStop`(前回の停止で再開位置あり)、`individual`(`run` の対象)。`job_id`(`afterStop` と `individual` のとき) |
+| `ResumeInfo` | 3 つの場合のどれか: `fromStart`(ステートなし、または完了したステート)、`afterStop`(前回の停止で再開位置あり。再開位置のジョブ ID を持つ)、`individual`(`run` の対象。対象のジョブ ID を持つ) |
 | `PlanEnd` | `completed`、`endReached`(`@end` に到達)、`stoppedAtError(job_id)` |
 | `NextStepNote` | `{ next_job_id, skipped_job_ids, completed, end_reached, stopped }`(`run` の、仮定の結果による次の動き) |
 | `ExecutionPlan` | `{ pipeline_name, run_id, mode, resume, assumptions, unused_assumptions: list<string>, entries, end, next_step_note? }` |

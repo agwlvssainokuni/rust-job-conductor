@@ -19,7 +19,7 @@ mod common;
 use common::state;
 use conductor_core::{
     Assumption, Classification, ExecutionPlan, JobStatus, LoadedEnvFiles, PipelineState,
-    PlanDisposition as D, PlanEnd, PlanInput, ResumeKind, SkipReason, parse_definition,
+    PlanDisposition as D, PlanEnd, PlanInput, ResumeInfo, SkipReason, parse_definition,
     plan_pipeline,
 };
 
@@ -63,7 +63,7 @@ fn すべて成功する流れは_全ジョブを実行して完了する() {
     let plan = plan_with(THREE, None, &[]);
     assert_eq!(dispositions(&plan), [D::WillRun, D::WillRun, D::WillRun]);
     assert_eq!(plan.end, PlanEnd::Completed);
-    assert_eq!(plan.resume.kind, ResumeKind::FromStart);
+    assert_eq!(plan.resume, ResumeInfo::FromStart);
     assert!(plan.unused_assumptions.is_empty());
     for entry in &plan.entries {
         let result = entry.result.expect("実行するジョブは結果を持つ");
@@ -128,8 +128,7 @@ fn 前回の停止から再開する_実行済みと再開位置() {
         dispositions(&plan),
         [D::AlreadyExecuted, D::WillRun, D::WillRun]
     );
-    assert_eq!(plan.resume.kind, ResumeKind::AfterStop);
-    assert_eq!(plan.resume.job_id.as_deref(), Some("b"));
+    assert_eq!(plan.resume, ResumeInfo::AfterStop("b".into()));
     let resumes: Vec<bool> = plan.entries.iter().map(|e| e.is_resume).collect();
     assert_eq!(resumes, [false, true, false]);
 }
@@ -137,8 +136,7 @@ fn 前回の停止から再開する_実行済みと再開位置() {
 #[test]
 fn ステートが無ければ最初から_再開位置のジョブは無い() {
     let plan = plan_with(THREE, None, &[]);
-    assert_eq!(plan.resume.kind, ResumeKind::FromStart);
-    assert!(plan.resume.job_id.is_none());
+    assert_eq!(plan.resume, ResumeInfo::FromStart);
     assert!(plan.entries.iter().all(|e| !e.is_resume));
 }
 
@@ -155,7 +153,7 @@ fn 完了したステートは_ステートなしと同じ扱いで最初から(
     );
     let plan = plan_with(THREE, Some(&s), &[]);
     assert_eq!(dispositions(&plan), [D::WillRun, D::WillRun, D::WillRun]);
-    assert_eq!(plan.resume.kind, ResumeKind::FromStart);
+    assert_eq!(plan.resume, ResumeInfo::FromStart);
 }
 
 #[test]

@@ -856,7 +856,7 @@ target_position(i, on):
 | `EnvNameEntry` | `{ name, origin: EnvOrigin }`。値を持たない |
 | `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前と出どころ), retry: Option<RetryPolicy>, result: Option<SimulatedResult> }`。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
 | `PlanMode` | `Pipeline`、`Individual`。`RunMode` の別名(`ExecutionPlan.mode` の型は `RunMode`) |
-| `ResumeKind` / `ResumeInfo` | `FromStart`(ステートなし、または完了したステート)、`AfterStop`(前回の停止で再開位置あり)、`Individual`(`run` の対象)/ `{ kind, job_id: Option<String> }` |
+| `ResumeInfo` | 列挙型。`FromStart`(ステートなし、または完了したステート)、`AfterStop(String)`(前回の停止で再開位置あり。再開位置のジョブ ID)、`Individual(String)`(`run` の対象。対象のジョブ ID)。あり得る 3 つの場合だけを表す |
 | `PlanEnd` | `Completed`、`EndReached`(`@end` に到達)、`StoppedAtError(job_id)` |
 | `NextStepNote` | `{ next_job_id, skipped_job_ids, completed, end_reached, stopped }`(`run` の、仮定の結果による次の動き) |
 | `ExecutionPlan` | `{ pipeline_name, run_id, mode, resume, assumptions, unused_assumptions: Vec<String>, entries, end, next_step_note: Option<NextStepNote> }` |

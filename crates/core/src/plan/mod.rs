@@ -113,23 +113,15 @@ pub struct PlanEntry {
 /// 実行の方式 [`RunMode`](crate::types::RunMode) の別名(同じ意味の型を 1 つにする。BR4.3)。
 pub use crate::types::RunMode as PlanMode;
 
-/// 再開位置の種類(BR1.4)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ResumeKind {
+/// 再開位置(または `run` の対象。BR1.4)。あり得る 3 つの場合だけを表す。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResumeInfo {
     /// ステートが無い(完了したステートを含む)。最初から。
     FromStart,
-    /// 前回の停止で、再開位置がある。
-    AfterStop,
-    /// `run` の対象のジョブ。
-    Individual,
-}
-
-/// 再開位置(または `run` の対象)。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResumeInfo {
-    pub kind: ResumeKind,
-    /// `AfterStop` と `Individual` のとき。
-    pub job_id: Option<String>,
+    /// 前回の停止で、再開位置がある(再開位置のジョブ ID)。
+    AfterStop(String),
+    /// `run` の対象のジョブ(対象のジョブ ID)。
+    Individual(String),
 }
 
 /// 模擬の最後(BR1.3)。

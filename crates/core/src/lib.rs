@@ -107,8 +107,7 @@ pub use flow::{
 };
 pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
-    PlanInput, PlanMode, PlanRejection, ResumeInfo, ResumeKind, SimulatedResult, plan_pipeline,
-    plan_run,
+    PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run,
 };
 pub use run_id::{
     DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env,

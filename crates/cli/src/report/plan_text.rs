@@ -20,7 +20,7 @@
 
 use conductor_core::{
     Assumption, Classification, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
-    PlanMode, ResumeKind,
+    PlanMode, ResumeInfo,
 };
 
 use super::escape::escape_path;
@@ -51,12 +51,12 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
     }
     push_line(&mut out, &heading);
 
-    match (plan.resume.kind, &plan.resume.job_id) {
-        (ResumeKind::Individual, Some(id)) => push_line(
+    match &plan.resume {
+        ResumeInfo::Individual(id) => push_line(
             &mut out,
             &format!("{}{}", PLAN_TARGET_LABEL.get(lang), escape_path(id)),
         ),
-        (ResumeKind::AfterStop, Some(id)) => push_line(
+        ResumeInfo::AfterStop(id) => push_line(
             &mut out,
             &format!(
                 "{}{}",
@@ -64,7 +64,7 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
                 plan_resume_after_stop(lang, &escape_path(id))
             ),
         ),
-        _ => push_line(
+        ResumeInfo::FromStart => push_line(
             &mut out,
             &format!(
                 "{}{}",
