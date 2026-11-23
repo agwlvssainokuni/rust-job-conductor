@@ -344,7 +344,6 @@ impl fmt::Debug for EffectiveEntry {
 /// 1 つのジョブの 1 回の起動に、引き継いだ環境へ「足す」環境変数(層を統合した結果)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveEnv {
-    pub job_id: String,
     /// 層の順。完全に同じ名前は 1 つ(後ろの層が勝つ)。
     pub entries: Vec<EffectiveEntry>,
 }
@@ -355,14 +354,6 @@ impl EffectiveEnv {
         self.entries
             .iter()
             .map(|e| (e.name.as_str(), e.value.as_str()))
-            .collect()
-    }
-
-    /// 名前だけの要約(値を含まない。引き継いだ環境の名前を含まない。BR8.2)。
-    pub fn names(&self) -> Vec<(&str, EnvOrigin)> {
-        self.entries
-            .iter()
-            .map(|e| (e.name.as_str(), e.origin))
             .collect()
     }
 }

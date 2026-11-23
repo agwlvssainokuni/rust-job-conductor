@@ -50,6 +50,13 @@ fn names(env: &EffectiveEnv) -> Vec<&str> {
     env.additions().into_iter().map(|(n, _)| n).collect()
 }
 
+fn origins(env: &EffectiveEnv) -> Vec<(&str, EnvOrigin)> {
+    env.entries
+        .iter()
+        .map(|e| (e.name.as_str(), e.origin))
+        .collect()
+}
+
 const LAYERED: &str = "format_version = 1
 [pipeline]
 name = \"p\"
@@ -82,7 +89,7 @@ fn 層の優先順位は_pipeline_env_file_から_job_env_の順に後ろが勝�
     assert_eq!(get(&env, "Q"), Some("1"));
 
     // 層ごとの出どころ
-    let origin = |n: &str| env.names().into_iter().find(|(x, _)| *x == n).unwrap().1;
+    let origin = |n: &str| origins(&env).into_iter().find(|(x, _)| *x == n).unwrap().1;
     assert_eq!(origin("V"), EnvOrigin::JobEnv);
     assert_eq!(origin("W"), EnvOrigin::JobEnvFile);
     assert_eq!(origin("P"), EnvOrigin::PipelineEnvFile);
@@ -147,7 +154,7 @@ fn 自動の変数は_run_id_がないとき_conductor_run_id_を作らず試行
     let e3 = merge_env(&d, &d.job[0], &files, &ctx(Some("run-7"), 3));
     assert_eq!(get(&e3, "CONDUCTOR_RUN_ID"), Some("run-7"));
     assert_eq!(get(&e3, "CONDUCTOR_ATTEMPT"), Some("3"));
-    assert_eq!(e3.job_id, "a");
+    assert_eq!(get(&e3, "CONDUCTOR_JOB_ID"), Some("a"));
 }
 
 #[test]
@@ -164,10 +171,10 @@ fn names_は値を含まず出どころを持ち_additions_は並びの順() {
     let mut files = LoadedEnvFiles::new();
     files.add("p.env", content(&format!("P={SECRET}\n")));
     let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
-    let shown = format!("{:?} {:?}", env.names(), env);
+    let shown = format!("{:?} {:?}", origins(&env), env);
     assert!(!shown.contains(SECRET), "{shown}");
-    assert!(env.names().contains(&("P", EnvOrigin::PipelineEnvFile)));
-    assert_eq!(env.additions().len(), env.names().len());
+    assert!(origins(&env).contains(&("P", EnvOrigin::PipelineEnvFile)));
+    assert_eq!(env.additions().len(), origins(&env).len());
     // 引き継いだ環境(PATH など)の名前は含まれない
     assert!(!names(&env).contains(&"PATH"));
 }

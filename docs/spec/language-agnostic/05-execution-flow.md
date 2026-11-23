@@ -654,7 +654,7 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 | `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。「定義に書かれた `env_file` の記述 → 内容」を引ける。同じ解決済みのパスは、1 つの内容を共有する |
 | `EnvContext` | `{ pipeline_name, job_id, run_id(無いことがある), attempt(1 から) }`。自動の変数の入力 |
 | `EnvOrigin` | `pipelineEnvFile`、`pipelineEnv`、`jobEnvFile`、`jobEnv`、`builtin`(名前の出どころ。名前の要約に使う) |
-| `EffectiveEnv` | 1 回のジョブの起動に足す環境。`{ job_id, entries: list<{ name, value, origin }> }`。「名前と値の並び」(起動に渡す)と、「名前と出どころの並び」(値を含まない要約)を取り出せる |
+| `EffectiveEnv` | 1 回のジョブの起動に足す環境。`{ entries: list<{ name, value, origin }> }`。「名前と値の並び」(起動に渡す)と、「名前と出どころの並び」(値を含まない要約)は、項目から取り出せる |
 
 ### 14.2 層と優先順位
 
@@ -685,7 +685,7 @@ put("CONDUCTOR_PIPELINE", ctx.pipeline_name, builtin)
 put("CONDUCTOR_JOB_ID",   ctx.job_id,        builtin)
 if ctx.run_id がある: put("CONDUCTOR_RUN_ID", ctx.run_id, builtin)
 put("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  builtin)
-return EffectiveEnv { job_id: job.id, entries }
+return EffectiveEnv { entries }
 ```
 
 - 完全に同じ名前は、後ろの層が勝って 1 つになる(並びでは、後ろの層の位置に移る)。**大文字小文字だけが違う名前は、別の名前として**、層の順に並べる(`foo` と `FOO` は両方が残る)。

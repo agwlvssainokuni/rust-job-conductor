@@ -643,7 +643,7 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 | `EnvContext<'a>` | `{ pipeline_name: &str, job_id: &str, run_id: Option<&str>, attempt: u32 }`。自動の変数の入力 |
 | `EnvOrigin` | `PipelineEnvFile`、`PipelineEnv`、`JobEnvFile`、`JobEnv`、`Builtin`(契約の「出どころ」。名前の要約に使う) |
 | `EffectiveEntry` | `{ name, value, origin }`。`Debug` は値を `"***"` と表示する |
-| `EffectiveEnv` | `{ job_id, entries: Vec<EffectiveEntry> }`。`additions() -> Vec<(&str, &str)>`(名前と値。並びの順)、`names() -> Vec<(&str, EnvOrigin)>`(値を含まない要約) |
+| `EffectiveEnv` | `{ entries: Vec<EffectiveEntry> }`。`additions() -> Vec<(&str, &str)>`(名前と値。並びの順)。名前と出どころ(値を含まない要約)は `entries` から取り出せる |
 
 ### 14.2 層と優先順位
 
@@ -674,7 +674,7 @@ items に ("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  Buil
 keep_last(items):                # 名前ごとの最後の位置を表で引き、最後の位置の項目だけを並びの順に残す
     last = { name → items の中で最後に現れた位置 }
     entries = [ items[i] for i in 0..len(items) if last[items[i].name] == i ]
-return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
+return EffectiveEnv { entries: keep_last(items) }
 ```
 
 項目の数に比例する時間で済む(上限の `.env` 10,000 項目でも、二乗の時間にならない。性能のテストは `core/tests/env_merge_perf.rs`)。

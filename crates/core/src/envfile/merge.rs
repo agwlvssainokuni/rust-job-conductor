@@ -43,7 +43,6 @@ pub fn merge_env(
     );
 
     EffectiveEnv {
-        job_id: job.id.clone(),
         entries: keep_last_positions(&items)
             .map(|(name, value, origin)| EffectiveEntry {
                 name: (*name).to_string(),
