@@ -286,9 +286,8 @@ impl UsageError {
 }
 
 /// 表示の言語(entities の Language)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Language {
-    #[default]
     En,
     Ja,
 }
