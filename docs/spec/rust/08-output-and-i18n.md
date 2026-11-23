@@ -127,8 +127,8 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 
 `messages.rs` の `definition_kind(kind) -> Text`。日本語は `conductor-core` の `DefinitionErrorKind::label()`(`Display` もこれを書く。cli は日本語の文を持たない)。英語は `messages.rs` の表。表示は `conductor: error: <ファイル>[:<行>]: <種類の文>: <原因>`。`<原因>`(`reason`)は `conductor-core` が作る日本語の固定の文で、言語を切り替えない(英語ロケールでも日本語のまま)。
 
-| 識別子(`code()`) | 英語 | 日本語 |
-|--------------------|------|--------|
+| 識別子 | 英語 | 日本語 |
+|--------|------|--------|
 | `fileMissing` | `definition file does not exist` | `定義ファイルが存在しません` |
 | `unreadable` | `cannot read definition file` | `定義ファイルを読めません` |
 | `tooLarge` | `definition file is too large` | `定義ファイルが大きすぎます` |

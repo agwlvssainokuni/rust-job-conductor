@@ -93,10 +93,10 @@
 
 | 型 | 内容 |
 |----|------|
-| `DefinitionErrorKind` | 33 種(v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を追加)。`code() -> &'static str` が識別子(`fileMissing` など)。03 の 9.3、10 の 7.1 |
+| `DefinitionErrorKind` | 33 種(v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を追加)。仕様の識別子(`fileMissing` など)は、変種の名前の先頭を小文字にしたもの。03 の 9.3、10 の 7.1 |
 | `DefinitionError` | `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>` |
 | `RunIdError` | `Empty`・`TooLong`・`InvalidChar`・`LeadingDot` |
-| `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`code()`、`reason()`)/ `{ file: String, line: Option<usize>, kind }` と、理由のメソッド `reason() -> &'static str`(`kind.reason()`。v0.9.6 までは同じ文の写しをフィールド `reason: String` に持った)。`Display` は `<file>[:<line>]: <種類の文>: <reason>`(書式は `DefinitionError` と共有する `error::render_error`)。03 の 6.7、10 の 7.1 |
+| `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`reason()`。識別子は変種の名前の先頭を小文字にしたもの)/ `{ file: String, line: Option<usize>, kind }` と、理由のメソッド `reason() -> &'static str`(`kind.reason()`。v0.9.6 までは同じ文の写しをフィールド `reason: String` に持った)。`Display` は `<file>[:<line>]: <種類の文>: <reason>`(書式は `DefinitionError` と共有する `error::render_error`)。03 の 6.7、10 の 7.1 |
 | 補助 | `escape_display(input, limit)`(制御文字・書式文字のエスケープ。上限なしも選べる。表示のエスケープの本体)、`sanitize(input, max_chars)`(`escape_display` の上限つき)、`quote_key`、`Locate`(位置→行番号。`line_of(offset)`)、`MAX_KEY_DISPLAY_CHARS = 64` |
 
 ### 2.2 `conductor-runtime`

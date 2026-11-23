@@ -36,6 +36,7 @@ const MAX_FILE_DISPLAY_CHARS: usize = 256;
 /// 変換の失敗の種類(entities の `kind`)。
 ///
 /// 種類の文(日本語)は [`ConversionErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+/// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `RootNotMap` は `rootNotMap`)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConversionErrorKind {
     FileMissing,
@@ -64,19 +65,6 @@ impl ConversionErrorKind {
             Self::Syntax => "文法の誤りです",
             Self::Unrepresentable => "相手の形式で表せない値があります",
             Self::RootNotMap => "最上位がキーと値の集まり(マップ)ではありません",
-        }
-    }
-
-    /// 種類を表す識別子(機械が読む用。entities.md の `kind` の名前)。契約 C4 の外(テスト用)。
-    #[doc(hidden)]
-    pub fn code(self) -> &'static str {
-        match self {
-            Self::FileMissing => "fileMissing",
-            Self::Unreadable => "unreadable",
-            Self::TooLarge => "tooLarge",
-            Self::Syntax => "syntax",
-            Self::Unrepresentable => "unrepresentable",
-            Self::RootNotMap => "rootNotMap",
         }
     }
 }

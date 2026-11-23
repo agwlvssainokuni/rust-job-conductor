@@ -39,7 +39,7 @@
 //! - 型: [`ConversionRequest`]、[`ConvertedText`]、[`TargetFormat`]、[`ConversionError`]
 //!   (`Display` で表示用の文になる)、[`ConversionErrorKind`]
 //! - `#[doc(hidden)]`(安定した API ではない。このクレートのテスト用): `testing`
-//!   (`Value`、`read_tree`)、`ConversionErrorKind::code`
+//!   (`Value`、`read_tree`)
 //!
 //! # 展開の上限
 //!

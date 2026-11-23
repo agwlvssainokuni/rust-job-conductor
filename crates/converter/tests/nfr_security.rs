@@ -16,7 +16,7 @@
 
 mod common;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 use common::kinds::CONVERSION_ERROR_KINDS;
@@ -311,13 +311,9 @@ fn all_kind_errors() -> Vec<ConversionError> {
 #[test]
 fn 表示は_どの種類でも入力の値を含まない() {
     let errors = all_kind_errors();
-    let kinds: BTreeSet<&str> = errors.iter().map(|e| e.kind.code()).collect();
+    let kinds: HashSet<K> = errors.iter().map(|e| e.kind).collect();
     for kind in CONVERSION_ERROR_KINDS {
-        assert!(
-            kinds.contains(kind.code()),
-            "{} のテストがない",
-            kind.code()
-        );
+        assert!(kinds.contains(&kind), "{kind:?} のテストがない");
     }
     for e in &errors {
         let shown = format!("{e}");

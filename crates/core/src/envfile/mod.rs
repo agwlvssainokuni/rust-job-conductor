@@ -69,6 +69,7 @@ pub fn is_reserved_env_name(name: &str) -> bool {
 /// `.env` の読み取りの誤りの種類(13 種)。
 ///
 /// 種類の文(日本語)は [`EnvFileErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+/// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `NotUtf8` は `notUtf8`)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EnvFileErrorKind {
     FileMissing,
@@ -111,25 +112,6 @@ impl EnvFileErrorKind {
             Self::InvalidEscape => "許されないエスケープです",
             Self::TrailingGarbage => "閉じた引用符のあとに余計な文字があります",
             Self::NulInValue => "値に NUL が含まれています",
-        }
-    }
-
-    /// 種類を表す識別子(機械が読む用)。
-    pub fn code(self) -> &'static str {
-        match self {
-            Self::FileMissing => "fileMissing",
-            Self::Unreadable => "unreadable",
-            Self::TooLarge => "tooLarge",
-            Self::NotUtf8 => "notUtf8",
-            Self::TooManyEntries => "tooManyEntries",
-            Self::InvalidName => "invalidName",
-            Self::ReservedName => "reservedName",
-            Self::CaseConflict => "caseConflict",
-            Self::MissingEquals => "missingEquals",
-            Self::UnterminatedQuote => "unterminatedQuote",
-            Self::InvalidEscape => "invalidEscape",
-            Self::TrailingGarbage => "trailingGarbage",
-            Self::NulInValue => "nulInValue",
         }
     }
 

@@ -53,23 +53,16 @@ fn 値を持つ型の_debug_は値を伏せる() {
 }
 
 #[test]
-fn 定義の誤りの種類は_33_種で識別子が重複せず表示が空でない() {
-    assert_eq!(DEFINITION_ERROR_KINDS.len(), 33);
-    let codes: HashSet<_> = DEFINITION_ERROR_KINDS.iter().map(|k| k.code()).collect();
-    assert_eq!(codes.len(), 33);
+fn 定義の誤りの種類は_33_種で表示が空でない() {
+    // 33 種であることと重複の無いことは、写しの型とコンパイル時の確かめが保つ。
     for k in DEFINITION_ERROR_KINDS {
         assert!(!k.to_string().is_empty());
-    }
-    for code in ["reservedEnvName", "envNameCaseConflict", "invalidEnvValue"] {
-        assert!(codes.contains(code), "{code}");
     }
 }
 
 #[test]
-fn env_file_の誤りの種類は_13_種で識別子と理由が重複しない() {
-    assert_eq!(ENV_FILE_ERROR_KINDS.len(), 13);
-    let codes: HashSet<_> = ENV_FILE_ERROR_KINDS.iter().map(|k| k.code()).collect();
-    assert_eq!(codes.len(), 13);
+fn env_file_の誤りの種類は_13_種で理由が重複しない() {
+    // 13 種であることと重複の無いことは、写しの型とコンパイル時の確かめが保つ。
     let reasons: HashSet<_> = ENV_FILE_ERROR_KINDS.iter().map(|k| k.reason()).collect();
     assert_eq!(reasons.len(), 13);
     for k in ENV_FILE_ERROR_KINDS {

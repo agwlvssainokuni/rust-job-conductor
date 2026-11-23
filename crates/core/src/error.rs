@@ -29,6 +29,7 @@ pub(crate) const MAX_FILE_DISPLAY_CHARS: usize = 256;
 /// 定義の誤りの種類(BR1.1〜BR1.13、security-design の追加分を含む)。
 ///
 /// 種類の文(日本語)は [`DefinitionErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+/// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `FileMissing` は `fileMissing`)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DefinitionErrorKind {
     FileMissing,
@@ -128,45 +129,6 @@ impl DefinitionErrorKind {
             Self::ReservedEnvName => "予約された環境変数の名前です",
             Self::EnvNameCaseConflict => "大文字小文字だけが違う環境変数の名前があります",
             Self::InvalidEnvValue => "環境変数の値が正しくありません",
-        }
-    }
-
-    /// 種類を表す識別子(機械が読む用。entities.md の `kind` の名前)。
-    pub fn code(self) -> &'static str {
-        match self {
-            Self::FileMissing => "fileMissing",
-            Self::Unreadable => "unreadable",
-            Self::TooLarge => "tooLarge",
-            Self::Syntax => "syntax",
-            Self::TypeMismatch => "typeMismatch",
-            Self::UnknownKey => "unknownKey",
-            Self::VersionMissing => "versionMissing",
-            Self::VersionUnsupported => "versionUnsupported",
-            Self::UnknownTarget => "unknownTarget",
-            Self::ErrorTransition => "errorTransition",
-            Self::BackwardOrSelfTarget => "backwardOrSelfTarget",
-            Self::OverlappingExitCodes => "overlappingExitCodes",
-            Self::ZeroAsWarning => "zeroAsWarning",
-            Self::PipelineNameMismatch => "pipelineNameMismatch",
-            Self::DuplicateJobId => "duplicateJobId",
-            Self::InvalidJobId => "invalidJobId",
-            Self::NoJobs => "noJobs",
-            Self::EmptyField => "emptyField",
-            Self::DuplicateTransition => "duplicateTransition",
-            Self::InvalidEnvName => "invalidEnvName",
-            Self::RetryNotTable => "retryNotTable",
-            Self::RetryMissingKey => "retryMissingKey",
-            Self::RetryExitCodesEmpty => "retryExitCodesEmpty",
-            Self::RetryExitCodeInvalid => "retryExitCodeInvalid",
-            Self::RetryExitCodesOverlap => "retryExitCodesOverlap",
-            Self::RetryMaxInvalid => "retryMaxInvalid",
-            Self::RetryDurationInvalid => "retryDurationInvalid",
-            Self::RetryBackoffIncomplete => "retryBackoffIncomplete",
-            Self::RetryMultiplierInvalid => "retryMultiplierInvalid",
-            Self::RetryMaxIntervalTooSmall => "retryMaxIntervalTooSmall",
-            Self::ReservedEnvName => "reservedEnvName",
-            Self::EnvNameCaseConflict => "envNameCaseConflict",
-            Self::InvalidEnvValue => "invalidEnvValue",
         }
     }
 }
