@@ -366,7 +366,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |
-| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read` で読み取りの文脈を選ぶ)、`push_line`(graph・計画・watch が共有) |
+| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read(Option<&RunId>)` で読み取りの文脈 `Read`/`ReadRunId` を選ぶ。定義との食い違いの表示 `ConsistencyMismatch.context` と、案内の `messages::reset_hint(StateContext)` も同じ文脈を使う。v0.9.7 までは run ID の有無を真偽値 `with_run_id` で渡した)、`push_line`(graph・計画・watch が共有) |
 | `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
 | `report/watch.rs` | `watch` の表(列の幅、色) |
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |

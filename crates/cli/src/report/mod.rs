@@ -39,7 +39,7 @@ use std::path::Path;
 use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, PipelineState,
-    RejectReason, SkipCause, TransitionOn, TransitionTarget, summarize_errors,
+    RejectReason, RunId, SkipCause, TransitionOn, TransitionTarget, summarize_errors,
 };
 use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
 
@@ -70,11 +70,10 @@ pub enum StateContext {
 
 impl StateContext {
     /// ステートを読んだときの表示の文脈。run ID があるときは、案内を `reset --run-id` にする。
-    pub(crate) fn for_read(with_run_id: bool) -> Self {
-        if with_run_id {
-            Self::ReadRunId
-        } else {
-            Self::Read
+    pub(crate) fn for_read(run_id: Option<&RunId>) -> Self {
+        match run_id {
+            Some(_) => Self::ReadRunId,
+            None => Self::Read,
         }
     }
 }
@@ -113,8 +112,8 @@ pub enum DisplayEvent<'a> {
     ConsistencyMismatch {
         state_path: &'a Path,
         kind: MismatchKind,
-        /// run ID つきのステートか(案内の文が変わる)。
-        with_run_id: bool,
+        /// 読んだときの文脈。`Read` か `ReadRunId`(run ID つきのステートなら、案内の文が変わる)。
+        context: StateContext,
     },
     /// `reset --all` が、読めなくて残したファイル(警告。終了コードは変わらない)。
     ResetAllKept {
@@ -354,11 +353,11 @@ impl<'a> Reporter<'a> {
             DisplayEvent::ConsistencyMismatch {
                 state_path,
                 kind,
-                with_run_id,
+                context,
             } => {
                 let lang = lang();
                 let place = show_path(state_path);
-                let hint = messages::reset_hint(*with_run_id).get(lang);
+                let hint = messages::reset_hint(*context).get(lang);
                 let what = mismatch_kind(*kind).get(lang);
                 error_line(
                     &place,
@@ -593,7 +592,7 @@ fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
     match context {
         StateContext::Read | StateContext::ReadRunId => {
             if state_kind_suggests_reset(e.kind) {
-                let hint = messages::reset_hint(context == StateContext::ReadRunId);
+                let hint = messages::reset_hint(context);
                 cause.push_str(&format!("; {}", hint.get(lang)));
             }
         }

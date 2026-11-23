@@ -25,6 +25,7 @@ use conductor_core::{
 };
 use conductor_runtime::{CommandErrorKind, CreateError, MismatchKind, StateErrorKind};
 
+use crate::report::StateContext;
 use crate::types::{Language, UsageErrorKind};
 
 /// 英語と日本語の対。
@@ -406,11 +407,10 @@ pub const RESET_HINT_RUN_ID: Text = Text::new(
 
 /// ステートの初期化の案内。run ID があるときは `reset --run-id <ID>`、無ければ `reset`(読み取りの誤りと、
 /// 定義との食い違いが使う 1 か所)。
-pub fn reset_hint(with_run_id: bool) -> Text {
-    if with_run_id {
-        RESET_HINT_RUN_ID
-    } else {
-        RESET_HINT
+pub fn reset_hint(context: StateContext) -> Text {
+    match context {
+        StateContext::ReadRunId => RESET_HINT_RUN_ID,
+        _ => RESET_HINT,
     }
 }
 

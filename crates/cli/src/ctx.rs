@@ -293,7 +293,7 @@ impl Ctx<'_> {
         let state = match result {
             Ok(state) => state,
             Err(error) => {
-                return Err(self.state_error(&error, StateContext::for_read(run_id.is_some())));
+                return Err(self.state_error(&error, StateContext::for_read(run_id)));
             }
         };
         if let Some(state) = &state
@@ -303,7 +303,7 @@ impl Ctx<'_> {
             self.show(&DisplayEvent::ConsistencyMismatch {
                 state_path: &state_path,
                 kind,
-                with_run_id: run_id.is_some(),
+                context: StateContext::for_read(run_id),
             });
             return Err(EXIT_STATE);
         }

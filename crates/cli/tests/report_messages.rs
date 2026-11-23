@@ -175,7 +175,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         f(&DisplayEvent::ConsistencyMismatch {
             state_path: Path::new("c.toml.state"),
             kind,
-            with_run_id: false,
+            context: StateContext::Read,
         });
     }
     f(&DisplayEvent::Rejected {
