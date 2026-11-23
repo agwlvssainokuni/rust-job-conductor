@@ -18,6 +18,8 @@
 //! 足す(純粋)。環境変数は、名前も値も、出さない(BR3.3、FR1.12)。入力に由来する文字列
 //! (ジョブ ID、コマンド)は、制御文字をエスケープして出す。
 
+use std::collections::HashMap;
+
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeKind,
     NodeState,
@@ -120,8 +122,22 @@ fn skip_note(lang: Language, edges: &[&FlowEdge]) -> Option<String> {
     Some(notes.join(GRAPH_NOTE_SEPARATOR.get(lang)))
 }
 
+/// `-v` の詳細のために、辺を出どころのジョブ ID で 1 回まとめる(各ジョブの中の並びは `graph.edges` の順)。
+fn edges_by_job(graph: &FlowGraph) -> HashMap<&str, Vec<&FlowEdge>> {
+    let mut by_job: HashMap<&str, Vec<&FlowEdge>> = HashMap::new();
+    for edge in &graph.edges {
+        by_job.entry(edge.from_job.as_str()).or_default().push(edge);
+    }
+    by_job
+}
+
 /// `-v` の詳細の文(コマンド、リトライ、飛び越しの順。該当しない項目は出さない。BR3.1)。
-fn detail_sentences(lang: Language, job: &JobDefinition, graph: &FlowGraph) -> Vec<String> {
+/// `by_job` は [`edges_by_job`] でまとめた辺。
+fn detail_sentences(
+    lang: Language,
+    job: &JobDefinition,
+    by_job: &HashMap<&str, Vec<&FlowEdge>>,
+) -> Vec<String> {
     let mut lines = vec![format!(
         "{}{}",
         DETAIL_COMMAND.get(lang),
@@ -134,12 +150,8 @@ fn detail_sentences(lang: Language, job: &JobDefinition, graph: &FlowGraph) -> V
             graph_retry_summary(lang, retry)
         ));
     }
-    let edges: Vec<&FlowEdge> = graph
-        .edges
-        .iter()
-        .filter(|e| e.from_job == job.id)
-        .collect();
-    if let Some(note) = skip_note(lang, &edges) {
+    let edges = by_job.get(job.id.as_str()).map_or(&[][..], Vec::as_slice);
+    if let Some(note) = skip_note(lang, edges) {
         lines.push(note);
     }
     lines
@@ -180,6 +192,11 @@ fn render_lanes(
     verbose: bool,
 ) -> String {
     let mut out = String::new();
+    let by_job = if verbose {
+        edges_by_job(graph)
+    } else {
+        HashMap::new()
+    };
     let rows = &lanes.rows;
     let mut i = 0;
     while i < rows.len() {
@@ -218,7 +235,7 @@ fn render_lanes(
             "| ".repeat(columns.saturating_sub(1))
         );
         if let Some(job) = definition.job.get(node_index) {
-            for sentence in detail_sentences(lang, job, graph) {
+            for sentence in detail_sentences(lang, job, &by_job) {
                 push_line(&mut out, &format!("{prefix}{sentence}"));
             }
         }
@@ -233,12 +250,17 @@ fn render_edge_list(
     verbose: bool,
 ) -> String {
     let mut out = String::new();
+    let by_job = if verbose {
+        edges_by_job(graph)
+    } else {
+        HashMap::new()
+    };
     push_line(&mut out, GRAPH_EDGE_LIST_NOTE.get(lang));
     push_line(&mut out, GRAPH_JOBS_HEADING.get(lang));
     for (index, node) in graph.nodes.iter().enumerate().filter(|(_, n)| !n.is_end()) {
         push_line(&mut out, &format!("  {}", node_label(lang, node)));
         if verbose && let Some(job) = definition.job.get(index) {
-            for sentence in detail_sentences(lang, job, graph) {
+            for sentence in detail_sentences(lang, job, &by_job) {
                 push_line(&mut out, &format!("    {sentence}"));
             }
         }
