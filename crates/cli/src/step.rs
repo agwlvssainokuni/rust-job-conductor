@@ -93,11 +93,17 @@ pub(crate) fn record_skip(
     let definition = &session.checked.base.definition;
     let path = &session.checked.base.path;
     let run_id = session.checked.run_id.as_ref();
-    let base = base
-        .cloned()
-        .unwrap_or_else(|| initial_state(definition, path, run_id));
-    let recorded = apply_skip(&base, job_id, reason, definition);
-    let changed = recorded != base;
+    // 土台は借りる(無いときだけ、初期ステートを作る)。
+    let initial;
+    let base = match base {
+        Some(base) => base,
+        None => {
+            initial = initial_state(definition, path, run_id);
+            &initial
+        }
+    };
+    let recorded = apply_skip(base, job_id, reason, definition);
+    let changed = recorded != *base;
     if changed {
         ctx.write(
             path,
