@@ -140,7 +140,7 @@
 
 ### 2.4 `conductor-cli`
 
-再公開(`lib.rs`): `parse_args`、`Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`、`CliCommand`、`CommandKind`、`DryRunOptions`、`GraphFormat`、`GraphOptions`、`InitOptions`、`InitTarget`(後ろの 5 つは v0.9.0 以降)、`Language`、`Level`、`ParsedArgs`、`UsageError`、`UsageErrorKind`。公開モジュール: `exit`、`report`(公開の下位モジュールは `escape`、`graph_mermaid`、`graph_text`、`init_template`、`plan_text`。`messages` は crate の中、`watch` は非公開)、`run_id`(`args`、`deps`、`panic_hook`、`types` は非公開で、中の公開の項目は上の再公開で出る)。v0.9.6 までは `platform`・`report::messages`・`report::watch` も公開で、`status_word`・`state_symbol`・`glyph_char`・`MAX_DISPLAY_CHARS`・`DEFAULT_INIT_PATH`・`DEFAULT_INIT_PIPELINE_NAME` も外から見えた(外から使われないので crate の中に狭めた)。
+再公開(`lib.rs`): `parse_args`、`Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`、`CliCommand`、`CommandKind`、`GraphFormat`、`InitOptions`、`InitTarget`(後ろの 3 つは v0.9.0 以降)、`Language`、`Level`、`ParsedArgs`、`UsageError`、`UsageErrorKind`。公開モジュール: `exit`、`report`(公開の下位モジュールは `escape`、`graph_mermaid`、`graph_text`、`init_template`、`plan_text`。`messages` は crate の中、`watch` は非公開)、`run_id`(`args`、`deps`、`panic_hook`、`types` は非公開で、中の公開の項目は上の再公開で出る)。v0.9.6 までは `platform`・`report::messages`・`report::watch` も公開で、`status_word`・`state_symbol`・`glyph_char`・`MAX_DISPLAY_CHARS`・`DEFAULT_INIT_PATH`・`DEFAULT_INIT_PIPELINE_NAME` も外から見えた(外から使われないので crate の中に狭めた)。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|

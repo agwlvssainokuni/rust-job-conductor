@@ -112,8 +112,8 @@ pub use deps::{
 };
 pub use panic_hook::install_panic_hook;
 pub use types::{
-    CliCommand, CommandKind, DryRunOptions, GraphFormat, GraphOptions, InitOptions, InitTarget,
-    Language, Level, ParsedArgs, RunIdArg, UsageError, UsageErrorKind,
+    CliCommand, CommandKind, GraphFormat, InitOptions, InitTarget, Language, Level, ParsedArgs,
+    RunIdArg, UsageError, UsageErrorKind,
 };
 
 use ctx::Ctx;
