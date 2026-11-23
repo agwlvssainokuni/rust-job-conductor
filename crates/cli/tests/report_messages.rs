@@ -18,10 +18,14 @@ mod common;
 
 use std::path::Path;
 
+use common::kinds::{
+    CONVERSION_ERROR_KINDS, CREATE_ERRORS, DEFINITION_ERROR_KINDS, ENV_FILE_ERROR_KINDS,
+    USAGE_ERROR_KINDS,
+};
 use common::{FakeEnv, FakeSink};
 use conductor_cli::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
-use conductor_converter::{ConversionError, ConversionErrorKind};
+use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
     EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, RejectReason, SkipCause,
@@ -76,7 +80,7 @@ fn pipeline_state() -> PipelineState {
 
 /// 全種類のイベントを作って、`f` に渡す。
 fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
-    let definition_errors: Vec<DefinitionError> = DefinitionErrorKind::ALL
+    let definition_errors: Vec<DefinitionError> = DEFINITION_ERROR_KINDS
         .iter()
         .map(|kind| DefinitionError::new("c.toml", Some(7), *kind, "reason `k`"))
         .collect();
@@ -89,7 +93,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     )]));
 
     // `.env` の誤りと警告(U1)。全種類と、20 件を超える打ち切り。
-    let env_errors: Vec<EnvFileError> = EnvFileErrorKind::ALL
+    let env_errors: Vec<EnvFileError> = ENV_FILE_ERROR_KINDS
         .iter()
         .map(|kind| EnvFileError::new("x.env", Some(3), *kind))
         .collect();
@@ -131,7 +135,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         errors: &command_errors,
     });
 
-    for kind in UsageErrorKind::ALL {
+    for kind in USAGE_ERROR_KINDS {
         f(&DisplayEvent::Usage(&UsageError::new(kind)));
         f(&DisplayEvent::Usage(&UsageError::with_subject(
             kind, "subj",
@@ -190,7 +194,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         command: "python",
     });
     f(&DisplayEvent::SuccessCodeNotListed { job_id: "a" });
-    for kind in ConversionErrorKind::ALL {
+    for kind in CONVERSION_ERROR_KINDS {
         f(&DisplayEvent::Conversion(&ConversionError {
             file: "in.yaml".into(),
             line: Some(2),
@@ -269,7 +273,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     f(&DisplayEvent::InitCreated { path: init_path });
     f(&DisplayEvent::InitReplaced { path: init_path });
     f(&DisplayEvent::InitExists { path: init_path });
-    for error in CreateError::ALL {
+    for error in CREATE_ERRORS {
         f(&DisplayEvent::InitFailed {
             path: init_path,
             error,
@@ -1040,7 +1044,7 @@ fn 日本語の誤りの表示は_各クレートの_label_を使う() {
     let env = env_for(Language::Ja);
     let reporter = Reporter::new(&env, false);
     // 定義の誤り(33 種)。
-    for kind in DefinitionErrorKind::ALL {
+    for kind in DEFINITION_ERROR_KINDS {
         let errors = [DefinitionError::new("c.toml", Some(1), kind, "R")];
         let text = reporter.render(&DisplayEvent::DefinitionErrors(&errors));
         assert_eq!(
@@ -1050,7 +1054,7 @@ fn 日本語の誤りの表示は_各クレートの_label_を使う() {
         );
     }
     // `.env` の誤り(13 種)。種類の文と理由の両方。
-    for kind in EnvFileErrorKind::ALL {
+    for kind in ENV_FILE_ERROR_KINDS {
         let errors = [EnvFileError::new("x.env", Some(2), kind)];
         let text = reporter.render(&DisplayEvent::EnvFileErrors(&errors));
         assert_eq!(
@@ -1064,7 +1068,7 @@ fn 日本語の誤りの表示は_各クレートの_label_を使う() {
         );
     }
     // 変換の誤り(6 種)。
-    for kind in ConversionErrorKind::ALL {
+    for kind in CONVERSION_ERROR_KINDS {
         let error = ConversionError {
             file: "in.yaml".into(),
             line: Some(3),

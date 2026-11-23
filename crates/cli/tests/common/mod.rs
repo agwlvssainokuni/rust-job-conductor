@@ -15,6 +15,8 @@
 //! 流れのテストの共通の補助(偽の `Runtime`・`Sink`・`Env`・`Signals`、定義の組み立て)。
 #![allow(dead_code)]
 
+pub mod kinds;
+
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, VecDeque};
 use std::ffi::OsString;

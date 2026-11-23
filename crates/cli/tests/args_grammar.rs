@@ -479,11 +479,6 @@ fn init_の_config_の重複と値なしは誤り() {
     assert_eq!(kind_of(&["init", "--config"]), UsageErrorKind::MissingValue);
 }
 
-#[test]
-fn 使い方の誤りの全種類が網羅されている() {
-    assert_eq!(UsageErrorKind::ALL.len(), 8);
-}
-
 // ---- --run-id と --all(FR1.1、FR1.4、FR5.3) ----
 
 #[test]
