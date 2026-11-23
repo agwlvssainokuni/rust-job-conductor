@@ -14,11 +14,11 @@
 
 //! 表示の安全(Escape。NFR4.2)。入力に由来する文字列を、端末に出せる形にする。
 //!
-//! 本体は conductor-core の `escape_display` で、ここは再公開と、
-//! 名前・パスの薄い包みだけを持つ。conductor-converter は core に依存しないため、同じ規則の写しを
-//! 持ち、`tests/escape_table.rs` と converter の単体テストの、同じ期待値の表で揃える。
+//! 本体は conductor-core の `escape_display` で、ここは名前・パスの薄い包みだけを持つ。
+//! conductor-converter は core に依存しないため、同じ規則の写しを持ち、`tests/escape_table.rs` と
+//! converter の単体テストの、同じ期待値の表で揃える。
 
-pub use conductor_core::escape_display;
+use conductor_core::escape_display;
 
 /// ジョブID・キー名などを表示するときの最大の文字数(NFR4.2。conductor-core と同じ 64)。
 const MAX_DISPLAY_CHARS: usize = conductor_core::MAX_KEY_DISPLAY_CHARS;

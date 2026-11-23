@@ -151,7 +151,7 @@
 | `signal_exit_code` | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
 | `resolve_run_id`(`run_id`) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
 | `render_table`(`report::watch`。crate の中) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
-| `escape_display`(`report::escape`。conductor-core の本体の再公開) | `(input: &str, limit: Option<usize>) -> String` | 入力由来の文字列のエスケープ。08 の 9 章 |
+| `escape_name` / `escape_full`(`report::escape`) | `(input: &str) -> String` | 入力由来の名前(64 文字で切る)・パス(切らない)のエスケープ。本体は core の `escape_display`。08 の 9 章 |
 
 終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
 
@@ -373,7 +373,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |
 | `report/plan_text.rs`(同) | `render_plan` |
 | `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
-| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display` は conductor-core の再公開。`escape_name`、`escape_full` は包み) |
+| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_name`、`escape_full` は conductor-core の `escape_display` の包み) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
 
 ## 6. 設計上の要点(実装から読み取れること)
