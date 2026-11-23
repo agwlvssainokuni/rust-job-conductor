@@ -34,7 +34,7 @@ pub struct CommandLine {
 ///
 /// 立ったら下りない(レベルで持つ)。立っているあいだ、最初に受け取ったシグナルの番号を運ぶ。
 /// スレッド間で共有できる(`Sync`)。Cli は、シグナルを受け取るたびに [`InterruptSignal::raise`]
-/// を呼び、この Unit は [`InterruptSignal::is_raised`] などで読むだけである。
+/// を呼び、この Unit は [`InterruptSignal::signal_number`] で読むだけである。
 pub struct InterruptSignal {
     /// `NOT_RAISED` なら立っていない。そうでなければ、最初のシグナルの番号。
     state: AtomicI32,

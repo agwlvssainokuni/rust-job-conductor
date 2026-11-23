@@ -85,7 +85,7 @@ pub(crate) fn wait_loop<C: Waitable>(
 ///
 /// - 分割済みのコマンド `line`(Cli が、実行の前の検査で `check_command` で作ったもの)で起動する。
 ///   ここでは command を分け直さない(BR2.1。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した)。
-///   `job` は、結果の `job_id` と `command` のために使う。
+///   ジョブの定義は受け取らない(以前の `run_job(job, line, env, signal)` の `job` は使われなかった)。
 /// - `line.program` が空または空白だけなら、起動せず `StartFailed`(防御。BR2.3)。この確認は、
 ///   起動前の合図の確認より先に行う。
 /// - 合図が、起動の前に立っていれば、起動せず、`NotStarted`(BR1.6)。

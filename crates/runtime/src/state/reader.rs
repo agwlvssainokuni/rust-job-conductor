@@ -54,7 +54,7 @@ pub fn read_state(
     Ok(read_state_raw(definition_path, run_id)?.filter(|state| !state.completed))
 }
 
-/// ステートを、完了のものも含めて、そのまま読む(`watch` が使う。FR3.1、FR3.4)。
+/// ステートを、完了のものも含めて、そのまま読む(`watch` と `graph --state` が使う。FR3.1、FR3.4)。
 ///
 /// 場所・読み取り・検査(版、破損、run ID の食い違い、大きさの上限)は、[`read_state`] と同じ。
 /// 違いは、`completed` が `true` のステートを、空にせず、返すことだけ。ファイルがない、

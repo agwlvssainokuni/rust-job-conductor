@@ -23,7 +23,7 @@
 //!
 //! | 関数 | 役割 | 入出力 | 失敗 |
 //! |------|------|--------|------|
-//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | `JobDefinition`、分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `StartFailed` の値) |
+//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | 分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `StartFailed` の値) |
 //! | [`load_env_files`] | `env_file` の `.env` を読む(U1。BR1.7、BR3.x、BR6.4) | 定義ファイルのパス、`env_file` の記述 → `LoadedEnvFiles` | `EnvFileError` の並び(複数) |
 //! | [`wait_for`] | リトライの前の待機。中断の合図を短い間隔で確かめる(BR2.13、NFR7) | 秒数、[`InterruptSignal`] → [`WaitOutcome`] | なし |
 //! | [`check_command`] | command を、起動せずに検査する(BR1.1) | [`Command`](文字列または配列) → [`CommandLine`] | [`CommandError`] |
@@ -43,7 +43,7 @@
 //! `flow::record` にある(`--dry-run` の模擬と共に使う)。`check_consistency` と [`ConsistencyResult`]、
 //! [`MismatchKind`] は、`conductor-core` の `consistency` にある。この Unit は、同じ名前で再公開する。
 //!
-//! `read_state`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
+//! `read_state`・`read_state_raw`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
 //! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
 //!
 //! ファイルに触れるのは、`read_state`、`read_state_raw`、`write_state`、`reset_state`、
