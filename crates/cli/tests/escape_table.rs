@@ -18,7 +18,7 @@
 //! このテストは期待値の表を固定する。conductor-converter の同じ規則の写しは、非公開のため、
 //! converter の単体テストにある、同じ期待値の表で揃える。
 
-use conductor_cli::report::escape::{escape_display, escape_name, escape_path};
+use conductor_cli::report::escape::{escape_display, escape_full, escape_name};
 
 /// (入力, 上限, 期待値)。conductor-core・conductor-converter の単体テストの期待値と同じ規則。
 fn table() -> Vec<(String, usize, String)> {
@@ -66,7 +66,7 @@ fn u1_core_の_sanitize_と同じ結果() {
 #[test]
 fn パスは切らず_エスケープだけ() {
     let long = format!("dir\n/{}", "p".repeat(300));
-    let out = escape_path(&long);
+    let out = escape_full(&long);
     assert!(out.starts_with("dir\\n/"));
     assert!(out.ends_with(&"p".repeat(300)));
     assert_eq!(escape_name(&long).chars().count(), 65);

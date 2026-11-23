@@ -24,7 +24,7 @@ use conductor_core::graph::{
 };
 use conductor_core::{Classification, Command, JobDefinition, PipelineDefinition};
 
-use super::escape::escape_path;
+use super::escape::escape_full;
 use super::messages::{
     DETAIL_COMMAND, DETAIL_RETRY, GRAPH_EDGE_LIST_NOTE, GRAPH_EDGES_HEADING, GRAPH_JOBS_HEADING,
     GRAPH_KIND_BOTH, GRAPH_NOTE_SEPARATOR, RESUME_HERE, class_word, graph_edge_note,
@@ -50,7 +50,7 @@ fn node_label(lang: Language, node: &GraphNode) -> String {
         NodeKind::Job(id) => id,
         NodeKind::End => return NodeKind::END_LABEL.to_string(),
     };
-    let mut label = format!("{}{}", state_symbol(node.state), escape_path(id));
+    let mut label = format!("{}{}", state_symbol(node.state), escape_full(id));
     if node.is_resume {
         label.push_str(RESUME_HERE.get(lang));
     }
@@ -61,11 +61,11 @@ fn node_label(lang: Language, node: &GraphNode) -> String {
 /// ときだけ二重引用符で囲み、空白でつなぐ。
 fn command_text(command: &Command) -> String {
     match command {
-        Command::Line(line) => escape_path(line),
+        Command::Line(line) => escape_full(line),
         Command::Argv(argv) => argv
             .iter()
             .map(|arg| {
-                let shown = escape_path(arg);
+                let shown = escape_full(arg);
                 if arg.is_empty() || arg.chars().any(char::is_whitespace) {
                     format!("\"{shown}\"")
                 } else {
@@ -92,9 +92,9 @@ pub(crate) fn is_main_edge(edge: &FlowEdge) -> bool {
 }
 
 /// 行き先の表示(ジョブ ID はエスケープ。終点は `@end`)。
-/// 64 文字で切らない `escape_path` を使う(遷移の表示の `escape_name` とは使い分ける)。`@end` はエスケープしても同じ。
+/// 64 文字で切らない `escape_full` を使う(遷移の表示の `escape_name` とは使い分ける)。`@end` はエスケープしても同じ。
 fn target_text(to: &EdgeTarget) -> String {
-    escape_path(to.label())
+    escape_full(to.label())
 }
 
 /// 飛び越しの注記(BR3.2)。辺が 2 つあるとき、または飛び越すジョブがあるときだけ。
@@ -108,7 +108,7 @@ fn skip_note(lang: Language, edges: &[&FlowEdge]) -> Option<String> {
     let notes: Vec<String> = ordered
         .iter()
         .map(|e| {
-            let skipped: Vec<String> = e.skipped_jobs.iter().map(|s| escape_path(s)).collect();
+            let skipped: Vec<String> = e.skipped_jobs.iter().map(|s| escape_full(s)).collect();
             graph_edge_note(
                 lang,
                 kind_label(lang, &e.kinds),
@@ -247,7 +247,7 @@ fn render_edge_list(
     for edge in &graph.edges {
         let mut line = format!(
             "  {} -> {}",
-            escape_path(&edge.from_job),
+            escape_full(&edge.from_job),
             target_text(&edge.to)
         );
         // 主線の辺(次のジョブへ、成功と警告の両方)以外は、種類を添える。

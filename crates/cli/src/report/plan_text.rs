@@ -23,7 +23,7 @@ use conductor_core::{
     PlanMode, ResumeInfo,
 };
 
-use super::escape::escape_path;
+use super::escape::escape_full;
 use super::messages::{
     COMPLETED, DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, PLAN_ASSUME_LABEL, PLAN_END_REACHED,
     PLAN_FROM_START, PLAN_HEADING, PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_LABEL,
@@ -44,7 +44,7 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
     let mut heading = format!(
         "{}{}",
         PLAN_HEADING.get(lang),
-        escape_path(&plan.pipeline_name)
+        escape_full(&plan.pipeline_name)
     );
     if let Some(run_id) = &plan.run_id {
         heading.push_str(&plan_run_id_suffix(lang, run_id));
@@ -54,14 +54,14 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
     match &plan.resume {
         ResumeInfo::Individual(id) => push_line(
             &mut out,
-            &format!("{}{}", PLAN_TARGET_LABEL.get(lang), escape_path(id)),
+            &format!("{}{}", PLAN_TARGET_LABEL.get(lang), escape_full(id)),
         ),
         ResumeInfo::AfterStop(id) => push_line(
             &mut out,
             &format!(
                 "{}{}",
                 PLAN_RESUME_LABEL.get(lang),
-                plan_resume_after_stop(lang, &escape_path(id))
+                plan_resume_after_stop(lang, &escape_full(id))
             ),
         ),
         ResumeInfo::FromStart => push_line(
@@ -88,7 +88,7 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
         let ids: Vec<String> = plan
             .unused_assumptions
             .iter()
-            .map(|id| escape_path(id))
+            .map(|id| escape_full(id))
             .collect();
         push_line(
             &mut out,
@@ -105,7 +105,7 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
             let end = match &plan.end {
                 PlanEnd::Completed => COMPLETED.get(lang).to_string(),
                 PlanEnd::EndReached => PLAN_END_REACHED.get(lang).to_string(),
-                PlanEnd::StoppedAtError(id) => plan_stopped_at_error(lang, &escape_path(id)),
+                PlanEnd::StoppedAtError(id) => plan_stopped_at_error(lang, &escape_full(id)),
             };
             push_line(&mut out, &format!("{}{end}", PLAN_RESULT_LABEL.get(lang)));
         }
@@ -122,7 +122,7 @@ pub fn render_plan(lang: Language, plan: &ExecutionPlan) -> String {
 fn assumptions_text(assumptions: &[Assumption]) -> String {
     assumptions
         .iter()
-        .map(|a| format!("{}={}", escape_path(&a.job_id), a.exit_code))
+        .map(|a| format!("{}={}", escape_full(&a.job_id), a.exit_code))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -136,7 +136,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
         let gap = if lang == Language::En { " " } else { "" };
         word.push_str(&format!("{gap}({note})"));
     }
-    let mut line = format!("{number}. [{word}] {}", escape_path(&entry.job_id));
+    let mut line = format!("{number}. [{word}] {}", escape_full(&entry.job_id));
     if entry.is_resume {
         line.push_str(RESUME_HERE.get(lang));
     }
@@ -148,7 +148,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
     let words: Vec<String> = entry
         .command_words
         .iter()
-        .map(|w| format!("\"{}\"", escape_path(w)))
+        .map(|w| format!("\"{}\"", escape_full(w)))
         .collect();
     push_line(
         out,
@@ -161,7 +161,7 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
     let names: Vec<String> = entry
         .env_names
         .iter()
-        .map(|e| escape_path(&e.name))
+        .map(|e| escape_full(&e.name))
         .collect();
     push_line(
         out,
@@ -213,6 +213,6 @@ fn next_step_line(lang: Language, note: &NextStepNote, entry: &PlanEntry) -> Str
         );
         text.push_str(&format!("({inner}) "));
     }
-    text.push_str(&plan_next_step(lang, note, escape_path));
+    text.push_str(&plan_next_step(lang, note, escape_full));
     format!("{}{text}", PLAN_NEXT_LABEL.get(lang))
 }

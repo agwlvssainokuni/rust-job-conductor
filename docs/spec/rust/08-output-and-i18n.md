@@ -93,7 +93,7 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 ```
 
 - 先頭 `conductor: error: ` は言語によらず同じ。警告は `conductor: warning: `、リトライの知らせは `conductor: retry: `。
-- `<場所>`: 定義の誤りは `<ファイル>` または `<ファイル>:<行>`、`.env` の誤りと警告(v0.9.0 以降)は `<.env のパス>` または `<.env のパス>:<行>`(`escape_path`)、`command` の誤りは `<定義ファイル>: job '<ID>'`、ステート・食い違いは `<ステートのパス>`、拒否・起動失敗・成功コードに含まれない 0 は `job '<ID>'`、変換の誤りは `<ファイル>` または `<ファイル>:<行>`。
+- `<場所>`: 定義の誤りは `<ファイル>` または `<ファイル>:<行>`、`.env` の誤りと警告(v0.9.0 以降)は `<.env のパス>` または `<.env のパス>:<行>`(`escape_full`)、`command` の誤りは `<定義ファイル>: job '<ID>'`、ステート・食い違いは `<ステートのパス>`、拒否・起動失敗・成功コードに含まれない 0 は `job '<ID>'`、変換の誤りは `<ファイル>` または `<ファイル>:<行>`。
 - 使い方の誤りだけは場所を持たず、`conductor: error: <文>[: '<対象>']` のあとに空行と使い方全文を続ける。
 
 ## 4. メッセージカタログ
@@ -297,7 +297,7 @@ conductor: warning: <RESET_ALL_KEPT>
 | 英語 | ``kept state files that could not be read (remove one with `conductor reset --run-id <ID>`):`` |
 | 日本語 | ``読めなかったため、次のステートファイルは残しました(`conductor reset --run-id <ID>` で個別に消せます):`` |
 
-ファイル名の行は、先頭に空白 2 文字、`escape_path`(切らない)。
+ファイル名の行は、先頭に空白 2 文字、`escape_full`(切らない)。
 
 ### 4.11 `-v` の補助語
 
@@ -319,7 +319,7 @@ conductor: warning: <RESET_ALL_KEPT>
 conductor: error: <ファイル>[:<行>]: <種類の文>: <理由>
 ```
 
-- `<ファイル>` は解決済みのパス(`escape_path`。切らない)。`<行>` は、行番号があるときだけ(無い誤り: `fileMissing`、`unreadable`、`tooLarge`、`notUtf8`)。
+- `<ファイル>` は解決済みのパス(`escape_full`。切らない)。`<行>` は、行番号があるときだけ(無い誤り: `fileMissing`、`unreadable`、`tooLarge`、`notUtf8`)。
 - 種類の文と理由は、**言語に従う**(定義の誤りの `<原因>` が常に日本語なのと違う)。日本語は `conductor-core` の `EnvFileErrorKind::label()`(種類の文)と `reason()`(理由)で、cli は日本語の文を持たない。英語は次の表(`messages.rs` の `env_file_kind(kind) -> Text`、`env_file_reason(kind) -> Text`)。
 - 先頭の最大 20 件を表示し、超えたら、最後に 1 行 `conductor: error: and <N> more`(日本語 `conductor: error: ほか <N> 件`)を出す(`<N>` = 残りの件数)。
 - **値は、どの行にも含めない**(名前も含めない)。
@@ -359,7 +359,7 @@ conductor: warning: <ファイル>:<後ろの行>: 重複キー `<名前>`(後�
 
 ### 4.13 `init` のメッセージ(v0.9.0 以降)
 
-パス(`<path>`)は `escape_path`(切らない)。成功は標準エラー(`Notice`)、誤りは `conductor: error: ` つきの標準エラー。
+パス(`<path>`)は `escape_full`(切らない)。成功は標準エラー(`Notice`)、誤りは `conductor: error: ` つきの標準エラー。
 
 | 場面 | 英語 | 日本語 | 終了コード |
 |------|------|--------|------------|
@@ -579,8 +579,8 @@ Options:
 切り詰め:
 
 - `escape_name`: 上限 64 文字(`MAX_DISPLAY_CHARS`)。数えるのは、エスケープ後の文字数。次の 1 文字(エスケープ列は 1 かたまり)を足すと 64 を超えるなら、そこで打ち切って末尾に `…`(U+2026)を 1 文字付ける。したがって出力は最大 65 文字。
-- `escape_path`: 上限なし(エスケープだけ)。
-- 使い方の誤りの対象、ジョブID、遷移先、スキップのID、リトライのジョブID、パイプライン名、run ID、コマンド名は `escape_name`。パス(定義ファイル、ステートのパス、`reset --all` のファイル名、変換の入力ファイル・原因・キーの位置)は `escape_path`。
+- `escape_full`: 上限なし(エスケープだけ。v0.9.7 までは `escape_path` という名前だった)。
+- 使い方の誤りの対象、ジョブID、遷移先、スキップのID、リトライのジョブID、パイプライン名、run ID、コマンド名は `escape_name`。パス(定義ファイル、ステートのパス、`reset --all` のファイル名、変換の入力ファイル・原因・キーの位置)は `escape_full`。
 
 期待値の表(`tests/escape_table.rs`。入力 → 上限 → 出力):
 
@@ -602,7 +602,7 @@ Options:
 | `abcdef` | 3 | `abc…` |
 | (空) | 64 | (空) |
 
-本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを再公開する(core の `sanitize` は上限つきで同じ関数を呼ぶ。定義の誤りの文を作るときに使う)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。`tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_path` で(切らずに)表示する。
+本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを再公開する(core の `sanitize` は上限つきで同じ関数を呼ぶ。定義の誤りの文を作るときに使う)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。`tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
 
 ## 10. 実装と README の差
 
@@ -621,7 +621,7 @@ Options:
 
 ## 11. `graph` の図と `--dry-run` の計画の出力(v0.9.0 以降)
 
-図(`graph`)と計画(`--dry-run`)は、組み立て済みの文字列を、標準出力に 1 回で書く(`DisplayEvent::Graph`・`Plan`)。各行の末尾の空白は取り除く。ジョブID、コマンドの語、仮定のジョブIDは、制御文字を `escape_path`(切らない)でエスケープする。環境変数の値は、どこにも出さない。以降の例は、テスト(`graph_report.rs`、`plan_report.rs`)の期待値のとおり。配置と整形の規則は、05 の 15、16 章。
+図(`graph`)と計画(`--dry-run`)は、組み立て済みの文字列を、標準出力に 1 回で書く(`DisplayEvent::Graph`・`Plan`)。各行の末尾の空白は取り除く。ジョブID、コマンドの語、仮定のジョブIDは、制御文字を `escape_full`(切らない)でエスケープする。環境変数の値は、どこにも出さない。以降の例は、テスト(`graph_report.rs`、`plan_report.rs`)の期待値のとおり。配置と整形の規則は、05 の 15、16 章。
 
 ### 11.1 `graph` の text(レーンの図)
 

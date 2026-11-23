@@ -28,7 +28,7 @@ pub fn escape_name(input: &str) -> String {
     escape_display(input, Some(MAX_DISPLAY_CHARS))
 }
 
-/// パス(切らない。エスケープだけ)。
-pub fn escape_path(input: &str) -> String {
+/// 64 文字で切らずに、エスケープだけ(パス、図と計画のジョブID・コマンドの語など)。
+pub fn escape_full(input: &str) -> String {
     escape_display(input, None)
 }

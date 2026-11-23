@@ -22,7 +22,7 @@
 //!   影響しないように)。成功・スキップで `-v` なしなら、表示は一度もなく、どちらも判定されない。
 //! - 入力に由来する文字列(ジョブID、キー名、パス、command の最初の語)は、`escape` を通す
 //!   (名前(使い方の誤りの対象、遷移の表示のジョブID など)は `escape_name` で 64 文字で切る。パスと、
-//!   図・計画のジョブID・コマンドの語は `escape_path` で切らない)。
+//!   図・計画のジョブID・コマンドの語は `escape_full` で切らない)。
 //! - 標準エラーへの書き込みの失敗は、無視する(本筋を止めない)。標準出力の失敗は、値で返す。
 
 pub mod escape;
@@ -46,7 +46,7 @@ use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
 use crate::deps::{Env, Sink};
 use crate::platform;
 use crate::types::{Language, Level, UsageError};
-use escape::{escape_name, escape_path};
+use escape::{escape_full, escape_name};
 use messages::{
     ERROR_PREFIX, RETRY_PREFIX, VERBOSE_PREFIX, WARNING_PREFIX, command_kind, conversion_kind,
     definition_kind, env_duplicate_key, env_errors_more, env_file_kind, env_file_reason,
@@ -347,7 +347,7 @@ impl<'a> Reporter<'a> {
             DisplayEvent::ResetAllKept { names } => {
                 let mut out = format!("{WARNING_PREFIX}{}\n", messages::RESET_ALL_KEPT.get(lang()));
                 for name in names.iter() {
-                    out.push_str(&format!("  {}\n", escape_path(name)));
+                    out.push_str(&format!("  {}\n", escape_full(name)));
                 }
                 out
             }
@@ -488,7 +488,7 @@ impl<'a> Reporter<'a> {
 
 /// パスの表示(制御文字をエスケープする。切らない。定義ファイルのパスと同じ扱い)。
 fn show_path(path: &Path) -> String {
-    escape_path(&path.display().to_string())
+    escape_full(&path.display().to_string())
 }
 
 /// 環境のロケールから、言語を決める(BR6.1)。
@@ -518,7 +518,7 @@ fn error_line(place: &str, sentence: &str, cause: Option<&str>) -> String {
 
 /// `<ファイル>[:<行>]`(ファイル名はエスケープする。切らない)。
 fn place_of(file: &str, line: Option<usize>) -> String {
-    let file = escape_path(file);
+    let file = escape_full(file);
     match line {
         Some(line) => format!("{file}:{line}"),
         None => file,
@@ -527,7 +527,7 @@ fn place_of(file: &str, line: Option<usize>) -> String {
 
 fn definition_line(lang: Language, e: &DefinitionError) -> String {
     let place = place_of(&e.file, e.line);
-    let reason = escape_path(&e.reason);
+    let reason = escape_full(&e.reason);
     error_line(&place, definition_kind(e.kind).get(lang), Some(&reason))
 }
 
@@ -589,7 +589,7 @@ fn usage_text(lang: Language, e: &UsageError) -> String {
 
 fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
     let place = show_path(&e.path);
-    let mut cause = escape_path(e.reason);
+    let mut cause = escape_full(e.reason);
     match context {
         StateContext::Read | StateContext::ReadRunId => {
             if state_kind_suggests_reset(e.kind) {
@@ -610,12 +610,12 @@ fn state_line(lang: Language, e: &StateError, context: StateContext) -> String {
 
 fn conversion_line(lang: Language, e: &ConversionError) -> String {
     let place = place_of(&e.file, e.line);
-    let mut cause = escape_path(&e.reason);
+    let mut cause = escape_full(&e.reason);
     if let Some(path) = &e.key_path {
         cause.push_str(&format!(
             " ({}: {})",
             messages::AT_KEY.get(lang),
-            escape_path(path)
+            escape_full(path)
         ));
     }
     error_line(&place, conversion_kind(e.kind).get(lang), Some(&cause))

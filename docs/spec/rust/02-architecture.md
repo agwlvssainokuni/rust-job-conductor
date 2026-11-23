@@ -372,7 +372,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |
 | `report/plan_text.rs`(同) | `render_plan` |
 | `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
-| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display` は conductor-core の再公開。`escape_name`、`escape_path` は包み) |
+| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_display` は conductor-core の再公開。`escape_name`、`escape_full` は包み) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
 
 ## 6. 設計上の要点(実装から読み取れること)
