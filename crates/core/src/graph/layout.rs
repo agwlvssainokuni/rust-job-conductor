@@ -108,14 +108,10 @@ fn skip_targets(graph: &FlowGraph) -> Option<SkipPlan> {
     })
 }
 
-/// 図の形が、レーンの図(`git log --graph` と同じ見た目)で描ける「対応する形」か(BR1.1)。
-///
-/// 偽なら、text では、レーンの図の代わりに、辺の一覧を出す。Mermaid は、形によらず出せる。
-pub fn is_lane_drawable(graph: &FlowGraph) -> bool {
-    skip_targets(graph).is_some()
-}
-
 /// 図の配置を決める。「対応する形」ならレーンの図、そうでなければ辺の一覧(BR1.1、BR1.2)。
+///
+/// 「対応する形」は、レーンの図(`git log --graph` と同じ見た目)で描ける形。text では、そうでなければ
+/// レーンの図の代わりに辺の一覧を出す。Mermaid は、形によらず出せる。
 pub fn layout_graph(graph: &FlowGraph) -> GraphLayout {
     match skip_targets(graph) {
         Some(plan) => GraphLayout::Lanes(layout_lanes(&plan)),

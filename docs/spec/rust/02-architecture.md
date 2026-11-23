@@ -61,7 +61,7 @@
 | `env_file_refs`(v0.9.0 以降) | `(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<String>` | 読む対象の `env_file` の記述(重複なし、書いた順)。`None` は全ジョブ分 |
 | `is_reserved_env_name`(v0.9.0 以降) | `(name: &str) -> bool` | `CONDUCTOR_` で始まるか(ASCII の大文字小文字を区別しない) |
 | `summarize_errors`(v0.9.0 以降) | `(errors: &[EnvFileError]) -> (&[EnvFileError], usize)` | 表示する先頭の最大 20 件と、残りの件数 |
-| `graph::flow_edges` / `build_graph` / `layout_graph` / `is_lane_drawable` / `overlay_from_state` / `pending_overlay` / `node_state_of`(v0.9.0 以降) | 05 の 15 章 | 図の辺・構造・配置・状態の重ね合わせ(純粋) |
+| `graph::flow_edges` / `build_graph` / `layout_graph` / `overlay_from_state` / `pending_overlay` / `node_state_of`(v0.9.0 以降) | 05 の 15 章 | 図の辺・構造・配置・状態の重ね合わせ(純粋) |
 | `plan_pipeline` / `plan_run`(v0.9.0 以降) | `(&PlanInput<'_>) -> Result<ExecutionPlan, PlanRejection>` / `(job_id: &str, &PlanInput<'_>) -> …` | `--dry-run` の計画の生成(純粋)。05 の 16 章 |
 | `initial_state` / `apply_outcome` / `apply_skip` / `apply_interrupt` | 2.2 の表 | ステートの更新(純粋。`flow/record.rs`)。本番の流れと `--dry-run` の模擬が共に使う。`conductor-runtime` が同じ名前で再公開する。05 の 3.3〜3.5 |
 | `check_consistency` | 2.2 の表 | ステートと定義の照合(純粋。`consistency.rs`。型 `ConsistencyResult`、`MismatchKind` も同じ場所)。`conductor-runtime` が同じ名前で再公開する。06 の 6 章 |

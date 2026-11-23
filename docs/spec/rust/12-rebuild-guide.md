@@ -113,7 +113,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの(core) | `flow/next_step.rs` から `resolve_transition` を切り出し(`classify_and_decide` の出力は変えない)、`graph/{mod,edges,layout,overlay}.rs`(型、`flow_edges`、`is_lane_drawable`・`skip_targets`、`layout_graph`・`layout_lanes`(唯一の配置。主線の列 0 の記号 `main_line` を含む)、`build_graph`・`overlay_from_state`・`pending_overlay`・`node_state_of`) |
+| 作るもの(core) | `flow/next_step.rs` から `resolve_transition` を切り出し(`classify_and_decide` の出力は変えない)、`graph/{mod,edges,layout,overlay}.rs`(型、`flow_edges`、`skip_targets`、`layout_graph`・`layout_lanes`(唯一の配置。主線の列 0 の記号 `main_line` を含む)、`build_graph`・`overlay_from_state`・`pending_overlay`・`node_state_of`) |
 | 作るもの(cli) | `types.rs` の `CommandKind::Graph`・`GraphFormat`・`GraphOptions`、`args.rs`(`--format`・`--state`、`graph` の `--run-id`)、`graph.rs`(`run_graph`)、`report/graph_text.rs`・`graph_mermaid.rs`、メッセージ(辺の一覧の語、`-v` の語、再開位置の注記) |
 | 完了条件 | 08 の 11 章の例 G1〜G4、G6、E1、E2、N1〜N5、`--state`、`-v`、Mermaid が 1 文字も違わず一致する。配置が、正解データ(`crates/core/tests/fixtures/graph_layout_oracle*.md` の 7 つ。git の出力の 4 つと、規則から導いた 3 つ)の全例と一致する(配置は 1 つの仕組みで、交差する飛び越し、同じ行き先、「両方の飛び越し」、分岐と、その組み合わせを、交差の行、寄せの行、横線 `_` を使って、レーンの図にする。主線の列 0 は、05 の 15.5 の規則)。1,000 ジョブの最悪の 6 つの形が 1 秒以内。`graph` が、ジョブを起動せず、ステートを書かず、標準出力に 1 回で書く。`validate` が 64 になる定義は `graph` も 64 |
 | 確認の観点 | 辺の取り出しは `resolve_transition` を呼ぶ(判断を二重に書かない)。完了したステートは状態の記号を重ねるが、再開位置は示さない。エラーに辺はない。「対応する形」の 3 条件。`-v` の詳細は、分岐の行のあと(合流の行の前)に置く。`#` を最初に置き換える Mermaid のエスケープ |

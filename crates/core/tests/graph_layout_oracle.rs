@@ -27,7 +27,7 @@
 mod graph_common;
 
 use conductor_core::TransitionOn;
-use conductor_core::graph::{build_graph, is_lane_drawable};
+use conductor_core::graph::{GraphLayout, build_graph, layout_graph};
 use graph_common::{definition, lanes_text, letters};
 
 const ORACLE: &str = include_str!("fixtures/graph_layout_oracle.md");
@@ -179,7 +179,11 @@ fn 両方の飛び越しの書き方は_成功と警告の両方の遷移にな�
 fn 正解データのすべての形は_対応する形と判定される() {
     for example in all() {
         let graph = build_graph(&build(&example), None);
-        assert!(is_lane_drawable(&graph), "{}", example.heading);
+        assert!(
+            matches!(layout_graph(&graph), GraphLayout::Lanes(_)),
+            "{}",
+            example.heading
+        );
     }
 }
 

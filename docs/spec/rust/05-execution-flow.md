@@ -770,7 +770,7 @@ target_position(i, on):
 - `pending_overlay(definition)`: ステートがないとき。すべてのジョブが `Pending`、再開位置なし。
 - `build_graph(definition, overlay)`: 節は、定義の記述順に、ジョブごとに 1 つ、最後に終点(`kind = NodeKind::End`、状態なし)。`overlay` があれば、各ジョブの `state` に、重ね合わせの状態(重ね合わせにないジョブは `Pending`)、`is_resume` に、再開位置と一致するか。辺は `flow_edges`。
 
-### 15.4 「対応する形」の判定(`is_lane_drawable`、`skip_targets`)
+### 15.4 「対応する形」の判定(`skip_targets`。`layout_graph` が使う)
 
 レーンの図(`git log --graph` と同じ見た目)で描けるのは、ジョブが主線(左の列)に記述順に並び、飛び越しの辺が、主線の右隣(列 1)から始まる線になる形。`skip_targets(graph) -> Option<SkipPlan>` が、配置の途中結果 `SkipPlan`(core の内部。公開しない)を返す。`SkipPlan` は、ジョブごとの `has_next`(記述順の次の節、位置 `i+1` への辺を持つか)、`kinds`(飛び越しの種類 `SkipKind`)、`targets`(飛び越しの行き先の、節の位置の昇順の並び。0〜2 個。終点は `n`)を持つ。
 

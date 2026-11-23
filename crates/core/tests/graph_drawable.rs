@@ -19,12 +19,15 @@ mod graph_common;
 use conductor_core::TransitionOn::{Success, Warning};
 use conductor_core::graph::{
     EdgeKind, EdgeTarget, FlowEdge, FlowGraph, GraphLayout, GraphNode, LaneGlyph, NodeKind,
-    build_graph, is_lane_drawable, layout_graph,
+    build_graph, layout_graph,
 };
 use graph_common::{Spec, both, definition, graph_with_extra_edge, lanes_text, letter_definition};
 
 fn drawable(ids: &[&str], transitions: &[Spec<'_>]) -> bool {
-    is_lane_drawable(&build_graph(&definition(ids, transitions), None))
+    matches!(
+        layout_graph(&build_graph(&definition(ids, transitions), None)),
+        GraphLayout::Lanes(_)
+    )
 }
 
 const IDS: [&str; 6] = ["a", "b", "c", "d", "e", "f"];
@@ -207,7 +210,6 @@ fn 対応しない形_辺が3本のジョブ() {
     // 図の構造を直接作る(定義からは作れない)。a に、次のジョブ、d、@end への 3 本の辺(BR1.1)。
     let def = definition(&IDS, &[("a", Success, Some("d"))]);
     let graph = graph_with_extra_edge(&def, "a", None);
-    assert!(!is_lane_drawable(&graph));
     assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
 }
 
@@ -222,7 +224,6 @@ fn 対応しない形_次のジョブへの辺がなく_成功だけの辺が1�
         None,
     );
     graph.edges[0].kinds = vec![EdgeKind::Success];
-    assert!(!is_lane_drawable(&graph));
     assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
 }
 
@@ -235,7 +236,6 @@ fn 辺の一覧に残る形_両方の飛び越しのジョブに辺を足して3
     graph
         .edges
         .push(extra.edges.last().cloned().expect("足した辺"));
-    assert!(!is_lane_drawable(&graph));
     assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
 }
 
@@ -264,7 +264,6 @@ fn 辺の一覧に残る形_後ろ向きの辺() {
             explicit: true,
         }],
     };
-    assert!(!is_lane_drawable(&graph));
     assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
 }
 
