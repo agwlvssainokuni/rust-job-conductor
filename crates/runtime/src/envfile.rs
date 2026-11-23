@@ -81,7 +81,17 @@ fn resolve(base: &Path, reference: &str) -> PathBuf {
     }
 }
 
-/// 1 つのファイルを読んで解析する。
+/// 1 つのファイルを読んで解析する(3b。定義ファイルの読み込みと同じ順)。
+///
+/// 1. パスのメタデータ: 無い → `FileMissing`、取れない → `Unreadable`。通常のファイルでない
+///    (ディレクトリ、名前付きパイプなど)→ `Unreadable`(開かない。大きさは見ない)。
+/// 2. 開く: 無い(1 のあとに消えた)→ `FileMissing`、開けない(読む権限がないなど)→ `Unreadable`。
+/// 3. 開いたものから大きさ: 取れない・通常のファイルでない → `Unreadable`、上限超 → `TooLarge`。
+/// 4. 上限 + 1 バイトまで読む: 失敗 → `Unreadable`、超えれば `TooLarge`。
+/// 5. UTF-8 でない → `NotUtf8`。
+///
+/// v0.9.6 までは、パスのメタデータで大きさを先に見たため、読む権限のない 1 MiB 超の `.env` は `TooLarge`
+/// だった。失敗はすべて種類で返し、パニックしない(誤りの表示に値を含めない)。
 fn read_one(path: &Path) -> Result<EnvFileContent, Vec<EnvFileError>> {
     let shown = path.display().to_string();
     let fail = |kind: EnvFileErrorKind| vec![EnvFileError::new(shown.clone(), None, kind)];
@@ -93,14 +103,24 @@ fn read_one(path: &Path) -> Result<EnvFileContent, Vec<EnvFileError>> {
         }
     };
 
+    // 1. 種別をパスで見る(通常のファイルでなければ開かない。名前付きパイプで待たない)。
     let metadata = std::fs::metadata(path).map_err(|e| fail(open_kind(&e)))?;
     if !metadata.is_file() {
         return Err(fail(EnvFileErrorKind::Unreadable));
     }
-    if metadata.len() > MAX_ENV_FILE_BYTES as u64 {
+    // 2. 開く(読む権限がなければ、大きさにかかわらず `Unreadable`)。
+    let file = File::open(path).map_err(|e| fail(open_kind(&e)))?;
+    // 3. 開いたものから大きさを見る。
+    let opened = file
+        .metadata()
+        .map_err(|_| fail(EnvFileErrorKind::Unreadable))?;
+    if !opened.is_file() {
+        return Err(fail(EnvFileErrorKind::Unreadable));
+    }
+    if opened.len() > MAX_ENV_FILE_BYTES as u64 {
         return Err(fail(EnvFileErrorKind::TooLarge));
     }
-    let file = File::open(path).map_err(|e| fail(open_kind(&e)))?;
+    // 4. 上限 + 1 バイトまで読む。
     let mut bytes = Vec::new();
     file.take(MAX_ENV_FILE_BYTES as u64 + 1)
         .read_to_end(&mut bytes)
