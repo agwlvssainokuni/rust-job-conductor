@@ -162,7 +162,10 @@ impl Doc {
     }
 
     fn push_node(&mut self, kind: RawKind, line: usize) -> usize {
-        self.nodes.push(RawNode { kind, line });
+        self.nodes.push(RawNode {
+            kind,
+            line: Some(line),
+        });
         self.nodes.len() - 1
     }
 }

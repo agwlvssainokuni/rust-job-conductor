@@ -73,7 +73,7 @@ pub(crate) fn read(text: &str, file: &str) -> Result<RawTree, ConversionError> {
             pairs: Vec::new(),
             tag: Tag::None,
         },
-        line: 0,
+        line: None,
     }];
     let mut stack: Vec<Frame<'_>> = Vec::new();
     stack.push(Frame {
@@ -97,7 +97,7 @@ pub(crate) fn read(text: &str, file: &str) -> Result<RawTree, ConversionError> {
                     scalar: RawScalar::Str(k.to_string()),
                     tag: Tag::None,
                 },
-                line: 0,
+                line: None,
             });
             nodes.len() - 1
         });
@@ -120,7 +120,7 @@ pub(crate) fn read(text: &str, file: &str) -> Result<RawTree, ConversionError> {
                 tag: Tag::None,
             },
         };
-        nodes.push(RawNode { kind, line: 0 });
+        nodes.push(RawNode { kind, line: None });
         let child = nodes.len() - 1;
         match (&mut nodes[parent].kind, key_node) {
             (RawKind::Map { pairs, .. }, Some(k)) => pairs.push((k, child)),

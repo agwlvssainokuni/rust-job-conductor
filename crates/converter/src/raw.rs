@@ -93,8 +93,8 @@ pub(crate) enum RawKind {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RawNode {
     pub kind: RawKind,
-    /// 行番号(1 始まり)。TOML の木では 0(位置を持たない)。
-    pub line: usize,
+    /// 行番号(1 始まり)。TOML の木では `None`(位置を持たない)。
+    pub line: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -105,9 +105,6 @@ pub(crate) struct RawTree {
 
 impl RawTree {
     pub(crate) fn line_of(&self, node: usize) -> Option<usize> {
-        match self.nodes[node].line {
-            0 => None,
-            n => Some(n),
-        }
+        self.nodes[node].line
     }
 }
