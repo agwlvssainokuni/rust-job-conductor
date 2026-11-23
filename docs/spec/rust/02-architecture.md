@@ -93,10 +93,10 @@
 
 | 型 | 内容 |
 |----|------|
-| `DefinitionErrorKind` | 33 種(`ALL: [DefinitionErrorKind; 33]`。v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を追加)。`code() -> &'static str` が識別子(`fileMissing` など)。03 の 9.3、10 の 7.1 |
+| `DefinitionErrorKind` | 33 種(v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を追加)。`code() -> &'static str` が識別子(`fileMissing` など)。03 の 9.3、10 の 7.1 |
 | `DefinitionError` | `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>` |
 | `RunIdError` | `Empty`・`TooLong`・`InvalidChar`・`LeadingDot` |
-| `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`ALL: [EnvFileErrorKind; 13]`。`code()`、`reason()`)/ `{ file: String, line: Option<usize>, kind }` と、理由のメソッド `reason() -> &'static str`(`kind.reason()`。v0.9.6 までは同じ文の写しをフィールド `reason: String` に持った)。`Display` は `<file>[:<line>]: <種類の文>: <reason>`(書式は `DefinitionError` と共有する `error::render_error`)。03 の 6.7、10 の 7.1 |
+| `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`code()`、`reason()`)/ `{ file: String, line: Option<usize>, kind }` と、理由のメソッド `reason() -> &'static str`(`kind.reason()`。v0.9.6 までは同じ文の写しをフィールド `reason: String` に持った)。`Display` は `<file>[:<line>]: <種類の文>: <reason>`(書式は `DefinitionError` と共有する `error::render_error`)。03 の 6.7、10 の 7.1 |
 | 補助 | `escape_display(input, limit)`(制御文字・書式文字のエスケープ。上限なしも選べる。表示のエスケープの本体)、`sanitize(input, max_chars)`(`escape_display` の上限つき)、`quote_key`、`Locate`(位置→行番号。`line_of(offset)`)、`MAX_KEY_DISPLAY_CHARS = 64` |
 
 ### 2.2 `conductor-runtime`
@@ -107,7 +107,7 @@
 |------|-----------|------|
 | `run_job` | `(line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution`(v0.9.6 までは `run_job(job, line, env, signal)`。`job` は使われなかった) | 分割済みのコマンド `line`(`check_command` の結果)で、シェルを介さず直接起動し、終了を待つ。中で `command` を分け直さない(`line.program` が空・空白だけなら起動せず `StartFailed`)。`env` を、並びの順に、引き継いだ環境へ足す(v0.9.0 以降。v0.8.0 以前は `env` 引数なし)。パニックしない。シグナルを子へ 1 回転送。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。07 の 4 章 |
 | `load_env_files`(v0.9.0 以降) | `(definition_path: &Path, refs: &[String]) -> Result<LoadedEnvFiles, Vec<EnvFileError>>` | `env_file` の `.env` を、すべて読む(パスの解決、1 MiB の上限、UTF-8、解析)。誤りは全ファイル分を集めて返す。03 の 6.7 |
-| `create_file`(v0.9.0 以降) | `(path: &Path, bytes: &[u8], force: bool) -> Result<CreateOutcome, CreateError>` | 排他的な作成(`force` なら一時ファイルから置き換え)。`CreateOutcome::{Created, Replaced}`、`CreateError::{AlreadyExists, ParentMissing, IsDirectory, PermissionDenied, OtherIo}`(`ALL: [CreateError; 5]`)。04 の 7.8 |
+| `create_file`(v0.9.0 以降) | `(path: &Path, bytes: &[u8], force: bool) -> Result<CreateOutcome, CreateError>` | 排他的な作成(`force` なら一時ファイルから置き換え)。`CreateOutcome::{Created, Replaced}`、`CreateError::{AlreadyExists, ParentMissing, IsDirectory, PermissionDenied, OtherIo}`。04 の 7.8 |
 | `check_command` | `(command: &Command) -> Result<CommandLine, CommandError>` | 起動せずに `command` を検査(分割)する。07 の 3 章 |
 | `wait_for` | `(secs: u64, signal: &InterruptSignal) -> WaitOutcome` | リトライ前の待機。合図を 50 ms 以下の間隔で確かめる。`WaitOutcome::{Elapsed, Interrupted(i32)}` |
 | `read_state` | `(definition_path: &Path, run_id: Option<&RunId>) -> Result<Option<PipelineState>, StateError>` | ステートを読む。ファイルなし・長さ 0・**完了のもの**は `None`(空) |

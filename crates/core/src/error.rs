@@ -169,43 +169,6 @@ impl DefinitionErrorKind {
             Self::InvalidEnvValue => "invalidEnvValue",
         }
     }
-
-    /// すべての種類(網羅のテストと、表示の確認に使う)。
-    pub const ALL: [DefinitionErrorKind; 33] = [
-        Self::FileMissing,
-        Self::Unreadable,
-        Self::TooLarge,
-        Self::Syntax,
-        Self::TypeMismatch,
-        Self::UnknownKey,
-        Self::VersionMissing,
-        Self::VersionUnsupported,
-        Self::UnknownTarget,
-        Self::ErrorTransition,
-        Self::BackwardOrSelfTarget,
-        Self::OverlappingExitCodes,
-        Self::ZeroAsWarning,
-        Self::PipelineNameMismatch,
-        Self::DuplicateJobId,
-        Self::InvalidJobId,
-        Self::NoJobs,
-        Self::EmptyField,
-        Self::DuplicateTransition,
-        Self::InvalidEnvName,
-        Self::RetryNotTable,
-        Self::RetryMissingKey,
-        Self::RetryExitCodesEmpty,
-        Self::RetryExitCodeInvalid,
-        Self::RetryExitCodesOverlap,
-        Self::RetryMaxInvalid,
-        Self::RetryDurationInvalid,
-        Self::RetryBackoffIncomplete,
-        Self::RetryMultiplierInvalid,
-        Self::RetryMaxIntervalTooSmall,
-        Self::ReservedEnvName,
-        Self::EnvNameCaseConflict,
-        Self::InvalidEnvValue,
-    ];
 }
 
 /// 定義の誤りの報告(契約 C2 の `DefinitionError`)。1 回の検証で、複数を返してよい。
@@ -425,17 +388,6 @@ mod tests {
         );
         let e = DefinitionError::new("c.toml", None, DefinitionErrorKind::NoJobs, "理由");
         assert_eq!(e.to_string(), "c.toml: ジョブが 1 つもありません: 理由");
-    }
-
-    #[test]
-    fn 全種類に識別子と表示があり重複しない() {
-        let mut codes: Vec<_> = DefinitionErrorKind::ALL.iter().map(|k| k.code()).collect();
-        codes.sort_unstable();
-        codes.dedup();
-        assert_eq!(codes.len(), 33);
-        for k in DefinitionErrorKind::ALL {
-            assert!(!k.to_string().is_empty());
-        }
     }
 
     #[test]

@@ -49,17 +49,6 @@ pub enum CreateError {
     OtherIo,
 }
 
-impl CreateError {
-    /// すべての種類(網羅のテストに使う)。
-    pub const ALL: [CreateError; 5] = [
-        Self::AlreadyExists,
-        Self::ParentMissing,
-        Self::IsDirectory,
-        Self::PermissionDenied,
-        Self::OtherIo,
-    ];
-}
-
 /// ファイルを作る(WF3。BR1.2、BR1.3、BR1.6)。
 ///
 /// - `force` なし: 排他的に作る。既に、ファイルまたはシンボリックリンク(宙に浮いたリンクを含む)が

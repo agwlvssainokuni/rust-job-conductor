@@ -445,7 +445,7 @@ README とステートの実装のあいだに、矛盾は見つからなかっ�
 | 型 | 内容 |
 |----|------|
 | `CreateOutcome` | `Created`(新規に作った)、`Replaced`(`--force` で、既にあったファイルを置き換えた) |
-| `CreateError` | `AlreadyExists`(既にある。`force` なし)、`ParentMissing`(親のディレクトリが無い。作らない)、`IsDirectory`(作る先がディレクトリ)、`PermissionDenied`(書く権限がない)、`OtherIo`(そのほかの入出力の誤り)。`ALL: [CreateError; 5]` |
+| `CreateError` | `AlreadyExists`(既にある。`force` なし)、`ParentMissing`(親のディレクトリが無い。作らない)、`IsDirectory`(作る先がディレクトリ)、`PermissionDenied`(書く権限がない)、`OtherIo`(そのほかの入出力の誤り) |
 
 **`force = false`(新規)**:
 

@@ -133,23 +133,6 @@ impl EnvFileErrorKind {
         }
     }
 
-    /// すべての種類(網羅のテストに使う)。
-    pub const ALL: [EnvFileErrorKind; 13] = [
-        Self::FileMissing,
-        Self::Unreadable,
-        Self::TooLarge,
-        Self::NotUtf8,
-        Self::TooManyEntries,
-        Self::InvalidName,
-        Self::ReservedName,
-        Self::CaseConflict,
-        Self::MissingEquals,
-        Self::UnterminatedQuote,
-        Self::InvalidEscape,
-        Self::TrailingGarbage,
-        Self::NulInValue,
-    ];
-
     /// 固定の理由の文(入力の値を含まない)。
     pub fn reason(self) -> &'static str {
         match self {

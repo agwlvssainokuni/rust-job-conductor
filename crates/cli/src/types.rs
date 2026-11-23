@@ -267,20 +267,6 @@ pub enum UsageErrorKind {
     UnknownJob,
 }
 
-impl UsageErrorKind {
-    /// すべての種類(網羅のテストに使う)。
-    pub const ALL: [UsageErrorKind; 8] = [
-        Self::UnknownCommand,
-        Self::MissingArgument,
-        Self::UnexpectedArgument,
-        Self::UnknownOption,
-        Self::OptionNotAllowed,
-        Self::MissingValue,
-        Self::InvalidValue,
-        Self::UnknownJob,
-    ];
-}
-
 /// コマンドの使い方の誤り。ジョブは実行されない。終了コードは 68。
 ///
 /// 表示の文は、種類ごとの固定の文である。`subject` は、誤りの対象の語(知らないコマンド、

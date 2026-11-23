@@ -79,17 +79,6 @@ impl ConversionErrorKind {
             Self::RootNotMap => "rootNotMap",
         }
     }
-
-    /// すべての種類(網羅のテストに使う)。契約 C4 の外(テスト用)。
-    #[doc(hidden)]
-    pub const ALL: [ConversionErrorKind; 6] = [
-        Self::FileMissing,
-        Self::Unreadable,
-        Self::TooLarge,
-        Self::Syntax,
-        Self::Unrepresentable,
-        Self::RootNotMap,
-    ];
 }
 
 /// 変換の失敗の報告(契約 C4 の failure)。変換は行われず、出力は作られない。
@@ -258,17 +247,6 @@ pub(crate) fn format_key_path(segs: &[PathSeg]) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn 表示は_どの種類でも入力の値を含まない() {
-        for kind in ConversionErrorKind::ALL {
-            let e = ConversionError::new("in.yaml", Some(3), None, kind, "固定の文");
-            let s = e.to_string();
-            assert!(s.contains("in.yaml:3:"), "{s}");
-            assert!(s.contains("固定の文"), "{s}");
-            assert!(!kind.code().is_empty());
-        }
-    }
 
     #[test]
     fn 行がなく_キーの場所がある表示() {

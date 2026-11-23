@@ -118,7 +118,7 @@ conductor: error: internal error
 | 型 | 内容 |
 |----|------|
 | `DefinitionErrorKind`(33 種) | 識別子(`code()`)・日本語の文(`Display`)・英語の文は 08 章 4.3 に全件 |
-| `EnvFileErrorKind`(13 種。v0.9.0 以降) | `fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`。すべて終了コード 64。識別子・条件は 03 の 6.7、文言は 08 の 4.12。`ALL: [EnvFileErrorKind; 13]`、`code()`、`reason()` |
+| `EnvFileErrorKind`(13 種。v0.9.0 以降) | `fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`。すべて終了コード 64。識別子・条件は 03 の 6.7、文言は 08 の 4.12。`code()`、`reason()` |
 | `EnvFileError { file, line: Option<usize>, kind }` と `reason()`(同。理由は種類の固定の文。v0.9.6 までは `reason` をフィールドに持った) | `Display` は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: …`)。`file` は制御文字をエスケープして 256 文字で切る(ライブラリ側の表示のみ)。CLI は自前の形式で、言語に従った種類の文と理由を、`file` を切らずに表示する(08 の 4.12)。理由は固定の文で、値を含めない |
 | `EnvWarning { file, line, name, kind: DuplicateKey }`(同) | 誤りではない(重複キー)。`validate` だけが表示する |
 | `DefinitionError { file, line: Option<usize>, kind, reason }` | `Display` は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。`Display` では、`file` を制御文字のエスケープのうえ 256 文字で切る(ライブラリ側の表示のみ)。CLI は `Display` を使わず、自前の形式で、`file` をエスケープだけして切らずに表示する(08 章)。`reason` は core が作る日本語の固定の文。キー名は `` `キー名` `` の形で入り、64 文字で切る |
@@ -138,7 +138,7 @@ conductor: error: internal error
 | `StateErrorKind`(6 種) | `Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。終了コード 65 |
 | `StateError { path, kind, reason }` | `Display`(runtime 内)は `<種類の日本語の文>: <パス> (<原因>)`。CLI は自前の形式で表示する(08 章 4.5) |
 | `MismatchKind`(3 種) | `PipelineName`, `JobIds`, `JobOrder`(定義との食い違い。終了コード 65)。定めるのは `conductor-core`(`consistency.rs`)で、`conductor-runtime` が再公開する |
-| `CreateError`(5 種。v0.9.0 以降) | `AlreadyExists`(終了コード 69)、`ParentMissing`, `IsDirectory`, `PermissionDenied`, `OtherIo`(終了コード 65)。`ALL: [CreateError; 5]`。`init` が使う(`create_file`)。文言は 08 の 4.13、作成の規則は 06 の 13 章。OS のエラーの文は持たない |
+| `CreateError`(5 種。v0.9.0 以降) | `AlreadyExists`(終了コード 69)、`ParentMissing`, `IsDirectory`, `PermissionDenied`, `OtherIo`(終了コード 65)。`init` が使う(`create_file`)。文言は 08 の 4.13、作成の規則は 06 の 13 章。OS のエラーの文は持たない |
 | `CreateOutcome`(同) | `Created`, `Replaced`(成功。誤りではない) |
 
 `StateError.reason`(固定の日本語。言語を切り替えない)と、それを返す種類:
