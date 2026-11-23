@@ -28,12 +28,10 @@ use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
-    EnvWarning, EnvWarningKind, JobState, JobStatus, PipelineState, RejectReason, SkipCause,
-    SkipReason, TransitionOn, TransitionTarget,
+    EnvWarning, EnvWarningKind, JobState, JobStatus, MismatchKind, PipelineState, RejectReason,
+    SkipCause, SkipReason, TransitionOn, TransitionTarget,
 };
-use conductor_runtime::{
-    CommandError, CommandErrorKind, CreateError, MismatchKind, StateError, StateErrorKind,
-};
+use conductor_runtime::{CommandError, CommandErrorKind, CreateError, StateError, StateErrorKind};
 
 fn env_for(lang: Language) -> FakeEnv {
     FakeEnv::for_language(lang)

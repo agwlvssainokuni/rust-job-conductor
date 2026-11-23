@@ -137,7 +137,7 @@ conductor: error: internal error
 | `CommandError { kind }` | `Display` は `kind.reason()`(種類の理由の固定の文)だけ |
 | `StateErrorKind`(6 種) | `Unreadable`, `TooLarge`, `Corrupt`, `VersionMismatch`, `WriteFailed`, `RemoveFailed`。終了コード 65 |
 | `StateError { path, kind, reason }` | `Display`(runtime 内)は `<種類の日本語の文>: <パス> (<原因>)`。CLI は自前の形式で表示する(08 章 4.5) |
-| `MismatchKind`(3 種) | `PipelineName`, `JobIds`, `JobOrder`(定義との食い違い。終了コード 65)。定めるのは `conductor-core`(`consistency.rs`)で、`conductor-runtime` が再公開する |
+| `MismatchKind`(3 種) | `PipelineName`, `JobIds`, `JobOrder`(定義との食い違い。終了コード 65)。定めるのは `conductor-core`(`consistency.rs`) |
 | `CreateError`(5 種。v0.9.0 以降) | `AlreadyExists`(終了コード 69)、`ParentMissing`, `IsDirectory`, `PermissionDenied`, `OtherIo`(終了コード 65)。`init` が使う(`create_file`)。文言は 08 の 4.13、作成の規則は 06 の 13 章。OS のエラーの文は持たない |
 | `CreateOutcome`(同) | `Created`, `Replaced`(成功。誤りではない) |
 

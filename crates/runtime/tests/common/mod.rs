@@ -110,7 +110,7 @@ pub mod without_run_id {
     }
 
     pub fn initial_state(d: &PipelineDefinition, def: &Path) -> PipelineState {
-        conductor_runtime::initial_state(d, def, None)
+        conductor_core::initial_state(d, def, None)
     }
 
     pub fn write_state(def: &Path, s: &PipelineState, dur: Durability) -> Result<(), StateError> {

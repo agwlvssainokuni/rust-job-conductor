@@ -22,12 +22,10 @@ use std::sync::Arc;
 
 use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
-    DefinitionError, LoadedEnvFiles, PipelineDefinition, PipelineState, RunId, env_file_refs,
+    ConsistencyResult, DefinitionError, LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
+    check_consistency, env_file_refs,
 };
-use conductor_runtime::ConsistencyResult;
-use conductor_runtime::{
-    CommandLine, Durability, InterruptSignal, StateError, StateLocation, check_consistency,
-};
+use conductor_runtime::{CommandLine, Durability, InterruptSignal, StateError, StateLocation};
 
 use crate::deps::{Env, Runtime, SignalError, Signals, Sink};
 use crate::exit::{EXIT_DEFINITION, EXIT_INTERNAL, EXIT_OK, EXIT_STATE, EXIT_USAGE};

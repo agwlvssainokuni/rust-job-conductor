@@ -13,8 +13,6 @@
 // limitations under the License.
 
 //! ステートと定義の照合(Consistency。BR2.5)。純粋な関数。
-//!
-//! conductor-runtime は、同じ名前で再エクスポートする(`conductor_runtime::check_consistency` など)。
 
 use crate::types::{PipelineDefinition, PipelineState};
 

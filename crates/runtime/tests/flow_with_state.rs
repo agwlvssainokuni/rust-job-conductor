@@ -28,14 +28,14 @@ use std::sync::Arc;
 use common::without_run_id::{initial_state, read_state, reset_state, write_state};
 use common::*;
 use conductor_core::{
-    Classification, Decision, ExecutionResult, JobDefinition, JobOutcome, JobStatus, NextStep,
-    PipelineDefinition, PipelineState, RunMode, SkipCause, Transition, TransitionOn,
-    TransitionTarget, classify_and_decide, decide_from_state,
+    Classification, ConsistencyResult, Decision, ExecutionResult, JobDefinition, JobOutcome,
+    JobStatus, MismatchKind, NextStep, PipelineDefinition, PipelineState, RunMode, SkipCause,
+    Transition, TransitionOn, TransitionTarget, apply_outcome, apply_skip, check_consistency,
+    classify_and_decide, decide_from_state,
 };
 // run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)は、`common::without_run_id`。
 use conductor_runtime::{
-    ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateError, StateErrorKind,
-    apply_outcome, apply_skip, check_command, check_consistency, run_job,
+    Durability, InterruptSignal, StateError, StateErrorKind, check_command, run_job,
 };
 
 /// 試験用の場面: 一時ディレクトリ、定義ファイルのパス、ジョブの起動の記録のファイル。

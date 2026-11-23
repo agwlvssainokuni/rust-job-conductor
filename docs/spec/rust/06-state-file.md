@@ -291,7 +291,7 @@ conductor: error: c2.toml.r3.state: state file is corrupt: run_id がファイ�
 
 ## 6. 定義との整合性検査(`check_consistency`)
 
-空でない(完了していない)ステートを読んだ後、`run`・`pipeline` の前処理(`Ctx::read_checked_state`)で、定義と照合する。純粋な関数(`crates/core/src/consistency.rs`。`conductor-runtime` が同じ名前で再公開する)。
+空でない(完了していない)ステートを読んだ後、`run`・`pipeline` の前処理(`Ctx::read_checked_state`)で、定義と照合する。純粋な関数(`crates/core/src/consistency.rs`)。
 
 ```text
 if state.pipeline_name != definition.name:              Mismatch(PipelineName)

@@ -2,7 +2,7 @@
 
 対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。この文書は、実装とテストを根拠に、`run`・`pipeline` の実行の流れを、判定表・状態遷移・擬似アルゴリズムで定める。v0.9.0 で加わった内容は、14 章(環境変数の注入)、15 章(`graph`)、16 章(`--dry-run`)、17 章(`init`)にまとめる。ステートファイルの形式と読み書きは [06-state-file.md](06-state-file.md) にある。この文書の「ステートへの記録」は、06 の形式のファイルを書く前の、メモリ上の `PipelineState` の更新を指す。
 
-実装の所在(参考): 判断は `crates/core/src/flow/{classify,decide,next_step,resume,retry}.rs`(純粋関数。ファイル・プロセスに触れず、失敗せず、必ず結果を返す)、記録は `crates/core/src/flow/record.rs`(純粋関数。本番の流れと `--dry-run` の模擬が共に使い、`conductor-runtime` が同じ名前で再公開する)、流れは `crates/cli/src/{ctx,run,pipeline,retry}.rs`、終了コードは `crates/cli/src/exit.rs`。v0.9.0 以降: 環境変数は `crates/core/src/envfile/`(純粋)と `crates/runtime/src/envfile.rs`(読み取り)、図は `crates/core/src/graph/`、計画は `crates/core/src/plan/`、それぞれの流れは `crates/cli/src/{graph,dry_run,init}.rs`。
+実装の所在(参考): 判断は `crates/core/src/flow/{classify,decide,next_step,resume,retry}.rs`(純粋関数。ファイル・プロセスに触れず、失敗せず、必ず結果を返す)、記録は `crates/core/src/flow/record.rs`(純粋関数。本番の流れと `--dry-run` の模擬が共に使う)、流れは `crates/cli/src/{ctx,run,pipeline,retry}.rs`、終了コードは `crates/cli/src/exit.rs`。v0.9.0 以降: 環境変数は `crates/core/src/envfile/`(純粋)と `crates/runtime/src/envfile.rs`(読み取り)、図は `crates/core/src/graph/`、計画は `crates/core/src/plan/`、それぞれの流れは `crates/cli/src/{graph,dry_run,init}.rs`。
 
 ---
 

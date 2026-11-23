@@ -20,10 +20,10 @@
 
 use conductor_converter::ConversionErrorKind;
 use conductor_core::{
-    Classification, DefinitionErrorKind, EnvFileErrorKind, NextStepNote, PlanDisposition,
-    RejectReason, SkipCause,
+    Classification, DefinitionErrorKind, EnvFileErrorKind, MismatchKind, NextStepNote,
+    PlanDisposition, RejectReason, SkipCause,
 };
-use conductor_runtime::{CommandErrorKind, CreateError, MismatchKind, StateErrorKind};
+use conductor_runtime::{CommandErrorKind, CreateError, StateErrorKind};
 
 use crate::report::StateContext;
 use crate::types::{Language, UsageErrorKind};

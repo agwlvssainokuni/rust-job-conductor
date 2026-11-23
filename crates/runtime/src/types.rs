@@ -122,9 +122,6 @@ impl StateLocation {
 }
 
 /// ステートと定義の照合の結果と、食い違いの種類(BR2.5)。定めるのは conductor-core で、
-/// これまでの道(`conductor_runtime::ConsistencyResult` など)を保つために再エクスポートする。
-pub use conductor_core::{ConsistencyResult, MismatchKind};
-
 /// ステートの書き込みの耐久性の指定(BR2.4 の差分)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Durability {

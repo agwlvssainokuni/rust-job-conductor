@@ -14,8 +14,7 @@
 
 //! ステート(StateStore)。ファイルに触れるのは、`reader`、`writer`、`reset_all` だけである。照合
 //! (`check_consistency`)と、その単体テストは `conductor-core` の `consistency` にある。ステートの更新
-//! (`initial_state`、`apply_*`)は、`conductor-core` の `flow::record` にある(どちらも `lib.rs` で
-//! 再公開する)。
+//! (`initial_state`、`apply_*`)は、`conductor-core` の `flow::record` にある。
 
 pub(crate) mod reader;
 pub(crate) mod reset_all;

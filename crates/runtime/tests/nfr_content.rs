@@ -18,11 +18,9 @@ mod common;
 
 use common::without_run_id::{initial_state, read_state, reset_state, write_state};
 use conductor_core::{
-    Classification, Command, JobExecution, JobOutcome, NextStep, PipelineDefinition,
+    Classification, Command, JobExecution, JobOutcome, NextStep, PipelineDefinition, apply_outcome,
 };
-use conductor_runtime::{
-    CommandErrorKind, Durability, StateErrorKind, apply_outcome, check_command,
-};
+use conductor_runtime::{CommandErrorKind, Durability, StateErrorKind, check_command};
 
 const SECRET: &str = "S3CR3T-VALUE-123";
 

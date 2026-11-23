@@ -25,9 +25,10 @@
 //! 中断、「完了を判定できない」は、ここに残す(BR1.2)。
 
 use conductor_core::{
-    Classification, Decision, PipelineState, RunMode, decide_from_state, resume_point_on_interrupt,
+    Classification, Decision, PipelineState, RunMode, apply_interrupt, decide_from_state,
+    resume_point_on_interrupt,
 };
-use conductor_runtime::{Durability, StateLocation, apply_interrupt};
+use conductor_runtime::{Durability, StateLocation};
 
 use crate::ctx::{Ctx, FlowTarget, Session};
 use crate::dry_run::enter_flow;

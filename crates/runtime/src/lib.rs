@@ -30,18 +30,12 @@
 //! | [`read_state`] | ステートを読む(W2。BR2.1〜BR2.3) | 定義ファイルのパス → `Option<PipelineState>`(`None` が空) | [`StateError`] |
 //! | [`read_state_raw`] | ステートを、完了のものも含めて読む(`watch` と `graph --state` 用。FR3.1) | 定義ファイルのパス → `Option<PipelineState>`(`None` はファイルなし・長さ 0) | [`StateError`] |
 //! | [`write_state`] | ステートを、原子的に書く(W3。BR2.4)。耐久性の指定つき | 定義ファイルのパス、ステート、[`Durability`] | [`StateError`](`writeFailed`) |
-//! | [`check_consistency`] | ステートと定義の食い違いを検知する(W4。BR2.5) | ステート、定義 → [`ConsistencyResult`] | なし(純粋) |
 //! | [`reset_state`] | ステートを、検査を迂回して消す(W5。BR2.6) | 定義ファイルのパス | [`StateError`](`removeFailed`) |
 //! | [`reset_all_states`] | その定義のステートを、run ID の有無によらず、すべて消す(FR5) | 定義ファイルのパス → [`ResetAllReport`] | [`StateError`] |
 //! | [`create_file`] | ファイルを排他的に作る、または置き換える(`init`。BR1.2、BR1.3、BR1.6) | パス、内容、`force` → [`CreateOutcome`] | [`CreateError`] |
-//! | [`initial_state`] | 空のステートを、定義から作る(BR2.8) | 定義、パス、run ID → `PipelineState` | なし(純粋) |
-//! | [`apply_outcome`] | ジョブの結果を記録する(BR2.8) | ステート、結果、次の動き → ステート | なし(純粋) |
-//! | [`apply_skip`] | スキップを記録し、完了を判定する(BR2.8) | ステート、理由、定義 → ステート | なし(純粋) |
-//! | [`apply_interrupt`] | 中断を記録する(BR2.8) | ステート、`ResumePoint` → ステート | なし(純粋) |
 //!
-//! `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt` は、`conductor-core` の
-//! `flow::record` にある(`--dry-run` の模擬と共に使う)。`check_consistency` と [`ConsistencyResult`]、
-//! [`MismatchKind`] は、`conductor-core` の `consistency` にある。この Unit は、同じ名前で再公開する。
+//! ステートの照合(`check_consistency`)と更新(`initial_state`、`apply_*`)は conductor-core の関数を使う
+//! (`consistency` と `flow::record`。`--dry-run` の模擬と共に使う)。
 //!
 //! `read_state`・`read_state_raw`・`write_state`・`reset_state` は、定義ファイルのパスに加えて run ID(`Option<&RunId>`)を取る。
 //! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
@@ -55,7 +49,7 @@
 //!
 //! | モジュール | 部品 | 責務 |
 //! |------------|------|------|
-//! | `types` | 型(Types) | [`CommandLine`]、[`InterruptSignal`]、[`StateLocation`]、[`ConsistencyResult`]、[`Durability`] |
+//! | `types` | 型(Types) | [`CommandLine`]、[`InterruptSignal`]、[`StateLocation`]、[`Durability`] |
 //! | `error` | 表示用の組み立て(Describe) | kind ごとの固定の文と、ステートファイルのパスだけでエラーを表示する |
 //! | `split` | 分け方(Split) | BR1.1 の規則を、文字を 1 つずつ読む状態機械で実装する(再帰なし) |
 //! | `runner` | 起動(Spawn)、待ちのくり返し(WaitLoop) | 直接起動し、`try_wait` のくり返し(1ms から 10ms)で待つ。回収はここだけ |
@@ -73,13 +67,13 @@
 //! # 呼び出しの順序(契約 C2 の順序の続き)
 //!
 //! 1. [`read_state`] でステートを読む(失敗なら、ジョブを実行せず終わる)。ステートがあれば、
-//!    [`check_consistency`] で定義と照合する。空なら [`initial_state`] で作る。
+//!    `conductor_core::check_consistency` で定義と照合する。空なら `conductor_core::initial_state` で作る。
 //! 2. ジョブごとに、`decide_from_state`(conductor-core)の判断に従う。
 //!    - `Reject`: ジョブを実行せず、ステートも変えない。
-//!    - `Skip`: [`apply_skip`] → [`write_state`]([`Durability::Durable`])。
+//!    - `Skip`: `conductor_core::apply_skip` → [`write_state`]([`Durability::Durable`])。
 //!    - `Run`: ステートが空だったときは、最初のジョブの**前**に、初期ステートを
 //!      [`write_state`]([`Durability::Fast`])で書く(書けないディレクトリを、ジョブの前に検知する)。
-//!      そのあと、[`run_job`] → `classify_and_decide`(conductor-core)→ [`apply_outcome`] →
+//!      そのあと、[`run_job`] → `classify_and_decide`(conductor-core)→ `conductor_core::apply_outcome` →
 //!      [`write_state`]([`Durability::Durable`])。
 //! 3. 完了(`completed`)のとき、記録のあとに、呼び出し側が、削除を求められていれば [`reset_state`] を
 //!    呼ぶ。この Unit は、完了を判断せず、初期化の手段だけを提供する(`apply_skip` と
@@ -126,8 +120,6 @@ mod temp_file;
 mod types;
 mod wait;
 
-pub use conductor_core::check_consistency;
-pub use conductor_core::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub use envfile::load_env_files;
 pub use error::{CommandError, CommandErrorKind, StateError, StateErrorKind};
 pub use file_create::{CreateError, CreateOutcome, create_file};
@@ -136,7 +128,5 @@ pub use split::check_command;
 pub use state::reader::{read_state, read_state_raw};
 pub use state::reset_all::{ResetAllReport, reset_all_states};
 pub use state::writer::{reset_state, write_state};
-pub use types::{
-    CommandLine, ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateLocation,
-};
+pub use types::{CommandLine, Durability, InterruptSignal, StateLocation};
 pub use wait::{WaitOutcome, wait_for};

@@ -38,10 +38,11 @@ use std::path::Path;
 
 use conductor_converter::ConversionError;
 use conductor_core::{
-    Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, PipelineState,
-    RejectReason, RunId, SkipCause, TransitionOn, TransitionTarget, summarize_errors,
+    Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, MismatchKind,
+    PipelineState, RejectReason, RunId, SkipCause, TransitionOn, TransitionTarget,
+    summarize_errors,
 };
-use conductor_runtime::{CommandError, CreateError, MismatchKind, StateError};
+use conductor_runtime::{CommandError, CreateError, StateError};
 
 use crate::deps::{Env, Sink};
 use crate::platform;

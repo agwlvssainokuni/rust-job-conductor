@@ -22,8 +22,8 @@ use std::time::{Duration, Instant};
 
 // run ID なしの呼び出し(この測定は run ID を使わない)。
 use common::without_run_id::{initial_state, read_state, write_state};
-use conductor_core::PipelineDefinition;
-use conductor_runtime::{ConsistencyResult, Durability, check_command, check_consistency};
+use conductor_core::{ConsistencyResult, PipelineDefinition, check_consistency};
+use conductor_runtime::{Durability, check_command};
 
 const RUNS: usize = 100;
 const TARGET: Duration = Duration::from_millis(20);
