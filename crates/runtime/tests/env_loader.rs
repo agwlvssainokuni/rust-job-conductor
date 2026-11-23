@@ -172,3 +172,48 @@ fn 複数のファイルの誤りを集めて行番号つきで返し値を含�
     }
     assert!(e[0].file.ends_with("a.env") && e[2].file.ends_with("b.env"));
 }
+
+/// 読む権限のない 1 MiB 超の `.env` は、大きさより先に開けないことで `unreadable`(3b。定義ファイルの
+/// 読み込みと同じ順。v0.9.6 までは、パスのメタデータで大きさを先に見たため `tooLarge` だった)。
+#[cfg(unix)]
+#[test]
+fn 権限のない_1_mib_超の_env_は_unreadable() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+    let path = dir.path().join("big-locked.env");
+    std::fs::write(&path, format!("A={SECRET}\n#{}", "x".repeat(MAX))).expect("書き込み");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).expect("権限");
+    // root などで開けてしまうときは、確かめない。
+    if std::fs::File::open(&path).is_ok() {
+        return;
+    }
+    let e = load_env_files(&def, &refs(&["big-locked.env"])).expect_err("誤り");
+    assert_eq!(kinds(&e), [(None, K::Unreadable)]);
+    assert!(!e[0].to_string().contains(SECRET));
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).expect("権限");
+}
+
+/// 書き手のいない名前付きパイプの `.env` は、開かずに `unreadable`(待ち続けない。3b)。
+#[cfg(unix)]
+#[test]
+fn 名前付きパイプの_env_は開かずに_unreadable() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+    let path = dir.path().join("pipe.env");
+    let status = std::process::Command::new("mkfifo")
+        .arg(&path)
+        .status()
+        .expect("mkfifo を起動できる");
+    assert!(status.success(), "mkfifo が失敗した");
+    // 止まったときに落ちるよう、別のスレッドで呼び、5 秒で打ち切る。
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(load_env_files(&def, &refs(&["pipe.env"])));
+    });
+    let r = rx
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("5 秒以内に返る(開いて待たない)");
+    let e = r.expect_err("誤り");
+    assert_eq!(kinds(&e), [(None, K::Unreadable)]);
+}
