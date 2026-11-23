@@ -686,7 +686,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-282 | SIGINT / SIGQUIT 単独(UNIX 系) | `SL` | SIGINT / SIGQUIT | 130 / 131 | 07 章 7.2 節の例(派生。転送は `runtime::runner_signal::sigint も転送される`) |
 | AC-283 | -v の表示(UNIX 系) | `SL` | `run -v sleeper`、SIGTERM | 143。ERR に `[conductor] job=sleeper result=error (interrupted by signal 15)` | 08 章 2.1 節(派生) |
 | AC-284 | 時間を空けた 2 つのシグナルは最初の番号が残る | シグナル監視の単体 | INT のあと、時間を空けて HUP | 最初の番号 2 が残る | `signals_order::int のあとに hup を送ると int の番号が残る`。区分: 単体(UNIX 系) |
-| AC-285 | 最初の番号・登録は 1 回 | シグナル監視の単体 | 監視を登録し、HUP を受ける。再度の登録 | 最初の番号 1 が残る。2 回目の登録は「すでに登録済み」(失敗ではない) | `signals_real::最初のシグナルの番号だけが残り 2 回目の登録は登録済みになる`。区分: 単体(UNIX 系) |
+| AC-285 | 最初の番号・登録は 1 回 | シグナル監視の単体 | 監視を登録し、HUP を受ける。再度の登録 | 最初の番号 1 が残る。2 回目の登録は「すでに登録済み」(失敗ではない) | `signals_real::最初のシグナルの番号だけが残る`(参照実装は登録をプロセスで 1 回だけ呼ぶので、2 回目の登録はテストしない)。区分: 単体(UNIX 系) |
 | AC-286 | 転送は同じシグナルを 1 回だけ | 起動の部品の単体 | ジョブの実行中に合図を立てる(SIGTERM と SIGINT で別々に) | ジョブは、そのシグナルで終了する(`terminated_by_signal` = 15 / 2)。送信は 1 回(続けて合図を立てても追加で送らない) | `runner_signal::実行中の合図は sigterm として届く / sigint も転送される / シグナルは 1回だけ転送される`。区分: 単体(UNIX 系) |
 | AC-287 | 許可外の番号は送らない | 起動の部品の単体 | 合図の番号が SIGKILL(9)、SIGSTOP、SIGCONT、SIGUSR1、0、-1、9999 | 送信しない。ジョブは自分で終わる。終わりの観測の直後に `interrupted = true`、`signal_number` がその番号 | `runner_signal::転送しない番号の合図では送られず interrupted だけが立つ`、`runtime::platform/unix` の単体。区分: 単体(UNIX 系) |
 | AC-288 | ジョブは新しいプロセスグループ | 起動の部品の単体 | ジョブを起動して、プロセスグループ ID を調べる | ジョブのプロセスグループ ID が、ジョブの pid に等しく、`conductor`(呼び出し側)のものと異なる | `runner_signal::ジョブは新しいプロセスグループで起動される`。区分: 単体(UNIX 系) |
@@ -700,7 +700,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-296 | 検査中の合図より誤りが優先 | 同上 | 定義の検査中に合図が立つ。定義の誤り / 順序外 / スキップ | 64 / 66 / 0(中断の終了コードにならない) | `flow_run::検査中の合図より 定義の誤りの終了コードが優先する / 検査中の合図より reject と skip が優先する`。区分: 注入 |
 | AC-297 | シグナルの準備は検査の前 | 同上 | `run` / `pipeline`、`validate`・`watch`・`reset`・`convert`・引数の誤り | `run`・`pipeline` だけが、定義の検査より前にシグナルを準備する。ほかは準備しない(v0.9.0 以降の `graph`・`init`、`--dry-run` も準備しない) | `flow_run::シグナルの準備は定義の検査より前に行う`、`flow_pipeline::個別実行と一括実行だけがシグナルを準備する`、`flow_run::使い方の誤りでは 何も実行せず シグナルも準備しない`。区分: 注入 |
 | AC-298 | シグナルの準備の失敗は 70 | 同上 | 準備が失敗する | 70。ERR = `conductor: error: failed to set up signal handling`。定義の検査もジョブの起動もしない | `flow_run::シグナルの準備に失敗したら 70 で 固定の英語の文`。区分: 注入 |
-| AC-299 | 登録済みでも続ける | 同上 | 準備が「すでに登録済み」を返す | 流れは成功と同様に続く | `flow_run::すでに登録済みでも 流れは成功と同様に続ける`。区分: 注入 |
+| AC-299 | 登録済みでも続ける | 同上 | 準備が「すでに登録済み」を返す | 流れは成功と同様に続く | (参照実装には該当する場面がない。登録はプロセスで 1 回だけ呼び、「すでに登録済み」を返さない)。区分: 注入 |
 | AC-300 | 標準エラーが閉じていても本来の終了コード | 同上 | 標準エラーへの書き込みが失敗する | 本来の終了コードで終わる | `flow_run::標準エラーが閉じていても 本来の終了コードで終わる`。区分: 注入 |
 | AC-301 | Windows の Ctrl+C(手動) | Windows の実機、コンソール。`SL` | `conductor run sleeper` の実行中に Ctrl+C を押す | (1) 終了コード 130。(2) ジョブの子プロセスが残らない。(3) 続く `watch` で `sleeper` が `error`、`after` が `pending`。(4) `run -v` の ERR に `interrupted by signal 2`。結果を記録欄に残す | `WINDOWS_CTRL_C_CHECKLIST`。区分: 手動(Windows)。参照実装では、記録欄が空で、実施の有無は未確認 |
 
@@ -769,7 +769,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-345 | バージョン | `--version`、`-V` | 0。OUT = `conductor 0.9.8`(版は配布の版)。ERR 空。`LANG=ja_JP.UTF-8` でも英語・同じ | `binary_basic::version は 0 で版を標準出力に出す / fr6_1`、`flow_aux::version は版を標準出力に出して 0` |
 | AC-346 | `-h`/`-V` は最優先 | `-vh`、`bogus --help`、`run -vv --help`、`-V -h`、`-h -V` | `-vh` は help(0)。`bogus --help` も help(0)。`-V -h` は version、`-h -V` は help(先に現れた方) | `args_grammar::help と version は先に処理される` |
 | AC-347 | 使い方の誤りの形 | `bogus`(`LANG=C`)、`bogus`(`LANG=ja_JP.UTF-8`) | ERR の最初の行 = `conductor: error: unknown command: 'bogus'` / `conductor: error: 知らないコマンドです: 'bogus'`。2 行目は空行、3 行目以降は使い方の全文(英語 / 日本語)。OUT 空。ジョブは実行されない | `binary_basic::使い方の誤りは 68 で標準エラーに使い方を出す / 日本語のロケールでは エラーが日本語になる`、`flow_aux::使い方の誤りは日本語のロケールで日本語` |
-| AC-348 | 使い方の誤りの全種類 | 上の各種類 | 8 種類(`UnknownCommand`、`MissingArgument`、`UnexpectedArgument`、`UnknownOption`、`OptionNotAllowed`、`MissingValue`、`InvalidValue`、`UnknownJob`)が、すべて 68 で、08 章 4.2 節の英語・日本語の文になる | `args_grammar::使い方の誤りの全種類が網羅されている`、`report_messages::使い方は種類ごとの固定の文…` |
+| AC-348 | 使い方の誤りの全種類 | 上の各種類 | 8 種類(`UnknownCommand`、`MissingArgument`、`UnexpectedArgument`、`UnknownOption`、`OptionNotAllowed`、`MissingValue`、`InvalidValue`、`UnknownJob`)が、すべて 68 で、08 章 4.2 節の英語・日本語の文になる | テストの側の種類の一覧の写し(`tests/common/kinds.rs`。網羅の `match` で、種類が増えるとコンパイルで止まる)、`report_messages::使い方は種類ごとの固定の文…` |
 | AC-349 | UTF-8 でない位置引数(UNIX 系) | 位置引数・`--run-id` の値に不正なバイト列 | 68。`invalid value`。`--config` と `convert` の入力パスは、そのまま通る(不正なバイト列のファイル名の定義が読める) | `args_grammar::utf8 でない… / utf8 でないパスは os_string のまま保つ`。区分: UNIX 系 |
 | AC-447 | 値を取るオプションの値は `-h`/`--help` でも値 | `--config --help run a`、`--config -h run a`、`run a --config --version`(定義ファイルは存在しない) | 終了 64。help・version は出ない。ERR に、その語をパスとしたファイルの誤り(`--help: ...` など) | 派生(04 章 4.1・4.2) |
 | AC-448 | 値を取るオプションが値を欠く | `--config --help` / `--help --config` | 前者は 68(`missing argument`。`--help` が値に取られて位置引数が 0 個)。後者は help(0) | 派生(04 章 4.2) |

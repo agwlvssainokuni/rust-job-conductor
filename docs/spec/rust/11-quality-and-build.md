@@ -217,7 +217,8 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `plan_simulate_perf.rs`、`graph_lookup_perf.rs`、`env_parse_perf.rs` | v0.9.7 以降。計画の模擬(P1、P2)、図の重ね合わせ(P3)と辺の取り出し(P4)、`.env` の解析の重複キー(P5)の性能(3.1 節の表)。結果の中身も確かめる |
 | `definition_perf.rs`、`env_refs_perf.rs` | v0.9.8 以降。定義の `env` の表の大文字小文字の検査(P1)と遷移の重複の確認(P2)、読む対象の `env_file` の一覧(P3)の性能(3.1 節の表)。結果の中身も確かめる |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
-| `common/mod.rs` | 補助(`SECRET`、`run`・`kinds`(定義の検査の結果)、`median`、`state(jobs, resume, completed)`、`job(id)`、`exited(job_id, code)`) |
+| `common/mod.rs` | 補助(`SECRET`、`run`・`kinds`(定義の検査の結果)、`median`、`state(jobs, resume, completed)`、`job(id)`、`exited(job_id, code)`、`add_env_file`(`.env` の内容を `push_file` してから `link` する)) |
+| `common/kinds.rs` | 誤りの種類の一覧の写し(`DEFINITION_ERROR_KINDS`、`ENV_FILE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(種類を足すとコンパイルで止まる) |
 
 #### conductor-runtime(`crates/runtime/tests/`)
 
@@ -245,6 +246,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `read_resolve.rs` | 文書の確認と展開、失敗の順序、暴走する入力 |
 | `nfr_security.rs` | 3 章 |
 | `fixtures/{pipeline,broken}.{toml,yaml}` | 入力例 |
+| `common/kinds.rs` | 変換の失敗の種類の一覧の写し(`CONVERSION_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき |
 
 #### conductor-cli(`crates/cli/tests/`)
 
@@ -266,16 +268,18 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `docs_env.rs`、`docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、例が実際の読み取り・出力と一致) |
 | `binary_signal.rs`(UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
 | `signals_real.rs`、`signals_order.rs`(UNIX) | 本番のシグナル監視(最初の番号が残る、時間を空けた INT のあとの HUP。各ファイルで登録は 1 回だけ) |
-| `panic_hook.rs` | パニックのフック |
 | `nfr_perf.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
 | `msrv_consistency.rs` | MSRV の記載の一致(1.2 節) |
 | `docs_retry.rs` | README のリトライの説明の検査(見出し、5 つのキー名、TOML の例が実際の読み取りに通ること) |
 | `unix_demo.rs`(UNIX)、`windows_demo.rs`(Windows) | デモの検査(9.5 節) |
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
-| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of` |
+| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`、言語と色の判定の記録 `FakeEnv::locale_read`・`color_read`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of` |
+| `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
 | `docs_support/mod.rs` | README を検査するテストの補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`) |
 | `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
+
+cli の src の単体テストは、`panic_hook.rs` の 2 件(フックの本体の文と終了コード 70)だけ。フックの設定そのもの(パニックのとき 70 で終わること)は、自動のテストでは確かめない(10 章 6 節)。
 
 `bin_support::conductor(args)` は、表示を安定させるため、`LC_ALL` と `LC_MESSAGES` を外し、`LANG=C`(英語)にし、`NO_COLOR` を外した `Command` を返す。
 
