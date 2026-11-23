@@ -20,11 +20,12 @@
 
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io;
 use std::path::Path;
 
 use conductor_core::{JobState, JobStatus, PipelineState, RunId, SkipReason};
 
+use crate::bounded_read::read_limited;
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::types::StateLocation;
 
@@ -143,15 +144,6 @@ pub(crate) fn inspect_run_state(path: &Path, run_id: &RunId) -> Inspected {
         }) => Inspected::NotOurs,
         Err(_) => Inspected::Broken,
     }
-}
-
-/// 読み取りを、上限 + 1 バイトまでに制限する(終わりのない入力でも、そこで止まる)。
-pub(crate) fn read_limited<R: Read>(reader: R, limit: u64) -> io::Result<Vec<u8>> {
-    let mut bytes = Vec::new();
-    reader
-        .take(limit.saturating_add(1))
-        .read_to_end(&mut bytes)?;
-    Ok(bytes)
 }
 
 /// パスを持たない、解釈の失敗。
@@ -440,15 +432,6 @@ status = "pending"
     #[test]
     fn 長さ_0_は空() {
         assert!(matches!(parse_state(b""), Ok(None)));
-    }
-
-    #[test]
-    fn 上限_1_つぶんだけ読む() {
-        let endless = io::repeat(b'a');
-        let bytes = read_limited(endless, 10).expect("読める");
-        assert_eq!(bytes.len(), 11);
-        let bytes = read_limited(&b"abc"[..], 10).expect("読める");
-        assert_eq!(bytes, b"abc");
     }
 
     #[test]

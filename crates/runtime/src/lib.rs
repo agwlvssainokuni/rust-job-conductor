@@ -112,6 +112,7 @@
 
 #![deny(unsafe_code)]
 
+mod bounded_read;
 mod envfile;
 mod error;
 mod file_create;

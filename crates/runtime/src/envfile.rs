@@ -18,14 +18,14 @@
 //! ファイルの大きさの検査、上限 + 1 バイトまでの読み取り、UTF-8 の確認だけを行う。
 //! 誤りは、すべてのファイル分を集めて返す。誤りに、値は含めない(BR8.1)。
 
-use std::fs::File;
-use std::io::{ErrorKind, Read};
 use std::path::{Path, PathBuf};
 
 use conductor_core::envfile::MAX_ENV_FILE_BYTES;
 use conductor_core::{
     EnvFileContent, EnvFileError, EnvFileErrorKind, LoadedEnvFiles, parse_env_file,
 };
+
+use crate::bounded_read::{ReadFailure, read_regular_file};
 
 /// 定義ファイルのパスと、読む対象の `env_file` の記述から、すべての `.env` を読む。
 ///
@@ -95,39 +95,15 @@ fn resolve(base: &Path, reference: &str) -> PathBuf {
 fn read_one(path: &Path) -> Result<EnvFileContent, Vec<EnvFileError>> {
     let shown = path.display().to_string();
     let fail = |kind: EnvFileErrorKind| vec![EnvFileError::new(shown.clone(), None, kind)];
-    let open_kind = |e: &std::io::Error| {
-        if e.kind() == ErrorKind::NotFound {
-            EnvFileErrorKind::FileMissing
-        } else {
-            EnvFileErrorKind::Unreadable
-        }
-    };
 
-    // 1. 種別をパスで見る(通常のファイルでなければ開かない。名前付きパイプで待たない)。
-    let metadata = std::fs::metadata(path).map_err(|e| fail(open_kind(&e)))?;
-    if !metadata.is_file() {
-        return Err(fail(EnvFileErrorKind::Unreadable));
-    }
-    // 2. 開く(読む権限がなければ、大きさにかかわらず `Unreadable`)。
-    let file = File::open(path).map_err(|e| fail(open_kind(&e)))?;
-    // 3. 開いたものから大きさを見る。
-    let opened = file
-        .metadata()
-        .map_err(|_| fail(EnvFileErrorKind::Unreadable))?;
-    if !opened.is_file() {
-        return Err(fail(EnvFileErrorKind::Unreadable));
-    }
-    if opened.len() > MAX_ENV_FILE_BYTES as u64 {
-        return Err(fail(EnvFileErrorKind::TooLarge));
-    }
-    // 4. 上限 + 1 バイトまで読む。
-    let mut bytes = Vec::new();
-    file.take(MAX_ENV_FILE_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|_| fail(EnvFileErrorKind::Unreadable))?;
-    if bytes.len() > MAX_ENV_FILE_BYTES {
-        return Err(fail(EnvFileErrorKind::TooLarge));
-    }
+    // 1〜4(`bounded_read::read_regular_file`。通常のファイルでなければ開かない。名前付きパイプで待たない)。
+    let bytes = read_regular_file(path, MAX_ENV_FILE_BYTES as u64).map_err(|failure| {
+        fail(match failure {
+            ReadFailure::Missing => EnvFileErrorKind::FileMissing,
+            ReadFailure::Unreadable => EnvFileErrorKind::Unreadable,
+            ReadFailure::TooLarge => EnvFileErrorKind::TooLarge,
+        })
+    })?;
     let text = String::from_utf8(bytes).map_err(|_| fail(EnvFileErrorKind::NotUtf8))?;
     parse_env_file(&text, &shown)
 }
