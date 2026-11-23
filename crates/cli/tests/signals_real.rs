@@ -43,7 +43,7 @@ fn wait_for(signal: &InterruptSignal) -> Option<i32> {
 fn 最初のシグナルの番号だけが残る() {
     let signal = Arc::new(InterruptSignal::new());
     assert_eq!(SystemSignals.start(&signal), Ok(()));
-    assert!(!signal.is_raised());
+    assert_eq!(signal.signal_number(), None);
 
     send_self("TERM");
     assert_eq!(wait_for(&signal), Some(15));

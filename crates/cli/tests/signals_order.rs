@@ -35,7 +35,7 @@ fn int_のあとに_hup_を送ると_int_の番号が残る() {
     assert_eq!(SystemSignals.start(&signal), Ok(()));
     send_self("INT");
     let start = Instant::now();
-    while !signal.is_raised() && start.elapsed() < Duration::from_secs(10) {
+    while signal.signal_number().is_none() && start.elapsed() < Duration::from_secs(10) {
         std::thread::sleep(Duration::from_millis(5));
     }
     assert_eq!(signal.signal_number(), Some(2));

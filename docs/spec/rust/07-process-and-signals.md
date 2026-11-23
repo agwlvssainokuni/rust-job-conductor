@@ -274,9 +274,8 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 実体 | `AtomicI32` 1 つ。未設定を表す予約値 `i32::MIN`、それ以外は最初のシグナルの番号 |
 | `new()` | 立っていない |
 | `raise(n)` | 立っていなければ `n` を保存(compare-exchange)。**すでに立っていれば何もしない**(最初の番号が残る)。`n == i32::MIN` のときは `i32::MIN + 1` を保存する(立ったことは変わらない) |
-| `is_raised()` / `signal_number()` | 立っているか / 立っているなら最初の番号 |
+| `signal_number()` | 立っているなら最初の番号(`Some`)、立っていなければ `None` |
 | 性質 | 立ったら下りない(レベルで持つ)。スレッド間で共有できる(`Sync`)。`cli` は `Arc` で包んで SignalWatcher のスレッドに渡し、runtime は読むだけ |
-| 等価性 | `signal_number()` が等しければ等しい |
 
 番号は、`run_job` の転送の許可集合にない値でも(負数や `i32::MAX` を含め)、立ったことは記録され、`NotStarted { signal }` の `signal` か `Exited` の
 `interrupted_by` に、そのまま入る。

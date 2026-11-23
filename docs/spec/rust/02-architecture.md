@@ -122,7 +122,7 @@
 | `apply_skip` | `(state, job_id, reason: SkipCause, definition) -> PipelineState` | スキップの記録(純粋) |
 | `apply_interrupt` | `(state, resume_point: &ResumePoint) -> PipelineState` | 中断の記録(純粋) |
 
-型(`types`): `CommandLine { program: String, args: Vec<String> }`、`InterruptSignal`(`AtomicI32` 1 つ。`new`、`raise(n)`、`is_raised`、`signal_number`。最初の番号が残る)、`StateLocation::of(definition_path, run_id)`(`path()`)、`MismatchKind`、`ConsistencyResult`(この 2 つは `conductor_core` の再公開)、`Durability { Durable(既定), Fast }`。エラー: `CommandError`/`CommandErrorKind`、`StateError`/`StateErrorKind`(10 の 7.2)。
+型(`types`): `CommandLine { program: String, args: Vec<String> }`、`InterruptSignal`(`AtomicI32` 1 つ。`new`、`raise(n)`、`signal_number`。最初の番号が残る)、`StateLocation::of(definition_path, run_id)`(`path()`)、`MismatchKind`、`ConsistencyResult`(この 2 つは `conductor_core` の再公開)、`Durability { Durable(既定), Fast }`。エラー: `CommandError`/`CommandErrorKind`、`StateError`/`StateErrorKind`(10 の 7.2)。
 
 ### 2.3 `conductor-converter`
 

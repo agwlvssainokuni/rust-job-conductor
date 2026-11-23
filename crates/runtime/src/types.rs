@@ -63,11 +63,6 @@ impl InterruptSignal {
             .compare_exchange(NOT_RAISED, value, Ordering::SeqCst, Ordering::SeqCst);
     }
 
-    /// 合図が立っているか。
-    pub fn is_raised(&self) -> bool {
-        self.state.load(Ordering::SeqCst) != NOT_RAISED
-    }
-
     /// 立っているとき、最初に受け取ったシグナルの番号。
     pub fn signal_number(&self) -> Option<i32> {
         match self.state.load(Ordering::SeqCst) {
@@ -86,19 +81,11 @@ impl Default for InterruptSignal {
 impl fmt::Debug for InterruptSignal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("InterruptSignal")
-            .field("raised", &self.is_raised())
+            .field("raised", &self.signal_number().is_some())
             .field("signal_number", &self.signal_number())
             .finish()
     }
 }
-
-impl PartialEq for InterruptSignal {
-    fn eq(&self, other: &Self) -> bool {
-        self.signal_number() == other.signal_number()
-    }
-}
-
-impl Eq for InterruptSignal {}
 
 /// ステートファイルの場所(BR2.1)。定義ファイルと同じディレクトリの `<定義ファイル名>.state`。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,9 +142,7 @@ mod tests {
     #[test]
     fn 合図は最初は立っていない() {
         let s = InterruptSignal::new();
-        assert!(!s.is_raised());
         assert_eq!(s.signal_number(), None);
-        assert_eq!(s, InterruptSignal::default());
     }
 
     #[test]
@@ -165,16 +150,13 @@ mod tests {
         let s = InterruptSignal::new();
         s.raise(15);
         s.raise(2);
-        assert!(s.is_raised());
         assert_eq!(s.signal_number(), Some(15));
-        assert_ne!(s, InterruptSignal::new());
     }
 
     #[test]
     fn 予約値の番号でも立つ() {
         let s = InterruptSignal::new();
         s.raise(i32::MIN);
-        assert!(s.is_raised());
         assert!(s.signal_number().is_some());
         let n = InterruptSignal::new();
         n.raise(-1);
