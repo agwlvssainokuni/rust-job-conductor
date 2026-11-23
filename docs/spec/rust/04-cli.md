@@ -236,7 +236,7 @@ conductor --help | --version
 順序(誤りの終了コードを括弧に示す):
 
 1. `Ctx::prepare_checked`(本番の準備の、シグナルの準備を除いた部分。対象は `FlowTarget::{Pipeline, Run}` で、本番と同じ `check_pipeline`・`check_job` を呼ぶ): 定義の読み込みと検証(64。`pipeline` は名前の照合)→ 全ジョブの `command` の検査と分割(64)→ `run` の対象のジョブが定義にあるか(68)→ **`--assume` のジョブIDが定義にあるか**(なければ 68。誤りの表示は `job is not defined in the definition file` に固定で、ジョブIDを含めない)→ run ID の決定(68)→ `.env` の読み取り(64。`pipeline` は全ジョブ分、`run` は対象のジョブ分。**本番と同じ範囲**)→ ステートの読み込み(65。完了したステートは「ステートなし」)→ 定義との照合(65)。
-2. 定義の検査で分割した各ジョブのコマンド(`Checked.commands`)を、コマンド名と引数の並びにして計画に渡す(分割し直さない)。
+2. 定義の検査で分割した各ジョブのコマンド(`Checked.base.commands`。`Checked.base` は検査を終えた定義 `CheckedDefinition`)を、コマンド名と引数の並びにして計画に渡す(分割し直さない)。
 3. `plan_pipeline` / `plan_run` で計画を作る(05 の 16 章)。**本番なら順序外として拒否される**(`Reject`)ときは、本番と同じ表示(`rejected: ...`。08 の 4.7)で 66。
 4. `render_plan(言語, 計画)` で文字列を組み立て、標準出力に 1 回で書く。書けなければ `cannot write to standard output` を標準エラーに出して 65。
 

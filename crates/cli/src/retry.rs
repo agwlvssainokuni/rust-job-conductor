@@ -50,11 +50,11 @@ pub(crate) fn run_job_with_retry(
         // 再開すると 1 に戻る。BR5.2、FR1.10)。
         let checked = &session.checked;
         let env = merge_env(
-            &checked.definition,
+            &checked.base.definition,
             job,
             &checked.env_files,
             &EnvContext {
-                pipeline_name: &checked.definition.name,
+                pipeline_name: &checked.base.definition.name,
                 job_id: &job.id,
                 run_id: checked.run_id.as_ref().map(|r| r.as_str()),
                 attempt: retries_done + 1,

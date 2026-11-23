@@ -83,8 +83,8 @@ pub(crate) fn record_skip(
     job_id: &str,
     reason: SkipCause,
 ) -> Result<(PipelineState, bool), i32> {
-    let definition = &session.checked.definition;
-    let path = &session.checked.definition_path;
+    let definition = &session.checked.base.definition;
+    let path = &session.checked.base.path;
     let run_id = session.checked.run_id.as_ref();
     let base = base
         .cloned()
@@ -123,8 +123,8 @@ pub(crate) fn run_step(
     command: &CommandLine,
     mode: RunMode,
 ) -> Result<StepResult, i32> {
-    let definition = &session.checked.definition;
-    let path = &session.checked.definition_path;
+    let definition = &session.checked.base.definition;
+    let path = &session.checked.base.path;
     let run_id = session.checked.run_id.as_ref();
     let base = match base {
         Some(state) => state,
@@ -173,7 +173,7 @@ pub(crate) fn remove_if_requested(
     if !checked.remove_on_complete {
         return Ok(());
     }
-    ctx.reset(&checked.definition_path, checked.run_id.as_ref(), context)
+    ctx.reset(&checked.base.path, checked.run_id.as_ref(), context)
 }
 
 /// ジョブを実行したあとの表示(BR2.6、BR6.3、BR6.4)。`-v` の結果・遷移・中断と、

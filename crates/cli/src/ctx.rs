@@ -55,10 +55,8 @@ pub(crate) struct CheckedDefinition {
 
 /// シグナルの準備を除く、実行の前の検査を終えた材料(`prepare_checked` の結果)。
 pub(crate) struct Checked {
-    pub definition_path: PathBuf,
-    pub definition: PipelineDefinition,
-    /// 各ジョブの `command` を分割したもの(ジョブと同じ並び)。
-    pub commands: Vec<CommandLine>,
+    /// 検査を終えた定義(パス、定義、分割したコマンド)。
+    pub base: CheckedDefinition,
     /// この実行の run ID(`None` は、run ID なし)。ステートのパスと、`run_id` の照合に使う。
     pub run_id: Option<RunId>,
     /// ステート(`None` は空。完了のまま残ったものも空として返る)。
@@ -247,28 +245,24 @@ impl Ctx<'_> {
     fn check_run_inputs(
         &mut self,
         cmd: &CliCommand,
-        checked: CheckedDefinition,
+        base: CheckedDefinition,
         env_job: Option<&str>,
     ) -> Result<Checked, i32> {
-        let CheckedDefinition {
-            path,
-            definition,
-            commands,
-        } = checked;
-
-        let run_id = self.definition_run_id(cmd, &definition)?;
+        let run_id = self.definition_run_id(cmd, &base.definition)?;
 
         // `.env` の読み取り(BR6.1〜BR6.3)。誤りがあれば、ジョブを実行せず、ステートにも触れずに 64 で止まる。
-        let env_files = self.load_env_files(&path, &definition, env_job)?;
+        let env_files = self.load_env_files(&base.path, &base.definition, env_job)?;
 
-        let state =
-            self.read_checked_state(&path, &definition, run_id.as_ref(), StateRead::Live)?;
+        let state = self.read_checked_state(
+            &base.path,
+            &base.definition,
+            run_id.as_ref(),
+            StateRead::Live,
+        )?;
 
-        let remove_on_complete = cmd.remove_on_complete || definition.remove_on_complete;
+        let remove_on_complete = cmd.remove_on_complete || base.definition.remove_on_complete;
         Ok(Checked {
-            definition_path: path,
-            definition,
-            commands,
+            base,
             run_id,
             state,
             remove_on_complete,

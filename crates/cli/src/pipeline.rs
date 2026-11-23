@@ -44,14 +44,14 @@ pub(crate) fn run_pipeline(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(session) => session,
         Err(code) => return code,
     };
-    let definition = &session.checked.definition;
-    let path = &session.checked.definition_path;
+    let definition = &session.checked.base.definition;
+    let path = &session.checked.base.path;
     let run_id = session.checked.run_id.as_ref();
 
     // ステートが空のあいだは `None`。最初のジョブが `Run` と決まったあとに、初期ステートを書く。
     let mut current: Option<PipelineState> = session.checked.state.clone();
 
-    for (job, command) in definition.job.iter().zip(&session.checked.commands) {
+    for (job, command) in definition.job.iter().zip(&session.checked.base.commands) {
         match decide(&job.id, definition, current.as_ref()) {
             Decision::Reject(reason) => {
                 ctx.show(&DisplayEvent::Rejected {

@@ -43,7 +43,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(prepared) => prepared,
         Err(code) => return code,
     };
-    let definition = &session.checked.definition;
+    let definition = &session.checked.base.definition;
 
     match decide(job_id, definition, session.checked.state.as_ref()) {
         Decision::Reject(reason) => {
@@ -80,7 +80,7 @@ pub(crate) fn run_individual(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
                 &session,
                 session.checked.state.clone(),
                 job,
-                &session.checked.commands[index],
+                &session.checked.base.commands[index],
                 RunMode::Individual,
             ) {
                 Ok(step) => step,

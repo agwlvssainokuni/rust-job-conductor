@@ -57,10 +57,11 @@ pub(crate) fn run_dry_run(ctx: &mut Ctx<'_>, cmd: &CliCommand, target: FlowTarge
         Ok(checked) => checked,
         Err(code) => return code,
     };
-    let definition = &checked.definition;
+    let definition = &checked.base.definition;
 
     // コマンドの分割は、定義の検査で済んでいる。計画には、コマンド名と引数を並べた語の列で渡す。
     let commands: Vec<Vec<String>> = checked
+        .base
         .commands
         .iter()
         .map(|line| {
