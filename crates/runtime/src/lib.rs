@@ -74,7 +74,7 @@
 //!
 //! 1. [`read_state`] でステートを読む(失敗なら、ジョブを実行せず終わる)。ステートがあれば、
 //!    [`check_consistency`] で定義と照合する。空なら [`initial_state`] で作る。
-//! 2. ジョブごとに、`decide_before_run`(conductor-core)の判断に従う。
+//! 2. ジョブごとに、`decide_from_state`(conductor-core)の判断に従う。
 //!    - `Reject`: ジョブを実行せず、ステートも変えない。
 //!    - `Skip`: [`apply_skip`] → [`write_state`]([`Durability::Durable`])。
 //!    - `Run`: ステートが空だったときは、最初のジョブの**前**に、初期ステートを

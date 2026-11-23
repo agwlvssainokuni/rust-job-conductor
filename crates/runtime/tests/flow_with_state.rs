@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! ジョブの一連の流れのテスト。conductor-core の判断(`decide_before_run`、`classify_and_decide`)と、
+//! ジョブの一連の流れのテスト。conductor-core の判断(`decide_from_state`、`classify_and_decide`)と、
 //! この Unit の `run_job`(補助の実行ファイル)・`apply_*`・`write_state`・`read_state`・
 //! `reset_state` を組み合わせて、Cli の流れを、小さな試験用の関数で再現する(契約 C2 の順序の続き)。
 //!
@@ -30,7 +30,7 @@ use common::*;
 use conductor_core::{
     Classification, Decision, ExecutionResult, JobDefinition, JobOutcome, JobStatus, NextStep,
     PipelineDefinition, PipelineState, RunMode, SkipCause, Transition, TransitionOn,
-    TransitionTarget, classify_and_decide, decide_before_run,
+    TransitionTarget, classify_and_decide, decide_from_state,
 };
 // run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)は、`common::without_run_id`。
 use conductor_runtime::{
@@ -137,24 +137,6 @@ fn load_checked(
     Ok(loaded)
 }
 
-/// ステートから判断する(core の `flow::decide_from_state` と同じ。空なら、状態の一覧は空)。
-fn decide(
-    job_id: &str,
-    definition: &PipelineDefinition,
-    state: Option<&PipelineState>,
-) -> Decision {
-    match state {
-        Some(s) => decide_before_run(
-            job_id,
-            definition,
-            &s.job_states,
-            s.resume_job_id.as_deref(),
-            s.end_reached,
-        ),
-        None => decide_before_run(job_id, definition, &[], None, false),
-    }
-}
-
 /// スキップを記録する(cli の `step::record_skip`)。土台(無ければ初期ステート)に `apply_skip` し、
 /// 変わったときだけ `Durable` で書く。記録と、変わったかを返す。
 fn record_skip(
@@ -253,7 +235,7 @@ fn invoke_with(
     call: Call,
 ) -> Result<Done, Failure> {
     let state = load_checked(def_path, definition)?;
-    match decide(job_id, definition, state.as_ref()) {
+    match decide_from_state(job_id, definition, state.as_ref()) {
         Decision::Reject(_) => Err(Failure::Rejected),
         Decision::Skip(reason) => {
             let (recorded, changed) =
@@ -347,7 +329,7 @@ fn pipeline_inner(
     let mut current = load_checked(def_path, definition)?;
     let mut done = Vec::new();
     for job in &definition.job {
-        match decide(&job.id, definition, current.as_ref()) {
+        match decide_from_state(&job.id, definition, current.as_ref()) {
             Decision::Reject(_) => return Err(Failure::Rejected),
             Decision::Skip(reason) => {
                 // pipeline は、記録が変わらなくても、完了なら消すかを決める。

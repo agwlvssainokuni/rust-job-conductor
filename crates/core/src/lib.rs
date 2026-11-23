@@ -25,7 +25,7 @@
 //! |------|------|--------|------|
 //! | [`load_definition`] | 定義ファイルを読み、検証する(W1) | ファイル → [`PipelineDefinition`] | [`DefinitionError`] の並び(複数) |
 //! | [`parse_definition`] | 文字列の定義を検証する(ファイルに触れない入口) | 文字列 → [`PipelineDefinition`] | 同上 |
-//! | [`decide_before_run`] | ジョブを起動する前の判断(W2、BR3.5) | 引数 → [`Decision`] | なし(純粋) |
+//! | [`decide_from_state`] | ジョブを起動する前の判断(W2、BR3.5) | 引数 → [`Decision`] | なし(純粋) |
 //! | [`classify_and_decide`] | 実行後の分類と次の動き(W3、BR2.x、BR3.x) | 引数 → ([`JobOutcome`], [`NextStep`]) | なし(純粋) |
 //! | [`resume_point_on_interrupt`] | ジョブのあいだの中断の再開位置(W4、BR3.7) | 引数 → [`ResumePoint`] | なし(純粋) |
 //! | [`initial_state`] | 空のステートを、定義から作る(BR2.8) | 定義、パス、run ID → [`PipelineState`] | なし(純粋) |
@@ -64,7 +64,7 @@
 //!
 //! # 呼び出しの順序(Cli から見て)
 //!
-//! ジョブごとに、[`decide_before_run`] → (`Run` のとき)ジョブの起動 → [`classify_and_decide`] →
+//! ジョブごとに、[`decide_from_state`] → (`Run` のとき)ジョブの起動 → [`classify_and_decide`] →
 //! ステートの書き込み。`Skip` のときは、ジョブを起動せず、必要ならスキップをステートに記録して、
 //! 終了コード 0 で終わる。完了と再開位置は [`apply_skip`] が書く(最後のジョブをスキップとして
 //! 記録し、`pending` が無ければ `completed = true`)。[`resume_point_on_interrupt`] は、`pipeline` の
@@ -104,7 +104,7 @@ pub use envfile::{
 pub use error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display};
 pub use flow::{
     RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide,
-    decide_before_run, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision,
+    decide_from_state, initial_state, resume_point_on_interrupt, retry_decision,
 };
 pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,

@@ -39,7 +39,7 @@
 
 ### 2.1 `conductor-core`
 
-再公開(`lib.rs`): `definition::{load_definition, parse_definition}`、`error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display}`、`flow::{RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide, decide_before_run, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision}`、`run_id::{DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env}`、`types::{Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState, RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition, TransitionOn, TransitionTarget}`(v0.9.6 までは `error::*`・`types::*` で、`quote_key`・`Locate`・`TransitionResolution`・`resolve_transition` も出ていた。外から使われないので crate の中に狭めた)。v0.9.0 以降は、さらに `envfile::{EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError, EnvFileErrorKind, EnvOrigin, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs, is_reserved_env_name, merge_env, parse_env_file, summarize_errors}` と `plan::{Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry, PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run}` を再公開する(`graph` は `conductor_core::graph::…` のパスで使う)。公開モジュール: `definition`(公開の下位モジュールは `intake` だけ。`depth`・`parse`・`version`・`walk` は crate の中)、`envfile`、`error`、`flow`、`graph`、`plan`、`run_id`、`types`。`flow`・`plan`・`envfile`・`graph` の下位モジュールは crate の中で、関数と型は各モジュールの再公開の名前(`flow::classify`、`plan::plan_run`、`envfile::merge_env`、`graph::build_graph` など)で出る。終了コードの定数(`EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1`)は `flow/classify.rs` の中だけの定数、`ASSUME_EXIT_CODE_MIN`・`ASSUME_EXIT_CODE_MAX`、`RESERVED_ENV_PREFIX`、`MAX_REPORTED_ERRORS` は crate の中の定数(`MAX_ENV_FILE_BYTES`・`MAX_ENV_ENTRIES` は公開)。v0.9.7 までは `flow` の下位モジュール、`plan::simulate`、`envfile::{merge, parse}`、`graph::{edges, layout, overlay}` と、これらの定数も公開だった。
+再公開(`lib.rs`): `definition::{load_definition, parse_definition}`、`error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display}`、`flow::{RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision}`、`run_id::{DEFAULT_RUN_ID_ENV, MAX_RUN_ID_LEN, RunId, RunIdError, is_valid_env_name, peek_run_id_env}`、`types::{Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState, RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition, TransitionOn, TransitionTarget}`(v0.9.6 までは `error::*`・`types::*` で、`quote_key`・`Locate`・`TransitionResolution`・`resolve_transition` も出ていた。外から使われないので crate の中に狭めた)。v0.9.0 以降は、さらに `envfile::{EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError, EnvFileErrorKind, EnvOrigin, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs, is_reserved_env_name, merge_env, parse_env_file, summarize_errors}` と `plan::{Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry, PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run}` を再公開する(`graph` は `conductor_core::graph::…` のパスで使う)。公開モジュール: `definition`(公開の下位モジュールは `intake` だけ。`depth`・`parse`・`version`・`walk` は crate の中)、`envfile`、`error`、`flow`、`graph`、`plan`、`run_id`、`types`。`flow`・`plan`・`envfile`・`graph` の下位モジュールは crate の中で、関数と型は各モジュールの再公開の名前(`flow::classify`、`plan::plan_run`、`envfile::merge_env`、`graph::build_graph` など)で出る。終了コードの定数(`EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1`)は `flow/classify.rs` の中だけの定数、`ASSUME_EXIT_CODE_MIN`・`ASSUME_EXIT_CODE_MAX`、`RESERVED_ENV_PREFIX`、`MAX_REPORTED_ERRORS` は crate の中の定数(`MAX_ENV_FILE_BYTES`・`MAX_ENV_ENTRIES` は公開)。v0.9.7 までは `flow` の下位モジュール、`plan::simulate`、`envfile::{merge, parse}`、`graph::{edges, layout, overlay}` と、これらの定数も公開だった。
 
 #### 関数
 
@@ -52,7 +52,7 @@
 | `RunId::parse` | `(value: &str) -> Result<RunId, RunIdError>` | run ID の規則の検査(空・64 バイト超・不正な文字・先頭 `.`)。`as_str()` で文字列を返す |
 | `flow::classify` | `(job: &JobDefinition, execution: &JobExecution) -> JobOutcome` | 実行結果の分類と、返す終了コード。05 の 2.3 |
 | `classify_and_decide` | `(job, execution, job_states: &[JobState], definition: &PipelineDefinition, run_mode: RunMode) -> (JobOutcome, NextStep)` | 分類して、次の動きと完了を決める。05 の 3 章 |
-| `decide_before_run` | `(job_id: &str, definition: &PipelineDefinition, job_states: &[JobState], resume_job_id: Option<&str>, end_reached: bool) -> Decision` | 起動前の判断(Run / Skip / Reject)。05 の 4 章 |
+| `decide_before_run`(`flow/decide.rs` の中だけ。公開は `decide_from_state`) | `(job_id: &str, definition: &PipelineDefinition, job_states: &[JobState], resume_job_id: Option<&str>, end_reached: bool) -> Decision` | 起動前の判断(Run / Skip / Reject)。05 の 4 章 |
 | `decide_from_state` | `(job_id: &str, definition: &PipelineDefinition, state: Option<&PipelineState>) -> Decision` | ステートから起動前の判断を決める。`None` は、記録が空、再開位置なし、`end_reached` は偽と同じ。`run`・`pipeline` と計画が使う。05 の 4.1 |
 | `resume_point_on_interrupt` | `(definition: &PipelineDefinition, job_states: &[JobState]) -> ResumePoint` | ジョブのあいだの中断の再開位置。05 の 9 章 |
 | `retry_decision` | `(job: &JobDefinition, execution: &JobExecution, retries_done: u32, last_wait_secs: u64) -> RetryDecision` | リトライするか(`Stop` または `Retry { wait_secs, last_exit_code, max }`)。05 の 7 章 |
@@ -197,7 +197,7 @@ cli::pipeline::run_pipeline
  │                   ├─ Runtime::read_state(path, run_id)  → runtime::read_state     → 失敗 65(完了のものは None)
  │                   └─ check_consistency(state, definition) → 食い違い 65
  └─ for (job, command) in definition.job と session.checked.base.commands (記述順):
-      ├─ core::decide_from_state → core::decide_before_run(...)  → Run / Skip / Reject
+      ├─ core::decide_from_state(中で decide_before_run)       → Run / Skip / Reject
       │    ├─ Reject → 表示、return 66
       │    ├─ Skip   → step::record_skip(runtime::apply_skip → 変化があれば Runtime::write_state(Durable)。SkipRecord { state, written })
       │    │           → 表示 → 完了なら finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
@@ -238,14 +238,14 @@ init:       render_template(言語, 名前) → Runtime::create_file | 標準出
 定義ファイル ──load_definition──▶ PipelineDefinition ─┐
 ステートファイル ──read_state──▶ PipelineState ───────┤
                                                        ▼
-                    decide_before_run ──▶ Decision(Run/Skip/Reject)
+                    decide_from_state ──▶ Decision(Run/Skip/Reject)
 Runtime::run_job ──▶ JobExecution ──classify_and_decide──▶ (JobOutcome, NextStep)
                                           │
         apply_outcome / apply_skip / apply_interrupt ──▶ PipelineState(新) ──write_state──▶ ステートファイル
 JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了コード
 ```
 
-判断(`decide_before_run`、`classify_and_decide`)と記録(`apply_outcome`、`apply_skip`、`apply_interrupt`)は、どちらも `conductor-core`(`flow/`)の純粋な関数で、`write_state` だけが `conductor-runtime` にある。`--dry-run` の模擬(`plan_pipeline`)も、同じ判断と記録の関数で、メモリ上のステートを進める(`write_state` は呼ばない。05 の 16 章)。
+判断(`decide_from_state`、`classify_and_decide`)と記録(`apply_outcome`、`apply_skip`、`apply_interrupt`)は、どちらも `conductor-core`(`flow/`)の純粋な関数で、`write_state` だけが `conductor-runtime` にある。`--dry-run` の模擬(`plan_pipeline`)も、同じ判断と記録の関数で、メモリ上のステートを進める(`write_state` は呼ばない。05 の 16 章)。
 
 ## 4. テスト用の差し替え点
 
@@ -302,7 +302,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `definition/duration.rs` | リトライの間隔の文字列(`<整数><s\|m\|h>`)→ 秒 |
 | `flow/mod.rs` | 判断の再公開 |
 | `flow/classify.rs` | 分類と報告する終了コード |
-| `flow/decide.rs` | 起動前の判断(`decide_before_run`、ステートからの `decide_from_state`) |
+| `flow/decide.rs` | 起動前の判断(公開はステートからの `decide_from_state`。判定の本体 `decide_before_run` はこのファイルの中だけ) |
 | `flow/next_step.rs` | 遷移・完了・スキップ対象・再開位置(`classify_and_decide`)。v0.9.0 以降は、遷移の解決 `resolve_transition` を切り出し、図と共有する。分類から遷移への対応は `Classification::transition_on` を使う |
 | `flow/record.rs` | ステートの更新: `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`(純粋)。本番の流れと `--dry-run` の模擬が共に使う(`conductor-runtime` が再公開する) |
 | `flow/resume.rs` | ジョブのあいだの中断の再開位置 |

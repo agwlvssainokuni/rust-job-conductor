@@ -39,7 +39,7 @@
 //! | [`Env`] | [`SystemEnv`] | 環境変数、標準出力が端末か |
 //! | [`Signals`] | [`SystemSignals`] | シグナルの監視の開始(プロセスで 1 回だけ呼ぶ。2 回目は契約の外) |
 //!
-//! 純粋な関数(`decide_before_run`、`classify_and_decide`、`apply_*`、`check_consistency` など)は、
+//! 純粋な関数(`decide_from_state`、`classify_and_decide`、`apply_*`、`check_consistency` など)は、
 //! trait を通さず、流れが直接呼ぶ。
 //!
 //! # モジュールの構成(logical-components との対応)

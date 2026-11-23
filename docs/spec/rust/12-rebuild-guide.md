@@ -37,7 +37,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `classify`(05 の 2.3 の 9 行の優先順)、`classify_and_decide`(3.2 の判定表)、`decide_before_run`(4.2 の判定表)、`resume_point_on_interrupt`、`retry_decision`(待ち時間の列) |
+| 作るもの | `classify`(05 の 2.3 の 9 行の優先順)、`classify_and_decide`(3.2 の判定表)、`decide_from_state`(4.2 の判定表。判定の本体 `decide_before_run` は `flow/decide.rs` の中だけ)、`resume_point_on_interrupt`、`retry_decision`(待ち時間の列) |
 | 完了条件 | 05 の各表の例がすべて通る: 分類の全組み合わせ、起動前の判断の 15 例、リトライの待ち時間の 6 例(`10,20,40,60,60` など)。関数は純粋(ファイル・プロセスに触れず、失敗しない) |
 | 確認の観点 | 分類なし(起動前の中断)は `None`・`128 + 番号`・再開位置はそのジョブ。成功コードに無い 0 は `conductor_error`。`is_retry_target` は分類を見ず、conductor が付けた起動失敗の 127 を対象にしない |
 | 参照 | 05 の 2〜4・7・9 章 |

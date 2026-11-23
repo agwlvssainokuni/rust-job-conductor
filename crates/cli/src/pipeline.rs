@@ -14,7 +14,7 @@
 
 //! 一括実行(`conductor pipeline <pipeline-name>`。W3、BR3.1〜BR3.4、BR4.2)。
 //!
-//! 定義の記述順に、1 つずつ、`decide_before_run` で決める(次のジョブを `NextStep` で決めない。
+//! 定義の記述順に、1 つずつ、`decide_from_state` で決める(次のジョブを `NextStep` で決めない。
 //! 遷移先とスキップは、ステートが運ぶ)。結果、またはスキップを記録するたびに、`completed` を
 //! 確かめ、true なら、完了のステートを残して 0 で終わる。削除を求められている(`--remove-on-complete`
 //! または定義の `remove_on_complete`)ときだけ、`reset_state` する。エラー(`[job.retry]` のリトライを使い切った後の結果)で停止する。

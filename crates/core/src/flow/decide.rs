@@ -43,7 +43,7 @@ use crate::types::{
 /// 完了と再開位置は `apply_skip` が書く(最後のジョブをスキップとして記録し、`pending` が無ければ
 /// `completed = true`。BR3.6)。[`resume_point_on_interrupt`](super::resume_point_on_interrupt) は、
 /// `pipeline` のジョブのあいだの中断にだけ使う。
-pub fn decide_before_run(
+fn decide_before_run(
     job_id: &str,
     definition: &PipelineDefinition,
     job_states: &[JobState],
@@ -89,7 +89,7 @@ pub fn decide_before_run(
 /// ステート(無いこともある)から、ジョブを起動する前の判断を決める(W2、BR3.5)。
 ///
 /// ステートが無い(`None`)なら、各ジョブの状態の記録は空、再開位置なし、`end_reached` は偽として、
-/// [`decide_before_run`] を呼ぶ。`run`・`pipeline` と、計画(`plan_run`・`plan_pipeline`)が使う。
+/// `decide_before_run`(このモジュールの中だけの関数)を呼ぶ。`run`・`pipeline` と、計画(`plan_run`・`plan_pipeline`)が使う。
 pub fn decide_from_state(
     job_id: &str,
     definition: &PipelineDefinition,

@@ -22,8 +22,8 @@ mod common;
 use common::exited;
 use conductor_core::{
     Classification, Decision, ExecutionResult, JobExecution, JobState, JobStatus, NextStep,
-    PipelineDefinition, RejectReason, ResumePoint, RunMode, SkipCause, SkipReason,
-    classify_and_decide, decide_before_run, parse_definition, resume_point_on_interrupt,
+    PipelineDefinition, PipelineState, RejectReason, ResumePoint, RunMode, SkipCause, SkipReason,
+    classify_and_decide, decide_from_state, parse_definition, resume_point_on_interrupt,
 };
 
 fn definition(extra_transitions: &str) -> PipelineDefinition {
@@ -66,13 +66,16 @@ impl Sim {
     }
 
     fn decide(&self, id: &str) -> Decision {
-        decide_before_run(
-            id,
-            &self.def,
-            &self.states,
-            self.resume.as_deref(),
-            self.end_reached,
-        )
+        let state = PipelineState {
+            pipeline_name: self.def.name.clone(),
+            definition_path: "t.toml".to_string(),
+            job_states: self.states.clone(),
+            resume_job_id: self.resume.clone(),
+            end_reached: self.end_reached,
+            completed: self.completed,
+            run_id: None,
+        };
+        decide_from_state(id, &self.def, Some(&state))
     }
 
     /// ジョブを呼ぶ。run なら、`exec` の結果で分類して、ステートに反映する。

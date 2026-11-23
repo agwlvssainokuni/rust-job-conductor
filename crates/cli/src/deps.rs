@@ -18,7 +18,7 @@
 //! 本番は conductor-core・conductor-runtime・conductor-converter の実際の関数と、標準出力・標準エラー、実際の環境、
 //! 実際のシグナルの監視。テストは、失敗を起こす偽の実装を渡す。
 //!
-//! 純粋な関数(`decide_before_run`、`classify_and_decide`、`apply_*` など)は、trait を通さず、
+//! 純粋な関数(`decide_from_state`、`classify_and_decide`、`apply_*` など)は、trait を通さず、
 //! 流れが直接呼ぶ。
 
 use std::io::{self, IsTerminal, Write};

@@ -36,7 +36,7 @@ use crate::types::{
 ///   `completed` は `true`。
 ///   `Individual` で `@end` に到達したときは、`end_reached = true`、`skip_reason_kind = ByEnd` で、
 ///   `skipped_job_ids` は空、`completed = false`。以降のジョブは、スケジューラが呼んだときに
-///   [`decide_before_run`](super::decide_before_run) が `Skip(AfterEnd)` を返し、Cli が呼ばれた
+///   [`decide_from_state`](super::decide_from_state) が `Skip(AfterEnd)` を返し、Cli が呼ばれた
 ///   ジョブだけをスキップとして記録する。完了と再開位置は [`apply_skip`](super::apply_skip) が書く
 ///   (最後のジョブをスキップとして記録し、`pending` が無ければ `completed = true`)。
 ///   [`resume_point_on_interrupt`](super::resume_point_on_interrupt) は、`pipeline` のジョブのあいだの
