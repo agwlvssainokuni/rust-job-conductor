@@ -34,23 +34,39 @@ pub(crate) const MAX_KEY_DISPLAY_CHARS: usize = 64;
 const MAX_FILE_DISPLAY_CHARS: usize = 256;
 
 /// 変換の失敗の種類(entities の `kind`)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
+///
+/// 種類の文(日本語)は [`ConversionErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConversionErrorKind {
-    #[error("入力ファイルが存在しません")]
     FileMissing,
-    #[error("入力ファイルを読めません")]
     Unreadable,
-    #[error("入力が大きすぎます")]
     TooLarge,
-    #[error("文法の誤りです")]
     Syntax,
-    #[error("相手の形式で表せない値があります")]
     Unrepresentable,
-    #[error("最上位がキーと値の集まり(マップ)ではありません")]
     RootNotMap,
 }
 
+impl std::fmt::Display for ConversionErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for ConversionErrorKind {}
+
 impl ConversionErrorKind {
+    /// 種類の文(日本語。表示と、cli の日本語の表示が使う。D10)。
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::FileMissing => "入力ファイルが存在しません",
+            Self::Unreadable => "入力ファイルを読めません",
+            Self::TooLarge => "入力が大きすぎます",
+            Self::Syntax => "文法の誤りです",
+            Self::Unrepresentable => "相手の形式で表せない値があります",
+            Self::RootNotMap => "最上位がキーと値の集まり(マップ)ではありません",
+        }
+    }
+
     /// 種類を表す識別子(機械が読む用。entities.md の `kind` の名前)。契約 C4 の外(テスト用)。
     #[doc(hidden)]
     pub fn code(self) -> &'static str {

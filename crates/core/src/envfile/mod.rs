@@ -64,37 +64,53 @@ pub fn is_reserved_env_name(name: &str) -> bool {
 }
 
 /// `.env` の読み取りの誤りの種類(13 種)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
+///
+/// 種類の文(日本語)は [`EnvFileErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EnvFileErrorKind {
-    #[error("環境変数ファイルが存在しません")]
     FileMissing,
-    #[error("環境変数ファイルを読めません")]
     Unreadable,
-    #[error("環境変数ファイルが大きすぎます")]
     TooLarge,
-    #[error("環境変数ファイルが UTF-8 ではありません")]
     NotUtf8,
-    #[error("環境変数ファイルの項目が多すぎます")]
     TooManyEntries,
-    #[error("環境変数の名前が正しくありません")]
     InvalidName,
-    #[error("予約された環境変数の名前です")]
     ReservedName,
-    #[error("大文字小文字だけが違う環境変数の名前があります")]
     CaseConflict,
-    #[error("`KEY=VALUE` の形ではありません")]
     MissingEquals,
-    #[error("引用符が閉じていません")]
     UnterminatedQuote,
-    #[error("許されないエスケープです")]
     InvalidEscape,
-    #[error("閉じた引用符のあとに余計な文字があります")]
     TrailingGarbage,
-    #[error("値に NUL が含まれています")]
     NulInValue,
 }
 
+impl fmt::Display for EnvFileErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for EnvFileErrorKind {}
+
 impl EnvFileErrorKind {
+    /// 種類の文(日本語。表示と、cli の日本語の表示が使う。D10)。
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::FileMissing => "環境変数ファイルが存在しません",
+            Self::Unreadable => "環境変数ファイルを読めません",
+            Self::TooLarge => "環境変数ファイルが大きすぎます",
+            Self::NotUtf8 => "環境変数ファイルが UTF-8 ではありません",
+            Self::TooManyEntries => "環境変数ファイルの項目が多すぎます",
+            Self::InvalidName => "環境変数の名前が正しくありません",
+            Self::ReservedName => "予約された環境変数の名前です",
+            Self::CaseConflict => "大文字小文字だけが違う環境変数の名前があります",
+            Self::MissingEquals => "`KEY=VALUE` の形ではありません",
+            Self::UnterminatedQuote => "引用符が閉じていません",
+            Self::InvalidEscape => "許されないエスケープです",
+            Self::TrailingGarbage => "閉じた引用符のあとに余計な文字があります",
+            Self::NulInValue => "値に NUL が含まれています",
+        }
+    }
+
     /// 種類を表す識別子(機械が読む用)。
     pub fn code(self) -> &'static str {
         match self {
@@ -182,7 +198,7 @@ impl EnvFileError {
     }
 
     fn render(&self) -> String {
-        render_error(&self.file, self.line, &self.kind.to_string(), self.reason())
+        render_error(&self.file, self.line, self.kind.label(), self.reason())
     }
 }
 

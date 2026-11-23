@@ -60,7 +60,8 @@ pub enum StateErrorKind {
 }
 
 impl StateErrorKind {
-    fn label(self) -> &'static str {
+    /// 種類の文(日本語。表示と、cli の日本語の表示が使う。D10)。
+    pub fn label(self) -> &'static str {
         match self {
             Self::Unreadable => "ステートファイルを読めません",
             Self::TooLarge => "ステートファイルが大きすぎます",

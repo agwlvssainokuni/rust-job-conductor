@@ -27,90 +27,110 @@ pub const MAX_KEY_DISPLAY_CHARS: usize = 64;
 pub(crate) const MAX_FILE_DISPLAY_CHARS: usize = 256;
 
 /// 定義の誤りの種類(BR1.1〜BR1.13、security-design の追加分を含む)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
+///
+/// 種類の文(日本語)は [`DefinitionErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DefinitionErrorKind {
-    #[error("定義ファイルが存在しません")]
     FileMissing,
-    #[error("定義ファイルを読めません")]
     Unreadable,
-    #[error("定義ファイルが大きすぎます")]
     TooLarge,
-    #[error("文法の誤りです")]
     Syntax,
-    #[error("値の型が正しくありません")]
     TypeMismatch,
-    #[error("定義にないキーです")]
     UnknownKey,
-    #[error("書式の版がありません")]
     VersionMissing,
-    #[error("対応していない書式の版です")]
     VersionUnsupported,
-    #[error("遷移先のジョブが定義にありません")]
     UnknownTarget,
-    #[error("エラー結果には遷移先を書けません")]
     ErrorTransition,
-    #[error("遷移先は、記述順で後ろのジョブまたは @end のみです")]
     BackwardOrSelfTarget,
-    #[error("成功と警告の終了コードが重なっています")]
     OverlappingExitCodes,
-    #[error("0 は警告の終了コードにできません")]
     ZeroAsWarning,
-    #[error("パイプライン名が定義と一致しません")]
     PipelineNameMismatch,
-    #[error("ジョブIDが重複しています")]
     DuplicateJobId,
-    #[error("ジョブIDが正しくありません")]
     InvalidJobId,
-    #[error("ジョブが 1 つもありません")]
     NoJobs,
-    #[error("必須の値が空です")]
     EmptyField,
-    #[error("同じ結果の遷移が重複しています")]
     DuplicateTransition,
-    #[error("環境変数の名前が正しくありません")]
     InvalidEnvName,
     /// `[job.retry]` が表でない(BR1.2)。
-    #[error("retry は表で書きます")]
     RetryNotTable,
     /// `[job.retry]` の必須のキーがない(BR1.3)。
-    #[error("retry の必須のキーがありません")]
     RetryMissingKey,
     /// `retry.exit_codes` が空(BR1.5)。
-    #[error("retry の終了コードの一覧が空です")]
     RetryExitCodesEmpty,
     /// `retry.exit_codes` に、整数でない値、または 1〜255 の範囲外の値がある(BR1.5)。
-    #[error("retry の終了コードが正しくありません")]
     RetryExitCodeInvalid,
     /// `retry.exit_codes` が、成功または警告の終了コードと重なっている(BR1.7)。
-    #[error("retry の終了コードが、成功または警告の終了コードと重なっています")]
     RetryExitCodesOverlap,
     /// `retry.max` が 1〜100 の整数でない(BR1.9)。
-    #[error("retry の最大回数が正しくありません")]
     RetryMaxInvalid,
     /// `retry.interval` または `retry.max_interval` の書式や範囲が正しくない(BR1.10)。
-    #[error("retry の間隔が正しくありません")]
     RetryDurationInvalid,
     /// `retry.multiplier` と `retry.max_interval` の片方だけがある(BR1.11)。
-    #[error("retry の倍率と間隔の上限は、両方を書くか、両方とも書きません")]
     RetryBackoffIncomplete,
     /// `retry.multiplier` が 2〜10 の整数でない(BR1.12)。
-    #[error("retry の倍率が正しくありません")]
     RetryMultiplierInvalid,
     /// `retry.max_interval` が `retry.interval` より小さい(BR1.13)。
-    #[error("retry の間隔の上限が、間隔より小さくなっています")]
     RetryMaxIntervalTooSmall,
     /// `env` の名前が、予約名(`CONDUCTOR_` で始まる)(BR1.3)。
-    #[error("予約された環境変数の名前です")]
     ReservedEnvName,
     /// `env` の表の中に、大文字小文字だけが違う名前がある(BR1.4)。
-    #[error("大文字小文字だけが違う環境変数の名前があります")]
     EnvNameCaseConflict,
     /// `env` の値に NUL が含まれる(BR1.5)。
-    #[error("環境変数の値が正しくありません")]
     InvalidEnvValue,
 }
 
+impl std::fmt::Display for DefinitionErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for DefinitionErrorKind {}
+
 impl DefinitionErrorKind {
+    /// 種類の文(日本語。表示と、cli の日本語の表示が使う。D10)。
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::FileMissing => "定義ファイルが存在しません",
+            Self::Unreadable => "定義ファイルを読めません",
+            Self::TooLarge => "定義ファイルが大きすぎます",
+            Self::Syntax => "文法の誤りです",
+            Self::TypeMismatch => "値の型が正しくありません",
+            Self::UnknownKey => "定義にないキーです",
+            Self::VersionMissing => "書式の版がありません",
+            Self::VersionUnsupported => "対応していない書式の版です",
+            Self::UnknownTarget => "遷移先のジョブが定義にありません",
+            Self::ErrorTransition => "エラー結果には遷移先を書けません",
+            Self::BackwardOrSelfTarget => "遷移先は、記述順で後ろのジョブまたは @end のみです",
+            Self::OverlappingExitCodes => "成功と警告の終了コードが重なっています",
+            Self::ZeroAsWarning => "0 は警告の終了コードにできません",
+            Self::PipelineNameMismatch => "パイプライン名が定義と一致しません",
+            Self::DuplicateJobId => "ジョブIDが重複しています",
+            Self::InvalidJobId => "ジョブIDが正しくありません",
+            Self::NoJobs => "ジョブが 1 つもありません",
+            Self::EmptyField => "必須の値が空です",
+            Self::DuplicateTransition => "同じ結果の遷移が重複しています",
+            Self::InvalidEnvName => "環境変数の名前が正しくありません",
+            Self::RetryNotTable => "retry は表で書きます",
+            Self::RetryMissingKey => "retry の必須のキーがありません",
+            Self::RetryExitCodesEmpty => "retry の終了コードの一覧が空です",
+            Self::RetryExitCodeInvalid => "retry の終了コードが正しくありません",
+            Self::RetryExitCodesOverlap => {
+                "retry の終了コードが、成功または警告の終了コードと重なっています"
+            }
+            Self::RetryMaxInvalid => "retry の最大回数が正しくありません",
+            Self::RetryDurationInvalid => "retry の間隔が正しくありません",
+            Self::RetryBackoffIncomplete => {
+                "retry の倍率と間隔の上限は、両方を書くか、両方とも書きません"
+            }
+            Self::RetryMultiplierInvalid => "retry の倍率が正しくありません",
+            Self::RetryMaxIntervalTooSmall => "retry の間隔の上限が、間隔より小さくなっています",
+            Self::ReservedEnvName => "予約された環境変数の名前です",
+            Self::EnvNameCaseConflict => "大文字小文字だけが違う環境変数の名前があります",
+            Self::InvalidEnvValue => "環境変数の値が正しくありません",
+        }
+    }
+
     /// 種類を表す識別子(機械が読む用。entities.md の `kind` の名前)。
     pub fn code(self) -> &'static str {
         match self {
@@ -218,7 +238,7 @@ impl DefinitionError {
     }
 
     fn render(&self) -> String {
-        render_error(&self.file, self.line, &self.kind.to_string(), &self.reason)
+        render_error(&self.file, self.line, self.kind.label(), &self.reason)
     }
 }
 

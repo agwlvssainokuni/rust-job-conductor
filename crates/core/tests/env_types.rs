@@ -280,12 +280,12 @@ fn 誤りの理由は種類の固定の文で_種類の文は変更前と同じ(
     let env_kinds: Vec<EnvFileErrorKind> = ENV_FILE_KIND_TEXTS.iter().map(|(k, _)| *k).collect();
     assert_eq!(env_kinds, EnvFileErrorKind::ALL);
     for (kind, text) in ENV_FILE_KIND_TEXTS {
-        assert_eq!(kind.to_string(), text, "{kind:?}");
+        assert_eq!(kind.label(), text, "{kind:?}");
     }
     let def_kinds: Vec<DefinitionErrorKind> =
         DEFINITION_KIND_TEXTS.iter().map(|(k, _)| *k).collect();
     assert_eq!(def_kinds, DefinitionErrorKind::ALL);
     for (kind, text) in DEFINITION_KIND_TEXTS {
-        assert_eq!(kind.to_string(), text, "{kind:?}");
+        assert_eq!(kind.label(), text, "{kind:?}");
     }
 }
