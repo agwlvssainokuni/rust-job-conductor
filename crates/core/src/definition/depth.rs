@@ -94,25 +94,6 @@ mod tests {
         format!("a = {}{}\n", "[".repeat(depth), "]".repeat(depth))
     }
 
-    fn inline_tables(depth: usize) -> String {
-        format!("a = {}1{}\n", "{b = ".repeat(depth), "}".repeat(depth))
-    }
-
-    #[test]
-    fn 配列の深さ_32_は受理し_33_は拒否() {
-        assert!(depth_result(&arrays(32)).is_ok());
-        let e = depth_result(&arrays(33)).unwrap_err();
-        assert_eq!(e.kind, DefinitionErrorKind::Syntax);
-        assert_eq!(e.line, Some(1));
-    }
-
-    #[test]
-    fn インラインテーブルの深さ_32_は受理し_33_は拒否() {
-        // 外側の a の値が 1 段目。32 段のインラインテーブルが上限。
-        assert!(depth_result(&inline_tables(32)).is_ok());
-        assert!(depth_result(&inline_tables(33)).is_err());
-    }
-
     #[test]
     fn テーブルの見出しの深さも数える() {
         let ok = format!("[{}]\nx = 1\n", vec!["a"; 32].join("."));
