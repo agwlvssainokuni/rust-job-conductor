@@ -98,4 +98,18 @@ mod tests {
         let bytes = read_limited(&b"abc"[..], 10).expect("読める");
         assert_eq!(bytes, b"abc");
     }
+
+    #[test]
+    fn 終わりのない入力でも上限_1_バイトで読み止めて_too_large() {
+        // 開いたあとの読み取りが、報告された大きさより長く続いても、上限 + 1 バイトで止まる。
+        assert_eq!(
+            read_opened(io::repeat(b'a'), 10),
+            Err(ReadFailure::TooLarge)
+        );
+        // 上限ちょうどは受理、上限 + 1 は `TooLarge`。
+        assert_eq!(read_opened(&[b'a'; 10][..], 10), Ok(vec![b'a'; 10]));
+        assert_eq!(read_opened(&[b'a'; 11][..], 10), Err(ReadFailure::TooLarge));
+        // 空の入力は空のまま。
+        assert_eq!(read_opened(&b""[..], 10), Ok(Vec::new()));
+    }
 }

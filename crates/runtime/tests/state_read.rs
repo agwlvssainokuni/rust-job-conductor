@@ -236,3 +236,75 @@ fn 権限のないファイルは_unreadable() {
         StateErrorKind::Unreadable
     );
 }
+
+/// 5 秒の上限つきで、別のスレッドで `f` を呼ぶ(止まったときに落ちるように)。
+#[cfg(unix)]
+fn within_5s<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(f());
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(5))
+        .expect("5 秒以内に返る(開いて待たない)")
+}
+
+/// 書き手のいない名前付きパイプのステートは、開かずに `unreadable`。`reset --all` は止まらず、消さない
+/// (2b)。読む権限のない 1 MiB 超のステートは `unreadable`(`tooLarge` ではない)。
+#[cfg(unix)]
+#[test]
+fn 名前付きパイプと権限のない大きなステートは開かずに_unreadable() {
+    use conductor_core::RunId;
+    use conductor_runtime::{read_state_raw, reset_all_states};
+    use std::os::unix::fs::PermissionsExt;
+
+    let mkfifo = |path: &std::path::Path| {
+        let status = std::process::Command::new("mkfifo")
+            .arg(path)
+            .status()
+            .expect("mkfifo を起動できる");
+        assert!(status.success(), "mkfifo が失敗した");
+    };
+
+    // run ID なしのステートの名前付きパイプ: read_state と read_state_raw。
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state) = paths(dir.path());
+    mkfifo(&state);
+    let d = def.clone();
+    let e = within_5s(move || read_state(&d)).expect_err("拒否される");
+    assert_eq!(e.kind, StateErrorKind::Unreadable);
+    assert_eq!(e.path, state);
+    let d = def.clone();
+    let e = within_5s(move || read_state_raw(&d, None)).expect_err("拒否される");
+    assert_eq!(e.kind, StateErrorKind::Unreadable);
+
+    // run ID つきのステートの名前の名前付きパイプ: reset --all は止まらず、消さず、残したものにも入れない。
+    let other = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def2, _) = paths(other.path());
+    let pipe = other.path().join("conductor.toml.r1.state");
+    mkfifo(&pipe);
+    let run_id = RunId::parse("r1").expect("有効な run ID");
+    let d = def2.clone();
+    let e = within_5s(move || read_state_raw(&d, Some(&run_id))).expect_err("拒否される");
+    assert_eq!(e.kind, StateErrorKind::Unreadable);
+    let report = within_5s(move || reset_all_states(&def2)).expect("成功");
+    assert_eq!(report.removed, 0);
+    assert!(report.kept.is_empty(), "{:?}", report.kept);
+    assert!(pipe.exists(), "名前付きパイプは消さない");
+
+    // 読む権限のない 1 MiB 超のステートは unreadable(root などで開けてしまうときは飛ばす)。
+    if common::is_root() {
+        eprintln!("スキップ: root のため、権限による読み取りの失敗を試せません");
+        return;
+    }
+    let big = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def3, state3) = paths(big.path());
+    std::fs::write(&state3, vec![b'#'; 1024 * 1024 + 1]).expect("書ける");
+    std::fs::set_permissions(&state3, std::fs::Permissions::from_mode(0o000))
+        .expect("権限を変えられる");
+    let result = read_state(&def3);
+    std::fs::set_permissions(&state3, std::fs::Permissions::from_mode(0o600)).expect("戻せる");
+    assert_eq!(
+        result.expect_err("拒否される").kind,
+        StateErrorKind::Unreadable
+    );
+}
