@@ -227,7 +227,8 @@ fn report_execution(
             skipped: &next.skipped_job_ids,
         });
     }
-    if let Some(signal) = interrupted_signal(execution) {
+    // 起動しなかった中断と、終了の観測の直後に合図が立っていた実行のときだけ(`result_detail` が作る)。
+    if let ResultDetail::Interrupted { signal, .. } = detail {
         ctx.show(&DisplayEvent::Interrupted { signal });
     }
 }
@@ -257,17 +258,5 @@ fn result_detail(execution: &JobExecution) -> ResultDetail {
             terminated_by_signal: None,
             interrupted_by: None,
         } => ResultDetail::ExitCode(exit_code.unwrap_or(0)),
-    }
-}
-
-/// 中断の合図の番号(起動しなかった中断と、終了の観測の直後に合図が立っていた実行のときだけ)。
-fn interrupted_signal(execution: &JobExecution) -> Option<i32> {
-    match execution.result {
-        ExecutionResult::NotStarted { signal }
-        | ExecutionResult::Exited {
-            interrupted_by: Some(signal),
-            ..
-        } => Some(signal),
-        _ => None,
     }
 }
