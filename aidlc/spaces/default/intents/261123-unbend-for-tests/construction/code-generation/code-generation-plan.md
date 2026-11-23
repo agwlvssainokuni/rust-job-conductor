@@ -17,26 +17,26 @@
 
 ## 段 1: テストの都合で曲げられた所(コミット 1〜13)
 
-- [ ] Step 1: 言語と色の判定の確認用のメソッド(1a)、`reset --all` の数(1b)、`is_lane_drawable`(1c)、`LoadedEnvFiles::add`(1d)、`remove_stale_temps` の `now`(1e)を本番から消し、テストの側で代わりを持つ。コミット 1〜5。
-- [ ] Step 2: 誤りの種類の一覧 `ALL` を各クレートの `tests/common/kinds.rs` へ移し(網羅の `match` と、並びと重複のコンパイル時の確かめ。D1・D2)、本番の `ALL` 5 つを消す。消すテスト(§4.6 の core・converter の単体 2 件、cli の `args_grammar.rs` の 1 件)。コミット 6〜9。
-- [ ] Step 3: 種類の識別子 `code()` を消し、種類の説明に識別子の規則を書く(1f。★ T1・T2)。コミット 10。
-- [ ] Step 4: パニックのフックの差し替え口をなくし、本体を非公開の関数にして単体テストへ移す(1h)。「フックを設定すると 70 で終わる」の 1 件は消し、確かめられなくなることを仕様書に記録する。コミット 11。
-- [ ] Step 5: シグナルの `AlreadyRegistered` と登録済みの印をなくし、「登録はプロセスで 1 回だけ」を `Signals::start`・`run_cli_with`・`run_cli` の説明と仕様書に書く(1i、D5。★ T30。§4.6 の 1 件)。コミット 12。
-- [ ] Step 6: `node_state_of` を非公開に、`flow_edges` を `pub(crate)` に(1j、D8)。性能のテスト P4 の前後の時間を記録する。コミット 13。
-- [ ] Step 7: 段 1 の完了の判定(`inventory.md` の検索で、本番のコードからの参照が 0 件)と件数を記録する(見込み 1,156)。
+- [x] Step 1: 言語と色の判定の確認用のメソッド(1a)、`reset --all` の数(1b)、`is_lane_drawable`(1c)、`LoadedEnvFiles::add`(1d)、`remove_stale_temps` の `now`(1e)を本番から消し、テストの側で代わりを持つ。コミット 1〜5。
+- [x] Step 2: 誤りの種類の一覧 `ALL` を各クレートの `tests/common/kinds.rs` へ移し(網羅の `match` と、並びと重複のコンパイル時の確かめ。D1・D2)、本番の `ALL` 5 つを消す。消すテスト(§4.6 の core・converter の単体 2 件、cli の `args_grammar.rs` の 1 件)。コミット 6〜9。
+- [x] Step 3: 種類の識別子 `code()` を消し、種類の説明に識別子の規則を書く(1f。★ T1・T2)。コミット 10。
+- [x] Step 4: パニックのフックの差し替え口をなくし、本体を非公開の関数にして単体テストへ移す(1h)。「フックを設定すると 70 で終わる」の 1 件は消し、確かめられなくなることを仕様書に記録する。コミット 11。
+- [x] Step 5: シグナルの `AlreadyRegistered` と登録済みの印をなくし、「登録はプロセスで 1 回だけ」を `Signals::start`・`run_cli_with`・`run_cli` の説明と仕様書に書く(1i、D5。★ T30。§4.6 の 1 件)。コミット 12。
+- [x] Step 6: `node_state_of` を非公開に、`flow_edges` を `pub(crate)` に(1j、D8)。性能のテスト P4 の前後の時間を記録する。コミット 13。
+- [x] Step 7: 段 1 の完了の判定(`inventory.md` の検索で、本番のコードからの参照が 0 件)と件数を記録する(見込み 1,156)。
 
 ## 段 2: ふつうの整理(コミット 15〜25)
 
-- [ ] Step 8: 古くなった説明(2a。仕様書の `.env` の重複キーの警告の 6 か所を含む)。コミット 15〜16。
-- [ ] Step 9: ステートの `definition_key` と `job_order` を型から消す(2b、D12)。ステートファイルのバイト列が前後で同じことを確かめて記録する。コミット 17。
-- [ ] Step 10: `CommandError` の理由を `CommandErrorKind::reason()` に(2c、D6。T31 を含む)、`ExitCodeClass`(2d)、小さい整理(2e)。コミット 18〜22。
-- [ ] Step 11: `decide_from_state`(2f、D7)と N1(D11)。コミット 23〜24。
-- [ ] Step 12: 仕様書 11 章のテストのファイルの表と件数。コミット 25。段 2 の後の件数を記録(見込み 1,157)。
+- [x] Step 8: 古くなった説明(2a。仕様書の `.env` の重複キーの警告の 6 か所を含む)。コミット 15〜16。
+- [x] Step 9: ステートの `definition_key` と `job_order` を型から消す(2b、D12)。ステートファイルのバイト列が前後で同じことを確かめて記録する。コミット 17。
+- [x] Step 10: `CommandError` の理由を `CommandErrorKind::reason()` に(2c、D6。T31 を含む)、`ExitCodeClass`(2d)、小さい整理(2e)。コミット 18〜22。
+- [x] Step 11: `decide_from_state`(2f、D7)と N1(D11)。コミット 23〜24。
+- [x] Step 12: 仕様書 11 章のテストのファイルの表と件数。コミット 25。段 2 の後の件数を記録(見込み 1,157)。
 
 ## 最後
 
-- [ ] Step 13: `functional-spec.md` §7 の確かめ方(検索と、段の前後の `cargo test --locked --workspace -- --list` の比較)を走らせて結果を記録する。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 14: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更・名前の変更・消したテストの一覧、検索の結果、ステートファイルのバイト列の比較、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 13: `functional-spec.md` §7 の確かめ方(検索と、段の前後の `cargo test --locked --workspace -- --list` の比較)を走らせて結果を記録する。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 14: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更・名前の変更・消したテストの一覧、検索の結果、ステートファイルのバイト列の比較、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
