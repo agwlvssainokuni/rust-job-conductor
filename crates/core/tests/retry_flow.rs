@@ -249,3 +249,46 @@ fn 極端に大きい値でも_桁あふれしない() {
     );
     assert_eq!(wait_of(retry_decision(&j, &e, 2, u64::MAX)), Some(u64::MAX));
 }
+
+// ---- リトライの判断の中身(1f。BR2.4) ----
+
+#[test]
+fn リトライの判断は_最後の終了コードと最大回数を持つ() {
+    let j = job(WITH_RETRY); // exit_codes = [75, 127]、max = 3、interval = 30s
+    assert_eq!(
+        retry_decision(&j, &exited(&j, 75), 0, 0),
+        RetryDecision::Retry {
+            wait_secs: 30,
+            last_exit_code: 75,
+            max: 3
+        }
+    );
+    // ジョブ自身が返した 127 は、その終了コードを持つ。
+    assert_eq!(
+        retry_decision(&j, &exited(&j, 127), 0, 0),
+        RetryDecision::Retry {
+            wait_secs: 30,
+            last_exit_code: 127,
+            max: 3
+        }
+    );
+    // 倍率つき(max 5)の 2 回目。
+    let b = backoff(10, 2, 60, 5);
+    assert_eq!(
+        retry_decision(&b, &exited(&b, 75), 1, 10),
+        RetryDecision::Retry {
+            wait_secs: 20,
+            last_exit_code: 75,
+            max: 5
+        }
+    );
+    // 一覧に無い終了コードと、回数を使い切ったときは停止。
+    assert_eq!(
+        retry_decision(&j, &exited(&j, 76), 0, 0),
+        RetryDecision::Stop
+    );
+    assert_eq!(
+        retry_decision(&j, &exited(&j, 75), 3, 30),
+        RetryDecision::Stop
+    );
+}
