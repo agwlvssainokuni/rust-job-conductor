@@ -160,13 +160,8 @@ impl EnvFileError {
         }
     }
 
-    /// 理由(種類の固定の文。入力の値を含まない)。v0.9.6 までは、同じ文の写しをフィールドに持った。
-    pub fn reason(&self) -> &'static str {
-        self.kind.reason()
-    }
-
     fn render(&self) -> String {
-        render_error(&self.file, self.line, self.kind.label(), self.reason())
+        render_error(&self.file, self.line, self.kind.label(), self.kind.reason())
     }
 }
 

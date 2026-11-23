@@ -176,6 +176,6 @@ fn 複数の誤りが行番号つきで集まり値を含まない() {
     );
     for err in &e {
         assert!(!err.to_string().contains(SECRET), "{err}");
-        assert!(!err.reason().contains(SECRET));
+        assert!(!err.kind.reason().contains(SECRET));
     }
 }

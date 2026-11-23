@@ -267,7 +267,6 @@ fn 誤りの理由は種類の固定の文で_種類の文は変更前と同じ(
     // `.env` の誤りの理由は、種類の固定の文(フィールドの写しを持たない。1h)。
     for kind in ENV_FILE_ERROR_KINDS {
         let e = EnvFileError::new("a.env", Some(1), kind);
-        assert_eq!(e.reason(), kind.reason(), "{kind:?}");
         assert!(e.to_string().contains(kind.reason()), "{kind:?}");
     }
     // 種類の文は、変更前の文と 1 文字も違わない(表は ALL と同じ順で、すべての種類を持つ)。
