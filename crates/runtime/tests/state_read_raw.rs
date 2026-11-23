@@ -14,20 +14,13 @@
 
 //! `read_state_raw`(完了のステートも返す読み取り)と `read_state` の差のテスト(FR3.1、FR3.2、FR3.4)。
 
-use std::path::{Path, PathBuf};
+mod common;
 
+use common::{def, put};
 use conductor_core::RunId;
 use conductor_runtime::{StateErrorKind, read_state, read_state_raw};
 
 const COMPLETED: &str = "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = false\ncompleted = true\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n";
-
-fn def(dir: &Path) -> PathBuf {
-    dir.join("x.toml")
-}
-
-fn put(dir: &Path, name: &str, content: &str) {
-    std::fs::write(dir.join(name), content).expect("書ける");
-}
 
 #[test]
 fn fr3_1_raw_は完了のステートを返し_read_state_は空として返す() {

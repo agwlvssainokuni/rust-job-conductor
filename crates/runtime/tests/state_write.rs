@@ -18,16 +18,13 @@
 mod common;
 
 use std::fs::OpenOptions;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::{Duration, SystemTime};
 
+use common::paths;
 use common::without_run_id::{read_state, reset_state, write_state};
 use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 use conductor_runtime::{Durability, StateErrorKind};
-
-fn paths(dir: &Path) -> (PathBuf, PathBuf) {
-    (dir.join("conductor.toml"), dir.join("conductor.toml.state"))
-}
 
 fn sample() -> PipelineState {
     PipelineState {

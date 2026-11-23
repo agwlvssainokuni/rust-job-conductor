@@ -14,8 +14,11 @@
 
 //! run ID ごとのステート(FR3)と `reset --all`(FR5。NFR2)の統合テスト。実際のファイルを使う。
 
-use std::path::{Path, PathBuf};
+mod common;
 
+use std::path::Path;
+
+use common::{def, put};
 use conductor_core::{JobState, PipelineState, RunId};
 use conductor_runtime::{
     Durability, StateErrorKind, StateLocation, read_state, reset_all_states, reset_state,
@@ -50,14 +53,6 @@ fn text(run_id: Option<&str>) -> String {
     }
     t.push_str("\n[[job]]\nid = \"a\"\nstatus = \"pending\"\n");
     t
-}
-
-fn def(dir: &Path) -> PathBuf {
-    dir.join("x.toml")
-}
-
-fn put(dir: &Path, name: &str, content: &str) {
-    std::fs::write(dir.join(name), content).expect("書ける");
 }
 
 fn exists(dir: &Path, name: &str) -> bool {

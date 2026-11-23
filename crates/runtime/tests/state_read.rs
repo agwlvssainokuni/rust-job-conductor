@@ -16,8 +16,7 @@
 
 mod common;
 
-use std::path::{Path, PathBuf};
-
+use common::paths;
 use common::without_run_id::read_state;
 use conductor_core::JobStatus;
 use conductor_runtime::StateErrorKind;
@@ -40,11 +39,6 @@ exit_code = 0
 id = "b"
 status = "pending"
 "#;
-
-/// 定義ファイルのパス(ファイルそのものは無くてよい)と、ステートファイルのパス。
-fn paths(dir: &Path) -> (PathBuf, PathBuf) {
-    (dir.join("conductor.toml"), dir.join("conductor.toml.state"))
-}
 
 #[test]
 fn ステートファイルが無ければ空() {

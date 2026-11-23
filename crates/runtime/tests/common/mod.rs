@@ -15,11 +15,26 @@
 //! 統合テストの共通の補助(補助の実行ファイル、時間の上限、定義の組み立て)。
 #![allow(dead_code)]
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use conductor_core::{Command, JobDefinition, PipelineDefinition};
+
+/// ディレクトリ `dir` の定義ファイル `x.toml` のパス(ファイルそのものは無くてよい)。
+pub fn def(dir: &Path) -> PathBuf {
+    dir.join("x.toml")
+}
+
+/// ディレクトリ `dir` に、名前 `name` のファイルを内容 `content` で書く。
+pub fn put(dir: &Path, name: &str, content: &str) {
+    std::fs::write(dir.join(name), content).expect("書ける");
+}
+
+/// 定義ファイル `conductor.toml` のパス(ファイルそのものは無くてよい)と、そのステートファイルのパス。
+pub fn paths(dir: &Path) -> (PathBuf, PathBuf) {
+    (dir.join("conductor.toml"), dir.join("conductor.toml.state"))
+}
 
 /// プロセスを起動するテストの、時間の上限。
 pub const LIMIT: Duration = Duration::from_secs(30);
