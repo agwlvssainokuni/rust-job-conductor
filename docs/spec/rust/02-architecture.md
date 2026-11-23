@@ -101,7 +101,7 @@
 
 ### 2.2 `conductor-runtime`
 
-再公開(`lib.rs`): `error::*`、`run_job`、`check_command`、`check_consistency`(`conductor_core` の `consistency.rs` の再公開)、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`(この 4 つは `conductor_core` の `flow/record.rs` の再公開。cli の `use conductor_runtime::{...}` はそのまま使える)、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::*`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`(後ろの 4 つは v0.9.0 以降)。`envfile`、`file_create`、`platform`、`runner`、`split`、`state` は非公開(`#![deny(unsafe_code)]`)。
+再公開(`lib.rs`): `error::{CommandError, CommandErrorKind, StateError, StateErrorKind}`、`run_job`、`check_command`、`check_consistency`(`conductor_core` の `consistency.rs` の再公開)、`read_state`、`read_state_raw`、`apply_interrupt`、`apply_outcome`、`apply_skip`、`initial_state`(この 4 つは `conductor_core` の `flow/record.rs` の再公開。cli の `use conductor_runtime::{...}` はそのまま使える)、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::{CommandLine, ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateLocation}`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`(後ろの 4 つは v0.9.0 以降)。`envfile`、`error`、`file_create`、`platform`、`runner`、`split`、`state`、`types` は非公開(`#![deny(unsafe_code)]`。v0.9.6 までは `error`・`types` も公開で、`error::*`・`types::*` で再公開した)。`StateErrorKind::label()`(種類の文の日本語)は公開(cli の表示が使う。v0.9.7 以降)。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|

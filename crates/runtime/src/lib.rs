@@ -113,25 +113,27 @@
 #![deny(unsafe_code)]
 
 mod envfile;
-pub mod error;
+mod error;
 mod file_create;
 mod platform;
 mod runner;
 mod split;
 mod state;
 mod temp_file;
-pub mod types;
+mod types;
 mod wait;
 
 pub use conductor_core::check_consistency;
 pub use conductor_core::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub use envfile::load_env_files;
-pub use error::*;
+pub use error::{CommandError, CommandErrorKind, StateError, StateErrorKind};
 pub use file_create::{CreateError, CreateOutcome, create_file};
 pub use runner::run_job;
 pub use split::check_command;
 pub use state::reader::{read_state, read_state_raw};
 pub use state::reset_all::{ResetAllReport, reset_all_states};
 pub use state::writer::{reset_state, write_state};
-pub use types::*;
+pub use types::{
+    CommandLine, ConsistencyResult, Durability, InterruptSignal, MismatchKind, StateLocation,
+};
 pub use wait::{WaitOutcome, wait_for};
