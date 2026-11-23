@@ -14,6 +14,8 @@
 
 //! 図の構造と状態の重ね合わせ(BR2.1、BR4.1、BR4.2)。
 
+use std::collections::HashMap;
+
 use super::{FlowGraph, GraphNode, NodeKind, NodeState, StateOverlay, flow_edges};
 use crate::types::{JobStatus, PipelineDefinition, PipelineState};
 
@@ -50,15 +52,24 @@ pub fn pending_overlay(definition: &PipelineDefinition) -> StateOverlay {
 /// 図の構造を作る。節は、定義の記述順で、最後に終点(BR2.1)。`overlay` があれば、状態を重ねる。
 /// 重ね合わせに無いジョブは、未実行として扱う。
 pub fn build_graph(definition: &PipelineDefinition, overlay: Option<&StateOverlay>) -> FlowGraph {
+    // 重ね合わせは、ジョブ ID から状態を引く表にして 1 回だけ作る(2b)。同じジョブ ID が重なるときは、
+    // 最初に現れたものを残す(線形の探索の「最初に一致したもの」と同じ結果)。
+    let lookup: Option<HashMap<&str, NodeState>> = overlay.map(|o| {
+        let mut table = HashMap::with_capacity(o.states.len());
+        for (id, state) in &o.states {
+            table.entry(id.as_str()).or_insert(*state);
+        }
+        table
+    });
     let mut nodes: Vec<GraphNode> = definition
         .job
         .iter()
         .map(|job| {
-            let state = overlay.map(|o| {
-                o.states
-                    .iter()
-                    .find(|(id, _)| *id == job.id)
-                    .map_or(NodeState::Pending, |(_, state)| *state)
+            let state = lookup.as_ref().map(|table| {
+                table
+                    .get(job.id.as_str())
+                    .copied()
+                    .unwrap_or(NodeState::Pending)
             });
             let is_resume = overlay.is_some_and(|o| o.resume_job_id.as_deref() == Some(&job.id));
             GraphNode {
