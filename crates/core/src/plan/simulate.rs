@@ -28,7 +28,6 @@ use super::{
     PlanRejection, ResumeInfo, SimulatedResult,
 };
 use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names};
-use crate::flow::classify::classify_exit_code;
 use crate::flow::retry::is_retry_target;
 use crate::flow::{
     apply_outcome_in, apply_skip_in, classify_and_decide, decide_before_run, initial_state,
@@ -269,8 +268,8 @@ fn unused_assumptions(assumptions: &[Assumption], ran: &HashSet<&str>) -> Vec<St
 /// 仮定した終了コードで、実行の代わりに、分類と次の動きを決める(BR1.2、BR1.7)。
 ///
 /// 計画の結果のほかに、ステートの記録(`apply_outcome`)に使う、仮定の実行(`JobExecution`)と
-/// 分類の結果(`JobOutcome`)も返す。結果の語は、`classify_and_decide` の分類と同じ規則
-/// (`classify_exit_code`)で決める。リトライの対象かは、`is_retry_target` で決める。
+/// 分類の結果(`JobOutcome`)も返す。結果の語は、`classify_and_decide` の分類で決める。
+/// リトライの対象かは、`is_retry_target` で決める。
 fn simulate_job(
     job: &JobDefinition,
     definition: &PipelineDefinition,
@@ -281,7 +280,9 @@ fn simulate_job(
 ) -> (SimulatedResult, JobExecution, JobOutcome, NextStep) {
     let execution = JobExecution::exited(exit_code);
     let (outcome, next) = classify_and_decide(job, &execution, states, definition, mode);
-    let classification = classify_exit_code(job, exit_code).classification;
+    // 合成した実行は `Exited { exit_code: Some(..), .. }` なので、`classify` の手順 5 を通り、分類は
+    // 必ず `Some`(`None` は起動しなかったときだけ)。`None` の枝は到達しない。
+    let classification = outcome.classification.unwrap_or(Classification::Error);
     let retryable = job
         .retry
         .as_ref()
