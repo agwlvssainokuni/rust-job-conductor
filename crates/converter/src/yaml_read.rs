@@ -213,7 +213,8 @@ pub(crate) fn read(text: &str, file: &str) -> Result<YamlRead, ConversionError> 
     let mut doc = Doc::default();
 
     for item in Parser::new_from_str(text) {
-        let (event, span) = item.map_err(|e| syntax(file, e.marker().line(), reason::SYNTAX))?;
+        let (event, span) =
+            item.map_err(|e| syntax(file, e.marker().line(), reason::YAML_SYNTAX))?;
         let line = span.start.line();
         match event {
             Event::Nothing | Event::StreamStart => {}

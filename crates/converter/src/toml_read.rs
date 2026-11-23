@@ -64,7 +64,7 @@ fn scalar_of(value: &toml::Value) -> RawScalar {
 pub(crate) fn read(text: &str, file: &str) -> Result<RawTree, ConversionError> {
     let table: toml::Table = text.parse().map_err(|e: toml::de::Error| {
         let line = e.span().map(|s| line_at(text, s.start));
-        syntax(file, line, reason::SYNTAX)
+        syntax(file, line, reason::TOML_SYNTAX)
     })?;
     let root_value = toml::Value::Table(table);
 

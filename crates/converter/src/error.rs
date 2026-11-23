@@ -151,7 +151,12 @@ pub(crate) mod reason {
     const _: () = assert!(crate::intake::MAX_INPUT_BYTES == 1024 * 1024);
     const _: () = assert!(crate::raw::MAX_NODES == 100_000);
     const _: () = assert!(crate::raw::MAX_EXPANDED_BYTES == 16 * 1024 * 1024);
-    pub const SYNTAX: &str = "文法の誤りです";
+    /// TOML の読み取り器の文法の誤り(種類の文「文法の誤りです」と重ならない理由。3a、D5)。
+    pub const TOML_SYNTAX: &str = "TOML として読めません";
+    /// YAML のパーサーの文法の誤り(3a、D5)。
+    pub const YAML_SYNTAX: &str = "YAML として読めません";
+    /// 形式に依らない内部の守り(通常の入力では到達しない。3a、D4)。
+    pub const BROKEN_STRUCTURE: &str = "入力の構造を解釈できません";
     pub const DUPLICATE_KEY: &str = "キーが重複しています";
     pub const RECURSIVE_ANCHOR: &str = "アンカーが自分自身を含んでいます";
     pub const UNKNOWN_ANCHOR: &str = "定義されていないアンカーを参照しています";

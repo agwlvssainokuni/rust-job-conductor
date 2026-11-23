@@ -286,9 +286,11 @@ impl<'a> Walker<'a> {
                 )
             }
             // エイリアスの参照先は、実体のノードである(読み取りで保証)。ここへは来ない
-            RawKind::Alias(_) => {
-                Err(self.error_at(target, ConversionErrorKind::Syntax, reason::SYNTAX))
-            }
+            RawKind::Alias(_) => Err(self.error_at(
+                target,
+                ConversionErrorKind::Syntax,
+                reason::BROKEN_STRUCTURE,
+            )),
         }
     }
 
@@ -479,7 +481,7 @@ impl<'a> Walker<'a> {
                 None,
                 None,
                 ConversionErrorKind::Syntax,
-                reason::SYNTAX,
+                reason::BROKEN_STRUCTURE,
             )),
         }
     }

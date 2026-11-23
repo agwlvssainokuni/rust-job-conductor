@@ -67,7 +67,7 @@ fn ac_7_1_3_壊れた入力は種類と行を返し_出力しない() {
     assert!(e.file.ends_with("broken.yaml"));
     let shown = e.to_string();
     assert!(shown.contains("broken.yaml:"), "{shown}");
-    assert!(shown.contains("文法の誤りです"), "{shown}");
+    assert!(shown.contains("YAML として読めません"), "{shown}");
 
     let e = convert(&request(fixture("broken.toml"), TargetFormat::Yaml)).unwrap_err();
     assert_eq!(e.kind, K::Syntax);
