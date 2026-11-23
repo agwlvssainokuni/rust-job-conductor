@@ -16,26 +16,26 @@
 
 ## 段 1: 動きを変えない整理(コミット 1〜36)
 
-- [ ] Step 1: 古くなった説明と守りの理由(1a)。コミット 1〜2。
-- [ ] Step 2: 使われないもの・二重の計算・常に真の条件(1b、`apply_interrupt_in`、`EffectiveEnv` の `job_id`・`names()`、補助の使わない引数(D2)、模擬の分類、`decide`、`interrupted_signal`、`command_line`)と、記録の `hint`(D4)。T1a、★ T1b、T2、T3。コミット 3〜10。
-- [ ] Step 3: 二重の処理(`replace_via_temp`、ステートの読み込みの段、`bounded_read.rs`(`read_limited` は段 2 まで `pub(crate)`)、`build_retry`(D3)、ごく小さい整理)。T4。コミット 11〜15。
-- [ ] Step 4: cli の `Runtime::run_job` から `job` を外す(1d、Q3、D1)。T15 の偽物。コミット 16。
-- [ ] Step 5: 公開範囲を狭める(1e、1f。`read_limited` を除く)。T5。コミット 17〜19。
+- [x] Step 1: 古くなった説明と守りの理由(1a)。コミット 1〜2。
+- [x] Step 2: 使われないもの・二重の計算・常に真の条件(1b、`apply_interrupt_in`、`EffectiveEnv` の `job_id`・`names()`、補助の使わない引数(D2)、模擬の分類、`decide`、`interrupted_signal`、`command_line`)と、記録の `hint`(D4)。T1a、★ T1b、T2、T3。コミット 3〜10。
+- [x] Step 3: 二重の処理(`replace_via_temp`、ステートの読み込みの段、`bounded_read.rs`(`read_limited` は段 2 まで `pub(crate)`)、`build_retry`(D3)、ごく小さい整理)。T4。コミット 11〜15。
+- [x] Step 4: cli の `Runtime::run_job` から `job` を外す(1d、Q3、D1)。T15 の偽物。コミット 16。
+- [x] Step 5: 公開範囲を狭める(1e、1f。`read_limited` を除く)。T5。コミット 17〜19。
 - [ ] Step 6: 型と名前(`escape_full`(D6)、`StateContext`(D5)、converter の行番号と `reason`)。T16〜T19。コミット 20〜23。
-- [ ] Step 7: 計算量(1h)と N1〜N3。上限は P1 350 ms、P2 1,600 ms、P3 40 ms(D9。debug、5 回の中央値)。直す前の木でも走らせて時間を記録する。`-v` の図と `record_skip` は前後の時間だけ記録する(D8)。コミット 24〜29。
-- [ ] Step 8: テストの補助の整理(1i。T6〜T13、T15 の残り、T20、T21、T24)と、重複したテストを消す(§4.6 の 4 つ、D10)。仕様書 11 章。コミット 30〜36。段 1 の後の件数を記録(見込み 1,156。基準 1,157 − 4 + 3)。
+- [x] Step 7: 計算量(1h)と N1〜N3。上限は P1 350 ms、P2 1,600 ms、P3 40 ms(D9。debug、5 回の中央値)。直す前の木でも走らせて時間を記録する。`-v` の図と `record_skip` は前後の時間だけ記録する(D8)。コミット 24〜29。
+- [x] Step 8: テストの補助の整理(1i。T6〜T13、T15 の残り、T20、T21、T24)と、重複したテストを消す(§4.6 の 4 つ、D10)。仕様書 11 章。コミット 30〜36。段 1 の後の件数を記録(見込み 1,156。基準 1,157 − 4 + 3)。
 
 ## 段 2: 利用者から見える変更と版(コミット 37〜46)
 
-- [ ] Step 9: converter の読み込みを形 B に(2a)と N4(直す前の木で落ちることを記録)、仕様書と「v0.9.7 までは…」の注記。コミット 37〜39。
-- [ ] Step 10: ステートの読み込みを形 B に(2b、D7)と ★ T23、`read_limited` を非公開に、N5・N8、仕様書 06 章と注記。コミット 40〜42。
-- [ ] Step 11: 空白だけのコマンド名を `Empty`(64)に(2c)と N6・N7、仕様書と注記。コミット 43〜45。
-- [ ] Step 12: 版を 0.9.8 にする(`7239aa2` と同じ範囲。★ T22)。コミット 46。段 2 の後の件数を記録(見込み 1,161)。
+- [x] Step 9: converter の読み込みを形 B に(2a)と N4(直す前の木で落ちることを記録)、仕様書と「v0.9.7 までは…」の注記。コミット 37〜39。
+- [x] Step 10: ステートの読み込みを形 B に(2b、D7)と ★ T23、`read_limited` を非公開に、N5・N8、仕様書 06 章と注記。コミット 40〜42。
+- [x] Step 11: 空白だけのコマンド名を `Empty`(64)に(2c)と N6・N7、仕様書と注記。コミット 43〜45。
+- [x] Step 12: 版を 0.9.8 にする(`7239aa2` と同じ範囲。★ T22)。コミット 46。段 2 の後の件数を記録(見込み 1,161)。
 
 ## 最後
 
-- [ ] Step 13: `functional-spec.md` §7 の確かめ方(検索と、段の前後の `cargo test --locked --workspace -- --list` の比較)を走らせて結果を記録する。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 14: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更と消したテストの一覧、性能の直す前と後の時間、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 13: `functional-spec.md` §7 の確かめ方(検索と、段の前後の `cargo test --locked --workspace -- --list` の比較)を走らせて結果を記録する。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 14: `code-summary.md`(コミットの一覧、件数の移り変わり、テストの変更と消したテストの一覧、性能の直す前と後の時間、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
