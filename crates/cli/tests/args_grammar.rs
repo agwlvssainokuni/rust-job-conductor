@@ -23,9 +23,15 @@ use conductor_cli::{
     UsageError, UsageErrorKind, parse_args,
 };
 use conductor_converter::TargetFormat;
+use conductor_core::RunId;
 
 fn os(args: &[&str]) -> Vec<OsString> {
     args.iter().map(OsString::from).collect()
+}
+
+/// 規則どおりの `--run-id` の値 `text` の指定。
+fn run_id(text: &str) -> Option<RunIdArg> {
+    Some(RunIdArg::Id(RunId::parse(text).expect("規則どおり")))
 }
 
 fn parse(args: &[&str]) -> Result<ParsedArgs, UsageError> {
@@ -491,28 +497,18 @@ fn run_id_は_4_つのコマンドで解釈される() {
     ] {
         let cmd = command(args);
         assert_eq!(cmd.kind, kind, "{args:?}");
-        assert_eq!(
-            cmd.run_id.as_ref().map(RunIdArg::as_str),
-            Some("r1"),
-            "{args:?}"
-        );
+        assert_eq!(cmd.run_id, run_id("r1"), "{args:?}");
         assert!(!cmd.all);
     }
     // 指定なし、空(固定)の区別
     assert_eq!(command(&["run", "a"]).run_id, None);
     assert_eq!(
-        command(&["run", "a", "--run-id", ""])
-            .run_id
-            .as_ref()
-            .map(RunIdArg::as_str),
-        Some("")
+        command(&["run", "a", "--run-id", ""]).run_id,
+        Some(RunIdArg::Empty)
     );
     assert_eq!(
-        command(&["run", "a", "--run-id="])
-            .run_id
-            .as_ref()
-            .map(RunIdArg::as_str),
-        Some("")
+        command(&["run", "a", "--run-id="]).run_id,
+        Some(RunIdArg::Empty)
     );
 }
 
@@ -699,7 +695,7 @@ fn graph_は_全オプションを受け取り_既定は_text_で_状態なし()
     ]);
     assert_eq!(cmd.graph.format, GraphFormat::Mermaid);
     assert!(cmd.graph.with_state && cmd.verbose);
-    assert_eq!(cmd.run_id.as_ref().map(RunIdArg::as_str), Some("r1"));
+    assert_eq!(cmd.run_id, run_id("r1"));
     assert_eq!(cmd.pipeline_name.as_deref(), Some("nightly"));
     // `--format=text` の形も受け付ける。
     assert_eq!(
@@ -792,7 +788,7 @@ fn dry_run_と_assume_は_run_と_pipeline_で_複数回指定できる() {
             .map(|a| (a.job_id.as_str(), a.exit_code))
             .collect();
         assert_eq!(pairs, [("a", 3), ("b", 255)], "{kind}");
-        assert_eq!(cmd.run_id.as_ref().map(RunIdArg::as_str), Some("r1"));
+        assert_eq!(cmd.run_id, run_id("r1"));
         assert!(cmd.remove_on_complete);
     }
     // 指定がなければ、既定は偽で空。値の `=` は、最初の `=` で分ける(終了コードに `=` があれば誤り)。

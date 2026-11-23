@@ -19,17 +19,16 @@ use conductor_core::RunId;
 
 #[test]
 fn run_id_arg_は空を固定_規則どおりを値_規則違反を値を含めない誤りにする() {
-    // 空は「run ID なしに固定」。書かれた値は空文字。
+    // 空は「run ID なしに固定」。
     let empty = RunIdArg::parse("").expect("空は有効");
     assert_eq!(empty, RunIdArg::Empty);
-    assert_eq!(empty.as_str(), "");
 
-    // 規則どおりの値は、検査済みの RunId を持ち、書かれた値をそのまま返す。
+    // 規則どおりの値は、検査済みの RunId を持ち、書かれた値をそのまま持つ。
     let long_ok = "a".repeat(64);
     for ok in ["r1", "build-2026.11_a", long_ok.as_str()] {
         let arg = RunIdArg::parse(ok).expect("規則どおり");
         assert_eq!(arg, RunIdArg::Id(RunId::parse(ok).expect("規則どおり")));
-        assert_eq!(arg.as_str(), ok);
+        assert!(matches!(&arg, RunIdArg::Id(id) if id.as_str() == ok));
     }
 
     // 規則に反する値は invalidValue。対象は `--run-id` で、値は含めない。

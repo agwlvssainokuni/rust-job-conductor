@@ -46,14 +46,6 @@ impl RunIdArg {
             .map(Self::Id)
             .map_err(|_| UsageError::with_subject(UsageErrorKind::InvalidValue, RUN_ID_OPTION))
     }
-
-    /// 書かれた値(`Empty` は空文字)。
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Empty => "",
-            Self::Id(id) => id.as_str(),
-        }
-    }
 }
 
 /// コマンドの種類(BR1.1)。
