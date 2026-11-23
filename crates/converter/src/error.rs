@@ -37,7 +37,7 @@ const MAX_FILE_DISPLAY_CHARS: usize = 256;
 ///
 /// 種類の文(日本語)は [`ConversionErrorKind::label`] の 1 か所に持ち、`Display` はそれを書く(D10)。
 /// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `RootNotMap` は `rootNotMap`)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConversionErrorKind {
     FileMissing,
     Unreadable,

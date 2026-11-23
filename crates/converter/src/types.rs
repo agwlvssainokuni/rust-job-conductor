@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// 変換後の形式(BR1.1)。入力の形式は、これと反対の形式とみなす。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetFormat {
     Yaml,
     Toml,
