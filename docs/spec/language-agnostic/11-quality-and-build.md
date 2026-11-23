@@ -797,7 +797,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-365 | ステートの誤りの補足 | 4.11 節の各誤り | (文脈ごと) | 読み込み: 案内 `; …`。書き込み: ` (the job was not started)` / ` (the job has already been executed)`。`reset`・`watch` 以外の読み込みは案内つき、`reset` の削除は補足なし | `report_messages::ステートの誤りの補足は文脈で決まる` |
 | AC-366 | 拒否・完了判定不能・出力失敗の文言 | 08 章 4.7 節 | (表示の部品を直接呼ぶ) | `cannot run this job now: …`、`cannot determine whether the pipeline is complete`、`cannot write to standard output` の英語・日本語 | `report_messages`。区分: 単体 |
 | AC-367 | 完了を判定できない | 全ジョブが「実行済み」で通過し、どこでも完了にならない状態(通常は起こらない) | `pipeline p` | 65。ERR = `conductor: error: conductor.toml.state: cannot determine whether the pipeline is complete`。ステートを初期化しない | `flow_pipeline::完了の判定ができないときは 65 で 初期化しない`。区分: 注入 |
-| AC-368 | 内部の誤りの文は固定の英語 | 異常終了を起こす | (入口) | ERR = `conductor: error: internal error`(ロケールによらず)、終了 70。標準エラーが閉じていても 70 | `panic_hook::フックの本体は固定の英語の文を書き 70 で終わる / 標準エラーに書けなくても 70 で終わる / 設定したフックは…`。区分: 注入 |
+| AC-368 | 内部の誤りの文は固定の英語 | 異常終了を起こす | (入口) | ERR = `conductor: error: internal error`(ロケールによらず)、終了 70。標準エラーが閉じていても 70 | `panic_hook::tests::フックの本体は固定の英語の文を書き 70 で終わる / 標準エラーに書けなくても 70 で終わる`(フックの本体の単体テスト。フックの設定そのものは自動のテストで確かめない)。区分: 単体 |
 | AC-369 | 入口に異常終了を起こすコマンドがない | 製品の入口 | (点検) | 入口(引数の解釈の結果)に、わざと異常終了するコマンドがない。入口は 1 回だけ終了する | `nfr_source::テスト専用の経路なし`。点検の項目は AC-422 |
 
 ### 4.14 表示のエスケープ

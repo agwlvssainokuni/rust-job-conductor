@@ -53,7 +53,7 @@
 //! | `platform` | シグナルの監視(SignalWatcher)ほか | OS 固有のコードは、ここだけ(`cfg(unix)`/`cfg(windows)`) |
 //! | [`exit`] | 終了コードの決定(ExitMapper) | 純粋な関数。0〜255 に合わせる(BR5.2) |
 //! | [`report`] | 表示(Reporter)、watch の表(WatchView)、エスケープ(Escape) | 文言(英語・日本語)の組み立て。言語・色は遅延 |
-//! | [`panic_hook`] | パニックのフック(PanicHook) | 固定の英語の文を出し、70 で終了(終了の呼び出しは差し替えられる) |
+//! | [`panic_hook`] | パニックのフック(PanicHook) | 固定の英語の文を出し、70 で終了 |
 //! | [`deps`] | 差し替え口(Deps) | 上の trait と、本番の実装 |
 //!
 //! # 終了コード
@@ -108,7 +108,7 @@ pub use deps::{
     Deps, Env, Runtime, SignalError, Signals, Sink, StdSink, SystemEnv, SystemRuntime,
     SystemSignals,
 };
-pub use panic_hook::{install_panic_hook, install_panic_hook_with, on_panic};
+pub use panic_hook::install_panic_hook;
 pub use types::{
     CliCommand, CommandKind, DryRunOptions, GraphFormat, GraphOptions, InitOptions, InitTarget,
     Language, Level, ParsedArgs, RunIdArg, UsageError, UsageErrorKind,

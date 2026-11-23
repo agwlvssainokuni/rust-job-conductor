@@ -145,7 +145,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | 起動できない `command` | 分けられない空文字列、`'`、`''` は `check_command` の誤り(パニックしない)。存在しない名前、ディレクトリのパス、`/` は、すべて起動失敗(`StartFailed`)。範囲外のシグナル番号(`i32::MAX`、`i32::MIN`、0、-1、1,000,000)の合図でも、起動しない(`NotStarted`) | 同上 |
 | 入れ子の深い TOML | 深さ 1,000 の入力で異常終了せず失敗を返す(テストのスレッドの標準のスタック約 2 MiB で) | `core/tests/library_capability.rs`、`runtime/tests/toml_depth.rs` |
 | 製品のコードの書き方 | runtime の製品のコードに `.unwrap()`、`.expect(`、`panic!(`、`unreachable!(`、`todo!(`、`unimplemented!(` がない。converter も入力経路で `unwrap`/`panic` を使わない | `runtime/tests/nfr_source.rs`、`converter/tests/nfr_security.rs` |
-| 内部の誤り | パニックのフックが、固定の英語 `conductor: error: internal error` を標準エラーに書き、終了コード 70。標準エラーが閉じていても 70 | `cli/tests/panic_hook.rs` |
+| 内部の誤り | パニックのフックが、固定の英語 `conductor: error: internal error` を標準エラーに書き、終了コード 70。標準エラーが閉じていても 70(フックの本体。フックの設定そのものは自動のテストで確かめない) | `cli/src/panic_hook.rs` の単体テスト |
 | 変換の入力 | 範囲外・空・壊れた入力、ランダム・切り詰めた入力でパニックしない。成功したランダムな構造は往復で等しい | `converter/tests/nfr_security.rs` |
 | 時間の上限 | プロセスを起動するテストは、すべて 30 秒の上限つき(超えたら子プロセスを強制終了して失敗) | 各 `common/mod.rs`、`bin_support/mod.rs` |
 
