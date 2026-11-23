@@ -23,8 +23,13 @@ use crate::types::{ExecutionResult, JobDefinition, JobExecution, RetryPolicy};
 pub enum RetryDecision {
     /// 実行し直さない(対象外、または回数を使い切った)。
     Stop,
-    /// `wait_secs` 秒待ってから、実行し直す。
-    Retry { wait_secs: u64 },
+    /// `wait_secs` 秒待ってから、実行し直す。`last_exit_code` はリトライの対象になった最後の終了コード、
+    /// `max` はリトライの最大回数(待機の前の知らせに使う。BR2.4)。
+    Retry {
+        wait_secs: u64,
+        last_exit_code: i32,
+        max: u32,
+    },
 }
 
 /// 1 回の実行結果が、リトライの対象か(BR2.1、BR2.16)。
@@ -33,13 +38,18 @@ pub enum RetryDecision {
 /// 終了コードが設定の集合に含まれる、の全部が成り立つときだけ真。
 /// ジョブ自身が返した 127 は、一覧にあれば対象になる(起動の失敗は終了コードを持たないので、対象にならない)。
 pub(crate) fn is_retry_target(policy: &RetryPolicy, execution: &JobExecution) -> bool {
+    retry_target_code(policy, execution).is_some()
+}
+
+/// リトライの対象になる終了コード(対象でなければ `None`)。条件は [`is_retry_target`] と同じ(BR2.1、BR2.16)。
+fn retry_target_code(policy: &RetryPolicy, execution: &JobExecution) -> Option<i32> {
     match execution.result {
         ExecutionResult::Exited {
             exit_code: Some(code),
             terminated_by_signal: None,
             interrupted_by: None,
-        } => policy.exit_codes.contains(&code),
-        _ => false,
+        } if policy.exit_codes.contains(&code) => Some(code),
+        _ => None,
     }
 }
 
@@ -78,10 +88,15 @@ pub fn retry_decision(
     let Some(policy) = job.retry.as_ref() else {
         return RetryDecision::Stop;
     };
-    if !is_retry_target(policy, execution) || retries_done >= policy.max {
+    let Some(last_exit_code) = retry_target_code(policy, execution) else {
+        return RetryDecision::Stop;
+    };
+    if retries_done >= policy.max {
         return RetryDecision::Stop;
     }
     RetryDecision::Retry {
         wait_secs: next_wait_secs(policy, retries_done, last_wait_secs),
+        last_exit_code,
+        max: policy.max,
     }
 }

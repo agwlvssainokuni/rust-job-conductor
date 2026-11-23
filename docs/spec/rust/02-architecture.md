@@ -54,7 +54,7 @@
 | `classify_and_decide` | `(job, execution, job_states: &[JobState], definition: &PipelineDefinition, run_mode: RunMode) -> (JobOutcome, NextStep)` | 分類して、次の動きと完了を決める。05 の 3 章 |
 | `decide_before_run` | `(job_id: &str, definition: &PipelineDefinition, job_states: &[JobState], resume_job_id: Option<&str>, end_reached: bool) -> Decision` | 起動前の判断(Run / Skip / Reject)。05 の 4 章 |
 | `resume_point_on_interrupt` | `(definition: &PipelineDefinition, job_states: &[JobState]) -> ResumePoint` | ジョブのあいだの中断の再開位置。05 の 9 章 |
-| `retry_decision` | `(job: &JobDefinition, execution: &JobExecution, retries_done: u32, last_wait_secs: u64) -> RetryDecision` | リトライするか(`Stop` または `Retry { wait_secs }`)。05 の 7 章 |
+| `retry_decision` | `(job: &JobDefinition, execution: &JobExecution, retries_done: u32, last_wait_secs: u64) -> RetryDecision` | リトライするか(`Stop` または `Retry { wait_secs, last_exit_code, max }`)。05 の 7 章 |
 | `resolve_transition`(v0.9.0 以降) | `(job: &JobDefinition, on: TransitionOn, definition: &PipelineDefinition, index: usize) -> TransitionResolution` | 結果 `on` の遷移の行き先の解決(`End` / `Job(位置)` / `Default`)。`classify_and_decide` と、図の辺の取り出し(`graph::flow_edges`)が共有する。05 の 3.2 |
 | `parse_env_file`(v0.9.0 以降) | `(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvFileError>>` | `.env` の文字列の解析(純粋)。03 の 6.7 |
 | `merge_env`(v0.9.0 以降) | `(def: &PipelineDefinition, job: &JobDefinition, files: &LoadedEnvFiles, ctx: &EnvContext<'_>) -> EffectiveEnv` | 層を統合して、ジョブに足す環境を作る(純粋)。05 の 14 章 |
@@ -87,7 +87,7 @@
 | `NextStep` | `{ job_id, next_job_id, skipped_job_ids, skip_reason_kind, end_reached, completed, resume_job_id }` |
 | `RunMode` | `Individual` / `Pipeline` |
 | `ResumePoint` | `{ resume_job_id, end_reached, completed }` |
-| `RetryDecision` | `Stop` / `Retry { wait_secs: u64 }` |
+| `RetryDecision` | `Stop` / `Retry { wait_secs: u64, last_exit_code: i32, max: u32 }`(リトライの対象になった最後の終了コードと、最大回数を持つ) |
 
 #### エラー(`error`)
 

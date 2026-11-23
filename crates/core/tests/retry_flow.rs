@@ -51,8 +51,12 @@ fn exited(j: &JobDefinition, code: i32) -> JobExecution {
     JobExecution::exited(j, code)
 }
 
-fn retry(wait_secs: u64) -> RetryDecision {
-    RetryDecision::Retry { wait_secs }
+/// 判断の待ち時間(`Retry` のときだけ `Some`)。
+fn wait_of(d: RetryDecision) -> Option<u64> {
+    match d {
+        RetryDecision::Retry { wait_secs, .. } => Some(wait_secs),
+        RetryDecision::Stop => None,
+    }
 }
 
 // ---- 対象(BR2.1) ----
@@ -60,7 +64,7 @@ fn retry(wait_secs: u64) -> RetryDecision {
 #[test]
 fn 対象の終了コードなら_リトライする() {
     let j = job(WITH_RETRY);
-    assert_eq!(retry_decision(&j, &exited(&j, 75), 0, 0), retry(30));
+    assert_eq!(wait_of(retry_decision(&j, &exited(&j, 75), 0, 0)), Some(30));
 }
 
 #[test]
@@ -146,7 +150,10 @@ fn 終了コードがない実行は_停止する() {
 #[test]
 fn ジョブ自身の_127_は_一覧にあれば_リトライする() {
     let j = job(WITH_RETRY);
-    assert_eq!(retry_decision(&j, &exited(&j, 127), 0, 0), retry(30));
+    assert_eq!(
+        wait_of(retry_decision(&j, &exited(&j, 127), 0, 0)),
+        Some(30)
+    );
 }
 
 #[test]
@@ -172,7 +179,11 @@ fn max_回目までリトライし_その次で停止する() {
     let j = job(WITH_RETRY); // max = 3
     let e = exited(&j, 75);
     for done in 0..3 {
-        assert_eq!(retry_decision(&j, &e, done, 30), retry(30), "done={done}");
+        assert_eq!(
+            wait_of(retry_decision(&j, &e, done, 30)),
+            Some(30),
+            "done={done}"
+        );
     }
     assert_eq!(retry_decision(&j, &e, 3, 30), RetryDecision::Stop);
     assert_eq!(retry_decision(&j, &e, 4, 30), RetryDecision::Stop);
@@ -199,7 +210,7 @@ fn waits(j: &JobDefinition, max: u32) -> Vec<u64> {
     let mut out = Vec::new();
     for done in 0..max {
         match retry_decision(j, &e, done, last) {
-            RetryDecision::Retry { wait_secs } => {
+            RetryDecision::Retry { wait_secs, .. } => {
                 out.push(wait_secs);
                 last = wait_secs;
             }
@@ -232,9 +243,9 @@ fn 極端に大きい値でも_桁あふれしない() {
     let j = backoff(u64::MAX / 2, 10, u64::MAX, 3);
     let e = exited(&j, 75);
     assert_eq!(
-        retry_decision(&j, &e, 1, u64::MAX / 2),
-        retry(u64::MAX),
+        wait_of(retry_decision(&j, &e, 1, u64::MAX / 2)),
+        Some(u64::MAX),
         "掛け算は飽和し、上限で止まる"
     );
-    assert_eq!(retry_decision(&j, &e, 2, u64::MAX), retry(u64::MAX));
+    assert_eq!(wait_of(retry_decision(&j, &e, 2, u64::MAX)), Some(u64::MAX));
 }

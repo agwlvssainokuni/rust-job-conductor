@@ -20,8 +20,7 @@
 //! リトライの回数と、直前の待ち時間は、この関数のローカルな値で、ステートファイルには書かない。
 
 use conductor_core::{
-    EnvContext, ExecutionResult, JobDefinition, JobExecution, RetryDecision, merge_env,
-    retry_decision,
+    EnvContext, JobDefinition, JobExecution, RetryDecision, merge_env, retry_decision,
 };
 use conductor_runtime::{CommandLine, InterruptSignal, WaitOutcome};
 
@@ -62,21 +61,12 @@ pub(crate) fn run_job_with_retry(
             },
         );
         let execution = ctx.runtime.run_job(job, line, &env.additions(), signal);
-        let RetryDecision::Retry { wait_secs } =
-            retry_decision(job, &execution, retries_done, last_wait_secs)
-        else {
-            return execution;
-        };
-
-        // `Retry` は、リトライの設定があり、結果が終了コードつきの `Exited` のときだけ返る
-        // (`is_retry_target`)。else はそれに当たらない場合で、リトライしないのと同じ結果にする。
-        let (
-            Some(policy),
-            ExecutionResult::Exited {
-                exit_code: Some(last_exit_code),
-                ..
-            },
-        ) = (job.retry.as_ref(), &execution.result)
+        // `Retry` は、リトライの対象になった最後の終了コードと、最大回数を持つ(BR2.4)。
+        let RetryDecision::Retry {
+            wait_secs,
+            last_exit_code,
+            max,
+        } = retry_decision(job, &execution, retries_done, last_wait_secs)
         else {
             return execution;
         };
@@ -84,9 +74,9 @@ pub(crate) fn run_job_with_retry(
         // 待機の前に、常に知らせる(BR2.4)。
         ctx.show(&DisplayEvent::RetryScheduled {
             job_id: &job.id,
-            last_exit_code: *last_exit_code,
+            last_exit_code,
             retry_number: retries_done + 1,
-            max: policy.max,
+            max,
             wait_secs,
         });
 

@@ -478,9 +478,12 @@ else: RunId::parse(value) が失敗なら 68(`invalid value: '<subject>'`)、成
 
 ```text
 policy = job.retry か、無ければ return Stop
-if not is_retry_target(policy, execution) or retries_done >= policy.max: return Stop
-return Retry { wait_secs: next_wait_secs(policy, retries_done, last_wait_secs) }
+code = retry_target_code(policy, execution)      # 対象の終了コード。条件は is_retry_target と同じ。対象でなければ無し
+if code が無い or retries_done >= policy.max: return Stop
+return Retry { wait_secs: next_wait_secs(policy, retries_done, last_wait_secs), last_exit_code: code, max: policy.max }
 ```
+
+- `Retry` は、待機の前の知らせ(§7.6)に使う、対象になった最後の終了コード `last_exit_code` と最大回数 `max` を持つ。呼ぶ側は、実行結果と設定を取り出し直さない。
 
 ### 7.4 待ち時間
 
@@ -518,8 +521,8 @@ loop:
     exec = run_job(job, line, env.additions(), signal) # line は検査で分割済み(どの試行も同じ)。v0.9.5 までは run_job(job, env, signal) で、中で分け直した。v0.8.0 以前は run_job(job, signal)
     match retry_decision(job, exec, retries_done, last_wait_secs):
         Stop: return exec                          # 最後の結果
-        Retry{wait_secs}:
-            表示: 常に 1 行(§7.6)。retry_number = retries_done + 1
+        Retry{wait_secs, last_exit_code, max}:
+            表示: 常に 1 行(§7.6)。retry_number = retries_done + 1(最後の終了コードと最大回数は Retry のもの)
             match wait(wait_secs, signal):
                 Elapsed:        retries_done += 1; last_wait_secs = wait_secs; continue
                 Interrupted(n): return JobExecution::not_started(job, n)   # result = NotStarted{ signal: n }
