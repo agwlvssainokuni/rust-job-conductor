@@ -250,9 +250,8 @@ impl JobExecution {
 }
 
 /// ジョブの状態。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JobStatus {
-    #[default]
     Pending,
     Success,
     Warning,
@@ -579,7 +578,6 @@ mod tests {
     fn 新しいジョブの状態は_pending() {
         let s = JobState::pending("a");
         assert_eq!(s.status, JobStatus::Pending);
-        assert_eq!(JobStatus::default(), JobStatus::Pending);
         assert!(s.exit_code.is_none() && s.skip_reason.is_none());
     }
 }
