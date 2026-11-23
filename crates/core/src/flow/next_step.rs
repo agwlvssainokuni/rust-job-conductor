@@ -72,15 +72,17 @@ pub(crate) enum TransitionResolution {
 /// 位置 `index` のジョブ `job` が、結果 `on` で終わったときの遷移を解決する(BR1.1、BR1.5)。
 ///
 /// 純粋な関数。`classify_and_decide` と、図の辺の取り出しが、同じこの関数を呼ぶ。
+/// `position` は、ジョブ ID から記述順の位置を引く関数(最初に現れた位置。`classify_and_decide` は
+/// `definition.job_index`、図の辺の取り出しは 1 回だけ作った位置の表を渡す。2c)。
 pub(crate) fn resolve_transition(
     job: &JobDefinition,
     on: TransitionOn,
-    definition: &PipelineDefinition,
     index: usize,
+    position: impl Fn(&str) -> Option<usize>,
 ) -> TransitionResolution {
     match job.transition_for(on).map(|t| &t.next) {
         Some(TransitionTarget::End) => TransitionResolution::End,
-        Some(TransitionTarget::Job(target_id)) => match definition.job_index(target_id) {
+        Some(TransitionTarget::Job(target_id)) => match position(target_id) {
             Some(t) if t > index => TransitionResolution::Job(t),
             _ => TransitionResolution::Default,
         },
@@ -141,7 +143,7 @@ fn next_step(
             .collect()
     };
 
-    match resolve_transition(job, on, definition, index) {
+    match resolve_transition(job, on, index, |id| definition.job_index(id)) {
         TransitionResolution::End => {
             step.end_reached = true;
             let pending = pending_ids(index + 1, &jobs[index + 1..]);

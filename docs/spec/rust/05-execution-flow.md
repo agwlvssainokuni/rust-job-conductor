@@ -163,7 +163,7 @@ return low
 - 成功・警告のあと再開位置は無し。エラーのあとは必ずそのジョブ。
 - Individual の `@end` では、後ろのジョブを今は記録せず(空)、`end_reached = true` だけを記録する。後ろのジョブは、スケジューラが 1 つずつ `run` を呼んだときに `Skip(AfterEnd)` が返り、呼ばれたジョブだけ `skipped(byEnd)` と記録される(§4.2、§5.4)。
 - 自動のリトライ(ジョブ失敗の再実行)は、`[job.retry]` を書かない限りしない(§7)。
-- (v0.9.0 以降)遷移の行き先の解決は、純粋な関数 `resolve_transition(job, on, definition, index) -> TransitionResolution` に切り出してある。`End`(`@end`)、`Job(t)`(記述順で index より後ろのジョブの位置 `t`)、`Default`(遷移なし、または行き先が後ろのジョブでない場合。記述順で次のジョブ、最後なら完了)の 3 つを返す。`classify_and_decide` の判定表の「遷移」の列は、この関数の結果で決まり、`graph` の辺の取り出し(15 章)も、同じ関数を呼ぶ(図と実際の動きが食い違わない)。`classify_and_decide` の出力は、v0.8.0 と変わらない。
+- (v0.9.0 以降)遷移の行き先の解決は、純粋な関数 `resolve_transition(job, on, index, position) -> TransitionResolution` に切り出してある(crate の中の関数。`position` はジョブ ID から記述順の位置を引く関数で、`classify_and_decide` は `definition.job_index` を、図の辺の取り出しは 1 回だけ作った位置の表を渡す。v0.9.6 までは `resolve_transition(job, on, definition, index)` で、遷移先ごとに `job_index` の線形の探索をした)。`End`(`@end`)、`Job(t)`(記述順で index より後ろのジョブの位置 `t`)、`Default`(遷移なし、または行き先が後ろのジョブでない場合。記述順で次のジョブ、最後なら完了)の 3 つを返す。`classify_and_decide` の判定表の「遷移」の列は、この関数の結果で決まり、`graph` の辺の取り出し(15 章)も、同じ関数を呼ぶ(図と実際の動きが食い違わない)。`classify_and_decide` の出力は、v0.8.0 と変わらない。
 
 ### 3.3 `apply_outcome`(結果の記録。メモリ上)
 
@@ -750,8 +750,9 @@ return EffectiveEnv { job_id: job.id, entries: keep_last(items) }
 ジョブ(位置 `i`、`0` 始まり)ごとに、成功と警告の行き先の位置を決める。位置は、ジョブなら `0..n-1`、終点なら `n`(`n` = ジョブの数)。
 
 ```text
+positions = ジョブ ID → 記述順の位置 の表(最初に現れた位置を残す。flow_edges の最初に 1 回だけ作る)
 target_position(i, on):
-    match resolve_transition(job[i], on, definition, i):      # 05 の 3.2。実行と同じ関数
+    match resolve_transition(job[i], on, i, positions を引く関数):   # 05 の 3.2。実行と同じ関数
         End        → (n,   explicit = true)
         Job(t)     → (t,   explicit = true)
         Default    → (i+1, explicit = false)                  # 記述順の次。最後のジョブなら終点(n)

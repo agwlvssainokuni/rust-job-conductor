@@ -55,7 +55,7 @@
 | `decide_before_run` | `(job_id: &str, definition: &PipelineDefinition, job_states: &[JobState], resume_job_id: Option<&str>, end_reached: bool) -> Decision` | 起動前の判断(Run / Skip / Reject)。05 の 4 章 |
 | `resume_point_on_interrupt` | `(definition: &PipelineDefinition, job_states: &[JobState]) -> ResumePoint` | ジョブのあいだの中断の再開位置。05 の 9 章 |
 | `retry_decision` | `(job: &JobDefinition, execution: &JobExecution, retries_done: u32, last_wait_secs: u64) -> RetryDecision` | リトライするか(`Stop` または `Retry { wait_secs, last_exit_code, max }`)。05 の 7 章 |
-| `resolve_transition`(v0.9.0 以降。v0.9.7 以降は `flow::next_step` の crate の中の関数で、公開しない) | `(job: &JobDefinition, on: TransitionOn, definition: &PipelineDefinition, index: usize) -> TransitionResolution` | 結果 `on` の遷移の行き先の解決(`End` / `Job(位置)` / `Default`)。`classify_and_decide` と、図の辺の取り出し(`graph::flow_edges`)が共有する。05 の 3.2 |
+| `resolve_transition`(v0.9.0 以降。v0.9.7 以降は `flow::next_step` の crate の中の関数で、公開しない) | `(job: &JobDefinition, on: TransitionOn, index: usize, position: impl Fn(&str) -> Option<usize>) -> TransitionResolution`(`position` はジョブ ID から記述順の位置を引く関数。v0.9.6 までは `(job, on, definition, index)`) | 結果 `on` の遷移の行き先の解決(`End` / `Job(位置)` / `Default`)。`classify_and_decide` と、図の辺の取り出し(`graph::flow_edges`)が共有する。05 の 3.2 |
 | `parse_env_file`(v0.9.0 以降) | `(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvFileError>>` | `.env` の文字列の解析(純粋)。03 の 6.7 |
 | `merge_env`(v0.9.0 以降) | `(def: &PipelineDefinition, job: &JobDefinition, files: &LoadedEnvFiles, ctx: &EnvContext<'_>) -> EffectiveEnv` | 層を統合して、ジョブに足す環境を作る(純粋)。05 の 14 章 |
 | `env_file_refs`(v0.9.0 以降) | `(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<String>` | 読む対象の `env_file` の記述(重複なし、書いた順)。`None` は全ジョブ分 |

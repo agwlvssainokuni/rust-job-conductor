@@ -17,19 +17,22 @@
 //! 行き先は、実行のときに次のジョブを決める判断と同じ関数(crate の中の `resolve_transition`)で決める。
 //! 図と実行で、判断を二重に書かない(BR1.5、FR2.4)。
 
+use std::collections::HashMap;
+
 use super::{EdgeKind, EdgeTarget, FlowEdge};
 use crate::flow::{TransitionResolution, resolve_transition};
 use crate::types::{PipelineDefinition, TransitionOn};
 
 /// 結果 `on` で終わったときの行き先の位置を決める。ジョブは 0 から、終点は `jobs.len()`。
-/// 戻り値の 2 つ目は、遷移が書かれていたか。
+/// 戻り値の 2 つ目は、遷移が書かれていたか。`positions` は、ジョブ ID から記述順の位置を引く表。
 fn target_position(
     definition: &PipelineDefinition,
+    positions: &HashMap<&str, usize>,
     index: usize,
     on: TransitionOn,
 ) -> (usize, bool) {
     let job = &definition.job[index];
-    match resolve_transition(job, on, definition, index) {
+    match resolve_transition(job, on, index, |id| positions.get(id).copied()) {
         TransitionResolution::End => (definition.job.len(), true),
         TransitionResolution::Job(t) => (t, true),
         // 遷移がない。記述順で次のジョブ(最後のジョブなら終点。BR1.1)。
@@ -46,12 +49,17 @@ fn target_position(
 /// - `skipped_jobs` は、元と行き先のあいだのジョブ(終点なら、末尾まで。BR1.4)。
 pub fn flow_edges(definition: &PipelineDefinition) -> Vec<FlowEdge> {
     let jobs = &definition.job;
+    // 遷移先の位置の表を 1 回だけ作る(最初に現れた位置を残す。`job_index` と同じ結果。2c)。
+    let mut positions: HashMap<&str, usize> = HashMap::with_capacity(jobs.len());
+    for (index, job) in jobs.iter().enumerate() {
+        positions.entry(job.id.as_str()).or_insert(index);
+    }
     let mut edges = Vec::with_capacity(jobs.len() + 1);
     for (index, job) in jobs.iter().enumerate() {
         let (on_success, explicit_success) =
-            target_position(definition, index, TransitionOn::Success);
+            target_position(definition, &positions, index, TransitionOn::Success);
         let (on_warning, explicit_warning) =
-            target_position(definition, index, TransitionOn::Warning);
+            target_position(definition, &positions, index, TransitionOn::Warning);
         let mut pairs: Vec<(usize, Vec<EdgeKind>, bool)> = if on_success == on_warning {
             vec![(
                 on_success,
