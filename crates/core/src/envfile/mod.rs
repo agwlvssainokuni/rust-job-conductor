@@ -28,7 +28,7 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::error::{MAX_FILE_DISPLAY_CHARS, sanitize};
+use crate::error::render_error;
 use crate::run_id::env_name_rule;
 use crate::types::PipelineDefinition;
 
@@ -164,8 +164,6 @@ pub struct EnvFileError {
     /// 行番号(1 始まり)。位置が決まらない誤り(無い、大きすぎる)は `None`。
     pub line: Option<usize>,
     pub kind: EnvFileErrorKind,
-    /// 固定の文から作った理由。入力の値を含まない。
-    pub reason: String,
 }
 
 impl EnvFileError {
@@ -175,16 +173,16 @@ impl EnvFileError {
             file: file.into(),
             line,
             kind,
-            reason: kind.reason().to_string(),
         }
     }
 
+    /// 理由(種類の固定の文。入力の値を含まない)。v0.9.6 までは、同じ文の写しをフィールドに持った。
+    pub fn reason(&self) -> &'static str {
+        self.kind.reason()
+    }
+
     fn render(&self) -> String {
-        let file = sanitize(&self.file, MAX_FILE_DISPLAY_CHARS);
-        match self.line {
-            Some(line) => format!("{file}:{line}: {}: {}", self.kind, self.reason),
-            None => format!("{file}: {}: {}", self.kind, self.reason),
-        }
+        render_error(&self.file, self.line, &self.kind.to_string(), self.reason())
     }
 }
 

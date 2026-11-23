@@ -218,11 +218,17 @@ impl DefinitionError {
     }
 
     fn render(&self) -> String {
-        let file = sanitize(&self.file, MAX_FILE_DISPLAY_CHARS);
-        match self.line {
-            Some(line) => format!("{file}:{line}: {}: {}", self.kind, self.reason),
-            None => format!("{file}: {}: {}", self.kind, self.reason),
-        }
+        render_error(&self.file, self.line, &self.kind.to_string(), &self.reason)
+    }
+}
+
+/// 誤りの表示の書式(`<ファイル>:<行>: <種類>: <理由>`。行が無ければ `<ファイル>: <種類>: <理由>`)。
+/// ファイル名は表示用に整える(NFR4.2)。定義の誤りと `.env` の誤りが共有する。
+pub(crate) fn render_error(file: &str, line: Option<usize>, kind: &str, reason: &str) -> String {
+    let file = sanitize(file, MAX_FILE_DISPLAY_CHARS);
+    match line {
+        Some(line) => format!("{file}:{line}: {kind}: {reason}"),
+        None => format!("{file}: {kind}: {reason}"),
     }
 }
 
