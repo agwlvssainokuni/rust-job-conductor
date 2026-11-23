@@ -60,7 +60,7 @@ pub(crate) use reserved_env_prefix;
 pub(crate) const RESERVED_ENV_PREFIX: &str = reserved_env_prefix!();
 
 /// 予約名(ASCII の大文字にして `CONDUCTOR_` で始まる名前)か(BR1.3)。
-pub fn is_reserved_env_name(name: &str) -> bool {
+pub(crate) fn is_reserved_env_name(name: &str) -> bool {
     name.len() >= RESERVED_ENV_PREFIX.len()
         && name.as_bytes()[..RESERVED_ENV_PREFIX.len()]
             .eq_ignore_ascii_case(RESERVED_ENV_PREFIX.as_bytes())
