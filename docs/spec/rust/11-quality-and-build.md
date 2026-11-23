@@ -159,7 +159,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示 | `core/tests/nfr_security.rs`、`runtime/tests/nfr_content.rs`、`converter/tests/nfr_security.rs` |
 | ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | `runtime/tests/nfr_content.rs` |
 | 環境変数の値を出さない(v0.9.0 以降) | `env`・`.env` の値(秘密のつもりの文字列)が、標準出力、標準エラー(`-v` を含む)、ステートファイルに現れない。`graph`・`--dry-run` の出力にも現れず、名前だけが出る。`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` の表示にも値が現れない。値を持つ型の `Debug` は値を `"***"` にする | `cli/tests/binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`core/tests/nfr_security.rs`、`env_types.rs` |
-| 表示のエスケープの表 | `escape_display`(本体は core)が期待値の表のとおりで、core の `sanitize`・converter の写しと同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/tests/escape_table.rs` |
+| 表示のエスケープの表 | `escape_display`(本体は core)が期待値の表のとおりで、converter の写しと同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/tests/escape_table.rs` |
 | ネットワークに接続しない | `src/` に `std::net` などがない。依存に HTTP・TLS のライブラリがない | `cli/tests/nfr_source.rs` |
 | `unsafe` | runtime は `platform/unix.rs` の 1 回(`libc::kill`)だけ。cli は禁止(`#![forbid(unsafe_code)]`)。`low_level` を使わない | `runtime/tests/nfr_source.rs`、`cli/tests/nfr_source.rs` |
 | シグナルの送信 | ジョブの子プロセスの pid だけ(0 以下にならない)、許可した 4 つのシグナルだけ、1 回だけ | `runtime/src/platform/unix.rs` の単体、`runner_signal.rs` |

@@ -602,7 +602,7 @@ Options:
 | `abcdef` | 3 | `abc…` |
 | (空) | 64 | (空) |
 
-本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを再公開する(core の `sanitize` は上限つきで同じ関数を呼ぶ。定義の誤りの文を作るときに使う)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。`tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
+本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを再公開する(core は、定義の誤りの文を作るときに上限つきで呼ぶ)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。`tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
 
 ## 10. 実装と README の差
 

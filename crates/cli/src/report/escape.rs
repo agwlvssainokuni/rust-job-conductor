@@ -14,7 +14,7 @@
 
 //! 表示の安全(Escape。NFR4.2)。入力に由来する文字列を、端末に出せる形にする。
 //!
-//! 本体は conductor-core の `escape_display`(`sanitize` も同じ関数を呼ぶ)で、ここは再公開と、
+//! 本体は conductor-core の `escape_display` で、ここは再公開と、
 //! 名前・パスの薄い包みだけを持つ。conductor-converter は core に依存しないため、同じ規則の写しを
 //! 持ち、`tests/escape_table.rs` と converter の単体テストの、同じ期待値の表で揃える。
 

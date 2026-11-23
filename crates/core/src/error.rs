@@ -170,7 +170,7 @@ impl DefinitionError {
 /// 誤りの表示の書式(`<ファイル>:<行>: <種類>: <理由>`。行が無ければ `<ファイル>: <種類>: <理由>`)。
 /// ファイル名は表示用に整える(NFR4.2)。定義の誤りと `.env` の誤りが共有する。
 pub(crate) fn render_error(file: &str, line: Option<usize>, kind: &str, reason: &str) -> String {
-    let file = sanitize(file, MAX_FILE_DISPLAY_CHARS);
+    let file = escape_display(file, Some(MAX_FILE_DISPLAY_CHARS));
     match line {
         Some(line) => format!("{file}:{line}: {kind}: {reason}"),
         None => format!("{file}: {kind}: {reason}"),
@@ -201,14 +201,6 @@ pub fn escape_display(input: &str, limit: Option<usize>) -> String {
     out
 }
 
-/// 入力に由来する文字列を、表示用に整える。制御文字をエスケープし、`max_chars` 文字で切る。
-///
-/// 本文はエスケープ後の文字数で `max_chars` 文字以内。切ったときは末尾に `…` を足す
-/// (全体は最大で `max_chars + 1` 文字。[`escape_display`] の上限つき)。
-pub fn sanitize(input: &str, max_chars: usize) -> String {
-    escape_display(input, Some(max_chars))
-}
-
 fn escape_char(c: char) -> String {
     match c {
         '\n' => "\\n".to_string(),
@@ -235,7 +227,7 @@ fn is_format_char(c: char) -> bool {
 
 /// キー名を、エラーの理由に入れる形(引用符つき、エスケープと 64 文字の切り詰め)にする。
 pub(crate) fn quote_key(key: &str) -> String {
-    format!("`{}`", sanitize(key, MAX_KEY_DISPLAY_CHARS))
+    format!("`{}`", escape_display(key, Some(MAX_KEY_DISPLAY_CHARS)))
 }
 
 /// バイトの位置から、行番号(1 始まり)を求める(Locate)。
@@ -278,11 +270,11 @@ mod tests {
             '\u{200B}', '\u{200F}', '\u{2028}', '\u{2029}', '\u{202A}', '\u{202E}', '\u{2066}',
             '\u{2069}', '\u{FEFF}',
         ] {
-            let out = sanitize(&format!("a{c}b"), 64);
+            let out = escape_display(&format!("a{c}b"), Some(64));
             assert_eq!(out, format!("a\\u{{{:x}}}b", c as u32));
             assert!(!out.contains(c));
         }
-        assert_eq!(sanitize("日本語 abc", 64), "日本語 abc");
+        assert_eq!(escape_display("日本語 abc", Some(64)), "日本語 abc");
     }
 
     #[test]
@@ -314,25 +306,25 @@ mod tests {
 
     #[test]
     fn キー名の制御文字はエスケープされる() {
-        assert_eq!(sanitize("a\nb\x1b[0m", 64), "a\\nb\\u{1b}[0m");
+        assert_eq!(escape_display("a\nb\x1b[0m", Some(64)), "a\\nb\\u{1b}[0m");
         assert_eq!(quote_key("k\tx"), "`k\\tx`");
     }
 
     #[test]
     fn キー名は_64_文字で切られる() {
         let long = "k".repeat(200);
-        let s = sanitize(&long, MAX_KEY_DISPLAY_CHARS);
+        let s = escape_display(&long, Some(MAX_KEY_DISPLAY_CHARS));
         assert_eq!(s.chars().count(), MAX_KEY_DISPLAY_CHARS + 1);
         assert!(s.ends_with('…'));
         // ちょうど 64 文字は切らない
         let exact = "k".repeat(64);
-        assert_eq!(sanitize(&exact, 64), exact);
+        assert_eq!(escape_display(&exact, Some(64)), exact);
     }
 
     #[test]
     fn エスケープ後も_64_文字を超えない() {
         // 名前の「64 文字」は、`…` を除いた本文の文字数。
-        let s = sanitize(&"\n".repeat(100), 64);
+        let s = escape_display(&"\n".repeat(100), Some(64));
         assert_eq!(s.chars().count(), 64 + 1);
     }
 

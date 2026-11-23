@@ -14,7 +14,7 @@
 
 //! `escape_display` の、同じ入力と期待値の表(conductor-core・conductor-converter と揃える。NFR4.2)。
 //!
-//! cli の `escape_display` は conductor-core の本体の再公開で、core の `sanitize` も同じ関数を使う。
+//! cli の `escape_display` は conductor-core の本体の再公開。
 //! このテストは期待値の表を固定する。conductor-converter の同じ規則の写しは、非公開のため、
 //! converter の単体テストにある、同じ期待値の表で揃える。
 
@@ -49,17 +49,6 @@ fn table() -> Vec<(String, usize, String)> {
 fn 期待値の表のとおりにエスケープされ_切り詰められる() {
     for (input, limit, expected) in table() {
         assert_eq!(escape_display(&input, Some(limit)), expected, "{input:?}");
-    }
-}
-
-#[test]
-fn u1_core_の_sanitize_と同じ結果() {
-    for (input, limit, _) in table() {
-        assert_eq!(
-            escape_display(&input, Some(limit)),
-            conductor_core::sanitize(&input, limit),
-            "{input:?}"
-        );
     }
 }
 

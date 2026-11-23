@@ -101,9 +101,7 @@ pub use envfile::{
     EnvFileErrorKind, EnvOrigin, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs,
     is_reserved_env_name, merge_env, parse_env_file, summarize_errors,
 };
-pub use error::{
-    DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display, sanitize,
-};
+pub use error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display};
 pub use flow::{
     RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide,
     decide_before_run, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision,
