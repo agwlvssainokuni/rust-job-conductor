@@ -128,12 +128,15 @@ pub(crate) fn split(command: &str) -> Result<CommandLine, CommandError> {
     }
 }
 
-/// `command` を、プログラムと引数の列にする。
+/// command を、起動せずに検査し、プログラムと引数の列にする(契約 C3 の `check_command`。BR1.1、NFR4.2)。
 ///
-/// - [`Command::Line`] は、[`split`] で分ける。
+/// - [`Command::Line`] は、[`split`] で分ける。分けられるなら `Ok`(分けた結果を返す)、閉じていない
+///   引用符や空の command は [`CommandError`]。
 /// - [`Command::Argv`] は、要素をそのまま引数の列にする(分割も展開もしない)。先頭の要素が空の
 ///   とき(定義の検査で防ぐが、二重の検査として)と、要素がないときは [`CommandErrorKind::Empty`]。
-pub(crate) fn command_line(command: &Command) -> Result<CommandLine, CommandError> {
+///
+/// 呼び出し側(Cli)は、実行の前に全ジョブの command を検査して、定義の誤りとして報告する。
+pub fn check_command(command: &Command) -> Result<CommandLine, CommandError> {
     match command {
         Command::Line(line) => split(line),
         Command::Argv(argv) => {
@@ -147,15 +150,6 @@ pub(crate) fn command_line(command: &Command) -> Result<CommandLine, CommandErro
             }
         }
     }
-}
-
-/// command を、起動せずに検査する(契約 C3 の `check_command`。BR1.1、NFR4.2)。
-///
-/// 文字列は、分けられるなら `Ok`(分けた結果を返す)、閉じていない引用符や空の command は
-/// [`CommandError`]。配列は、要素をそのまま返す(先頭が空なら [`CommandError`])。呼び出し側(Cli)は、
-/// 実行の前に全ジョブの command を検査して、定義の誤りとして報告する。
-pub fn check_command(command: &Command) -> Result<CommandLine, CommandError> {
-    command_line(command)
 }
 
 #[cfg(test)]

@@ -149,7 +149,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 ### 3.5 配列形式の扱い
 
-`Command::Argv(argv)`(`command_line` 関数):
+`Command::Argv(argv)`(`check_command` の配列の枝):
 
 - 要素を一切加工せずに使う。先頭が `program`、残りが `args`。分割、引用符の解釈、展開、前後の空白の除去をしない
   (`"  lead and trail  "` も、そのまま 1 つの引数)。
