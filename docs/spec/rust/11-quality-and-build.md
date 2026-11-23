@@ -115,6 +115,12 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 計画の生成(v0.9.0 以降)。ジョブ 1,000 個がすべて `env` と `env_file` を持ち、すべて実行する計画(`plan_pipeline`) | 1 秒以内 | **強制** | `core/tests/plan_perf.rs` |
 | `@end` に着いたときの残りのジョブの列挙。ジョブ 1,000 個、先頭のジョブの成功で `@end`(`classify_and_decide`、`RunMode::Pipeline`)を 100 回 | 5 回の中央値が 50 ms 以内 | **強制** | `core/tests/flow_perf.rs` |
 | `.env` の層の統合(`merge_env`)。1 ファイル 10,000 項目(すべて別の名前)/ 2 ファイル 10,000 項目ずつ(同じ名前。後ろが勝つ) | 5 回の中央値が 50 ms / 100 ms 以内 | **強制** | `core/tests/env_merge_perf.rs` |
+| 計画の模擬(v0.9.7 以降)。ジョブ 1,000 個がすべて実行する計画(ステート・`.env` なし。P1)/ `run j0` で `@end` に着いた後のステートから、残り 999 個を `@end` のあとでスキップする計画(P2)を、それぞれ 1 回 | 5 回の中央値が 150 ms / 150 ms 以内(debug) | **強制** | `core/tests/plan_simulate_perf.rs` |
+| 図の重ね合わせ(v0.9.7 以降)。ジョブ 1,000 個の `build_graph(def, Some(overlay))` を 100 回(P3) | 5 回の中央値が 350 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
+| 図の辺の取り出し(v0.9.7 以降)。ジョブ 1,000 個、遷移 1,996 個の `flow_edges` を 100 回(P4) | 5 回の中央値が 600 ms 以内(debug) | **強制** | `core/tests/graph_lookup_perf.rs` |
+| `.env` の解析の重複キー(v0.9.7 以降)。10,000 行で後半 5,000 行が前半の名前の逆順の重複の `parse_env_file` を 1 回(P5) | 5 回の中央値が 100 ms 以内(debug) | **強制** | `core/tests/env_parse_perf.rs` |
+
+P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 約 31 ms、P3 約 71 ms、P4 約 118 ms、P5 約 22 ms)の約 5 倍の、余裕のある値で、遅い CI(特に Windows の debug)で落ちず、大きな退行だけを止める。直す前の形(v0.9.6 まで。手元の debug で P1 約 95 ms、P2 約 104 ms、P3 約 369 ms、P4 約 689 ms、P5 約 103 ms)に戻ったことは、このテストでは検知できない。各テストは、時間と一緒に結果の中身(扱いの並び、重ね合わせの状態、辺の数と行き先、`.env` の項目の並びと値と警告)も確かめる。
 
 測定のしくみ: p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は `[bench] <行>` として標準エラーに出し、環境変数 `GITHUB_STEP_SUMMARY`
 があれば、そのファイルに `- <行>` として追記する。基準を超えたときは `警告: ...` を出す。環境変数 `STARTUP_BENCH_ENFORCE` が文字列 `true` のときだけ、
@@ -205,6 +211,7 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | `graph_types.rs`、`graph_edges.rs`、`graph_overlay.rs`、`graph_drawable.rs`、`graph_layout_oracle.rs`、`graph_shape_skip.rs`、`graph_shape_same_target.rs`、`graph_shape_both.rs`、`graph_shape_branch.rs`、`graph_perf.rs` | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定(4 つの種類。定義から作れる形はすべて対応する形で、範囲の外の形は図の構造を直接作って確かめる)、配置を正解データと 1 文字単位で照合(git の出力: `fixtures/graph_layout_oracle.md`、537 例、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例、交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。規則から導いた図で、git の出力ではない: 分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例(主線の列 0 の規則で作り直した第 2 版)、「両方の飛び越し」か分岐を含むジョブ 3〜5 個の全形 `fixtures/graph_layout_oracle_offmain.md`、2,748 例、ジョブ 6〜7 個の `fixtures/graph_layout_oracle_offmain_67.md`、300 例)、形ごとの図の全文: 通常の飛び越しと交差の例 C1〜C3(`graph_shape_skip.rs`)、同じ行き先と交差に同じ行き先が混ざる例 M2〜M4(`graph_shape_same_target.rs`)、「両方の飛び越し」の例 D1〜D7 と組み合わせ N1、N3、N4(`graph_shape_both.rs`)、分岐の例 B1〜B4 と組み合わせ N2、N5(`graph_shape_branch.rs`)、辺の一覧に残る形と主線の列 0 の記号(`graph_drawable.rs`)、1,000 ジョブの性能(幅の広い交差、「両方の飛び越し」と分岐の入れ子・交差を含む。`graph_perf.rs`。05 の 15 章)。`graph_common/mod.rs` は補助(`definition`、`letters`、`letter_definition`、`lanes`、`both` など) |
 | `plan_types.rs`、`plan_pipeline.rs`、`plan_run.rs`、`plan_assume.rs`、`plan_perf.rs` | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)、1,000 ジョブの性能(05 の 16 章) |
 | `flow_perf.rs`、`env_merge_perf.rs` | `@end` に着いたときの残りのジョブの列挙(ジョブ 1,000 個)と、`merge_env`(`.env` 10,000 項目)の性能(3.1 節の表)。結果の中身(並び、出どころ)も確かめる |
+| `plan_simulate_perf.rs`、`graph_lookup_perf.rs`、`env_parse_perf.rs` | v0.9.7 以降。計画の模擬(P1、P2)、図の重ね合わせ(P3)と辺の取り出し(P4)、`.env` の解析の重複キー(P5)の性能(3.1 節の表)。結果の中身も確かめる |
 | `fixtures/valid_pipeline.toml`、`fixtures/multiple_errors.toml`、`fixtures/graph_layout_oracle*.md` | 入力例、配置の正解データ(後者は v0.9.0 以降。7 つ。上の `graph_layout_oracle.rs` の行) |
 | `common/mod.rs` | 補助(`SECRET`、`run`・`kinds`(定義の検査の結果)、`median`、`state(jobs, resume, completed)`、`job(id)`、`exited(job_id, code)`) |
 
