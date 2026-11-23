@@ -36,7 +36,7 @@ fn job_with_policy(policy: RetryPolicy) -> JobDefinition {
     j
 }
 
-fn exec(_j: &JobDefinition) -> JobExecution {
+fn exec() -> JobExecution {
     JobExecution::new(ExecutionResult::Exited {
         exit_code: None,
         terminated_by_signal: None,
@@ -44,7 +44,7 @@ fn exec(_j: &JobDefinition) -> JobExecution {
     })
 }
 
-fn exited(_j: &JobDefinition, code: i32) -> JobExecution {
+fn exited(code: i32) -> JobExecution {
     JobExecution::exited(code)
 }
 
@@ -61,38 +61,26 @@ fn wait_of(d: RetryDecision) -> Option<u64> {
 #[test]
 fn 対象の終了コードなら_リトライする() {
     let j = job(WITH_RETRY);
-    assert_eq!(wait_of(retry_decision(&j, &exited(&j, 75), 0, 0)), Some(30));
+    assert_eq!(wait_of(retry_decision(&j, &exited(75), 0, 0)), Some(30));
 }
 
 #[test]
 fn リトライの設定がなければ_停止する() {
     let j = job(NO_RETRY);
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 75), 0, 0),
-        RetryDecision::Stop
-    );
+    assert_eq!(retry_decision(&j, &exited(75), 0, 0), RetryDecision::Stop);
 }
 
 #[test]
 fn 一覧にない終了コードは_停止する() {
     let j = job(WITH_RETRY);
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 76), 0, 0),
-        RetryDecision::Stop
-    );
+    assert_eq!(retry_decision(&j, &exited(76), 0, 0), RetryDecision::Stop);
 }
 
 #[test]
 fn 成功と警告の終了コードは_停止する() {
     let j = job(WITH_RETRY);
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 0), 0, 0),
-        RetryDecision::Stop
-    );
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 1), 0, 0),
-        RetryDecision::Stop
-    );
+    assert_eq!(retry_decision(&j, &exited(0), 0, 0), RetryDecision::Stop);
+    assert_eq!(retry_decision(&j, &exited(1), 0, 0), RetryDecision::Stop);
 }
 
 #[test]
@@ -135,16 +123,13 @@ fn 起動前に中断された実行は_停止する() {
 #[test]
 fn 終了コードがない実行は_停止する() {
     let j = job(WITH_RETRY);
-    assert_eq!(retry_decision(&j, &exec(&j), 0, 0), RetryDecision::Stop);
+    assert_eq!(retry_decision(&j, &exec(), 0, 0), RetryDecision::Stop);
 }
 
 #[test]
 fn ジョブ自身の_127_は_一覧にあれば_リトライする() {
     let j = job(WITH_RETRY);
-    assert_eq!(
-        wait_of(retry_decision(&j, &exited(&j, 127), 0, 0)),
-        Some(30)
-    );
+    assert_eq!(wait_of(retry_decision(&j, &exited(127), 0, 0)), Some(30));
 }
 
 #[test]
@@ -157,10 +142,7 @@ fn ジョブ自身の_127_でも_一覧になければ_停止する() {
         interval_secs: 1,
         backoff: None,
     });
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 127), 0, 0),
-        RetryDecision::Stop
-    );
+    assert_eq!(retry_decision(&j, &exited(127), 0, 0), RetryDecision::Stop);
 }
 
 // ---- 回数(BR2.2) ----
@@ -168,7 +150,7 @@ fn ジョブ自身の_127_でも_一覧になければ_停止する() {
 #[test]
 fn max_回目までリトライし_その次で停止する() {
     let j = job(WITH_RETRY); // max = 3
-    let e = exited(&j, 75);
+    let e = exited(75);
     for done in 0..3 {
         assert_eq!(
             wait_of(retry_decision(&j, &e, done, 30)),
@@ -196,7 +178,7 @@ fn backoff(interval: u64, multiplier: u32, max_interval: u64, max: u32) -> JobDe
 
 /// 判断の列を、呼び出し側と同じ手順(直前の待ち時間を引き継ぐ)で回し、待ち時間の列を返す。
 fn waits(j: &JobDefinition, max: u32) -> Vec<u64> {
-    let e = exited(j, 75);
+    let e = exited(75);
     let mut last = 0;
     let mut out = Vec::new();
     for done in 0..max {
@@ -232,7 +214,7 @@ fn 上限と同じ間隔なら_ずっと同じ待ち時間() {
 #[test]
 fn 極端に大きい値でも_桁あふれしない() {
     let j = backoff(u64::MAX / 2, 10, u64::MAX, 3);
-    let e = exited(&j, 75);
+    let e = exited(75);
     assert_eq!(
         wait_of(retry_decision(&j, &e, 1, u64::MAX / 2)),
         Some(u64::MAX),
@@ -247,7 +229,7 @@ fn 極端に大きい値でも_桁あふれしない() {
 fn リトライの判断は_最後の終了コードと最大回数を持つ() {
     let j = job(WITH_RETRY); // exit_codes = [75, 127]、max = 3、interval = 30s
     assert_eq!(
-        retry_decision(&j, &exited(&j, 75), 0, 0),
+        retry_decision(&j, &exited(75), 0, 0),
         RetryDecision::Retry {
             wait_secs: 30,
             last_exit_code: 75,
@@ -256,7 +238,7 @@ fn リトライの判断は_最後の終了コードと最大回数を持つ() {
     );
     // ジョブ自身が返した 127 は、その終了コードを持つ。
     assert_eq!(
-        retry_decision(&j, &exited(&j, 127), 0, 0),
+        retry_decision(&j, &exited(127), 0, 0),
         RetryDecision::Retry {
             wait_secs: 30,
             last_exit_code: 127,
@@ -266,7 +248,7 @@ fn リトライの判断は_最後の終了コードと最大回数を持つ() {
     // 倍率つき(max 5)の 2 回目。
     let b = backoff(10, 2, 60, 5);
     assert_eq!(
-        retry_decision(&b, &exited(&b, 75), 1, 10),
+        retry_decision(&b, &exited(75), 1, 10),
         RetryDecision::Retry {
             wait_secs: 20,
             last_exit_code: 75,
@@ -274,12 +256,6 @@ fn リトライの判断は_最後の終了コードと最大回数を持つ() {
         }
     );
     // 一覧に無い終了コードと、回数を使い切ったときは停止。
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 76), 0, 0),
-        RetryDecision::Stop
-    );
-    assert_eq!(
-        retry_decision(&j, &exited(&j, 75), 3, 30),
-        RetryDecision::Stop
-    );
+    assert_eq!(retry_decision(&j, &exited(76), 0, 0), RetryDecision::Stop);
+    assert_eq!(retry_decision(&j, &exited(75), 3, 30), RetryDecision::Stop);
 }

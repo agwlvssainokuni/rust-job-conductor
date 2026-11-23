@@ -270,7 +270,7 @@ mod tests {
         }
     }
 
-    fn exec(_job: &str, code: Option<i32>) -> JobExecution {
+    fn exec(code: Option<i32>) -> JobExecution {
         JobExecution::new(ExecutionResult::Exited {
             exit_code: code,
             terminated_by_signal: None,
@@ -278,7 +278,7 @@ mod tests {
         })
     }
 
-    fn outcome(_job: &str, c: Option<Classification>) -> JobOutcome {
+    fn outcome(c: Option<Classification>) -> JobOutcome {
         JobOutcome {
             classification: c,
             reported_exit_code: 0,
@@ -286,7 +286,7 @@ mod tests {
         }
     }
 
-    fn step(_job: &str) -> NextStep {
+    fn step() -> NextStep {
         NextStep {
             next_job_id: None,
             skipped_job_ids: vec![],
@@ -330,9 +330,9 @@ mod tests {
         let s = apply_outcome(
             &s0,
             "a",
-            &exec("a", Some(0)),
-            &outcome("a", Some(Classification::Success)),
-            &step("a"),
+            &exec(Some(0)),
+            &outcome(Some(Classification::Success)),
+            &step(),
         );
         assert_eq!(status(&s, "a"), JobStatus::Success);
         assert_eq!(s.job_states[0].exit_code, Some(0));
@@ -351,21 +351,21 @@ mod tests {
         let w = apply_outcome(
             &s0,
             "a",
-            &exec("a", Some(2)),
-            &outcome("a", Some(Classification::Warning)),
-            &step("a"),
+            &exec(Some(2)),
+            &outcome(Some(Classification::Warning)),
+            &step(),
         );
         assert_eq!(
             (status(&w, "a"), w.job_states[0].exit_code),
             (JobStatus::Warning, Some(2))
         );
-        let mut next = step("b");
+        let mut next = step();
         next.resume_job_id = Some("b".into());
         let e = apply_outcome(
             &w,
             "b",
-            &exec("b", Some(7)),
-            &outcome("b", Some(Classification::Error)),
+            &exec(Some(7)),
+            &outcome(Some(Classification::Error)),
             &next,
         );
         assert_eq!(status(&e, "b"), JobStatus::Error);
@@ -379,9 +379,9 @@ mod tests {
         let s = apply_outcome(
             &s0,
             "a",
-            &exec("a", None),
-            &outcome("a", Some(Classification::Error)),
-            &step("a"),
+            &exec(None),
+            &outcome(Some(Classification::Error)),
+            &step(),
         );
         assert_eq!(
             (status(&s, "a"), s.job_states[0].exit_code),
@@ -393,13 +393,13 @@ mod tests {
     fn 再実行で古い終了コードが消え_エラーが解ければ再開位置も消える() {
         let d = definition(&["a", "b"]);
         let mut s = initial_state(&d, Path::new("c.toml"));
-        let mut next = step("a");
+        let mut next = step();
         next.resume_job_id = Some("a".into());
         s = apply_outcome(
             &s,
             "a",
-            &exec("a", Some(5)),
-            &outcome("a", Some(Classification::Error)),
+            &exec(Some(5)),
+            &outcome(Some(Classification::Error)),
             &next,
         );
         assert_eq!(s.job_states[0].exit_code, Some(5));
@@ -407,8 +407,8 @@ mod tests {
         s = apply_outcome(
             &s,
             "a",
-            &exec("a", None),
-            &outcome("a", Some(Classification::Error)),
+            &exec(None),
+            &outcome(Some(Classification::Error)),
             &next,
         );
         assert_eq!(s.job_states[0].exit_code, None);
@@ -416,9 +416,9 @@ mod tests {
         s = apply_outcome(
             &s,
             "a",
-            &exec("a", Some(0)),
-            &outcome("a", Some(Classification::Success)),
-            &step("a"),
+            &exec(Some(0)),
+            &outcome(Some(Classification::Success)),
+            &step(),
         );
         assert_eq!(
             (status(&s, "a"), s.resume_job_id),
@@ -430,9 +430,9 @@ mod tests {
     fn 起動しなかった中断は_status_を変えない() {
         let d = definition(&["a"]);
         let s0 = initial_state(&d, Path::new("c.toml"));
-        let mut e = exec("a", None);
+        let mut e = exec(None);
         e.result = ExecutionResult::NotStarted { signal: 2 };
-        let s = apply_outcome(&s0, "a", &e, &outcome("a", None), &step("a"));
+        let s = apply_outcome(&s0, "a", &e, &outcome(None), &step());
         assert_eq!(s.job_states[0], JobState::pending("a"));
     }
 
@@ -440,7 +440,7 @@ mod tests {
     fn 次の動きのスキップと理由を記録する() {
         let d = definition(&["a", "b", "c"]);
         let s0 = initial_state(&d, Path::new("c.toml"));
-        let mut next = step("a");
+        let mut next = step();
         next.skipped_job_ids = vec!["b".into(), "c".into()];
         next.skip_reason_kind = Some(SkipReason::ByEnd);
         next.end_reached = true;
@@ -448,8 +448,8 @@ mod tests {
         let s = apply_outcome(
             &s0,
             "a",
-            &exec("a", Some(0)),
-            &outcome("a", Some(Classification::Success)),
+            &exec(Some(0)),
+            &outcome(Some(Classification::Success)),
             &next,
         );
         assert_eq!(s.job_states[1].skip_reason, Some(SkipReason::ByEnd));
@@ -465,9 +465,9 @@ mod tests {
         let s = apply_outcome(
             &s,
             "a",
-            &exec("a", Some(0)),
-            &outcome("a", Some(Classification::Success)),
-            &step("a"),
+            &exec(Some(0)),
+            &outcome(Some(Classification::Success)),
+            &step(),
         );
         assert!(s.end_reached);
         let rp = ResumePoint {
@@ -485,9 +485,9 @@ mod tests {
         let s = apply_outcome(
             &s0,
             "zz",
-            &exec("zz", Some(0)),
-            &outcome("zz", Some(Classification::Success)),
-            &step("zz"),
+            &exec(Some(0)),
+            &outcome(Some(Classification::Success)),
+            &step(),
         );
         assert_eq!(s, s0);
         assert_eq!(apply_skip(&s0, "zz", SkipCause::SkipTarget, &d), s0);
@@ -552,14 +552,14 @@ mod tests {
     fn end_のあとの個別実行() {
         // A → @end。B と C は pending のまま(conductor-core の個別実行は、skipped_job_ids が空)。
         let d = definition(&["a", "b", "c"]);
-        let mut next = step("a");
+        let mut next = step();
         next.skip_reason_kind = Some(SkipReason::ByEnd);
         next.end_reached = true;
         let s = apply_outcome(
             &initial_state(&d, Path::new("c.toml")),
             "a",
-            &exec("a", Some(0)),
-            &outcome("a", Some(Classification::Success)),
+            &exec(Some(0)),
+            &outcome(Some(Classification::Success)),
             &next,
         );
         assert!(s.end_reached && !s.completed);

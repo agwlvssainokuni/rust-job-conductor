@@ -224,7 +224,7 @@ mod tests {
         }
     }
 
-    fn exec(_job_id: &str, code: i32) -> JobExecution {
+    fn exec(code: i32) -> JobExecution {
         JobExecution::exited(code)
     }
 
@@ -236,7 +236,7 @@ mod tests {
         mode: RunMode,
     ) -> NextStep {
         let j = &d.job[d.job_index(id).unwrap()];
-        classify_and_decide(j, &exec(id, code), states, d, mode).1
+        classify_and_decide(j, &exec(code), states, d, mode).1
     }
 
     #[test]
@@ -407,7 +407,7 @@ mod tests {
     fn 定義にないジョブは停止() {
         let d = def(vec![]);
         let stranger = job("zz", vec![]);
-        let (_, s) = classify_and_decide(&stranger, &exec("zz", 0), &[], &d, RunMode::Pipeline);
+        let (_, s) = classify_and_decide(&stranger, &exec(0), &[], &d, RunMode::Pipeline);
         assert!(s.next_job_id.is_none() && !s.completed);
         assert_eq!(s.resume_job_id.as_deref(), Some("zz"));
     }
