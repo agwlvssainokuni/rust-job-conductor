@@ -14,17 +14,16 @@
 
 //! 表示(Reporter。BR6.1〜BR6.5、NFR6.x、NFR4.2): 全種類の文言(英語・日本語)、ロケール、遅延、色。
 
-mod common;
-
 use std::path::Path;
 
-use common::kinds::{
+use super::common;
+use super::common::kinds::{
     CONVERSION_ERROR_KINDS, CREATE_ERRORS, DEFINITION_ERROR_KINDS, ENV_FILE_ERROR_KINDS,
     USAGE_ERROR_KINDS,
 };
-use common::{FakeEnv, FakeSink};
-use conductor_cli::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
-use conductor_cli::{Language, Level, UsageError, UsageErrorKind};
+use super::common::{FakeEnv, FakeSink};
+use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
+use crate::types::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,

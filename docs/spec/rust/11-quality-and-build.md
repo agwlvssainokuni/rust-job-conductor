@@ -263,7 +263,6 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 
 | ファイル | 目的 |
 |----------|------|
-| `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `flow_env.rs`、`flow_graph.rs`、`flow_dry_run.rs`、`flow_init.rs` | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |
 | `flow_run.rs`、`flow_pipeline.rs`、`flow_retry.rs`、`flow_run_id.rs`、`flow_aux.rs`、`flow_validate.rs` | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
 | `binary_basic.rs`、`binary_run_id.rs` | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
@@ -277,7 +276,6 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `unix_demo.rs`(UNIX)、`windows_demo.rs`(Windows) | デモの検査(9.5 節) |
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
 | `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`、言語と色の判定の記録 `FakeEnv::locale_read`・`color_read`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of` |
-| `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
 | `docs_support/mod.rs` | README を検査するテストの補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`) |
 | `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
@@ -289,11 +287,13 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | ファイル | 目的 |
 |----------|------|
 | `mod.rs` | 下位のモジュールの宣言 |
-| `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`) |
+| `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`・`FakeSink`・`state_error`) |
+| `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
 | `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
+| `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
 | `graph_long_id.rs` | `graph` の text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |

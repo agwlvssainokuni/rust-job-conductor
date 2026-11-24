@@ -19,7 +19,7 @@
 //! 一覧の並びの誤りや重複も、コンパイルで止まる。core と converter の一覧は、それぞれのテストにも
 //! 写しがある(どちらも網羅の `match` で止まるので、片方だけが古くなることは無い)。
 
-use conductor_cli::UsageErrorKind as U;
+use crate::types::UsageErrorKind as U;
 use conductor_converter::ConversionErrorKind as C;
 use conductor_core::DefinitionErrorKind as D;
 use conductor_core::EnvFileErrorKind as E;

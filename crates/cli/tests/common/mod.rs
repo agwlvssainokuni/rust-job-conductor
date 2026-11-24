@@ -15,8 +15,6 @@
 //! 流れのテストの共通の補助(偽の `Runtime`・`Sink`・`Env`・`Signals`、定義の組み立て)。
 #![allow(dead_code)]
 
-pub mod kinds;
-
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, VecDeque};
 use std::ffi::OsString;
@@ -286,7 +284,8 @@ pub fn state_error(path: &Path, kind: StateErrorKind) -> StateError {
     StateError {
         path: path.to_path_buf(),
         kind,
-        // 英語の表示を ASCII と確かめるテスト(`report_messages.rs`)とも共有するので、ASCII の文にする。
+        // 英語の表示を ASCII と確かめる単体テストの `src/tests/report_messages.rs` も同じ写しを使うので、
+        // ASCII の文にする。
         reason: "reason",
     }
 }
