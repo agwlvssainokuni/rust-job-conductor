@@ -218,7 +218,7 @@ impl CliCommand {
         }
     }
 
-    /// 指定のない値で、コマンドを作る(引数の解釈と、テストが使う)。
+    /// 指定のない値で、コマンドを作る(引数の解釈が使う)。
     pub fn new(kind: CommandKind) -> Self {
         Self {
             kind,

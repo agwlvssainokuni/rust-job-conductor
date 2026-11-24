@@ -13,21 +13,13 @@
 // limitations under the License.
 
 //! `init` の型(U4 の BR1.1、BR1.5、BR2.2)のテスト。
+//!
+//! オプションの既定(`InitOptions::default()` と、引数から取り出した既定)は、`args_grammar.rs` の
+//! `init_の既定は_conductor_toml_と_my_pipeline_で_force_なし` が確かめる。
 
 use std::ffi::OsString;
 
-use crate::types::{CliCommand, CommandKind, InitOptions, InitTarget};
-
-#[test]
-fn init_のオプションの既定は_my_pipeline_と_force_なしと_conductor_toml() {
-    let options = InitOptions::default();
-    assert_eq!(options.pipeline_name, "my-pipeline");
-    assert!(!options.force);
-    assert_eq!(
-        options.target,
-        InitTarget::File(OsString::from("conductor.toml"))
-    );
-}
+use crate::types::InitTarget;
 
 #[test]
 fn ハイフンだけが標準出力でそれ以外はファイル() {
@@ -39,10 +31,4 @@ fn ハイフンだけが標準出力でそれ以外はファイル() {
             "{path}"
         );
     }
-}
-
-#[test]
-fn コマンドから取り出した_init_のオプションの既定は_init_のオプションの既定と同じ() {
-    let cmd = CliCommand::new(CommandKind::Init);
-    assert_eq!(cmd.init_options(), InitOptions::default());
 }

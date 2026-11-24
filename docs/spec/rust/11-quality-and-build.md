@@ -299,7 +299,7 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `graph_long_id.rs` | `graph` の text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る) |
-| `init_types.rs` | v0.9.0 以降。`InitOptions`・`InitTarget` |
+| `init_types.rs` | v0.9.0 以降。`InitTarget::from_path`(`-` だけが標準出力)。`init` のオプションの既定は `args_grammar.rs` が確かめる |
 | `docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の図・計画・ひな形の例が実際の出力と一致 |
 
 このディレクトリは、`tests/nfr_source.rs` の OS 分岐と `panic!(` の検査の外(3.3、3.5 節)。
