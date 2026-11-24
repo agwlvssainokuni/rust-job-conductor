@@ -655,7 +655,7 @@ job:
 
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-261 | 2 回失敗して 3 回目に成功 | `RT`(`fails=2`) | `run a` | 0。OUT 空。ERR(-v なしでも)= `conductor: retry: job 'a' exited with code 75; retry 1 of 3 in 1 seconds`⏎`conductor: retry: job 'a' exited with code 75; retry 2 of 3 in 1 seconds`。`F` の値 = 3。ステート `a=success(0)` | `flow_retry::run 2 回目に成功すると 0 で終わり 知らせは v なしでも出る`、`docs_retry` |
+| AC-261 | 2 回失敗して 3 回目に成功 | `RT`(`fails=2`) | `run a` | 0。OUT 空。ERR(-v なしでも)= `conductor: retry: job 'a' exited with code 75; retry 1 of 3 in 1 seconds`⏎`conductor: retry: job 'a' exited with code 75; retry 2 of 3 in 1 seconds`。`F` の値 = 3。ステート `a=success(0)` | `flow_retry::run 2 回目に成功すると 0 で終わり 知らせは v なしでも出る`、`docs` |
 | AC-262 | -v で結果の行は 1 回だけ | 上と同じ | `run -v a` | ERR は上の 2 行のあとに `[conductor] job=a result=success (exit code 0)` の 1 行だけ(途中の失敗の結果行は出ない) | `flow_retry::run 結果の表示は 最終の結果について 1 回だけ` |
 | AC-263 | 使い切る | `RT`(`fails=99`) | `run a` | 75。ERR は retry の行 3 つ(`retry 1 of 3`、`2 of 3`、`3 of 3`)。`F` の値 = 4(最大 4 回の実行)。ステート `a=error(75)`、`resume=a` | `flow_retry::run 使い切ると 最後の終了コードで終わり 再開位置はそのジョブ` |
 | AC-264 | 対象外の終了コードはリトライしない | `exit_codes=[75]` で、ジョブが 3 で失敗(`flaky F 99 3`) | `run a` | 3。retry の行なし。`F` の値 = 1 | `flow_retry::run 対象外の結果は リトライしない` |
@@ -673,7 +673,7 @@ job:
 | AC-276 | 再開は最初の実行から数え直す | 上のあと(`resume=a`) | 再度 `run a`(`interval="1s"`、`fails=1`) | `retry 1 of 3` の行から始まる。0 で完了 | `flow_retry::run 再開すると そのジョブを 最初の実行から数え直す` |
 | AC-277 | 待機中のシグナル(pipeline) | 同様(pipeline) | `pipeline p`、待機中に SIGTERM | 143。以降のジョブを実行しない。`resume=a` | `flow_retry::pipeline 待機中のシグナルで 以降を実行せず 再開位置を記録する` |
 | AC-278 | ステートは最終の結果で 1 回だけ | `RT`(`fails=2`) | `run a` | 実行の途中に、ステートファイルのジョブ `a` の状態が `success`/`error` にならない(最終の結果のときだけ変わる。途中の失敗はステートに書かれない)。リトライの回数はステートに書かれない | `flow_retry::run ステートは 最終の結果で 1 回だけ書かれ 途中では書かれない`。観測: 待機中にステートファイルを読む |
-| AC-279 | README のリトライの説明 | README | (検査) | 見出し、5 つのキー名(`exit_codes`、`max`、`interval`、`multiplier`、`max_interval`)があり、載っている TOML の例が実際に読み取りを通る | `docs_retry`。区分: 点検 |
+| AC-279 | README のリトライの説明 | README | (検査) | 見出し、5 つのキー名(`exit_codes`、`max`、`interval`、`multiplier`、`max_interval`)があり、載っている TOML の例が実際に読み取りを通る | `docs`。区分: 点検 |
 
 ### 4.10 シグナルと中断
 
@@ -926,7 +926,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-467 | 層をまたぐ大文字小文字だけが違う名前 | `[pipeline.env] foo = "p"`、`[job.env] FOO = "j"`。`show` は `foo FOO` を出す | `run show` | Linux・macOS: `foo` = `"p"`、`FOO` = `"j"`(両方が見える)。Windows: `FOO` = `"j"` だけ(OS が名前の大文字小文字を区別しない)。完全に同じ名前の優先順位は、どの OS でも同じ(後ろの層が勝つ) | `env_merge::層をまたぐ大文字小文字だけが違う名前は両方が並びに残り後ろが後`。区分: OS による差 |
 | AC-468 | 環境変数の値がどこにも出ない | `[pipeline] env_file = "p.env"`(`T_TOKEN=SECRET`)、`[pipeline.env] T_PENV = "SECRET"`、`quiet`(`TJ exit 3`)に `[job.env] T_JENV = "SECRET"` | `pipeline -v p` / `run -v quiet` / `validate -v` | OUT・ERR のどこにも `SECRET` が現れない。失敗(終了 3)で書かれたステートファイルに、`SECRET`、`T_TOKEN`、`T_PENV` が現れない | `binary_env::秘密の値は標準出力 標準エラー ステートファイルに含まれない`、`flow_env::値は標準出力 標準エラー ステートのどこにも出ない` |
 | AC-469 | 実行時に渡す環境の並び | 起動の部品の差し替え | `pipeline` | 起動に渡される足す環境変数の並びは、層の順(`[pipeline].env_file`、`[pipeline.env]`、`[job].env_file`、`[job.env]`、`CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(run ID があるとき)、`CONDUCTOR_ATTEMPT`)。完全に同じ名前は 1 つ(後ろの層の位置) | `flow_env::run job に渡る環境の並びは層の順`、`env_merge`。区分: 注入 |
-| AC-470 | README の環境変数の説明 | README | (検査) | 見出し、版の表記(`v0.9.0 以降`)、必須の語句があり、載っている TOML と `.env` の例が実際の読み取りと解析に通る | `docs_env`。区分: 点検 |
+| AC-470 | README の環境変数の説明 | README | (検査) | 見出し、版の表記(`v0.9.0 以降`)、必須の語句があり、載っている TOML と `.env` の例が実際の読み取りと解析に通る | `docs`。区分: 点検 |
 
 ### 4.18 `graph`(v0.9.0 以降)
 
@@ -955,7 +955,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-484 | 名前の不一致と標準出力の失敗 | `graph other`(定義の名前は `p`)/ 標準出力に書けない状態(注入) | `graph` | 前者は 64(`pipeline name does not match the definition`)。後者は 65、ERR = `conductor: error: cannot write to standard output` | `flow_graph::パイプライン名の不一致は 64 / 標準出力に書けなければ 65`。後者の区分: 注入 |
 | AC-485 | ジョブを起動せず、ステートに触れず、1 回で書く | 起動の部品・ステートの部品・出力先の差し替え | `graph`、`graph --state` | ジョブは 1 つも起動されない。ステートは書かれず、消されず(読むだけ)。シグナルの準備はしない。標準出力への書き込みは 1 回で、図の全体 | `flow_graph::graph はジョブを起動せず ステートに触れず 標準出力に図だけを 1 回で書く`。区分: 注入 |
 | AC-486 | 1,000 ジョブの性能 | 入れ子が最大の形(前半の各ジョブ `i` が `N-1-i` へ飛ぶ)/ 交差する形(`j(i)` → `j(i+2)`)/ 幅の広い交差の形 / 同じ行き先が離れて重なる形(前半の各ジョブ `i` が `N/2 + i % 250` へ飛ぶ)/ 「両方の飛び越し」と分岐の入れ子(前半の偶数のジョブ `i` が `N-1-i` へ両方の飛び越し、奇数のジョブが `N-2-i` と `N-1-i` へ分岐)/ 「両方の飛び越し」と分岐の幅広い交差(前半のジョブ `i` を 3 つおきに、`i+N/2` と `i+N/2+1` への分岐、`i+N/2` への両方の飛び越し、通常の飛び越し)。ジョブ 1,000 個 | 図の構造と配置 | 6 つとも 1 秒以内(強制)。幅の広い交差の形(前半の各ジョブ `i` が `i+N/2` へ飛ぶ)も含め、6 つともレーンの図 | `graph_perf`。区分: 計測(強制) |
-| AC-487 | README の `graph` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている図の例が、実際の出力と一致する | `docs_graph`。区分: 点検 |
+| AC-487 | README の `graph` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている図の例が、実際の出力と一致する | `docs`。区分: 点検 |
 
 ### 4.19 `--dry-run` と `--assume`(v0.9.0 以降)
 
@@ -977,7 +977,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-499 | 本番の流れとの一致(注入) | 起動の部品の差し替え | 同じ定義・ステートで、`pipeline --dry-run` と、(すべて成功する)`pipeline` | 計画の `[run]` のジョブ = 本番が起動したジョブ(順序も)。新規と再開(エラーで止まったあと)の両方 | `flow_dry_run::計画の実行するジョブは 本番の流れが起動するジョブと一致する / 前回の停止からの再開も…`。区分: 注入 |
 | AC-500 | シグナルの準備・ステート・出力 | 差し替え | `--dry-run`、`--run-id r1 --remove-on-complete --dry-run` | シグナルを準備しない。ステートは読むだけ(書かない、消さない。`--remove-on-complete` は効果なし)。計画の全体を、標準出力に 1 回で書く。書けなければ 65 | `flow_dry_run::dry run はジョブを起動せず ステートに書かず 消さず シグナルも準備しない / run id と remove on complete は併用でき ステートは読むだけ / 計画を出せたら エラーで停止する模擬でも 0 で 出力できなければ 65`。区分: 注入 |
 | AC-501 | 1,000 ジョブの計画の性能 | すべてのジョブが `env` と `env_file` を持つ、ジョブ 1,000 個 | 計画の生成 | 1 秒以内(強制)。全ジョブが `[run]`、結果は `completed` | `plan_simulate_perf`。区分: 計測(強制) |
-| AC-502 | README の `--dry-run` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている計画の例が、実際の出力と一致する | `docs_dry_run`。区分: 点検 |
+| AC-502 | README の `--dry-run` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている計画の例が、実際の出力と一致する | `docs`。区分: 点検 |
 
 ### 4.20 `init`(v0.9.0 以降)
 
@@ -995,7 +995,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-510 | ファイルの作成の規則(単体) | 一時ディレクトリ | ファイルの作成 | 新規: 内容がそのまま(LF のまま)。既存は壊さず `alreadyExists`。宙に浮いたシンボリックリンクは `alreadyExists`(`force` ならリンクそのものを置き換える)。`force`: 内容が新しくなり、一時ファイルが残らない。親が無い → `parentMissing`(作らない)。作る先がディレクトリ → `isDirectory`。書く権限がないディレクトリ → `permissionDenied`(UNIX 系、非 root)。同時に作る 2 つのうち、ちょうど 1 つだけが `created`(もう 1 つは `alreadyExists`) | `file_create::新規に作る 内容は書いたとおりで 改行は lf のまま / 既にあるファイルは壊さない / force で置き換える… / 同時に作る 2 つのうち ちょうど 1 つだけが created になる`。区分: 単体 |
 | AC-511 | 引数の文法 | — | `init -v` / `init --run-id x` / `init --all` / `init a b` / `validate --force` / `init --force --force` / `init ''` / `init '  '` | すべて 68。順に `option not allowed for this command: '-v'`、`'--run-id'`、`'--all'`、`unexpected argument: 'b'`、`option not allowed for this command: '--force'`(`validate`)、`invalid value: '--force'`、`invalid value: 'pipeline name'`(2 つ)。ファイルに触れない(引数の誤りは、ファイルを作る前に返る) | `args_grammar`、`flow_init::引数の誤りは ファイルに触れる前に 68` |
 | AC-512 | 何も読まず、シグナルも準備しない(注入) | 差し替え | `init` | 定義、`.env`、ステートを読まない。シグナルを準備しない。成功は標準エラーの 1 行だけ | `flow_init::定義と環境ファイルとステートを読まず シグナルも準備しない`。区分: 注入 |
-| AC-513 | README の `init` の説明 | README | (検査) | 見出し、版の表記、終了コード 69 の記述、必須の語句があり、載っているひな形の例が、実際の日本語のひな形と一致する | `docs_init`。区分: 点検 |
+| AC-513 | README の `init` の説明 | README | (検査) | 見出し、版の表記、終了コード 69 の記述、必須の語句があり、載っているひな形の例が、実際の日本語のひな形と一致する | `docs`。区分: 点検 |
 
 ---
 

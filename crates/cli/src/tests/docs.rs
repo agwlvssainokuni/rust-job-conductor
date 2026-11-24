@@ -14,14 +14,25 @@
 
 //! README の検査。README を読むだけで、書き込まない。
 //!
-//! 節は README の並び(`graph`、`--dry-run`、`init`)。各節は、README の例と実際の出力を比べる。
-//! 必須の語句と版の表記の検査は、統合テストの `tests/docs_*.rs` にある。最初に、各節が使う補助
-//! (README の読み取り)を置く。
+//! 節は README の並び(リトライ、環境変数、`graph`、`--dry-run`、`init`)。各節は、必須の語句と
+//! 版の表記の検査、載っている例を実際の読み取り・解析に通すか、実際の出力と比べるテストを持つ。
+//! 最初に、各節が使う補助(README の読み取り、必須語句の検査、見出しのあとの例の取り出し)を置く。
 
 use std::path::{Path, PathBuf};
 
 use crate::report::init_template::render_template;
 use crate::types::Language;
+
+/// CI の `docs-check` が求める 7 つの語句(`.github/workflows/ci.yml` と同じ語と順)。
+pub const DOCS_CHECK_WORDS: [&str; 7] = [
+    "SHA-256",
+    "Gatekeeper",
+    "終了コードの表",
+    "ステートファイルの場所",
+    "at-least-once",
+    "シグナル",
+    "convert",
+];
 
 /// リポジトリのルートの README(改行は `\n` にそろえる)。
 pub fn readme() -> String {
@@ -31,7 +42,190 @@ pub fn readme() -> String {
         .replace("\r\n", "\n")
 }
 
+/// 各語が README にあること。無ければ「README に {word} がない」で失敗する。
+pub fn assert_readme_has(text: &str, words: &[&str]) {
+    for word in words {
+        assert!(text.contains(word), "README に {word} がない");
+    }
+}
+
+/// `docs-check` の 7 つの語句が残っていること。無ければ「docs-check の語句 {word} がない」で失敗する。
+pub fn assert_docs_check_words(text: &str) {
+    for word in DOCS_CHECK_WORDS {
+        assert!(text.contains(word), "docs-check の語句 {word} がない");
+    }
+}
+
+/// 見出し `heading` のあとの、最初の `fence` のコードブロックの中身(末尾に改行を 1 つ足す)。
+pub fn block_after_heading(text: &str, heading: &str, fence: &str) -> String {
+    let start = text
+        .find(heading)
+        .unwrap_or_else(|| panic!("見出し `{heading}` がある"));
+    let rest = &text[start..];
+    let marker = format!("```{fence}\n");
+    let open = rest.find(&marker).expect("例がある") + marker.len();
+    let body = &rest[open..];
+    let close = body.find("\n```").expect("コードブロックが閉じている");
+    format!("{}\n", &body[..close])
+}
+
+// ---- リトライの説明(U3。FR8.1、FR6.2) ----
+
+/// 小節の見出し(リトライの設定)の行。
+const RETRY_HEADING: &str = "### リトライの設定(`[job.retry]`)";
+
+#[test]
+fn readme_に_job_retry_と_5_つのキーが書かれている() {
+    let text = readme();
+    assert_readme_has(
+        &text,
+        &[
+            "[job.retry]",
+            "exit_codes",
+            "max",
+            "interval",
+            "multiplier",
+            "max_interval",
+        ],
+    );
+    assert!(text.contains("(v0.8.0 以降)"), "版の表記がない");
+}
+
+#[test]
+fn 古い一文はそのままの形では残っていない() {
+    let text = readme();
+    assert!(
+        !text.contains("エラーのジョブから再開します。**自動の再試行はしません**。"),
+        "古い一文が残っている"
+    );
+    assert!(
+        text.contains("定義に `[job.retry]` を書かなければ、**自動の再試行はしません**"),
+        "条件つきの一文がない"
+    );
+}
+
+#[test]
+fn readme_の例の定義を実際の読み取りに通すとリトライの設定が入っている() {
+    let example = block_after_heading(&readme(), RETRY_HEADING, "toml");
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let path = dir.path().join("conductor.toml");
+    std::fs::write(&path, example).expect("書ける");
+
+    let def = conductor_core::load_definition(Some(&path), None).expect("誤りなく読める");
+    let retry = def.job[0]
+        .retry
+        .as_ref()
+        .expect("リトライの設定が入っている");
+    assert_eq!(retry.exit_codes, vec![75, 111]);
+    assert_eq!(retry.max, 5);
+    assert_eq!(retry.interval_secs, 10);
+    assert_eq!(retry.backoff.map(|b| b.multiplier), Some(2));
+    assert_eq!(retry.backoff.map(|b| b.max_interval_secs), Some(60));
+}
+
+#[test]
+fn ci_の_docs_check_の_7_語が_readme_にある() {
+    let text = readme();
+    assert_readme_has(&text, &DOCS_CHECK_WORDS);
+}
+
+// ---- 環境変数の説明(U1。BR9.2、FR5.2) ----
+
+const ENV_HEADING: &str = "### 環境変数の設定(`env`、`env_file`)(v0.9.0 以降)";
+
+#[test]
+fn readme_に必須の語句と版の表記がある() {
+    let text = readme();
+    assert_readme_has(
+        &text,
+        &[
+            "env_file",
+            "CONDUCTOR_ATTEMPT",
+            "CONDUCTOR_PIPELINE",
+            "CONDUCTOR_JOB_ID",
+            "CONDUCTOR_RUN_ID",
+            "[pipeline.env]",
+            "[job.env]",
+            "(v0.9.0 以降)",
+            "1 MiB",
+            "10,000",
+        ],
+    );
+    // docs-check の必須語句は残っている
+    assert_docs_check_words(&text);
+}
+
+#[test]
+fn readme_の例の定義と_env_を実際の読み取りと解析に通せる() {
+    let text = readme();
+    let example = block_after_heading(&text, ENV_HEADING, "toml");
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let path = dir.path().join("conductor.toml");
+    std::fs::write(&path, example).expect("書ける");
+    let def = conductor_core::load_definition(Some(&path), None).expect("誤りなく読める");
+    assert_eq!(def.env_file, [".env"]);
+    assert_eq!(def.env[0].name, "TZ");
+    assert_eq!(def.job[0].env_file, ["extract.env", "secret.env"]);
+    assert_eq!(def.job[0].env[0].name, "LOG_LEVEL");
+
+    let dotenv = block_after_heading(&text, ENV_HEADING, "text");
+    let content = conductor_core::parse_env_file(&dotenv, ".env").expect("誤りなく解析できる");
+    let get = |n: &str| {
+        content
+            .entries
+            .iter()
+            .find(|e| e.name == n)
+            .map(|e| e.value.clone())
+    };
+    assert_eq!(get("GREETING").as_deref(), Some("hello\nworld"));
+    assert_eq!(get("RAW").as_deref(), Some("no $expansion here"));
+    assert_eq!(get("EMPTY").as_deref(), Some(""));
+    assert_eq!(get("DB_PORT").as_deref(), Some("5432"));
+}
+
 // ---- `graph` の説明(U2。BR7.2、FR5.2) ----
+
+#[test]
+fn readme_に_graph_の必須の語句と版の表記がある() {
+    let text = readme();
+    assert_readme_has(
+        &text,
+        &[
+            "conductor graph",
+            "--format mermaid",
+            "--state",
+            "(v0.9.0 以降)",
+            "辺の一覧",
+            "flowchart TD",
+        ],
+    );
+    assert!(text.contains("## graph の使い方(v0.9.0 以降)"));
+    // docs-check の必須語句は残っている
+    assert_docs_check_words(&text);
+}
+
+#[test]
+fn readme_の辺の一覧に切り替わる形は_4つの種類の外の形だけを述べる() {
+    let text = readme();
+    let line = text
+        .lines()
+        .find(|l| l.starts_with("- **辺の一覧に切り替わる形**"))
+        .expect("記述がある");
+    for word in [
+        "飛び越しなし",
+        "通常の飛び越し",
+        "両方の飛び越し",
+        "分岐",
+        "どの組み合わせでも",
+        "3 本以上",
+    ] {
+        assert!(line.contains(word), "{word} がない");
+    }
+    // 前回までの範囲(交差と、両方の飛び越し・分岐の組み合わせを辺の一覧にする)は、述べない(BR4.2)。
+    assert!(!line.contains("グラフのどこかに"));
+    assert!(!line.contains("同じ行き先で合流する形"));
+    assert!(text.contains("`|\\|` の行"));
+}
 
 #[test]
 fn readme_の図の例は_実際の出力と一致する() {
@@ -164,6 +358,24 @@ fn readme_の両方の飛び越しと交差が混ざる例は_実際の出力と
 // ---- `--dry-run` の説明(U3。BR6.2、FR5.2) ----
 
 #[test]
+fn readme_に_dry_run_の必須の語句と版の表記がある() {
+    let text = readme();
+    assert_readme_has(
+        &text,
+        &[
+            "--dry-run",
+            "--assume",
+            "## dry-run の使い方(v0.9.0 以降)",
+            "使われなかった仮定",
+            "計画が示さないこと",
+            "再開位置",
+        ],
+    );
+    // docs-check の必須語句は残っている
+    assert_docs_check_words(&text);
+}
+
+#[test]
 fn readme_の計画の例は_実際の出力と一致する() {
     let text = readme();
     let start = text.find("## dry-run の使い方").expect("節がある");
@@ -200,6 +412,24 @@ fn readme_の計画の例は_実際の出力と一致する() {
 }
 
 // ---- `init` の説明(U4。BR4.2、FR5.2) ----
+
+#[test]
+fn readme_に_init_の必須の語句と版の表記と終了コード_69_がある() {
+    let text = readme();
+    assert_readme_has(
+        &text,
+        &[
+            "conductor init",
+            "--force",
+            "--config -",
+            "## init の使い方(v0.9.0 以降)",
+            "| 69 |",
+            "既にあります",
+        ],
+    );
+    // docs-check の必須語句は残っている
+    assert_docs_check_words(&text);
+}
 
 #[test]
 fn readme_のひな形の例は_実際の日本語のひな形と一致する() {
