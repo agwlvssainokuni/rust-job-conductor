@@ -31,4 +31,3 @@ mod graph_report;
 mod init_template;
 mod plan_report;
 mod report_messages;
-mod run_id_arg;

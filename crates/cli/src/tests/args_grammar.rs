@@ -14,7 +14,8 @@
 
 //! 引数の文法の表(NFR4.1、BR1.1〜BR1.6)。全コマンドの正しい引数と誤り。
 //!
-//! あわせて、引数から作る型(`init` の出力先 `InitTarget::from_path`)も確かめる。
+//! あわせて、引数から作る型(`init` の出力先 `InitTarget::from_path`、`--run-id` の指定
+//! `RunIdArg::parse`)と、run ID の決定 `resolve_run_id` も確かめる。
 
 use std::ffi::OsString;
 
@@ -628,6 +629,30 @@ fn run_id_の無効な値は_68_で誤りの文に値を含めない() {
     }
 }
 
+/// `--run-id` の指定の型 `RunIdArg`(internal-cleanup-2 の BR4.1。FR1.2〜FR1.4)。
+#[test]
+fn run_id_arg_は空を固定_規則どおりを値_規則違反を値を含めない誤りにする() {
+    // 空は「run ID なしに固定」。
+    let empty = RunIdArg::parse("").expect("空は有効");
+    assert_eq!(empty, RunIdArg::Empty);
+
+    // 規則どおりの値は、検査済みの RunId を持ち、書かれた値をそのまま持つ。
+    let long_ok = "a".repeat(64);
+    for ok in ["r1", "build-2026.11_a", long_ok.as_str()] {
+        let arg = RunIdArg::parse(ok).expect("規則どおり");
+        assert_eq!(arg, RunIdArg::Id(RunId::parse(ok).expect("規則どおり")));
+        assert!(matches!(&arg, RunIdArg::Id(id) if id.as_str() == ok));
+    }
+
+    // 規則に反する値は invalidValue。対象は `--run-id` で、値は含めない。
+    let long_bad = "z".repeat(65);
+    for bad in ["a/b", "..", ".x", "a b", "日本語", long_bad.as_str()] {
+        let e = RunIdArg::parse(bad).expect_err("規則違反");
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad}");
+        assert_eq!(e.subject.as_deref(), Some("--run-id"), "{bad}");
+    }
+}
+
 // ---- resolve_run_id(FR1.2〜FR1.4) ----
 
 fn resolved(option: Option<&str>, env: &[(&str, &str)]) -> Result<Option<String>, UsageError> {
@@ -656,6 +681,22 @@ fn resolve_run_id_のオプション_環境変数_空_固定() {
 }
 
 #[test]
+fn resolve_run_id_の環境変数の値の違反は_invalid_value_で値を含めない() {
+    let long = "z".repeat(65);
+    for bad in ["a/b", "..", ".a", "a b", "é", long.as_str()] {
+        let e = resolved(None, &[("RID", bad)]).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad}");
+        let subject = e.subject.expect("対象がある");
+        assert!(!subject.contains(bad) || bad.len() < 2, "{subject}");
+        assert!(subject.contains("environment variable"), "{subject}");
+    }
+    let e = resolved(Some("a/b"), &[]).unwrap_err();
+    assert_eq!(e.subject.as_deref(), Some("--run-id"));
+}
+
+// ---- --remove-on-complete(FR2.5) ----
+
+#[test]
 fn fr2_5_remove_on_complete_は_run_と_pipeline_だけが受け付ける() {
     assert!(command(&["run", "a", "--remove-on-complete"]).remove_on_complete);
     assert!(command(&["pipeline", "--remove-on-complete", "p"]).remove_on_complete);
@@ -680,20 +721,6 @@ fn fr2_5_remove_on_complete_は値を取らず_2_回の指定は誤り() {
         kind_of(&["run", "a", "--remove-on-complete=1"]),
         UsageErrorKind::InvalidValue
     );
-}
-
-#[test]
-fn resolve_run_id_の環境変数の値の違反は_invalid_value_で値を含めない() {
-    let long = "z".repeat(65);
-    for bad in ["a/b", "..", ".a", "a b", "é", long.as_str()] {
-        let e = resolved(None, &[("RID", bad)]).unwrap_err();
-        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad}");
-        let subject = e.subject.expect("対象がある");
-        assert!(!subject.contains(bad) || bad.len() < 2, "{subject}");
-        assert!(subject.contains("environment variable"), "{subject}");
-    }
-    let e = resolved(Some("a/b"), &[]).unwrap_err();
-    assert_eq!(e.subject.as_deref(), Some("--run-id"));
 }
 
 // ---- graph(U2。BR4.5、BR6.4) ----

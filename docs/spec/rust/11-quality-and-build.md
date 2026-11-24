@@ -286,9 +286,8 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`・`FakeSink`・`state_error`) |
 | `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
 | `docs_support.rs` | 統合テストの `tests/docs_support/mod.rs` の `readme` の写し |
-| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む)。引数から作る型(`InitTarget::from_path`(`-` だけが標準出力)) |
+| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む)。引数から作る型(`InitTarget::from_path`(`-` だけが標準出力)、`--run-id` の指定 `RunIdArg::parse`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`))と `resolve_run_id` |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
-| `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
