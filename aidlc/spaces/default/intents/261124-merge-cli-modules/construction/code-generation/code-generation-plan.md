@@ -20,12 +20,12 @@
 
 ## 手順
 
-- [ ] Step 1: `retry.rs` を `step.rs` へまとめ、`retry.rs` を消す(項目 1。`lib.rs` の `mod retry;` とモジュールの表、`run.rs` の説明)。仕様書の該当の S。コミット 1。
-- [ ] Step 2: `report/escape.rs` を `report/mod.rs` へまとめ、`report/escape.rs` を消す(項目 2。report の 3 ファイルの `use`、T1)。`report/mod.rs` の説明の「`escape` を通す」を、消えるモジュールの名前を指さない文に直したことを目で確かめる(レビューの R-04)。仕様書の該当の S。コミット 2。
-- [ ] Step 3: `graph.rs` と `init.rs` を `aux_commands.rs` へまとめ、2 つを消す(項目 3。`lib.rs` の `mod` と呼び出し)。仕様書の該当の S。コミット 3。
-- [ ] Step 4: `platform/mod.rs` の中継を再公開の形にする(項目 4)。仕様書の該当の S。コミット 4。
-- [ ] Step 5: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 消したファイルが無いこと、消えたモジュールのパスの参照が 0 件、仕様書の古い名前が 0 件(最後の `grep -v` の除外をかける前の出力も一度見る。レビューの R-03)、テスト名の比較(差 0)、件数(1,149 のまま)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形の clippy、cli の `nfr_source` の 6 件。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 6: `code-summary.md`(コミットの一覧、件数、消したファイルとまとめ先、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 1: `retry.rs` を `step.rs` へまとめ、`retry.rs` を消す(項目 1。`lib.rs` の `mod retry;` とモジュールの表、`run.rs` の説明)。仕様書の該当の S。コミット 1。
+- [x] Step 2: `report/escape.rs` を `report/mod.rs` へまとめ、`report/escape.rs` を消す(項目 2。report の 3 ファイルの `use`、T1)。`report/mod.rs` の説明の「`escape` を通す」を、消えるモジュールの名前を指さない文に直したことを目で確かめる(レビューの R-04)。仕様書の該当の S。コミット 2。
+- [x] Step 3: `graph.rs` と `init.rs` を `aux_commands.rs` へまとめ、2 つを消す(項目 3。`lib.rs` の `mod` と呼び出し)。仕様書の該当の S。コミット 3。
+- [x] Step 4: `platform/mod.rs` の中継を再公開の形にする(項目 4)。仕様書の該当の S。コミット 4。
+- [x] Step 5: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 消したファイルが無いこと、消えたモジュールのパスの参照が 0 件、仕様書の古い名前が 0 件(最後の `grep -v` の除外をかける前の出力も一度見る。レビューの R-03)、テスト名の比較(差 0)、件数(1,149 のまま)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形の clippy、cli の `nfr_source` の 6 件。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 6: `code-summary.md`(コミットの一覧、件数、消したファイルとまとめ先、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
