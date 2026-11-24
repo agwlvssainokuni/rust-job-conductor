@@ -23,11 +23,13 @@
 //!
 //! # 入口の関数
 //!
+//! 公開するのは、この表の関数と、下の差し替え口(trait、本番の実装、[`Deps`]、[`SignalError`])だけ。
+//! ほかはすべて crate の中。
+//!
 //! | 関数 | 役割 |
 //! |------|------|
 //! | [`run_cli`] | 引数を受け取り、本番の依存(実際の他の Unit の関数、標準出力・標準エラー、環境、シグナル)で動かし、終了コードを返す |
 //! | [`run_cli_with`] | 依存([`Deps`]。`Runtime`・`Sink`・`Env`・`Signals`)を引数で受け取る。テストが、偽の実装を渡して使う |
-//! | [`parse_args`] | 引数の解釈だけ(純粋) |
 //! | [`install_panic_hook`] | パニックのフック(固定の文を出し、終了コード 70) |
 //!
 //! # 差し替え口(trait)
@@ -49,10 +51,10 @@
 //! | `main.rs` | 入口(main) | パニックのフックを設定し、`run_cli` の結果で、1 回だけ `std::process::exit` |
 //! | `args` | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する |
 //! | `ctx`、`step`、`retry`、`run`、`pipeline`、`dry_run`、`graph`、`init`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、1 つのジョブの共通の手順(`step`)、リトライを含む実行(`retry`)、`--dry-run`(計画。U3)、`graph`(図)、`init`(雛形)、W4〜W6(watch・reset・validate・convert) |
-//! | [`run_id`] | run ID の解決 | `--run-id` の指定と環境変数から、この実行の run ID を決める(FR1.2〜FR1.4、FR4.3) |
+//! | `run_id` | run ID の解決 | `--run-id` の指定と環境変数から、この実行の run ID を決める(FR1.2〜FR1.4、FR4.3) |
 //! | `platform` | シグナルの監視(SignalWatcher)ほか | OS 固有のコードは、ここだけ(`cfg(unix)`/`cfg(windows)`) |
-//! | [`exit`] | 終了コードの決定(ExitMapper) | 純粋な関数。0〜255 に合わせる(BR5.2) |
-//! | [`report`] | 表示(Reporter)、watch の表(WatchView)、エスケープ(Escape) | 文言(英語・日本語)の組み立て。言語・色は遅延 |
+//! | `exit` | 終了コードの決定(ExitMapper) | 純粋な関数。0〜255 に合わせる(BR5.2) |
+//! | `report` | 表示(Reporter)、watch の表(WatchView)、エスケープ(Escape) | 文言(英語・日本語)の組み立て。言語・色は遅延 |
 //! | `panic_hook` | パニックのフック(PanicHook) | 固定の英語の文を出し、70 で終了 |
 //! | `deps` | 差し替え口(Deps) | 上の trait と、本番の実装 |
 //!
@@ -90,31 +92,29 @@ mod aux_commands;
 mod ctx;
 mod deps;
 mod dry_run;
-pub mod exit;
+mod exit;
 mod graph;
 mod init;
 mod panic_hook;
 mod pipeline;
 mod platform;
-pub mod report;
+mod report;
 mod retry;
 mod run;
-pub mod run_id;
+mod run_id;
 mod step;
 mod types;
 
 use std::ffi::OsString;
 
-pub use args::parse_args;
 pub use deps::{
     Deps, Env, Runtime, SignalError, Signals, Sink, StdSink, SystemEnv, SystemRuntime,
     SystemSignals,
 };
 pub use panic_hook::install_panic_hook;
-pub use types::{
-    CliCommand, CommandKind, GraphFormat, InitOptions, InitTarget, Language, Level, ParsedArgs,
-    RunIdArg, UsageError, UsageErrorKind,
-};
+
+use args::parse_args;
+use types::{CommandKind, ParsedArgs};
 
 use ctx::Ctx;
 use exit::{EXIT_OK, EXIT_USAGE};

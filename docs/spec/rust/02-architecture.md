@@ -134,20 +134,20 @@
 
 ### 2.4 `conductor-cli`
 
-再公開(`lib.rs`): `parse_args`、`Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`、`CliCommand`、`CommandKind`、`GraphFormat`、`InitOptions`、`InitTarget`(後ろの 3 つは v0.9.0 以降)、`Language`、`Level`、`ParsedArgs`、`UsageError`、`UsageErrorKind`。公開モジュール: `exit`、`report`(公開の下位モジュールは `escape`、`graph_mermaid`、`graph_text`、`init_template`、`plan_text`。`messages` は crate の中、`watch` は非公開)、`run_id`(`args`、`deps`、`panic_hook`、`types` は非公開で、中の公開の項目は上の再公開で出る)。v0.9.6 までは `platform`・`report::messages`・`report::watch` も公開で、`status_word`・`state_symbol`・`glyph_char`・`MAX_DISPLAY_CHARS`・`DEFAULT_INIT_PATH`・`DEFAULT_INIT_PIPELINE_NAME` も外から見えた(外から使われないので crate の中に狭めた)。
+再公開(`lib.rs`): `Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`。公開の関数は `run_cli`、`run_cli_with`。公開するのは、`main` が使うもの(`run_cli`、`StdSink`、`SystemEnv`、`install_panic_hook`)と、依存の注入の継ぎ目(4 章)と、継ぎ目に出る型 `SignalError` だけで、公開モジュールは無い(`args`、`exit`、`report`、`run_id`、`types` などは、すべて crate の中)。v0.9.6 までは `platform`・`report::messages`・`report::watch` も公開で、`status_word`・`state_symbol`・`glyph_char`・`MAX_DISPLAY_CHARS`・`DEFAULT_INIT_PATH`・`DEFAULT_INIT_PIPELINE_NAME` も外から見えた(外から使われないので crate の中に狭めた)。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
 | `run_cli` | `<I: IntoIterator<Item = OsString>>(args: I, env: &dyn Env, sink: &mut dyn Sink) -> i32` | 本番の `Runtime`・`Signals` で `run_cli_with` を呼ぶ |
 | `run_cli_with` | `<I>(args: I, deps: &mut Deps<'_>) -> i32` | 引数の解釈 → コマンドごとの処理 → 終了コード。`-h`/`-V` と使い方の誤りはここで処理。シグナルの監視の登録はプロセスで 1 回だけ。本番の `SystemSignals` を渡して、`run`・`pipeline` をプロセスで 2 回実行すると、2 回目の登録は契約の外(Windows は登録に失敗して 70 で終わる。UNIX 系は監視が 2 つになる)。`run_cli` も同じ |
-| `parse_args` | `<I>(args: I) -> Result<ParsedArgs, UsageError>` | 引数の解釈。04 章 |
-| `exit_code_for` | `(reported: i32, is_error: bool) -> i32` | 0〜255 への整形。05 の 2.2 |
-| `signal_exit_code` | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
-| `resolve_run_id`(`run_id`) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
+| `parse_args`(`args`。crate の中) | `<I>(args: I) -> Result<ParsedArgs, UsageError>` | 引数の解釈。04 章 |
+| `exit_code_for`(`exit`。crate の中) | `(reported: i32, is_error: bool) -> i32` | 0〜255 への整形。05 の 2.2 |
+| `signal_exit_code`(同) | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
+| `resolve_run_id`(`run_id`。crate の中) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
 | `render_table`(`report::watch`。crate の中) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
-| `escape_name` / `escape_full`(`report::escape`) | `(input: &str) -> String` | 入力由来の名前(64 文字で切る)・パス(切らない)のエスケープ。本体は core の `escape_display`。08 の 9 章 |
+| `escape_name` / `escape_full`(`report::escape`。crate の中) | `(input: &str) -> String` | 入力由来の名前(64 文字で切る)・パス(切らない)のエスケープ。本体は core の `escape_display`。08 の 9 章 |
 
-終了コードの定数(`exit`): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
+終了コードの定数(`exit`。crate の中): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
 
 型(`types`): `CommandKind { Run, Pipeline, Watch, Reset, Validate, Convert, Graph, Init }`(`name()`、全種類の `ALL`、名前からの逆引き `from_name(name) -> Option<CommandKind>`。後ろの 2 つは v0.9.0 以降)、`CliCommand { kind, job_id, pipeline_name, convert_input: Option<OsString>, convert_target: Option<TargetFormat>, config_path: Option<OsString>, verbose, run_id: Option<RunIdArg>, all, remove_on_complete, graph: GraphOptions, dry_run: DryRunOptions, force }`(最後の 3 つは v0.9.0 以降。`init_options() -> InitOptions`)、`GraphFormat { Text(既定), Mermaid }`、`GraphOptions { format, with_state }`、`DryRunOptions { dry_run, assumptions: Vec<Assumption> }`、`InitTarget { File(OsString), Stdout }`(`from_path`: `-` だけが `Stdout`)、`InitOptions { target, force, pipeline_name }`(既定は `conductor.toml` の `File`、`force = false`、名前 `my-pipeline`。crate の中の定数 `DEFAULT_INIT_PATH`、`DEFAULT_INIT_PIPELINE_NAME`)、`RunIdArg { Empty, Id(RunId) }`(`--run-id` の検査済みの指定。`parse`。`Empty` は run ID なしに固定)、`ParsedArgs { Help, Version, Command(CliCommand) }`、`UsageErrorKind`(8 種)、`UsageError { kind, subject: Option<String> }`、`Language { En, Ja }`、`Level { Error, Notice, Verbose, Output }`。
 
