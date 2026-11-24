@@ -15,7 +15,7 @@
 //! 個別実行(`conductor run <job-id>`。W2、BR2.1〜BR2.6、BR4.x、BR5.x)。
 //!
 //! 順序は固定(NFR2.4): 検査 → ステートの読み込みと照合 → `decide_from_state` →
-//! (Run のとき、ステートが空なら)初期ステート(`Fast`)→ `retry::run_job_with_retry`(リトライを含む)→
+//! (Run のとき、ステートが空なら)初期ステート(`Fast`)→ `step` の `run_job_with_retry`(リトライを含む)→
 //! `classify_and_decide` → `apply_outcome` → `write_state`(`Durable`)→ 完了で、削除を求められていれば
 //! `reset_state`(求められていなければ、完了のステートを残す)。ステートは、最終の結果について 1 回だけ書く。
 //! 初期ステートは、`Run` が決まったあとにだけ書く(Reject・Skip の前には書かない)。

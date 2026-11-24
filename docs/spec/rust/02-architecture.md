@@ -213,7 +213,7 @@ cli::pipeline::run_pipeline
       │    │           → 表示 → 完了なら finish → step::remove_if_requested(remove_on_complete なら Runtime::reset_state)、return 0
       │    └─ Run    → step::run_step:
       │         ├─ 状態が空なら core::initial_state → Runtime::write_state(Fast)
-      │         ├─ retry::run_job_with_retry(job, command)   # command は検査で分割済み。分け直さない
+      │         ├─ step::run_job_with_retry(job, command)    # command は検査で分割済み。分け直さない
       │         │    loop { core::merge_env(試行ごと) → Runtime::run_job(command, 足す環境, signal) → core::retry_decision
       │         │            Retry → 知らせを表示 → Runtime::wait(secs) → 中断なら「起動しなかった中断」の結果 }
       │         ├─ core::classify_and_decide(…, RunMode::Pipeline) → (JobOutcome, NextStep)
@@ -367,10 +367,9 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
 | `ctx.rs` | `run`・`pipeline` に共通の前処理(本番の入口は総称の `prepare_session` の 1 つ。シグナルの監視を始めてから、渡された検査を呼び、`(Session { checked: Checked, signal }, T)` を返す。`run` は `check_job` を渡してジョブの位置を、`pipeline` は `check_pipeline` を渡して `()` を受け取る。v0.9.6 までは `prepare_run`・`prepare_pipeline` の 2 つだった。`--dry-run` はシグナルを除く `prepare_checked` で `Checked` を受け取る。`Checked` は検査を終えた定義を `base: CheckedDefinition` に持つ。検査の並びは `check_job`(`run`)と `check_pipeline`(`pipeline`)の 1 か所で、部品は `start_signals`、`require_job`、`require_known`、`check_run_inputs`)、`FlowTarget::{Pipeline, Run}`、`check_definition`(`CheckedDefinition` を返す。分割したコマンドを含む)、`check_definition_and_env`(`validate` と `graph` が共有)、`definition_run_id`、`read_checked_state`(`StateRead::{Live, Raw}`)、`load_env_files`、表示・書き込み・削除の補助(`usage_error`、`show_output`、`state_error`、`write`、`reset`) |
-| `step.rs` | 1 つのジョブの共通の手順(`record_skip`(`SkipRecord { state, written }` を返す。v0.9.6 までは組 `(PipelineState, bool)`)、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)。`run` と `pipeline` が呼ぶ。起動前の判断は core の `decide_from_state` を直接呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
+| `step.rs` | 1 つのジョブの共通の手順(`record_skip`(`SkipRecord { state, written }` を返す。v0.9.6 までは組 `(PipelineState, bool)`)、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)、`run_step` が呼ぶリトライを含む実行 `run_job_with_retry`(非公開。試行ごとに `merge_env`。どの試行も、検査で分割した同じコマンドを渡す)。`run` と `pipeline` が呼ぶ。起動前の判断は core の `decide_from_state` を直接呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
 | `run.rs` | `run_individual`(個別実行)。`prepare_session`(`check_job`)が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
 | `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
-| `retry.rs` | `run_job_with_retry`(リトライを含む実行。試行ごとに `merge_env`。どの試行も、検査で分割した同じコマンドを渡す) |
 | `aux_commands.rs` | `watch`・`reset`・`validate`・`convert` |
 | `graph.rs`(v0.9.0 以降) | `run_graph` |
 | `dry_run.rs`(同) | `run_dry_run`(`FlowTarget::{Pipeline, Run}`)、`run` と `pipeline` の共通の入口 `enter_flow`(位置引数の欠けは 68、`--dry-run` なら計画へ) |

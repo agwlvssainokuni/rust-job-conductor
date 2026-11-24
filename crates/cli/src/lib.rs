@@ -50,7 +50,7 @@
 //! |------------|------|------|
 //! | `main.rs` | 入口(main) | パニックのフックを設定し、`run_cli` の結果で、1 回だけ `std::process::exit` |
 //! | `args` | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する |
-//! | `ctx`、`step`、`retry`、`run`、`pipeline`、`dry_run`、`graph`、`init`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、1 つのジョブの共通の手順(`step`)、リトライを含む実行(`retry`)、`--dry-run`(計画。U3)、`graph`(図)、`init`(雛形)、W4〜W6(watch・reset・validate・convert) |
+//! | `ctx`、`step`、`run`、`pipeline`、`dry_run`、`graph`、`init`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、1 つのジョブの共通の手順とリトライを含む実行(`step`)、`--dry-run`(計画。U3)、`graph`(図)、`init`(雛形)、W4〜W6(watch・reset・validate・convert) |
 //! | `run_id` | run ID の解決 | `--run-id` の指定と環境変数から、この実行の run ID を決める(FR1.2〜FR1.4、FR4.3) |
 //! | `platform` | シグナルの監視(SignalWatcher)ほか | OS 固有のコードは、ここだけ(`cfg(unix)`/`cfg(windows)`) |
 //! | `exit` | 終了コードの決定(ExitMapper) | 純粋な関数。0〜255 に合わせる(BR5.2) |
@@ -99,7 +99,6 @@ mod panic_hook;
 mod pipeline;
 mod platform;
 mod report;
-mod retry;
 mod run;
 mod run_id;
 mod step;

@@ -1,7 +1,7 @@
 # 07 プロセス起動とシグナル(`command` の分割・起動・待ち・中断)
 
 対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。根拠は `crates/runtime/src/{split,runner,wait,types,error,platform/*}.rs`、
-`crates/cli/src/{platform/*,ctx,pipeline,run,retry,exit,panic_hook,main}.rs`、`crates/core/src/flow/{classify,resume}.rs`、
+`crates/cli/src/{platform/*,ctx,pipeline,run,step,exit,panic_hook,main}.rs`、`crates/core/src/flow/{classify,resume}.rs`、
 および `crates/runtime/tests/{runner_*,wait_interruptible,nfr_*}.rs`、`crates/cli/tests/{signals_*,binary_signal}.rs`、
 `crates/cli/tests/WINDOWS_CTRL_C_CHECKLIST.md`。
 
@@ -22,7 +22,7 @@ OS ごとの違いを定める。ステートファイルの書式、定義フ�
 | `InterruptSignal` | `types.rs`(公開) | 中断の合図。スレッド間で共有する、読み取り中心の値 |
 | `platform`(runtime) | `platform/{mod,unix,windows}.rs` | プロセスグループの指定、シグナルの送信、シグナルによる終了の読み取り、ディレクトリの同期 |
 | SignalWatcher | `conductor-cli` の `platform/{mod,unix,windows}.rs` | OS のシグナル(UNIX)/ Ctrl+C(Windows)を受け取り、`InterruptSignal` を立てる |
-| Orchestrator | `conductor-cli` の `ctx/run/pipeline/retry.rs` | 合図の準備、`run_job` の呼び出し、中断時のステートの記録、終了コード(128 + 番号) |
+| Orchestrator | `conductor-cli` の `ctx/run/pipeline/step.rs` | 合図の準備、`run_job` の呼び出し、中断時のステートの記録、終了コード(128 + 番号) |
 | 分類 | `conductor-core` の `flow/classify.rs` | `JobExecution` を、成功・警告・エラー・分類なし、と報告する終了コードに変える |
 
 OS ごとの分岐(`cfg(unix)` / `cfg(windows)`)と OS 固有の呼び出しは、runtime と cli のそれぞれの `platform` モジュールの外に

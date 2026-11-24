@@ -22,6 +22,7 @@
 //! | [`record_skip`] | 土台(ステート、無ければ初期ステート)に `apply_skip`。変わったときだけ `Durable` で書く |
 //! | [`run_step`] | 空なら初期ステートを `Fast` で書く → リトライつきの実行 → 分類 → 表示 → 記録 → `Durable` で書く |
 //! | [`remove_if_requested`] | `remove_on_complete` が真なら、ステートを削除する |
+//! | `run_job_with_retry`(非公開) | `run_step` のリトライつきの実行。実行 → 判断 → 知らせ → 待機 → 繰り返し |
 //! | `report_execution`(非公開) | `run_step` の表示。結果・起動の失敗・成功コードに含まれない 0・遷移・中断 |
 //!
 //! 書く順序、`Durability`、表示の文脈(`StateContext`)は、各関数の説明のとおり。
@@ -31,16 +32,15 @@
 //! (BR1.2)。
 
 use conductor_core::{
-    Classification, ExecutionResult, JobDefinition, JobExecution, JobOutcome, NextStep,
-    PipelineState, RunMode, SkipCause, apply_outcome, apply_skip, classify_and_decide,
-    initial_state,
+    Classification, EnvContext, ExecutionResult, JobDefinition, JobExecution, JobOutcome, NextStep,
+    PipelineState, RetryDecision, RunMode, SkipCause, apply_outcome, apply_skip,
+    classify_and_decide, initial_state, merge_env, retry_decision,
 };
-use conductor_runtime::{CommandLine, Durability};
+use conductor_runtime::{CommandLine, Durability, InterruptSignal, WaitOutcome};
 
 use crate::ctx::{Ctx, Session};
 use crate::exit::outcome_exit_code;
 use crate::report::{DisplayEvent, ResultDetail, StateContext};
-use crate::retry::run_job_with_retry;
 
 /// 1 つのジョブを実行し、記録したあとの結果([`run_step`] の戻り値)。
 pub(crate) struct StepResult {
@@ -158,6 +158,78 @@ pub(crate) fn run_step(
         next,
         after,
     })
+}
+
+/// ジョブを、リトライを含めて実行する(U2。BR2.4〜BR2.13、FR3.5)。[`run_step`] が呼ぶ。
+///
+/// 実行 → 判断(`retry_decision`)→(リトライなら)知らせ → 待機 → 繰り返し、の流れで、最後の実行結果を
+/// 返す。ステートの記録と、結果の表示は、呼び出し側が、その最後の結果について、これまでどおり 1 回だけ
+/// 行う(BR2.10、BR2.12)。リトライの回数と、直前の待ち時間は、この関数のローカルな値で、ステートファイル
+/// には書かない。
+///
+/// ジョブを実行し、リトライの対象なら、知らせて、待って、実行し直す。最後の実行結果を返す。
+///
+/// `line` は、実行の前の検査で分割したそのジョブのコマンド。リトライの何回目でも、同じものを渡す
+/// (分け直さない。BR2.2)。
+/// - リトライの設定がない、または対象外の結果なら、1 回実行して、その結果を返す(従来どおり。BR2.9)。
+/// - 待機中に中断の合図が立てば、待機を打ち切り、「起動していない、中断された」実行結果
+///   (`NotStarted`)を返す。
+///   既存の分類で、分類なし・終了コード 128 + 番号・再開位置はそのジョブ、エラーとして記録しない
+///   扱いになる(BR2.5)。
+fn run_job_with_retry(
+    ctx: &mut Ctx<'_>,
+    session: &Session,
+    job: &JobDefinition,
+    line: &CommandLine,
+) -> JobExecution {
+    let signal: &InterruptSignal = &session.signal;
+    let mut retries_done: u32 = 0;
+    let mut last_wait_secs: u64 = 0;
+    loop {
+        // 試行ごとに、足す環境を作り直す(`CONDUCTOR_ATTEMPT` は、この呼び出しのリトライの回数 + 1。
+        // 再開すると 1 に戻る。BR5.2、FR1.10)。
+        let checked = &session.checked;
+        let env = merge_env(
+            &checked.base.definition,
+            job,
+            &checked.env_files,
+            &EnvContext {
+                pipeline_name: &checked.base.definition.name,
+                job_id: &job.id,
+                run_id: checked.run_id.as_ref().map(|r| r.as_str()),
+                attempt: retries_done + 1,
+            },
+        );
+        let execution = ctx.runtime.run_job(line, &env.additions(), signal);
+        // `Retry` は、リトライの対象になった最後の終了コードと、最大回数を持つ(BR2.4)。
+        let RetryDecision::Retry {
+            wait_secs,
+            last_exit_code,
+            max,
+        } = retry_decision(job, &execution, retries_done, last_wait_secs)
+        else {
+            return execution;
+        };
+
+        // 待機の前に、常に知らせる(BR2.4)。
+        ctx.show(&DisplayEvent::RetryScheduled {
+            job_id: &job.id,
+            last_exit_code,
+            retry_number: retries_done + 1,
+            max,
+            wait_secs,
+        });
+
+        match ctx.runtime.wait(wait_secs, signal) {
+            WaitOutcome::Elapsed => {
+                retries_done += 1;
+                last_wait_secs = wait_secs;
+            }
+            WaitOutcome::Interrupted(number) => {
+                return JobExecution::not_started(number);
+            }
+        }
+    }
 }
 
 /// 完了のあとの削除(BR1.2、BR3.3、FR1.1、FR2.1)。完了のステートは、すでに書いてある。
