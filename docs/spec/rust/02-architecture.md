@@ -374,7 +374,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `dry_run.rs`(v0.9.0 以降) | `run_dry_run`(`FlowTarget::{Pipeline, Run}`)、`run` と `pipeline` の共通の入口 `enter_flow`(位置引数の欠けは 68、`--dry-run` なら計画へ) |
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
-| `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |
+| `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回。入口の `start_signal_watcher` は、`mod.rs` が OS ごとの `spawn_watcher` を `#[cfg(unix)]`/`#[cfg(windows)]` の `pub(crate) use … as start_signal_watcher` で再公開したもの(runtime の `platform` と同じ再公開の形) |
 | `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read(Option<&RunId>)` で読み取りの文脈 `Read`/`ReadRunId` を選ぶ。定義との食い違いの表示 `ConsistencyMismatch.context` と、案内の `messages::reset_hint(StateContext)` も同じ文脈を使う。v0.9.7 までは run ID の有無を真偽値 `with_run_id` で渡した)、`push_line`(graph・計画・watch が共有)、入力由来の文字列のエスケープ(`escape_name`、`escape_full`。conductor-core の `escape_display` の包み。計画・watch・図の整形も使う) |
 | `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
 | `report/watch.rs` | `watch` の表(列の幅、色) |

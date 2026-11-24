@@ -17,34 +17,20 @@
 //! - シグナルの監視(SignalWatcher。NFR4.3): 専用のスレッドを 1 つ起動し、受け取った最初の
 //!   番号を、中断の合図に書く。UNIX 系は `signal-hook` の `Signals`(イテレータ)、Windows は
 //!   `ctrlc`。この Unit は `unsafe` を使わない(`low_level` も使わない)。
+//!   入口は `start_signal_watcher`(OS ごとの `spawn_watcher` を、その名前で再公開したもの)。
+//!   プロセスで 1 回だけ呼ぶ(本番は `Ctx::prepare_session` の 1 か所)。2 回呼んだときの動きは
+//!   契約の外(UNIX 系は監視が 2 つになり、Windows は `Failed`)。
 //! - 端末の色が使える OS か(UNIX 系だけ。Windows は色なし。BR6.5)。
-
-use std::sync::Arc;
-
-use conductor_runtime::InterruptSignal;
-
-use crate::deps::SignalError;
 
 #[cfg(unix)]
 mod unix;
+#[cfg(unix)]
+pub(crate) use unix::spawn_watcher as start_signal_watcher;
+
 #[cfg(windows)]
 mod windows;
-
-/// シグナルの監視を始める。プロセスで 1 回だけ呼ぶ(本番は `Ctx::prepare_session` の 1 か所)。
-/// 2 回呼んだときの動きは契約の外(UNIX 系は監視が 2 つになり、Windows は `Failed`)。
-pub(crate) fn start_signal_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
-    spawn_watcher(signal)
-}
-
-#[cfg(unix)]
-fn spawn_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
-    unix::spawn_watcher(signal)
-}
-
 #[cfg(windows)]
-fn spawn_watcher(signal: Arc<InterruptSignal>) -> Result<(), SignalError> {
-    windows::spawn_watcher(signal)
-}
+pub(crate) use windows::spawn_watcher as start_signal_watcher;
 
 /// 端末に、色(ANSI の制御文字)を出してよい OS か。
 pub(crate) fn color_supported() -> bool {
