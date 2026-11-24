@@ -20,6 +20,7 @@
 
 mod convert_ac;
 mod convert_roundtrip;
+mod nfr_security;
 mod read_resolve;
 
 use std::sync::mpsc;

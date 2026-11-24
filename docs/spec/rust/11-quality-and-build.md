@@ -146,7 +146,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | 入れ子の深い TOML | 深さ 1,000 の入力で異常終了せず失敗を返す(テストのスレッドの標準のスタック約 2 MiB で) | `core/tests/library_capability.rs`、`runtime/tests/toml_depth.rs` |
 | 製品のコードの書き方 | runtime の製品のコードに `.unwrap()`、`.expect(`、`panic!(`、`unreachable!(`、`todo!(`、`unimplemented!(` がない。converter も入力経路で `unwrap`/`panic` を使わない | `runtime/tests/nfr_source.rs`、`converter/tests/nfr_security.rs` |
 | 内部の誤り | パニックのフックが、固定の英語 `conductor: error: internal error` を標準エラーに書き、終了コード 70。標準エラーが閉じていても 70(フックの本体。フックの設定そのものは自動のテストで確かめない) | `cli/src/panic_hook.rs` の単体テスト |
-| 変換の入力 | 範囲外・空・壊れた入力、ランダム・切り詰めた入力でパニックしない。成功したランダムな構造は往復で等しい | `converter/tests/nfr_security.rs` |
+| 変換の入力 | 範囲外・空・壊れた入力、ランダム・切り詰めた入力でパニックしない。成功したランダムな構造は往復で等しい | `converter/tests/nfr_security.rs`、`converter/src/tests/nfr_security.rs`(ランダムな入力とランダムな構造の往復) |
 | 時間の上限 | プロセスを起動するテストは、すべて 30 秒の上限つき(超えたら子プロセスを強制終了して失敗) | 各 `common/mod.rs`、`bin_support/mod.rs` |
 
 ### 3.3 セキュリティ(NFR2、NFR4.1・4.3・4.5・4.6・4.8・4.9)
@@ -255,6 +255,7 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `read_resolve.rs` | 文書の確認と展開、失敗の順序、暴走する入力 |
 | `convert_roundtrip.rs` | 往復の木の比較 |
 | `convert_ac.rs` | 変換の結果の木を比べる受け入れ基準 |
+| `nfr_security.rs` | ランダムな入力とランダムな構造の往復 |
 
 このディレクトリは、`tests/nfr_security.rs` のソースの検査(`src/*.rs`)の対象の外。
 
