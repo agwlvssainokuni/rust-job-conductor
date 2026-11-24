@@ -19,7 +19,7 @@
 
 use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
 
-use super::escape::escape_name;
+use super::escape_name;
 use super::messages::{
     COMPLETED, EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, SKIPPED_AFTER_END,
     SKIPPED_BY_TRANSITION, WATCH_PIPELINE, WATCH_RUN_ID,

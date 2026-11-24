@@ -23,7 +23,7 @@ use conductor_core::{
     PlanMode, ResumeInfo,
 };
 
-use super::escape::escape_full;
+use super::escape_full;
 use super::messages::{
     COMPLETED, DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, PLAN_ASSUME_LABEL, PLAN_END_REACHED,
     PLAN_FROM_START, PLAN_HEADING, PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_LABEL,

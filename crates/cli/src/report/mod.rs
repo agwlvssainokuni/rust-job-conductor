@@ -20,12 +20,16 @@
 //! - 言語(Locale)と色(Color)は、**インスタンスごとの遅延のセル**で、最初に必要になったときだけ
 //!   判定する(静的な `OnceLock` は使わない。`Env` を差し替える同じプロセスのテストが、互いに
 //!   影響しないように)。成功・スキップで `-v` なしなら、表示は一度もなく、どちらも判定されない。
-//! - 入力に由来する文字列(ジョブID、キー名、パス、command の最初の語)は、`escape` を通す
+//! - 入力に由来する文字列(ジョブID、キー名、パス、command の最初の語)は、表示の安全のエスケープ
+//!   (Escape。NFR4.2。端末に出せる形にする)を通す
 //!   (名前(使い方の誤りの対象、遷移の表示のジョブID など)は `escape_name` で 64 文字で切る。パスと、
 //!   図・計画のジョブID・コマンドの語は `escape_full` で切らない)。
+//!   2 つは、このモジュールにあり、下位のモジュール(計画・watch・図の整形)も使う。本体は
+//!   conductor-core の `escape_display` で、ここは名前・パスの薄い包みだけを持つ。conductor-converter は
+//!   core に依存しないため、同じ規則の写しを持ち、単体テストの `src/tests/escape_table.rs` と converter の
+//!   単体テストの、同じ期待値の表で揃える。
 //! - 標準エラーへの書き込みの失敗は、無視する(本筋を止めない)。標準出力の失敗は、値で返す。
 
-pub mod escape;
 pub mod graph_mermaid;
 pub mod graph_text;
 pub mod init_template;
@@ -39,7 +43,7 @@ use std::path::Path;
 use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, MismatchKind,
-    PipelineState, RejectReason, RunId, SkipCause, TransitionOn, TransitionTarget,
+    PipelineState, RejectReason, RunId, SkipCause, TransitionOn, TransitionTarget, escape_display,
     summarize_errors,
 };
 use conductor_runtime::{CommandError, CreateError, StateError};
@@ -47,7 +51,6 @@ use conductor_runtime::{CommandError, CreateError, StateError};
 use crate::deps::{Env, Sink};
 use crate::platform;
 use crate::types::{Language, Level, UsageError};
-use escape::{escape_full, escape_name};
 use messages::{
     ERROR_PREFIX, RETRY_PREFIX, VERBOSE_PREFIX, WARNING_PREFIX, command_kind, conversion_kind,
     definition_kind, env_duplicate_key, env_errors_more, env_file_kind, env_file_reason,
@@ -545,6 +548,19 @@ fn env_warning_line(lang: Language, w: &EnvWarning) -> String {
         place_of(&w.file, Some(w.line)),
         env_duplicate_key(lang, &escape_name(&w.name))
     )
+}
+
+/// ジョブID・キー名などを表示するときの最大の文字数(NFR4.2。conductor-core と同じ 64)。
+const MAX_DISPLAY_CHARS: usize = conductor_core::MAX_KEY_DISPLAY_CHARS;
+
+/// ジョブID・名前など(64 文字で切る)。
+pub(crate) fn escape_name(input: &str) -> String {
+    escape_display(input, Some(MAX_DISPLAY_CHARS))
+}
+
+/// 64 文字で切らずに、エスケープだけ(パス、図と計画のジョブID・コマンドの語など)。
+pub(crate) fn escape_full(input: &str) -> String {
+    escape_display(input, None)
 }
 
 /// 1 行を足す(末尾の空白を取り除き、改行を足す)。graph・計画・watch の整形が使う。

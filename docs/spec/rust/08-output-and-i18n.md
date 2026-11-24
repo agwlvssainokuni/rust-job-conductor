@@ -1,6 +1,6 @@
 # 08. 出力と多言語化
 
-実装: `crates/cli/src/report/{mod,messages,watch,escape}.rs`、`crates/cli/src/platform/mod.rs`、`crates/cli/src/deps.rs`。v0.9.0 以降は、`crates/cli/src/report/{graph_text,graph_mermaid,plan_text,init_template}.rs` も(11、12 章)。
+実装: `crates/cli/src/report/{mod,messages,watch}.rs`、`crates/cli/src/platform/mod.rs`、`crates/cli/src/deps.rs`。v0.9.0 以降は、`crates/cli/src/report/{graph_text,graph_mermaid,plan_text,init_template}.rs` も(11、12 章)。
 
 ## 1. 出力先の使い分け
 
@@ -561,9 +561,9 @@ Options:
 
 (各全文の末尾は改行で終わる。使い方の誤りでは、誤りの行 + 空行 + この全文。)
 
-## 9. 入力に由来する文字列のエスケープ(`escape.rs`)
+## 9. 入力に由来する文字列のエスケープ(`report/mod.rs` の `escape_name`・`escape_full`)
 
-表示するジョブID・名前・パス・キー名・コマンド名・使い方の誤りの対象は、`escape_display`(本体は conductor-core。`escape.rs` は包み)を通す。ジョブ本体の出力は通さない(そのまま)。
+表示するジョブID・名前・パス・キー名・コマンド名・使い方の誤りの対象は、`escape_display`(本体は conductor-core。`report/mod.rs` の `escape_name`・`escape_full` は包み)を通す。ジョブ本体の出力は通さない(そのまま)。
 
 規則:
 
@@ -602,7 +602,7 @@ Options:
 | `abcdef` | 3 | `abc…` |
 | (空) | 64 | (空) |
 
-本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを包む(core は、定義の誤りの文を作るときに上限つきで呼ぶ)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。cli の単体テスト `src/tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
+本体は `conductor-core` の `escape_display` で、cli の `report`(`report/mod.rs` の `escape_name`・`escape_full`)はそれを包む(core は、定義の誤りの文を作るときに上限つきで呼ぶ)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。cli の単体テスト `src/tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
 
 ## 10. 実装と README の差
 

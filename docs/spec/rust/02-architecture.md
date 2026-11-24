@@ -161,7 +161,7 @@
 | `signal_exit_code`(同) | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
 | `resolve_run_id`(`run_id`。crate の中) | `(option: Option<&RunIdArg>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
 | `render_table`(`report::watch`。crate の中) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
-| `escape_name` / `escape_full`(`report::escape`。crate の中) | `(input: &str) -> String` | 入力由来の名前(64 文字で切る)・パス(切らない)のエスケープ。本体は core の `escape_display`。08 の 9 章 |
+| `escape_name` / `escape_full`(`report`。crate の中) | `(input: &str) -> String` | 入力由来の名前(64 文字で切る)・パス(切らない)のエスケープ。本体は core の `escape_display`。08 の 9 章 |
 
 終了コードの定数(`exit`。crate の中): `EXIT_OK = 0`、`EXIT_DEFINITION = 64`、`EXIT_STATE = 65`、`EXIT_REJECTED = 66`、`EXIT_CONVERSION = 67`、`EXIT_USAGE = 68`、`EXIT_EXISTS = 69`(v0.9.0 以降)、`EXIT_INTERNAL = 70`。
 
@@ -377,13 +377,12 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |
-| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read(Option<&RunId>)` で読み取りの文脈 `Read`/`ReadRunId` を選ぶ。定義との食い違いの表示 `ConsistencyMismatch.context` と、案内の `messages::reset_hint(StateContext)` も同じ文脈を使う。v0.9.7 までは run ID の有無を真偽値 `with_run_id` で渡した)、`push_line`(graph・計画・watch が共有) |
+| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read(Option<&RunId>)` で読み取りの文脈 `Read`/`ReadRunId` を選ぶ。定義との食い違いの表示 `ConsistencyMismatch.context` と、案内の `messages::reset_hint(StateContext)` も同じ文脈を使う。v0.9.7 までは run ID の有無を真偽値 `with_run_id` で渡した)、`push_line`(graph・計画・watch が共有)、入力由来の文字列のエスケープ(`escape_name`、`escape_full`。conductor-core の `escape_display` の包み。計画・watch・図の整形も使う) |
 | `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
 | `report/watch.rs` | `watch` の表(列の幅、色) |
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |
 | `report/plan_text.rs`(同) | `render_plan` |
 | `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
-| `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_name`、`escape_full` は conductor-core の `escape_display` の包み) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
 | `tests/`(`mod.rs`、`common/`、README の検査の `docs.rs` と、引数・表示などのファイル) | クレートの内部(引数の解析、表示、run ID、終了コード)と README を直接確かめる単体テスト(`lib.rs` の最後の `#[cfg(test)] mod tests;`) |
 

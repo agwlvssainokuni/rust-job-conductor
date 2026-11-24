@@ -26,7 +26,7 @@ use conductor_core::graph::{
 };
 use conductor_core::{Classification, Command, JobDefinition, PipelineDefinition};
 
-use super::escape::escape_full;
+use super::escape_full;
 use super::messages::{
     DETAIL_COMMAND, DETAIL_RETRY, GRAPH_EDGE_LIST_NOTE, GRAPH_EDGES_HEADING, GRAPH_JOBS_HEADING,
     GRAPH_KIND_BOTH, GRAPH_NOTE_SEPARATOR, RESUME_HERE, class_word, graph_edge_note,
