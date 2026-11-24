@@ -29,7 +29,6 @@ mod exit_codes;
 mod graph_long_id;
 mod graph_report;
 mod init_template;
-mod init_types;
 mod plan_report;
 mod report_messages;
 mod run_id_arg;

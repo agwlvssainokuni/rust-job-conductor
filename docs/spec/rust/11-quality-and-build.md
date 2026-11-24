@@ -286,7 +286,7 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`・`FakeSink`・`state_error`) |
 | `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
 | `docs_support.rs` | 統合テストの `tests/docs_support/mod.rs` の `readme` の写し |
-| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
+| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む)。引数から作る型(`InitTarget::from_path`(`-` だけが標準出力)) |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
 | `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
@@ -295,7 +295,6 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `graph_long_id.rs` | `graph` の text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る) |
-| `init_types.rs` | v0.9.0 以降。`InitTarget::from_path`(`-` だけが標準出力)。`init` のオプションの既定は `args_grammar.rs` が確かめる |
 | `docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の図・計画・ひな形の例が実際の出力と一致 |
 
 このディレクトリは、`tests/nfr_source.rs` の OS 分岐と `panic!(` の検査の外(3.3、3.5 節)。

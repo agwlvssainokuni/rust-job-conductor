@@ -13,6 +13,8 @@
 // limitations under the License.
 
 //! 引数の文法の表(NFR4.1、BR1.1〜BR1.6)。全コマンドの正しい引数と誤り。
+//!
+//! あわせて、引数から作る型(`init` の出力先 `InitTarget::from_path`)も確かめる。
 
 use std::ffi::OsString;
 
@@ -483,6 +485,19 @@ fn init_の_config_の重複と値なしは誤り() {
         UsageErrorKind::InvalidValue
     );
     assert_eq!(kind_of(&["init", "--config"]), UsageErrorKind::MissingValue);
+}
+
+/// `init` の型(U4 の BR1.1、BR1.5、BR2.2)のテスト。
+#[test]
+fn ハイフンだけが標準出力でそれ以外はファイル() {
+    assert_eq!(InitTarget::from_path("-".into()), InitTarget::Stdout);
+    for path in ["conductor.toml", "-x", "--", "a/-", ""] {
+        assert_eq!(
+            InitTarget::from_path(path.into()),
+            InitTarget::File(OsString::from(path)),
+            "{path}"
+        );
+    }
 }
 
 // ---- --run-id と --all(FR1.1、FR1.4、FR5.3) ----
