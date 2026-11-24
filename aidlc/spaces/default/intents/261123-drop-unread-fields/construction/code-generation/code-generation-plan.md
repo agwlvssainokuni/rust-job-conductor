@@ -19,13 +19,13 @@
 
 ## 手順
 
-- [ ] Step 1: `FlowEdge.explicit` を消し、`target_position` は位置だけを返す(項目 1。T1〜T5、§4.6 の T2。仕様書 S1〜S4)。コミット 1。
-- [ ] Step 2: 計画の `EnvNameEntry` から `origin` を消し、名前だけの構造体にする(項目 2a。D1。T6、★1。仕様書 S6〜S11)。コミット 2。
-- [ ] Step 3: `EnvOrigin` と `EffectiveEntry.origin` を消す(項目 2b。T7〜T9、★2、§4.6 の T7・T8。仕様書 S12〜S16)。コミット 3。
-- [ ] Step 4: `EnvFileContent.path` を消す(項目 3a。T10〜T13、T19、§4.6 の T10。仕様書 S17、S18、S21(D3))。コミット 4。
-- [ ] Step 5: `EnvEntry.line` を消す(項目 3b。T14〜T18、T20、§4.6 の T14。仕様書 S19、S20)。コミット 5。
-- [ ] Step 6: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(仕様書の直し漏れと、残す記述が残ることの両方)、テスト名の一覧の前後の比較(差は ★ 2 件だけ)、件数(見込み 1,153)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、`git diff -- crates/cli/src crates/runtime crates/converter` が空。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 7: `code-summary.md`(コミットの一覧、件数、テストの変更・名前の変更・消した確かめの行の一覧、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 1: `FlowEdge.explicit` を消し、`target_position` は位置だけを返す(項目 1。T1〜T5、§4.6 の T2。仕様書 S1〜S4)。コミット 1。
+- [x] Step 2: 計画の `EnvNameEntry` から `origin` を消し、名前だけの構造体にする(項目 2a。D1。T6、★1。仕様書 S6〜S11)。コミット 2。
+- [x] Step 3: `EnvOrigin` と `EffectiveEntry.origin` を消す(項目 2b。T7〜T9、★2、§4.6 の T7・T8。仕様書 S12〜S16)。コミット 3。
+- [x] Step 4: `EnvFileContent.path` を消す(項目 3a。T10〜T13、T19、§4.6 の T10。仕様書 S17、S18、S21(D3))。コミット 4。
+- [x] Step 5: `EnvEntry.line` を消す(項目 3b。T14〜T18、T20、§4.6 の T14。仕様書 S19、S20)。コミット 5。
+- [x] Step 6: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(仕様書の直し漏れと、残す記述が残ることの両方)、テスト名の一覧の前後の比較(差は ★ 2 件だけ)、件数(見込み 1,153)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、`git diff -- crates/cli/src crates/runtime crates/converter` が空。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 7: `code-summary.md`(コミットの一覧、件数、テストの変更・名前の変更・消した確かめの行の一覧、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
