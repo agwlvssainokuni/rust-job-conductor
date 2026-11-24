@@ -32,14 +32,11 @@
 //!
 //! # 公開する API の範囲
 //!
-//! 契約 C4 で conductor-cli が使うものだけを公開する。ほかは、クレートの内部(`pub(crate)`)か、
-//! テストのための `#[doc(hidden)]` である。
+//! 契約 C4 で conductor-cli が使うものだけを公開する。ほかは、クレートの内部である。
 //!
 //! - 関数: [`convert`]、[`convert_text`]
 //! - 型: [`ConversionRequest`]、[`ConvertedText`]、[`TargetFormat`]、[`ConversionError`]
 //!   (`Display` で表示用の文になる)、[`ConversionErrorKind`]
-//! - `#[doc(hidden)]`(安定した API ではない。このクレートのテスト用): `testing`
-//!   (`Value`、`read_tree`)
 //!
 //! # 展開の上限
 //!
@@ -158,24 +155,6 @@ fn read_value(text: &str, target: TargetFormat, file: &str) -> Result<Value, Con
         TargetFormat::Yaml => toml_read::read(text, file)?,
     };
     resolve::resolve(&tree, file)
-}
-
-/// テストのための公開。安定した API ではない。
-#[doc(hidden)]
-pub mod testing {
-    use super::*;
-
-    pub use crate::types::Value;
-
-    /// `text` を、`format` の形式として読み、展開した途中の表現にする(往復の確認に使う)。
-    pub fn read_tree(
-        text: &str,
-        format: TargetFormat,
-        file: &str,
-    ) -> Result<Value, ConversionError> {
-        // `read_value` の `target` は「変換後の形式」なので、反対の形式を渡す
-        read_value(text, format.opposite(), file)
-    }
 }
 
 #[cfg(test)]

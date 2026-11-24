@@ -126,10 +126,9 @@
 | `convert(request: &ConversionRequest) -> Result<ConvertedText, ConversionError>` | 入力ファイルを読み、変換する |
 | `convert_text(text: &str, target: TargetFormat, file_label: &str) -> Result<ConvertedText, ConversionError>` | 文字列を変換する(ファイルに触れない) |
 | `ConversionRequest { input_path: PathBuf, target_format: TargetFormat }` | 要求 |
-| `TargetFormat { Yaml, Toml }` | 変換**後**の形式。入力の形式は、その反対とみなす(`opposite()`) |
+| `TargetFormat { Yaml, Toml }` | 変換**後**の形式。入力の形式は、その反対とみなす |
 | `ConvertedText { text: String }` | 結果 |
 | `ConversionError { file, line, key_path, kind, reason }`(`reason: &'static str`。固定の文。v0.9.7 までは `String`)/ `ConversionErrorKind`(6 種) | 10 の 7.3 |
-| `testing::{Value, read_tree}`(`#[doc(hidden)]`) | 往復テスト用に、途中の表現 `Value` へ読む |
 
 内部の途中の表現 `Value`: `Str` / `Int(i64)` / `Float(f64)` / `Bool` / `Array` / `Map(Vec<(String, Value)>)`(`null`・日時などは持たない)。
 
@@ -328,7 +327,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 
 | ファイル | 責務 |
 |----------|------|
-| `lib.rs` | `convert`、`convert_text`、読み取りの切り替え、`testing` |
+| `lib.rs` | `convert`、`convert_text`、読み取りの切り替え |
 | `types.rs` | `ConversionRequest`、`TargetFormat`、`ConvertedText`、途中の表現 `Value` |
 | `error.rs` | `ConversionError`、`ConversionErrorKind`、表示の組み立て |
 | `intake.rs` | 入力ファイルを開いて読む(1 MiB 上限、UTF-8) |

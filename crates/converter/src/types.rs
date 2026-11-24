@@ -14,8 +14,7 @@
 
 //! 型(Types)。呼び出しの入力・出力の型と、途中の表現 `Value`。
 //!
-//! 入出力に依存しない。`Value` は、この Unit の内部の表現であり、他の Unit に公開しない
-//! (テストのために `#[doc(hidden)]` で公開している)。
+//! 入出力に依存しない。`Value` は、この Unit の内部の表現であり、他の Unit に公開しない。
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -25,16 +24,6 @@ use std::path::PathBuf;
 pub enum TargetFormat {
     Yaml,
     Toml,
-}
-
-impl TargetFormat {
-    /// 反対の形式(`Yaml` ↔ `Toml`)。変換後の形式から、入力の形式を求めるのに使う(BR1.1)。
-    pub fn opposite(self) -> Self {
-        match self {
-            Self::Yaml => Self::Toml,
-            Self::Toml => Self::Yaml,
-        }
-    }
 }
 
 /// 変換の呼び出しの入力(契約 C4 の input)。
@@ -132,15 +121,5 @@ mod tests {
         let arr1 = Value::Array(vec![Value::Int(1), Value::Int(2)]);
         let arr2 = Value::Array(vec![Value::Int(2), Value::Int(1)]);
         assert_ne!(arr1, arr2);
-    }
-
-    #[test]
-    fn 反対の形式は_yaml_と_toml_を入れ替え_2_回で元に戻る() {
-        assert_eq!(TargetFormat::Yaml.opposite(), TargetFormat::Toml);
-        assert_eq!(TargetFormat::Toml.opposite(), TargetFormat::Yaml);
-        for format in [TargetFormat::Yaml, TargetFormat::Toml] {
-            assert_ne!(format.opposite(), format, "{format:?}");
-            assert_eq!(format.opposite().opposite(), format, "{format:?}");
-        }
     }
 }
