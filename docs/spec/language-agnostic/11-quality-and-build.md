@@ -976,7 +976,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-498 | `--assume` と `--dry-run` の使い方の誤り | — | `pipeline demo --dry-run --assume b=300` / `--assume b` / `--assume b=x` / `--assume b=1 --assume b=2` / `--assume nojob=1` / `pipeline demo --assume b=1` / `watch --dry-run` / `pipeline demo --dry-run --dry-run` | すべて 68。順に `invalid value: '--assume'`(4 つ)、`job is not defined in the definition file`(対象なし。ジョブIDを表示しない)、`option not allowed for this command: '--assume'`、`option not allowed for this command: '--dry-run'`、`invalid value: '--dry-run'`。入力の値(`300`、`x`、`nojob`)が ERR に現れない。ジョブを起動しない | `flow_dry_run::assume の不正な入力は 68 で 誤りの表示に入力の値を含まない / assume だけと dry run の付ける場所の誤りは 68` |
 | AC-499 | 本番の流れとの一致(注入) | 起動の部品の差し替え | 同じ定義・ステートで、`pipeline --dry-run` と、(すべて成功する)`pipeline` | 計画の `[run]` のジョブ = 本番が起動したジョブ(順序も)。新規と再開(エラーで止まったあと)の両方 | `flow_dry_run::計画の実行するジョブは 本番の流れが起動するジョブと一致する / 前回の停止からの再開も…`。区分: 注入 |
 | AC-500 | シグナルの準備・ステート・出力 | 差し替え | `--dry-run`、`--run-id r1 --remove-on-complete --dry-run` | シグナルを準備しない。ステートは読むだけ(書かない、消さない。`--remove-on-complete` は効果なし)。計画の全体を、標準出力に 1 回で書く。書けなければ 65 | `flow_dry_run::dry run はジョブを起動せず ステートに書かず 消さず シグナルも準備しない / run id と remove on complete は併用でき ステートは読むだけ / 計画を出せたら エラーで停止する模擬でも 0 で 出力できなければ 65`。区分: 注入 |
-| AC-501 | 1,000 ジョブの計画の性能 | すべてのジョブが `env` と `env_file` を持つ、ジョブ 1,000 個 | 計画の生成 | 1 秒以内(強制)。全ジョブが `[run]`、結果は `completed` | `plan_perf`。区分: 計測(強制) |
+| AC-501 | 1,000 ジョブの計画の性能 | すべてのジョブが `env` と `env_file` を持つ、ジョブ 1,000 個 | 計画の生成 | 1 秒以内(強制)。全ジョブが `[run]`、結果は `completed` | `plan_simulate_perf`。区分: 計測(強制) |
 | AC-502 | README の `--dry-run` の説明 | README | (検査) | 見出し、版の表記、必須の語句があり、載っている計画の例が、実際の出力と一致する | `docs_dry_run`。区分: 点検 |
 
 ### 4.20 `init`(v0.9.0 以降)

@@ -17,17 +17,20 @@
 //! ジョブ 1,000 個の計画を 1 回作る時間の、5 回の中央値が上限の中にあることを確かめる。上限は、
 //! 直した後の見積もりの約 5 倍の余裕のある値で、大きな退行だけを止める(D6)。直す前の形に戻った
 //! ことは、このテストでは検知できない(直す前と後の時間は、コード生成の記録に残す)。
+//!
+//! あわせて、すべてのジョブが `env` と `env_file` を持つ 1,000 ジョブの計画を、1 回の計測で
+//! 1 秒以内に作れることを確かめる(U3。BR6.3、NFR1。plan-state-unify の BR2.3)。
 
 mod common;
 
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use common::median;
+use common::{add_env_file, median};
 use conductor_core::{
-    ExecutionPlan, JobExecution, LoadedEnvFiles, PipelineDefinition, PipelineState,
-    PlanDisposition, PlanEnd, PlanInput, RunMode, apply_outcome, classify_and_decide,
-    initial_state, parse_definition, plan_pipeline,
+    EnvEntry, EnvFileContent, ExecutionPlan, JobExecution, LoadedEnvFiles, PipelineDefinition,
+    PipelineState, PlanDisposition, PlanEnd, PlanInput, RunMode, apply_outcome,
+    classify_and_decide, initial_state, parse_definition, plan_pipeline,
 };
 
 const N: usize = 1000;
@@ -131,4 +134,55 @@ fn p2_終点のあとの_999_個のスキップの計画は_150ms_以内() {
     );
     assert_eq!(plan.end, PlanEnd::EndReached);
     assert!(m < LIMIT, "中央値 {m:?} が上限 {LIMIT:?} を超えた");
+}
+
+#[test]
+fn 千個のジョブがすべて実行する計画は_1秒以内に作れる() {
+    // すべてのジョブが `env` と `env_file` を持つ。
+    let mut text =
+        String::from("format_version = 1\n[pipeline]\nname = \"p\"\nenv_file = \"p.env\"\n");
+    for i in 0..N {
+        text.push_str(&format!(
+            "[[job]]\nid = \"j{i}\"\ncommand = \"echo {i}\"\nenv_file = \"p.env\"\n[job.env]\nK{i} = \"v\"\n"
+        ));
+    }
+    let def = parse_definition(&text, "t.toml", None).expect("正しい定義");
+    let commands: Vec<Vec<String>> = def
+        .job
+        .iter()
+        .map(|j| vec!["echo".to_string(), j.id.clone()])
+        .collect();
+    let mut files = LoadedEnvFiles::new();
+    add_env_file(
+        &mut files,
+        "p.env",
+        EnvFileContent {
+            entries: (0..20)
+                .map(|i| EnvEntry {
+                    name: format!("F{i}"),
+                    value: "x".into(),
+                })
+                .collect(),
+            warnings: Vec::new(),
+        },
+    );
+    let start = Instant::now();
+    let plan = plan_pipeline(&PlanInput {
+        definition: &def,
+        state: None,
+        commands: &commands,
+        env_files: &files,
+        run_id: Some("r1"),
+        assumptions: &[],
+    })
+    .expect("計画");
+    let elapsed = start.elapsed();
+    assert_eq!(plan.entries.len(), N);
+    assert!(
+        plan.entries
+            .iter()
+            .all(|e| matches!(e.disposition, PlanDisposition::WillRun(_)))
+    );
+    assert_eq!(plan.end, PlanEnd::Completed);
+    assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
 }
