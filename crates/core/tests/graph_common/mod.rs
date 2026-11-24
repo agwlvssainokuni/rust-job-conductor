@@ -132,7 +132,6 @@ pub fn graph_with_extra_edge(def: &PipelineDefinition, from: &str, to: Option<&s
         },
         kinds: vec![EdgeKind::Success],
         skipped_jobs: Vec::new(),
-        explicit: true,
     });
     graph
 }

@@ -735,7 +735,7 @@ return EffectiveEnv { entries: keep_last(items) }
 |----|------|
 | `EdgeKind` | `Success`、`Warning`(エラーには辺がない)。`TransitionOn` の別名(`pub use … as`) |
 | `EdgeTarget` | `Job(String)`、`End`(終点 `@end`。最後のジョブが完了したときの行き先も `End`)。`TransitionTarget` の別名 |
-| `FlowEdge` | `{ from_job, to: EdgeTarget, kinds: Vec<EdgeKind>, skipped_jobs: Vec<String>, explicit: bool }`。`kinds` は 1 つ以上(成功、警告の順)。`skipped_jobs` は、元と行き先のあいだのジョブの ID(記述順)。`explicit` は、定義に遷移として書かれた辺か(書かずに記述順の次へ進む辺は `false`) |
+| `FlowEdge` | `{ from_job, to: EdgeTarget, kinds: Vec<EdgeKind>, skipped_jobs: Vec<String> }`。`kinds` は 1 つ以上(成功、警告の順)。`skipped_jobs` は、元と行き先のあいだのジョブの ID(記述順) |
 | `NodeState` | `Ok`(成功と警告をまとめる)、`Skipped`、`Error`、`Pending` |
 | `StateOverlay` | `{ states: Vec<(job_id, NodeState)>, resume_job_id: Option<String> }`。環境変数もコマンドも持たない |
 | `GraphNode` | `{ kind: NodeKind(Job(ID) または終点 End), state: Option<NodeState>(--state のときだけ), is_resume }`。`NodeKind` は `TransitionTarget` の別名。読み方の補助 `job_id() -> Option<&str>`(終点は None)、`is_end()` |
@@ -753,12 +753,12 @@ return EffectiveEnv { entries: keep_last(items) }
 positions = ジョブ ID → 記述順の位置 の表(最初に現れた位置を残す。flow_edges の最初に 1 回だけ作る)
 target_position(i, on):
     match resolve_transition(job[i], on, i, positions を引く関数):   # 05 の 3.2。実行と同じ関数
-        End        → (n,   explicit = true)
-        Job(t)     → (t,   explicit = true)
-        Default    → (i+1, explicit = false)                  # 記述順の次。最後のジョブなら終点(n)
+        End        → n
+        Job(t)     → t
+        Default    → i+1                                      # 記述順の次。最後のジョブなら終点(n)
 ```
 
-- 成功の行き先 `s` と警告の行き先 `w` が同じなら、1 つの辺にまとめ、`kinds = [Success, Warning]`、`explicit` = どちらかが `true`。違うなら、2 つの辺(`[Success]` と `[Warning]`)。
+- 成功の行き先 `s` と警告の行き先 `w` が同じなら、1 つの辺にまとめ、`kinds = [Success, Warning]`。違うなら、2 つの辺(`[Success]` と `[Warning]`)。
 - 同じ元の辺は、行き先の位置の昇順に並べる(記述順で次のジョブへの辺が先、終点が最後)。辺の全体の並びは、元のジョブの記述順。
 - `skipped_jobs` = 元と行き先のあいだのジョブ(`jobs[i+1 .. min(行き先, n)]`。終点なら、末尾まで)の ID。行き先が次のジョブなら空。
 - エラーに辺はない(エラーでは、ジョブは止まる)。

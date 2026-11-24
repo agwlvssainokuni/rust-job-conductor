@@ -24,19 +24,19 @@ use crate::flow::{TransitionResolution, resolve_transition};
 use crate::types::{PipelineDefinition, TransitionOn};
 
 /// 結果 `on` で終わったときの行き先の位置を決める。ジョブは 0 から、終点は `jobs.len()`。
-/// 戻り値の 2 つ目は、遷移が書かれていたか。`positions` は、ジョブ ID から記述順の位置を引く表。
+/// `positions` は、ジョブ ID から記述順の位置を引く表。
 fn target_position(
     definition: &PipelineDefinition,
     positions: &HashMap<&str, usize>,
     index: usize,
     on: TransitionOn,
-) -> (usize, bool) {
+) -> usize {
     let job = &definition.job[index];
     match resolve_transition(job, on, index, |id| positions.get(id).copied()) {
-        TransitionResolution::End => (definition.job.len(), true),
-        TransitionResolution::Job(t) => (t, true),
+        TransitionResolution::End => definition.job.len(),
+        TransitionResolution::Job(t) => t,
         // 遷移がない。記述順で次のジョブ(最後のジョブなら終点。BR1.1)。
-        TransitionResolution::Default => (index + 1, false),
+        TransitionResolution::Default => index + 1,
     }
 }
 
@@ -56,25 +56,19 @@ pub(crate) fn flow_edges(definition: &PipelineDefinition) -> Vec<FlowEdge> {
     }
     let mut edges = Vec::with_capacity(jobs.len() + 1);
     for (index, job) in jobs.iter().enumerate() {
-        let (on_success, explicit_success) =
-            target_position(definition, &positions, index, TransitionOn::Success);
-        let (on_warning, explicit_warning) =
-            target_position(definition, &positions, index, TransitionOn::Warning);
-        let mut pairs: Vec<(usize, Vec<EdgeKind>, bool)> = if on_success == on_warning {
-            vec![(
-                on_success,
-                vec![EdgeKind::Success, EdgeKind::Warning],
-                explicit_success || explicit_warning,
-            )]
+        let on_success = target_position(definition, &positions, index, TransitionOn::Success);
+        let on_warning = target_position(definition, &positions, index, TransitionOn::Warning);
+        let mut pairs: Vec<(usize, Vec<EdgeKind>)> = if on_success == on_warning {
+            vec![(on_success, vec![EdgeKind::Success, EdgeKind::Warning])]
         } else {
             vec![
-                (on_success, vec![EdgeKind::Success], explicit_success),
-                (on_warning, vec![EdgeKind::Warning], explicit_warning),
+                (on_success, vec![EdgeKind::Success]),
+                (on_warning, vec![EdgeKind::Warning]),
             ]
         };
         // 行き先が近い辺を先に(終点は、位置が最後)。
-        pairs.sort_by_key(|(position, _, _)| *position);
-        for (position, kinds, explicit) in pairs {
+        pairs.sort_by_key(|(position, _)| *position);
+        for (position, kinds) in pairs {
             let to = if position >= jobs.len() {
                 EdgeTarget::End
             } else {
@@ -89,7 +83,6 @@ pub(crate) fn flow_edges(definition: &PipelineDefinition) -> Vec<FlowEdge> {
                 to,
                 kinds,
                 skipped_jobs,
-                explicit,
             });
         }
     }

@@ -34,19 +34,12 @@ fn job(id: &str) -> EdgeTarget {
     EdgeTarget::Job(id.to_string())
 }
 
-fn edge(
-    from: &str,
-    to: EdgeTarget,
-    kinds: &[EdgeKind],
-    skipped: &[&str],
-    explicit: bool,
-) -> FlowEdge {
+fn edge(from: &str, to: EdgeTarget, kinds: &[EdgeKind], skipped: &[&str]) -> FlowEdge {
     FlowEdge {
         from_job: from.into(),
         to,
         kinds: kinds.to_vec(),
         skipped_jobs: skipped.iter().map(|s| s.to_string()).collect(),
-        explicit,
     }
 }
 
@@ -56,9 +49,9 @@ fn 遷移がなければ_記述順の次のジョブへの辺が1つで_最後�
     assert_eq!(
         edges,
         vec![
-            edge("a", job("b"), &[Success, Warning], &[], false),
-            edge("b", job("c"), &[Success, Warning], &[], false),
-            edge("c", EdgeTarget::End, &[Success, Warning], &[], false),
+            edge("a", job("b"), &[Success, Warning], &[]),
+            edge("b", job("c"), &[Success, Warning], &[]),
+            edge("c", EdgeTarget::End, &[Success, Warning], &[]),
         ]
     );
 }
@@ -72,8 +65,8 @@ fn 成功だけの遷移は_成功の辺と警告の辺に分かれ_次のジョ
     assert_eq!(
         edges[..2],
         [
-            edge("a", job("b"), &[Warning], &[], false),
-            edge("a", job("d"), &[Success], &["b", "c"], true),
+            edge("a", job("b"), &[Warning], &[]),
+            edge("a", job("d"), &[Success], &["b", "c"]),
         ]
     );
 }
@@ -87,8 +80,8 @@ fn 警告だけの遷移も_次のジョブへの辺が先() {
     assert_eq!(
         edges[..2],
         [
-            edge("a", job("b"), &[Success], &[], false),
-            edge("a", job("c"), &[Warning], &["b"], true),
+            edge("a", job("b"), &[Success], &[]),
+            edge("a", job("c"), &[Warning], &["b"]),
         ]
     );
 }
@@ -99,10 +92,7 @@ fn 成功と警告が同じ行き先なら_1つの辺で_kinds_が両方() {
         &["a", "b", "c"],
         &[("a", OnSuccess, Some("c")), ("a", OnWarning, Some("c"))],
     ));
-    assert_eq!(
-        edges[0],
-        edge("a", job("c"), &[Success, Warning], &["b"], true)
-    );
+    assert_eq!(edges[0], edge("a", job("c"), &[Success, Warning], &["b"]));
     // 次のジョブ b には、a からの辺がない。
     assert!(edges.iter().filter(|e| e.from_job == "a").count() == 1);
 }
@@ -116,8 +106,8 @@ fn 成功と警告が違う遠い行き先なら_近い辺が先で_終点が最
     assert_eq!(
         edges[..2],
         [
-            edge("a", job("c"), &[Warning], &["b"], true),
-            edge("a", EdgeTarget::End, &[Success], &["b", "c", "d"], true),
+            edge("a", job("c"), &[Warning], &["b"]),
+            edge("a", EdgeTarget::End, &[Success], &["b", "c", "d"]),
         ]
     );
 }
@@ -128,8 +118,8 @@ fn 終点へ飛ぶと_元より後ろのすべてのジョブを飛び越す() {
     assert_eq!(
         edges[..2],
         [
-            edge("a", job("b"), &[Warning], &[], false),
-            edge("a", EdgeTarget::End, &[Success], &["b", "c"], true),
+            edge("a", job("b"), &[Warning], &[]),
+            edge("a", EdgeTarget::End, &[Success], &["b", "c"]),
         ]
     );
 }
@@ -139,10 +129,7 @@ fn 最後のジョブから終点への辺は_飛び越しなし() {
     let edges = edges(&definition(&["a", "b"], &[("b", OnSuccess, None)]));
     let last = edges.last().unwrap();
     // 成功は明示、警告は既定だが、どちらも終点なので 1 つにまとまる。
-    assert_eq!(
-        last,
-        &edge("b", EdgeTarget::End, &[Success, Warning], &[], true)
-    );
+    assert_eq!(last, &edge("b", EdgeTarget::End, &[Success, Warning], &[]));
 }
 
 #[test]
@@ -150,13 +137,7 @@ fn ジョブが1個なら_終点への辺が1つだけ() {
     let edges = edges(&definition(&["only"], &[]));
     assert_eq!(
         edges,
-        vec![edge(
-            "only",
-            EdgeTarget::End,
-            &[Success, Warning],
-            &[],
-            false
-        )]
+        vec![edge("only", EdgeTarget::End, &[Success, Warning], &[])]
     );
 }
 

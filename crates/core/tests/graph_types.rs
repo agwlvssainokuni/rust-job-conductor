@@ -29,7 +29,6 @@ fn 辺は_kinds_を1つ以上持ち_行き先はジョブか終点() {
         to: EdgeTarget::Job("c".into()),
         kinds: vec![EdgeKind::Success, EdgeKind::Warning],
         skipped_jobs: vec!["b".into()],
-        explicit: true,
     };
     assert!(!edge.kinds.is_empty());
     assert_eq!(edge.to, EdgeTarget::Job("c".into()));

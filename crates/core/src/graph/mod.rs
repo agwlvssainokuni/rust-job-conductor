@@ -56,8 +56,6 @@ pub struct FlowEdge {
     pub kinds: Vec<EdgeKind>,
     /// 元と行き先のあいだにあるジョブの ID(定義の記述順。BR1.4)。行き先が次のジョブなら空。
     pub skipped_jobs: Vec<String>,
-    /// 定義に遷移として書かれた辺か。書かずに、記述順の次へ進む辺は `false`。
-    pub explicit: bool,
 }
 
 /// `--state` で重ねる状態。成功と警告は `Ok` にまとめる(BR4.1)。

@@ -143,21 +143,17 @@ fn p4_千個のジョブの辺の取り出しを_100_回くり返しても_600ms
         assert_eq!(success.from_job, format!("j{i}"));
         assert_eq!(success.to, EdgeTarget::Job(format!("j{}", i + 1)));
         assert_eq!(success.kinds, [EdgeKind::Success]);
-        assert!(success.explicit);
         assert_eq!(warning.from_job, format!("j{i}"));
         assert_eq!(warning.to, EdgeTarget::Job(format!("j{}", i + 2)));
         assert_eq!(warning.kinds, [EdgeKind::Warning]);
-        assert!(warning.explicit);
     }
     let j998 = &edges[2 * (N - 2)];
     assert_eq!(j998.from_job, format!("j{}", N - 2));
     assert_eq!(j998.to, EdgeTarget::Job(format!("j{}", N - 1)));
     assert_eq!(j998.kinds, [EdgeKind::Success, EdgeKind::Warning]);
-    assert!(!j998.explicit);
     let j999 = &edges[2 * (N - 2) + 1];
     assert_eq!(j999.from_job, format!("j{}", N - 1));
     assert_eq!(j999.to, EdgeTarget::End);
-    assert!(!j999.explicit);
 
     let m = measure("P4", || {
         assert_eq!(build_graph(&def, None).edges.len(), 1998);

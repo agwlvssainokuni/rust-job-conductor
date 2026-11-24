@@ -261,7 +261,6 @@ fn 辺の一覧に残る形_後ろ向きの辺() {
             to: EdgeTarget::Job("a".into()),
             kinds: vec![EdgeKind::Success, EdgeKind::Warning],
             skipped_jobs: Vec::new(),
-            explicit: true,
         }],
     };
     assert_eq!(layout_graph(&graph), GraphLayout::EdgeList);
