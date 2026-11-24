@@ -15,8 +15,8 @@
 //! 計画の整形(U3。BR3.1〜BR3.3、BR5.1、BR6.1)。期待する出力の例 P1〜P8、英語の例 P2e、P4e が、
 //! 1 文字も違わず一致する。
 
-use conductor_cli::Language;
-use conductor_cli::report::plan_text::render_plan;
+use crate::report::plan_text::render_plan;
+use crate::types::Language;
 use conductor_core::{
     Assumption, EnvEntry, EnvFileContent, ExecutionPlan, JobState, JobStatus, LoadedEnvFiles,
     PipelineState, PlanInput, parse_definition, plan_pipeline, plan_run,
