@@ -582,7 +582,7 @@ Options:
 - `escape_full`: 上限なし(エスケープだけ。v0.9.7 までは `escape_path` という名前だった)。
 - 使い方の誤りの対象、ジョブID、遷移先、スキップのID、リトライのジョブID、パイプライン名、run ID、コマンド名は `escape_name`。パス(定義ファイル、ステートのパス、`reset --all` のファイル名、変換の入力ファイル・原因・キーの位置)は `escape_full`。
 
-期待値の表(`tests/escape_table.rs`。入力 → 上限 → 出力):
+期待値の表(単体テストの `src/tests/escape_table.rs`。入力 → 上限 → 出力):
 
 | 入力 | 上限 | 出力 |
 |------|------|------|
@@ -602,7 +602,7 @@ Options:
 | `abcdef` | 3 | `abc…` |
 | (空) | 64 | (空) |
 
-本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを包む(core は、定義の誤りの文を作るときに上限つきで呼ぶ)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。`tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
+本体は `conductor-core` の `escape_display` で、cli の `report::escape` はそれを包む(core は、定義の誤りの文を作るときに上限つきで呼ぶ)。`conductor-converter` は core に依存しないため、同じ規則の写しを持つ(変換の誤りの文を作るときに使う。cli の単体テスト `src/tests/escape_table.rs` と converter の単体テストの同じ表で揃える)。`conductor-runtime` には無い。ただし、定義とパスのファイル名には core・converter 側で 256 文字(`MAX_FILE_DISPLAY_CHARS`)の上限がある。`DefinitionError`/`ConversionError` を `Display` で文字にする場合(CLI は使わない)に適用される。CLI は、`file` を `escape_full` で(切らずに)表示する。
 
 ## 10. 実装と README の差
 

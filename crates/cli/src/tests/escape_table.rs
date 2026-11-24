@@ -17,7 +17,7 @@
 //! このテストは期待値の表を固定する。conductor-converter の同じ規則の写しは、非公開のため、
 //! converter の単体テストにある、同じ期待値の表で揃える。
 
-use conductor_cli::report::escape::{escape_full, escape_name};
+use crate::report::escape::{escape_full, escape_name};
 use conductor_core::escape_display;
 
 /// (入力, 上限, 期待値)。conductor-core・conductor-converter の単体テストの期待値と同じ規則。

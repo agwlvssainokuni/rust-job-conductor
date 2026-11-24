@@ -159,7 +159,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示 | `core/tests/nfr_security.rs`、`runtime/tests/nfr_content.rs`、`converter/tests/nfr_security.rs` |
 | ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | `runtime/tests/nfr_content.rs` |
 | 環境変数の値を出さない(v0.9.0 以降) | `env`・`.env` の値(秘密のつもりの文字列)が、標準出力、標準エラー(`-v` を含む)、ステートファイルに現れない。`graph`・`--dry-run` の出力にも現れず、名前だけが出る。`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` の表示にも値が現れない。値を持つ型の `Debug` は値を `"***"` にする | `cli/tests/binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`core/tests/nfr_security.rs`、`env_types.rs` |
-| 表示のエスケープの表 | core の `escape_display`(テストは core から直接使う)が期待値の表のとおりで、converter の写しと同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/tests/escape_table.rs` |
+| 表示のエスケープの表 | core の `escape_display`(テストは core から直接使う)が期待値の表のとおりで、converter の写しと同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/src/tests/escape_table.rs` |
 | ネットワークに接続しない | `src/` に `std::net` などがない。依存に HTTP・TLS のライブラリがない | `cli/tests/nfr_source.rs` |
 | `unsafe` | runtime は `platform/unix.rs` の 1 回(`libc::kill`)だけ。cli は禁止(`#![forbid(unsafe_code)]`)。`low_level` を使わない | `runtime/tests/nfr_source.rs`、`cli/tests/nfr_source.rs` |
 | シグナルの送信 | ジョブの子プロセスの pid だけ(0 以下にならない)、許可した 4 つのシグナルだけ、1 回だけ | `runtime/src/platform/unix.rs` の単体、`runner_signal.rs` |
@@ -265,7 +265,6 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 |----------|------|
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
 | `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
-| `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
 | `graph_long_id.rs` | `graph` の text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
@@ -297,6 +296,7 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 |----------|------|
 | `mod.rs` | 下位のモジュールの宣言 |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
+| `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
 
 このディレクトリは、`tests/nfr_source.rs` の OS 分岐と `panic!(` の検査の外(3.3、3.5 節)。
 

@@ -15,8 +15,8 @@
 //! 表示の安全(Escape。NFR4.2)。入力に由来する文字列を、端末に出せる形にする。
 //!
 //! 本体は conductor-core の `escape_display` で、ここは名前・パスの薄い包みだけを持つ。
-//! conductor-converter は core に依存しないため、同じ規則の写しを持ち、`tests/escape_table.rs` と
-//! converter の単体テストの、同じ期待値の表で揃える。
+//! conductor-converter は core に依存しないため、同じ規則の写しを持ち、単体テストの
+//! `src/tests/escape_table.rs` と converter の単体テストの、同じ期待値の表で揃える。
 
 use conductor_core::escape_display;
 
