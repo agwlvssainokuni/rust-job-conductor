@@ -370,10 +370,8 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `step.rs` | 1 つのジョブの共通の手順(`record_skip`(`SkipRecord { state, written }` を返す。v0.9.6 までは組 `(PipelineState, bool)`)、`run_step`、`remove_if_requested`、`StepResult`)と、実行のあとの表示(`report_execution`、`result_detail`)、`run_step` が呼ぶリトライを含む実行 `run_job_with_retry`(非公開。試行ごとに `merge_env`。どの試行も、検査で分割した同じコマンドを渡す)。`run` と `pipeline` が呼ぶ。起動前の判断は core の `decide_from_state` を直接呼ぶ。`run_step` は、定義の検査で分割したそのジョブのコマンドを受け取る |
 | `run.rs` | `run_individual`(個別実行)。`prepare_session`(`check_job`)が返す位置でジョブを引く。いつ消すかと終了コードの決定 |
 | `pipeline.rs` | `run_pipeline`(一括実行。ジョブのループ、エラーでの停止、ジョブのあいだの中断)、`finish`(`remove_if_requested` を呼んで 0 か 65) |
-| `aux_commands.rs` | `watch`・`reset`・`validate`・`convert` |
-| `graph.rs`(v0.9.0 以降) | `run_graph` |
-| `dry_run.rs`(同) | `run_dry_run`(`FlowTarget::{Pipeline, Run}`)、`run` と `pipeline` の共通の入口 `enter_flow`(位置引数の欠けは 68、`--dry-run` なら計画へ) |
-| `init.rs`(同) | `run_init` |
+| `aux_commands.rs` | シグナルの準備をしない補助のコマンド: `watch`・`reset`・`validate`・`convert`、`graph`(`run_graph`。v0.9.0 以降)、`init`(`run_init`。同) |
+| `dry_run.rs`(v0.9.0 以降) | `run_dry_run`(`FlowTarget::{Pipeline, Run}`)、`run` と `pipeline` の共通の入口 `enter_flow`(位置引数の欠けは 68、`--dry-run` なら計画へ) |
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`。登録はプロセスで 1 回 |

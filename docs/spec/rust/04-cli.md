@@ -1,6 +1,6 @@
 # 04. コマンドライン(`conductor` v0.9.8)
 
-実装: `crates/cli/src/{main,lib,args,types,ctx,run,pipeline,aux_commands,graph,dry_run,init}.rs`。
+実装: `crates/cli/src/{main,lib,args,types,ctx,run,pipeline,aux_commands,dry_run}.rs`。
 引数の解釈は `lexopt` で字句に分け、コマンドごとの文法の表で検査する。引数はシェルを介さず、解釈も展開もしない。
 
 ## 1. 全体像
@@ -200,7 +200,7 @@ conductor --help | --version
 
 ### 7.7 `graph [<pipeline-name>]`(v0.9.0 以降)
 
-定義の遷移(成功と警告の行き先、`@end`)を図にして、標準出力に 1 回で書く。ジョブを起動せず、シグナルの準備もせず、ステートを書かない・消さない(`--state` のときだけ読む)。実装は `crates/cli/src/graph.rs` の `run_graph`。
+定義の遷移(成功と警告の行き先、`@end`)を図にして、標準出力に 1 回で書く。ジョブを起動せず、シグナルの準備もせず、ステートを書かない・消さない(`--state` のときだけ読む)。実装は `crates/cli/src/aux_commands.rs` の `run_graph`。
 
 順序(誤りの終了コードを括弧に示す):
 
@@ -215,7 +215,7 @@ conductor --help | --version
 
 ### 7.8 `init [<pipeline-name>]`(v0.9.0 以降)
 
-定義のひな形を作る。定義、`.env`、ステートを読まず、ジョブを実行せず、シグナルの準備もしない。引数の誤り(68)は、`parse_args` が、ファイルに触れる前に返す。実装は `crates/cli/src/init.rs` の `run_init`。
+定義のひな形を作る。定義、`.env`、ステートを読まず、ジョブを実行せず、シグナルの準備もしない。引数の誤り(68)は、`parse_args` が、ファイルに触れる前に返す。実装は `crates/cli/src/aux_commands.rs` の `run_init`。
 
 1. オプション(`init_options()`): 出力先 = `--config` の値(省略時 `conductor.toml`。値が `-` だけなら標準出力)、`force` = `--force`、名前 = 位置引数(省略時 `my-pipeline`)。
 2. ひな形の文字列を作る(`render_template(言語, 名前)`。言語は、表示が必要になった時点のロケール。08 の 12 章)。
