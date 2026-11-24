@@ -185,7 +185,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 
 ### 4.1 方針
 
-- 方法論は test-after(実装してから、層ごとにテストを書いて実行する)。単体テスト(各 `src/*.rs` の `#[cfg(test)]`)と、バイナリを実行する統合テスト(`tests/`)を持つ。
+- 方法論は test-after(実装してから、層ごとにテストを書いて実行する)。単体テスト(各 `src/*.rs` の `#[cfg(test)]`。converter は、途中の表現を比べる単体テストを `src/tests/` にも置く)と、バイナリを実行する統合テスト(`tests/`)を持つ。
 - 行カバレッジの下限は **80%**(`cargo-llvm-cov`。5 章)。
 - プロセスを起動するテストは、30 秒の上限(`LIMIT`)で、ハングだけを検知する。失敗した場合は、ジョブの子プロセスを強制終了して後始末する。
 - テストは日本語の関数名を使い、OS 依存のテストは `#[cfg(unix)]` / `#[cfg(windows)]` をファイル全体またはテスト単位に付ける。
@@ -243,10 +243,18 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 |----------|------|
 | `convert_ac.rs` | 受け入れ基準と、`convert`(ファイルを読む入口) |
 | `convert_roundtrip.rs` | 往復(変換して読み戻した木が入力の木と等しい) |
-| `read_resolve.rs` | 文書の確認と展開、失敗の順序、暴走する入力 |
 | `nfr_security.rs` | 3 章 |
 | `fixtures/{pipeline,broken}.{toml,yaml}` | 入力例 |
 | `common/kinds.rs` | 変換の失敗の種類の一覧の写し(`CONVERSION_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき |
+
+converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
+
+| ファイル | 目的 |
+|----------|------|
+| `mod.rs` | 補助(`yaml`・`toml`・`s`・`i`・`m`・`a`・`with_timeout`) |
+| `read_resolve.rs` | 文書の確認と展開、失敗の順序、暴走する入力 |
+
+このディレクトリは、`tests/nfr_security.rs` のソースの検査(`src/*.rs`)の対象の外。
 
 #### conductor-cli(`crates/cli/tests/`)
 

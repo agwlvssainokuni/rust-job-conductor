@@ -177,3 +177,6 @@ pub mod testing {
         read_value(text, format.opposite(), file)
     }
 }
+
+#[cfg(test)]
+mod tests;

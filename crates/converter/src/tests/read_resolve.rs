@@ -14,10 +14,9 @@
 
 //! 文書の確認と展開(RootCheck、Resolve)、失敗の順序(BR1.12)、暴走の入力。
 
-mod common;
-
-use common::{a, i, m, s, toml, with_timeout, yaml};
-use conductor_converter::ConversionErrorKind as K;
+use super::{a, i, m, s, toml, with_timeout, yaml};
+use crate::ConversionErrorKind as K;
+use crate::types::Value;
 
 // ---- 文書の確認 ----
 
@@ -136,7 +135,7 @@ fn flat_array_yaml(n: usize) -> String {
 #[test]
 fn 要素数ちょうど100000は受理し_1つ多いと大きすぎる() {
     let ok = yaml(&flat_array_yaml(99_997)).expect("100,000 ちょうどは受理");
-    assert!(matches!(ok, conductor_converter::testing::Value::Map(_)));
+    assert!(matches!(ok, Value::Map(_)));
     let e = yaml(&flat_array_yaml(99_998)).unwrap_err();
     assert_eq!(e.kind, K::TooLarge);
     assert_eq!(e.reason, "展開後の要素数が上限(100000)を超えています");
@@ -356,8 +355,8 @@ fn str_のタグと_一致するコアのタグは受理する() {
         m(vec![
             ("a", s("1")),
             ("b", i(5)),
-            ("c", conductor_converter::testing::Value::Float(1.0)),
-            ("d", conductor_converter::testing::Value::Bool(true)),
+            ("c", Value::Float(1.0)),
+            ("d", Value::Bool(true)),
             ("e", s("")),
             ("f", m(vec![("x", i(1))])),
             ("g", a(vec![i(1)])),
@@ -378,9 +377,9 @@ fn コアスキーマのスカラー() {
             ("b", s("on")),
             ("c", s("no")),
             ("d", s("off")),
-            ("e", conductor_converter::testing::Value::Bool(true)),
+            ("e", Value::Bool(true)),
             ("f", i(31)),
-            ("g", conductor_converter::testing::Value::Float(1.5)),
+            ("g", Value::Float(1.5)),
             ("h", s("1")),
             ("i", s("null")),
             ("j", i(7)),

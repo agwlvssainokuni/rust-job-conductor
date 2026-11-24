@@ -1,6 +1,6 @@
 # 09. 変換器(TOML と YAML の相互変換。rust 版 conductor v0.9.8)
 
-この文書は、`conductor convert <ファイル> --to <yaml|toml>` の中身である変換器(`crates/converter`、クレート `conductor-converter`)の振る舞いを定める。根拠は実装(`crates/converter/src/*`)とテスト(`crates/converter/tests/*`、fixtures を含む)、および実際に実行して確かめた出力である。確認できなかった点は「未確認」と書く。
+この文書は、`conductor convert <ファイル> --to <yaml|toml>` の中身である変換器(`crates/converter`、クレート `conductor-converter`)の振る舞いを定める。根拠は実装(`crates/converter/src/*`)とテスト(`crates/converter/tests/*`、fixtures を含む。途中の表現を比べる単体テスト `crates/converter/src/tests/*`)、および実際に実行して確かめた出力である。確認できなかった点は「未確認」と書く。
 
 - 変換器は、定義ファイルの**検証をしない**。変換した結果が `conductor` の定義として正しいかは見ない(任意の TOML / YAML のマップを変換する)。
 - (v0.9.0 以降)変換器は、定義のキーを列挙しない。したがって、v0.9.0 で加わったキー(`[pipeline.env]`、`[job.env]`(値は文字列のテーブル)、`env_file`(文字列、または文字列の配列))も、ほかのキーと同じ規則で往復する。v0.9.0 のために、変換器のコードは変わっていない。
