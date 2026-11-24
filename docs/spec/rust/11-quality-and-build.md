@@ -163,7 +163,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | ネットワークに接続しない | `src/` に `std::net` などがない。依存に HTTP・TLS のライブラリがない | `cli/tests/nfr_source.rs` |
 | `unsafe` | runtime は `platform/unix.rs` の 1 回(`libc::kill`)だけ。cli は禁止(`#![forbid(unsafe_code)]`)。`low_level` を使わない | `runtime/tests/nfr_source.rs`、`cli/tests/nfr_source.rs` |
 | シグナルの送信 | ジョブの子プロセスの pid だけ(0 以下にならない)、許可した 4 つのシグナルだけ、1 回だけ | `runtime/src/platform/unix.rs` の単体、`runner_signal.rs` |
-| テスト専用の経路を製品に持たない | `main.rs` に `panic!` がない。`src/bin/` と単体テスト `src/tests/` の外に `panic!(` がない(`src/tests/` は `lib.rs` の最後の `#[cfg(test)] mod tests;` からだけ読む)。配布は `conductor` だけ | `cli/tests/nfr_source.rs`、`release.yml` |
+| テスト専用の経路を製品に持たない | `main.rs` に `panic!` がない。`src/bin/` と単体テスト `src/tests/` の外に `panic!(` がない(`src/tests/` は `lib.rs` の最後の `#[cfg(test)] mod tests;` からだけ読み、製品のコード(`src/tests/` の外)に `#[path`・`include!`・`include_str!`・`include_bytes!` が無い)。配布は `conductor` だけ | `cli/tests/nfr_source.rs`、`release.yml` |
 | converter の副作用 | ソースにプロセス・ネットワーク・環境変数のアクセスがない。静的な初期化がない。`convert` は入力以外のファイルを作らず、カレントディレクトリの変更と環境変数に左右されない | `converter/tests/nfr_security.rs` |
 | 既知の脆弱性 | `cargo audit`(6 章。警告のみ) | `audit.yml` |
 | 配布物の完全性 | `SHA256SUMS` を付ける(署名はしない。転送の破損の検知まで)。macOS の署名・公証はしない | `release.yml`、README |
@@ -175,7 +175,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 ### 3.5 ソースの検査を行うテスト一覧
 
 `runtime/tests/nfr_source.rs`(`unsafe` の個所、`unsafe` の許可の場所、OS 分岐の場所、シェルを呼ばない、パニックしうる書き方がない)、
-`cli/tests/nfr_source.rs`(`forbid(unsafe_code)`、`unsafe`/`low_level` なし、ネットワークなし、OS 分岐の場所、テスト専用の経路なし(この 2 つは単体テスト `src/tests/` を除き、`src/tests/` が `#[cfg(test)]` の宣言からだけ読まれることを確かめる)、依存の検査。
+`cli/tests/nfr_source.rs`(`forbid(unsafe_code)`、`unsafe`/`low_level` なし、ネットワークなし、OS 分岐の場所、テスト専用の経路なし(この 2 つは単体テスト `src/tests/` を除き、`src/tests/` が `#[cfg(test)]` の宣言からだけ読まれることと、製品のコードに `#[path` と `include` の 3 つのマクロが無いことを確かめる)、依存の検査。
 最後は `cargo tree -p conductor-cli -e normal,build --prefix none --offline --locked` を実行し、`cargo` が使えない・失敗する場合はスキップする)、
 `converter/tests/nfr_security.rs`(ソース検査を含む)。
 

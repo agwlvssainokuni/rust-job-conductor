@@ -17,7 +17,8 @@
 //! この Unit の `src/` に、`unsafe`、`low_level`、`std::net`、ネットワークのライブラリがないこと。
 //! `cfg(unix)`・`cfg(windows)` が `platform` の外にないこと。依存に、C のコンパイルを要するものがないこと。
 //! 単体テスト(`src/tests/`)は、OS 分岐と `panic!(` の検査の外(`lib.rs` の最後の `#[cfg(test)]` の
-//! 宣言からだけ読み、製品のファイルに `#[path` が無いことを確かめる)。
+//! 宣言からだけ読み、製品のファイルに `#[path`・`include!`・`include_str!`・`include_bytes!` が
+//! 無いことを確かめる)。
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -157,8 +158,19 @@ fn テスト専用の経路を実行ファイルに持たない() {
         lib.trim_end().ends_with("#[cfg(test)]\nmod tests;"),
         "src/tests/ は #[cfg(test)] の宣言からだけ読む"
     );
-    // 製品のファイル(src/tests/ の外)から、#[path] で src/tests/ を読む道が無い
-    let paths = find(&|line| line.contains("#[path"), &|path| is_unit_test(path));
+    // 製品のファイル(src/tests/ の外)から、#[path] や include の 3 つのマクロで、別のファイル
+    // (src/tests/ やテストのデータ)を読む道が無い。空白を除いた部分一致なので、`my_include!` の
+    // ような別のマクロや、文字列・/* */ のコメントの中の語にも当たる(誤検出の側)。
+    // `#[cfg_attr(…, path = "…")]` の形は見逃す
+    let paths = find(
+        &|line| {
+            let compact: String = line.chars().filter(|c| !c.is_whitespace()).collect();
+            ["#[path", "include!", "include_str!", "include_bytes!"]
+                .iter()
+                .any(|word| compact.contains(word))
+        },
+        &|path| is_unit_test(path),
+    );
     assert!(paths.is_empty(), "{paths:#?}");
 }
 
