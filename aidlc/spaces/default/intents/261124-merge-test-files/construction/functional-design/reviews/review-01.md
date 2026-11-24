@@ -1,0 +1,21 @@
+## Review
+
+**Verdict:** READY
+**Reviewer:** aidlc-architecture-reviewer-agent
+**Iteration:** 1
+**Verdict Dictated:** no
+
+### Findings
+
+| ID | Severity | Location | Finding | Required action | Status |
+|---|---|---|---|---|---|
+| R-01 | Minor | aidlc/spaces/default/intents/261124-merge-test-files/construction/functional-design/inventory.md:205 (L8) と functional-spec.md §8 のコミット 9 の行 | 言語に依らない仕様書の根拠 L8(946 行目と 958 行目の `docs_graph`)は、コミット 10 で直す計画になっている。ところが単体テストの `docs_graph` モジュールは、コミット 9 で無くなる(`git mv` で `docs.rs` になる)。946 行目と 958 行目が単体と統合のどちらの `docs_graph` を指すかは、設計に書かれていない。コミット 9 の時点で、単体テスト側を指す根拠の欄が、存在しないモジュールの名前を一時的に持つ恐れがある。§8 は「各コミットで、そのコミットで動かしたファイルを指す仕様書の行も直す」としているので、その原則と食い違う。 | 946 行目と 958 行目が指すのが単体テストなら、L8 をコミット 9 へ前倒しする。統合テストなら、コミット 10 のままでよい。どちらかを L8 の行に明記し、コミット 9 の「仕様書の行の検索」がこの 2 行を無用に拾わないようにする。 | New |
+| R-02 | Minor | aidlc/spaces/default/intents/261124-merge-test-files/construction/functional-design/functional-spec.md:§2.5(`fakes.rs` の `use super::{Env, Language, Sink}`) | 統合テストの親(`tests/common/mod.rs`)は、`Env`・`Sink` を `use conductor_cli::{…}` で取り、`Language` を自前の `enum` で持つ。単体テストの親は `crate::deps` と `crate::types::Language` を使う。`fakes.rs` が `for_language` の網羅の `match` で両方の `Language` を同じ形で扱う前提が、将来 `Language` に値を足したときに、2 つの定義が別々に壊れうる。今回の範囲では 2 つの `Language` は `En`・`Ja` で一致していて、写しの木でコンパイルと clippy が通ったと記録されているので、今は問題ない。 | 設計の注意として、`fakes.rs` の先頭のコメントに「統合テスト側の `Language`(`tests/common/mod.rs`)は、`crate::types::Language` の値と同じ並びで保つ」と 1 行足す。直さなくても承認の妨げにはならない。 | New |
+| R-03 | Minor | aidlc/spaces/default/intents/261124-merge-test-files/construction/functional-design/functional-spec.md:§2.6 と §10 の D5 | `.gitattributes` の 1 行は、`crates/cli/tests/fixtures/*.toml` だけに効く。既存の `crates/converter/tests/fixtures/*.toml` と `crates/core/tests/fixtures/*.toml` には効かず、その 2 つは今の挙動のままで影響を受けない(これは正しい)。一方、Windows の CI(`core.autocrlf` による取り出し)で実際に全文の一致が通るかは、写しの `git` では取り出しまでしか確かめておらず、最終の確認は CI の `test`(windows)になる。この点は設計でも認めている。 | コード生成の記録に、コミット 12 の push 後の Windows の CI の結果(ひな形の全文の一致のテストが通ったこと)を書く項目を足す。失敗したら、D5 の代案(テスト側で `rn` を直す)へ戻す手順も 1 行書く。 | New |
+| R-04 | info | aidlc/spaces/default/intents/261124-merge-test-files/construction/functional-design/functional-spec.md:§2.5、§7 | 実物の確認の結果: 統合テストの `tests/common/mod.rs` の `FakeEnv`・`FakeSink`(46 行目から 141 行目)と、単体テストの `src/tests/common/mod.rs` の同じ部分は、コメントを除いて同じ。`state_error` の本体も同じ。`#[path = "../../../tests/common/fakes.rs"]` は、`src/tests/common/mod.rs` の置き場所から `crates/cli/tests/common/fakes.rs` に解決される。cli の `nfr_source.rs`(161〜175 行目)は、`src/tests/` の外の `#[path`・`include!`・`include_str!`・`include_bytes!` だけを見るので、`src/tests/` の中の `#[path` と `include_str!` には当たらない。`tests/fixtures/` は `main.rs` を持たず、cargo にテストとして拾われない。 | 対応は不要。 | New |
+| R-05 | info | aidlc/spaces/default/intents/261124-merge-test-files/construction/functional-design/functional-spec.md:§2.4、§4.1 の T4・T5 | 実物の確認の結果: `runner_env.rs` の 5 件は `common::*` の `helper_command`・`command_line`・`lines` と、`conductor_runtime::{InterruptSignal, run_job}` だけを使い、`runner_basic.rs` に同じ名前の関数(`child_env`、`lines`)は無い。`#[cfg(windows)]` の 3 件の前に置けば、`cfg` の付き方は変わらない。`state_read_raw.rs` の `read_state`(引数 2 つ)は、子のモジュール `raw` の中の `use` が親の `common::without_run_id::read_state` を隠すので衝突しない。`super::common::{def, put}` は、子から親の私的な `mod common` を見られるので解決する。件数の計算(34 件、cli の単体 162 + 10 = 172、統合 294 − 10 = 284)と、無くなるファイル 19(cli 13、converter 4、runtime 2)も合う。 | 対応は不要。 | New |
+| R-06 | info | aidlc/spaces/default/intents/261124-merge-test-files/construction/functional-design/functional-spec.md:§7(仕様書の検索) | 実物の `docs/spec/rust` と `docs/spec/language-agnostic` を、無くなる名前で検索した。結果は S1〜S16 と L1〜L10 の一覧が指す行と一致する(`07:428`、`02:273`、`02:389`、`11:228`、`11:233`、`11:244〜248`、`11:256〜257`、`11:270`、`11:275`、`11:280`、`11:290`、`11:292〜303`、言語に依らない仕様書の `588`、`589`、`605`、`658`、`676`、`718`、`884`、`929`、`946`、`958`、`980`、`998`)。§7 の検索の正規表現は、それらの名前をすべて拾える。CI の `.github/workflows` が名前で指すテストは `nfr_perf` だけで、消すファイルには入らない。 | 対応は不要。 | New |
+
+### Summary
+
+設計は実物と合っており、実装して迷う箇所はありません。網羅(34 件、19 ファイル)、名前の衝突の解き方(D1〜D3)、補助の 1 ファイル化、データのファイル化と `.gitattributes`、`nfr_source` の検査、仕様書の直しの一覧は、実物のコードと検索で確かめて矛盾が無いと判断しました。指摘は軽微な 3 件(L8 の直す時期、`Language` の 2 つの定義、Windows の CI での D5 の最終確認)と、確認結果の記録 3 件で、承認を止める理由にはなりません。
