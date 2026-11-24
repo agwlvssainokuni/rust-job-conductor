@@ -242,9 +242,8 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | ファイル | 目的 |
 |----------|------|
 | `convert_ac.rs` | 受け入れ基準と、`convert`(ファイルを読む入口)、出力が毎回同じ。変換の結果を読んだ木を比べる 2 件と往復の木の比較は単体テストの `src/tests/convert_roundtrip.rs` |
-| `nfr_security.rs` | 3 章 |
+| `nfr_security.rs` | 3 章。変換の失敗の種類の一覧の写し(`CONVERSION_ERROR_KINDS`。網羅の `match` と、並び・重複のコンパイル時の確かめつき)を持つ |
 | `fixtures/{pipeline,broken}.{toml,yaml}` | 入力例 |
-| `common/kinds.rs` | 変換の失敗の種類の一覧の写し(`CONVERSION_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき |
 
 converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 

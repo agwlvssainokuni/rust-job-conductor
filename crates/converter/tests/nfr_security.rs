@@ -16,12 +16,9 @@
 //! ランダムな入力とランダムな構造の往復の 2 件は、変換した結果を読んだ木を比べるので、単体テストの
 //! `src/tests/nfr_security.rs` にある。
 
-mod common;
-
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use common::kinds::CONVERSION_ERROR_KINDS;
 use conductor_converter::{
     ConversionError, ConversionErrorKind as K, ConversionRequest, TargetFormat, convert,
     convert_text,
@@ -255,6 +252,44 @@ fn タグは値を組み立てない() {
 }
 
 // ---- NFR4.6 ----
+
+// 誤りの種類の一覧(テストの写し。BR1.7)。
+//
+// 一覧の定数、種類の位置を返す網羅の `match`(`_` を使わない)、一覧の i 番目の位置が i であることの
+// コンパイル時の確かめを並べて置く。種類を足すと `match` がコンパイルで止まり、一覧の並びの誤りや
+// 重複も、コンパイルで止まる。
+
+/// 変換の失敗の種類のすべて(テストの写し。種類を足したら、下の `match` がコンパイルで止まるので、
+/// ここにも足す)。
+const CONVERSION_ERROR_KINDS: [K; 6] = [
+    K::FileMissing,
+    K::Unreadable,
+    K::TooLarge,
+    K::Syntax,
+    K::Unrepresentable,
+    K::RootNotMap,
+];
+
+/// 変換の失敗の種類の、一覧の中の位置(網羅の `match`。`_` を使わない)。
+const fn conversion_position(kind: K) -> usize {
+    match kind {
+        K::FileMissing => 0,
+        K::Unreadable => 1,
+        K::TooLarge => 2,
+        K::Syntax => 3,
+        K::Unrepresentable => 4,
+        K::RootNotMap => 5,
+    }
+}
+
+// 一覧の i 番目の位置が i であること(並びの誤りと重複を、コンパイルで止める)。
+const _: () = {
+    let mut i = 0;
+    while i < CONVERSION_ERROR_KINDS.len() {
+        assert!(conversion_position(CONVERSION_ERROR_KINDS[i]) == i);
+        i += 1;
+    }
+};
 
 fn all_kind_errors() -> Vec<ConversionError> {
     let dir = tempfile::tempdir().unwrap();
