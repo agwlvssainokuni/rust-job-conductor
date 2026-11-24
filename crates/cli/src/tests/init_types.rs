@@ -16,7 +16,7 @@
 
 use std::ffi::OsString;
 
-use conductor_cli::{CliCommand, CommandKind, InitOptions, InitTarget};
+use crate::types::{CliCommand, CommandKind, InitOptions, InitTarget};
 
 #[test]
 fn init_のオプションの既定は_my_pipeline_と_force_なしと_conductor_toml() {

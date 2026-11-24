@@ -19,4 +19,5 @@
 
 mod escape_table;
 mod exit_codes;
+mod init_types;
 mod run_id_arg;
