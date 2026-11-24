@@ -270,7 +270,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 
 `SystemRuntime` は、`conductor_core`・`conductor_runtime`・`conductor_converter` の関数への薄い委譲である(`run_id_env` だけは、定義ファイルを取り込みと同じ大きさの上限で読み、`peek_run_id_env` を呼ぶ。読めなければ `None`)。
 
-テストの偽の実装(`crates/cli/tests/common/mod.rs`。単体テストの `crates/cli/src/tests/common/mod.rs` は、`FakeEnv`・`FakeSink` の写しを持つ):
+テストの偽の実装(`crates/cli/tests/common/mod.rs`。`FakeEnv`・`FakeSink` は `crates/cli/tests/common/fakes.rs` にあり、単体テストの `crates/cli/src/tests/common/mod.rs` も、写しを持たずに同じファイルを `#[path]` で読む):
 
 | 名前 | 内容 |
 |------|------|

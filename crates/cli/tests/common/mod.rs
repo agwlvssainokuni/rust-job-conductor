@@ -15,10 +15,15 @@
 //! 流れのテストの共通の補助(偽の `Runtime`・`Sink`・`Env`・`Signals`、定義の組み立て)。
 #![allow(dead_code)]
 
+// 偽の `Env`・`Sink` と `state_error` は、単体テストと共有するファイル(`fakes.rs`)にある。
+// `fakes.rs` は、この親のモジュールの `Env`・`Sink`・`Language` を使う。
+mod fakes;
+
+pub use fakes::{FakeEnv, FakeSink, state_error};
+
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, VecDeque};
 use std::ffi::OsString;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -40,103 +45,6 @@ use conductor_runtime::{
 pub enum Language {
     En,
     Ja,
-}
-
-#[derive(Default)]
-pub struct FakeEnv {
-    pub vars: HashMap<String, String>,
-    pub terminal: bool,
-    pub var_calls: Cell<usize>,
-    pub terminal_calls: Cell<usize>,
-    /// 読まれた環境変数の名前(読んだ順)。
-    pub names: RefCell<Vec<String>>,
-}
-
-impl FakeEnv {
-    /// ロケールの環境変数(`LC_ALL`・`LC_MESSAGES`・`LANG`)が読まれたか(言語の判定の遅延を確かめる)。
-    pub fn locale_read(&self) -> bool {
-        self.names
-            .borrow()
-            .iter()
-            .any(|n| matches!(n.as_str(), "LC_ALL" | "LC_MESSAGES" | "LANG"))
-    }
-
-    /// 色の判定のための問い合わせ(`NO_COLOR` を読んだ、または端末かを問い合わせた)があったか
-    /// (色の判定の遅延を確かめる)。
-    pub fn color_read(&self) -> bool {
-        self.terminal_calls.get() > 0 || self.names.borrow().iter().any(|n| n == "NO_COLOR")
-    }
-
-    pub fn with(vars: &[(&str, &str)]) -> Self {
-        Self {
-            vars: vars
-                .iter()
-                .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect(),
-            ..Self::default()
-        }
-    }
-
-    /// 言語 `lang` のロケール(`LANG`)だけを持つ環境。
-    pub fn for_language(lang: Language) -> Self {
-        match lang {
-            Language::En => Self::with(&[("LANG", "en_US.UTF-8")]),
-            Language::Ja => Self::with(&[("LANG", "ja_JP.UTF-8")]),
-        }
-    }
-}
-
-impl Env for FakeEnv {
-    fn var(&self, name: &str) -> Option<String> {
-        self.var_calls.set(self.var_calls.get() + 1);
-        self.names.borrow_mut().push(name.to_string());
-        self.vars.get(name).cloned()
-    }
-
-    fn stdout_is_terminal(&self) -> bool {
-        self.terminal_calls.set(self.terminal_calls.get() + 1);
-        self.terminal
-    }
-}
-
-// ---- Sink ----
-
-#[derive(Default)]
-pub struct FakeSink {
-    pub out: Vec<u8>,
-    pub err: Vec<u8>,
-    pub fail_out: bool,
-    pub fail_err: bool,
-    pub out_writes: usize,
-}
-
-impl FakeSink {
-    pub fn out_text(&self) -> String {
-        String::from_utf8_lossy(&self.out).into_owned()
-    }
-
-    pub fn err_text(&self) -> String {
-        String::from_utf8_lossy(&self.err).into_owned()
-    }
-}
-
-impl Sink for FakeSink {
-    fn write_out(&mut self, bytes: &[u8]) -> io::Result<()> {
-        if self.fail_out {
-            return Err(io::Error::new(io::ErrorKind::BrokenPipe, "closed"));
-        }
-        self.out_writes += 1;
-        self.out.extend_from_slice(bytes);
-        Ok(())
-    }
-
-    fn write_err(&mut self, bytes: &[u8]) -> io::Result<()> {
-        if self.fail_err {
-            return Err(io::Error::new(io::ErrorKind::BrokenPipe, "closed"));
-        }
-        self.err.extend_from_slice(bytes);
-        Ok(())
-    }
 }
 
 // ---- Signals ----
@@ -282,16 +190,6 @@ pub fn fake_wait(
             WaitOutcome::Interrupted(number)
         }
         _ => WaitOutcome::Elapsed,
-    }
-}
-
-pub fn state_error(path: &Path, kind: StateErrorKind) -> StateError {
-    StateError {
-        path: path.to_path_buf(),
-        kind,
-        // 英語の表示を ASCII と確かめる単体テストの `src/tests/report_messages.rs` も同じ写しを使うので、
-        // ASCII の文にする。
-        reason: "reason",
     }
 }
 

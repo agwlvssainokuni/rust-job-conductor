@@ -269,7 +269,8 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `msrv_consistency.rs` | MSRV の記載の一致(1.2 節) |
 | `unix_demo.rs`(UNIX)、`windows_demo.rs`(Windows) | デモの検査(9.5 節) |
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
-| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`(引数はテストの言語 `Language`。ロケールを選ぶためだけの写しの enum)、言語と色の判定の記録 `FakeEnv::locale_read`・`color_read`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of` |
+| `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`(引数はテストの言語 `Language`。ロケールを選ぶためだけの写しの enum)、言語と色の判定の記録 `FakeEnv::locale_read`・`color_read`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of`。`FakeEnv`・`FakeSink`・`state_error` は `common/fakes.rs` から再公開する |
+| `common/fakes.rs` | 偽の `Env`・`Sink` と `state_error`。単体テストも `#[path]` で同じファイルを読む。`Env`・`Sink`・`Language` は読む側の親のモジュールが用意する |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
 | `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
 
@@ -280,7 +281,7 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | ファイル | 目的 |
 |----------|------|
 | `mod.rs` | 下位のモジュールの宣言 |
-| `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`・`FakeSink`・`state_error`) |
+| `common/mod.rs` | 統合テストの `tests/common/fakes.rs`(`FakeEnv`・`FakeSink`・`state_error`)を `#[path]` で読む(写しを持たない) |
 | `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む)。引数から作る型(`InitTarget::from_path`(`-` だけが標準出力)、`--run-id` の指定 `RunIdArg::parse`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`))と `resolve_run_id` |
 | `docs.rs` | README の検査(必須の語句、版の表記、`docs-check` の 7 語、リトライと `.env` の例が実際の読み取りに通る。v0.9.0 以降は、図・計画・ひな形の例が実際の出力と一致)。補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`)も持つ |
