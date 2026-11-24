@@ -1768,3 +1768,92 @@
 **Stage**: functional-design
 
 ---
+
+## Plan Approval Blocked
+**Timestamp**: 2026-11-24T13:57:08Z
+**Event**: PLAN_APPROVAL_BLOCKED
+**Guard**: plan-approval-guard
+**Reason**: plan-approval
+**Tool**: Bash
+**Target**: awk '/^## 8\./,/^## 9\./' aidlc/spaces/default/intents/261124-cli-public-surface/construction/functional-design/functional-spec.md | grep -E '^\| [0-9]+ \|' | c
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Stage**: code-generation
+**Unit**: stage-level
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-24T13:57:26Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261124-cli-public-surface/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-24T13:57:34Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261124-cli-public-surface/construction/code-generation/unit-test-instructions.md
+**Context**: construction > code-generation > unit-test-instructions.md
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-24T13:57:38Z
+**Event**: QUESTION_ASKED
+**Question Id**: 1ae1a674
+**Question Type**: plan-approval
+**Question Chat**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Question Shows**: sha256:82035a77916d88b77661a2e98e5101888a79b4b6d428ad639edd829c85d17b1e
+**Stage**: code-generation
+**Ask Id**: 0be10bebc223d8c5c7675f05cb732f7d
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: f9130f37b257072ebbd4554a40a4fdb3e2d4ca6638e48c0ec54eb70feb460884
+**Questions File**: aidlc/spaces/default/intents/261124-cli-public-surface/construction/code-generation/code-generation-questions.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-24T13:57:57Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a4083340e3e210498
+**Message**: 承認
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-24T13:58:03Z
+**Event**: HUMAN_TURN
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Origin**: person
+**Source**: typed
+**Message Id**: 7c63da2f
+**Open Questions**: 1ae1a674
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261124-cli-public-surface/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"6c510393546c5f9f"}}
+
+---
+
+## Plan Approval Recorded
+**Timestamp**: 2026-11-24T13:58:06Z
+**Event**: PLAN_APPROVAL_RECORDED
+**Stage**: code-generation
+**Details**: Approve Plan
+**Checkpoint**: plan-approval
+**Plan Target**: stage:code-generation
+**Intent**: 01a20daf-7b3a-7602-ac40-a3cd89595c0b
+**Directive Epoch**: sha256:269abb278a0aaa1926f3083dae386a22debf0a8f8798661677008b7c5c4b78f3
+**Run floor**: STAGE_STARTED:2026-11-24T13:57:02Z#1
+**Approval Fingerprint**: sha256:v3:4e5752f3930fdf7a6137c73dd87b7306f7cbdf615f7b9aca36aea1ff2553ab35
+**Questions File**: aidlc/spaces/default/intents/261124-cli-public-surface/construction/code-generation/code-generation-questions.md
+**Questions SHA-256**: 325c8a4efcc4ec0953d86d27c608a38b0e3d4d7d935c400d5994d6b897af79e9
+**Prompt SHA-256**: b1b36e9a71a9c3efc863636bd4315ee0adfff88ce4978caad067868dbb6fdb76
+**Session**: b8234484-17e3-4a17-a8eb-53355eff6a60
+**Asked By**: engine
+**Person Reply**: 承認
+**Message Id**: 7c63da2f
+**Git Name**: agwlvssainokuni
+
+---
