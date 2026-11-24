@@ -2,7 +2,7 @@
 
 対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。ステートファイルは、あるパイプライン定義の、実行の途中経過(どのジョブがどう終わったか、どこから再開するか)を保存する TOML ファイル。実行の意味論(いつ何を記録するか)は [05-execution-flow.md](05-execution-flow.md) にある。この文書は、ファイルの形式、読み書きの手順、異常系の挙動を定める。
 
-実装の所在(参考): `crates/runtime/src/state/{reader,writer,record,consistency,reset_all}.rs`、`crates/runtime/src/types.rs`(`StateLocation`)、`crates/runtime/src/error.rs`(理由文)。
+実装の所在(参考): `crates/runtime/src/state/{reader,writer,reset_all}.rs`、`crates/runtime/src/types.rs`(`StateLocation`)、`crates/runtime/src/error.rs`(理由文)。照合と記録は `crates/core/src/{consistency,flow/record}.rs`。
 
 ---
 
