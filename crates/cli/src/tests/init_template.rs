@@ -15,8 +15,8 @@
 //! ひな形(`render_template`)のテスト。U4 の BR2.1〜BR2.4。
 //! 期待値は、機能の仕様(`functional-spec.md`)の原本から書いたもので、実装の出力から作っていない。
 
-use conductor_cli::Language;
-use conductor_cli::report::init_template::render_template;
+use crate::report::init_template::render_template;
+use crate::types::Language;
 use conductor_core::parse_definition;
 use conductor_runtime::check_command;
 
