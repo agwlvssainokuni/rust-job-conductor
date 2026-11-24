@@ -21,16 +21,16 @@
 
 ## 手順
 
-- [ ] Step 1: `src/tests/` の置き場所を作り、`exit_codes.rs` を移す。`nfr_source.rs` を D2 の形に直す(コミット 1)。
-- [ ] Step 2: `escape_table.rs`、`run_id_arg.rs`、`init_types.rs` を移す(コミット 2〜4)。
-- [ ] Step 3: `args_grammar.rs` を移す(コミット 5)。
-- [ ] Step 4: `graph_report.rs` と `graph_long_id.rs`、`plan_report.rs`、`init_template.rs` を移す(コミット 6〜8)。
-- [ ] Step 5: `report_messages.rs` と `kinds.rs` を移し、補助(`FakeSink`、`state_error` など)を足す(コミット 9。仕様書 S7)。
-- [ ] Step 6: `docs_*` の 8 件を移す(コミット 10)。
-- [ ] Step 7: `flow_init.rs`(期待のひな形を原本の写しで書く。D4)と `flow_validate.rs` を直し、`tests/common` にテスト用の `Language` を足す(D5)(コミット 11)。
-- [ ] Step 8: 公開を狭める(`parse_args`、`types` の 11 個、`pub mod exit`・`report`・`run_id` を crate の中に。`lib.rs` の説明)(コミット 12。仕様書 S1〜S6)。
-- [ ] Step 9: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(公開の項目が一覧と一致、`tests/` から狭めた名前の参照が 0 件、仕様書に古い記述が残らない)、テスト名の比較(名前の最後の部分で比べて差 0)、件数(1,152 のまま)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形(`--lib --bins`)の clippy、core・runtime・converter の差分が空。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 10: `code-summary.md`(コミットの一覧、件数の移り変わり、公開の判定、移したテストと書き方を変えたテスト、検索の結果、ソースの検査の範囲の記録、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 1: `src/tests/` の置き場所を作り、`exit_codes.rs` を移す。`nfr_source.rs` を D2 の形に直す(コミット 1)。
+- [x] Step 2: `escape_table.rs`、`run_id_arg.rs`、`init_types.rs` を移す(コミット 2〜4)。
+- [x] Step 3: `args_grammar.rs` を移す(コミット 5)。
+- [x] Step 4: `graph_report.rs` と `graph_long_id.rs`、`plan_report.rs`、`init_template.rs` を移す(コミット 6〜8)。
+- [x] Step 5: `report_messages.rs` と `kinds.rs` を移し、補助(`FakeSink`、`state_error` など)を足す(コミット 9。仕様書 S7)。
+- [x] Step 6: `docs_*` の 8 件を移す(コミット 10)。
+- [x] Step 7: `flow_init.rs`(期待のひな形を原本の写しで書く。D4)と `flow_validate.rs` を直し、`tests/common` にテスト用の `Language` を足す(D5)(コミット 11)。
+- [x] Step 8: 公開を狭める(`parse_args`、`types` の 11 個、`pub mod exit`・`report`・`run_id` を crate の中に。`lib.rs` の説明)(コミット 12。仕様書 S1〜S6)。
+- [x] Step 9: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(公開の項目が一覧と一致、`tests/` から狭めた名前の参照が 0 件、仕様書に古い記述が残らない)、テスト名の比較(名前の最後の部分で比べて差 0)、件数(1,152 のまま)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形(`--lib --bins`)の clippy、core・runtime・converter の差分が空。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 10: `code-summary.md`(コミットの一覧、件数の移り変わり、公開の判定、移したテストと書き方を変えたテスト、検索の結果、ソースの検査の範囲の記録、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
