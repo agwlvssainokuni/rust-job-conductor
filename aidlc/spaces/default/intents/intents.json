@@ -238,5 +238,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "62d98485"
+  },
+  {
+    "uuid": "01a20daf-7b3a-7602-ac40-a3cd89595c0b",
+    "slug": "cli-public-surface",
+    "dirName": "261124-cli-public-surface",
+    "scope": "refactor",
+    "status": "in-flight",
+    "request": "f496747e"
   }
 ]
