@@ -20,14 +20,14 @@
 
 ## 手順
 
-- [ ] Step 1: converter のテストを移す(T1: `convert_roundtrip.rs` の 1 件を `convert_ac.rs` へ、T2: 単体の `convert_ac.rs` の 2 件を `convert_roundtrip.rs` へ、T3: `tests/common` を `nfr_security.rs` へ)。コミット 1〜3。
-- [ ] Step 2: runtime のテストを移す(T4: `runner_env.rs` を `runner_basic.rs` へ、T5: `state_read_raw.rs` を `state_read.rs` の `mod raw` へ。D3)。コミット 4〜5。
-- [ ] Step 3: cli の小さな単体テストを移す(T6: `init_types.rs` を `args_grammar.rs` の init の節へ、T7・T8: `run_id_arg.rs` を `--run-id` の節へ移し、`fr2_5_` の 2 件を新しい `--remove-on-complete` の節へ(D4)、T9: `graph_long_id.rs` を `graph_report.rs` へ(D2))。コミット 6〜8。
-- [ ] Step 4: cli の README のテストを `src/tests/docs.rs` の 1 つにまとめる(T10: 単体の 3 つと補助、T11: 統合の 5 つと補助。D1)。コミット 9〜10。
-- [ ] Step 5: cli のテストの補助を `tests/common/fakes.rs` の 1 つにする(T12)。コミット 11。
-- [ ] Step 6: init のひな形の原本をデータのファイルにし、`.gitattributes` を置く(T13。D5、D8)。コミット 12。
-- [ ] Step 7: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(無くなったファイルの名前が仕様書と crates に残らない)、テスト名の比較(名前の最後の部分で差 0)、件数(1,149 のまま。cli 単体 172、統合 284)、移したテストの本体の比べ(変わるのは上の 5 行と字下げだけ)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形の clippy、製品のコードの検査の数。fmt、clippy、全テスト、カバレッジを通す。D5 の最終確認の項目を「未確認(push の後の CI で確かめる)」として設ける。
-- [ ] Step 8: `code-summary.md`(コミットの一覧、件数の移り変わり、移したテストとまとめたファイル、検索の結果、D5 の最終確認の項目、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 1: converter のテストを移す(T1: `convert_roundtrip.rs` の 1 件を `convert_ac.rs` へ、T2: 単体の `convert_ac.rs` の 2 件を `convert_roundtrip.rs` へ、T3: `tests/common` を `nfr_security.rs` へ)。コミット 1〜3。
+- [x] Step 2: runtime のテストを移す(T4: `runner_env.rs` を `runner_basic.rs` へ、T5: `state_read_raw.rs` を `state_read.rs` の `mod raw` へ。D3)。コミット 4〜5。
+- [x] Step 3: cli の小さな単体テストを移す(T6: `init_types.rs` を `args_grammar.rs` の init の節へ、T7・T8: `run_id_arg.rs` を `--run-id` の節へ移し、`fr2_5_` の 2 件を新しい `--remove-on-complete` の節へ(D4)、T9: `graph_long_id.rs` を `graph_report.rs` へ(D2))。コミット 6〜8。
+- [x] Step 4: cli の README のテストを `src/tests/docs.rs` の 1 つにまとめる(T10: 単体の 3 つと補助、T11: 統合の 5 つと補助。D1)。コミット 9〜10。
+- [x] Step 5: cli のテストの補助を `tests/common/fakes.rs` の 1 つにする(T12)。コミット 11。
+- [x] Step 6: init のひな形の原本をデータのファイルにし、`.gitattributes` を置く(T13。D5、D8)。コミット 12。
+- [x] Step 7: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(無くなったファイルの名前が仕様書と crates に残らない)、テスト名の比較(名前の最後の部分で差 0)、件数(1,149 のまま。cli 単体 172、統合 284)、移したテストの本体の比べ(変わるのは上の 5 行と字下げだけ)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形の clippy、製品のコードの検査の数。fmt、clippy、全テスト、カバレッジを通す。D5 の最終確認の項目を「未確認(push の後の CI で確かめる)」として設ける。
+- [x] Step 8: `code-summary.md`(コミットの一覧、件数の移り変わり、移したテストとまとめたファイル、検索の結果、D5 の最終確認の項目、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
