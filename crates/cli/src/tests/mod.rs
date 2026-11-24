@@ -26,7 +26,6 @@ mod docs_graph;
 mod docs_init;
 mod escape_table;
 mod exit_codes;
-mod graph_long_id;
 mod graph_report;
 mod init_template;
 mod plan_report;
