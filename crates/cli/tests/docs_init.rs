@@ -13,11 +13,10 @@
 // limitations under the License.
 
 //! README の `init` の説明の検査(U4。BR4.2、FR5.2)。README を読むだけで、書き込まない。
+//! ひな形の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs_init.rs`)にある。
 
 mod docs_support;
 
-use conductor_cli::Language;
-use conductor_cli::report::init_template::render_template;
 use docs_support::{assert_docs_check_words, assert_readme_has, readme};
 
 #[test]
@@ -36,15 +35,4 @@ fn readme_に_init_の必須の語句と版の表記と終了コード_69_があ
     );
     // docs-check の必須語句は残っている
     assert_docs_check_words(&text);
-}
-
-#[test]
-fn readme_のひな形の例は_実際の日本語のひな形と一致する() {
-    let text = readme();
-    let start = text.find("## init の使い方").expect("節がある");
-    let rest = &text[start..];
-    let open = rest.find("```toml\n").expect("例がある") + "```toml\n".len();
-    let body = &rest[open..];
-    let example = &body[..body.find("```").expect("閉じている")];
-    assert_eq!(example, render_template(Language::Ja, "my-pipeline"));
 }

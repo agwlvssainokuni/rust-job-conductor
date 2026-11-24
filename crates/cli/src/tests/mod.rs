@@ -18,8 +18,12 @@
 //! 公開の入口(`run_cli_with` と差し替え口)だけで確かめるテストは、`tests/` の統合テストにある。
 
 mod common;
+mod docs_support;
 
 mod args_grammar;
+mod docs_dry_run;
+mod docs_graph;
+mod docs_init;
 mod escape_table;
 mod exit_codes;
 mod graph_long_id;
