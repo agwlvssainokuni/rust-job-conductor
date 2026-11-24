@@ -130,7 +130,7 @@
 | `ConvertedText { text: String }` | 結果 |
 | `ConversionError { file, line, key_path, kind, reason }`(`reason: &'static str`。固定の文。v0.9.7 までは `String`)/ `ConversionErrorKind`(6 種) | 10 の 7.3 |
 
-内部の途中の表現 `Value`: `Str` / `Int(i64)` / `Float(f64)` / `Bool` / `Array` / `Map(Vec<(String, Value)>)`(`null`・日時などは持たない)。
+内部の途中の表現 `Value`: `Str` / `Int(i64)` / `Float(f64)` / `Bool` / `Array` / `Map(Vec<(String, Value)>)`(`null`・日時などは持たない)。等価の比べ方(09 の 6 節)は、テストのときだけの `PartialEq`(`#[cfg(test)]`)が持つ。本番の処理は木を比べない。
 
 ### 2.4 `conductor-cli`
 

@@ -16,7 +16,6 @@
 //!
 //! 入出力に依存しない。`Value` は、この Unit の内部の表現であり、他の Unit に公開しない。
 
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// 変換後の形式(BR1.1)。入力の形式は、これと反対の形式とみなす。
@@ -46,6 +45,7 @@ pub struct ConvertedText {
 ///
 /// マップは、入力に現れる順を保つ並びで持つ。等しさ(BR1.11)は、マップはキーの順序を問わず、
 /// 浮動小数は NaN どうしを等しく、`0.0` と `-0.0` を区別して比べる。
+/// 等しさはテストのときだけ持つ(`cfg(test)`。本番の処理は木を比べない)。
 #[derive(Debug, Clone)]
 pub enum Value {
     Str(String),
@@ -56,8 +56,11 @@ pub enum Value {
     Map(Vec<(String, Value)>),
 }
 
+#[cfg(test)]
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
+        use std::collections::HashMap;
+
         match (self, other) {
             (Value::Str(a), Value::Str(b)) => a == b,
             (Value::Int(a), Value::Int(b)) => a == b,
