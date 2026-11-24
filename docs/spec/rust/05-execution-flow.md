@@ -338,7 +338,7 @@ match decide_from_state(job_id, def, session.checked.state):   # 5.1a
 
 ### 5.3 `conductor pipeline <name>` の擬似アルゴリズム
 
-`pipeline` は、「次のジョブ」を `NextStep.next_job_id` で決めない。定義の記述順に全ジョブを 1 つずつ見て、`decide_before_run` で決める(遷移先・スキップは、ステートが運ぶ)。
+`pipeline` は、「次のジョブ」を `NextStep.next_job_id` で決めない。定義の記述順に全ジョブを 1 つずつ見て、`decide_from_state` で決める(遷移先・スキップは、ステートが運ぶ)。
 
 ```text
 (session, ()) = prepare_session(check_pipeline(...))   # 引数の名前が無ければ 68(入口の enter_flow)
@@ -847,7 +847,7 @@ target_position(i, on):
 
 ## 16. `--dry-run`: 実行計画(v0.9.0 以降)
 
-`pipeline <名前> --dry-run` と `run <ジョブID> --dry-run` の計画の生成。実装は `crates/core/src/plan/{mod,simulate}.rs`(純粋。ファイルにも、プロセスにも、環境変数にも触れない)。流れは 04 の 7.9、文字への整形は `crates/cli/src/report/plan_text.rs`、出力の全例は 08 の 11 章。実行と**同じ判断**(`decide_before_run`、`classify_and_decide`)を、ジョブを起動する代わりに、仮定した終了コード(指定がなければ 0)で進める。
+`pipeline <名前> --dry-run` と `run <ジョブID> --dry-run` の計画の生成。実装は `crates/core/src/plan/{mod,simulate}.rs`(純粋。ファイルにも、プロセスにも、環境変数にも触れない)。流れは 04 の 7.9、文字への整形は `crates/cli/src/report/plan_text.rs`、出力の全例は 08 の 11 章。実行と**同じ判断**(`decide_from_state`、`classify_and_decide`)を、ジョブを起動する代わりに、仮定した終了コード(指定がなければ 0)で進める。
 
 ### 16.1 型(`conductor_core::plan`)
 

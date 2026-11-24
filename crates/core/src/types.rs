@@ -437,7 +437,7 @@ pub struct NextStep {
     pub next_job_id: Option<String>,
     /// この時点でスキップとして記録するジョブ。`ByTransition`(間のジョブ)と、`Pipeline` での
     /// `@end`(以降の全ジョブ、`ByEnd`)で埋まる。`Individual` で `@end` に到達したときは空で、
-    /// 以降のジョブは、スケジューラが呼んだときに `decide_before_run` が `Skip(AfterEnd)` を
+    /// 以降のジョブは、スケジューラが呼んだときに `decide_from_state` が `Skip(AfterEnd)` を
     /// 返し、Cli が呼ばれたジョブだけを記録する(BR3.6)。
     pub skipped_job_ids: Vec<String>,
     pub skip_reason_kind: Option<SkipReason>,
