@@ -39,7 +39,13 @@
 
 ### 2.1 `conductor-core`
 
-再公開(`lib.rs`): `consistency::{ConsistencyResult, MismatchKind, check_consistency}`、`definition::{load_definition, parse_definition}`、`error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display}`、`flow::{RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision}`、`run_id::{DEFAULT_RUN_ID_ENV, RunId, RunIdError, peek_run_id_env}`、`types::{Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState, RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition, TransitionOn, TransitionTarget}`(v0.9.6 までは `error::*`・`types::*` で、`quote_key`・`Locate`・`TransitionResolution`・`resolve_transition` も出ていた。外から使われないので crate の中に狭めた)。v0.9.0 以降は、さらに `envfile::{EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError, EnvFileErrorKind, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs, merge_env, parse_env_file, summarize_errors}` と `plan::{Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry, PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run}` を再公開する(`graph` は `conductor_core::graph::…` のパスで使う)。公開モジュール: `consistency`、`definition`(公開の下位モジュールは `intake` だけ。`depth`・`parse`・`version`・`walk` は crate の中)、`envfile`、`error`、`flow`、`graph`、`plan`、`run_id`、`types`。`flow`・`plan`・`envfile`・`graph` の下位モジュールは crate の中で、関数と型は各モジュールの再公開の名前(`flow::classify_and_decide`、`plan::plan_run`、`envfile::merge_env`、`graph::build_graph` など)で出る。終了コードの定数(`EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1`)は `flow/classify.rs` の中だけの定数、`ASSUME_EXIT_CODE_MIN`・`ASSUME_EXIT_CODE_MAX`、`RESERVED_ENV_PREFIX`、`MAX_REPORTED_ERRORS` は crate の中の定数(`MAX_ENV_FILE_BYTES`・`MAX_ENV_ENTRIES` は公開)。v0.9.7 までは `flow` の下位モジュール、`plan::simulate`、`envfile::{merge, parse}`、`graph::{edges, layout, overlay}` と、これらの定数も公開だった。
+再公開(`lib.rs`): `consistency::{ConsistencyResult, MismatchKind, check_consistency}`、`definition::{load_definition, parse_definition}`、`envfile::{EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError, EnvFileErrorKind, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs, merge_env, parse_env_file, summarize_errors}`、`error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display}`、`flow::{RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide, decide_from_state, initial_state, resume_point_on_interrupt, retry_decision}`、`plan::{Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry, PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run}`、`run_id::{DEFAULT_RUN_ID_ENV, RunId, RunIdError, peek_run_id_env}`、`types::{Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState, RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition, TransitionOn, TransitionTarget}`(`graph` は `conductor_core::graph::…` のパスで使う)。公開モジュール: `consistency`、`definition`(公開の下位モジュールは `intake` だけ。`depth`・`parse`・`version`・`walk` は crate の中)、`envfile`、`error`、`flow`、`graph`、`plan`、`run_id`、`types`。`flow`・`plan`・`envfile`・`graph` の下位モジュールは crate の中で、関数と型は各モジュールの再公開の名前(`flow::classify_and_decide`、`plan::plan_run`、`envfile::merge_env`、`graph::build_graph` など)で出る。終了コードの定数(`EXIT_START_FAILURE = 127`、`EXIT_SIGNAL_BASE = 128`、`EXIT_UNLISTED_ZERO = 1`)は `flow/classify.rs` の中だけの定数、`ASSUME_EXIT_CODE_MIN`・`ASSUME_EXIT_CODE_MAX`、`RESERVED_ENV_PREFIX`、`MAX_REPORTED_ERRORS` は crate の中の定数(`MAX_ENV_FILE_BYTES`・`MAX_ENV_ENTRIES` は公開)。
+
+版の履歴(古い順):
+
+- v0.9.0 以降は、`envfile::{…}` と `plan::{…}` も再公開する。
+- v0.9.6 までは `error::*`・`types::*` で、`quote_key`・`Locate`・`TransitionResolution`・`resolve_transition` も出ていた(外から使われないので crate の中に狭めた)。
+- v0.9.7 までは `flow` の下位モジュール、`plan::simulate`、`envfile::{merge, parse}`、`graph::{edges, layout, overlay}` と、上の crate の中の定数も公開だった。
 
 #### 関数
 
@@ -102,7 +108,13 @@
 
 ### 2.2 `conductor-runtime`
 
-再公開(`lib.rs`): `error::{CommandError, CommandErrorKind, StateError, StateErrorKind}`、`run_job`、`check_command`、`read_state`、`read_state_raw`、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::{CommandLine, Durability, InterruptSignal, StateLocation}`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`(後ろの 4 つは v0.9.0 以降)。`envfile`、`error`、`file_create`、`platform`、`runner`、`split`、`state`、`types` は非公開(`#![deny(unsafe_code)]`。v0.9.6 までは `error`・`types` も公開で、`error::*`・`types::*` で再公開した)。`StateErrorKind::label()`(種類の文の日本語)は公開(cli の表示が使う。v0.9.7 以降)。ステートの照合(`check_consistency`)と更新(`initial_state`、`apply_*`)は `conductor_core` の関数で、使う側は `conductor_core` から使う(2.1 の表)。
+再公開(`lib.rs`): `error::{CommandError, CommandErrorKind, StateError, StateErrorKind}`、`run_job`、`check_command`、`read_state`、`read_state_raw`、`ResetAllReport`、`reset_all_states`、`reset_state`、`write_state`、`types::{CommandLine, Durability, InterruptSignal, StateLocation}`、`WaitOutcome`、`wait_for`、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file`。モジュールはすべて非公開(`bounded_read`、`envfile`、`error`、`file_create`、`platform`、`runner`、`split`、`state`、`temp_file`、`types`、`wait`。`#![deny(unsafe_code)]`)。`StateErrorKind::label()`(種類の文の日本語)は公開(cli の表示が使う)。ステートの照合(`check_consistency`)と更新(`initial_state`、`apply_*`)は `conductor_core` の関数で、使う側は `conductor_core` から使う(2.1 の表)。
+
+版の履歴(古い順):
+
+- v0.9.0 以降は、`load_env_files`、`CreateError`、`CreateOutcome`、`create_file` も再公開する。
+- v0.9.6 までは `error`・`types` も公開で、`error::*`・`types::*` で再公開した。
+- v0.9.7 以降は、`StateErrorKind::label()` が公開。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
@@ -134,7 +146,11 @@
 
 ### 2.4 `conductor-cli`
 
-再公開(`lib.rs`): `Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`。公開の関数は `run_cli`、`run_cli_with`。公開するのは、`main` が使うもの(`run_cli`、`StdSink`、`SystemEnv`、`install_panic_hook`)と、依存の注入の継ぎ目(4 章)と、継ぎ目に出る型 `SignalError` だけで、公開モジュールは無い(`args`、`exit`、`report`、`run_id`、`types` などは、すべて crate の中)。v0.9.6 までは `platform`・`report::messages`・`report::watch` も公開で、`status_word`・`state_symbol`・`glyph_char`・`MAX_DISPLAY_CHARS`・`DEFAULT_INIT_PATH`・`DEFAULT_INIT_PIPELINE_NAME` も外から見えた(外から使われないので crate の中に狭めた)。
+再公開(`lib.rs`): `Deps`、`Env`、`Runtime`、`SignalError`、`Signals`、`Sink`、`StdSink`、`SystemEnv`、`SystemRuntime`、`SystemSignals`、`install_panic_hook`。公開の関数は `run_cli`、`run_cli_with`。公開するのは、`main` が使うもの(`run_cli`、`StdSink`、`SystemEnv`、`install_panic_hook`)と、依存の注入の継ぎ目(4 章)と、継ぎ目に出る型 `SignalError` だけで、公開モジュールは無い(`args`、`exit`、`report`、`run_id`、`types` などは、すべて crate の中)。
+
+版の履歴(古い順):
+
+- v0.9.6 までは `platform`・`report::messages`・`report::watch` も公開で、`status_word`・`state_symbol`・`glyph_char`・`MAX_DISPLAY_CHARS`・`DEFAULT_INIT_PATH`・`DEFAULT_INIT_PIPELINE_NAME` も外から見えた(外から使われないので crate の中に狭めた)。
 
 | 関数 | シグネチャ | 意味 |
 |------|-----------|------|
