@@ -22,9 +22,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use conductor_cli::{
-    Deps, Env, Language, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with,
-};
+use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
     Command, DefinitionError, EnvFileError, ExecutionResult, JobExecution, JobStatus,
@@ -36,6 +34,13 @@ use conductor_runtime::{
 };
 
 // ---- Env ----
+
+/// 偽の環境のロケールを選ぶ、テストの言語(`FakeEnv::for_language` の引数)。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Language {
+    En,
+    Ja,
+}
 
 #[derive(Default)]
 pub struct FakeEnv {

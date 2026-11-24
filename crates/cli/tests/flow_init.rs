@@ -19,10 +19,86 @@ mod common;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use common::{FakeEnv, FakeSignals, FakeSink, ScriptedRuntime, SignalMode, run_with_fakes};
-use conductor_cli::Language;
-use conductor_cli::report::init_template::render_template;
+use common::{
+    FakeEnv, FakeSignals, FakeSink, Language, ScriptedRuntime, SignalMode, run_with_fakes,
+};
 use conductor_runtime::{CreateError, CreateOutcome};
+
+/// 日本語のひな形の原本(名前は既定の `my-pipeline`)。単体テストの `src/tests/init_template.rs` の
+/// 原本と同じ。
+const ORIGINAL_JA: &str = r##"# conductor の定義ファイルのひな形(conductor init が作った)。
+# 検査: conductor validate / 実行計画: conductor pipeline <名前> --dry-run / 図: conductor graph
+format_version = 1
+
+[pipeline]
+name = "my-pipeline"
+description = "ひな形のパイプライン"
+
+# 全ジョブに足す環境変数。値は、書いたとおりに渡す(展開しない)。
+# .env ファイルから読むときは、[pipeline] に env_file = ".env" を足す。
+[pipeline.env]
+GREETING = "hello"
+
+# hello: 最初のジョブ。
+# Windows では、echo は実行ファイルではないので、command = ["cmd", "/c", "echo", "hello"] のように書く。
+[[job]]
+id = "hello"
+command = ["echo", "hello"]
+
+# flaky: 終了コード 75 は「一時的な失敗」。5 秒待って、最大 3 回、実行し直す。
+# 待ち時間を伸ばすには、multiplier と max_interval を、一緒に書く(例: multiplier = 2、max_interval = "1m")。
+[[job]]
+id = "flaky"
+command = ["echo", "flaky"]
+
+[job.retry]
+exit_codes = [75]
+max = 3
+interval = "5s"
+"##;
+
+/// 英語のひな形の原本(名前は既定の `my-pipeline`)。単体テストの `src/tests/init_template.rs` の
+/// 原本と同じ。
+const ORIGINAL_EN: &str = r##"# A starter conductor definition (created by conductor init).
+# Check: conductor validate / plan: conductor pipeline <name> --dry-run / diagram: conductor graph
+format_version = 1
+
+[pipeline]
+name = "my-pipeline"
+description = "Starter pipeline"
+
+# Environment variables added to every job. Values are passed as written (no expansion).
+# To read a .env file, add env_file = ".env" to [pipeline].
+[pipeline.env]
+GREETING = "hello"
+
+# hello: the first job.
+# On Windows echo is not an executable; write command = ["cmd", "/c", "echo", "hello"] instead.
+[[job]]
+id = "hello"
+command = ["echo", "hello"]
+
+# flaky: exit code 75 means "a temporary failure". Wait 5 seconds and run again, up to 3 times.
+# To lengthen the wait, write multiplier and max_interval together (for example multiplier = 2, max_interval = "1m").
+[[job]]
+id = "flaky"
+command = ["echo", "flaky"]
+
+[job.retry]
+exit_codes = [75]
+max = 3
+interval = "5s"
+"##;
+
+/// 期待のひな形。言語 `lang` の原本の `name = "my-pipeline"` を `name = "<name>"` に 1 回だけ置き換える。
+/// `name` はエスケープの要らない名前だけ。
+fn expected_template(lang: Language, name: &str) -> String {
+    let original = match lang {
+        Language::En => ORIGINAL_EN,
+        Language::Ja => ORIGINAL_JA,
+    };
+    original.replacen("name = \"my-pipeline\"", &format!("name = \"{name}\""), 1)
+}
 
 struct Run {
     code: i32,
@@ -72,7 +148,7 @@ fn 既定の名前とパスで_ひな形が書かれ_標準エラーに作成の
     assert_eq!(path, &PathBuf::from("conductor.toml"));
     assert_eq!(
         String::from_utf8_lossy(bytes),
-        render_template(Language::En, "my-pipeline")
+        expected_template(Language::En, "my-pipeline")
     );
     assert!(!force);
     assert_eq!(r.sink.err_text(), "created conductor.toml\n");
@@ -84,7 +160,7 @@ fn 既定の名前とパスで_ひな形が書かれ_標準エラーに作成の
     let calls = r.runtime.create_calls.borrow();
     assert_eq!(
         String::from_utf8_lossy(&calls[0].1),
-        render_template(Language::Ja, "my-pipeline")
+        expected_template(Language::Ja, "my-pipeline")
     );
 }
 
@@ -184,7 +260,7 @@ fn config_ハイフンは標準出力にひな形だけを出し_force_を無視
         assert_eq!(r.code, 0, "{args:?}");
         assert_eq!(
             r.sink.out_text(),
-            render_template(Language::En, "my-pipeline")
+            expected_template(Language::En, "my-pipeline")
         );
         assert_eq!(r.sink.out_writes, 1, "1 回で書く");
         assert!(r.sink.err.is_empty(), "成功のメッセージは出さない");
@@ -195,7 +271,7 @@ fn config_ハイフンは標準出力にひな形だけを出し_force_を無視
         Err(CreateError::OtherIo),
         &["init", "--config", "-", "夜間"],
     );
-    assert_eq!(r.sink.out_text(), render_template(Language::Ja, "夜間"));
+    assert_eq!(r.sink.out_text(), expected_template(Language::Ja, "夜間"));
 }
 
 #[test]

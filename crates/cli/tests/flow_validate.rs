@@ -169,7 +169,7 @@ fn 空白だけのコマンド名は_64_で_ジョブを起動しない() {
     let mut h = Harness::new(
         "format_version = 1\n\n[pipeline]\nname = \"p\"\n\n[[job]]\nid = \"a\"\ncommand = \"'   ' x\"\n",
     );
-    h.env = FakeEnv::for_language(conductor_cli::Language::En);
+    h.env = FakeEnv::for_language(common::Language::En);
     let validate = h.run(&["validate"]);
     assert_eq!(validate.code, 64, "{}", validate.err);
     assert_eq!(validate.out, "");
