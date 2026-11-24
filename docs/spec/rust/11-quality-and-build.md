@@ -229,7 +229,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | `file_create.rs` | v0.9.0 以降。`create_file`(新規で内容がそのまま、既存は壊さない、`--force` の置き換えと一時ファイルが残らない、親が無い、ディレクトリ、宙に浮いたシンボリックリンク、権限がない、同時に作る 2 つのうち 1 つだけが `Created`) |
 | `runner_signal.rs`(UNIX) | SIGTERM・SIGINT の転送、許可外の番号、新しいプロセスグループ、転送は 1 回、先に終わったジョブ |
 | `wait_interruptible.rs` | `wait_for`(経過、0 秒、合図、1 秒以内の打ち切り、最初の番号) |
-| `state_read.rs`、`state_read_raw.rs`、`state_write.rs` | ステートの読み書き・削除(実ファイル。書き込みの失敗は、置き換え先をディレクトリにして起こす) |
+| `state_read.rs`、`state_write.rs` | ステートの読み書き・削除(実ファイル。書き込みの失敗は、置き換え先をディレクトリにして起こす)。`state_read.rs` の子のモジュール `raw` は、完了のステートも返す `read_state_raw` と `read_state` の差 |
 | `run_id_state.rs` | run ID ごとのステートと `reset --all` |
 | `flow_with_state.rs` | core の判断と runtime の関数を組み合わせた、ジョブの一連の流れ(今の cli と同じ順で: スキップは変わったときだけ書く、削除は `remove_on_complete` のときだけ、`pipeline` は記述順に決める。完了のステートは既定で残る) |
 | `toml_depth.rs` | 深い入れ子の TOML |

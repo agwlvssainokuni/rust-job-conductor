@@ -715,7 +715,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-303 | UTF-8 でない | 不正なバイト列 | `state file is corrupt: UTF-8 の文字列ではありません` | `runtime::state_read::不正な utf8 は corrupt` |
 | AC-304 | 大きさの上限 | 正しいステートに、コメント行を足して 1,048,577 バイト | `state file is too large: 大きさが上限(1 MiB)を超えています`。ちょうど 1,048,576 バイトは受理(実行が進む) | `runtime::state_read::上限ちょうどは受理し 1 バイト超えは too_large` |
 | AC-305 | 書式の版が違う | `format_version = 2`(ほかに未知のキーがあっても)/ `0` | `state file version is not supported: 対応していない版です(reset が必要です)` | `runtime::state_read::将来の版は version_mismatch で未知のキーに影響されない`、`flow_run::ステートが読めないときは 65 で reset を案内する` |
-| AC-306 | 書式の版がない・整数でない | `format_version` なし / `"1"` | `state file is corrupt: format_version がありません` / `format_version が整数ではありません` | `runtime::state_read_raw::fr3_4 版違い 壊れたファイル…` |
+| AC-306 | 書式の版がない・整数でない | `format_version` なし / `"1"` | `state file is corrupt: format_version がありません` / `format_version が整数ではありません` | `runtime::state_read::raw::fr3_4 版違い 壊れたファイル…` |
 | AC-307 | 未知のキー | 最上位に未知のキー。旧形式の `jobs` | `state file is corrupt: 知らないキーがあります` | `runtime::state_read::旧キー jobs のステートは corrupt で拒否され内容を表示に出さない` |
 | AC-308 | 必須のキーがない | `pipeline_name` などを欠く | `state file is corrupt: 必須のキーがありません` | `runtime::state_read::内容の矛盾は corrupt` |
 | AC-309 | 値の型・状態の誤り | `status = "weird"`、`skip_reason` の誤り、`skipped` に `skip_reason` なし、`success` に `skip_reason` あり、`pending` に `exit_code` あり | `state file is corrupt: status の値が誤っています` / `skip_reason が status と合いません` / `exit_code が status と合いません` など(06 章 2.4 節の矛盾) | `runtime::state_read::内容の矛盾は corrupt` |
@@ -881,7 +881,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-404 | 同時の 2 つの `run` | `P(p; a:0{cmd="TJ sleep 1"})`(終了コード 99) | 同じ定義に `run a` を 2 つ同時に | 両方が実行され(ジョブが 2 回始まる)、どちらも終了コード 99。ステートは正しい形で読み戻せる | 同上、`runtime::flow_with_state::ac2_5_2 排他制御はなく 2 つの実行がそれぞれ動く`。強制 |
 | AC-405 | ランダムな引数 | 固定の種 | 語の表から 0〜6 個を選んだ引数列で 500 回 | 終了コードが 0〜255。標準エラーに、制御文字(改行を除く)と U+202E がない。異常終了しない | `cli::nfr_robust` |
 | AC-406 | UTF-8 でない引数(UNIX 系) | `0xff 0xfe` を含むバイト列 | ジョブID・`--config`・オプション・`convert` の引数に渡す | 異常終了しない(終了コードが 0〜255) | `cli::nfr_robust`。区分: UNIX 系 |
-| AC-407 | 壊れたステート | 状態・再開位置・フラグを乱したステート、ランダムなバイト列、巨大な値 | `run` / `watch` | 異常終了しない。壊れていれば 65 | `cli::nfr_robust`、`runtime::nfr_robust`、`runtime::state_read_raw` |
+| AC-407 | 壊れたステート | 状態・再開位置・フラグを乱したステート、ランダムなバイト列、巨大な値 | `run` / `watch` | 異常終了しない。壊れていれば 65 | `cli::nfr_robust`、`runtime::nfr_robust`、`runtime::state_read` |
 | AC-408 | 空・制御文字のジョブID | ジョブID が空、制御文字を含む | `run <ID>` | 異常終了しない(68) | `cli::nfr_robust` |
 | AC-409 | ランダムな `command` | 文字集合 `a b ⇥ ⏎ ' " \ ; \| & $ * あ` から長さ 0〜39 の文字列 2,000 件(定義の `command` に入れる) | `validate` | 0 か 64 のどちらか。0 のとき `program` は空でない | `runtime::nfr_robust`(分割の単体も) |
 | AC-410 | 大きな `command` | `prog ` + `'a b' "c\"d" e ` を 10 万回(約 30 万引数) | `validate` | 0。閉じない引用符を足したものは 64。30 秒以内 | `runtime::nfr_robust::大きな command` |
