@@ -263,7 +263,6 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 
 | ファイル | 目的 |
 |----------|------|
-| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章) |
 | `graph_long_id.rs` | `graph` の text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
@@ -294,6 +293,8 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | ファイル | 目的 |
 |----------|------|
 | `mod.rs` | 下位のモジュールの宣言 |
+| `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`) |
+| `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
 | `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
 | `init_types.rs` | v0.9.0 以降。`InitOptions`・`InitTarget` |

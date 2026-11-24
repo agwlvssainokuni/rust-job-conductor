@@ -17,6 +17,9 @@
 //! `lib.rs` の最後の宣言から読む。テストのときだけコンパイルし、本番の成果物には入らない。
 //! 公開の入口(`run_cli_with` と差し替え口)だけで確かめるテストは、`tests/` の統合テストにある。
 
+mod common;
+
+mod args_grammar;
 mod escape_table;
 mod exit_codes;
 mod init_types;

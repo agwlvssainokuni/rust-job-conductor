@@ -14,13 +14,13 @@
 
 //! 引数の文法の表(NFR4.1、BR1.1〜BR1.6)。全コマンドの正しい引数と誤り。
 
-mod common;
-
 use std::ffi::OsString;
 
-use conductor_cli::{
+use super::common;
+use crate::args::parse_args;
+use crate::types::{
     CliCommand, CommandKind, GraphFormat, InitOptions, InitTarget, ParsedArgs, RunIdArg,
-    UsageError, UsageErrorKind, parse_args,
+    UsageError, UsageErrorKind,
 };
 use conductor_converter::TargetFormat;
 use conductor_core::RunId;
@@ -617,7 +617,7 @@ fn run_id_の無効な値は_68_で誤りの文に値を含めない() {
 
 fn resolved(option: Option<&str>, env: &[(&str, &str)]) -> Result<Option<String>, UsageError> {
     let option = option.map(RunIdArg::parse).transpose()?;
-    conductor_cli::run_id::resolve_run_id(option.as_ref(), "RID", &common::FakeEnv::with(env))
+    crate::run_id::resolve_run_id(option.as_ref(), "RID", &common::FakeEnv::with(env))
         .map(|r| r.map(|id| id.as_str().to_string()))
 }
 
