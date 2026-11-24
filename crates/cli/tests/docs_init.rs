@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! README の `init` の説明の検査(U4。BR4.2、FR5.2)。README を読むだけで、書き込まない。
-//! ひな形の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs_init.rs`)にある。
+//! ひな形の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs.rs`)にある。
 
 mod docs_support;
 

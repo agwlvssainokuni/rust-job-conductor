@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! README の `--dry-run` の説明の検査(U3。BR6.2、FR5.2)。README を読むだけで、書き込まない。
-//! 計画の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs_dry_run.rs`)にある。
+//! 計画の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs.rs`)にある。
 
 mod docs_support;
 

@@ -12,10 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! README の `graph` の説明の検査(U2。BR7.2、FR5.2)。README を読むだけで、書き込まない。
-//! README の例と実際の出力を比べる単体テスト。必須の語句の検査は統合テストの同じ名前のファイル。
+//! README の検査。README を読むだけで、書き込まない。
+//!
+//! 節は README の並び(`graph`、`--dry-run`、`init`)。各節は、README の例と実際の出力を比べる。
+//! 必須の語句と版の表記の検査は、統合テストの `tests/docs_*.rs` にある。最初に、各節が使う補助
+//! (README の読み取り)を置く。
 
-use super::docs_support::readme;
+use std::path::{Path, PathBuf};
+
+use crate::report::init_template::render_template;
+use crate::types::Language;
+
+/// リポジトリのルートの README(改行は `\n` にそろえる)。
+pub fn readme() -> String {
+    let root: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
+    std::fs::read_to_string(root.join("README.md"))
+        .expect("README.md を読める")
+        .replace("\r\n", "\n")
+}
+
+// ---- `graph` の説明(U2。BR7.2、FR5.2) ----
 
 #[test]
 fn readme_の図の例は_実際の出力と一致する() {
@@ -143,4 +159,55 @@ fn readme_の両方の飛び越しと交差が混ざる例は_実際の出力と
         &[("a", both_to_d), ("b", to_e)],
     );
     assert_eq!(graph_example(&text, 6), render(&definition));
+}
+
+// ---- `--dry-run` の説明(U3。BR6.2、FR5.2) ----
+
+#[test]
+fn readme_の計画の例は_実際の出力と一致する() {
+    let text = readme();
+    let start = text.find("## dry-run の使い方").expect("節がある");
+    let rest = &text[start..];
+    let open = rest.find("```text\n").expect("例がある") + "```text\n".len();
+    let body = &rest[open..];
+    let example = &body[..body.find("```").expect("閉じている")];
+
+    // 例の定義: a が終了コード 3 の警告で `@end` へ進む。`--assume a=3`。
+    let definition = "format_version = 1\n\n[pipeline]\nname = \"demo\"\n\n\
+        [[job]]\nid = \"a\"\ncommand = \"echo a\"\nwarning_exit_codes = [3]\n\n\
+        [[job.transitions]]\non = \"warning\"\nnext = \"@end\"\n\n\
+        [[job]]\nid = \"b\"\ncommand = \"echo b\"\n\n\
+        [[job]]\nid = \"c\"\ncommand = \"echo c\"\n";
+    let def = conductor_core::parse_definition(definition, "c.toml", None).expect("正しい定義");
+    let commands: Vec<Vec<String>> = def
+        .job
+        .iter()
+        .map(|j| vec!["echo".to_string(), j.id.clone()])
+        .collect();
+    let files = conductor_core::LoadedEnvFiles::new();
+    let assumptions = [conductor_core::Assumption::new("a", 3)];
+    let plan = conductor_core::plan_pipeline(&conductor_core::PlanInput {
+        definition: &def,
+        state: None,
+        commands: &commands,
+        env_files: &files,
+        run_id: None,
+        assumptions: &assumptions,
+    })
+    .expect("計画");
+    let actual = crate::report::plan_text::render_plan(crate::types::Language::Ja, &plan);
+    assert_eq!(example, actual);
+}
+
+// ---- `init` の説明(U4。BR4.2、FR5.2) ----
+
+#[test]
+fn readme_のひな形の例は_実際の日本語のひな形と一致する() {
+    let text = readme();
+    let start = text.find("## init の使い方").expect("節がある");
+    let rest = &text[start..];
+    let open = rest.find("```toml\n").expect("例がある") + "```toml\n".len();
+    let body = &rest[open..];
+    let example = &body[..body.find("```").expect("閉じている")];
+    assert_eq!(example, render_template(Language::Ja, "my-pipeline"));
 }

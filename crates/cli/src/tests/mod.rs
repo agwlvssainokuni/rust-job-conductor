@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! クレートの内部(引数の解析、表示、run ID、終了コード)を直接確かめる単体テスト。
+//! クレートの内部(引数の解析、表示、run ID、終了コード)と README を直接確かめる単体テスト。
 //!
 //! `lib.rs` の最後の宣言から読む。テストのときだけコンパイルし、本番の成果物には入らない。
 //! 公開の入口(`run_cli_with` と差し替え口)だけで確かめるテストは、`tests/` の統合テストにある。
 
 mod common;
-mod docs_support;
 
 mod args_grammar;
-mod docs_dry_run;
-mod docs_graph;
-mod docs_init;
+mod docs;
 mod escape_table;
 mod exit_codes;
 mod graph_report;

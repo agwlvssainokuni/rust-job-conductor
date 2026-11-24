@@ -386,7 +386,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
 | `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_name`、`escape_full` は conductor-core の `escape_display` の包み) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
-| `tests/`(`mod.rs`、`common/`、`docs_support.rs` と、元の統合テストと同じ名前のファイル) | クレートの内部(引数の解析、表示、run ID、終了コード)を直接確かめる単体テスト(`lib.rs` の最後の `#[cfg(test)] mod tests;`) |
+| `tests/`(`mod.rs`、`common/`、README の検査の `docs.rs` と、引数・表示などのファイル) | クレートの内部(引数の解析、表示、run ID、終了コード)と README を直接確かめる単体テスト(`lib.rs` の最後の `#[cfg(test)] mod tests;`) |
 
 ## 6. 設計上の要点(実装から読み取れること)
 

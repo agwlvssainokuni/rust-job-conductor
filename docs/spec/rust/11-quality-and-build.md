@@ -263,7 +263,7 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `flow_run.rs`、`flow_pipeline.rs`、`flow_retry.rs`、`flow_run_id.rs`、`flow_aux.rs`、`flow_validate.rs` | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
 | `binary_basic.rs`、`binary_run_id.rs` | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
 | `binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`binary_init.rs` | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
-| `docs_env.rs`、`docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、`.env` の例が実際の読み取りと一致)。`graph`・計画・ひな形の例と実際の出力を比べるテストは単体テストの同じ名前のファイル |
+| `docs_env.rs`、`docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の説明の検査(必須の語句、版の表記 `v0.9.0 以降`、`.env` の例が実際の読み取りと一致)。`graph`・計画・ひな形の例と実際の出力を比べるテストは単体テストの `src/tests/docs.rs` |
 | `binary_signal.rs`(UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
 | `signals_real.rs`、`signals_order.rs`(UNIX) | 本番のシグナル監視(最初の番号が残る、時間を空けた INT のあとの HUP。各ファイルで登録は 1 回だけ) |
 | `nfr_perf.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
@@ -285,15 +285,14 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `mod.rs` | 下位のモジュールの宣言 |
 | `common/mod.rs` | 統合テストの `tests/common/mod.rs` の補助の写し(`FakeEnv`・`FakeSink`・`state_error`) |
 | `common/kinds.rs` | 誤りの種類の一覧の写し(定義、`.env`、変換、ファイルの作成 `CREATE_ERRORS`、使い方 `USAGE_ERROR_KINDS`)。網羅の `match` と、並び・重複のコンパイル時の確かめつき(core と converter の一覧は、それぞれのテストにも写しがある) |
-| `docs_support.rs` | 統合テストの `tests/docs_support/mod.rs` の `readme` の写し |
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む)。引数から作る型(`InitTarget::from_path`(`-` だけが標準出力)、`--run-id` の指定 `RunIdArg::parse`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`))と `resolve_run_id` |
+| `docs.rs` | v0.9.0 以降。README の図・計画・ひな形の例が実際の出力と一致。補助(`readme`)も持つ |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章)。text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る) |
-| `docs_graph.rs`、`docs_dry_run.rs`、`docs_init.rs` | v0.9.0 以降。README の図・計画・ひな形の例が実際の出力と一致 |
 
 このディレクトリは、`tests/nfr_source.rs` の OS 分岐と `panic!(` の検査の外(3.3、3.5 節)。
 

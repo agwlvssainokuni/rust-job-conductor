@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! README の `graph` の説明の検査(U2。BR7.2、FR5.2)。README を読むだけで、書き込まない。
-//! 図の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs_graph.rs`)にある。
+//! 図の例と実際の出力を比べるテストは、単体テスト(`src/tests/docs.rs`)にある。
 
 mod docs_support;
 
