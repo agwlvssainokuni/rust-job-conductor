@@ -16,12 +16,20 @@
 //!
 //! この Unit の `src/` に、`unsafe`、`low_level`、`std::net`、ネットワークのライブラリがないこと。
 //! `cfg(unix)`・`cfg(windows)` が `platform` の外にないこと。依存に、C のコンパイルを要するものがないこと。
+//! 単体テスト(`src/tests/`)は、OS 分岐と `panic!(` の検査の外(`lib.rs` の最後の `#[cfg(test)]` の
+//! 宣言からだけ読み、製品のファイルに `#[path` が無いことを確かめる)。
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn src_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("src")
+}
+
+/// 単体テスト(`src/tests/` の下)のファイルか。`lib.rs` の最後の `#[cfg(test)] mod tests;` から
+/// 読むテストのコードで、本番の成果物には入らない。
+fn is_unit_test(path: &Path) -> bool {
+    path.starts_with(src_dir().join("tests"))
 }
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -127,7 +135,7 @@ fn os_ごとの分岐は_platform_の中だけ() {
                 || compact.contains("cfg(not(unix))")
                 || compact.contains("cfg(not(windows))")
         },
-        &|path| path.components().any(|c| c.as_os_str() == "platform"),
+        &|path| path.components().any(|c| c.as_os_str() == "platform") || is_unit_test(path),
     );
     assert!(hits.is_empty(), "{hits:#?}");
 }
@@ -138,9 +146,20 @@ fn テスト専用の経路を実行ファイルに持たない() {
     let main = std::fs::read_to_string(src_dir().join("main.rs")).expect("読める");
     assert!(!main.contains("panic!"), "main.rs にパニックの経路がある");
     let hits = find(&|line| line.contains("panic!("), &|path| {
-        path.components().any(|c| c.as_os_str() == "bin")
+        path.components().any(|c| c.as_os_str() == "bin") || is_unit_test(path)
     });
     assert!(hits.is_empty(), "{hits:#?}");
+    // 検査の外にする src/tests/ は、テストのときだけ読む(lib.rs の最後の宣言)
+    let lib = std::fs::read_to_string(src_dir().join("lib.rs"))
+        .expect("読める")
+        .replace("\r\n", "\n");
+    assert!(
+        lib.trim_end().ends_with("#[cfg(test)]\nmod tests;"),
+        "src/tests/ は #[cfg(test)] の宣言からだけ読む"
+    );
+    // 製品のファイル(src/tests/ の外)から、#[path] で src/tests/ を読む道が無い
+    let paths = find(&|line| line.contains("#[path"), &|path| is_unit_test(path));
+    assert!(paths.is_empty(), "{paths:#?}");
 }
 
 #[test]

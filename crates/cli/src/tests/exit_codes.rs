@@ -14,7 +14,7 @@
 
 //! 終了コードの表(BR5.1〜BR5.3、NFR2.2)。純粋な関数の全項目。
 
-use conductor_cli::exit::*;
+use crate::exit::*;
 
 #[test]
 fn conductor_自身のエラーの定数() {

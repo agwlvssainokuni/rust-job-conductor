@@ -26,7 +26,7 @@ OS ごとの違いを定める。ステートファイルの書式、定義フ�
 | 分類 | `conductor-core` の `flow/classify.rs` | `JobExecution` を、成功・警告・エラー・分類なし、と報告する終了コードに変える |
 
 OS ごとの分岐(`cfg(unix)` / `cfg(windows)`)と OS 固有の呼び出しは、runtime と cli のそれぞれの `platform` モジュールの外に
-置かない(ソース検索のテスト `nfr_source.rs` が確かめる。8 章)。
+置かない(cli のテストのときだけの単体テスト `src/tests/` を除く。ソース検索のテスト `nfr_source.rs` が確かめる。8 章)。
 
 ---
 
@@ -398,7 +398,8 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 - `conductor-runtime`: `cfg(unix)`、`cfg(windows)`、`cfg!(...)`、`target_os`、`target_family`、`os::unix`、`os::windows`、`libc::` は、
   `src/platform/` の外にない。
 - `conductor-cli`: `cfg(unix)`、`cfg(windows)`、`cfg!(unix)`、`cfg!(windows)`、`target_os`、`cfg(not(unix))`、`cfg(not(windows))` は、
-  `src/platform/` の外にない(`color_supported` の `cfg!(unix)` も `platform/mod.rs` の中)。
+  `src/platform/` の外にない(`color_supported` の `cfg!(unix)` も `platform/mod.rs` の中)。単体テスト `src/tests/`(`lib.rs` の最後の
+  `#[cfg(test)] mod tests;` からだけ読み、本番の成果物に入らない)は、この検査と `panic!(` の検査の外(`unsafe`・ネットワークの検査は対象)。
 - `unsafe`: runtime は `#![deny(unsafe_code)]`、許す場所は `platform/unix.rs` の `#![allow(unsafe_code)]` だけで、`unsafe` の呼び出しは 1 回
   (`libc::kill`)。cli(ライブラリと `main.rs` とテスト補助)は `#![forbid(unsafe_code)]` で、`unsafe` と `low_level` の文字列もない。
 - `src/` に、`std::net`、`TcpStream`、`TcpListener`、`UdpSocket`、`reqwest`、`hyper`、`ureq`、`tokio`、`curl`、`openssl` がない

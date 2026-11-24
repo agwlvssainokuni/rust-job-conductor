@@ -345,7 +345,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | ファイル | 責務 |
 |----------|------|
 | `main.rs` | 入口(パニックのフック、`run_cli`、`process::exit` 1 回) |
-| `lib.rs` | 公開の再公開、`run_cli`、`run_cli_with` |
+| `lib.rs` | 差し替え口と `install_panic_hook` の再公開、`run_cli`、`run_cli_with`。最後に単体テストの宣言 `#[cfg(test)] mod tests;` |
 | `args.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査) |
 | `run_id.rs` | run ID の解決(`resolve_run_id`。`watch`・`reset` の `aux_run_id`) |
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
@@ -370,6 +370,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `report/init_template.rs`(同) | `render_template`(ひな形の日本語・英語) |
 | `report/escape.rs` | 入力由来の文字列のエスケープ(`escape_name`、`escape_full` は conductor-core の `escape_display` の包み) |
 | `bin/conductor-cli-test-helper.rs` | テスト補助の実行ファイル |
+| `tests/`(`mod.rs`、`common/`、`docs_support.rs` と、元の統合テストと同じ名前のファイル) | クレートの内部(引数の解析、表示、run ID、終了コード)を直接確かめる単体テスト(`lib.rs` の最後の `#[cfg(test)] mod tests;`) |
 
 ## 6. 設計上の要点(実装から読み取れること)
 

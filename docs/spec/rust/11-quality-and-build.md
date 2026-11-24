@@ -163,19 +163,19 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | ネットワークに接続しない | `src/` に `std::net` などがない。依存に HTTP・TLS のライブラリがない | `cli/tests/nfr_source.rs` |
 | `unsafe` | runtime は `platform/unix.rs` の 1 回(`libc::kill`)だけ。cli は禁止(`#![forbid(unsafe_code)]`)。`low_level` を使わない | `runtime/tests/nfr_source.rs`、`cli/tests/nfr_source.rs` |
 | シグナルの送信 | ジョブの子プロセスの pid だけ(0 以下にならない)、許可した 4 つのシグナルだけ、1 回だけ | `runtime/src/platform/unix.rs` の単体、`runner_signal.rs` |
-| テスト専用の経路を製品に持たない | `main.rs` に `panic!` がない。`src/bin/` 以外に `panic!(` がない。配布は `conductor` だけ | `cli/tests/nfr_source.rs`、`release.yml` |
+| テスト専用の経路を製品に持たない | `main.rs` に `panic!` がない。`src/bin/` と単体テスト `src/tests/` の外に `panic!(` がない(`src/tests/` は `lib.rs` の最後の `#[cfg(test)] mod tests;` からだけ読む)。配布は `conductor` だけ | `cli/tests/nfr_source.rs`、`release.yml` |
 | converter の副作用 | ソースにプロセス・ネットワーク・環境変数のアクセスがない。静的な初期化がない。`convert` は入力以外のファイルを作らず、カレントディレクトリの変更と環境変数に左右されない | `converter/tests/nfr_security.rs` |
 | 既知の脆弱性 | `cargo audit`(6 章。警告のみ) | `audit.yml` |
 | 配布物の完全性 | `SHA256SUMS` を付ける(署名はしない。転送の破損の検知まで)。macOS の署名・公証はしない | `release.yml`、README |
 
 ### 3.4 保守性(OS 固有コードの隔離。NFR3.1)
 
-`cfg(unix)`・`cfg(windows)`・`target_os`・`libc::` などは、runtime と cli のそれぞれの `src/platform/` の中にだけ置く(ソース検索のテストが強制。詳細は 07 の 8 章)。
+`cfg(unix)`・`cfg(windows)`・`target_os`・`libc::` などは、runtime と cli のそれぞれの `src/platform/` の中にだけ置く(cli の単体テスト `src/tests/` を除く)(ソース検索のテストが強制。詳細は 07 の 8 章)。
 
 ### 3.5 ソースの検査を行うテスト一覧
 
 `runtime/tests/nfr_source.rs`(`unsafe` の個所、`unsafe` の許可の場所、OS 分岐の場所、シェルを呼ばない、パニックしうる書き方がない)、
-`cli/tests/nfr_source.rs`(`forbid(unsafe_code)`、`unsafe`/`low_level` なし、ネットワークなし、OS 分岐の場所、テスト専用の経路なし、依存の検査。
+`cli/tests/nfr_source.rs`(`forbid(unsafe_code)`、`unsafe`/`low_level` なし、ネットワークなし、OS 分岐の場所、テスト専用の経路なし(この 2 つは単体テスト `src/tests/` を除き、`src/tests/` が `#[cfg(test)]` の宣言からだけ読まれることを確かめる)、依存の検査。
 最後は `cargo tree -p conductor-cli -e normal,build --prefix none --offline --locked` を実行し、`cargo` が使えない・失敗する場合はスキップする)、
 `converter/tests/nfr_security.rs`(ソース検査を含む)。
 
@@ -185,7 +185,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 
 ### 4.1 方針
 
-- 方法論は test-after(実装してから、層ごとにテストを書いて実行する)。単体テスト(各 `src/*.rs` の `#[cfg(test)]`。converter は、途中の表現を比べる単体テストを `src/tests/` にも置く)と、バイナリを実行する統合テスト(`tests/`)を持つ。
+- 方法論は test-after(実装してから、層ごとにテストを書いて実行する)。単体テスト(各 `src/*.rs` の `#[cfg(test)]`。converter は、途中の表現を比べる単体テストを `src/tests/` にも置く。cli は、クレートの内部を直接確かめる単体テストを `src/tests/` に置く)と、バイナリを実行する統合テスト(`tests/`)を持つ。
 - 行カバレッジの下限は **80%**(`cargo-llvm-cov`。5 章)。
 - プロセスを起動するテストは、30 秒の上限(`LIMIT`)で、ハングだけを検知する。失敗した場合は、ジョブの子プロセスを強制終了して後始末する。
 - テストは日本語の関数名を使い、OS 依存のテストは `#[cfg(unix)]` / `#[cfg(windows)]` をファイル全体またはテスト単位に付ける。
@@ -264,7 +264,6 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | ファイル | 目的 |
 |----------|------|
 | `args_grammar.rs` | 全コマンドの引数の文法の表(正しい引数と誤り。v0.9.0 以降は `graph`・`init`・`--dry-run`・`--assume`・`--format`・`--state`・`--force` を含む) |
-| `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
 | `run_id_arg.rs` | `--run-id` の指定の型 `RunIdArg`(空は固定、規則どおりは値、規則違反は値を含めない `invalidValue`) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
@@ -290,7 +289,16 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `docs_support/mod.rs` | README を検査するテストの補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`) |
 | `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
 
-cli の src の単体テストは、`panic_hook.rs` の 2 件(フックの本体の文と終了コード 70)だけ。フックの設定そのもの(パニックのとき 70 で終わること)は、自動のテストでは確かめない(10 章 6 節)。
+cli の src の単体テストは、`panic_hook.rs` の 2 件(フックの本体の文と終了コード 70)と、下の `src/tests/` の単体テスト。フックの設定そのもの(パニックのとき 70 で終わること)は、自動のテストでは確かめない(10 章 6 節)。
+
+cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
+
+| ファイル | 目的 |
+|----------|------|
+| `mod.rs` | 下位のモジュールの宣言 |
+| `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
+
+このディレクトリは、`tests/nfr_source.rs` の OS 分岐と `panic!(` の検査の外(3.3、3.5 節)。
 
 `bin_support::conductor(args)` は、表示を安定させるため、`LC_ALL` と `LC_MESSAGES` を外し、`LANG=C`(英語)にし、`NO_COLOR` を外した `Command` を返す。
 

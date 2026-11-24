@@ -188,3 +188,7 @@ where
         CommandKind::Init => init::run_init(&mut ctx, &cmd),
     }
 }
+
+// クレートの内部を直接確かめる単体テスト(`src/tests/`)。
+#[cfg(test)]
+mod tests;
