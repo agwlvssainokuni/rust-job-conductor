@@ -241,7 +241,7 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 
 | ファイル | 目的 |
 |----------|------|
-| `convert_ac.rs` | 受け入れ基準と、`convert`(ファイルを読む入口) |
+| `convert_ac.rs` | 受け入れ基準と、`convert`(ファイルを読む入口)。変換の結果を読んだ木を比べる 2 件は単体テストの `src/tests/convert_ac.rs` |
 | `convert_roundtrip.rs` | 出力が毎回同じ(往復の木の比較は単体テストの `src/tests/convert_roundtrip.rs`) |
 | `nfr_security.rs` | 3 章 |
 | `fixtures/{pipeline,broken}.{toml,yaml}` | 入力例 |
@@ -254,6 +254,7 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `mod.rs` | 補助(`yaml`・`toml`・`s`・`i`・`m`・`a`・`with_timeout`) |
 | `read_resolve.rs` | 文書の確認と展開、失敗の順序、暴走する入力 |
 | `convert_roundtrip.rs` | 往復の木の比較 |
+| `convert_ac.rs` | 変換の結果の木を比べる受け入れ基準 |
 
 このディレクトリは、`tests/nfr_security.rs` のソースの検査(`src/*.rs`)の対象の外。
 

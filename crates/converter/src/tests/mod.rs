@@ -18,6 +18,7 @@
 //! ファイル名は、元の統合テスト(`tests/` の下)と同じにしている。ここには、下位のモジュールが
 //! 共通に使う補助(Value の作り方、時間の上限つきの実行)を置く。
 
+mod convert_ac;
 mod convert_roundtrip;
 mod read_resolve;
 

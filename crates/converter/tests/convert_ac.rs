@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 受け入れ基準(AC7.1.1〜AC7.1.3)と、`convert`(ファイルを読む入口)。
-
-mod common;
+//! 受け入れ基準(AC7.1.1〜AC7.1.3)と、`convert`(ファイルを読む入口)。変換の結果を読んだ木を
+//! 入力の木と比べる 2 件(AC7.1.1、AC7.1.2)は、単体テストの `src/tests/convert_ac.rs` にある。
 
 use std::path::{Path, PathBuf};
 
-use common::{toml, yaml};
 use conductor_converter::{
     ConversionErrorKind as K, ConversionRequest, TargetFormat, convert, convert_text,
 };
@@ -34,29 +32,6 @@ fn request(path: PathBuf, target: TargetFormat) -> ConversionRequest {
         input_path: path,
         target_format: target,
     }
-}
-
-#[test]
-fn ac_7_1_1_toml_から_yaml() {
-    let out = convert(&request(fixture("pipeline.toml"), TargetFormat::Yaml)).unwrap();
-    assert_eq!(
-        yaml(&out.text).unwrap(),
-        toml(include_str!("fixtures/pipeline.toml")).unwrap()
-    );
-    assert!(out.text.contains("format_version: 1"), "{}", out.text);
-    assert!(out.text.contains("id: extract"), "{}", out.text);
-}
-
-#[test]
-fn ac_7_1_2_アンカーつきの_yaml_から_toml() {
-    let out = convert(&request(fixture("pipeline.yaml"), TargetFormat::Toml)).unwrap();
-    assert_eq!(
-        toml(&out.text).unwrap(),
-        yaml(include_str!("fixtures/pipeline.yaml")).unwrap()
-    );
-    assert!(!out.text.contains("<<"), "{}", out.text);
-    // 展開された結果が、定義の形(表の配列)で出力される
-    assert!(out.text.contains("[[job]]"), "{}", out.text);
 }
 
 #[test]
