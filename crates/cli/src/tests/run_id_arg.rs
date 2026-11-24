@@ -14,7 +14,7 @@
 
 //! `--run-id` の指定の型 `RunIdArg`(internal-cleanup-2 の BR4.1。FR1.2〜FR1.4)。
 
-use conductor_cli::{RunIdArg, UsageErrorKind};
+use crate::types::{RunIdArg, UsageErrorKind};
 use conductor_core::RunId;
 
 #[test]
