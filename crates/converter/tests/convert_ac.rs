@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 受け入れ基準(AC7.1.1〜AC7.1.3)と、`convert`(ファイルを読む入口)。変換の結果を読んだ木を
-//! 入力の木と比べる 2 件(AC7.1.1、AC7.1.2)は、単体テストの `src/tests/convert_ac.rs` にある。
+//! 受け入れ基準(AC7.1.1〜AC7.1.3)と、`convert`(ファイルを読む入口)、変換の出力が毎回同じで
+//! あること。変換の結果を読んだ木を入力の木と比べる 2 件(AC7.1.1、AC7.1.2)は、単体テストの
+//! `src/tests/convert_ac.rs` にある。往復(BR1.11。変換した結果を読み戻した木が、入力の木と
+//! 等しい)の木を比べるテストは、単体テストの `src/tests/convert_roundtrip.rs` にある。
 
 use std::path::{Path, PathBuf};
 
@@ -33,6 +35,9 @@ fn request(path: PathBuf, target: TargetFormat) -> ConversionRequest {
         target_format: target,
     }
 }
+
+const PIPELINE_TOML: &str = include_str!("fixtures/pipeline.toml");
+const PIPELINE_YAML: &str = include_str!("fixtures/pipeline.yaml");
 
 #[test]
 fn ac_7_1_3_壊れた入力は種類と行を返し_出力しない() {
@@ -117,6 +122,16 @@ fn convert_text_はファイルに触れず_ラベルを使う() {
     assert_eq!(e.file, "my-label.yaml");
     let out = convert_text("a: 1\n", TargetFormat::Toml, "x").unwrap();
     assert_eq!(out.text, "a = 1\n");
+}
+
+#[test]
+fn 出力は毎回同じ() {
+    let first = convert_text(PIPELINE_YAML, TargetFormat::Toml, "t").unwrap();
+    let second = convert_text(PIPELINE_YAML, TargetFormat::Toml, "t").unwrap();
+    assert_eq!(first, second);
+    let first = convert_text(PIPELINE_TOML, TargetFormat::Yaml, "t").unwrap();
+    let second = convert_text(PIPELINE_TOML, TargetFormat::Yaml, "t").unwrap();
+    assert_eq!(first, second);
 }
 
 #[test]

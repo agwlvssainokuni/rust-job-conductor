@@ -602,7 +602,7 @@ job:
 | AC-219 | 最上位がマップでない | `- 1⏎- 2` | `convert in.yaml --to toml` | 67。`top level is not a map: 最上位がマップではありません`(行 1) | `read_resolve::最上位はマップでなければならない` |
 | AC-220 | 空の YAML | 空ファイル(または `# c` だけ) | `convert in.yaml --to toml` | 67。`top level is not a map: 文書が空です` | `read_resolve`(09 章 5.3 節) |
 | AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::コメントつきの入力は変換でき_コメントは捨てる` |
-| AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_roundtrip::出力は毎回同じ`) |
+| AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_ac::出力は毎回同じ`) |
 | AC-223 | 空のマップ | `{}`(YAML)、空(TOML) | `convert in.yaml --to toml` / `convert in.toml --to yaml` | 0。TOML の出力は空文字列。YAML の出力は `{}` | 09 章 9 節 |
 | AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to toml` | 0。`d` は `x = 1`、`y = 9`(自身のキーが優先) | `read_resolve::マージキーの単独と並びと優先順位` |
 | AC-225 | マージキーの値がマップでない | `a:⏎  <<: 5` | `convert in.yaml --to toml` | 67。`マージキーの値がマップではありません`(`(at: a.<<)`) | `read_resolve::値がマップでないマージキーは表せない` |
