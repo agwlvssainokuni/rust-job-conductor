@@ -101,7 +101,6 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
         entries.push(Some(EnvEntry {
             name: key.to_string(),
             value,
-            line: line_no,
         }));
     }
 

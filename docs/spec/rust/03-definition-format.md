@@ -361,7 +361,7 @@ LOG_LEVEL = "debug"
 
 #### 書式と解析(`parse_env_file(text, file)`)
 
-出力: `EnvFileContent { entries: Vec<EnvEntry { name, value, line }>, warnings: Vec<EnvWarning { file, line, name, kind: DuplicateKey }> }`、または `Vec<EnvFileError>`(行ごとの誤りは**止めずにすべて集める**。1 件でもあれば、項目は返さない)。純粋な関数で、ファイルにも環境変数にも触れない。
+出力: `EnvFileContent { entries: Vec<EnvEntry { name, value }>, warnings: Vec<EnvWarning { file, line, name, kind: DuplicateKey }> }`、または `Vec<EnvFileError>`(行ごとの誤りは**止めずにすべて集める**。1 件でもあれば、項目は返さない)。純粋な関数で、ファイルにも環境変数にも触れない。
 
 1. 先頭の BOM(U+FEFF)があれば、1 つだけ取り除く。
 2. 文字列を LF(`\n`)で分けて行にする。各行の末尾の `\r` を 1 つ取り除く(CRLF の対応)。行番号は 1 始まり(末尾の LF のあとの空の行も 1 行と数える)。

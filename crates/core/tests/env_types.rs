@@ -34,7 +34,6 @@ fn 値を持つ型の_debug_は値を伏せる() {
     let entry = EnvEntry {
         name: "TOKEN".into(),
         value: SECRET.into(),
-        line: 3,
     };
     let eff = EffectiveEntry {
         name: "TOKEN".into(),

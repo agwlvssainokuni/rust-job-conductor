@@ -63,7 +63,6 @@ fn p5_一万行で後半が逆順の重複の_env_の解析は_100ms_以内() {
         let i = HALF - 1 - k;
         assert_eq!(entry.name, format!("K{i}"));
         assert_eq!(entry.value, format!("b{i}"));
-        assert_eq!(entry.line, HALF + k + 1);
     }
     assert_eq!(content.warnings.len(), HALF);
     assert!(

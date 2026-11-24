@@ -52,7 +52,6 @@ fn 千個のジョブがすべて実行する計画は_1秒以内に作れる() 
                 .map(|i| EnvEntry {
                     name: format!("F{i}"),
                     value: "x".into(),
-                    line: i + 1,
                 })
                 .collect(),
             warnings: Vec::new(),

@@ -48,7 +48,6 @@ fn content(path: &str, names: &[String]) -> EnvFileContent {
             .map(|(i, n)| EnvEntry {
                 name: n.clone(),
                 value: format!("{path}-{i}"),
-                line: i + 1,
             })
             .collect(),
         warnings: Vec::new(),

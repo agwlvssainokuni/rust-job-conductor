@@ -66,7 +66,6 @@ fn 計画は環境変数の値を持たない_名前だけ() {
             entries: vec![EnvEntry {
                 name: "FROM_FILE".into(),
                 value: SECRET.into(),
-                line: 1,
             }],
             warnings: Vec::new(),
         },

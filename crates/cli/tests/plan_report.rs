@@ -416,7 +416,6 @@ fn 環境変数の名前は_層の順で_最後に_conductor_の変数() {
             entries: vec![EnvEntry {
                 name: name.into(),
                 value: "s3cr3t-VALUE-do-not-print".into(),
-                line: 1,
             }],
             warnings: Vec::new(),
         });

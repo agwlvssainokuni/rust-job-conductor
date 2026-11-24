@@ -186,8 +186,6 @@ pub struct EnvWarning {
 pub struct EnvEntry {
     pub name: String,
     pub value: String,
-    /// 項目を書いた行(1 始まり)。
-    pub line: usize,
 }
 
 impl fmt::Debug for EnvEntry {
@@ -195,7 +193,6 @@ impl fmt::Debug for EnvEntry {
         f.debug_struct("EnvEntry")
             .field("name", &self.name)
             .field("value", &"***")
-            .field("line", &self.line)
             .finish()
     }
 }
