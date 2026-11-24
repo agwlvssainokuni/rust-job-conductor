@@ -650,7 +650,7 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 | 名前 | 内容 |
 |------|------|
 | `EnvEntry` | `.env` の 1 項目。名前、値、行。値は秘密として扱い、デバッグの出力・ログに出さない(あれば伏せ字) |
-| `EnvFileContent` | 1 つの `.env` の解析結果。解決済みのパス、項目の並び(書いた順)、警告の並び |
+| `EnvFileContent` | 1 つの `.env` の解析結果。項目の並び(書いた順)、警告の並び |
 | `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。「定義に書かれた `env_file` の記述 → 内容」を引ける。同じ解決済みのパスは、1 つの内容を共有する |
 | `EnvContext` | `{ pipeline_name, job_id, run_id(無いことがある), attempt(1 から) }`。自動の変数の入力 |
 | `EffectiveEnv` | 1 回のジョブの起動に足す環境。`{ entries: list<{ name, value }> }`。「名前と値の並び」(起動に渡す)と、「名前の並び」(値を含まない要約)は、項目から取り出せる |

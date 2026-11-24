@@ -107,7 +107,6 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
 
     if errors.is_empty() {
         Ok(EnvFileContent {
-            path: file.to_string(),
             entries: entries.into_iter().flatten().collect(),
             warnings,
         })

@@ -361,7 +361,7 @@ LOG_LEVEL = "debug"
 
 #### 書式と解析(`parse_env_file(text, file)`)
 
-出力: `EnvFileContent { path, entries: Vec<EnvEntry { name, value, line }>, warnings: Vec<EnvWarning { file, line, name, kind: DuplicateKey }> }`、または `Vec<EnvFileError>`(行ごとの誤りは**止めずにすべて集める**。1 件でもあれば、項目は返さない)。純粋な関数で、ファイルにも環境変数にも触れない。
+出力: `EnvFileContent { entries: Vec<EnvEntry { name, value, line }>, warnings: Vec<EnvWarning { file, line, name, kind: DuplicateKey }> }`、または `Vec<EnvFileError>`(行ごとの誤りは**止めずにすべて集める**。1 件でもあれば、項目は返さない)。純粋な関数で、ファイルにも環境変数にも触れない。
 
 1. 先頭の BOM(U+FEFF)があれば、1 つだけ取り除く。
 2. 文字列を LF(`\n`)で分けて行にする。各行の末尾の `\r` を 1 つ取り除く(CRLF の対応)。行番号は 1 始まり(末尾の LF のあとの空の行も 1 行と数える)。
@@ -374,7 +374,7 @@ LOG_LEVEL = "debug"
    6. 値に NUL があれば `nulInValue`。
    7. ここまで通った行を数える。数が **10,000 を超えたら**、その行に `tooManyEntries` を報告して、**解析を止める**(それ以降の行は読まない)。数えるのは、通った行(重複を含む)で、誤りの行は数えない。
    8. 重複の扱い: すでに通った名前のうち、ASCII の大文字小文字を無視すると同じものがあるとき、綴りが**完全に同じ**なら、前の項目を取り除き、後ろの項目を並びの**末尾**に足し、警告 `DuplicateKey`(`file`、後ろの行、名前)を足す(後ろが勝つ)。綴りが**違う**なら(`foo` と `FOO`)、その行を `caseConflict` の誤りにして、項目に足さない。なければ、項目を並びの末尾に足す。
-4. 誤りが 1 件もなければ、項目と警告を返す(`path` は与えられた `file`)。
+4. 誤りが 1 件もなければ、項目と警告を返す。
 
 値の読み方(`=` の右側。`KEY` を切り出したあとの残り):
 

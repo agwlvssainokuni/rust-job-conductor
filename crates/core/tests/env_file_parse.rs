@@ -117,7 +117,6 @@ fn 重複は後ろが勝ち警告に行と名前を持つ() {
         ("t.env", 3, "A")
     );
     assert_eq!(w.kind, EnvWarningKind::DuplicateKey);
-    assert_eq!(c.path, "t.env");
 }
 
 #[test]

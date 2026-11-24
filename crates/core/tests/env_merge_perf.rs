@@ -42,7 +42,6 @@ const BUILTINS: [&str; 4] = [
 /// 名前の並びから `.env` の内容を作る。
 fn content(path: &str, names: &[String]) -> EnvFileContent {
     EnvFileContent {
-        path: path.into(),
         entries: names
             .iter()
             .enumerate()

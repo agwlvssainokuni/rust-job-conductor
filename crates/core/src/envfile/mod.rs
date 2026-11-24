@@ -203,8 +203,6 @@ impl fmt::Debug for EnvEntry {
 /// 1 つの `.env` を読み取った結果。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvFileContent {
-    /// 解決済みのパス(表示のときは、エスケープと切り詰めをする)。
-    pub path: String,
     /// 書いた順。同じ名前の重複は、後ろの項目だけが、末尾側に残る。
     pub entries: Vec<EnvEntry>,
     pub warnings: Vec<EnvWarning>,

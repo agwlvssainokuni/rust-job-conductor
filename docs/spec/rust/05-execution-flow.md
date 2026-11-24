@@ -637,9 +637,9 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 
 | 型 | 内容 |
 |----|------|
-| `EnvFileContent` | `{ path: String, entries: Vec<EnvEntry>, warnings: Vec<EnvWarning> }`。1 つの `.env` の解析結果 |
+| `EnvFileContent` | `{ entries: Vec<EnvEntry>, warnings: Vec<EnvWarning> }`。1 つの `.env` の解析結果 |
 | `EnvEntry` | `{ name, value, line }`。`Debug` は値を `"***"` と表示する |
-| `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。`files: Vec<EnvFileContent>`(解決済みのパスごと、読んだ順)と、「定義に書かれた `env_file` の文字列 → `files` の位置」の対応を持つ。`new()`、`push_file(content) -> 位置`、`link(記述, 位置)`、`add(記述, content)`(偽の実装・テスト用)、`get(記述) -> Option<&EnvFileContent>`、`files()`。同じ解決済みのパスは、1 つの内容を共有する |
+| `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。`files: Vec<EnvFileContent>`(解決済みのパスごと、読んだ順)と、「定義に書かれた `env_file` の文字列 → `files` の位置」の対応を持つ。`new()`、`push_file(content) -> 位置`、`link(記述, 位置)`、`get(記述) -> Option<&EnvFileContent>`、`files()`。同じ解決済みのパスは、1 つの内容を共有する |
 | `EnvContext<'a>` | `{ pipeline_name: &str, job_id: &str, run_id: Option<&str>, attempt: u32 }`。自動の変数の入力 |
 | `EffectiveEntry` | `{ name, value }`。`Debug` は値を `"***"` と表示する |
 | `EffectiveEnv` | `{ entries: Vec<EffectiveEntry> }`。`additions() -> Vec<(&str, &str)>`(名前と値。並びの順)。名前(値を含まない要約)は `entries` から取り出せる |

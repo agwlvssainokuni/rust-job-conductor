@@ -413,7 +413,6 @@ fn 環境変数の名前は_層の順で_最後に_conductor_の変数() {
     let mut files = LoadedEnvFiles::new();
     for (reference, name) in [("p.env", "P_FILE"), ("a.env", "A_FILE")] {
         let i = files.push_file(EnvFileContent {
-            path: reference.into(),
             entries: vec![EnvEntry {
                 name: name.into(),
                 value: "s3cr3t-VALUE-do-not-print".into(),
