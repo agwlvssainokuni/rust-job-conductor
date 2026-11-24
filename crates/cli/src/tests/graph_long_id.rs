@@ -18,8 +18,8 @@
 //! (`escape_name`。64 文字で切る)とは使い分ける。行き先を型(`TransitionTarget`)で渡すように
 //! 変えても、長いジョブ ID が切られないことを確かめる。
 
-use conductor_cli::Language;
-use conductor_cli::report::graph_text::render_text;
+use crate::report::graph_text::render_text;
+use crate::types::Language;
 use conductor_core::graph::{GraphLayout, build_graph, layout_graph};
 use conductor_core::{PipelineDefinition, parse_definition};
 

@@ -22,5 +22,7 @@ mod common;
 mod args_grammar;
 mod escape_table;
 mod exit_codes;
+mod graph_long_id;
+mod graph_report;
 mod init_types;
 mod run_id_arg;

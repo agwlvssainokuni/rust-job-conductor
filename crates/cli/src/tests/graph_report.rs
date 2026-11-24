@@ -14,9 +14,9 @@
 
 //! `graph` の整形(text、辺の一覧、Mermaid。BR2.x、BR3.x、BR4.x、BR5.x)。functional-spec の例 G1〜G4、G6、E1、E2。
 
-use conductor_cli::Language;
-use conductor_cli::report::graph_mermaid::{escape_label, render_mermaid};
-use conductor_cli::report::graph_text::render_text;
+use crate::report::graph_mermaid::{escape_label, render_mermaid};
+use crate::report::graph_text::render_text;
+use crate::types::Language;
 use conductor_core::graph::{
     GraphLayout, NodeState, StateOverlay, build_graph, layout_graph, overlay_from_state,
 };
