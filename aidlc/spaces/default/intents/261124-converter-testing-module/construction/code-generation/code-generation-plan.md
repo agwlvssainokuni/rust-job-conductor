@@ -19,14 +19,14 @@
 
 ## 手順
 
-- [ ] Step 1: `read_resolve.rs` の 28 件を `src/tests/read_resolve.rs` へ移し、`src/tests/mod.rs` に補助(`yaml`・`toml`・`s`・`i`・`m`・`a`・`with_timeout`)を置く。`lib.rs` の最後に `#[cfg(test)] mod tests;`。`tests/read_resolve.rs` を消す(T1。仕様書 S4、S6、S7、S8、S12)。コミット 1。
-- [ ] Step 2: 往復の木を比べる 13 件を `src/tests/convert_roundtrip.rs` へ移す(T2。仕様書 S9、S12)。コミット 2。
-- [ ] Step 3: 受け入れ基準の 2 件を `src/tests/convert_ac.rs` へ移す(T3。仕様書 S10、S12)。コミット 3。
-- [ ] Step 4: ランダムな入力の 2 件と補助を `src/tests/nfr_security.rs` へ移し、`tests/common/mod.rs` を `pub mod kinds;` だけにする(T4、T6。仕様書 S11、S12)。コミット 4。
-- [ ] Step 5: `testing` モジュールと `TargetFormat::opposite` を消し、`opposite` の単体テストを消す(T5。仕様書 S1、S2、S3)。コミット 5。
-- [ ] Step 6: `Value` の `PartialEq` を `#[cfg(test)]` にする(仕様書 S5)。コミット 6。
-- [ ] Step 7: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(`src/tests/` の禁止の語の検索を含む)、テスト名の比較(名前の最後の部分で比べ、差は消した 1 件だけ)、件数(見込み 1,152)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、`cargo clippy -p conductor-converter --lib` が `PartialEq` なしで通ること、core・runtime・cli の差分が空。fmt、clippy、全テスト、カバレッジを通す。ソースの検査の範囲の記録(BR3.2)を残す。
-- [ ] Step 8: `code-summary.md`(コミットの一覧、件数の移り変わり、移したテストと消したテストの一覧、検索の結果、ソースの検査の範囲の記録、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 1: `read_resolve.rs` の 28 件を `src/tests/read_resolve.rs` へ移し、`src/tests/mod.rs` に補助(`yaml`・`toml`・`s`・`i`・`m`・`a`・`with_timeout`)を置く。`lib.rs` の最後に `#[cfg(test)] mod tests;`。`tests/read_resolve.rs` を消す(T1。仕様書 S4、S6、S7、S8、S12)。コミット 1。
+- [x] Step 2: 往復の木を比べる 13 件を `src/tests/convert_roundtrip.rs` へ移す(T2。仕様書 S9、S12)。コミット 2。
+- [x] Step 3: 受け入れ基準の 2 件を `src/tests/convert_ac.rs` へ移す(T3。仕様書 S10、S12)。コミット 3。
+- [x] Step 4: ランダムな入力の 2 件と補助を `src/tests/nfr_security.rs` へ移し、`tests/common/mod.rs` を `pub mod kinds;` だけにする(T4、T6。仕様書 S11、S12)。コミット 4。
+- [x] Step 5: `testing` モジュールと `TargetFormat::opposite` を消し、`opposite` の単体テストを消す(T5。仕様書 S1、S2、S3)。コミット 5。
+- [x] Step 6: `Value` の `PartialEq` を `#[cfg(test)]` にする(仕様書 S5)。コミット 6。
+- [x] Step 7: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(`src/tests/` の禁止の語の検索を含む)、テスト名の比較(名前の最後の部分で比べ、差は消した 1 件だけ)、件数(見込み 1,152)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、`cargo clippy -p conductor-converter --lib` が `PartialEq` なしで通ること、core・runtime・cli の差分が空。fmt、clippy、全テスト、カバレッジを通す。ソースの検査の範囲の記録(BR3.2)を残す。
+- [x] Step 8: `code-summary.md`(コミットの一覧、件数の移り変わり、移したテストと消したテストの一覧、検索の結果、ソースの検査の範囲の記録、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
