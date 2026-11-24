@@ -35,7 +35,7 @@
 //! | [`check_consistency`] | ステートと定義の食い違いを検知する(BR2.5) | ステート、定義 → [`ConsistencyResult`] | なし(純粋) |
 //!
 //! ステートの更新の関数(`initial_state`、`apply_*`)は、本番の流れと `--dry-run` の模擬が共に使う。
-//! `conductor-runtime` は、これらと `check_consistency` を、同じ名前で再公開する。
+//! `conductor-runtime` は、これらと `check_consistency` を再公開しない(使う側は、この crate から使う)。
 //! ほかの公開の関数(`.env` の解析と統合、図、計画、run ID など)は、各モジュールにある。
 //!
 //! 入出力に触れるのは、[`definition::intake`] だけである。それ以外は、引数だけから結果を決める
