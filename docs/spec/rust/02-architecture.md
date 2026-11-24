@@ -143,7 +143,7 @@
 | `parse_args`(`args`。crate の中) | `<I>(args: I) -> Result<ParsedArgs, UsageError>` | 引数の解釈。04 章 |
 | `exit_code_for`(`exit`。crate の中) | `(reported: i32, is_error: bool) -> i32` | 0〜255 への整形。05 の 2.2 |
 | `signal_exit_code`(同) | `(signal_number: i32) -> i32` | `exit_code_for(128 + n(飽和加算), true)` |
-| `resolve_run_id`(`run_id`。crate の中) | `(option: Option<&str>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
+| `resolve_run_id`(`run_id`。crate の中) | `(option: Option<&RunIdArg>, env_name: &str, env: &dyn Env) -> Result<Option<RunId>, UsageError>` | run ID の決定。04 の 5 章 |
 | `render_table`(`report::watch`。crate の中) | `(lang: Language, state: &PipelineState, color: bool) -> String` | `watch` の表。08 の 6 章 |
 | `escape_name` / `escape_full`(`report::escape`。crate の中) | `(input: &str) -> String` | 入力由来の名前(64 文字で切る)・パス(切らない)のエスケープ。本体は core の `escape_display`。08 の 9 章 |
 
