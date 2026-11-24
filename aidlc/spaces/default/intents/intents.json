@@ -262,5 +262,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "3aa437d3"
+  },
+  {
+    "uuid": "01a20fbe-7f8a-7c1f-942f-8409ef5b02eb",
+    "slug": "merge-cli-modules",
+    "dirName": "261124-merge-cli-modules",
+    "scope": "refactor",
+    "status": "in-flight",
+    "request": "e3c13094"
   }
 ]
