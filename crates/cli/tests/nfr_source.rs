@@ -161,7 +161,8 @@ fn テスト専用の経路を実行ファイルに持たない() {
     // 製品のファイル(src/tests/ の外)から、#[path] や include の 3 つのマクロで、別のファイル
     // (src/tests/ やテストのデータ)を読む道が無い。空白を除いた部分一致なので、`my_include!` の
     // ような別のマクロや、文字列・/* */ のコメントの中の語にも当たる(誤検出の側)。
-    // `#[cfg_attr(…, path = "…")]` の形は見逃す
+    // `#[cfg_attr(…, path = "…")]` の形は見逃す。行の `//` 以降は検査の前に切り落とすので、
+    // 文字列の中の `//`(URL など)より後ろに書いたものも見逃す
     let paths = find(
         &|line| {
             let compact: String = line.chars().filter(|c| !c.is_whitespace()).collect();
