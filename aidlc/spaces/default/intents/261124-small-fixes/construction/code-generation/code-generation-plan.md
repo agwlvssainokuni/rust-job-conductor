@@ -18,15 +18,15 @@
 
 ## 手順
 
-- [ ] Step 1: core の計画と次の動きの説明の、起動前の判断の関数の名前を直す(C1、C2。仕様書 rust 05 の 2 か所。D5)。コミット 1。
-- [ ] Step 2: core の「runtime が再公開する」の説明を直す(C3。D1)。コミット 2。
-- [ ] Step 3: 仕様書 rust 02 を直す(`resolve_run_id` の型 S1、`consistency` の一覧 S2・S3、版の注記を版の履歴に分ける S4〜S7。D2)。コミット 3〜5。
-- [ ] Step 4: 仕様書 rust 06 の実装の所在を直す(X2。D6)。コミット 6。
-- [ ] Step 5: core の重なる性能のテスト 1 件を消し(T1)、残る 1 件を `plan_simulate_perf.rs` へ移して `plan_perf.rs` を消す(T2。仕様書 S8〜S10、S12。D3、D8)。コミット 7〜8。
-- [ ] Step 6: cli の重なる init の型のテスト 2 件を消す(T3、C4。仕様書 S11)。コミット 9。
-- [ ] Step 7: cli のソースの検査で、製品のコードの include の 3 つのマクロも止める(T4。仕様書 S13、S14。D4)。コミット 10。
-- [ ] Step 8: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(古い説明、仕様書の型と一覧、版の注記、`plan_perf` の参照)、テスト名の比較(名前の最後の部分で比べ、差は消した 3 件だけ)、件数(見込み 1,149)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形の clippy。fmt、clippy、全テスト、カバレッジを通す。
-- [ ] Step 9: `code-summary.md`(コミットの一覧、件数の移り変わり、消したテストと移したテスト、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
+- [x] Step 1: core の計画と次の動きの説明の、起動前の判断の関数の名前を直す(C1、C2。仕様書 rust 05 の 2 か所。D5)。コミット 1。
+- [x] Step 2: core の「runtime が再公開する」の説明を直す(C3。D1)。コミット 2。
+- [x] Step 3: 仕様書 rust 02 を直す(`resolve_run_id` の型 S1、`consistency` の一覧 S2・S3、版の注記を版の履歴に分ける S4〜S7。D2)。コミット 3〜5。
+- [x] Step 4: 仕様書 rust 06 の実装の所在を直す(X2。D6)。コミット 6。
+- [x] Step 5: core の重なる性能のテスト 1 件を消し(T1)、残る 1 件を `plan_simulate_perf.rs` へ移して `plan_perf.rs` を消す(T2。仕様書 S8〜S10、S12。D3、D8)。コミット 7〜8。
+- [x] Step 6: cli の重なる init の型のテスト 2 件を消す(T3、C4。仕様書 S11)。コミット 9。
+- [x] Step 7: cli のソースの検査で、製品のコードの include の 3 つのマクロも止める(T4。仕様書 S13、S14。D4)。コミット 10。
+- [x] Step 8: `functional-spec.md` §7 の確かめ方を走らせて結果を記録する: 完了の判定の検索(古い説明、仕様書の型と一覧、版の注記、`plan_perf` の参照)、テスト名の比較(名前の最後の部分で比べ、差は消した 3 件だけ)、件数(見込み 1,149)、`cargo doc` の警告(基準の 5 件のまま)、Windows の対象の clippy、本番の形の clippy。fmt、clippy、全テスト、カバレッジを通す。
+- [x] Step 9: `code-summary.md`(コミットの一覧、件数の移り変わり、消したテストと移したテスト、検索の結果、計画からのずれ)、`traceability.json`(SM と BR のすべてを、変えたファイルに結ぶ)、`memory.md`。
 
 ## Testing Contract
 
