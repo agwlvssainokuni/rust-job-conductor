@@ -425,7 +425,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 |--------------|--------|
 | 分割の全規則(3 章の表) | `crates/runtime/src/split.rs` の単体テスト |
 | メタ文字が引数にそのまま渡る、配列の要素がそのまま渡る、環境変数と作業ディレクトリの引き継ぎ、起動失敗、終了コード(0・3・255・300) | `crates/runtime/tests/runner_basic.rs` |
-| `env` 引数が子の環境に足される(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ。v0.9.0 以降) | `crates/runtime/tests/runner_env.rs` |
+| `env` 引数が子の環境に足される(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ。v0.9.0 以降) | `crates/runtime/tests/runner_basic.rs` |
 | 起動前の合図で起動しない(`NotStarted`)、終了の観測の直後の合図で `interrupted_by` | 同上 |
 | SIGTERM / SIGINT の転送、許可外の番号は送らない、新しいプロセスグループ、転送は 1 回だけ、先に終わったジョブは転送なし | `crates/runtime/tests/runner_signal.rs`(UNIX) |
 | 待ちの間隔(1,2,4,8,10,10)、転送 1 回 | `crates/runtime/src/runner.rs` の単体テスト |

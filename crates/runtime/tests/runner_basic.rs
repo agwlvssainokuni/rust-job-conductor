@@ -13,6 +13,9 @@
 // limitations under the License.
 
 //! `run_job` の統合テスト(補助の実行ファイルを、実際に起動する)。AC2.1.1、AC2.1.2、AC2.1.5、NFR4.1、NFR4.6。
+//!
+//! 環境変数の引数(U1。BR4.3、BR4.4、FR1.3)は、補助の実行ファイルの `env` モードで、子のプロセスの
+//! 環境を確かめる。環境変数は、プロセス全体には設定しない(並列のテストが干渉するため)。
 
 mod common;
 
@@ -276,6 +279,77 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
         }
     ));
 }
+
+// ---- 環境変数の引数(U1。BR4.3、BR4.4、FR1.3) ----
+
+/// 子で `env <names...>` を実行し、出力の行を返す。
+fn child_env(env: &[(&str, &str)], names: &[&str]) -> Vec<String> {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let out = dir.path().join("out.txt");
+    let command = helper_command(&out, &format!("env {}", names.join(" ")));
+    let line = command_line(command);
+    let e = run_job(&line, env, &InterruptSignal::new());
+    assert!(matches!(
+        e.result,
+        ExecutionResult::Exited {
+            exit_code: Some(0),
+            ..
+        }
+    ));
+    lines(&out)
+}
+
+#[test]
+fn 足した値が子のプロセスに見える() {
+    let got = child_env(
+        &[
+            ("CONDUCTOR_T_ADDED", "hello world"),
+            ("CONDUCTOR_T_EMPTY", ""),
+        ],
+        &["CONDUCTOR_T_ADDED", "CONDUCTOR_T_EMPTY"],
+    );
+    assert_eq!(
+        got,
+        [
+            "env[CONDUCTOR_T_ADDED]=Some(\"hello world\")",
+            "env[CONDUCTOR_T_EMPTY]=Some(\"\")"
+        ]
+    );
+}
+
+#[test]
+fn 足さなかった引き継いだ環境は残る() {
+    // `cargo test` が子に渡す `CARGO_PKG_NAME` などではなく、必ずある `PATH` を使う。
+    let inherited = std::env::var("PATH").expect("PATH がある");
+    let got = child_env(&[("CONDUCTOR_T_OTHER", "x")], &["PATH"]);
+    assert_eq!(got, [format!("env[PATH]=Some({inherited:?})")]);
+}
+
+#[test]
+fn 足した値は引き継いだ値を上書きする() {
+    let got = child_env(&[("PATH", "/overridden")], &["PATH"]);
+    assert_eq!(got, ["env[PATH]=Some(\"/overridden\")"]);
+}
+
+#[test]
+fn 同じ名前が並びに_2_回あれば後ろが勝つ() {
+    let got = child_env(
+        &[
+            ("CONDUCTOR_T_TWICE", "first"),
+            ("CONDUCTOR_T_TWICE", "second"),
+        ],
+        &["CONDUCTOR_T_TWICE"],
+    );
+    assert_eq!(got, ["env[CONDUCTOR_T_TWICE]=Some(\"second\")"]);
+}
+
+#[test]
+fn 空の環境では従来どおりで足した名前は見えない() {
+    let got = child_env(&[], &["CONDUCTOR_T_NOT_SET"]);
+    assert_eq!(got, ["env[CONDUCTOR_T_NOT_SET]=None"]);
+}
+
+// ---- Windows の cmd(Windows だけ) ----
 
 #[cfg(windows)]
 #[test]
