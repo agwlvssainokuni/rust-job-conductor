@@ -18,8 +18,8 @@ mod common;
 
 use common::{SECRET, add_env_file};
 use conductor_core::{
-    EffectiveEnv, EnvContext, EnvFileContent, EnvOrigin, LoadedEnvFiles, PipelineDefinition,
-    env_file_refs, merge_env, parse_definition, parse_env_file,
+    EffectiveEnv, EnvContext, EnvFileContent, LoadedEnvFiles, PipelineDefinition, env_file_refs,
+    merge_env, parse_definition, parse_env_file,
 };
 
 fn def(text: &str) -> PipelineDefinition {
@@ -48,13 +48,6 @@ fn get<'a>(env: &'a EffectiveEnv, name: &str) -> Option<&'a str> {
 
 fn names(env: &EffectiveEnv) -> Vec<&str> {
     env.additions().into_iter().map(|(n, _)| n).collect()
-}
-
-fn origins(env: &EffectiveEnv) -> Vec<(&str, EnvOrigin)> {
-    env.entries
-        .iter()
-        .map(|e| (e.name.as_str(), e.origin))
-        .collect()
 }
 
 const LAYERED: &str = "format_version = 1
@@ -91,13 +84,6 @@ fn 層の優先順位は_pipeline_env_file_から_job_env_の順に後ろが勝�
     );
     assert_eq!(get(&env, "P"), Some("p"));
     assert_eq!(get(&env, "Q"), Some("1"));
-
-    // 層ごとの出どころ
-    let origin = |n: &str| origins(&env).into_iter().find(|(x, _)| *x == n).unwrap().1;
-    assert_eq!(origin("V"), EnvOrigin::JobEnv);
-    assert_eq!(origin("W"), EnvOrigin::JobEnvFile);
-    assert_eq!(origin("P"), EnvOrigin::PipelineEnvFile);
-    assert_eq!(origin("CONDUCTOR_JOB_ID"), EnvOrigin::Builtin);
 
     // pipeline.env が pipeline の env_file に勝つ(job.env を外した定義)
     let d = def(&LAYERED.replace("[job.env]\nV = \"job-env\"\n", ""));
@@ -170,15 +156,15 @@ fn 読み込まれていない_env_file_の記述は何も足さない() {
 }
 
 #[test]
-fn names_は値を含まず出どころを持ち_additions_は並びの順() {
+fn names_は値を含まず_additions_は並びの順() {
     let d = def(LAYERED);
     let mut files = LoadedEnvFiles::new();
     add_env_file(&mut files, "p.env", content(&format!("P={SECRET}\n")));
     let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
-    let shown = format!("{:?} {:?}", origins(&env), env);
+    let shown = format!("{:?} {:?}", names(&env), env);
     assert!(!shown.contains(SECRET), "{shown}");
-    assert!(origins(&env).contains(&("P", EnvOrigin::PipelineEnvFile)));
-    assert_eq!(env.additions().len(), origins(&env).len());
+    assert!(names(&env).contains(&"P"));
+    assert_eq!(env.additions().len(), env.entries.len());
     // 引き継いだ環境(PATH など)の名前は含まれない
     assert!(!names(&env).contains(&"PATH"));
 }

@@ -641,9 +641,8 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 | `EnvEntry` | `{ name, value, line }`。`Debug` は値を `"***"` と表示する |
 | `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。`files: Vec<EnvFileContent>`(解決済みのパスごと、読んだ順)と、「定義に書かれた `env_file` の文字列 → `files` の位置」の対応を持つ。`new()`、`push_file(content) -> 位置`、`link(記述, 位置)`、`add(記述, content)`(偽の実装・テスト用)、`get(記述) -> Option<&EnvFileContent>`、`files()`。同じ解決済みのパスは、1 つの内容を共有する |
 | `EnvContext<'a>` | `{ pipeline_name: &str, job_id: &str, run_id: Option<&str>, attempt: u32 }`。自動の変数の入力 |
-| `EnvOrigin` | `PipelineEnvFile`、`PipelineEnv`、`JobEnvFile`、`JobEnv`、`Builtin`(契約の「出どころ」。名前の要約に使う) |
-| `EffectiveEntry` | `{ name, value, origin }`。`Debug` は値を `"***"` と表示する |
-| `EffectiveEnv` | `{ entries: Vec<EffectiveEntry> }`。`additions() -> Vec<(&str, &str)>`(名前と値。並びの順)。名前と出どころ(値を含まない要約)は `entries` から取り出せる |
+| `EffectiveEntry` | `{ name, value }`。`Debug` は値を `"***"` と表示する |
+| `EffectiveEnv` | `{ entries: Vec<EffectiveEntry> }`。`additions() -> Vec<(&str, &str)>`(名前と値。並びの順)。名前(値を含まない要約)は `entries` から取り出せる |
 
 ### 14.2 層と優先順位
 
@@ -661,15 +660,15 @@ README と実装のあいだに、**矛盾は見つからなかった**。README
 純粋な関数。次の手順で、結果の並び(`entries`)を作る。
 
 ```text
-items = []                       # 層の順の (name, value, origin)。同じ名前を重ねて含む
-for ref in def.env_file:  (files.get(ref) があれば) for e in その entries: items に (e.name, e.value, PipelineEnvFile)
-for v   in def.env:                                               items に (v.name, v.value, PipelineEnv)
-for ref in job.env_file:  (files.get(ref) があれば) for e in その entries: items に (e.name, e.value, JobEnvFile)
-for v   in job.env:                                               items に (v.name, v.value, JobEnv)
-items に ("CONDUCTOR_PIPELINE", ctx.pipeline_name, Builtin)
-items に ("CONDUCTOR_JOB_ID",   ctx.job_id,        Builtin)
-if ctx.run_id がある: items に ("CONDUCTOR_RUN_ID", run_id, Builtin)
-items に ("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  Builtin)
+items = []                       # 層の順の (name, value)。同じ名前を重ねて含む
+for ref in def.env_file:  (files.get(ref) があれば) for e in その entries: items に (e.name, e.value)   # [pipeline].env_file
+for v   in def.env:                                               items に (v.name, v.value)   # [pipeline.env]
+for ref in job.env_file:  (files.get(ref) があれば) for e in その entries: items に (e.name, e.value)   # [job].env_file
+for v   in job.env:                                               items に (v.name, v.value)   # [job.env]
+items に ("CONDUCTOR_PIPELINE", ctx.pipeline_name)                # 自動の変数
+items に ("CONDUCTOR_JOB_ID",   ctx.job_id)
+if ctx.run_id がある: items に ("CONDUCTOR_RUN_ID", run_id)
+items に ("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt))
 
 keep_last(items):                # 名前ごとの最後の位置を表で引き、最後の位置の項目だけを並びの順に残す
     last = { name → items の中で最後に現れた位置 }

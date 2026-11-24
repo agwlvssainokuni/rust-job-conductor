@@ -261,22 +261,11 @@ pub struct EnvContext<'a> {
     pub attempt: u32,
 }
 
-/// 名前の出どころ(契約 C1 の origin)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EnvOrigin {
-    PipelineEnvFile,
-    PipelineEnv,
-    JobEnvFile,
-    JobEnv,
-    Builtin,
-}
-
 /// 足す環境の 1 項目。値は秘密で、`Debug` は伏せ字にする(BR8.1)。
 #[derive(Clone, PartialEq, Eq)]
 pub struct EffectiveEntry {
     pub name: String,
     pub value: String,
-    pub origin: EnvOrigin,
 }
 
 impl fmt::Debug for EffectiveEntry {
@@ -284,7 +273,6 @@ impl fmt::Debug for EffectiveEntry {
         f.debug_struct("EffectiveEntry")
             .field("name", &self.name)
             .field("value", &"***")
-            .field("origin", &self.origin)
             .finish()
     }
 }

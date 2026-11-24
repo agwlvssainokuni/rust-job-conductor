@@ -27,8 +27,8 @@ use std::time::{Duration, Instant};
 use common::{add_env_file, median};
 use conductor_core::envfile::MAX_ENV_ENTRIES;
 use conductor_core::{
-    EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvOrigin, LoadedEnvFiles,
-    PipelineDefinition, merge_env, parse_definition,
+    EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, LoadedEnvFiles, PipelineDefinition,
+    merge_env, parse_definition,
 };
 
 const SAMPLES: usize = 5;
@@ -103,7 +103,6 @@ fn assert_order(env: &EffectiveEnv, names: &[String]) {
     }
     for (e, b) in env.entries[names.len()..].iter().zip(BUILTINS) {
         assert_eq!(e.name, b);
-        assert_eq!(e.origin, EnvOrigin::Builtin);
     }
 }
 
@@ -120,7 +119,7 @@ fn a3a_一万項目の_env_file_一つの統合は_50ms_以内() {
     assert!(
         env.entries[..names.len()]
             .iter()
-            .all(|e| e.origin == EnvOrigin::PipelineEnvFile)
+            .all(|e| e.value.starts_with("p.env-"))
     );
     assert!(
         m < Duration::from_millis(50),
@@ -144,7 +143,7 @@ fn a3b_同じ名前の一万項目の_env_file_二つの統合は_100ms_以内�
     assert!(
         env.entries[..names.len()]
             .iter()
-            .all(|e| e.origin == EnvOrigin::JobEnvFile && e.value.starts_with("j.env-"))
+            .all(|e| e.value.starts_with("j.env-"))
     );
     assert!(
         m < Duration::from_millis(100),

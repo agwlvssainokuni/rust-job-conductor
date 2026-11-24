@@ -21,8 +21,8 @@ use std::collections::HashSet;
 use common::SECRET;
 use common::kinds::{DEFINITION_ERROR_KINDS, ENV_FILE_ERROR_KINDS};
 use conductor_core::{
-    DefinitionErrorKind, EffectiveEntry, EnvEntry, EnvFileError, EnvFileErrorKind, EnvOrigin,
-    EnvVar, summarize_errors,
+    DefinitionErrorKind, EffectiveEntry, EnvEntry, EnvFileError, EnvFileErrorKind, EnvVar,
+    summarize_errors,
 };
 
 #[test]
@@ -39,7 +39,6 @@ fn 値を持つ型の_debug_は値を伏せる() {
     let eff = EffectiveEntry {
         name: "TOKEN".into(),
         value: SECRET.into(),
-        origin: EnvOrigin::JobEnv,
     };
     for shown in [
         format!("{var:?}"),

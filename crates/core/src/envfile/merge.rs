@@ -16,7 +16,7 @@
 
 use std::collections::HashMap;
 
-use super::{EffectiveEntry, EffectiveEnv, EnvContext, EnvOrigin, LoadedEnvFiles};
+use super::{EffectiveEntry, EffectiveEnv, EnvContext, LoadedEnvFiles};
 use crate::types::{EnvVar, JobDefinition, PipelineDefinition};
 
 /// 層を、後ろが勝つ順(`[pipeline].env_file` < `[pipeline.env]` < `[job].env_file` < `[job.env]`
@@ -44,10 +44,9 @@ pub fn merge_env(
 
     EffectiveEnv {
         entries: keep_last_positions(&items)
-            .map(|(name, value, origin)| EffectiveEntry {
+            .map(|(name, value)| EffectiveEntry {
                 name: (*name).to_string(),
                 value: (*value).to_string(),
-                origin: *origin,
             })
             .collect(),
     }
@@ -66,13 +65,11 @@ pub(crate) fn merge_env_names<'a>(
     let mut items = collect_layers(def, job, files);
     // 値は読まないので、自動の変数の値は空にする(名前と並びだけが要る)。
     push_builtins(&mut items, "", "", ctx.run_id.map(|_| ""), "");
-    keep_last_positions(&items)
-        .map(|(name, _, _)| *name)
-        .collect()
+    keep_last_positions(&items).map(|(name, _)| *name).collect()
 }
 
-/// 層の順に並べた 1 項目(名前, 値, 出どころ)。同じ名前を重ねて含む。
-type Item<'a> = (&'a str, &'a str, EnvOrigin);
+/// 層の順に並べた 1 項目(名前, 値)。同じ名前を重ねて含む。
+type Item<'a> = (&'a str, &'a str);
 
 /// 自動の変数より前の 4 つの層を、後ろが勝つ順に並べる(BR4.1)。
 fn collect_layers<'a>(
@@ -81,10 +78,10 @@ fn collect_layers<'a>(
     files: &'a LoadedEnvFiles,
 ) -> Vec<Item<'a>> {
     let mut items: Vec<Item<'a>> = Vec::new();
-    collect_files(&mut items, &def.env_file, files, EnvOrigin::PipelineEnvFile);
-    collect_vars(&mut items, &def.env, EnvOrigin::PipelineEnv);
-    collect_files(&mut items, &job.env_file, files, EnvOrigin::JobEnvFile);
-    collect_vars(&mut items, &job.env, EnvOrigin::JobEnv);
+    collect_files(&mut items, &def.env_file, files);
+    collect_vars(&mut items, &def.env);
+    collect_files(&mut items, &job.env_file, files);
+    collect_vars(&mut items, &job.env);
     items
 }
 
@@ -96,14 +93,14 @@ fn push_builtins<'a>(
     run_id: Option<&'a str>,
     attempt: &'a str,
 ) {
-    items.push(("CONDUCTOR_PIPELINE", pipeline_name, EnvOrigin::Builtin));
-    items.push(("CONDUCTOR_JOB_ID", job_id, EnvOrigin::Builtin));
+    items.push(("CONDUCTOR_PIPELINE", pipeline_name));
+    items.push(("CONDUCTOR_JOB_ID", job_id));
     if let Some(run_id) = run_id {
         // `run_id::DEFAULT_RUN_ID_ENV` とは意味が別(あちらは run ID を読む名前で `run_id_env` で変わる。
         // こちらはジョブに渡す名前で固定)。同じ値でも、まとめない。
-        items.push(("CONDUCTOR_RUN_ID", run_id, EnvOrigin::Builtin));
+        items.push(("CONDUCTOR_RUN_ID", run_id));
     }
-    items.push(("CONDUCTOR_ATTEMPT", attempt, EnvOrigin::Builtin));
+    items.push(("CONDUCTOR_ATTEMPT", attempt));
 }
 
 /// 名前ごとの最後の位置を表で引き、最後の位置の項目だけを、並びの順に返す(BR4.3)。
@@ -112,32 +109,27 @@ fn push_builtins<'a>(
 /// 違う名前は、別の名前。項目の数に比例する時間で済む(BR2.2)。
 fn keep_last_positions<'s, 'a>(items: &'s [Item<'a>]) -> impl Iterator<Item = &'s Item<'a>> {
     let mut last: HashMap<&'a str, usize> = HashMap::with_capacity(items.len());
-    for (i, (name, _, _)) in items.iter().enumerate() {
+    for (i, (name, _)) in items.iter().enumerate() {
         last.insert(name, i);
     }
     items
         .iter()
         .enumerate()
-        .filter(move |(i, (name, _, _))| last.get(name) == Some(i))
+        .filter(move |(i, (name, _))| last.get(name) == Some(i))
         .map(|(_, item)| item)
 }
 
-fn collect_vars<'a>(items: &mut Vec<Item<'a>>, vars: &'a [EnvVar], origin: EnvOrigin) {
+fn collect_vars<'a>(items: &mut Vec<Item<'a>>, vars: &'a [EnvVar]) {
     for v in vars {
-        items.push((&v.name, &v.value, origin));
+        items.push((&v.name, &v.value));
     }
 }
 
-fn collect_files<'a>(
-    items: &mut Vec<Item<'a>>,
-    refs: &[String],
-    files: &'a LoadedEnvFiles,
-    origin: EnvOrigin,
-) {
+fn collect_files<'a>(items: &mut Vec<Item<'a>>, refs: &[String], files: &'a LoadedEnvFiles) {
     for r in refs {
         if let Some(content) = files.get(r) {
             for e in &content.entries {
-                items.push((&e.name, &e.value, origin));
+                items.push((&e.name, &e.value));
             }
         }
     }

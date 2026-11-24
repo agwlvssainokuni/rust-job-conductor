@@ -653,8 +653,7 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 | `EnvFileContent` | 1 つの `.env` の解析結果。解決済みのパス、項目の並び(書いた順)、警告の並び |
 | `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。「定義に書かれた `env_file` の記述 → 内容」を引ける。同じ解決済みのパスは、1 つの内容を共有する |
 | `EnvContext` | `{ pipeline_name, job_id, run_id(無いことがある), attempt(1 から) }`。自動の変数の入力 |
-| `EnvOrigin` | `pipelineEnvFile`、`pipelineEnv`、`jobEnvFile`、`jobEnv`、`builtin`(名前の出どころ。名前の要約に使う) |
-| `EffectiveEnv` | 1 回のジョブの起動に足す環境。`{ entries: list<{ name, value, origin }> }`。「名前と値の並び」(起動に渡す)と、「名前と出どころの並び」(値を含まない要約)は、項目から取り出せる |
+| `EffectiveEnv` | 1 回のジョブの起動に足す環境。`{ entries: list<{ name, value }> }`。「名前と値の並び」(起動に渡す)と、「名前の並び」(値を含まない要約)は、項目から取り出せる |
 
 ### 14.2 層と優先順位
 
@@ -673,18 +672,18 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 
 ```text
 entries = []
-put(name, value, origin):        # 同じ名前があれば取り除き、末尾に足す
+put(name, value):                # 同じ名前があれば取り除き、末尾に足す
     entries から name が完全に同じ項目を取り除く
-    entries の末尾に { name, value, origin } を足す
+    entries の末尾に { name, value } を足す
 
-for ref in def.env_file:  (files から引ける内容があれば) for e in その項目: put(e.name, e.value, pipelineEnvFile)
-for v   in def.env:                                                      put(v.name, v.value, pipelineEnv)
-for ref in job.env_file:  (files から引ける内容があれば) for e in その項目: put(e.name, e.value, jobEnvFile)
-for v   in job.env:                                                      put(v.name, v.value, jobEnv)
-put("CONDUCTOR_PIPELINE", ctx.pipeline_name, builtin)
-put("CONDUCTOR_JOB_ID",   ctx.job_id,        builtin)
-if ctx.run_id がある: put("CONDUCTOR_RUN_ID", ctx.run_id, builtin)
-put("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt),  builtin)
+for ref in def.env_file:  (files から引ける内容があれば) for e in その項目: put(e.name, e.value)   # [pipeline].env_file
+for v   in def.env:                                                      put(v.name, v.value)   # [pipeline.env]
+for ref in job.env_file:  (files から引ける内容があれば) for e in その項目: put(e.name, e.value)   # [job].env_file
+for v   in job.env:                                                      put(v.name, v.value)   # [job.env]
+put("CONDUCTOR_PIPELINE", ctx.pipeline_name)                       # 自動の変数
+put("CONDUCTOR_JOB_ID",   ctx.job_id)
+if ctx.run_id がある: put("CONDUCTOR_RUN_ID", ctx.run_id)
+put("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt))
 return EffectiveEnv { entries }
 ```
 
