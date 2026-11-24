@@ -18,11 +18,10 @@
 //! ファイルにも、プロセスにも、環境変数にも触れない。実行と同じ判断(`decide_before_run`、
 //! `classify_and_decide`)を、実行の代わりに、仮定した終了コードで進める(BR1.2)。
 //!
-//! 環境変数の値は、この module のどの型にも持たない。持つのは、名前と出どころだけ(BR5.1、FR1.12)。
+//! 環境変数の値は、この module のどの型にも持たない。持つのは、名前だけ(BR5.1、FR1.12)。
 
 mod simulate;
 
-use crate::envfile::EnvOrigin;
 use crate::types::{Classification, RejectReason, RetryPolicy, RunMode};
 
 pub use simulate::{PlanInput, plan_pipeline, plan_run};
@@ -93,11 +92,10 @@ pub struct SimulatedResult {
     pub retryable: bool,
 }
 
-/// 環境変数の名前と出どころ(U1 の名前の要約の 1 項目。値は持たない。BR5.1)。
+/// 環境変数の名前(U1 の名前の要約の 1 項目。値は持たない。BR5.1)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvNameEntry {
     pub name: String,
-    pub origin: EnvOrigin,
 }
 
 /// 計画の 1 つのジョブ(契約 C7 の job_entry)。
@@ -112,7 +110,7 @@ pub struct PlanEntry {
     pub is_resume: bool,
     /// 分割後のコマンド(先頭がプログラム)。
     pub command_words: Vec<String>,
-    /// 渡される環境変数の名前と出どころ(試行 1)。
+    /// 渡される環境変数の名前(試行 1)。
     pub env_names: Vec<EnvNameEntry>,
     pub retry: Option<RetryPolicy>,
 }

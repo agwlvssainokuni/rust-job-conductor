@@ -287,7 +287,7 @@ fn simulate_job(
     )
 }
 
-/// 計画の項目を作る。コマンド、環境変数の名前と出どころ(試行 1。値は持たない)、リトライの設定を持たせる(BR1.5)。
+/// 計画の項目を作る。コマンド、環境変数の名前(試行 1。値は持たない)、リトライの設定を持たせる(BR1.5)。
 fn entry(
     input: &PlanInput<'_>,
     index: usize,
@@ -302,12 +302,11 @@ fn entry(
         run_id: input.run_id,
         attempt: 1,
     };
-    // 名前と出どころだけを作る(値を読まず、秘密の値の写しを作らない。2e)。
+    // 名前だけを作る(値を読まず、秘密の値の写しを作らない。2e)。
     let env_names = merge_env_names(def, job, input.env_files, &ctx)
         .into_iter()
-        .map(|(name, origin)| EnvNameEntry {
+        .map(|name| EnvNameEntry {
             name: name.to_string(),
-            origin,
         })
         .collect();
     PlanEntry {

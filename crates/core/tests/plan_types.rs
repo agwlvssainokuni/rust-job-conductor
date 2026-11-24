@@ -18,8 +18,8 @@ mod common;
 
 use common::{SECRET, add_env_file};
 use conductor_core::{
-    Assumption, Classification, EnvEntry, EnvFileContent, EnvOrigin, LoadedEnvFiles,
-    PlanDisposition, PlanEntry, PlanInput, SimulatedResult, parse_definition, plan_pipeline,
+    Assumption, Classification, EnvEntry, EnvFileContent, LoadedEnvFiles, PlanDisposition,
+    PlanEntry, PlanInput, SimulatedResult, parse_definition, plan_pipeline,
 };
 
 #[test]
@@ -51,7 +51,7 @@ fn 仮定の終了コードの範囲は_0_から_255() {
 }
 
 #[test]
-fn 計画は環境変数の値を持たない_名前と出どころだけ() {
+fn 計画は環境変数の値を持たない_名前だけ() {
     let def = parse_definition(
         "format_version = 1\n[pipeline]\nname = \"p\"\nenv_file = \"p.env\"\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\n[job.env]\nTOKEN = \"s3cr3t-VALUE-do-not-print\"\n",
         "t.toml",
@@ -84,19 +84,19 @@ fn 計画は環境変数の値を持たない_名前と出どころだけ() {
     let plan = plan_pipeline(&input).expect("計画");
     let debug = format!("{plan:?}");
     assert!(!debug.contains(SECRET), "{debug}");
-    let names: Vec<(&str, EnvOrigin)> = plan.entries[0]
+    let names: Vec<&str> = plan.entries[0]
         .env_names
         .iter()
-        .map(|e| (e.name.as_str(), e.origin))
+        .map(|e| e.name.as_str())
         .collect();
     assert_eq!(
         names,
         [
-            ("FROM_FILE", EnvOrigin::PipelineEnvFile),
-            ("TOKEN", EnvOrigin::JobEnv),
-            ("CONDUCTOR_PIPELINE", EnvOrigin::Builtin),
-            ("CONDUCTOR_JOB_ID", EnvOrigin::Builtin),
-            ("CONDUCTOR_ATTEMPT", EnvOrigin::Builtin),
+            "FROM_FILE",
+            "TOKEN",
+            "CONDUCTOR_PIPELINE",
+            "CONDUCTOR_JOB_ID",
+            "CONDUCTOR_ATTEMPT",
         ]
     );
 }

@@ -53,7 +53,7 @@ pub fn merge_env(
     }
 }
 
-/// [`merge_env`] と同じ並べ方と同じ「最後に残す」規則で、名前と出どころだけを返す(値を読まない。2e)。
+/// [`merge_env`] と同じ並べ方と同じ「最後に残す」規則で、名前だけを返す(値を読まない。2e)。
 ///
 /// `--dry-run` の計画の名前の要約が使う(計画は値を持たない。BR5.1)。自動の変数の名前は固定の文字列で、
 /// `CONDUCTOR_RUN_ID` は `ctx.run_id` があるときだけ。
@@ -62,12 +62,12 @@ pub(crate) fn merge_env_names<'a>(
     job: &'a JobDefinition,
     files: &'a LoadedEnvFiles,
     ctx: &EnvContext<'_>,
-) -> Vec<(&'a str, EnvOrigin)> {
+) -> Vec<&'a str> {
     let mut items = collect_layers(def, job, files);
     // 値は読まないので、自動の変数の値は空にする(名前と並びだけが要る)。
     push_builtins(&mut items, "", "", ctx.run_id.map(|_| ""), "");
     keep_last_positions(&items)
-        .map(|(name, _, origin)| (*name, *origin))
+        .map(|(name, _, _)| *name)
         .collect()
 }
 

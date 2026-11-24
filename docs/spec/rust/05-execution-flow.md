@@ -721,7 +721,7 @@ return EffectiveEnv { entries: keep_last(items) }
 
 - 値を持つ型(`EnvVar`、`EnvEntry`、`EffectiveEntry`)の `Debug` は、値を `"***"` と表示する。
 - `.env` と `env` の誤りの理由は、固定の文で、入力の値を含めない。名前は、`quote_key` を通す(`env`)。`.env` の誤りの表示は、ファイル名と行番号と種類の固定の文だけ(名前も出さない)。
-- 計画(`--dry-run`)と図(`graph`)の型は、値を持たない(計画は、名前と出どころ `EnvNameEntry` だけ。図は、環境変数を持たない)。
+- 計画(`--dry-run`)と図(`graph`)の型は、値を持たない(計画は、名前 `EnvNameEntry` だけ。図は、環境変数を持たない)。
 
 ---
 
@@ -857,8 +857,8 @@ target_position(i, on):
 | `Assumption` | `{ job_id, exit_code: i32 }`。`Assumption::new`。`exit_code_in_range(code)` = 0〜255(crate の中の定数 `ASSUME_EXIT_CODE_MIN = 0`、`ASSUME_EXIT_CODE_MAX = 255`) |
 | `PlanDisposition` | `WillRun(SimulatedResult)`(実行する。模擬での結果を持つ)、`AlreadyExecuted`(実行済み)、`SkippedByTransition`(遷移でスキップ)、`SkippedAfterEnd`(`@end` のあとでスキップ)、`NotReached`(模擬でエラーの停止のあとのため、実行されない)。読み方の補助 `result(self) -> Option<SimulatedResult>`(`WillRun` のときだけ `Some`) |
 | `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`WillRun` が持つ |
-| `EnvNameEntry` | `{ name, origin: EnvOrigin }`。値を持たない |
-| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前と出どころ), retry: Option<RetryPolicy> }`(模擬の結果は `disposition` の `WillRun` が持つ)。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
+| `EnvNameEntry` | `{ name }`。値を持たない |
+| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: Vec<String>(分割後。先頭がプログラム), env_names: Vec<EnvNameEntry>(試行 1 で渡される名前。並びの順), retry: Option<RetryPolicy> }`(模擬の結果は `disposition` の `WillRun` が持つ)。`WillRun` でないジョブにも、コマンドなどを持つ(表示は `WillRun` だけ) |
 | `PlanMode` | `Pipeline`、`Individual`。`RunMode` の別名(`ExecutionPlan.mode` の型は `RunMode`) |
 | `ResumeInfo` | 列挙型。`FromStart`(ステートなし、または完了したステート)、`AfterStop(String)`(前回の停止で再開位置あり。再開位置のジョブ ID)、`Individual(String)`(`run` の対象。対象のジョブ ID)。あり得る 3 つの場合だけを表す |
 | `PlanEnd` | `Completed`、`EndReached`(`@end` に到達)、`StoppedAtError(job_id)` |
@@ -896,7 +896,7 @@ unused_assumptions = 仮定のうち、WillRun の項目にならなかったジ
 - `skip_disposition(reason)`: `AlreadyExecuted` → `AlreadyExecuted`、`AfterEnd` → `SkippedAfterEnd`、`SkipTarget`・`OutOfOrder` → `SkippedByTransition`。
 - `simulate_job`: 合成した `JobExecution::exited(code)`(`result` は `Exited { exit_code: Some(code), terminated_by_signal: None, interrupted_by: None }`)を、`classify_and_decide(job, execution, states, def, mode)` に渡して、分類と次の動き(`NextStep`)を得る。結果の語(`SimulatedResult.classification`)は、`classify_and_decide` の分類(`classify` の手順 5。成功コード → 成功・0、警告コード → 警告・0、成功コードに無い 0 → エラー・1・`conductor_error`、そのほか → エラー・その終了コード)で決める(合成した実行は終了コードを持つので、分類は必ずある)。`retryable` = `job.retry` があり、`is_retry_target(policy, execution)`(§7.2)が真。戻り値は `(SimulatedResult, JobExecution, JobOutcome, NextStep)`(記録に使う実行と分類の結果も返す)。
 - 模擬のステート `S` の更新は、本番と同じ手順の、その場で書き換える版 `apply_skip_in`・`apply_outcome_in` で行う(規則は §3.3〜§3.5。出発点の 1 回だけ複製する。v0.9.6 までは、ジョブごとに `apply_skip`・`apply_outcome` でステートを複製した)。`S` は関数の中だけで持ち、返さず、保存しない。
-- 項目 `PlanEntry`: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env_names(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 })`(名前と出どころ。値は持たない。`merge_env` と同じ並べ方と同じ「最後に残す」規則を共有し、値を読まない crate の中の関数。v0.9.6 までは `merge_env(...).names()` で、値まで複製していた)。
+- 項目 `PlanEntry`: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env_names(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 })`(名前だけ。値は持たない。`merge_env` と同じ並べ方と同じ「最後に残す」規則を共有し、値を読まない crate の中の関数。v0.9.6 までは `merge_env(...).names()` で、値まで複製していた)。
 - 状態の探索は、ジョブの数に比例する時間で済む(`decide_before_run` は、記録が同じ位置にあればそれを使い、なければ `record_of` と同じに引く。1,000 ジョブの計画の性能のため。挙動は変わらない)。
 
 ### 16.3 `plan_run(job_id, input)`

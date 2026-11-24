@@ -730,7 +730,7 @@ return EffectiveEnv { entries }
 
 - 値を持つデータ(`EnvEntry`、`EffectiveEnv` の項目)のデバッグの出力は、値を伏せ字にする(それがある言語では)。
 - `.env` と `env` の誤りの理由は、固定の文で、入力の値を含めない。名前は、`env` の誤りでは整形して(9.2)示し、`.env` の誤りの表示は、ファイル名と行番号と種類の固定の文だけ(名前も出さない)。
-- 計画(`--dry-run`)と図(`graph`)のデータは、値を持たない(計画は、名前と出どころだけ。図は、環境変数を持たない)。
+- 計画(`--dry-run`)と図(`graph`)のデータは、値を持たない(計画は、名前だけ。図は、環境変数を持たない)。
 
 ---
 
@@ -864,7 +864,7 @@ target_position(i, on):
 | `Assumption` | `{ job_id, exit_code: 整数 }`。終了コードの範囲は 0〜255 |
 | `PlanDisposition` | `willRun`(実行する。模擬での結果 `SimulatedResult` を持つ)、`alreadyExecuted`(実行済み)、`skippedByTransition`(遷移でスキップ)、`skippedAfterEnd`(`@end` のあとでスキップ)、`notReached`(模擬でエラーの停止のあとのため、実行されない) |
 | `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`willRun` が持つ |
-| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<(name, origin)>(試行 1 で渡される名前と出どころ), retry: RetryPolicy? }`(模擬の結果は `disposition` の `willRun` が持つ)。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
+| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<{ name }>(試行 1 で渡される名前。並びの順), retry: RetryPolicy? }`(模擬の結果は `disposition` の `willRun` が持つ)。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
 | 計画の方式 | `pipeline`、`individual` |
 | `ResumeInfo` | 3 つの場合のどれか: `fromStart`(ステートなし、または完了したステート)、`afterStop`(前回の停止で再開位置あり。再開位置のジョブ ID を持つ)、`individual`(`run` の対象。対象のジョブ ID を持つ) |
 | `PlanEnd` | `completed`、`endReached`(`@end` に到達)、`stoppedAtError(job_id)` |
@@ -901,7 +901,7 @@ unused_assumptions = 仮定のうち、willRun の項目にならなかったジ
 - `skip_disposition(reason)`: `AlreadyExecuted` → `alreadyExecuted`、`AfterEnd` → `skippedAfterEnd`、`SkipTarget`・`OutOfOrder` → `skippedByTransition`。
 - `simulate_job`: 合成した実行結果(`started = true`、`exit_code = code`、ほかは false/無し)を、分類と次の動き(3 章の `classify_and_decide`)に渡して、分類と次の動きを得る。分類は必ずある(無ければエラー扱い)。`retryable` = `job.retry` があり、その `exit_codes` に `code` を含む。
 - `apply_result`(3.3 の `apply_outcome` と同じ結果にする): ジョブの状態を分類のとおり(success / warning / error)にし、`exit_code = code`、`skip_reason` を消す。次の動きの `skipped_job_ids`(自分自身を除く)を `skipped` にし、`exit_code` を消し、`skip_reason` = `skip_reason_kind`(無ければ `byTransition`)にする。再開位置と `end_reached` は、呼び出し側が次の動きから更新する。
-- 項目: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 })` の名前と出どころ(値は持たない)。
+- 項目: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 })` の名前(値は持たない)。
 - 状態の探索は、ジョブの数に比例する時間で済むこと(起動前の判断は、記録が同じ位置にあればそれを使い、なければ、ジョブIDで探す。1,000 ジョブの計画の性能のため。挙動は変わらない)。
 
 ### 16.3 `plan_run(job_id, input)`
