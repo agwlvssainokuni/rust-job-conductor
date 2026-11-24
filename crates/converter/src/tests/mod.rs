@@ -14,11 +14,11 @@
 
 //! 途中の表現(`Value` の木)を比べる単体テスト(`lib.rs` の最後の宣言)。
 //!
-//! クレートの中の非公開の `read_value` と `crate::types::Value` を直接使う。下位のモジュールの
-//! ファイル名は、元の統合テスト(`tests/` の下)と同じにしている。ここには、下位のモジュールが
-//! 共通に使う補助(Value の作り方、時間の上限つきの実行)を置く。
+//! クレートの中の非公開の `read_value` と `crate::types::Value` を直接使う。下位のモジュールは、
+//! 往復と受け入れ基準の木の比較(`convert_roundtrip`)、ランダムな入力と構造(`nfr_security`)、
+//! 文書の確認と展開(`read_resolve`)。ここには、下位のモジュールが共通に使う補助(Value の
+//! 作り方、時間の上限つきの実行)を置く。
 
-mod convert_ac;
 mod convert_roundtrip;
 mod nfr_security;
 mod read_resolve;

@@ -354,7 +354,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `resolve.rs` | 文書の確認(RootCheck)、アンカー・マージキーの展開、展開の上限、表せない値の検出 |
 | `toml_write.rs` | `Value` → TOML(辞書順) |
 | `yaml_write.rs` | `Value` → ブロック形式の YAML(辞書順) |
-| `tests/`(`mod.rs` と、元の統合テストと同じ名前の 4 つ) | 途中の表現(`Value` の木)を比べる単体テスト(`lib.rs` の最後の `#[cfg(test)] mod tests;`) |
+| `tests/`(`mod.rs`、`convert_roundtrip.rs`、`nfr_security.rs`、`read_resolve.rs`) | 途中の表現(`Value` の木)を比べる単体テスト(`lib.rs` の最後の `#[cfg(test)] mod tests;`) |
 
 ### 5.4 `crates/cli/src`
 

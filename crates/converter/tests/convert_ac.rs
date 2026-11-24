@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 受け入れ基準(AC7.1.1〜AC7.1.3)と、`convert`(ファイルを読む入口)、変換の出力が毎回同じで
-//! あること。変換の結果を読んだ木を入力の木と比べる 2 件(AC7.1.1、AC7.1.2)は、単体テストの
-//! `src/tests/convert_ac.rs` にある。往復(BR1.11。変換した結果を読み戻した木が、入力の木と
-//! 等しい)の木を比べるテストは、単体テストの `src/tests/convert_roundtrip.rs` にある。
+//! 受け入れ基準と、`convert`(ファイルを読む入口)、変換の出力が毎回同じであること。変換の結果を
+//! 読んだ木を入力の木と比べる 2 件と、往復の木を比べるテストは、単体テストの
+//! `src/tests/convert_roundtrip.rs` にある。
 
 use std::path::{Path, PathBuf};
 
