@@ -1,0 +1,29 @@
+# A starter conductor definition (created by conductor init).
+# Check: conductor validate / plan: conductor pipeline <name> --dry-run / diagram: conductor graph
+format_version = 1
+
+[pipeline]
+name = "my-pipeline"
+description = "Starter pipeline"
+
+# Environment variables added to every job. Values are passed as written (no expansion).
+# To read a .env file, add env_file = ".env" to [pipeline].
+[pipeline.env]
+GREETING = "hello"
+
+# hello: the first job.
+# On Windows echo is not an executable; write command = ["cmd", "/c", "echo", "hello"] instead.
+[[job]]
+id = "hello"
+command = ["echo", "hello"]
+
+# flaky: exit code 75 means "a temporary failure". Wait 5 seconds and run again, up to 3 times.
+# To lengthen the wait, write multiplier and max_interval together (for example multiplier = 2, max_interval = "1m").
+[[job]]
+id = "flaky"
+command = ["echo", "flaky"]
+
+[job.retry]
+exit_codes = [75]
+max = 3
+interval = "5s"

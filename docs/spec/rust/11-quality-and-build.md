@@ -271,6 +271,7 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | `WINDOWS_CTRL_C_CHECKLIST.md` | Windows の Ctrl+C の手動確認の手順と記録欄(自動テストにできないため) |
 | `common/mod.rs` | 偽の `Runtime`(`MemRuntime`:メモリ上のステート)・`Sink`・`Env`・`Signals`、定義の組み立て、`run_mem`、`run_with_fakes`(偽の差し替え口で `Deps` を組んで `run_cli_with` を呼ぶ)、`FakeEnv::for_language`(引数はテストの言語 `Language`。ロケールを選ぶためだけの写しの enum)、言語と色の判定の記録 `FakeEnv::locale_read`・`color_read`、`state_error`、`job_id_of`、ステートの中の状態 `status_in`・`status_of`。`FakeEnv`・`FakeSink`・`state_error` は `common/fakes.rs` から再公開する |
 | `common/fakes.rs` | 偽の `Env`・`Sink` と `state_error`。単体テストも `#[path]` で同じファイルを読む。`Env`・`Sink`・`Language` は読む側の親のモジュールが用意する |
+| `fixtures/init_{ja,en}.toml` | `init` のひな形の原本。`flow_init.rs` と単体テストの `init_template.rs` が `include_str!` で読む |
 | `bin_support/mod.rs` | バイナリを起動するテストの補助(`conductor_path`、`helper_path`、`helper_command`、`job_block`、`definition`、`conductor(args)`、`run_limited`、`Project`) |
 | `signal_support/mod.rs` | 実際のシグナルを送るテストの補助(UNIX。`send(signal, pid)`、`send_self(signal)`) |
 
@@ -290,7 +291,7 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章)。text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
-| `init_template.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る) |
+| `init_template.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)。原本は統合テストの `tests/fixtures/init_{ja,en}.toml` を `include_str!` で読む |
 
 このディレクトリは、`tests/nfr_source.rs` の OS 分岐と `panic!(` の検査の外(3.3、3.5 節)。
 
