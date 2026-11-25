@@ -70,6 +70,8 @@
 
 - NEVER 今回の作業で新しい外部ライブラリ(依存)を追加しない。`.env` の読み込みとグラフの描画は自前で書く(インタビュー Q4)。 (affirmed 2026-11-20)
 
+- NEVER テストの都合で本番のコードを曲げない(テスト専用の引数・`pub`・関数を本番に残さない)。 (affirmed 2026-11-25)
+
 ## Mandated
 
 <!-- Populated by practices-discovery affirmation gate. -->
