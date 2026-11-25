@@ -1,0 +1,14 @@
+{
+  "stage": "functional-design",
+  "unit": "u7-watch-follow",
+  "upstream_ids": ["FR7.1","FR7.2","FR7.3","FR7.4","FR7.5","FR8.1","FR8.2"],
+  "coverage": [
+    { "id": "FR7.1", "status": "OK", "target": "rules.md の BR1.1、BR2.1" },
+    { "id": "FR7.2", "status": "OK", "target": "rules.md の BR1.2、BR2.1" },
+    { "id": "FR7.3", "status": "OK", "target": "rules.md の BR3.1、BR3.2、BR3.3、BR3.4" },
+    { "id": "FR7.4", "status": "OK", "target": "rules.md の BR2.2" },
+    { "id": "FR7.5", "status": "OK", "target": "rules.md の BR4.1、BR4.2" },
+    { "id": "FR8.1", "status": "OK", "target": "rules.md の BR5.1" },
+    { "id": "FR8.2", "status": "OK", "target": "rules.md の BR5.2" }
+  ]
+}

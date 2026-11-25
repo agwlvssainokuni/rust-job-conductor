@@ -128,6 +128,12 @@
 
 
 
+- **Active Unit**: u7-watch-follow
+
+- **Unit Stage**: functional-design
+
+- **Unit State**: in-progress
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -188,7 +194,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-25T23:04:38Z
+- **Last Updated**: 2026-11-25T23:06:18Z
 
 - **Construction Autonomy Mode**: autonomous
 
