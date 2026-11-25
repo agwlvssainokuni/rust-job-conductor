@@ -18,7 +18,7 @@
 mod common;
 
 use common::*;
-use conductor_core::{JobStatus, SkipReason};
+use conductor_core::{JobStatus, SkipReason, Timestamp};
 use conductor_runtime::{Durability, StateErrorKind};
 
 /// 1 ジョブだけの定義(最初のジョブが、そのまま最後のジョブ)。
@@ -74,7 +74,8 @@ fn 順序は_判断_初期ステート_ジョブ_記録の書き込み() {
 }
 
 #[test]
-fn 空でないステートでは_初期ステートを書かない() {
+fn u6_br1_1_空でないステートでも試行の始まりを_fast_で書いてから起動する() {
+    // 初期ステートの書き込みは無くなり、試行の始まりの書き込み(Fast)が 1 回ある(NFR1.3)。
     let mut h = Harness::new(THREE_JOBS);
     h.run(&["run", "a"]);
     h.runtime.log.borrow_mut().clear();
@@ -82,8 +83,7 @@ fn 空でないステートでは_初期ステートを書かない() {
     assert_eq!(out.code, 0);
     assert_eq!(
         h.runtime.log(),
-        ["load", "read", "run:b", "write:durable"],
-        "Fast の書き込みがない"
+        ["load", "read", "write:fast", "run:b", "write:durable"],
     );
 }
 
@@ -520,7 +520,8 @@ fn br3_1_log_dir_があれば_定義のディレクトリで解決した指定�
     let out = h.run(&["run", "a"]);
     assert_eq!(out.code, 0);
     assert_eq!(out.err, "");
-    assert_eq!(h.runtime.now_calls.get(), 1, "試行の前に 1 回だけ");
+    // 試行の前に 1 回(ログの名前と試行の始まり)、試行の後に 1 回(試行の終わり。U6)。
+    assert_eq!(h.runtime.now_calls.get(), 2, "試行の前と後に 1 回ずつ");
     assert_eq!(
         *h.runtime.run_logs.borrow(),
         [Some(conductor_runtime::LogTarget {
@@ -549,7 +550,8 @@ fn br1_2_log_dir_が無ければ指定は無く_時刻だけは試行の前に�
     let out = h.run(&["run", "a"]);
     assert_eq!(out.code, 0);
     assert_eq!(*h.runtime.run_logs.borrow(), [None]);
-    assert_eq!(h.runtime.now_calls.get(), 1);
+    // 試行の始まりと終わり(U6)。
+    assert_eq!(h.runtime.now_calls.get(), 2);
 }
 
 #[test]
@@ -881,4 +883,144 @@ fn 分割済みのコマンドを分け直さずに起動へ渡す() {
         line("prog", &["'x", "y'", "z"]),
         "空白で分け直さない"
     );
+}
+
+// ---- 試行の時刻(v0.10.0 の U6。BR1.1〜BR1.4、BR3.1) ----
+
+/// ジョブ `id` の試行の (始まり, 終わり) の並び。
+fn attempts_of(h: &Harness, id: &str) -> Vec<(Timestamp, Option<Timestamp>)> {
+    h.state_raw()
+        .expect("ステートがある")
+        .job_states
+        .iter()
+        .find(|j| j.job_id == id)
+        .expect("ジョブがある")
+        .attempts
+        .iter()
+        .map(|a| (a.started_at, a.ended_at))
+        .collect()
+}
+
+#[test]
+fn u6_br1_1_試行の始まりと終わりは偽の時計の値() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(attempts_of(&h, "a"), [(fake_now(0), Some(fake_now(1)))]);
+    assert!(attempts_of(&h, "b").is_empty(), "動いていないジョブは無い");
+}
+
+#[test]
+fn u6_br1_1_試行の始まりは起動の前に_fast_で書かれる() {
+    // 開始の書き込みの時点のステートには、終わりの無い試行がある。
+    let mut h = Harness::new(THREE_JOBS);
+    let def = h.def_path();
+    *h.runtime.during_job.borrow_mut() = Some(Box::new(move |_, _| {
+        let state = conductor_runtime::read_state(&def, None)
+            .expect("読める")
+            .expect("ある");
+        assert_eq!(state.job_states[0].attempts.len(), 1);
+        assert_eq!(state.job_states[0].attempts[0].ended_at, None);
+        assert_eq!(state.job_states[0].status, JobStatus::Pending);
+    }));
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(h.runtime.ran(), ["a"]);
+}
+
+#[test]
+fn u6_br1_1_始まりの書き込みに失敗したら_65_で起動しない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.run(&["run", "a"]);
+    h.runtime
+        .write_failure
+        .set(WriteFailure::OnDurability(Durability::Fast));
+    let out = h.run(&["run", "b"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("the job was not started"), "{}", out.err);
+    assert_eq!(h.runtime.ran(), ["a"]);
+    assert!(attempts_of(&h, "b").is_empty(), "ステートは変わらない");
+}
+
+#[test]
+fn u6_br1_2_起動の失敗も試行を足して閉じ_エラーになる() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.runtime.script("a", &[Exec::StartFailure]);
+    assert_eq!(h.run(&["run", "a"]).code, 127);
+    assert_eq!(status_of(&h, "a"), JobStatus::Error);
+    assert_eq!(attempts_of(&h, "a"), [(fake_now(0), Some(fake_now(1)))]);
+}
+
+#[test]
+fn u6_br1_2_ログを作れずに起動しなかった試行も足して閉じる() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    h.runtime.script("a", &[Exec::StartFailure]);
+    h.runtime
+        .log_outcomes
+        .borrow_mut()
+        .push_back(conductor_runtime::LogOutcome {
+            log_not_created: Some(h.dir.path().join("logs").join("a.x.1.log")),
+            ..Default::default()
+        });
+    assert_eq!(h.run(&["run", "a"]).code, 127);
+    assert_eq!(status_of(&h, "a"), JobStatus::Error);
+    assert_eq!(attempts_of(&h, "a"), [(fake_now(0), Some(fake_now(1)))]);
+}
+
+#[test]
+fn u6_br1_3_起動の前に合図が立っていた試行は取り除く() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.signals = FakeSignals::new(SignalMode::RaiseOnStart(15));
+    assert_eq!(h.run(&["run", "a"]).code, 143);
+    assert_eq!(status_of(&h, "a"), JobStatus::Pending);
+    assert!(attempts_of(&h, "a").is_empty());
+    assert_eq!(
+        h.runtime.now_calls.get(),
+        1,
+        "起動しなかったので終わりの時刻は取らない"
+    );
+}
+
+#[test]
+fn u6_br1_4_再実行しても前の試行を残して後ろに足す() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.runtime.script("a", &[Exec::Exit(2), Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 2);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(
+        attempts_of(&h, "a"),
+        [
+            (fake_now(0), Some(fake_now(1))),
+            (fake_now(2), Some(fake_now(3)))
+        ]
+    );
+}
+
+#[test]
+fn u6_br1_4_強制終了で閉じ忘れた試行は自身の始まりで閉じてから足す() {
+    let mut h = Harness::new(THREE_JOBS);
+    // 試行の始まりを書いた後、ジョブの途中で conductor が止まったステートを作る。
+    let definition = conductor_core::parse_definition(THREE_JOBS, "t.toml", None).expect("定義");
+    let state = conductor_core::initial_state(&definition, &h.def_path(), None);
+    let early = Timestamp::from_unix_seconds(FAKE_NOW_BASE - 100).expect("範囲");
+    let state = conductor_core::start_attempt(&state, "a", early);
+    conductor_runtime::write_state(&h.def_path(), None, &state, Durability::Fast).expect("書ける");
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(
+        attempts_of(&h, "a"),
+        [(early, Some(early)), (fake_now(0), Some(fake_now(1)))]
+    );
+}
+
+#[test]
+fn u6_br3_1_古い形のステートは_65_で_reset_を案内し起動しない() {
+    let mut h = Harness::new(THREE_JOBS);
+    std::fs::write(h.state_path(), OLD_STATE).expect("書ける");
+    let out = h.run(&["run", "b"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("state file is corrupt"), "{}", out.err);
+    assert!(out.err.contains("conductor reset"), "{}", out.err);
+    assert_eq!(h.runtime.run_calls.get(), 0);
+    // reset の後は、先頭から動く。
+    assert_eq!(h.run(&["reset"]).code, 0);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(h.runtime.ran(), ["a"]);
 }

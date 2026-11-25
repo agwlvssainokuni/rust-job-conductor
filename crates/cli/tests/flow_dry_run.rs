@@ -121,6 +121,38 @@ fn ステートの食い違いと読めないステートは_65() {
 }
 
 #[test]
+fn u6_br3_1_古い形のステートは_65_で_reset_を案内し計画を出さない() {
+    let mut h = Harness::new(THREE_JOBS);
+    std::fs::write(h.state_path(), OLD_STATE).expect("書ける");
+    for args in [
+        &["pipeline", "p", "--dry-run"][..],
+        &["run", "b", "--dry-run"][..],
+    ] {
+        let out = h.run(args);
+        assert_eq!(out.code, 65, "{}", out.err);
+        assert_eq!(out.out, "");
+        assert!(out.err.contains("state file is corrupt"), "{}", out.err);
+        assert!(out.err.contains("conductor reset"), "{}", out.err);
+    }
+    assert_eq!(h.runtime.write_calls.get(), 0);
+    assert_eq!(h.runtime.run_calls.get(), 0);
+}
+
+#[test]
+fn u6_dry_run_は試行を記録せず_時刻も取らない() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    let before = std::fs::read_to_string(h.state_path()).expect("読める");
+    let calls = h.runtime.now_calls.get();
+    assert_eq!(h.run(&["pipeline", "p", "--dry-run"]).code, 0);
+    assert_eq!(h.runtime.now_calls.get(), calls);
+    assert_eq!(
+        std::fs::read_to_string(h.state_path()).expect("読める"),
+        before
+    );
+}
+
+#[test]
 fn 順序外の_run_は_66_で_本番と同じ表示() {
     let mut h = Harness::new(THREE_JOBS);
     let dry = h.run(&["run", "b", "--dry-run"]);

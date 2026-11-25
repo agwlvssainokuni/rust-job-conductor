@@ -26,7 +26,7 @@ use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
 use crate::types::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::ConversionError;
 use conductor_core::{
-    Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
+    Attempt, Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
     EnvWarning, EnvWarningKind, JobState, JobStatus, MismatchKind, PipelineState, RejectReason,
     SkipCause, SkipReason, Timestamp, TransitionOn, TransitionTarget,
 };
@@ -52,7 +52,11 @@ fn pipeline_state() -> PipelineState {
         pipeline_name: "nightly".into(),
         definition_path: "c.toml".into(),
         job_states: vec![
-            job("extract", JobStatus::Warning, Some(1), None),
+            JobState {
+                // 2026-11-25T09:12:48Z から 2026-11-25T09:13:05Z までの 1 回の試行(17 秒)。
+                attempts: vec![attempt(1_795_597_968, Some(1_795_597_985))],
+                ..job("extract", JobStatus::Warning, Some(1), None)
+            },
             job(
                 "transform",
                 JobStatus::Skipped,
@@ -66,6 +70,15 @@ fn pipeline_state() -> PipelineState {
         end_reached: false,
         completed: false,
         run_id: None,
+    }
+}
+
+/// `start` 秒に始まり、`end` 秒に終わった(`None` は終わりの無い)試行。
+fn attempt(start: u64, end: Option<u64>) -> Attempt {
+    let ts = |secs| Timestamp::from_unix_seconds(secs).expect("範囲の中");
+    Attempt {
+        started_at: ts(start),
+        ended_at: end.map(ts),
     }
 }
 
@@ -735,20 +748,112 @@ fn 色は端末で_no_color_が無いか空で_unix_のときだけ() {
 }
 
 #[test]
-fn watch_の表は_3_列で_状態は文字で書く() {
+fn watch_の表は_4_列で_状態は文字で書く() {
     let env = env_for(Language::En);
     let reporter = Reporter::new(&env, false);
     let text = reporter.render(&watch_table(&pipeline_state()));
     let expected = "\
 Pipeline: nightly
-JOB        STATUS   NOTE
-extract    warning  exit code 1
-transform  skipped  skipped by a transition
-load       skipped  skipped after @end
+JOB        STATUS   DURATION  NOTE
+extract    warning  17s       exit code 1
+transform  skipped            skipped by a transition
+load       skipped            skipped after @end
 x          pending
 ";
     assert_eq!(text, expected);
     assert!(!text.contains('\x1b'));
+}
+
+/// ジョブ 1 つ(状態 `status`、試行 `attempts`)のステートの `watch` の表の、そのジョブの所要時間の欄。
+fn duration_of(status: JobStatus, attempts: Vec<Attempt>, now: u64) -> String {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let mut state = pipeline_state();
+    state.job_states.truncate(1);
+    state.job_states[0].status = status;
+    state.job_states[0].attempts = attempts;
+    let text = reporter.render(&DisplayEvent::WatchTable {
+        state: &state,
+        now: Timestamp::from_unix_seconds(now).expect("範囲の中"),
+    });
+    let row = text.lines().nth(2).expect("ジョブの行");
+    // 列: ジョブ、状態、所要時間、補足(2 つの空白で区切る)。
+    row.split("  ")
+        .map(str::trim)
+        .filter(|cell| !cell.is_empty())
+        .nth(2)
+        .filter(|cell| !cell.starts_with("exit code"))
+        .unwrap_or("")
+        .to_string()
+}
+
+#[test]
+fn u6_br4_1_watch_の所要時間は表のとおり() {
+    let t0 = 1_795_597_968;
+    // 終わったジョブは、最初の始まりから最後の終わりまで(リトライの待ちを含む)。
+    assert_eq!(
+        duration_of(
+            JobStatus::Success,
+            vec![attempt(t0, Some(t0 + 17))],
+            t0 + 999
+        ),
+        "17s"
+    );
+    assert_eq!(
+        duration_of(
+            JobStatus::Error,
+            vec![attempt(t0, Some(t0 + 10)), attempt(t0 + 40, Some(t0 + 65))],
+            t0 + 999
+        ),
+        "1m05s"
+    );
+    assert_eq!(
+        duration_of(JobStatus::Warning, vec![attempt(t0, Some(t0 + 7384))], t0),
+        "2h03m04s"
+    );
+    // 動いている最中の pending は、今までの経過時間。
+    assert_eq!(
+        duration_of(JobStatus::Pending, vec![attempt(t0, None)], t0 + 60),
+        "1m00s"
+    );
+    assert_eq!(
+        duration_of(JobStatus::Pending, vec![attempt(t0, None)], t0 + 3600),
+        "1h00m00s"
+    );
+    // 終わりが始まりより前(時計の戻り)は 0 秒。
+    assert_eq!(
+        duration_of(JobStatus::Pending, vec![attempt(t0, None)], t0 - 5),
+        "0s"
+    );
+    assert_eq!(
+        duration_of(JobStatus::Success, vec![attempt(t0, Some(t0 + 59))], t0),
+        "59s"
+    );
+    // 空にするもの: 試行が無い、最後の試行が終わった pending、結果のあるジョブで終わりの無い試行。
+    assert_eq!(duration_of(JobStatus::Pending, vec![], t0), "");
+    assert_eq!(
+        duration_of(JobStatus::Pending, vec![attempt(t0, Some(t0 + 3))], t0 + 9),
+        ""
+    );
+    assert_eq!(
+        duration_of(JobStatus::Success, vec![attempt(t0, None)], t0 + 9),
+        ""
+    );
+}
+
+#[test]
+fn u6_br4_1_watch_の所要時間の見出しは日本語では所要時間() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    let text = reporter.render(&watch_table(&pipeline_state()));
+    let header = text.lines().nth(1).expect("見出しの行");
+    assert!(header.contains("所要時間"), "{header}");
+    let order: Vec<usize> = ["ジョブ", "状態", "所要時間", "補足"]
+        .iter()
+        .map(|h| header.find(h).expect("見出しがある"))
+        .collect();
+    assert!(order.windows(2).all(|w| w[0] < w[1]), "列の順: {header}");
+    assert!(text.contains("17s"), "{text}");
 }
 
 #[test]
@@ -762,7 +867,10 @@ fn watch_の表は端末のとき_状態に色をつけても_文字は残る() 
         assert!(text.contains("\x1b[36mskipped\x1b[0m"));
         assert!(!text.contains("\x1b[0mpending"), "pending は色なし");
         let plain: String = strip_ansi(&text);
-        assert!(plain.contains("extract    warning  exit code 1"), "{plain}");
+        assert!(
+            plain.contains("extract    warning  17s       exit code 1"),
+            "{plain}"
+        );
     } else {
         assert!(!text.contains('\x1b'));
     }

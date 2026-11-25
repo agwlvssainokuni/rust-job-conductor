@@ -145,6 +145,33 @@ fn state_のステートが定義と食い違えば_65_で_完了したステー
 }
 
 #[test]
+fn u6_br3_1_state_で古い形のステートは_65_で_reset_を案内し図を出さない() {
+    let mut h = Harness::new(G2);
+    // v0.9.9 までの形: 動いたジョブ(a が成功)に試行の記録が無い。
+    let mut state = conductor_core::initial_state(
+        &conductor_core::parse_definition(G2, "t.toml", None).expect("定義"),
+        &h.def_path(),
+        None,
+    );
+    state.job_states[0].status = conductor_core::JobStatus::Success;
+    state.job_states[0].exit_code = Some(0);
+    conductor_runtime::write_state(
+        &h.def_path(),
+        None,
+        &state,
+        conductor_runtime::Durability::Durable,
+    )
+    .expect("書ける");
+    let out = h.run(&["graph", "--state"]);
+    assert_eq!(out.code, 65, "{}", out.err);
+    assert_eq!(out.out, "");
+    assert!(out.err.contains("state file is corrupt"), "{}", out.err);
+    assert!(out.err.contains("conductor reset"), "{}", out.err);
+    // `--state` なしなら、ステートは見ないので、図が出る。
+    assert_eq!(h.run(&["graph"]).code, 0);
+}
+
+#[test]
 fn 使い方の誤りは_68_で_ジョブを起動しない() {
     let mut h = Harness::new(G2);
     for args in [

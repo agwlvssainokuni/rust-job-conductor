@@ -126,7 +126,9 @@ fn run_使い切ると_最後の終了コードで終わり_再開位置はそ�
 }
 
 #[test]
-fn run_ステートは_最終の結果で_1_回だけ書かれ_途中では書かれない() {
+fn run_結果は最後に_1_回だけ_durable_で書かれ_試行の境目は_fast_で書く() {
+    // 試行ごとに始まり(Fast)、リトライの前に閉じた試行(Fast)を書く(U6 の BR1.1、BR1.2)。
+    // 結果の記録(Durable)は最後の 1 回だけ。リトライ 2 回で Fast 5 回、Durable 1 回。
     let mut h = Harness::new(RETRY_A);
     h.runtime
         .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
@@ -136,9 +138,13 @@ fn run_ステートは_最終の結果で_1_回だけ書かれ_途中では書�
         [
             "write:fast",
             "run:a",
+            "write:fast",
             "wait:30",
+            "write:fast",
             "run:a",
+            "write:fast",
             "wait:30",
+            "write:fast",
             "run:a",
             "write:durable"
         ]
@@ -297,7 +303,8 @@ fn pipeline_使い切ると_そこで停止し_再開位置はそのジョブ() 
 }
 
 #[test]
-fn pipeline_ステートは_ジョブごとの最終の結果で書かれ_途中では書かれない() {
+fn pipeline_結果はジョブごとに最後に_durable_で書かれ_試行の境目は_fast_で書く() {
+    // リトライ 1 回のジョブは Fast 3 回、Durable 1 回(U6 の NFR1.3)。
     let mut h = Harness::new(RETRY_A);
     h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
     h.run(&["pipeline", "p"]);
@@ -306,11 +313,15 @@ fn pipeline_ステートは_ジョブごとの最終の結果で書かれ_途中
         [
             "write:fast",
             "run:a",
+            "write:fast",
             "wait:30",
+            "write:fast",
             "run:a",
             "write:durable",
+            "write:fast",
             "run:b",
             "write:durable",
+            "write:fast",
             "run:c",
             "write:durable"
         ]
@@ -461,13 +472,14 @@ fn br2_3_リトライの試行ごとに時刻を取り_試行の番号が増え�
     h.runtime
         .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
     assert_eq!(h.run(&["run", "a"]).code, 0);
-    assert_eq!(h.runtime.now_calls.get(), 3);
+    // 試行ごとに始まりと終わりの 2 回(U6)。
+    assert_eq!(h.runtime.now_calls.get(), 6);
     assert_eq!(
         log_attempts(&h.runtime),
         [
             ("a".to_string(), 1, fake_now(0)),
-            ("a".to_string(), 2, fake_now(1)),
-            ("a".to_string(), 3, fake_now(2)),
+            ("a".to_string(), 2, fake_now(2)),
+            ("a".to_string(), 3, fake_now(4)),
         ]
     );
     // 再開すると、試行の番号は 1 に戻る(CONDUCTOR_ATTEMPT と同じ)。
@@ -557,4 +569,103 @@ fn br5_1_リトライの後の試行でログを作れなければ_その試行�
             path.display()
         )
     );
+}
+
+// ---- 試行の時刻(v0.10.0 の U6。BR1.1〜BR1.3) ----
+
+/// ジョブ `id` の試行の (始まり, 終わり) の並び。
+fn attempts(
+    h: &Harness,
+    id: &str,
+) -> Vec<(conductor_core::Timestamp, Option<conductor_core::Timestamp>)> {
+    h.state_raw()
+        .expect("ステートがある")
+        .job_states
+        .iter()
+        .find(|j| j.job_id == id)
+        .expect("ジョブがある")
+        .attempts
+        .iter()
+        .map(|a| (a.started_at, a.ended_at))
+        .collect()
+}
+
+#[test]
+fn u6_br1_2_リトライの試行ごとに始まりと終わりを記録する() {
+    let mut h = Harness::new(RETRY_A);
+    h.runtime
+        .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(
+        attempts(&h, "a"),
+        [
+            (fake_now(0), Some(fake_now(1))),
+            (fake_now(2), Some(fake_now(3))),
+            (fake_now(4), Some(fake_now(5))),
+        ]
+    );
+}
+
+#[test]
+fn u6_br1_2_リトライの前に閉じた試行を書いてから待つ() {
+    // 待っている間のステートには、終わった試行が 1 つあり、状態は pending のまま。
+    let mut h = Harness::new(RETRY_A);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    h.runtime.interrupt_wait.set(Some((0, 15)));
+    assert_eq!(h.run(&["run", "a"]).code, 143);
+    assert_eq!(attempts(&h, "a"), [(fake_now(0), Some(fake_now(1)))]);
+    let log = flow_log(&h);
+    let wait = log.iter().position(|l| l == "wait:30").expect("待った");
+    assert_eq!(log[wait - 1], "write:fast", "待つ前に書く: {log:?}");
+}
+
+#[test]
+fn u6_br1_3_リトライの待ちの中断では新しい試行を足さない() {
+    let mut h = Harness::new(RETRY_A);
+    h.runtime
+        .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
+    h.runtime.interrupt_wait.set(Some((1, 2)));
+    assert_eq!(h.run(&["run", "a"]).code, 130);
+    assert_eq!(h.runtime.ran(), ["a", "a"]);
+    assert_eq!(
+        attempts(&h, "a"),
+        [
+            (fake_now(0), Some(fake_now(1))),
+            (fake_now(2), Some(fake_now(3)))
+        ]
+    );
+    assert_eq!(
+        status_of(&h, "a"),
+        JobStatus::Pending,
+        "エラーとしては記録しない"
+    );
+}
+
+#[test]
+fn u6_リトライの前の書き込みに失敗したら_65_で待たない() {
+    let mut h = Harness::new(RETRY_A);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    // 0: 1 回目の始まり、1: リトライの前。
+    h.runtime.write_failure.set(WriteFailure::OnCall(1));
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 65);
+    assert!(
+        out.err.contains("the job has already been executed"),
+        "{}",
+        out.err
+    );
+    assert!(h.runtime.waits.borrow().is_empty(), "待たない");
+    assert_eq!(h.runtime.ran(), ["a"]);
+}
+
+#[test]
+fn u6_リトライの_2_回目の始まりの書き込みに失敗したら_65_で起動しない() {
+    let mut h = Harness::new(RETRY_A);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    // 0: 1 回目の始まり、1: リトライの前、2: 2 回目の始まり。
+    h.runtime.write_failure.set(WriteFailure::OnCall(2));
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("the job was not started"), "{}", out.err);
+    assert_eq!(h.runtime.ran(), ["a"]);
 }

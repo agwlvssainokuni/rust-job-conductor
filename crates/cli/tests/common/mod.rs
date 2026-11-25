@@ -519,6 +519,31 @@ id = "c"
 command = "echo c"
 "#;
 
+/// v0.9.9 までの形のステート([`THREE_JOBS`] の a が成功で、試行の記録が無い)。読むと壊れたステート
+/// (動いたジョブに試行が無い。v0.10.0 の U6 の BR3.1)。
+pub const OLD_STATE: &str = r#"format_version = 1
+definition_key = "conductor.toml"
+definition_path = "conductor.toml"
+pipeline_name = "p"
+job_order = ["a", "b", "c"]
+resume_job_id = "b"
+end_reached = false
+completed = false
+
+[[job]]
+id = "a"
+status = "success"
+exit_code = 0
+
+[[job]]
+id = "b"
+status = "pending"
+
+[[job]]
+id = "c"
+status = "pending"
+"#;
+
 /// 定義の `[pipeline]` に、`remove_on_complete = <値>` を足した文字列にする。
 pub fn with_remove_on_complete(definition: &str, value: &str) -> String {
     definition.replacen(

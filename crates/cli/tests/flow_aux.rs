@@ -42,9 +42,66 @@ fn watch_は表を標準出力に_1_回出す() {
     assert_eq!(out.err, "");
     assert_eq!(
         out.out,
-        "Pipeline: p\nJOB  STATUS   NOTE\na    success  exit code 0\nb    pending\nc    pending\n"
+        "Pipeline: p\nJOB  STATUS   DURATION  NOTE\na    success  1s        exit code 0\nb    pending\nc    pending\n"
     );
     assert_eq!(h.sink.out_writes, 1);
+}
+
+#[test]
+fn u6_br4_1_watch_の所要時間は偽の時計の始まりから終わりまで() {
+    // 偽の now は呼ぶたびに 1 秒進む。a の試行は始まり(0 回目)と終わり(1 回目)で 1 秒。
+    // b はリトライで 2 回の試行(2〜3 回目、4〜5 回目)。所要時間は最初の始まりから最後の終わりまで 3 秒。
+    let mut h = Harness::new(&THREE_JOBS.replace(
+        "id = \"b\"\ncommand = \"echo b\"\n",
+        "id = \"b\"\ncommand = \"echo b\"\n\n[job.retry]\nexit_codes = [75]\nmax = 1\ninterval = \"1s\"\n",
+    ));
+    h.runtime.script("b", &[Exec::Exit(75), Exec::Exit(0)]);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 0);
+    assert!(out.out.contains("a    success  1s "), "{}", out.out);
+    assert!(out.out.contains("b    success  3s "), "{}", out.out);
+}
+
+#[test]
+fn u6_br4_1_watch_は動いている最中のジョブに今までの経過時間を出す() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.runtime.script("a", &[Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    // b の試行を始めたまま止まったステート(強制終了の後と同じ形)を作る。
+    let mut state = h.state().expect("ある");
+    // 始まりは偽の時計の最初の時刻の 63 秒前。
+    let started = conductor_core::Timestamp::from_unix_seconds(FAKE_NOW_BASE - 63).expect("範囲");
+    state = conductor_core::start_attempt(&state, "b", started);
+    conductor_runtime::write_state(
+        &h.def_path(),
+        None,
+        &state,
+        conductor_runtime::Durability::Fast,
+    )
+    .expect("書ける");
+    // watch の now は 3 回目の呼び出し(a の始まりと終わりの後。fake_now(2))。b は 65 秒の経過。
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 0);
+    assert!(out.out.contains("b    pending  1m05s\n"), "{}", out.out);
+    assert!(out.out.contains("c    pending\n"), "{}", out.out);
+    assert_eq!(
+        h.runtime.now_calls.get(),
+        3,
+        "watch は今の時刻を 1 回だけ取る"
+    );
+}
+
+#[test]
+fn u6_br3_1_watch_は古い形のステートを_65_にして_reset_を案内する() {
+    let mut h = Harness::new(THREE_JOBS);
+    std::fs::write(h.state_path(), OLD_STATE).expect("書ける");
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 65);
+    assert_eq!(out.out, "");
+    assert!(out.err.contains("state file is corrupt"), "{}", out.err);
+    assert!(out.err.contains("conductor reset"), "{}", out.err);
+    assert!(!out.err.contains("echo"), "{}", out.err);
 }
 
 #[test]
@@ -64,7 +121,7 @@ fn fr3_1_watch_は完了のステートの表の下に完了の行を出して_0
     assert_eq!(out.err, "");
     assert_eq!(
         out.out,
-        "Pipeline: p\nJOB  STATUS   NOTE\na    success  exit code 0\nb    success  exit code 0\nc    success  exit code 0\ncompleted\n"
+        "Pipeline: p\nJOB  STATUS   DURATION  NOTE\na    success  1s        exit code 0\nb    success  1s        exit code 0\nc    success  1s        exit code 0\ncompleted\n"
     );
     assert!(!out.out.contains("no state"), "{}", out.out);
 }
@@ -77,7 +134,8 @@ fn fr3_1_watch_の完了の行は日本語では完了() {
     let out = h.run(&["watch"]);
     assert_eq!(out.code, 0);
     assert!(
-        out.out.ends_with("c       success  終了コード 0\n完了\n"),
+        out.out
+            .ends_with("c       success  1s        終了コード 0\n完了\n"),
         "{}",
         out.out
     );
