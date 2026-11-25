@@ -15,8 +15,12 @@
 //! 時刻の整形・詰めた形・読み取り・差(CoreTime。v0.10.0 の BR2.1、BR2.2、FR6.6、NFR2.2)のテスト。
 //!
 //! 境界(範囲の端、うるう年、各月末)を並べた表で、整形と読み取りの往復を確かめる。
+//! U6 の所要時間(BR4.1 の表の各行、BR4.2 の書き方)も確かめる。
 
-use conductor_core::{Timestamp, duration_secs, format_compact, format_rfc3339, parse_rfc3339};
+use conductor_core::{
+    Attempt, JobDuration, JobState, JobStatus, Timestamp, duration_secs, format_compact,
+    format_duration, format_rfc3339, job_duration, parse_rfc3339,
+};
 
 fn ts(secs: u64) -> Timestamp {
     Timestamp::from_unix_seconds(secs).expect("範囲の中")
@@ -174,4 +178,106 @@ fn nfr2_2_差は秒で_負にならない() {
 fn 時刻は前後で比べられる() {
     assert!(ts(1) > Timestamp::EPOCH);
     assert!(Timestamp::MAX > ts(1_795_597_968));
+}
+
+#[test]
+fn u6_br4_2_所要時間は単位つきの短い形() {
+    for (secs, text) in [
+        (0, "0s"),
+        (17, "17s"),
+        (59, "59s"),
+        (60, "1m00s"),
+        (65, "1m05s"),
+        (3599, "59m59s"),
+        (3600, "1h00m00s"),
+        (3661, "1h01m01s"),
+        (7384, "2h03m04s"),
+        (100 * 3600, "100h00m00s"),
+    ] {
+        assert_eq!(format_duration(secs), text, "{secs}");
+    }
+}
+
+/// `status` のジョブに、`(始まり, 終わり)` の試行を持たせる。
+fn job_with(status: JobStatus, attempts: &[(u64, Option<u64>)]) -> JobState {
+    let mut job = JobState::pending("a");
+    job.status = status;
+    job.attempts = attempts
+        .iter()
+        .map(|&(start, end)| Attempt {
+            started_at: ts(start),
+            ended_at: end.map(ts),
+        })
+        .collect();
+    job
+}
+
+#[test]
+fn u6_br4_1_試行が無ければ所要時間は空() {
+    for status in [
+        JobStatus::Pending,
+        JobStatus::Success,
+        JobStatus::Warning,
+        JobStatus::Error,
+        JobStatus::Skipped,
+    ] {
+        assert_eq!(job_duration(&job_with(status, &[]), ts(500)), None);
+    }
+}
+
+#[test]
+fn u6_br4_1_結果のあるジョブは最初の始まりから最後の終わりまで() {
+    for status in [JobStatus::Success, JobStatus::Warning, JobStatus::Error] {
+        let one = job_with(status, &[(100, Some(117))]);
+        assert_eq!(
+            job_duration(&one, ts(9_999)),
+            Some(JobDuration::Finished(17))
+        );
+        // リトライや再開で試行が複数あれば、最初の始まりから最後の終わりまで(待ちを含む)。
+        let many = job_with(status, &[(100, Some(110)), (130, Some(165))]);
+        assert_eq!(
+            job_duration(&many, ts(9_999)),
+            Some(JobDuration::Finished(65))
+        );
+    }
+}
+
+#[test]
+fn u6_br4_1_結果のあるジョブで最後の試行に終わりが無ければ空() {
+    // conductor は書かない形(手で書き換えたなど)。
+    let job = job_with(JobStatus::Success, &[(100, Some(110)), (130, None)]);
+    assert_eq!(job_duration(&job, ts(9_999)), None);
+}
+
+#[test]
+fn u6_br4_1_動いている最中の_pending_は今までの経過時間() {
+    let job = job_with(JobStatus::Pending, &[(100, Some(110)), (130, None)]);
+    let d = job_duration(&job, ts(165));
+    assert_eq!(d, Some(JobDuration::Running(65)));
+    assert_eq!(d.map(JobDuration::secs), Some(65));
+}
+
+#[test]
+fn u6_br4_1_最後の試行が終わった_pending_と_skipped_は空() {
+    let pending = job_with(JobStatus::Pending, &[(100, Some(110))]);
+    assert_eq!(job_duration(&pending, ts(500)), None);
+    let skipped = job_with(JobStatus::Skipped, &[(100, Some(110))]);
+    assert_eq!(job_duration(&skipped, ts(500)), None);
+    let skipped_open = job_with(JobStatus::Skipped, &[(100, None)]);
+    assert_eq!(job_duration(&skipped_open, ts(500)), None);
+}
+
+#[test]
+fn u6_br4_1_終わりが始まりより前なら_0_秒() {
+    let finished = job_with(JobStatus::Success, &[(200, Some(150))]);
+    assert_eq!(
+        job_duration(&finished, ts(500)),
+        Some(JobDuration::Finished(0))
+    );
+    // 今の時刻が始まりより前(時計の戻り)でも 0 秒。
+    let running = job_with(JobStatus::Pending, &[(200, None)]);
+    assert_eq!(
+        job_duration(&running, ts(100)),
+        Some(JobDuration::Running(0))
+    );
 }
