@@ -341,6 +341,69 @@ fn pipeline_対象外のジョブと設定のないジョブは_従来どおり(
     assert!(h.runtime.waits.borrow().is_empty());
 }
 
+// ---- v0.10.0: 既定のリトライ(`[pipeline.retry]`)と打ち消し(`retry = false`) ----
+
+/// 既定は終了コード 75 で最大 2 回、5 秒おき。a は `retry` を書かず既定でリトライし、b は `retry = false`
+/// でリトライしない(u1-pipeline-retry の BR2.2、FR1.2、FR1.4)。
+const DEFAULT_RETRY: &str = r#"format_version = 1
+[pipeline]
+name = "p"
+[pipeline.retry]
+exit_codes = [75]
+max = 2
+interval = "5s"
+[[job]]
+id = "a"
+command = "echo a"
+[[job]]
+id = "b"
+command = "echo b"
+retry = false
+"#;
+
+#[test]
+fn 既定_retry_を書かないジョブは既定の終了コードでリトライして成功する() {
+    let mut h = Harness::new(DEFAULT_RETRY);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 0, "{}", out.err);
+    assert_eq!(h.runtime.ran(), ["a", "a"]);
+    assert_eq!(*h.runtime.waits.borrow(), [5]);
+    assert_eq!(
+        out.err,
+        "conductor: retry: job 'a' exited with code 75; retry 1 of 2 in 5 seconds\n"
+    );
+}
+
+#[test]
+fn 既定_retry_が_false_のジョブは既定があってもリトライしない() {
+    let mut h = Harness::new(DEFAULT_RETRY);
+    // b を単独で動かせるよう、先に a を成功させる。
+    h.runtime.script("a", &[Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    h.runtime.script("b", &[Exec::Exit(75), Exec::Exit(0)]);
+    let out = h.run(&["run", "b"]);
+    assert_eq!(out.code, 75, "{}", out.err);
+    assert_eq!(h.runtime.ran(), ["a", "b"]);
+    assert!(h.runtime.waits.borrow().is_empty());
+    assert!(!out.err.contains("conductor: retry:"), "{}", out.err);
+}
+
+#[test]
+fn 既定_pipeline_では既定のジョブはリトライし_false_のジョブはそこで止まる() {
+    let mut h = Harness::new(DEFAULT_RETRY);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    h.runtime.script("b", &[Exec::Exit(75), Exec::Exit(0)]);
+    let out = h.run(&["pipeline", "p"]);
+    assert_eq!(out.code, 75, "b はリトライせずエラー");
+    assert_eq!(h.runtime.ran(), ["a", "a", "b"]);
+    assert_eq!(*h.runtime.waits.borrow(), [5]);
+    let state = h.state().expect("ステート");
+    assert_eq!(status_in(&state, "a"), JobStatus::Success);
+    assert_eq!(status_in(&state, "b"), JobStatus::Error);
+    assert_eq!(state.resume_job_id.as_deref(), Some("b"));
+}
+
 // ---- 偽の MemRuntime ----
 
 #[test]

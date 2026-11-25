@@ -117,6 +117,28 @@ fn retry_の許可されていないキーは_64() {
 }
 
 #[test]
+fn 既定のリトライとの重なりは_64_で_run_と同じ誤りの文() {
+    // 既定(`[pipeline.retry]`)の 75 が、`retry` を書かないジョブ a の警告の終了コードと重なる。
+    // 誤りの行は、ジョブ a の `[[job]]`(10 行目)。
+    let text = "format_version = 1\n\n[pipeline]\nname = \"p\"\n[pipeline.retry]\nexit_codes = [75]\nmax = 3\ninterval = \"30s\"\n\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\nwarning_exit_codes = [75]\n";
+    let mut h = Harness::new(text);
+    let validate = h.run(&["validate"]);
+    assert_eq!(validate.code, 64);
+    assert_eq!(validate.out, "");
+    assert!(
+        validate.err.starts_with("conductor: error: "),
+        "{}",
+        validate.err
+    );
+    assert!(validate.err.contains(":10:"), "行番号: {}", validate.err);
+    assert_eq!(validate.err.lines().count(), 1, "{}", validate.err);
+    let run = h.run(&["run", "a"]);
+    assert_eq!(run.code, 64);
+    assert_eq!(validate.err, run.err, "run と同じ文");
+    assert_eq!(h.runtime.run_calls.get(), 0, "ジョブは実行しない");
+}
+
+#[test]
 fn 正しい定義は_0_で_何も表示せず_ステートにもジョブにもシグナルにも触れない() {
     let mut h = Harness::new(THREE_JOBS);
     let out = h.run(&["validate"]);

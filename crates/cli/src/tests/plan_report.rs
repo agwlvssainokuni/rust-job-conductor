@@ -320,6 +320,29 @@ fn 例_p1_から_p4_と_p2e_p4e_が一文字も違わず一致する() {
 }
 
 #[test]
+fn 既定のリトライを当てはめたジョブの計画は同じ値の表を書いたときと一文字も違わない() {
+    // P2 の c の `[job.retry]` を `[pipeline.retry]` に移し、ほかのジョブは `retry = false` で打ち消す
+    // (u1-pipeline-retry の BR2.4、NFR1.5)。
+    let off = "retry = false\n";
+    let jobs = [
+        job("a", "echo a", off),
+        job("b", "echo b", off),
+        job("c", "fetch --retry", ""),
+        job("d", "echo d", off),
+    ]
+    .concat();
+    let mut by_default = p2_case();
+    by_default.text = def_text(
+        "[pipeline.env]\nAPI_URL = \"https://example.invalid\"\n\
+         [pipeline.retry]\nexit_codes = [75, 76]\nmax = 3\ninterval = \"5s\"\n",
+        &jobs,
+    );
+    let plan = by_default.pipeline();
+    assert_eq!(render_plan(Language::Ja, &plan), P2);
+    assert_eq!(render_plan(Language::En, &plan), P2E);
+}
+
+#[test]
 fn 例_p5_から_p8_の_run_の計画が一文字も違わず一致する() {
     let mut p5 = echo_abc();
     p5.state = Some(state(

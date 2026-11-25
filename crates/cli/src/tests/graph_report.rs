@@ -389,6 +389,33 @@ fn v_は_リトライと配列のコマンドと英語の文を出し_辺の一�
 }
 
 #[test]
+fn v_は既定のリトライを当てはめたジョブを同じ値の表を書いたジョブと同じに出す() {
+    // a は `[job.retry]` を書かず既定を、b は `retry = false` で打ち消す(u1-pipeline-retry の BR2.4、NFR1.5)。
+    let by_default = "format_version = 1\n\n[pipeline]\nname = \"p\"\n\n[pipeline.retry]\n\
+        exit_codes = [75, 76]\nmax = 3\ninterval = \"5s\"\nmultiplier = 2\nmax_interval = \"60s\"\n\n\
+        [[job]]\nid = \"a\"\ncommand = \"echo a\"\n\n\
+        [[job]]\nid = \"b\"\ncommand = \"echo b\"\nretry = false\n";
+    let by_table = "format_version = 1\n\n[pipeline]\nname = \"p\"\n\n\
+        [[job]]\nid = \"a\"\ncommand = \"echo a\"\n\n[job.retry]\n\
+        exit_codes = [75, 76]\nmax = 3\ninterval = \"5s\"\nmultiplier = 2\nmax_interval = \"60s\"\n\n\
+        [[job]]\nid = \"b\"\ncommand = \"echo b\"\n";
+    let by_default = parse_definition(by_default, "c.toml", None).expect("正しい定義");
+    let by_table = parse_definition(by_table, "c.toml", None).expect("正しい定義");
+    for lang in [Language::En, Language::Ja] {
+        assert_eq!(
+            text_of(lang, &by_default, None, true),
+            text_of(lang, &by_table, None, true)
+        );
+    }
+    assert_eq!(
+        text_of(Language::En, &by_default, None, true),
+        "* a\n| command: echo a\n\
+         | retry: exit codes 75, 76, up to 3 times, every 5 s (x2, max 60 s)\n\
+         * b\n| command: echo b\no @end\n"
+    );
+}
+
+#[test]
 fn mermaid_の例と_state_の再開位置() {
     let g2 = definition(&IDS5, A_TO_D, "");
     let plain = render_mermaid(Language::Ja, &build_graph(&g2, None));

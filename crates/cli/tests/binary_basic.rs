@@ -118,6 +118,27 @@ fn validate_は正しい定義で_0_誤りで_64_ステートを作らず_壊れ
 }
 
 #[test]
+fn validate_は既定のリトライとの重なりで_64_になり_値を出さない() {
+    // 既定(`[pipeline.retry]`)の 173 が、`retry` を書かないジョブの警告の終了コードと重なる
+    // (u1-pipeline-retry の BR3.1、NFR2.2、NFR6.1)。ジョブ ID と終了コードは目印。
+    const ID: &str = "job_id_marker_7q";
+    let project = Project::new(&format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[pipeline.retry]\nexit_codes = [173]\nmax = 1\ninterval = \"1s\"\n[[job]]\nid = \"{ID}\"\ncommand = \"echo x\"\nwarning_exit_codes = [173]\n"
+    ));
+    let output = project.run(&["validate"]);
+    assert_eq!(output.status.code(), Some(64));
+    assert!(output.stdout.is_empty());
+    let err = text(&output.stderr);
+    assert!(err.starts_with("conductor: error: "), "{err}");
+    assert_eq!(err.lines().count(), 1, "{err}");
+    // 一時ディレクトリの名前に目印の数字が偶然入っても誤らないよう、定義のパスを除いて調べる。
+    let shown = err.replace(&project.def_path().display().to_string(), "<path>");
+    assert!(!shown.contains(ID), "ジョブ ID を出さない: {err}");
+    assert!(!shown.contains("173"), "終了コードの値を出さない: {err}");
+    assert!(!project.state_path().exists(), "ステートを作らない");
+}
+
+#[test]
 fn ジョブを起動できないと_127() {
     let project = Project::new(&definition(
         "p",
