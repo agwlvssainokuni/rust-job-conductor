@@ -20,17 +20,21 @@
 //!
 //! # 文法
 //!
-//! | コマンド | 位置引数 | `-v` | `--config` | `--to` | `--run-id` | `--all` | `--remove-on-complete` | `--dry-run` | `--assume` | `--format` | `--state` | `--force` |
-//! |----------|----------|------|------------|--------|------------|---------|------------------------|-------------|------------|------------|-----------|-----------|
-//! | `run` | ジョブID(1) | 可 | 可 | 不可 | 可 | 不可 | 可 | 可 | `--dry-run` と一緒のときだけ | 不可 | 不可 | 不可 |
-//! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 | 可 | 不可 | 可 | 可 | `--dry-run` と一緒のときだけ | 不可 | 不可 | 不可 |
-//! | `watch` | なし | 不可 | 可 | 不可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
-//! | `reset` | なし | 不可 | 可 | 不可 | 可 | 可(`--run-id` とは併用不可) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
-//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
-//! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
-//! | `graph` | パイプライン名(0 か 1) | 可 | 可 | 不可 | `--state` と一緒のときだけ | 不可 | 不可 | 不可 | 不可 | 可 | 可 | 不可 |
-//! | `init` | パイプライン名(0 か 1) | 不可 | 可(`-` は標準出力) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 |
+//! | コマンド | 位置引数 | `-v` | `--config` | `--to` | `--run-id` | `--all` | `--remove-on-complete` | `--dry-run` | `--assume` | `--format` | `--state` | `--force` | `--follow` | `--interval` |
+//! |----------|----------|------|------------|--------|------------|---------|------------------------|-------------|------------|------------|-----------|-----------|------------|--------------|
+//! | `run` | ジョブID(1) | 可 | 可 | 不可 | 可 | 不可 | 可 | 可 | `--dry-run` と一緒のときだけ | 不可 | 不可 | 不可 | 不可 | 不可 |
+//! | `pipeline` | パイプライン名(1) | 可 | 可 | 不可 | 可 | 不可 | 可 | 可 | `--dry-run` と一緒のときだけ | 不可 | 不可 | 不可 | 不可 | 不可 |
+//! | `watch` | なし | 不可 | 可 | 不可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 | `--follow` と一緒のときだけ |
+//! | `reset` | なし | 不可 | 可 | 不可 | 可 | 可(`--run-id` とは併用不可) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
+//! | `validate` | パイプライン名(0 か 1) | 可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
+//! | `convert` | 入力ファイル(1) | 不可 | 不可 | 必須(`yaml` か `toml`) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
+//! | `graph` | パイプライン名(0 か 1) | 可 | 可 | 不可 | `--state` と一緒のときだけ | 不可 | 不可 | 不可 | 不可 | 可 | 可 | 不可 | 不可 | 不可 |
+//! | `init` | パイプライン名(0 か 1) | 不可 | 可(`-` は標準出力) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 | 不可 | 不可 |
 //!
+//! - `watch` だけが、`--follow`(値なし。1 回だけ)と、`--interval <秒>`(値あり。1 回だけ)を取る(v0.10.0 の U7。
+//!   BR1.1、BR1.2)。`--interval` は、`--follow` と一緒のときだけ。値は 1〜3600 の整数の秒(数字だけ。符号・小数点・
+//!   空白を許さない)で、誤りは `invalidValue`(対象は `--interval` で、入力の値は、誤りの文に含めない)。
+//!   省略時は 2 秒。
 //! - `init` だけが、`--force`(値なし。1 回だけ)を取る(U4。BR1.1、BR1.5、BR2.2、BR3.1)。`init` は、`--config` と
 //!   `--force` 以外のオプションを、すべて許さない(68)。名前が空、または空白だけなら `invalidValue`
 //!   (対象は固定で、名前の値は含めない)。`--config -` は標準出力(`InitTarget::Stdout`)。
@@ -58,8 +62,8 @@ use lexopt::prelude::*;
 
 use crate::types::CommandKind as C;
 use crate::types::{
-    CliCommand, CommandKind, GraphFormat, ParsedArgs, RUN_ID_OPTION, RunIdArg, UsageError,
-    UsageErrorKind as Kind,
+    CliCommand, CommandKind, GraphFormat, MAX_FOLLOW_INTERVAL_SECS, MIN_FOLLOW_INTERVAL_SECS,
+    ParsedArgs, RUN_ID_OPTION, RunIdArg, UsageError, UsageErrorKind as Kind,
 };
 
 /// オプションの識別子(`-h`・`--help`・`-V`・`--version` を除く。BR1.1)。
@@ -78,6 +82,8 @@ enum Opt {
     Assume,
     Format,
     State,
+    Follow,
+    Interval,
 }
 
 /// オプションを使える場所(BR1.1)。
@@ -86,6 +92,8 @@ enum Allowed {
     Commands(&'static [CommandKind]),
     /// `--dry-run` があるときだけ使える(`--assume`。BR2.2)。
     WithDryRun,
+    /// `--follow` があるときだけ使える(`--interval`。v0.10.0 の U7 の BR1.2)。
+    WithFollow,
 }
 
 /// オプションの表の 1 行(BR1.1)。
@@ -180,11 +188,23 @@ const OPTIONS: &[OptSpec] = &[
         takes_value: false,
         allowed: Allowed::Commands(&[C::Graph]),
     },
+    OptSpec {
+        opt: Opt::Follow,
+        long: "follow",
+        takes_value: false,
+        allowed: Allowed::Commands(&[C::Watch]),
+    },
+    OptSpec {
+        opt: Opt::Interval,
+        long: "interval",
+        takes_value: true,
+        allowed: Allowed::WithFollow,
+    },
 ];
 
 // `OPTIONS` の行は、`Opt` の並びと同じ順に置く(`spec` が添字で引くため)。
 const _: () = {
-    assert!(OPTIONS.len() == Opt::State as usize + 1);
+    assert!(OPTIONS.len() == Opt::Interval as usize + 1);
     let mut i = 0;
     while i < OPTIONS.len() {
         assert!(OPTIONS[i].opt as usize == i);
@@ -226,11 +246,13 @@ fn spec_by_long(name: &str) -> Option<&'static OptSpec> {
 }
 
 impl OptSpec {
-    /// コマンド `kind` で使えるか。`dry_run` は `--dry-run` が 1 回以上あるか(`--assume` の条件)。
-    fn allows(&self, kind: CommandKind, dry_run: bool) -> bool {
+    /// コマンド `kind` で使えるか。`dry_run` は `--dry-run` が 1 回以上あるか(`--assume` の条件)、
+    /// `follow` は `--follow` が 1 回以上あるか(`--interval` の条件)。
+    fn allows(&self, kind: CommandKind, dry_run: bool, follow: bool) -> bool {
         match self.allowed {
             Allowed::Commands(kinds) => kinds.contains(&kind),
             Allowed::WithDryRun => dry_run,
+            Allowed::WithFollow => follow,
         }
     }
 }
@@ -270,8 +292,14 @@ const CHECKS: &[Check] = &[
     Check::Duplicate(Opt::DryRun),
     Check::NotAllowed(Opt::Format),
     Check::NotAllowed(Opt::State),
+    // `--follow` を `--interval` より先に見る(`watch` 以外の `--follow --interval` は、`--follow` の誤り。
+    // v0.10.0 の U7 の BR1.2)。
+    Check::NotAllowed(Opt::Follow),
+    Check::NotAllowed(Opt::Interval),
     Check::Duplicate(Opt::Format),
     Check::Duplicate(Opt::State),
+    Check::Duplicate(Opt::Follow),
+    Check::Duplicate(Opt::Interval),
     Check::Duplicate(Opt::Verbose),
     Check::Duplicate(Opt::Config),
     Check::Duplicate(Opt::To),
@@ -449,10 +477,11 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
 
     // 許されない場所のオプションと重複。CHECKS の順に検査し、最初の誤りを報告する(BR1.3)。
     let dry_run = given.count(Opt::DryRun) > 0;
+    let follow = given.count(Opt::Follow) > 0;
     for check in CHECKS {
         match *check {
             Check::NotAllowed(opt) => {
-                if given.count(opt) > 0 && !spec(opt).allows(kind, dry_run) {
+                if given.count(opt) > 0 && !spec(opt).allows(kind, dry_run, follow) {
                     return Err(UsageError::with_subject(
                         Kind::OptionNotAllowed,
                         opt.subject(),
@@ -497,6 +526,13 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if let Some(value) = given.take(Opt::Format).into_iter().next() {
         command.graph.format = parse_graph_format(&value)?;
     }
+    command.follow = given.once(Opt::Follow);
+    command.interval = given
+        .take(Opt::Interval)
+        .into_iter()
+        .next()
+        .map(|value| parse_interval(&value))
+        .transpose()?;
     // 値の検査は、ここで行う。誤りの文に、値は含めない(対象は、オプションの名前だけ)。
     command.run_id = run_id.map(parse_run_id_option).transpose()?;
     let to = given.take(Opt::To);
@@ -574,6 +610,22 @@ fn parse_graph_format(value: &OsString) -> Result<GraphFormat, UsageError> {
             Kind::InvalidValue,
             Opt::Format.subject(),
         )),
+    }
+}
+
+/// `--interval` の値の検査(v0.10.0 の U7 の BR1.2)。1〜3600 の整数の秒。数字だけを受け付ける(符号、小数点、
+/// 空白、空は誤り)。誤りの文に、値は含めない(対象は `--interval` だけ)。
+fn parse_interval(value: &OsString) -> Result<u32, UsageError> {
+    let invalid = || UsageError::with_subject(Kind::InvalidValue, Opt::Interval.subject());
+    let text = value.to_str().ok_or_else(invalid)?;
+    if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(invalid());
+    }
+    let secs: u32 = text.parse().map_err(|_| invalid())?;
+    if (MIN_FOLLOW_INTERVAL_SECS..=MAX_FOLLOW_INTERVAL_SECS).contains(&secs) {
+        Ok(secs)
+    } else {
+        Err(invalid())
     }
 }
 

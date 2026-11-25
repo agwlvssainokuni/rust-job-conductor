@@ -75,7 +75,7 @@ pub const USAGE: Text = Text::new(
 Usage:
   conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]] <job-id>
   conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]] <pipeline-name>
-  conductor watch [--config <path>] [--run-id <id>]
+  conductor watch [--config <path>] [--run-id <id>] [--follow [--interval <seconds>]]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
   conductor graph [-v] [--config <path>] [--format <text|mermaid|dot>] [--state [--run-id <id>]] [<pipeline-name>]
@@ -96,6 +96,9 @@ Options:
   --format <text|mermaid|dot>
                       output format of graph: text, mermaid or dot (Graphviz) (default: text)
   --state             overlay the state of the jobs on the graph (graph only; reads the state file, never writes it)
+  --follow            redraw the table until the pipeline completes or stops, or until interrupted (watch only)
+  --interval <seconds>
+                      seconds between redraws, an integer from 1 to 3600 (with --follow only; default: 2)
   --dry-run           print the execution plan without running jobs, writing the state or setting up signals (run, pipeline)
   --assume <job-id>=<code>
                       assume the exit code (0-255) of a job in the plan; repeatable (with --dry-run only; default: 0)
@@ -108,7 +111,7 @@ Options:
 使い方:
   conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <ジョブID>
   conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <パイプライン名>
-  conductor watch [--config <パス>] [--run-id <ID>]
+  conductor watch [--config <パス>] [--run-id <ID>] [--follow [--interval <秒>]]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
   conductor graph [-v] [--config <パス>] [--format <text|mermaid|dot>] [--state [--run-id <ID>]] [<パイプライン名>]
@@ -128,6 +131,9 @@ Options:
   --format <text|mermaid|dot>
                       graph の出力の形式。text、mermaid、dot(Graphviz)のどれか(省略時: text)
   --state             ジョブの状態を図に重ねる(graph のみ。ステートファイルを読むだけで、書かない)
+  --follow            パイプラインが完了するか止まるまで、または中断されるまで、表を表示し直す(watch のみ)
+  --interval <秒>
+                      表示し直す間隔の秒数。1〜3600 の整数(--follow と一緒のときだけ。省略時: 2)
   --dry-run           ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を表示する(run、pipeline)
   --assume <ジョブID>=<終了コード>
                       計画の中で、ジョブの終了コード(0〜255)を仮定する。複数回指定できる(--dry-run と一緒のときだけ。省略時: 0)

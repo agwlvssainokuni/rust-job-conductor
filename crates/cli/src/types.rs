@@ -204,7 +204,17 @@ pub struct CliCommand {
     /// `--force`。`init` のときのみ(U4。BR1.4)。出力先は `config_path`、名前は `pipeline_name` を使う
     /// ([`CliCommand::init_options`])。
     pub force: bool,
+    /// `--follow`。`watch` のときのみ(v0.10.0 の U7。BR1.1)。表示し直しを続ける。
+    pub follow: bool,
+    /// `--interval <秒>`。`--follow` と一緒のときだけ(検査済み。1〜3600。BR1.2)。省略時は
+    /// `DEFAULT_FOLLOW_INTERVAL_SECS`(2 秒)。
+    pub interval: Option<u32>,
 }
+
+/// `--interval` の最小(秒。BR1.2)。
+pub(crate) const MIN_FOLLOW_INTERVAL_SECS: u32 = 1;
+/// `--interval` の最大(秒。BR1.2)。
+pub(crate) const MAX_FOLLOW_INTERVAL_SECS: u32 = 3600;
 
 impl CliCommand {
     /// `init` のオプション(出力先、`--force`、パイプライン名)を、コマンドから取り出す(BR1.1、BR1.5、BR2.2)。
@@ -236,6 +246,8 @@ impl CliCommand {
             graph: GraphOptions::default(),
             dry_run: DryRunOptions::default(),
             force: false,
+            follow: false,
+            interval: None,
         }
     }
 }

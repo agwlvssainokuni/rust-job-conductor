@@ -1177,3 +1177,132 @@ fn utf8_でない_to_の値は_invalid_value_で対象は_to() {
     assert_eq!(e.kind, UsageErrorKind::InvalidValue);
     assert_eq!(e.subject.as_deref(), Some("--to"));
 }
+
+// ---- `watch --follow` と `--interval`(v0.10.0 の U7。BR1.1、BR1.2) ----
+
+#[test]
+fn u7_br1_1_watch_は_follow_なしなら今のまま() {
+    let cmd = command(&["watch"]);
+    assert_eq!(cmd.kind, CommandKind::Watch);
+    assert!(!cmd.follow);
+    assert_eq!(cmd.interval, None);
+}
+
+#[test]
+fn u7_br1_2_watch_は_follow_と_interval_を受け取る() {
+    let cmd = command(&["watch", "--follow"]);
+    assert!(cmd.follow);
+    assert_eq!(cmd.interval, None, "省略時は流れが既定の 2 秒を使う");
+    for (text, secs) in [("1", 1), ("2", 2), ("60", 60), ("3600", 3600)] {
+        let cmd = command(&["watch", "--follow", "--interval", text]);
+        assert_eq!(cmd.interval, Some(secs), "{text}");
+        let cmd = command(&["watch", &format!("--interval={text}"), "--follow"]);
+        assert_eq!(cmd.interval, Some(secs), "{text}");
+    }
+    let cmd = command(&[
+        "watch",
+        "--config",
+        "c.toml",
+        "--run-id",
+        "r1",
+        "--follow",
+        "--interval",
+        "5",
+    ]);
+    assert!(cmd.follow);
+    assert_eq!(cmd.interval, Some(5));
+    assert_eq!(cmd.run_id, run_id("r1"));
+    assert_eq!(cmd.config_path, Some(OsString::from("c.toml")));
+}
+
+#[test]
+fn u7_br1_2_interval_の誤った値は_invalid_value_で値を含まない() {
+    for bad in [
+        "0",
+        "3601",
+        "99999abc",
+        "1.5",
+        "-1",
+        "+5",
+        "abc",
+        "",
+        " 5",
+        "5 ",
+        "99999999999",
+    ] {
+        let e = parse(&["watch", "--follow", "--interval", bad]).unwrap_err();
+        assert_eq!(e.kind, UsageErrorKind::InvalidValue, "{bad:?}");
+        assert_eq!(e.subject.as_deref(), Some("--interval"), "{bad:?}");
+    }
+    // 値の欠け。
+    assert_error(
+        &["watch", "--follow", "--interval"],
+        UsageErrorKind::MissingValue,
+        "--interval",
+    );
+}
+
+#[test]
+fn u7_br1_2_follow_の無い_interval_は使えない() {
+    assert_error(
+        &["watch", "--interval", "5"],
+        UsageErrorKind::OptionNotAllowed,
+        "--interval",
+    );
+}
+
+#[test]
+fn u7_br1_2_watch_以外の_follow_と_interval_は使えない() {
+    for args in [
+        &["run", "x", "--follow"][..],
+        &["pipeline", "x", "--follow"][..],
+        &["reset", "--follow"][..],
+        &["validate", "--follow"][..],
+        &["graph", "--follow"][..],
+        &["init", "--follow"][..],
+        &["convert", "f", "--to", "yaml", "--follow"][..],
+        // `--interval` と一緒でも、`--follow` の誤りとして報告する。
+        &["run", "x", "--follow", "--interval", "5"][..],
+    ] {
+        assert_error(args, UsageErrorKind::OptionNotAllowed, "--follow");
+    }
+    assert_error(
+        &["run", "x", "--interval", "5"],
+        UsageErrorKind::OptionNotAllowed,
+        "--interval",
+    );
+}
+
+#[test]
+fn u7_br1_2_follow_と_interval_の重複と_follow_への値は誤り() {
+    assert_error(
+        &["watch", "--follow", "--follow"],
+        UsageErrorKind::InvalidValue,
+        "--follow",
+    );
+    assert_error(
+        &["watch", "--follow", "--interval", "1", "--interval", "2"],
+        UsageErrorKind::InvalidValue,
+        "--interval",
+    );
+    assert_error(
+        &["watch", "--follow=1"],
+        UsageErrorKind::InvalidValue,
+        "--follow",
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn u7_br1_2_utf8_でない_interval_の値は_invalid_value_で対象は_interval() {
+    use std::os::unix::ffi::OsStringExt;
+    let args = vec![
+        OsString::from("watch"),
+        OsString::from("--follow"),
+        OsString::from("--interval"),
+        OsString::from_vec(vec![b'5', 0xff]),
+    ];
+    let e = parse_args(args).unwrap_err();
+    assert_eq!(e.kind, UsageErrorKind::InvalidValue);
+    assert_eq!(e.subject.as_deref(), Some("--interval"));
+}
