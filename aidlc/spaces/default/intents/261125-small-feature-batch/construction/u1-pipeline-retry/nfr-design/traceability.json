@@ -1,0 +1,36 @@
+{
+  "stage": "nfr-design",
+  "unit": "u1-pipeline-retry",
+  "upstream_ids": [
+    "NFR1.3",
+    "NFR6.1",
+    "NFR6.2",
+    "NFR5.1",
+    "NFR4.1",
+    "NFR1.4",
+    "NFR1.1",
+    "NFR1.2",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR2.3",
+    "NFR2.4",
+    "NFR3.1",
+    "NFR3.2"
+  ],
+  "coverage": [
+    { "id": "NFR1.3", "status": "OK", "target": "performance-design.md: ジョブごとに 1 回の重なりの検査と、definition_perf.rs の時間の上限つきのテスト" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design.md の 2: 固定の理由の文と、nfr_security.rs の cases への追加" },
+    { "id": "NFR6.2", "status": "OK", "target": "security-design.md の 3: 既定を組み立て後に残さず、ステートを変えない(nfr_content.rs)" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design.md の 4: 変更を core の definition/walk と types.rs の文書に閉じる" },
+    { "id": "NFR4.1", "status": "OK", "target": "security-design.md の 4: 既存の toml の木の走査だけを使う" },
+    { "id": "NFR1.4", "status": "OK", "target": "scalability-design.md: 上限は今のまま、多数のジョブのテストを性能と共有" },
+    { "id": "NFR1.1", "status": "OK", "target": "reliability-design.md の 1: 既定の有無で分けない 1 つの決め方" },
+    { "id": "NFR1.2", "status": "OK", "target": "reliability-design.md の 1: 理由の文の変更を見るテストだけ直す" },
+    { "id": "NFR2.1", "status": "OK", "target": "reliability-design.md の 2: definition_retry.rs ほかの単体テストの配置" },
+    { "id": "NFR2.2", "status": "OK", "target": "reliability-design.md の 2: 実バイナリの validate と run のテスト" },
+    { "id": "NFR2.3", "status": "OK", "target": "reliability-design.md の 2: CI の coverage" },
+    { "id": "NFR2.4", "status": "OK", "target": "reliability-design.md の 2: 公開の入口から書くテスト" },
+    { "id": "NFR3.1", "status": "OK", "target": "reliability-design.md の 2: CI の test、build-check、msrv-test" },
+    { "id": "NFR3.2", "status": "OK", "target": "reliability-design.md の 2: unix_demo.rs と windows_demo.rs" }
+  ]
+}
