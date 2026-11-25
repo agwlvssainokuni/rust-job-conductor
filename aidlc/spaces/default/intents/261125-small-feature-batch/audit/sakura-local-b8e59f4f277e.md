@@ -12080,3 +12080,535 @@
 **Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
 
 ---
+
+## Unit Skipped
+**Timestamp**: 2026-11-25T13:54:51Z
+**Event**: UNIT_SKIPPED
+**Stage**: infrastructure-design
+**Unit**: u4-graph-dot
+**Reason**: u4 は cli の graph の表示(DOT の描画と引数)だけを変え、配布物・CI(ci.yml、release.yml)・実行環境に変更が無い。インフラは既存のまま
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:55:28Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:55:35Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/unit-test-instructions.md
+**Context**: construction > u4-graph-dot > code-generation > unit-test-instructions.md
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-25T13:55:39Z
+**Event**: QUESTION_ASKED
+**Question Id**: ffcd0660
+**Question Type**: plan-approval
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:5facee6f0002506e013ebb2610358b88935ed45002c4d5b19dc569ba44b893ca
+**Stage**: code-generation
+**Unit**: u4-graph-dot
+**Ask Id**: e81c7f2f2072e7ae77e4a69543c2b80a
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: 9e8453e70e83d699916d353a94a485391f6a207f77a9311189542c43c0337508
+**Questions File**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-questions.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T13:55:50Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a224a12665baa43b3
+**Message**: 1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T14:36:42Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: typed
+**Message Id**: 0baabab5
+**Open Questions**: f8c5e6be, 34e612cb, 5532df64, 505e9035, ffcd0660
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-questions.md","entries":{"Plan Approval":"074ac6e9c0d59912"}}
+
+---
+
+## Plan Approval Recorded
+**Timestamp**: 2026-11-25T14:36:48Z
+**Event**: PLAN_APPROVAL_RECORDED
+**Stage**: code-generation
+**Details**: Approve Plan
+**Checkpoint**: plan-approval
+**Plan Target**: unit:u4-graph-dot
+**Intent**: 01a210dc-55e4-720d-8e22-3fc7a6958ac4
+**Directive Epoch**: sha256:df948f2954133ea5386557bbe0b3c336ea3ec067a0b5ab7c742f5694d3d1ac69
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+**Approval Fingerprint**: sha256:v3:1e543f48ce1826db3b85a2d85aa70a2329ae708870f29be606df014d318703df
+**Questions File**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-questions.md
+**Questions SHA-256**: 467b7c17463db67760c81b452597acc7499c44f39a945682f01b343c9edb7d17
+**Prompt SHA-256**: 3aaffe8f941c94dfcde0e08f3d8c2d17afe102d1131702b816ca4c58a37c78da
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Asked By**: engine
+**Person Reply**: 1
+**Message Id**: 0baabab5
+**Unit**: u4-graph-dot
+**Git Name**: agwlvssainokuni
+
+---
+
+## Unit Started
+**Timestamp**: 2026-11-25T14:37:05Z
+**Event**: UNIT_STARTED
+**Stage**: code-generation
+**Unit**: u4-graph-dot
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T14:37:24Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-developer-agent
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-25T14:37:26Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Agent
+**Details**: dispatch of aidlc-developer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T14:37:29Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: afa8f324ee8fb8b2d
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:38:15Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:40:24Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:40:25Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:40:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:40:28Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:40:29Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:43:52Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:43:54Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:43:56Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:43:57Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:43:58Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:44:40Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:44:41Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:45:46Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:45:47Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T14:45:49Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Context**: construction > u4-graph-dot > code-generation > code-generation-plan.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T14:46:21Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a23be0f8183e9693e
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T14:46:48Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T14:46:54Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/source-manifest.json
+**Context**: construction > u4-graph-dot > code-generation > source-manifest.json
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T14:47:06Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-summary.md
+**Context**: construction > u4-graph-dot > code-generation > code-summary.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T14:47:21Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/traceability.json
+**Context**: construction > u4-graph-dot > code-generation > traceability.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T14:47:22Z
+**Event**: SENSOR_FIRED
+**Fire id**: 8eec7119
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T14:47:22Z
+**Event**: SENSOR_PASSED
+**Fire id**: 8eec7119
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-generation-plan.md
+**Duration ms**: 79
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T14:47:22Z
+**Event**: SENSOR_FIRED
+**Fire id**: f51dd4ec
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/unit-test-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_PASSED
+**Fire id**: f51dd4ec
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/unit-test-instructions.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_FIRED
+**Fire id**: 44c4eb18
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_PASSED
+**Fire id**: 44c4eb18
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/code-summary.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_FIRED
+**Fire id**: 81a7653b
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_PASSED
+**Fire id**: 81a7653b
+**Sensor ID**: required-sections
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/traceability.json
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6b9c70cd
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6b9c70cd
+**Sensor ID**: traceability
+**Stage slug**: code-generation
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/code-generation/traceability.json
+**Duration ms**: 82
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Unit**: u2-optional-env-file
+**Checkpoint**: review-receipt
+**Changed**: README.md, crates/cli/src/tests/docs.rs, demo/README.md
+**Recorded**: sha256:4d7e094211eb10ccaaa6b738b3a1728c3abae809d80a9a0e663ba5ba8f916714
+**Current**: sha256:d080c5652ee13d7a51ac28d9acc57349e2e5de08d472c4e4a6ba847ffd5ac738
+**Details**: README.md, crates/cli/src/tests/docs.rs, demo/README.md changed after the optional env file Unit was reviewed; carrying on.
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-25T14:47:23Z
+**Event**: REVIEW_REQUESTED
+**Stage**: code-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u4-graph-dot
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:6e61cd1c4ad213a5c65788358c51b3aa96663d69a2b7e5672f76ad5eff9f1c49
+**Request Id**: review:82545cbcf599a5a5077a21f7c28a92c5
+**Source Fingerprint**: dd61aeff71971f0d72b2741b01cc6e977bdaf205d3281a84e5337270c2c533b4
+**Unit Source Fingerprint**: sha256:dfe095a6de721ec5f4299aa23e554fd005ba88f55e9d9527c12eb197936b81f6
+**Review File**: .aidlc-engine/reviews/code-generation/units/u4-graph-dot/d0dc83cb6f948d1a/1.82545cbcf599a5a5077a21f7c28a92c5.review.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T14:47:29Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviewer-dispatch.json
+**Context**: .aidlc-engine > reviewer-dispatch.json
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T14:47:42Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T14:49:19Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/code-generation/units/u4-graph-dot/d0dc83cb6f948d1a/1.82545cbcf599a5a5077a21f7c28a92c5.review.md
+**Context**: .aidlc-engine > reviews > code-generation > units > u4-graph-dot > d0dc83cb6f948d1a > 1.82545cbcf599a5a5077a21f7c28a92c5.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T14:49:25Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: ab9aa8635bdb9d675
+**Review File Digest**: .aidlc-engine/reviews/code-generation/units/u4-graph-dot/d0dc83cb6f948d1a/1.82545cbcf599a5a5077a21f7c28a92c5.review.md=ce055d1655d9a3223cbfb145d7fabaaafcb9be06c282f81d521c33c4b18199c1
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T14:49:26Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T14:49:29Z
+**Event**: REVIEW_COMPLETED
+**Stage**: code-generation
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u4-graph-dot
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:6e61cd1c4ad213a5c65788358c51b3aa96663d69a2b7e5672f76ad5eff9f1c49
+**Artifact Fingerprint**: sha256:6e61cd1c4ad213a5c65788358c51b3aa96663d69a2b7e5672f76ad5eff9f1c49
+**Request Id**: review:82545cbcf599a5a5077a21f7c28a92c5
+**Request Source Fingerprint**: dd61aeff71971f0d72b2741b01cc6e977bdaf205d3281a84e5337270c2c533b4
+**Source Fingerprint**: dd61aeff71971f0d72b2741b01cc6e977bdaf205d3281a84e5337270c2c533b4
+**Source Listing**: sha256:d22097bca751641ac36635f37b79d4b411ce883b877ed53c531d0ceb8864ca20
+**Unit Source Fingerprint**: sha256:dfe095a6de721ec5f4299aa23e554fd005ba88f55e9d9527c12eb197936b81f6
+**Review Record**: .aidlc-engine/reviews/code-generation/units/u4-graph-dot/d0dc83cb6f948d1a/1.json
+**Review Record Digest**: sha256:80329cb858bd3fc738f4f25dc87851fb9922679f36e5801cfbb891d4d68bc130
+**Testing Contract**: sha256:3789717991ddc007f6cbca5d56d6b2d0b248de4ce1061637170c6787b5bf88e9
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-25T14:49:31Z
+**Event**: UNIT_COMPLETED
+**Stage**: code-generation
+**Unit**: u4-graph-dot
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
