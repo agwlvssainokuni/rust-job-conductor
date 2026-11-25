@@ -139,6 +139,26 @@ fn 既定のリトライとの重なりは_64_で_run_と同じ誤りの文() {
 }
 
 #[test]
+fn unset_env_と_env_や_env_の重なりは_64_で_run_と同じ誤りの文() {
+    // v0.10.0 の U3(BR2.1、BR2.2): 定義の env との重なりと、.env との重なり。
+    let env_conflict = "format_version = 1\n[pipeline]\nname = \"p\"\nunset_env = [\"foo\"]\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\n[job.env]\nFOO = \"x\"\n";
+    let file_conflict = "format_version = 1\n[pipeline]\nname = \"p\"\nenv_file = \"p.env\"\n[[job]]\nid = \"a\"\ncommand = \"echo a\"\nunset_env = [\"FOO\"]\n";
+    for (text, needle) in [(env_conflict, ":4:"), (file_conflict, "p.env:2")] {
+        let mut h = Harness::new(text);
+        std::fs::write(h.dir.path().join("p.env"), "A=1\nFOO=2\n").expect("書ける");
+        let validate = h.run(&["validate"]);
+        assert_eq!(validate.code, 64, "{}", validate.err);
+        assert_eq!(validate.out, "");
+        assert!(validate.err.contains(needle), "{}", validate.err);
+        assert_eq!(validate.err.lines().count(), 1, "{}", validate.err);
+        let run = h.run(&["run", "a"]);
+        assert_eq!(run.code, 64);
+        assert_eq!(validate.err, run.err, "run と同じ文");
+        assert_eq!(h.runtime.run_calls.get(), 0, "ジョブは実行しない");
+    }
+}
+
+#[test]
 fn 正しい定義は_0_で_何も表示せず_ステートにもジョブにもシグナルにも触れない() {
     let mut h = Harness::new(THREE_JOBS);
     let out = h.run(&["validate"]);

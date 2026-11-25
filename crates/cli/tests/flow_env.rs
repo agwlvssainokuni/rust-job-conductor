@@ -16,6 +16,7 @@
 //!
 //! `.env` は、定義ファイルと同じ一時ディレクトリの実ファイルで、読み取りは実際の関数を使う。
 //! ジョブの起動だけが偽で、`run_job` に渡された環境の並びを記録する。
+//! 消す名前(v0.10.0 の U3)は、偽の `Runtime` の `run_unsets` の記録で確かめる。
 
 mod common;
 
@@ -334,6 +335,108 @@ fn 無くてもよいファイルが無ければ_run_と_pipeline_は_0_でそ�
     assert_eq!(value(&env, "LOCAL"), Some("l"));
     assert_eq!(value(&env, "P_FILE"), Some("override"));
     assert_eq!(value(&env, "A_LOCAL"), Some("al"));
+}
+
+// ---- v0.10.0 の U3: 消す名前(`unset_env`)。BR2.2、BR3.1、BR3.2 ----
+
+/// パイプラインとジョブ `a` に `unset_env` を書き、`.env` を共有する定義。
+const DEF_UNSET: &str = r#"format_version = 1
+[pipeline]
+name = "p"
+env_file = "shared.env"
+unset_env = ["HTTP_PROXY"]
+[[job]]
+id = "a"
+command = "echo a"
+unset_env = ["SECRET_TOKEN", "HTTP_PROXY"]
+[[job]]
+id = "b"
+command = "echo b"
+env_file = "b.env"
+"#;
+
+fn unsets_of(h: &Harness) -> Vec<(String, Vec<String>)> {
+    h.runtime.run_unsets.borrow().clone()
+}
+
+#[test]
+fn run_job_に消す名前がパイプラインの次にジョブの順で渡る() {
+    let mut h = Harness::new(DEF_UNSET);
+    put(&h, "shared.env", "S=1\n");
+    put(&h, "b.env", "B=1\n");
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert_eq!(
+        unsets_of(&h),
+        [
+            (
+                "a".to_string(),
+                vec!["HTTP_PROXY".to_string(), "SECRET_TOKEN".to_string()]
+            ),
+            ("b".to_string(), vec!["HTTP_PROXY".to_string()]),
+        ]
+    );
+    // 足す変数は今のまま
+    assert_eq!(value(&env_of(&h, 0), "S"), Some("1"));
+    // unset_env を書かない定義は、空の並びが渡る(BR4.2)
+    let mut h = harness_with_files();
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(unsets_of(&h), [("a".to_string(), Vec::<String>::new())]);
+}
+
+#[test]
+fn env_の名前と消す名前の重なりは_64_で範囲は読み取りの範囲() {
+    let mut h = Harness::new(DEF_UNSET);
+    put(&h, "shared.env", "S=1\n");
+    // b.env の secret_token は、a の消す名前と重なるが、b は a の unset_env の範囲の外
+    put(&h, "b.env", &format!("secret_token={SECRET}\n"));
+    // run a は b.env を読まないので通る
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    // pipeline でも b の消す名前は HTTP_PROXY だけなので通る
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+
+    // shared.env の http_proxy は、a と b の両方の消す名前と重なる(大文字小文字を区別しない)
+    put(&h, "shared.env", &format!("S=1\nhttp_proxy={SECRET}\n"));
+    let calls = h.runtime.run_calls.get();
+    for args in [&["run", "a"][..], &["run", "b"][..], &["pipeline", "p"][..]] {
+        let out = h.run(args);
+        assert_eq!(out.code, 64, "{args:?}: {}", out.err);
+        assert!(out.err.contains("shared.env:2"), "{args:?}: {}", out.err);
+        assert!(!out.err.contains(SECRET), "{}", out.err);
+        assert!(
+            !out.err.to_ascii_lowercase().contains("http_proxy"),
+            "{}",
+            out.err
+        );
+    }
+    assert_eq!(h.runtime.run_calls.get(), calls, "ジョブは起動しない");
+}
+
+#[test]
+fn 同じ_env_を_2_つのジョブが読んで重なっても誤りは_1_つ() {
+    let mut h = Harness::new(DEF_UNSET);
+    put(&h, "shared.env", "HTTP_PROXY=x\n");
+    put(&h, "b.env", "B=1\n");
+    let out = h.run(&["pipeline", "p"]);
+    assert_eq!(out.code, 64, "{}", out.err);
+    let lines = out
+        .err
+        .lines()
+        .filter(|l| l.contains("shared.env:1"))
+        .count();
+    assert_eq!(lines, 1, "{}", out.err);
+    assert!(
+        out.err.contains("the same name is listed in `unset_env`"),
+        "{}",
+        out.err
+    );
+    // 日本語
+    h.env = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
+    let out = h.run(&["pipeline", "p"]);
+    assert!(
+        out.err.contains("`unset_env` の名前と同じ名前があります"),
+        "{}",
+        out.err
+    );
 }
 
 #[test]

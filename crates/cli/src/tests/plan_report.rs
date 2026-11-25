@@ -464,6 +464,97 @@ fn 環境変数の名前は_層の順で_最後に_conductor_の変数() {
     assert!(!text.contains("s3cr3t"), "値は出さない: {text}");
 }
 
+/// 消す名前の行(v0.10.0 の U3。BR4.1)の例。a は消す名前があり、b は無い(今のまま)。
+fn unset_case() -> Case {
+    Case::new(
+        def_text(
+            "unset_env = [\"HTTP_PROXY\"]\n",
+            &format!(
+                "{}{}",
+                job(
+                    "a",
+                    "echo a",
+                    "unset_env = [\"SECRET_TOKEN\", \"HTTP_PROXY\"]\n"
+                ),
+                job("b", "echo b", "")
+            ),
+        ),
+        &["echo a", "echo b"],
+    )
+}
+
+const U1: &str = "\
+計画(--dry-run): パイプライン demo
+再開位置: 最初から
+1. [実行する] a
+     コマンド: [\"echo\", \"a\"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+     消す環境変数: HTTP_PROXY, SECRET_TOKEN
+2. [実行する] b
+     コマンド: [\"echo\", \"b\"]
+     環境変数: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+     消す環境変数: HTTP_PROXY
+結果(模擬): 完了
+";
+
+const U1E: &str = "\
+plan (--dry-run): pipeline demo
+resume: from the start
+1. [run] a
+     command: [\"echo\", \"a\"]
+     env: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+     unset env: HTTP_PROXY, SECRET_TOKEN
+2. [run] b
+     command: [\"echo\", \"b\"]
+     env: CONDUCTOR_PIPELINE, CONDUCTOR_JOB_ID, CONDUCTOR_ATTEMPT
+     unset env: HTTP_PROXY
+result (simulated): completed
+";
+
+#[test]
+fn 消す名前のあるジョブだけ_環境変数の行の後に消す環境変数の行を英日で出す() {
+    let plan = unset_case().pipeline();
+    assert_eq!(render_plan(Language::Ja, &plan), U1);
+    assert_eq!(render_plan(Language::En, &plan), U1E);
+    // ジョブだけに書けば、書いていないジョブ(b)には行を出さない(今のまま)
+    let case = Case::new(
+        def_text(
+            "",
+            &format!(
+                "{}{}",
+                job("a", "echo a", "unset_env = [\"X\"]\n"),
+                job("b", "echo b", "")
+            ),
+        ),
+        &["echo a", "echo b"],
+    );
+    let text = render_plan(Language::En, &case.pipeline());
+    assert_eq!(text.matches("unset env: ").count(), 1, "{text}");
+    assert!(text.contains("     unset env: X\n2. [run] b\n"), "{text}");
+    // run の計画も同じ行を出す
+    let text = render_plan(Language::Ja, &unset_case().run("a"));
+    assert!(
+        text.contains("     消す環境変数: HTTP_PROXY, SECRET_TOKEN\n"),
+        "{text}"
+    );
+}
+
+#[test]
+fn 消す名前の行は実行しないジョブには出さない() {
+    let mut case = unset_case();
+    case.state = Some(state(
+        &[("a", JobStatus::Success), ("b", JobStatus::Pending)],
+        Some("b"),
+        None,
+    ));
+    let text = render_plan(Language::En, &case.pipeline());
+    assert!(
+        text.contains("1. [already executed] a\n2. [run] b"),
+        "{text}"
+    );
+    assert_eq!(text.matches("unset env: ").count(), 1, "{text}");
+}
+
 #[test]
 fn 既定の成功と仮定の成功の見出しの違い() {
     // 指定した成功は、「仮定」と示す。指定のない成功は、補足を付けない。

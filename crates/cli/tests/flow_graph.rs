@@ -94,8 +94,11 @@ fn validate_が_64_になる定義は_graph_も_64_で_図を出さず_同じ誤
     let unclosed = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"echo 'abc\"\n";
     let bad_target = G2.replace("next = \"d\"", "next = \"nowhere\"");
     let env_error = with_job_extra("env_file = [\"missing.env\"]\n");
-    for definition in [unclosed.to_string(), bad_target, env_error] {
+    // v0.10.0 の U3: `.env` の名前と `unset_env` の重なり(BR2.2)。
+    let unset_conflict = with_job_extra("env_file = \"z.env\"\nunset_env = [\"Z_TOKEN\"]\n");
+    for definition in [unclosed.to_string(), bad_target, env_error, unset_conflict] {
         let mut h = Harness::new(&definition);
+        std::fs::write(h.dir.path().join("z.env"), "z_token=1\n").expect("書ける");
         let validate = h.run(&["validate"]);
         assert_eq!(validate.code, 64, "{}", validate.err);
         let graph = h.run(&["graph"]);

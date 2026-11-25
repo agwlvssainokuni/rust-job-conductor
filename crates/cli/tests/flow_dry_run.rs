@@ -362,3 +362,69 @@ fn 無くてもよいファイルが無ければ_dry_run_は_0_でその変数�
     assert!(!out.out.contains("secret-value"), "{}", out.out);
     assert_eq!(h.runtime.run_calls.get(), 0);
 }
+
+/// 消す名前(`unset_env`)を、パイプラインとジョブ a に書いた定義(v0.10.0 の U3)。
+const UNSET_ENV: &str = r#"format_version = 1
+[pipeline]
+name = "p"
+unset_env = ["HTTP_PROXY"]
+[[job]]
+id = "a"
+command = "echo a"
+unset_env = ["SECRET_TOKEN"]
+[[job]]
+id = "b"
+command = "echo b"
+"#;
+
+#[test]
+fn dry_run_は消す名前の行を出し_ジョブを起動しない() {
+    // v0.10.0 の U3 の BR4.1
+    let mut h = Harness::new(UNSET_ENV);
+    let out = h.run(&["pipeline", "p", "--dry-run"]);
+    assert_eq!(out.code, 0, "{}", out.err);
+    assert!(
+        out.out
+            .contains("     unset env: HTTP_PROXY, SECRET_TOKEN\n2. [run] b\n"),
+        "{}",
+        out.out
+    );
+    assert!(
+        out.out
+            .ends_with("     unset env: HTTP_PROXY\nresult (simulated): completed\n"),
+        "{}",
+        out.out
+    );
+    assert_eq!(h.runtime.run_calls.get(), 0);
+    assert!(h.runtime.run_unsets.borrow().is_empty());
+    // 日本語
+    h.env = FakeEnv::with(&[("LANG", "ja_JP.UTF-8")]);
+    let out = h.run(&["run", "a", "--dry-run"]);
+    assert_eq!(out.code, 0, "{}", out.err);
+    assert!(
+        out.out
+            .contains("     消す環境変数: HTTP_PROXY, SECRET_TOKEN\n"),
+        "{}",
+        out.out
+    );
+    // unset_env を書かない定義は、消す名前の行を出さない(今のまま。BR4.2)
+    let mut h = Harness::new(OPTIONAL_ENV);
+    let out = h.run(&["pipeline", "p", "--dry-run"]);
+    assert!(!out.out.contains("unset env"), "{}", out.out);
+}
+
+#[test]
+fn dry_run_も_env_と消す名前の重なりは_64_で計画を出さない() {
+    let text = UNSET_ENV.replace(
+        "[[job]]\nid = \"b\"",
+        "[[job]]\nid = \"b\"\nenv_file = \"b.env\"",
+    );
+    let mut h = Harness::new(&text);
+    std::fs::write(h.dir.path().join("b.env"), "http_proxy=x\n").expect("書ける");
+    let out = h.run(&["pipeline", "p", "--dry-run"]);
+    assert_eq!(out.code, 64, "{}", out.err);
+    assert_eq!(out.out, "");
+    assert!(out.err.contains("b.env:1"), "{}", out.err);
+    // run a の範囲は b.env を読まないので通る
+    assert_eq!(h.run(&["run", "a", "--dry-run"]).code, 0);
+}
