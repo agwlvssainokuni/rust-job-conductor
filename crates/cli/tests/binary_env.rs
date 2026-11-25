@@ -186,6 +186,84 @@ fn validate_は重複キーの警告を標準エラーに出して_0() {
     assert!(!project.state_path().exists());
 }
 
+/// 出力の中の一時ディレクトリのパスを `<DIR>` に置き換える(別のプロジェクトの出力と比べるため)。
+fn normalized(project: &Project, bytes: &[u8]) -> String {
+    let dir = project.dir.path().display().to_string();
+    text(bytes).replace(&dir, "<DIR>")
+}
+
+#[test]
+fn 無くてもよいファイルが無ければ_4_つのコマンドは_0_で出力はそのファイルを書かない定義と同じ() {
+    let names = "T_P T_LOCAL T_JLOCAL";
+    let plain = Project::new(&definition_with("env_file = \"p.env\"\n", "", names));
+    let optional = Project::new(&definition_with(
+        "env_file = [\"p.env\", { path = \"local.env\", required = false }]\n",
+        "env_file = { path = \"nodir/j-local.env\", required = false }\n",
+        names,
+    ));
+    for project in [&plain, &optional] {
+        put(project, "p.env", "T_P=p\n");
+    }
+    for args in [
+        &["run", "show"][..],
+        &["pipeline", "p"][..],
+        &["validate"][..],
+        &["pipeline", "p", "--dry-run"][..],
+    ] {
+        let expected = run_clean(&plain, args);
+        let output = run_clean(&optional, args);
+        let err = text(&output.stderr);
+        assert_eq!(output.status.code(), Some(0), "{args:?}: {err}");
+        assert_eq!(output.status.code(), expected.status.code(), "{args:?}");
+        assert_eq!(
+            normalized(&optional, &output.stdout),
+            normalized(&plain, &expected.stdout),
+            "{args:?}"
+        );
+        assert_eq!(
+            normalized(&optional, &output.stderr),
+            normalized(&plain, &expected.stderr),
+            "{args:?}"
+        );
+        assert!(!err.contains("local.env"), "{args:?}: {err}");
+    }
+    let out = text(&run_clean(&optional, &["run", "show"]).stdout);
+    assert_eq!(value(&out, "T_P").as_deref(), Some("p"));
+    assert_eq!(value(&out, "T_LOCAL"), None);
+    assert_eq!(value(&out, "T_JLOCAL"), None);
+}
+
+#[test]
+fn 無くてもよいファイルでもあって_utf8_でなければ_64_で必ず要るときと同じ表示() {
+    let required = Project::new(&definition_with("env_file = \"local.env\"\n", "", "ANY"));
+    let optional = Project::new(&definition_with(
+        "env_file = { path = \"local.env\", required = false }\n",
+        "",
+        "ANY",
+    ));
+    let mut bytes = format!("A={SECRET}").into_bytes();
+    bytes.push(0xff);
+    for project in [&required, &optional] {
+        std::fs::write(project.dir.path().join("local.env"), &bytes).expect("書ける");
+    }
+    for args in [
+        &["run", "show"][..],
+        &["pipeline", "p"][..],
+        &["validate"][..],
+        &["pipeline", "p", "--dry-run"][..],
+    ] {
+        let expected = run_clean(&required, args);
+        let output = run_clean(&optional, args);
+        let err = normalized(&optional, &output.stderr);
+        assert_eq!(output.status.code(), Some(64), "{args:?}: {err}");
+        assert!(text(&output.stdout).is_empty(), "{args:?}");
+        assert_eq!(err, normalized(&required, &expected.stderr), "{args:?}");
+        assert!(err.contains("local.env"), "{args:?}: {err}");
+        assert!(!err.contains(SECRET), "{args:?}: {err}");
+        assert!(!optional.state_path().exists());
+    }
+}
+
 #[test]
 fn 秘密の値は標準出力_標準エラー_ステートファイルに含まれない() {
     // 値を表示しないジョブ(`exit 3`)で、失敗のステートも書かせる

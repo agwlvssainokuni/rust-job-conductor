@@ -321,3 +321,44 @@ fn run_id_と_remove_on_complete_は併用でき_ステートは読むだけ() {
     let out = h.run(&["pipeline", "p", "--dry-run", "--run-id", ""]);
     assert!(out.out.contains("resume: from the start\n"), "{}", out.out);
 }
+
+/// 無くてもよいファイル(`required = false`)を、`[pipeline]` とジョブに書いた定義(v0.10.0 の BR3.1)。
+const OPTIONAL_ENV: &str = r#"format_version = 1
+[pipeline]
+name = "p"
+env_file = { path = "local.env", required = false }
+[pipeline.env]
+P_ENV = "p"
+[[job]]
+id = "a"
+command = "echo a"
+env_file = [{ path = "a-local.env", required = false }]
+"#;
+
+#[test]
+fn 無くてもよいファイルが無ければ_dry_run_は_0_でその変数の名前を出さない() {
+    let mut h = Harness::new(OPTIONAL_ENV);
+    for args in [
+        &["pipeline", "p", "--dry-run"][..],
+        &["run", "a", "--dry-run"][..],
+    ] {
+        let out = h.run(args);
+        assert_eq!(out.code, 0, "{args:?}: {}", out.err);
+        assert_eq!(out.err, "", "{args:?}");
+        assert!(out.out.contains("P_ENV"), "{}", out.out);
+        assert!(!out.out.contains("LOCAL_NAME"), "{}", out.out);
+        assert!(!out.out.contains("local.env"), "印を付けない: {}", out.out);
+    }
+
+    // 置けば、その名前が出る(値は出ない)
+    std::fs::write(
+        h.dir.path().join("a-local.env"),
+        "LOCAL_NAME=secret-value\n",
+    )
+    .expect("書ける");
+    let out = h.run(&["pipeline", "p", "--dry-run"]);
+    assert_eq!(out.code, 0, "{}", out.err);
+    assert!(out.out.contains("LOCAL_NAME"), "{}", out.out);
+    assert!(!out.out.contains("secret-value"), "{}", out.out);
+    assert_eq!(h.runtime.run_calls.get(), 0);
+}

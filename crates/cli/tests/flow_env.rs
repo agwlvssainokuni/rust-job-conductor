@@ -54,6 +54,17 @@ max = 2
 interval = "1s"
 "#;
 
+/// 無くてもよいファイル(`required = false`)を、`[pipeline]` とジョブに書いた定義(v0.10.0 の BR3.1)。
+const DEF_OPTIONAL: &str = r#"format_version = 1
+[pipeline]
+name = "p"
+env_file = ["p.env", { path = "local.env", required = false }]
+[[job]]
+id = "a"
+command = "echo a"
+env_file = { path = "a-local.env", required = false }
+"#;
+
 fn put(h: &Harness, name: &str, text: &str) {
     std::fs::write(h.dir.path().join(name), text).expect("書ける");
 }
@@ -284,4 +295,58 @@ fn 注入した読み取りの誤りも_64_で値を含まずに表示する() {
     assert!(out.err.contains("y.env:4"), "{}", out.err);
     *h.runtime.env_override.borrow_mut() = Some(Ok(LoadedEnvFiles::new()));
     assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+}
+
+#[test]
+fn 無くてもよいファイルが無ければ_run_と_pipeline_は_0_でその変数は渡らず何も表示しない() {
+    let mut h = Harness::new(DEF_OPTIONAL);
+    put(&h, "p.env", "P_FILE=pf\n");
+    for args in [&["run", "a"][..], &["pipeline", "p"][..]] {
+        let out = h.run(args);
+        assert_eq!(out.code, 0, "{args:?}: {}", out.err);
+        for shown in [&out.out, &out.err] {
+            assert!(!shown.contains("local.env"), "{args:?}: {shown}");
+        }
+    }
+    // 読む対象には、書いた required がそのまま渡る(run と pipeline で同じ入口)
+    let loads = h.runtime.env_loads.borrow().clone();
+    assert_eq!(loads.len(), 2);
+    for refs in &loads {
+        let got: Vec<(&str, bool)> = refs.iter().map(|r| (r.path.as_str(), r.required)).collect();
+        assert_eq!(
+            got,
+            [
+                ("p.env", true),
+                ("local.env", false),
+                ("a-local.env", false)
+            ]
+        );
+    }
+    let env = env_of(&h, 0);
+    assert_eq!(value(&env, "P_FILE"), Some("pf"));
+    assert_eq!(value(&env, "LOCAL"), None);
+
+    // 置けば、その変数が後ろの層として渡る
+    put(&h, "local.env", "LOCAL=l\nP_FILE=override\n");
+    put(&h, "a-local.env", "A_LOCAL=al\n");
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    let env = env_of(&h, 2);
+    assert_eq!(value(&env, "LOCAL"), Some("l"));
+    assert_eq!(value(&env, "P_FILE"), Some("override"));
+    assert_eq!(value(&env, "A_LOCAL"), Some("al"));
+}
+
+#[test]
+fn 同じファイルをどこかで必ず要るとしていれば無いとき_64() {
+    let def = DEF_OPTIONAL.replace(
+        "{ path = \"a-local.env\", required = false }",
+        "[{ path = \"a-local.env\", required = false }, \"local.env\"]",
+    );
+    let mut h = Harness::new(&def);
+    put(&h, "p.env", "P_FILE=pf\n");
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 64, "{}", out.err);
+    assert!(out.err.contains("local.env"), "{}", out.err);
+    assert!(!out.err.contains("a-local.env"), "{}", out.err);
+    assert_eq!(h.runtime.run_calls.get(), 0);
 }
