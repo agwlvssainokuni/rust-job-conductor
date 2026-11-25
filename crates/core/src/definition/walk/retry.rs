@@ -39,6 +39,10 @@ const JOB_RETRY_NOT_TABLE_REASON: &str = "`retry` はテーブルか `false` で
 /// `[pipeline]` の `retry` が表でないときの理由(v0.10.0 の BR1.1)。
 const PIPELINE_RETRY_NOT_TABLE_REASON: &str = "`[pipeline.retry]` はテーブルで書きます";
 
+/// 既定の `exit_codes` と、既定を当てはめるジョブの成功・警告の終了コードが重なるときの理由
+/// (v0.10.0 の BR3.2。値もジョブの ID も入れない)。
+const DEFAULT_OVERLAP_REASON: &str = "既定のリトライ(`[pipeline.retry]`)の `exit_codes` に、このジョブの成功または警告の終了コードと同じ値があります";
+
 /// `[pipeline.retry]`(全ジョブの既定)の読み取り結果(v0.10.0 の BR1.1、BR1.2)。
 ///
 /// 検証の中でだけ持ち、組み立て後の定義には残さない(各ジョブの `retry` に複製して入れる。BR2.4)。
@@ -269,32 +273,38 @@ impl Walker<'_> {
         secs.map(|s| (s, offset))
     }
 
-    /// リトライの設定のうち、ほかの値との関係を見るもの(BR1.7、BR1.13)。
-    pub(super) fn check_retry(&mut self, job: &RawJob) {
-        let JobRetrySetting::Table(retry) = &job.retry else {
-            return;
-        };
-        if let Some((codes, offset)) = &retry.exit_codes {
-            // 成功の終了コードは、省略時は 0 だけ。書いて誤りだったときは、重なりを調べない。
-            let success: Option<&[i32]> = match &job.success {
-                SuccessCodes::Valid(codes) => Some(codes),
-                SuccessCodes::Absent => Some(DEFAULT_SUCCESS_EXIT_CODES),
-                SuccessCodes::Invalid => None,
-            };
-            let overlaps_success = success.is_some_and(|s| codes.iter().any(|c| s.contains(c)));
-            let overlaps_warning = job
-                .warning
-                .as_ref()
-                .is_some_and(|(w, _)| codes.iter().any(|c| w.contains(c)));
-            if overlaps_success || overlaps_warning {
-                self.push(
-                    *offset,
-                    Kind::RetryExitCodesOverlap,
-                    "`exit_codes` に、成功または警告の終了コードと同じ値があります",
-                );
+    /// リトライの設定のうち、ほかの値との関係を見るもの(BR1.7、BR1.13、v0.10.0 の BR3.1〜BR3.4)。
+    ///
+    /// 表のジョブは自分の表と成功・警告の重なりを調べる。`retry` を書かないジョブは、既定の
+    /// `exit_codes` が読めていれば、既定と成功・警告の重なりを調べ、ジョブの表の始まりの位置で報告する。
+    /// `retry = false` のジョブは調べない。
+    pub(super) fn check_retry(&mut self, job: &RawJob, default: Option<&PipelineRetryDefault>) {
+        match &job.retry {
+            JobRetrySetting::Disabled => {}
+            JobRetrySetting::Table(retry) => {
+                if let Some((codes, offset)) = &retry.exit_codes
+                    && overlaps_job_codes(job, codes)
+                {
+                    self.push(
+                        *offset,
+                        Kind::RetryExitCodesOverlap,
+                        "`exit_codes` に、成功または警告の終了コードと同じ値があります",
+                    );
+                }
+                self.check_retry_interval(retry);
+            }
+            JobRetrySetting::Absent => {
+                if let Some((codes, _)) = default.and_then(|d| d.reading.exit_codes.as_ref())
+                    && overlaps_job_codes(job, codes)
+                {
+                    self.push(
+                        job.start,
+                        Kind::RetryExitCodesOverlap,
+                        DEFAULT_OVERLAP_REASON,
+                    );
+                }
             }
         }
-        self.check_retry_interval(retry);
     }
 
     /// 間隔の上限が間隔より小さければ誤り(BR1.13)。ジョブの表と既定の表で共有する。
@@ -310,6 +320,24 @@ impl Walker<'_> {
             );
         }
     }
+}
+
+/// リトライの `exit_codes` が、ジョブの成功または警告の終了コードと重なるか(BR1.7、v0.10.0 の BR3.1)。
+///
+/// 成功の終了コードは、省略時は 0 だけ。書いて誤りだったときは、成功との重なりを調べない
+/// (警告との重なりは調べる。v0.10.0 の BR3.4)。
+fn overlaps_job_codes(job: &RawJob, codes: &[i32]) -> bool {
+    let success: Option<&[i32]> = match &job.success {
+        SuccessCodes::Valid(codes) => Some(codes),
+        SuccessCodes::Absent => Some(DEFAULT_SUCCESS_EXIT_CODES),
+        SuccessCodes::Invalid => None,
+    };
+    let overlaps_success = success.is_some_and(|s| codes.iter().any(|c| s.contains(c)));
+    let overlaps_warning = job
+        .warning
+        .as_ref()
+        .is_some_and(|(w, _)| codes.iter().any(|c| w.contains(c)));
+    overlaps_success || overlaps_warning
 }
 
 /// 読み取り結果から `RetryPolicy` を組み立てる(値は移す)。値が欠けていれば `None`。

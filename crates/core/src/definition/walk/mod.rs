@@ -91,6 +91,8 @@ enum SuccessCodes {
 }
 
 struct RawJob {
+    /// ジョブの表(`[[job]]`)の始まりの位置(既定との重なりの誤りの位置。v0.10.0 の BR3.2)。
+    start: usize,
     id: Option<(String, usize)>,
     command: Option<Command>,
     warning: Option<(Vec<i32>, usize)>,
@@ -400,6 +402,7 @@ impl<'a> Walker<'a> {
     fn job(&mut self, value: &Spanned<DeValue<'_>>) -> RawJob {
         let start = value.span().start;
         let mut raw = RawJob {
+            start,
             id: None,
             command: None,
             warning: None,
@@ -432,8 +435,9 @@ impl<'a> Walker<'a> {
         raw
     }
 
-    /// ジョブごとの検査のうち、ほかのジョブとの関係を見るもの(ID、遷移先、終了コード)。
-    fn cross_check(&mut self, jobs: &[RawJob]) {
+    /// ジョブごとの検査のうち、ほかのジョブとの関係を見るもの(ID、遷移先、終了コード、
+    /// 既定のリトライとの重なり)。
+    fn cross_check(&mut self, jobs: &[RawJob], retry_default: Option<&PipelineRetryDefault>) {
         // ジョブIDの検査と、一意の索引
         let mut index: HashMap<&str, usize> = HashMap::new();
         for (i, job) in jobs.iter().enumerate() {
@@ -482,7 +486,7 @@ impl<'a> Walker<'a> {
                 }
             }
             self.check_exit_codes(job);
-            self.check_retry(job);
+            self.check_retry(job, retry_default);
         }
     }
 
@@ -564,7 +568,7 @@ pub fn walk(
             }
         },
     };
-    w.cross_check(&raw_jobs);
+    w.cross_check(&raw_jobs, retry_default.as_ref());
 
     // 既定のリトライを 1 度だけ組み立てる。書いていなければ `Some(None)`、書いたのに値が欠けていれば
     // `None`(定義を組み立てない。v0.10.0 の BR2.2)。
