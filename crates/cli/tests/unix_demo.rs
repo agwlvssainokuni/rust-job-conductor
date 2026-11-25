@@ -96,6 +96,21 @@ fn assert_demo_output(output: &Output) {
     );
     // 場面 4: 完了してもステートは残り、watch が完了を示す。--remove-on-complete で消える
     assert!(out.contains("\ncompleted\n"), "{out}");
+    // 場面 4: watch --follow は完了したステートを 1 回描いて 0 で終わる(v0.10.0 の U7)。
+    // デモの標準出力はパイプなので、画面を消す制御の文字は出ない。
+    let scene4 = &out[out.find("=== 4. ").expect("場面 4")..out.find("=== 5. ").expect("場面 5")];
+    let follow = &scene4[scene4
+        .find("watch --follow\u{1b}[0m\n")
+        .expect("watch --follow")..];
+    let code_at = follow.find("→ 終了コード").expect("終了コード");
+    assert!(
+        follow[code_at..].starts_with("→ 終了コード 0\u{1b}[0m\n"),
+        "{follow}"
+    );
+    let follow = &follow[..code_at];
+    assert_eq!(follow.matches("Pipeline: nightly\n").count(), 1, "{follow}");
+    assert!(follow.contains("\ncompleted\n"), "{follow}");
+    assert!(!follow.contains("\u{1b}[H"), "{follow:?}");
     assert!(out.contains("--remove-on-complete nightly"), "{out}");
     // 場面 8: run ID ごとにステートが分かれる
     assert!(out.contains("Run ID: build-1"), "{out}");

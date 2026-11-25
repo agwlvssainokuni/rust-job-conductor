@@ -94,6 +94,10 @@ call :runcmd pipeline -v nightly
 echo.
 echo 完了しても、ステートは残る。watch は、表の下に「完了」を示す行を出す:
 call :runcmd watch
+echo.
+echo watch --follow は、表を描き直し続け、完了か止まったのを見ると自分で終わる^(v0.10.0 以降。Ctrl-C でも終わる^)。
+echo Windows では画面を消さずに、空の 1 行を置いて追記する。ここは完了したステートなので、1 回描いてすぐに終わる:
+call :runcmd watch --follow
 call :states
 echo.
 echo --remove-on-complete を付けると、完了でステートファイルを消す^(次に watch すると、ステートはない^):

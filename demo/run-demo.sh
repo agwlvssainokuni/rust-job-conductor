@@ -90,6 +90,10 @@ cmd "$CONDUCTOR" pipeline -v nightly
 echo
 echo "完了しても、ステートは残る。watch は、表の下に「完了」を示す行を出す:"
 cmd "$CONDUCTOR" watch
+echo
+echo "watch --follow は、表を描き直し続け、完了か止まったのを見ると自分で終わる(v0.10.0 以降。Ctrl-C でも終わる)。"
+echo "端末では画面を消してから描く。ここは完了したステートなので、1 回描いてすぐに終わる:"
+cmd "$CONDUCTOR" watch --follow
 states
 echo
 echo "--remove-on-complete を付けると、完了でステートファイルを消す(次に watch すると、ステートはない):"

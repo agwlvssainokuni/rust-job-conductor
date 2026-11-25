@@ -180,6 +180,13 @@ fn 場面_3_と_4_load_の失敗は_2_で_watch_に所要時間が出て_再実�
         "{}",
         text(&watch.stdout)
     );
+    // watch --follow は完了したステートを 1 回描いて 0 で終わる。Windows は画面を消さない(v0.10.0 の U7)。
+    let follow = demo.run(&["watch", "--follow"], &[]);
+    assert_eq!(follow.status.code(), Some(0), "{}", text(&follow.stderr));
+    let shown = text(&follow.stdout);
+    assert_eq!(shown.matches("Pipeline: nightly").count(), 1, "{shown}");
+    assert!(shown.trim_end().ends_with("completed"), "{shown}");
+    assert!(!shown.contains('\x1b'), "{shown:?}");
 
     // --remove-on-complete を付けると、完了でステートファイルを消す
     let removed = demo.run(&["pipeline", "-v", "--remove-on-complete", "nightly"], &[]);
