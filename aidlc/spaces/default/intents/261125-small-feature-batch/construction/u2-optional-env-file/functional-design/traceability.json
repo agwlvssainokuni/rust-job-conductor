@@ -1,0 +1,13 @@
+{
+  "stage": "functional-design",
+  "unit": "u2-optional-env-file",
+  "upstream_ids": ["FR2.1", "FR2.2", "FR2.3", "FR2.4", "FR2.5", "FR8.1"],
+  "coverage": [
+    { "id": "FR2.1", "status": "OK", "target": "BR1.1, BR1.2" },
+    { "id": "FR2.2", "status": "OK", "target": "BR2.1, BR2.2, BR2.3" },
+    { "id": "FR2.3", "status": "OK", "target": "BR2.4" },
+    { "id": "FR2.4", "status": "OK", "target": "BR1.3, BR2.5, BR4.1" },
+    { "id": "FR2.5", "status": "OK", "target": "BR3.1" },
+    { "id": "FR8.1", "status": "OK", "target": "BR4.2" }
+  ]
+}
