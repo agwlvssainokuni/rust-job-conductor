@@ -40,8 +40,23 @@ pub struct PipelineDefinition {
     pub job: Vec<JobDefinition>,
     /// `[pipeline.env]` の内容。書いた順を保つ(FR1.1)。
     pub env: Vec<EnvVar>,
-    /// `[pipeline].env_file` の内容。書いた順を保つ。文字列 1 つは要素 1 つの並びにする(FR1.4)。
-    pub env_file: Vec<String>,
+    /// `[pipeline].env_file` の内容。書いた順を保つ。項目 1 つは要素 1 つの並びにする(FR1.4)。
+    /// 文字列の項目は `required = true` の [`EnvFileRef`] になる(v0.10.0 の BR1.1、BR1.3)。
+    pub env_file: Vec<EnvFileRef>,
+}
+
+/// 定義の `env_file` の 1 項目(v0.10.0 の BR1.1〜BR1.3。契約 C1)。
+///
+/// 文字列 `"a.env"` は `{ path = "a.env", required = true }` と同じ。表 `{ path, required }` は
+/// `required` を省くと `true`。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnvFileRef {
+    /// 書いたパスの文字列(空でない。BR1.2)。相対なら定義ファイルのディレクトリが基準。
+    /// `~` と変数は展開しない。
+    pub path: String,
+    /// ファイルが必ず要るか(BR1.3)。`false` なら、無いときは黙って読み飛ばす(BR2.3)。
+    /// あって読めないときは、`required` によらず誤り(BR2.4)。
+    pub required: bool,
 }
 
 /// 定義の `env` の表の 1 項目(名前と値)。値は秘密として扱い、`Debug` は伏せ字にする(BR8.1)。
@@ -97,8 +112,8 @@ pub struct JobDefinition {
     pub retry: Option<RetryPolicy>,
     /// `[job.env]` の内容。書いた順を保つ(FR1.1)。
     pub env: Vec<EnvVar>,
-    /// `[job].env_file` の内容。書いた順を保つ(FR1.4)。
-    pub env_file: Vec<String>,
+    /// `[job].env_file` の内容。書いた順を保つ(FR1.4。項目は v0.10.0 の BR1.1〜BR1.3)。
+    pub env_file: Vec<EnvFileRef>,
 }
 
 /// ジョブのリトライの設定(`[job.retry]` または `[pipeline.retry]`。BR1.1〜BR1.13、FR1.1〜FR1.9)。

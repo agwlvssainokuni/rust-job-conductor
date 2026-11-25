@@ -25,14 +25,14 @@
 mod merge;
 mod parse;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
 
 use thiserror::Error;
 
 use crate::error::render_error;
 use crate::run_id::env_name_rule;
-use crate::types::PipelineDefinition;
+use crate::types::{EnvFileRef, PipelineDefinition};
 
 pub use merge::merge_env;
 pub(crate) use merge::merge_env_names;
@@ -289,23 +289,28 @@ impl EffectiveEnv {
     }
 }
 
-/// 読む対象の `env_file` の記述の一覧を作る(BR6.1)。
+/// 読む対象の `env_file` の記述の一覧を作る(BR6.1。v0.10.0 の BR2.1)。
 ///
 /// `job_id` が `None` なら `[pipeline].env_file` とすべてのジョブの `env_file`(`pipeline`、`validate`)、
-/// `Some` なら `[pipeline].env_file` とそのジョブの分(`run`)。同じ記述は 1 つにまとめ、書いた順を保つ。
-pub fn env_file_refs(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<String> {
+/// `Some` なら `[pipeline].env_file` とそのジョブの分(`run`)。同じパスの文字列は 1 つにまとめ、
+/// 書いた順を保つ。まとめるときは `required` を論理和にする(どれか 1 つでも必ず要るなら必ず要る)。
+pub fn env_file_refs(def: &PipelineDefinition, job_id: Option<&str>) -> Vec<EnvFileRef> {
     let jobs = def
         .job
         .iter()
         .filter(|job| job_id.is_none_or(|id| id == job.id))
         .map(|job| &job.env_file);
-    let mut out: Vec<String> = Vec::new();
-    // 見た記述(記述の数に比例する時間で、重複を除く)。
-    let mut seen: HashSet<&str> = HashSet::new();
+    let mut out: Vec<EnvFileRef> = Vec::new();
+    // 見たパスの文字列 → `out` の位置(記述の数に比例する時間で、重複を除き required をまとめる)。
+    let mut seen: HashMap<&str, usize> = HashMap::new();
     for refs in std::iter::once(&def.env_file).chain(jobs) {
         for r in refs {
-            if seen.insert(r.as_str()) {
-                out.push(r.clone());
+            match seen.get(r.path.as_str()) {
+                Some(&i) => out[i].required |= r.required,
+                None => {
+                    seen.insert(r.path.as_str(), out.len());
+                    out.push(r.clone());
+                }
             }
         }
     }

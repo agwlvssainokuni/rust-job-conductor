@@ -30,7 +30,7 @@ use std::sync::Arc;
 use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntime, run_cli_with};
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, EnvFileError, ExecutionResult, JobExecution, JobStatus,
+    Command, DefinitionError, EnvFileError, EnvFileRef, ExecutionResult, JobExecution, JobStatus,
     LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
@@ -140,7 +140,7 @@ pub struct ScriptedRuntime {
     /// `wait` の N 回目(0 始まり)で、合図(番号)を立てて `Interrupted` を返す。
     pub interrupt_wait: Cell<Option<(usize, i32)>>,
     /// `load_env_files` に渡された `env_file` の記述(呼び出しごと)。
-    pub env_loads: RefCell<Vec<Vec<String>>>,
+    pub env_loads: RefCell<Vec<Vec<EnvFileRef>>>,
     /// `.env` の読み取りの結果を、実際の読み取りの代わりに返す(誤りの注入)。
     pub env_override: RefCell<Option<Result<LoadedEnvFiles, Vec<EnvFileError>>>>,
     /// `run_job` に渡された、(ジョブID、足す環境の並び)。起動のたびに記録する。
@@ -233,7 +233,7 @@ impl Runtime for ScriptedRuntime {
     fn load_env_files(
         &self,
         definition_path: &Path,
-        refs: &[String],
+        refs: &[EnvFileRef],
     ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
         self.push("load-env");
         self.env_loads.borrow_mut().push(refs.to_vec());
@@ -637,7 +637,7 @@ impl Runtime for MemRuntime {
     fn load_env_files(
         &self,
         _definition_path: &Path,
-        _refs: &[String],
+        _refs: &[EnvFileRef],
     ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
         Ok(LoadedEnvFiles::new())
     }

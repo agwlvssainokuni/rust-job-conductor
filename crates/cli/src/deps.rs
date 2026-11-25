@@ -27,8 +27,8 @@ use std::sync::Arc;
 
 use conductor_converter::{ConversionError, ConversionRequest, TargetFormat};
 use conductor_core::{
-    Command, DefinitionError, EnvFileError, JobExecution, LoadedEnvFiles, PipelineDefinition,
-    PipelineState, RunId,
+    Command, DefinitionError, EnvFileError, EnvFileRef, JobExecution, LoadedEnvFiles,
+    PipelineDefinition, PipelineState, RunId,
 };
 use conductor_runtime::{
     CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
@@ -85,11 +85,12 @@ pub trait Runtime {
     ) -> Result<PipelineDefinition, Vec<DefinitionError>>;
     /// command を、起動せずに検査する(`check_command`)。
     fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError>;
-    /// `env_file` の `.env` を読む(`load_env_files`。BR1.7、BR3.x、BR6.4)。
+    /// `env_file` の `.env` を読む(`load_env_files`。BR1.7、BR3.x、BR6.4。無くてもよいファイルは
+    /// v0.10.0 の BR2.2〜BR2.5)。
     fn load_env_files(
         &self,
         definition_path: &Path,
-        refs: &[String],
+        refs: &[EnvFileRef],
     ) -> Result<LoadedEnvFiles, Vec<EnvFileError>>;
     /// ジョブを、分割済みのコマンド `line` で、`env` を足した環境で起動し、終了を待つ(`run_job`。BR2.2)。
     fn run_job(
@@ -167,7 +168,7 @@ impl Runtime for SystemRuntime {
     fn load_env_files(
         &self,
         definition_path: &Path,
-        refs: &[String],
+        refs: &[EnvFileRef],
     ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
         conductor_runtime::load_env_files(definition_path, refs)
     }

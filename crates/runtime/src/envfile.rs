@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 
 use conductor_core::envfile::MAX_ENV_FILE_BYTES;
 use conductor_core::{
-    EnvFileContent, EnvFileError, EnvFileErrorKind, LoadedEnvFiles, parse_env_file,
+    EnvFileContent, EnvFileError, EnvFileErrorKind, EnvFileRef, LoadedEnvFiles, parse_env_file,
 };
 
 use crate::bounded_read::{ReadFailure, read_regular_file};
@@ -34,7 +34,7 @@ use crate::bounded_read::{ReadFailure, read_regular_file};
 /// - 無い、読めない、1 MiB を超える、UTF-8 でない、書式の誤りは、すべて集めて返す。
 pub fn load_env_files(
     definition_path: &Path,
-    refs: &[String],
+    refs: &[EnvFileRef],
 ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
     let base = definition_path.parent().unwrap_or_else(|| Path::new(""));
     let mut loaded = LoadedEnvFiles::new();
@@ -42,7 +42,10 @@ pub fn load_env_files(
     // 解決済みのパス → 読み取った内容の位置(読めなかったパスは `None`。誤りを重複して報告しない)
     let mut seen: Vec<(PathBuf, Option<usize>)> = Vec::new();
 
-    for reference in refs {
+    for EnvFileRef {
+        path: reference, ..
+    } in refs
+    {
         let resolved = resolve(base, reference);
         let known = seen.iter().find(|(p, _)| *p == resolved).map(|(_, i)| *i);
         let index = match known {

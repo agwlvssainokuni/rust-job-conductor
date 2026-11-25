@@ -16,14 +16,22 @@
 
 use std::path::Path;
 
-use conductor_core::{EnvFileError, EnvFileErrorKind as K};
+use conductor_core::{EnvFileError, EnvFileErrorKind as K, EnvFileRef};
 use conductor_runtime::load_env_files;
 
 const SECRET: &str = "s3cr3t-VALUE-do-not-print";
 const MAX: usize = 1_048_576;
 
-fn refs(items: &[&str]) -> Vec<String> {
-    items.iter().map(|s| s.to_string()).collect()
+/// 必ず要る(`required = true`)項目の並び。
+fn refs(items: &[&str]) -> Vec<EnvFileRef> {
+    items.iter().map(|s| env_ref(s, true)).collect()
+}
+
+fn env_ref(path: &str, required: bool) -> EnvFileRef {
+    EnvFileRef {
+        path: path.to_string(),
+        required,
+    }
 }
 
 fn kinds(errors: &[EnvFileError]) -> Vec<(Option<usize>, K)> {

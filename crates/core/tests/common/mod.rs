@@ -23,8 +23,8 @@ use std::time::Duration;
 use conductor_core::DefinitionErrorKind as K;
 use conductor_core::envfile::{EnvFileContent, LoadedEnvFiles};
 use conductor_core::{
-    Command, JobDefinition, JobExecution, JobState, JobStatus, PipelineState, SkipReason,
-    parse_definition,
+    Command, EnvFileRef, JobDefinition, JobExecution, JobState, JobStatus, PipelineState,
+    SkipReason, parse_definition,
 };
 
 /// `.env` の内容を足し、定義に書かれた文字列 `reference` から引けるようにする(本番の読み取りと
@@ -32,6 +32,19 @@ use conductor_core::{
 pub fn add_env_file(files: &mut LoadedEnvFiles, reference: &str, content: EnvFileContent) {
     let index = files.push_file(content);
     files.link(reference, index);
+}
+
+/// `env_file` の 1 項目(パスと required)。
+pub fn env_ref(path: &str, required: bool) -> EnvFileRef {
+    EnvFileRef {
+        path: path.to_string(),
+        required,
+    }
+}
+
+/// `env_file` の項目の並びから、パスの文字列だけを取り出す。
+pub fn paths(refs: &[EnvFileRef]) -> Vec<&str> {
+    refs.iter().map(|r| r.path.as_str()).collect()
 }
 
 /// 誤りの文やステートに現れてはいけない、秘密の値(NFR4.6)。

@@ -163,9 +163,12 @@ fn readme_の例の定義と_env_を実際の読み取りと解析に通せる()
     let path = dir.path().join("conductor.toml");
     std::fs::write(&path, example).expect("書ける");
     let def = conductor_core::load_definition(Some(&path), None).expect("誤りなく読める");
-    assert_eq!(def.env_file, [".env"]);
+    let paths = |refs: &[conductor_core::EnvFileRef]| -> Vec<String> {
+        refs.iter().map(|r| r.path.clone()).collect()
+    };
+    assert_eq!(paths(&def.env_file), [".env"]);
     assert_eq!(def.env[0].name, "TZ");
-    assert_eq!(def.job[0].env_file, ["extract.env", "secret.env"]);
+    assert_eq!(paths(&def.job[0].env_file), ["extract.env", "secret.env"]);
     assert_eq!(def.job[0].env[0].name, "LOG_LEVEL");
 
     let dotenv = block_after_heading(&text, ENV_HEADING, "text");

@@ -16,7 +16,7 @@
 
 mod common;
 
-use common::{SECRET, add_env_file};
+use common::{SECRET, add_env_file, paths};
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvFileContent, LoadedEnvFiles, PipelineDefinition, env_file_refs,
     merge_env, parse_definition, parse_env_file,
@@ -187,15 +187,15 @@ env_file = [\"b.env\", \"shared.env\", \"a.env\"]
 fn 読む対象の一覧は_pipeline_が全ジョブ_run_が_1_ジョブで重複を除く() {
     let d = def(MULTI);
     assert_eq!(
-        env_file_refs(&d, None),
+        paths(&env_file_refs(&d, None)),
         ["p.env", "shared.env", "a.env", "b.env"]
     );
     assert_eq!(
-        env_file_refs(&d, Some("a")),
+        paths(&env_file_refs(&d, Some("a"))),
         ["p.env", "shared.env", "a.env"]
     );
     assert_eq!(
-        env_file_refs(&d, Some("b")),
+        paths(&env_file_refs(&d, Some("b"))),
         ["p.env", "shared.env", "b.env", "a.env"]
     );
     assert!(

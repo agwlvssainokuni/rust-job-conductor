@@ -39,8 +39,8 @@ use crate::definition::version::VERSION_KEY;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
 use crate::types::{
-    Classification, Command, EnvVar, JobDefinition, PipelineDefinition, RetryPolicy, Transition,
-    TransitionOn, TransitionTarget,
+    Classification, Command, EnvFileRef, EnvVar, JobDefinition, PipelineDefinition, RetryPolicy,
+    Transition, TransitionOn, TransitionTarget,
 };
 use retry::{JobRetrySetting, PipelineRetryDefault, build_retry};
 
@@ -76,7 +76,7 @@ struct PipelineHead {
     run_id_env: Option<String>,
     remove_on_complete: bool,
     env: Vec<EnvVar>,
-    env_file: Vec<String>,
+    env_file: Vec<EnvFileRef>,
 }
 
 struct RawTransition {
@@ -105,7 +105,7 @@ struct RawJob {
     /// ジョブの `retry`(無し・`false`・表。v0.10.0 の BR2.1)。
     retry: JobRetrySetting,
     env: Vec<EnvVar>,
-    env_file: Vec<String>,
+    env_file: Vec<EnvFileRef>,
     /// 構造の誤りがなく、定義に組み立てられるか。
     complete: bool,
 }

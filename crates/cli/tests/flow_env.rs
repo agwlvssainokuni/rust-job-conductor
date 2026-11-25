@@ -103,10 +103,13 @@ fn run_は_pipeline_の_env_file_とそのジョブの分だけを読む() {
     std::fs::remove_file(h.dir.path().join("b.env")).expect("消せる");
     let out = h.run(&["run", "a"]);
     assert_eq!(out.code, 0, "b.env が無くても a は動く: {}", out.err);
-    assert_eq!(
-        h.runtime.env_loads.borrow().as_slice(),
-        [vec!["p.env".to_string(), "a.env".to_string()]]
-    );
+    let loads = h.runtime.env_loads.borrow();
+    let paths: Vec<Vec<&str>> = loads
+        .iter()
+        .map(|refs| refs.iter().map(|r| r.path.as_str()).collect())
+        .collect();
+    assert_eq!(paths, [vec!["p.env", "a.env"]]);
+    drop(loads);
     let env = env_of(&h, 0);
     assert_eq!(value(&env, "P_FILE"), Some("pf"));
     assert_eq!(value(&env, "A_FILE"), Some("af"));

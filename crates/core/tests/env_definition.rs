@@ -16,7 +16,7 @@
 
 mod common;
 
-use common::{SECRET, kinds};
+use common::{SECRET, env_ref, kinds, paths};
 use conductor_core::{DefinitionErrorKind as K, PipelineDefinition, parse_definition};
 
 fn parse(text: &str) -> Result<PipelineDefinition, Vec<(K, String)>> {
@@ -51,17 +51,20 @@ fn 正しい_env_と_env_file_を書いた順に読める() {
     );
     assert_eq!(d.env[1].value, "two words");
     assert_eq!(d.env[2].value, "");
-    assert_eq!(d.env_file, [".env"]);
-    assert_eq!(d.job[0].env_file, ["a.env", "b.env"]);
+    assert_eq!(paths(&d.env_file), [".env"]);
+    assert_eq!(paths(&d.job[0].env_file), ["a.env", "b.env"]);
     assert_eq!(d.job[0].env[0].name, "J");
 }
 
 #[test]
 fn env_file_は文字列も配列も空の配列も受け付ける() {
-    assert_eq!(ok(&def("env_file = \"x.env\"\n", "")).env_file, ["x.env"]);
+    assert_eq!(
+        ok(&def("env_file = \"x.env\"\n", "")).env_file,
+        [env_ref("x.env", true)]
+    );
     assert_eq!(
         ok(&def("env_file = [\"x.env\", \"y.env\"]\n", "")).env_file,
-        ["x.env", "y.env"]
+        [env_ref("x.env", true), env_ref("y.env", true)]
     );
     assert!(ok(&def("env_file = []\n", "")).env_file.is_empty());
 }

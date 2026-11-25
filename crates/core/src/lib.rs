@@ -112,7 +112,7 @@ pub use plan::{
 };
 pub use run_id::{DEFAULT_RUN_ID_ENV, RunId, RunIdError, peek_run_id_env};
 pub use types::{
-    Backoff, Classification, Command, Decision, EnvVar, ExecutionResult, JobDefinition,
+    Backoff, Classification, Command, Decision, EnvFileRef, EnvVar, ExecutionResult, JobDefinition,
     JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState,
     RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition,
     TransitionOn, TransitionTarget,

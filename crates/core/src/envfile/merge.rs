@@ -17,7 +17,7 @@
 use std::collections::HashMap;
 
 use super::{EffectiveEntry, EffectiveEnv, EnvContext, LoadedEnvFiles};
-use crate::types::{EnvVar, JobDefinition, PipelineDefinition};
+use crate::types::{EnvFileRef, EnvVar, JobDefinition, PipelineDefinition};
 
 /// 層を、後ろが勝つ順(`[pipeline].env_file` < `[pipeline.env]` < `[job].env_file` < `[job.env]`
 /// < 自動の変数)に重ねて、ジョブに足す環境を作る。引き継いだ環境は含めない(BR4.1、BR4.4)。
@@ -125,9 +125,11 @@ fn collect_vars<'a>(items: &mut Vec<Item<'a>>, vars: &'a [EnvVar]) {
     }
 }
 
-fn collect_files<'a>(items: &mut Vec<Item<'a>>, refs: &[String], files: &'a LoadedEnvFiles) {
+/// `env_file` の記述ごとに、読み取った内容をパスの文字列で引いて並べる。引けない記述(無くてもよい
+/// ファイルが無かったものを含む)は、何も足さない(v0.10.0 の BR2.3)。
+fn collect_files<'a>(items: &mut Vec<Item<'a>>, refs: &[EnvFileRef], files: &'a LoadedEnvFiles) {
     for r in refs {
-        if let Some(content) = files.get(r) {
+        if let Some(content) = files.get(&r.path) {
             for e in &content.entries {
                 items.push((&e.name, &e.value));
             }

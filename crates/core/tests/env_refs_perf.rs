@@ -22,9 +22,9 @@ mod common;
 
 use std::time::{Duration, Instant};
 
-use common::median;
+use common::{env_ref, median};
 use conductor_core::envfile::MAX_ENV_ENTRIES;
-use conductor_core::{env_file_refs, parse_definition};
+use conductor_core::{EnvFileRef, PipelineDefinition, env_file_refs, parse_definition};
 
 const SAMPLES: usize = 5;
 /// P3 の上限(debug。直した後の見積もり約 7 ms の約 5 倍を丸めた。D9)。
@@ -32,13 +32,10 @@ const LIMIT: Duration = Duration::from_millis(40);
 
 #[test]
 fn p3_一万個の_env_file_の記述の一覧は_40ms_以内() {
-    let refs: Vec<String> = (0..MAX_ENV_ENTRIES).map(|i| format!("e{i}.env")).collect();
-    let mut definition = parse_definition(
-        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n",
-        "t.toml",
-        None,
-    )
-    .expect("正しい定義");
+    let refs: Vec<EnvFileRef> = (0..MAX_ENV_ENTRIES)
+        .map(|i| env_ref(&format!("e{i}.env"), true))
+        .collect();
+    let mut definition = empty_definition();
     definition.env_file = refs.clone();
     definition.job[0].env_file = refs.clone();
 
@@ -59,11 +56,21 @@ fn p3_一万個の_env_file_の記述の一覧は_40ms_以内() {
     assert_eq!(last.expect("作った"), refs);
     assert_eq!(env_file_refs(&definition, Some("a")), refs);
     // ジョブの記述に新しい 1 個を足すと、末尾に 1 個増える。
-    definition.job[0].env_file.push("new.env".into());
+    definition.job[0].env_file.push(env_ref("new.env", true));
     let out = env_file_refs(&definition, Some("a"));
     assert_eq!(out.len(), MAX_ENV_ENTRIES + 1);
-    assert_eq!(out.last().map(String::as_str), Some("new.env"));
+    assert_eq!(out.last(), Some(&env_ref("new.env", true)));
     assert_eq!(out[..MAX_ENV_ENTRIES], refs[..]);
 
     assert!(m < LIMIT, "中央値 {m:?} が上限 {LIMIT:?} を超えた");
+}
+
+/// ジョブが 1 つ(`a`)で、`env_file` を書いていない定義。
+fn empty_definition() -> PipelineDefinition {
+    parse_definition(
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n",
+        "t.toml",
+        None,
+    )
+    .expect("正しい定義")
 }
