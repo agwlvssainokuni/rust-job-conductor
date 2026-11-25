@@ -14621,3 +14621,356 @@
 **Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:328d3e3d4a679fa3c6865c03355a7727d5e51e94af384eaf3026068201a9963a","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:eae277cb96793b7a7b7fa09f9e80392216304362231624380f4fcc62384c66ec"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/code-generation/code-generation-plan.md","id":"R-02","fingerprint":"sha256:00a79cbedd9cf5ce1541fc8b800b731fa63bb698e9ad19b0353e2b972f12d2cc","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:eae277cb96793b7a7b7fa09f9e80392216304362231624380f4fcc62384c66ec"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:ed71021d0dc972974c6bdbe1218285dae84dad23624275f1e7c93564929ad098","status":"Approved autonomously","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:60d963de0554bdbc51365cd9f07ba5c68dc60fb1cbc0421697fb1170a2f7fea6"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:87cb48fb1c2f3aa61e32f648d48f30fdd02e1c4016170f3da1ae81a2b1899559","status":"Approved autonomously","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:60d963de0554bdbc51365cd9f07ba5c68dc60fb1cbc0421697fb1170a2f7fea6"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:d35de987b9412a3bce8a21427bd7db458c4f6e6ad5d6679b15e2c2634e6f4e2f","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:60d963de0554bdbc51365cd9f07ba5c68dc60fb1cbc0421697fb1170a2f7fea6"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/functional-design/functional-spec.md","id":"R-04","fingerprint":"sha256:b905767d56f68077557a90aabb9150bfb5b4de08b5b474cc77c86ae841719617","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:60d963de0554bdbc51365cd9f07ba5c68dc60fb1cbc0421697fb1170a2f7fea6"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:8b7e3bb043bb4ab1a46fff22598bff6a29a73b984ec0e263596f7214fe5bd6ca","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:60d963de0554bdbc51365cd9f07ba5c68dc60fb1cbc0421697fb1170a2f7fea6"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/nfr-design/security-design.md","id":"R-01","fingerprint":"sha256:d7646fc85b2da64bcbc2c6591fd68afb5388a909053c7b6b096d866c41a83fd3","status":"Approved autonomously","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:e340a1e80cdae1fb410bc8045388caee7a1ac0a92764a8097f6416f066a49a9d"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/nfr-design/security-design.md","id":"R-02","fingerprint":"sha256:18648605b9df61bc7809baeebbc4299dca36a69a12aaa120148b1d25dba412e5","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:e340a1e80cdae1fb410bc8045388caee7a1ac0a92764a8097f6416f066a49a9d"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/nfr-design/security-design.md","id":"R-03","fingerprint":"sha256:75bf85c56303912db7f8cd3ede66b5864747cf31a167d2ef3830a18a1d18ed6e","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:e340a1e80cdae1fb410bc8045388caee7a1ac0a92764a8097f6416f066a49a9d"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/nfr-design/security-design.md","id":"R-04","fingerprint":"sha256:7e5593da7c0c770c23e29c49e25a9e6ba675ba4423cef68cbefd53bb505d738d","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:e340a1e80cdae1fb410bc8045388caee7a1ac0a92764a8097f6416f066a49a9d"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/nfr-requirements/security-requirements.md","id":"R-01","fingerprint":"sha256:24eaf289cab6c11d19d08e75f8dce3f3c9daae00a3218b50e6daacf6daf9bf74","status":"Approved autonomously","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:ee32852ea6831b4ee18599327e8e456b3a65d7e75a719bd6d0f680ad4bdce8dc"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u5-log-dir/nfr-requirements/security-requirements.md","id":"R-02","fingerprint":"sha256:e5011c6c1ca724f5bca3a7f72fb4770f0c152f6c4d2c2632d30f4c4cd7efae97","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u5-log-dir/d0dc83cb6f948d1a/1.json","digest":"sha256:ee32852ea6831b4ee18599327e8e456b3a65d7e75a719bd6d0f680ad4bdce8dc"}}]}
 
 ---
+
+## Unit Started
+**Timestamp**: 2026-11-25T16:56:50Z
+**Event**: UNIT_STARTED
+**Stage**: functional-design
+**Unit**: u3-unset-env
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T16:57:03Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/functional-design-questions.md
+**Context**: construction > u3-unset-env > functional-design > functional-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-25T16:57:05Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Q1, Q2, Q3
+**Options**: Q1: A. OS のやり方 / B. 完全一致,Q2: A. 消す名前も出す / B. 出さない,Q3: A. 許してまとめる / B. 同じ配列の重なりは誤り
+**Unit**: u3-unset-env
+**Question Id**: 47b16189
+**Question Type**: stage-question
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:1c072707b457892922d0a7445ba25e332c26e41447153764fdc56d09839cf29a
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T17:00:16Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. OS のやり方 (Recommended)","A. 消す名前も出す (Recommended)","A. 許してまとめる (Recommended)"]
+**Message Id**: 893f18ae
+**Open Questions**: f8c5e6be, 34e612cb, 5532df64, 505e9035, 146bd7e3, 640918fc, 47b16189
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/functional-design-questions.md","entries":{"Q1":"72e960ae7f38a137","Q2":"34b6d744f595045a","Q3":"c85562d82e476862"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T17:00:17Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: [利用者] unset_env の名前の比べ方を Windows ではどうしますか?(Windows の環境変数は大文字小文字を区別せず、Path と PATH は同じ変数です)
+**Reply**: A. OS のやり方 (Recommended)
+**Options**: ["A. OS のやり方 (Recommended)","B. 完全一致"]
+**Recommended**: ["A. OS のやり方"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T17:00:17Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: [利用者] --dry-run で、消す環境変数の名前を見せますか?(今は足す名前だけを出し、値は出しません)
+**Reply**: A. 消す名前も出す (Recommended)
+**Options**: ["A. 消す名前も出す (Recommended)","B. 出さない"]
+**Recommended**: ["A. 消す名前も出す"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T17:00:17Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: [利用者] unset_env に同じ名前を 2 回書いたとき(同じ配列の中、または [pipeline] と [job] の両方)、どうしますか?
+**Reply**: A. 許してまとめる (Recommended)
+**Options**: ["A. 許してまとめる (Recommended)","B. 同じ配列は誤り"]
+**Recommended**: ["A. 許してまとめる"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-25T17:00:20Z
+**Event**: QUESTION_ANSWERED
+**Stage**: functional-design
+**Details**: Q1: A. OS のやり方 (Recommended); Q2: A. 消す名前も出す (Recommended); Q3: A. 許してまとめる (Recommended)
+**Unit**: u3-unset-env
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T17:00:20Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/functional-design-questions.md
+**Context**: construction > u3-unset-env > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T17:00:44Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/entities.md
+**Context**: construction > u3-unset-env > functional-design > entities.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T17:01:02Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/rules.md
+**Context**: construction > u3-unset-env > functional-design > rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T17:01:18Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/functional-spec.md
+**Context**: construction > u3-unset-env > functional-design > functional-spec.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T17:01:24Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/traceability.json
+**Context**: construction > u3-unset-env > functional-design > traceability.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 75116c77
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 75116c77
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/entities.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 899e5b16
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 899e5b16
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/rules.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 91fd1144
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 91fd1144
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/functional-spec.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 82864d1f
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T17:01:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 82864d1f
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T17:01:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: a7ad4954
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T17:01:27Z
+**Event**: SENSOR_PASSED
+**Fire id**: a7ad4954
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/entities.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T17:01:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: 99597f73
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T17:01:27Z
+**Event**: SENSOR_PASSED
+**Fire id**: 99597f73
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u3-unset-env
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u3-unset-env/functional-design/traceability.json
+**Duration ms**: 81
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-25T17:01:27Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-unset-env
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:69ca72cc057abd5df383096b29abbc46258e21d6d0f7b5ed6bab4e7d3406bb52
+**Request Id**: review:2edab2302e43a284038f348a928cd83d
+**Review File**: .aidlc-engine/reviews/functional-design/units/u3-unset-env/d0dc83cb6f948d1a/1.2edab2302e43a284038f348a928cd83d.review.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T17:01:32Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviewer-dispatch.json
+**Context**: .aidlc-engine > reviewer-dispatch.json
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T17:01:41Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T17:02:34Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/functional-design/units/u3-unset-env/d0dc83cb6f948d1a/1.2edab2302e43a284038f348a928cd83d.review.md
+**Context**: .aidlc-engine > reviews > functional-design > units > u3-unset-env > d0dc83cb6f948d1a > 1.2edab2302e43a284038f348a928cd83d.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T17:02:40Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a6491f2ea86c51db7
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u3-unset-env/d0dc83cb6f948d1a/1.2edab2302e43a284038f348a928cd83d.review.md=6e6333636a88df6926294593d03d17c09c2fb43edd97216038fc48f1e61cd870
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T17:02:42Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T17:02:45Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u3-unset-env
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:69ca72cc057abd5df383096b29abbc46258e21d6d0f7b5ed6bab4e7d3406bb52
+**Artifact Fingerprint**: sha256:69ca72cc057abd5df383096b29abbc46258e21d6d0f7b5ed6bab4e7d3406bb52
+**Request Id**: review:2edab2302e43a284038f348a928cd83d
+**Review Record**: .aidlc-engine/reviews/functional-design/units/u3-unset-env/d0dc83cb6f948d1a/1.json
+**Review Record Digest**: sha256:c197c14b7ad91b8137cbf5ea89389a9f1fcd2e140ae8a5219f7e699f72ee5aa2
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-25T17:02:46Z
+**Event**: UNIT_COMPLETED
+**Stage**: functional-design
+**Unit**: u3-unset-env
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
