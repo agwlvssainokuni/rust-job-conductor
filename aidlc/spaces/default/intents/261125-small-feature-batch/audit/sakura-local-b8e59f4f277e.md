@@ -11718,3 +11718,365 @@
 **Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
 
 ---
+
+## Unit Started
+**Timestamp**: 2026-11-25T13:52:47Z
+**Event**: UNIT_STARTED
+**Stage**: nfr-design
+**Unit**: u4-graph-dot
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:52:54Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/security-design.md
+**Context**: construction > u4-graph-dot > nfr-design > security-design.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:00Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/performance-design.md
+**Context**: construction > u4-graph-dot > nfr-design > performance-design.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:03Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/scalability-design.md
+**Context**: construction > u4-graph-dot > nfr-design > scalability-design.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:13Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/reliability-design.md
+**Context**: construction > u4-graph-dot > nfr-design > reliability-design.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:18Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/observability-design.md
+**Context**: construction > u4-graph-dot > nfr-design > observability-design.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:24Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/logical-components.md
+**Context**: construction > u4-graph-dot > nfr-design > logical-components.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:37Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/traceability.json
+**Context**: construction > u4-graph-dot > nfr-design > traceability.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:38Z
+**Event**: SENSOR_FIRED
+**Fire id**: 33d69cce
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/performance-design.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:38Z
+**Event**: SENSOR_PASSED
+**Fire id**: 33d69cce
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/performance-design.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_FIRED
+**Fire id**: fa4a3465
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/security-design.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_PASSED
+**Fire id**: fa4a3465
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/security-design.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_FIRED
+**Fire id**: bc91dccf
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/scalability-design.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_PASSED
+**Fire id**: bc91dccf
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/scalability-design.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6a78b57c
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/reliability-design.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6a78b57c
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/reliability-design.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_FIRED
+**Fire id**: cc7e54b9
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/observability-design.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_PASSED
+**Fire id**: cc7e54b9
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/observability-design.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:39Z
+**Event**: SENSOR_FIRED
+**Fire id**: 2a589888
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/logical-components.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_PASSED
+**Fire id**: 2a589888
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/logical-components.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_FIRED
+**Fire id**: a1ae55c3
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_PASSED
+**Fire id**: a1ae55c3
+**Sensor ID**: required-sections
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/traceability.json
+**Duration ms**: 73
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_FIRED
+**Fire id**: ea7aa759
+**Sensor ID**: upstream-coverage
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/performance-design.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_PASSED
+**Fire id**: ea7aa759
+**Sensor ID**: upstream-coverage
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/performance-design.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6400c535
+**Sensor ID**: traceability
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6400c535
+**Sensor ID**: traceability
+**Stage slug**: nfr-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/nfr-design/traceability.json
+**Duration ms**: 79
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-25T13:53:40Z
+**Event**: REVIEW_REQUESTED
+**Stage**: nfr-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u4-graph-dot
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:d2a82be862aa93bedbb9a0367ff70fda435c2b23a7a7a55edc87d511f22b4e44
+**Request Id**: review:ac9f3518de375febc5bd901668f389d2
+**Review File**: .aidlc-engine/reviews/nfr-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.ac9f3518de375febc5bd901668f389d2.review.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:53:46Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviewer-dispatch.json
+**Context**: .aidlc-engine > reviewer-dispatch.json
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T13:53:55Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:54:30Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/nfr-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.ac9f3518de375febc5bd901668f389d2.review.md
+**Context**: .aidlc-engine > reviews > nfr-design > units > u4-graph-dot > d0dc83cb6f948d1a > 1.ac9f3518de375febc5bd901668f389d2.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T13:54:36Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: ac0beff6e012c461b
+**Review File Digest**: .aidlc-engine/reviews/nfr-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.ac9f3518de375febc5bd901668f389d2.review.md=dfbdaab2c5bdcd5672c3c45b8977fb4610b20725ba5e201cb9cc399a59cf3179
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T13:54:38Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T13:54:41Z
+**Event**: REVIEW_COMPLETED
+**Stage**: nfr-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u4-graph-dot
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:d2a82be862aa93bedbb9a0367ff70fda435c2b23a7a7a55edc87d511f22b4e44
+**Artifact Fingerprint**: sha256:d2a82be862aa93bedbb9a0367ff70fda435c2b23a7a7a55edc87d511f22b4e44
+**Request Id**: review:ac9f3518de375febc5bd901668f389d2
+**Review Record**: .aidlc-engine/reviews/nfr-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.json
+**Review Record Digest**: sha256:ef8f40bc935f140995295692f98b10caa91f466432af4f2b12f0d54a5cdfad0b
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-25T13:54:42Z
+**Event**: UNIT_COMPLETED
+**Stage**: nfr-design
+**Unit**: u4-graph-dot
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
