@@ -35,10 +35,18 @@ id = "a"
 status = "success"
 exit_code = 0
 
+[[job.attempt]]
+started_at = "2026-11-25T09:12:48Z"
+ended_at = "2026-11-25T09:13:05Z"
+
 [[job]]
 id = "b"
 status = "pending"
 "#;
+
+/// `VALID` の `a` の試行の表(試行の検査のテストが置き換える)。
+const A_ATTEMPT: &str =
+    "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:13:05Z\"\n";
 
 #[test]
 fn ステートファイルが無ければ空() {
@@ -308,6 +316,173 @@ fn 名前付きパイプと権限のない大きなステートは開かずに_u
     );
 }
 
+/// `VALID` の `a` の試行を `attempt` に置き換えたステートを書いて読む。
+fn read_with_attempt(
+    attempt: &str,
+) -> Result<Option<conductor_core::PipelineState>, conductor_runtime::StateError> {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state) = paths(dir.path());
+    assert!(VALID.contains(A_ATTEMPT));
+    std::fs::write(&state, VALID.replace(A_ATTEMPT, attempt)).expect("書ける");
+    read_state(&def)
+}
+
+/// 壊れたステートとして拒否され、理由が `reason` であること。
+fn assert_corrupt(
+    result: Result<Option<conductor_core::PipelineState>, conductor_runtime::StateError>,
+    reason: &str,
+) {
+    let e = result.expect_err("拒否される");
+    assert_eq!((e.kind, e.reason), (StateErrorKind::Corrupt, reason));
+}
+
+#[test]
+fn u6_試行の時刻を読む() {
+    let s = read_with_attempt(
+        "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:12:58Z\"\n\n\
+         [[job.attempt]]\nstarted_at = \"2026-11-25T09:13:28Z\"\nended_at = \"2026-11-25T09:13:53Z\"\n",
+    )
+    .expect("読める")
+    .expect("空ではない");
+    let secs =
+        |t: Option<conductor_core::Timestamp>| t.map(conductor_core::Timestamp::unix_seconds);
+    let a = &s.job_states[0].attempts;
+    assert_eq!(a.len(), 2);
+    assert_eq!(a[0].started_at.unix_seconds(), 1_795_597_968);
+    assert_eq!(secs(a[0].ended_at), Some(1_795_597_978));
+    assert_eq!(a[1].started_at.unix_seconds(), 1_795_598_008);
+    assert_eq!(secs(a[1].ended_at), Some(1_795_598_033));
+    assert!(
+        s.job_states[1].attempts.is_empty(),
+        "pending は試行が無くてよい"
+    );
+}
+
+#[test]
+fn u6_br3_1_動いたジョブに試行が無ければ_no_attempt() {
+    // v0.9.9 までのステート(試行が無い)。
+    for status in ["success", "warning", "error"] {
+        let text = VALID
+            .replace(A_ATTEMPT, "")
+            .replace("status = \"success\"", &format!("status = \"{status}\""));
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        let (def, state) = paths(dir.path());
+        std::fs::write(&state, text).expect("書ける");
+        assert_corrupt(
+            read_state(&def),
+            "動いたジョブに試行の記録がありません(古い形式の可能性があります)",
+        );
+    }
+}
+
+#[test]
+fn u6_br3_1_pending_と_skipped_は試行が無くてよい() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state) = paths(dir.path());
+    let text = VALID.replace(A_ATTEMPT, "").replace(
+        "status = \"success\"\nexit_code = 0",
+        "status = \"skipped\"\nskip_reason = \"byTransition\"",
+    );
+    std::fs::write(&state, text).expect("書ける");
+    let s = read_state(&def).expect("読める").expect("空ではない");
+    assert!(s.job_states.iter().all(|j| j.attempts.is_empty()));
+}
+
+#[test]
+fn u6_br2_1_時刻の書式の誤りは_bad_time() {
+    for bad in [
+        "2026-11-25T09:12:48",
+        "2026-11-25T09:12:48+09:00",
+        "2026-11-25T09:12:48.5Z",
+        "2026-13-25T09:12:48Z",
+        "20261125T091248Z",
+        "",
+    ] {
+        assert_corrupt(
+            read_with_attempt(&format!("[[job.attempt]]\nstarted_at = \"{bad}\"\n")),
+            "時刻の書式が誤っています",
+        );
+        assert_corrupt(
+            read_with_attempt(&format!(
+                "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"{bad}\"\n"
+            )),
+            "時刻の書式が誤っています",
+        );
+    }
+}
+
+#[test]
+fn u6_br3_2_最後でない試行に終わりが無ければ_unfinished_attempt() {
+    assert_corrupt(
+        read_with_attempt(
+            "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\n\n\
+             [[job.attempt]]\nstarted_at = \"2026-11-25T09:13:28Z\"\nended_at = \"2026-11-25T09:13:53Z\"\n",
+        ),
+        "終わりの時刻の無い試行が、最後の試行ではありません",
+    );
+}
+
+#[test]
+fn u6_br3_2_最後の試行は終わりが無くても_終わりが始まりより前でも読める() {
+    let s = read_with_attempt(
+        "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:12:40Z\"\n\n\
+         [[job.attempt]]\nstarted_at = \"2026-11-25T09:13:28Z\"\n",
+    )
+    .expect("読める")
+    .expect("空ではない");
+    let a = &s.job_states[0].attempts;
+    assert_eq!(a.len(), 2);
+    assert!(
+        a[0].ended_at < Some(a[0].started_at),
+        "時計の戻りは誤りにしない"
+    );
+    assert_eq!(a[1].ended_at, None);
+}
+
+#[test]
+fn u6_br2_2_試行の知らないキー_欠け_型の誤り() {
+    assert_corrupt(
+        read_with_attempt(
+            "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\ncommand = \"echo\"\n",
+        ),
+        "知らないキーがあります",
+    );
+    assert_corrupt(
+        read_with_attempt("[[job.attempt]]\nended_at = \"2026-11-25T09:12:48Z\"\n"),
+        "必須のキーがありません",
+    );
+    assert_corrupt(
+        read_with_attempt("[[job.attempt]]\nstarted_at = 1795597968\n"),
+        "値の型が誤っています",
+    );
+    assert_corrupt(
+        read_with_attempt(
+            "[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = true\n",
+        ),
+        "値の型が誤っています",
+    );
+    // `attempt` が表の配列でない。
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state) = paths(dir.path());
+    for bad in ["attempt = 1\n", "attempt = [1]\n", "attempt = \"x\"\n"] {
+        let text = VALID.replace(A_ATTEMPT, "").replace(
+            "status = \"success\"\nexit_code = 0\n",
+            &format!("status = \"success\"\nexit_code = 0\n{bad}"),
+        );
+        std::fs::write(&state, text).expect("書ける");
+        assert_corrupt(read_state(&def), "値の型が誤っています");
+    }
+}
+
+#[test]
+fn u6_試行の誤りの表示にステートの値を出さない() {
+    let e = read_with_attempt("[[job.attempt]]\nstarted_at = \"secret-time-value\"\n")
+        .expect_err("拒否される");
+    let text = e.to_string();
+    assert!(!text.contains("secret-time-value"), "{text}");
+    assert!(text.contains("conductor.toml.state"), "{text}");
+}
+
 /// `read_state_raw`(完了のステートも返す読み取り)と `read_state` の差のテスト(FR3.1、FR3.2、FR3.4)。
 ///
 /// run ID つきの `read_state`(引数 2 つ)を使うので、run ID なしの `read_state`(上のテストが使う
@@ -317,7 +492,7 @@ mod raw {
     use conductor_core::RunId;
     use conductor_runtime::{StateErrorKind, read_state, read_state_raw};
 
-    const COMPLETED: &str = "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = false\ncompleted = true\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n";
+    const COMPLETED: &str = "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = false\ncompleted = true\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:13:05Z\"\n";
 
     #[test]
     fn fr3_1_raw_は完了のステートを返し_read_state_は空として返す() {

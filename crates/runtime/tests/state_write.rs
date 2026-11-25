@@ -21,10 +21,19 @@ use std::fs::OpenOptions;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 
-use common::paths;
 use common::without_run_id::{read_state, reset_state, write_state};
-use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
+use common::{finished_attempt, paths};
+use conductor_core::{Attempt, JobState, JobStatus, PipelineState, SkipReason, Timestamp};
 use conductor_runtime::{Durability, StateErrorKind};
+
+/// `start` 秒に始まり、`end` 秒に終わった(`None` は終わりの無い)試行。
+fn attempt(start: u64, end: Option<u64>) -> Attempt {
+    let ts = |secs| Timestamp::from_unix_seconds(secs).expect("範囲の中");
+    Attempt {
+        started_at: ts(start),
+        ended_at: end.map(ts),
+    }
+}
 
 fn sample() -> PipelineState {
     PipelineState {
@@ -36,14 +45,14 @@ fn sample() -> PipelineState {
                 status: JobStatus::Success,
                 exit_code: Some(0),
                 skip_reason: None,
-                attempts: vec![],
+                attempts: vec![finished_attempt()],
             },
             JobState {
                 job_id: "b".into(),
                 status: JobStatus::Warning,
                 exit_code: Some(2),
                 skip_reason: None,
-                attempts: vec![],
+                attempts: vec![attempt(100, Some(110)), attempt(130, Some(165))],
             },
             JobState {
                 job_id: "c".into(),
@@ -57,7 +66,7 @@ fn sample() -> PipelineState {
                 status: JobStatus::Error,
                 exit_code: Some(-1),
                 skip_reason: None,
-                attempts: vec![],
+                attempts: vec![finished_attempt()],
             },
         ],
         resume_job_id: Some("d".into()),
@@ -120,6 +129,63 @@ fn ステートファイルの内容は版つきで_e3_のキーを持つ() {
     assert_eq!(jobs[3]["exit_code"].as_integer(), Some(-1));
     assert!(text.contains("[[job]]"));
     assert!(!text.contains("[[jobs]]"));
+}
+
+#[test]
+fn u6_試行を書いて読み戻すと等しく_終わりの無い最後の試行も保つ() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state_path) = paths(dir.path());
+    let mut state = sample();
+    // 動いている最中のジョブ(pending で最後の試行に終わりが無い)。
+    state.job_states.push(JobState {
+        job_id: "e".into(),
+        status: JobStatus::Pending,
+        exit_code: None,
+        skip_reason: None,
+        attempts: vec![attempt(100, Some(100)), attempt(500, None)],
+    });
+    write_state(&def, &state, Durability::Fast).expect("書ける");
+    assert_eq!(read_state(&def), Ok(Some(state)));
+    let text = std::fs::read_to_string(state_path).expect("読める");
+    assert!(text.contains("[[job.attempt]]"), "{text}");
+    assert!(
+        text.contains("started_at = \"2026-11-25T09:12:48Z\""),
+        "{text}"
+    );
+    assert!(
+        text.contains("ended_at = \"2026-11-25T09:13:05Z\""),
+        "{text}"
+    );
+}
+
+#[test]
+fn u6_試行が無ければ今と同じ形で_attempt_を書かない() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, state_path) = paths(dir.path());
+    let mut state = sample();
+    // 試行を持たないジョブだけ(pending と skipped)。
+    state.job_states.retain(|j| j.attempts.is_empty());
+    state.job_states.push(JobState::pending("p"));
+    state.resume_job_id = Some("p".into());
+    write_state(&def, &state, Durability::Durable).expect("書ける");
+    let text = std::fs::read_to_string(state_path).expect("読める");
+    assert!(!text.contains("attempt"), "{text}");
+    assert!(!text.contains("started_at") && !text.contains("ended_at"));
+    assert_eq!(read_state(&def), Ok(Some(state)));
+}
+
+#[test]
+fn u6_試行_1000_個を書いて読み戻せる() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let (def, _) = paths(dir.path());
+    let mut state = sample();
+    state.job_states[0].attempts = (0..1_000)
+        .map(|i| attempt(1_000 + i * 10, Some(1_005 + i * 10)))
+        .collect();
+    write_state(&def, &state, Durability::Durable).expect("書ける");
+    let back = read_state(&def).expect("読める").expect("ある");
+    assert_eq!(back.job_states[0].attempts.len(), 1_000);
+    assert_eq!(back, state);
 }
 
 #[test]
