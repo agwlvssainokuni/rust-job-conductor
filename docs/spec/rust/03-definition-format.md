@@ -1,4 +1,4 @@
-# 03. 定義ファイルの書式と検証(rust 版 conductor v0.9.8)
+# 03. 定義ファイルの書式と検証(rust 版 conductor v0.9.9)
 
 この文書は、`conductor` の定義ファイル(`conductor.toml`)の書式と、読み込み時の検証を定める。実装は `crates/core/src/definition/*`(`conductor-core`)で、根拠は実装とそのテスト(`crates/core/tests/definition_*.rs`)である。この文書だけで、同じ受理・拒否・エラーを返す読み込み処理を実装できることを目標とする。
 

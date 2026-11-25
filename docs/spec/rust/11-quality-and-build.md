@@ -20,12 +20,12 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 
 | クレート | 種別 | 依存する内部クレート | 配布物 |
 |----------|------|----------------------|--------|
-| `conductor-core`(0.9.8) | lib | なし | 含まれる(`conductor` に静的に入る) |
-| `conductor-runtime`(0.9.8) | lib + テスト補助 bin | core | 同上。補助 bin は配布しない |
-| `conductor-converter`(0.9.8) | lib | なし | 同上 |
-| `conductor-cli`(0.9.8) | lib + bin `conductor` + テスト補助 bin | core、runtime、converter | bin `conductor` だけ |
+| `conductor-core`(0.9.9) | lib | なし | 含まれる(`conductor` に静的に入る) |
+| `conductor-runtime`(0.9.9) | lib + テスト補助 bin | core | 同上。補助 bin は配布しない |
+| `conductor-converter`(0.9.9) | lib | なし | 同上 |
+| `conductor-cli`(0.9.9) | lib + bin `conductor` + テスト補助 bin | core、runtime、converter | bin `conductor` だけ |
 
-4 つのクレートの版は同じ 0.9.8。版の上げ方は手動(すべての `Cargo.toml` を書き換えるコミット)。リリースの検査が見るのは `crates/cli/Cargo.toml` の版だけ(7 章)。
+4 つのクレートの版は同じ 0.9.9。版の上げ方は手動(すべての `Cargo.toml` を書き換えるコミット)。リリースの検査が見るのは `crates/cli/Cargo.toml` の版だけ(7 章)。
 `publish = false`(crates.io には公開しない)。
 
 ### 1.1 ワークスペース共通の設定(ルートの `Cargo.toml`)
@@ -539,7 +539,7 @@ cargo audit                                               # 警告のみ(マー�
 | 項目 | README | 実装・CI |
 |------|--------|----------|
 | テストの案内 | 「ビルドしたあとの確認には、テストが使える」として `cargo test --workspace --locked` | 一致。ただし CI は 3 OS + MSRV。README は CI、カバレッジ、clippy、`startup-bench` を説明しない(開発者向けの情報は README にない) |
-| リリース | 成果物の名前・`SHA256SUMS`・Intel macOS はクロスビルドで動作未確認 | 一致(`release.yml`)。README の `<版>` の例が `0.7.0`(現行は 0.9.8。例なので誤りではない) |
+| リリース | 成果物の名前・`SHA256SUMS`・Intel macOS はクロスビルドで動作未確認 | 一致(`release.yml`)。README の `<版>` の例が `0.7.0`(現行は 0.9.9。例なので誤りではない) |
 | MSRV | `Rust(1.100 以降)` | 一致(`msrv_consistency.rs` が強制) |
 | 性能の測定の表示 | 記載なし | `nfr_perf.rs` の出力文言は「debug ビルド」だが、CI の `startup-bench` は `--release`(文言と実態の差。基準の判定には影響しない) |
 | カバレッジ・clippy・audit | 記載なし | CI で強制/警告(6 章)。README に書かれていない |
