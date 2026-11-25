@@ -195,8 +195,13 @@ echo
 cat demo.env
 echo
 echo "ジョブには、引き継いだ環境に足した環境変数が渡る(優先順位: .env < [pipeline.env] < [job.env])。"
-echo "CONDUCTOR_* は、conductor が自動で渡す(run ID がなければ CONDUCTOR_RUN_ID は渡さない):"
-cmd "$CONDUCTOR" pipeline -v --config env.toml env-demo
+echo "CONDUCTOR_* は、conductor が自動で渡す(run ID がなければ CONDUCTOR_RUN_ID は渡さない)。"
+echo "unset_env の DEMO_PROXY は、親に置いてあっても、ジョブには渡らない:"
+setenv DEMO_PROXY=from-parent
+( DEMO_PROXY=from-parent; export DEMO_PROXY; cmd "$CONDUCTOR" pipeline -v --config env.toml env-demo )
+echo
+echo "--dry-run は、足す名前と並べて、消す名前も出す:"
+cmd "$CONDUCTOR" pipeline --dry-run --config env.toml env-demo
 echo
 echo "値は、conductor 自身の出力(標準出力・標準エラー・ステート)には出ない。.env が読めないときは、ジョブを動かさずに 64 で止まる:"
 printf 'format_version = 1\n\n[pipeline]\nname = "bad-env"\nenv_file = "missing.env"\n\n[[job]]\nid = "x"\ncommand = "sh scripts/show-env.sh"\n' > bad-env.toml

@@ -22,4 +22,5 @@ echo   [show-env] CONDUCTOR_PIPELINE=%CONDUCTOR_PIPELINE%
 echo   [show-env] CONDUCTOR_JOB_ID=%CONDUCTOR_JOB_ID%
 if defined CONDUCTOR_RUN_ID (echo   [show-env] CONDUCTOR_RUN_ID=%CONDUCTOR_RUN_ID%) else (echo   [show-env] CONDUCTOR_RUN_ID=^(なし^))
 echo   [show-env] CONDUCTOR_ATTEMPT=%CONDUCTOR_ATTEMPT%
+if defined DEMO_PROXY (echo   [show-env] DEMO_PROXY=%DEMO_PROXY%) else (echo   [show-env] DEMO_PROXY=^(なし^))
 exit /b 0

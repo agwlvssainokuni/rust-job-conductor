@@ -112,6 +112,10 @@ fn assert_demo_output(output: &Output) {
     );
     assert!(out.contains("[show-env] CONDUCTOR_RUN_ID=(なし)"), "{out}");
     assert!(out.contains("[show-env] CONDUCTOR_ATTEMPT=1"), "{out}");
+    // 親に置いた DEMO_PROXY は、unset_env で消え、--dry-run は消す名前を出す(v0.10.0 の U3)
+    assert!(out.contains("[show-env] DEMO_PROXY=(なし)"), "{out}");
+    assert!(!out.contains("[show-env] DEMO_PROXY=from-parent"), "{out}");
+    assert!(out.contains("     unset env: DEMO_PROXY\n"), "{out}");
     assert!(out.contains("missing.env"), "{out}");
     assert!(out.contains("duplicate key `A`"), "{out}");
     // 場面 12: graph(遷移の図、-v、Mermaid、DOT、--state の状態と再開位置)

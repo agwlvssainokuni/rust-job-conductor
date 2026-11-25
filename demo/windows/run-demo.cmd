@@ -227,8 +227,16 @@ echo.
 type demo.env
 echo.
 echo ジョブには、引き継いだ環境に足した環境変数が渡る^(優先順位: .env ^< [pipeline.env] ^< [job.env]^)。
-echo CONDUCTOR_* は、conductor が自動で渡す^(run ID がなければ CONDUCTOR_RUN_ID は渡さない^):
+echo CONDUCTOR_* は、conductor が自動で渡す^(run ID がなければ CONDUCTOR_RUN_ID は渡さない^)。
+echo unset_env の DEMO_PROXY は、親に置いてあっても、ジョブには渡らない:
+setlocal
+set "DEMO_PROXY=from-parent"
+echo $ set DEMO_PROXY=from-parent
 call :runcmd pipeline -v --config env.toml env-demo
+endlocal
+echo.
+echo --dry-run は、足す名前と並べて、消す名前も出す:
+call :runcmd pipeline --dry-run --config env.toml env-demo
 echo.
 echo 値は、conductor 自身の出力^(標準出力・標準エラー・ステート^)には出ない。.env が読めないときは、ジョブを動かさずに 64 で止まる:
 > bad-env.toml echo format_version = 1

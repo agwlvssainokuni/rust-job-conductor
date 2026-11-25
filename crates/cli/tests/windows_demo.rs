@@ -417,6 +417,30 @@ fn 場面_11_環境変数が子に渡り_優先順位は_job_env_が最も強い
 }
 
 #[test]
+fn 場面_11_unset_env_の名前は親に置いても大文字小文字によらず渡らず_dry_run_は消す名前を出す() {
+    // v0.10.0 の U3: Windows は名前の大文字小文字を区別せずに消す(BR3.2)。
+    let demo = Demo::new();
+    let output = demo.run(
+        &["pipeline", "-v", "--config", "env.toml", "env-demo"],
+        &[("demo_proxy", "from-parent")],
+    );
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    let all = all_text(&output);
+    assert!(all.contains("[show-env] DEMO_PROXY=(なし)"), "{all}");
+    assert!(!all.contains("from-parent"), "{all}");
+    let output = demo.run(
+        &["pipeline", "--dry-run", "--config", "env.toml", "env-demo"],
+        &[],
+    );
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    assert!(
+        text(&output.stdout).contains("unset env: DEMO_PROXY"),
+        "{}",
+        text(&output.stdout)
+    );
+}
+
+#[test]
 fn 場面_11_env_が読めないと_64_で_validate_は重複キーを警告して_0() {
     let demo = Demo::new();
     std::fs::write(
