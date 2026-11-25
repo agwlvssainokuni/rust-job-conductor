@@ -1,0 +1,14 @@
+{
+  "stage": "nfr-requirements",
+  "unit": "u7-watch-follow",
+  "upstream_ids": ["NFR1","NFR2","NFR3","NFR4","NFR5","NFR6","NFR7"],
+  "coverage": [
+    { "id": "NFR1", "status": "OK", "target": "reliability-requirements.md の NFR1.1〜NFR1.5、performance-requirements.md の NFR1.6、NFR1.7、scalability-requirements.md の NFR1.8、observability-requirements.md の NFR1.9、NFR1.10" },
+    { "id": "NFR2", "status": "OK", "target": "reliability-requirements.md の NFR2.1、NFR2.2、NFR2.3" },
+    { "id": "NFR3", "status": "OK", "target": "reliability-requirements.md の NFR3.1、NFR3.2、NFR3.3" },
+    { "id": "NFR4", "status": "OK", "target": "tech-stack-decisions.md の NFR4.1" },
+    { "id": "NFR5", "status": "OK", "target": "security-requirements.md の NFR5.1" },
+    { "id": "NFR6", "status": "OK", "target": "security-requirements.md の NFR6.1〜NFR6.4" },
+    { "id": "NFR7", "status": "OK", "target": "tech-stack-decisions.md の NFR7.1" }
+  ]
+}
