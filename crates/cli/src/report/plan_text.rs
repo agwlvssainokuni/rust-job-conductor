@@ -25,10 +25,10 @@ use conductor_core::{
 
 use super::escape_full;
 use super::messages::{
-    COMPLETED, DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, PLAN_ASSUME_LABEL, PLAN_END_REACHED,
-    PLAN_FROM_START, PLAN_HEADING, PLAN_NEXT_LABEL, PLAN_RESULT_LABEL, PLAN_RESUME_LABEL,
-    PLAN_TARGET_LABEL, PLAN_UNUSED_LABEL, RESUME_HERE, graph_retry_summary, plan_assumed,
-    plan_disposition, plan_next_step, plan_resume_after_stop, plan_run_id_suffix,
+    COMPLETED, DETAIL_COMMAND, DETAIL_ENV, DETAIL_RETRY, DETAIL_UNSET_ENV, PLAN_ASSUME_LABEL,
+    PLAN_END_REACHED, PLAN_FROM_START, PLAN_HEADING, PLAN_NEXT_LABEL, PLAN_RESULT_LABEL,
+    PLAN_RESUME_LABEL, PLAN_TARGET_LABEL, PLAN_UNUSED_LABEL, RESUME_HERE, graph_retry_summary,
+    plan_assumed, plan_disposition, plan_next_step, plan_resume_after_stop, plan_run_id_suffix,
     plan_stopped_at_error,
 };
 use super::push_line;
@@ -171,6 +171,22 @@ fn push_entry(out: &mut String, lang: Language, number: usize, entry: &PlanEntry
             names.join(", ")
         ),
     );
+    // 消す名前は、1 つ以上あるジョブだけ、環境変数の名前の行の後に出す(v0.10.0 の U3 の BR4.1)。
+    if !entry.unset_names.is_empty() {
+        let unset: Vec<String> = entry
+            .unset_names
+            .iter()
+            .map(|e| escape_full(&e.name))
+            .collect();
+        push_line(
+            out,
+            &format!(
+                "{DETAIL_INDENT}{}{}",
+                DETAIL_UNSET_ENV.get(lang),
+                unset.join(", ")
+            ),
+        );
+    }
     if let Some(retry) = &entry.retry {
         push_line(
             out,

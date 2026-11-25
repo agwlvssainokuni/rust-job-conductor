@@ -562,6 +562,8 @@ pub const RESUME_HERE: Text = Text::new("  <- resume here", "  <- 再開位置")
 pub const DETAIL_COMMAND: Text = Text::new("command: ", "コマンド: ");
 /// 詳細の行の見出し(環境変数。計画が使う)。
 pub const DETAIL_ENV: Text = Text::new("env: ", "環境変数: ");
+/// 詳細の行の見出し(引き継いだ環境から消す環境変数。計画が使う。v0.10.0 の U3 の BR4.1)。
+pub const DETAIL_UNSET_ENV: Text = Text::new("unset env: ", "消す環境変数: ");
 /// 詳細の行の見出し(リトライ。graph の `-v`(BR3.1)と計画が使う)。
 pub const DETAIL_RETRY: Text = Text::new("retry: ", "リトライ: ");
 
