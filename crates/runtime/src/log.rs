@@ -149,3 +149,59 @@ pub fn open_log_file(target: &LogTarget) -> Result<(File, PathBuf), PathBuf> {
     }
     Err(first)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn 番号が_1_なら番号なし_2_からは番号つき() {
+        assert_eq!(file_name("a", "T", 1, 1), "a.T.1.log");
+        assert_eq!(file_name("a", "T", 3, 2), "a.T.3-2.log");
+        assert_eq!(
+            file_name("a", "T", 1, MAX_SUFFIX),
+            format!("a.T.1-{MAX_SUFFIX}.log")
+        );
+        assert_eq!(MAX_SUFFIX, 1000);
+    }
+
+    #[test]
+    fn 番号を使い切ったら作らず_番号なしの名前を返す() {
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        let target = LogTarget {
+            dir: dir.path().to_path_buf(),
+            job_id: "a".into(),
+            started_at: Timestamp::EPOCH,
+            attempt: 1,
+        };
+        for n in 1..=MAX_SUFFIX {
+            fs::write(
+                dir.path().join(file_name("a", "19700101T000000Z", 1, n)),
+                b"",
+            )
+            .expect("書ける");
+        }
+        let err = open_log_file(&target).expect_err("番号を使い切る");
+        assert_eq!(err, dir.path().join("a.19700101T000000Z.1.log"));
+        // 上限の 1 つ前が空いていれば、そこに作る。
+        fs::remove_file(
+            dir.path()
+                .join(file_name("a", "19700101T000000Z", 1, MAX_SUFFIX)),
+        )
+        .expect("消せる");
+        let (_, path) = open_log_file(&target).expect("作れる");
+        assert_eq!(
+            path,
+            dir.path()
+                .join(format!("a.19700101T000000Z.1-{MAX_SUFFIX}.log"))
+        );
+    }
+
+    #[test]
+    fn 名前の最長でも_255_バイトを超えない() {
+        let stem = safe_log_stem(&"あ".repeat(200));
+        assert!(stem.len() <= MAX_STEM_BYTES);
+        let name = file_name(&stem, "99991231T235959Z", u32::MAX, MAX_SUFFIX);
+        assert!(name.len() <= 255, "{}", name.len());
+    }
+}

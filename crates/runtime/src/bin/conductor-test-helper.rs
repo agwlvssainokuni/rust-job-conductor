@@ -28,6 +28,8 @@
 //! | `cwd` | 作業ディレクトリを `cwd="..."` で出力する |
 //! | `pid` | 自分のプロセス番号を `pid=N` で出力する |
 //! | `sleep [seconds]` | `pid=N` と `ready` を出力し、眠り続ける(秒数があれば、その後、終了コード 99 で終わる)。シグナルの受信は、ハンドラなしで、既定の動作による終了で確かめる |
+//! | `streams <n>` | `out <i>` を標準出力へ、`err <i>` を標準エラーへ、1 行ずつ交互に n 回書いて(各行の後で flush)、終了コード 0 で終わる(ログの出力の複製の確かめ) |
+//! | `orphan <seconds>` | 標準出力と標準エラーを引き継いだ孫(`sleep <seconds>`)を残し、`parent done` を書いてすぐ終了コード 0 で終わる(ログの読み取りの待ち切りの確かめ) |
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -103,6 +105,30 @@ fn main() {
                     std::thread::sleep(Duration::from_secs(3600));
                 },
             }
+        }
+        "streams" => {
+            let n = args
+                .first()
+                .and_then(|a| a.parse::<u32>().ok())
+                .unwrap_or(1);
+            let mut out = std::io::stdout();
+            let mut err = std::io::stderr();
+            for i in 0..n {
+                let _ = writeln!(out, "out {i}").and_then(|()| out.flush());
+                let _ = writeln!(err, "err {i}").and_then(|()| err.flush());
+            }
+        }
+        "orphan" => {
+            let seconds = args.first().cloned().unwrap_or_else(|| "30".into());
+            let spawned = std::env::current_exe().and_then(|exe| {
+                std::process::Command::new(exe)
+                    .args(["sleep", &seconds])
+                    .spawn()
+            });
+            if spawned.is_err() {
+                std::process::exit(3);
+            }
+            println!("parent done");
         }
         _ => std::process::exit(2),
     }

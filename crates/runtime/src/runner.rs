@@ -463,4 +463,181 @@ mod tests {
         assert_eq!(e.result, ExecutionResult::StartFailed);
         assert_eq!(log, LogOutcome::default());
     }
+
+    fn target(dir: &std::path::Path) -> LogTarget {
+        LogTarget {
+            dir: dir.to_path_buf(),
+            job_id: "j".into(),
+            started_at: conductor_core::Timestamp::EPOCH,
+            attempt: 1,
+        }
+    }
+
+    #[test]
+    fn ログの指定があっても_起動前の合図ならファイルを作らない() {
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        let logs = dir.path().join("logs");
+        let s = InterruptSignal::new();
+        s.raise(15);
+        let (e, log) = run_job(&line("definitely-not-run"), &[], &s, Some(&target(&logs)));
+        assert_eq!(e.result, ExecutionResult::NotStarted { signal: 15 });
+        assert_eq!(log, LogOutcome::default());
+        assert!(!logs.exists(), "ディレクトリも作らない");
+    }
+
+    #[test]
+    fn ログがあって起動できないコマンドは起動失敗で_ログは作れている() {
+        let dir = tempfile::tempdir().expect("一時ディレクトリ");
+        let (e, log) = run_job(
+            &line("conductor-no-such-command-zzz"),
+            &[],
+            &InterruptSignal::new(),
+            Some(&target(dir.path())),
+        );
+        assert_eq!(e.result, ExecutionResult::StartFailed);
+        assert_eq!(log, LogOutcome::default(), "ログの失敗ではない");
+    }
+
+    /// 決めた塊を返し、最後に読み取りの誤りか終わりを返す読み手。
+    struct Chunks {
+        chunks: Vec<io::Result<Vec<u8>>>,
+    }
+    impl Read for Chunks {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            if self.chunks.is_empty() {
+                return Ok(0);
+            }
+            match self.chunks.remove(0) {
+                Ok(bytes) => {
+                    buf[..bytes.len()].copy_from_slice(&bytes);
+                    Ok(bytes.len())
+                }
+                Err(error) => Err(error),
+            }
+        }
+    }
+
+    fn chunks(parts: &[&str]) -> Chunks {
+        Chunks {
+            chunks: parts.iter().map(|p| Ok(p.as_bytes().to_vec())).collect(),
+        }
+    }
+
+    /// `ok_writes` 回までは書け、その後は失敗する書き手。書けた分を持つ。
+    struct FailAfter {
+        ok_writes: usize,
+        written: Vec<u8>,
+        flushes: usize,
+    }
+    impl FailAfter {
+        fn new(ok_writes: usize) -> Self {
+            Self {
+                ok_writes,
+                written: Vec::new(),
+                flushes: 0,
+            }
+        }
+    }
+    impl Write for FailAfter {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            if self.ok_writes == 0 {
+                return Err(io::Error::other("full"));
+            }
+            self.ok_writes -= 1;
+            self.written.extend_from_slice(buf);
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            self.flushes += 1;
+            Ok(())
+        }
+    }
+
+    fn file_bytes(shared: &Shared<FailAfter>) -> Option<Vec<u8>> {
+        shared.lock_file().as_ref().map(|f| f.written.clone())
+    }
+
+    #[test]
+    fn 読んだ分をそのまま端末とファイルへ書き_端末は書くたびに_flush_する() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        let mut terminal = FailAfter::new(usize::MAX);
+        copy_stream(chunks(&["a\n", "bc", "\n"]), &mut terminal, &shared);
+        assert_eq!(terminal.written, b"a\nbc\n");
+        assert_eq!(terminal.flushes, 3);
+        assert_eq!(file_bytes(&shared).as_deref(), Some(&b"a\nbc\n"[..]));
+        assert!(!shared.file_failed.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn ファイルへの書き込みに失敗したら以後ファイルに書かず_端末には書き続ける() {
+        // BR5.2: 2 回目の書き込みで失敗する。
+        let shared = Shared::new(FailAfter::new(1));
+        let mut terminal = FailAfter::new(usize::MAX);
+        copy_stream(chunks(&["one", "two", "three"]), &mut terminal, &shared);
+        assert_eq!(terminal.written, b"onetwothree");
+        assert!(shared.file_failed.load(Ordering::SeqCst));
+        assert_eq!(file_bytes(&shared), None, "失敗したファイルは手放す");
+    }
+
+    #[test]
+    fn 端末への書き込みに失敗しても読み続けてファイルへ書く() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        let mut terminal = FailAfter::new(1);
+        copy_stream(chunks(&["one", "two", "three"]), &mut terminal, &shared);
+        assert_eq!(terminal.written, b"one");
+        assert_eq!(file_bytes(&shared).as_deref(), Some(&b"onetwothree"[..]));
+        assert!(!shared.file_failed.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn 止める印が立っていればどこにも書かずに終わる() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        shared.stop.store(true, Ordering::SeqCst);
+        let mut terminal = FailAfter::new(usize::MAX);
+        copy_stream(chunks(&["late"]), &mut terminal, &shared);
+        assert!(terminal.written.is_empty());
+        assert_eq!(file_bytes(&shared).as_deref(), Some(&b""[..]));
+    }
+
+    #[test]
+    fn 読み取りの割り込みは読み直し_そのほかの誤りで終わる() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        let mut terminal = FailAfter::new(usize::MAX);
+        let reader = Chunks {
+            chunks: vec![
+                Ok(b"a".to_vec()),
+                Err(io::Error::from(io::ErrorKind::Interrupted)),
+                Ok(b"b".to_vec()),
+                Err(io::Error::other("broken")),
+                Ok(b"never".to_vec()),
+            ],
+        };
+        copy_stream(reader, &mut terminal, &shared);
+        assert_eq!(terminal.written, b"ab");
+        assert_eq!(file_bytes(&shared).as_deref(), Some(&b"ab"[..]));
+    }
+
+    #[test]
+    fn スレッドの終わりを待ち_待ち切れなければ_false() {
+        // 送り手が無ければ、すぐ終わり。
+        let (tx, rx) = mpsc::channel::<()>();
+        drop(tx);
+        assert!(wait_copiers(&rx, Duration::from_millis(10)));
+        // 送り手が残っていれば、上限で待ち切れる。
+        let (tx, rx) = mpsc::channel::<()>();
+        let started = Instant::now();
+        assert!(!wait_copiers(&rx, Duration::from_millis(50)));
+        assert!(started.elapsed() >= Duration::from_millis(50));
+        drop(tx);
+    }
+
+    #[test]
+    fn スレッドを作れないときの印はファイルを手放す() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        shared.mark_file_failed();
+        assert!(shared.file_failed.load(Ordering::SeqCst));
+        assert_eq!(file_bytes(&shared), None);
+        shared.write_file(b"x");
+        assert_eq!(file_bytes(&shared), None);
+    }
 }

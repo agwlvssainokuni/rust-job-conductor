@@ -34,3 +34,36 @@ fn timestamp_of(time: SystemTime) -> Timestamp {
         Err(_) => Timestamp::EPOCH,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn 今の時刻は_2024_年より後() {
+        // 2024-01-01T00:00:00Z より後(時計が正しく合っている前提の、ゆるい確認。NFR2.4)。
+        assert!(now().unix_seconds() > 1_704_067_200);
+    }
+
+    #[test]
+    fn 範囲の中の値はそのまま秒にする() {
+        let t = UNIX_EPOCH + Duration::from_secs(1_795_597_968);
+        assert_eq!(timestamp_of(t).unix_seconds(), 1_795_597_968);
+        // 秒未満は切り捨てる。
+        let t = UNIX_EPOCH + Duration::from_millis(1_500);
+        assert_eq!(timestamp_of(t).unix_seconds(), 1);
+    }
+
+    #[test]
+    fn 年が_1970_より前なら_0() {
+        let before = UNIX_EPOCH - Duration::from_secs(1);
+        assert_eq!(timestamp_of(before), Timestamp::EPOCH);
+    }
+
+    #[test]
+    fn 上限を超える値は上限() {
+        let after = UNIX_EPOCH + Duration::from_secs(Timestamp::MAX.unix_seconds() + 1);
+        assert_eq!(timestamp_of(after), Timestamp::MAX);
+    }
+}
