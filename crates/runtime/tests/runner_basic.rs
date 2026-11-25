@@ -16,6 +16,7 @@
 //!
 //! 環境変数の引数(U1。BR4.3、BR4.4、FR1.3)は、補助の実行ファイルの `env` モードで、子のプロセスの
 //! 環境を確かめる。環境変数は、プロセス全体には設定しない(並列のテストが干渉するため)。
+//! 消す名前(v0.10.0 の U3。BR3.2)も、同じく子のプロセスの環境で確かめる。
 
 mod common;
 
@@ -358,6 +359,52 @@ fn 同じ名前が並びに_2_回あれば後ろが勝つ() {
 fn 空の環境では従来どおりで足した名前は見えない() {
     let got = child_env(&[], &["CONDUCTOR_T_NOT_SET"]);
     assert_eq!(got, ["env[CONDUCTOR_T_NOT_SET]=None"]);
+}
+
+// ---- 消す名前(v0.10.0 の U3。BR3.2) ----
+//
+// 親(このテストのプロセス)の環境は変えない。必ずある `PATH` を、子にだけ渡さないことで確かめる。
+
+#[test]
+fn 消す名前は引き継いだ環境から除かれる() {
+    let got = child_env_unset(&[], &["PATH"], &["PATH"]);
+    assert_eq!(got, ["env[PATH]=None"]);
+}
+
+#[test]
+fn 消す名前で引き継いだ環境に無い名前は何もせずほかの変数は残る() {
+    let inherited = std::env::var("PATH").expect("PATH がある");
+    let got = child_env_unset(
+        &[("CONDUCTOR_T_ADDED", "x")],
+        &["CONDUCTOR_T_NO_SUCH_ENV_ZZ"],
+        &["CONDUCTOR_T_NO_SUCH_ENV_ZZ", "PATH", "CONDUCTOR_T_ADDED"],
+    );
+    assert_eq!(
+        got,
+        [
+            "env[CONDUCTOR_T_NO_SUCH_ENV_ZZ]=None".to_string(),
+            format!("env[PATH]=Some({inherited:?})"),
+            "env[CONDUCTOR_T_ADDED]=Some(\"x\")".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn 消してから足した名前は足した値になる() {
+    let got = child_env_unset(&[("PATH", "/added")], &["PATH"], &["PATH"]);
+    assert_eq!(got, ["env[PATH]=Some(\"/added\")"]);
+}
+
+#[test]
+fn 大文字小文字だけが違う名前の消し方は_os_に従う() {
+    // UNIX 系は完全一致なので `path` では `PATH` は消えない。Windows は区別しないので消える(Q1)。
+    let inherited = std::env::var("PATH").expect("PATH がある");
+    let got = child_env_unset(&[], &["path"], &["PATH"]);
+    if cfg!(windows) {
+        assert_eq!(got, ["env[PATH]=None"]);
+    } else {
+        assert_eq!(got, [format!("env[PATH]=Some({inherited:?})")]);
+    }
 }
 
 // ---- Windows の cmd(Windows だけ) ----
