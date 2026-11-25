@@ -159,6 +159,7 @@ pub enum DisplayEvent<'a> {
     LogNotCreated {
         path: &'a Path,
     },
+    // ---- notice(標準エラー。常に。エラーではない知らせ) ----
     /// ログのファイルへの書き込みに失敗し、途中からファイルに残していない(警告。v0.10.0 の BR5.2)。
     LogWriteFailed {
         path: &'a Path,
@@ -167,7 +168,6 @@ pub enum DisplayEvent<'a> {
     LogOutputCutShort {
         path: &'a Path,
     },
-    // ---- notice(標準エラー。常に。エラーではない知らせ) ----
     /// リトライの前の知らせ(BR2.4、BR2.15)。待機の前に出す。
     RetryScheduled {
         job_id: &'a str,
@@ -252,12 +252,12 @@ impl DisplayEvent<'_> {
             | Self::InitFailed { .. }
             | Self::InitStdoutFailed
             | Self::LogNotCreated { .. }
-            | Self::LogWriteFailed { .. }
-            | Self::LogOutputCutShort { .. }
             | Self::CompletionUndetermined { .. } => Level::Error,
-            Self::RetryScheduled { .. } | Self::InitCreated { .. } | Self::InitReplaced { .. } => {
-                Level::Notice
-            }
+            Self::RetryScheduled { .. }
+            | Self::InitCreated { .. }
+            | Self::InitReplaced { .. }
+            | Self::LogWriteFailed { .. }
+            | Self::LogOutputCutShort { .. } => Level::Notice,
             Self::JobResult { .. }
             | Self::JobSkipped { .. }
             | Self::Transition { .. }
