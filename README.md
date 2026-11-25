@@ -224,7 +224,7 @@ conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complet
 conductor watch [--config <パス>] [--run-id <ID>]
 conductor reset [--config <パス>] [--run-id <ID> | --all]
 conductor validate [-v] [--config <パス>] [<パイプライン名>]
-conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+conductor graph [-v] [--config <パス>] [--format <text|mermaid|dot>] [--state [--run-id <ID>]] [<パイプライン名>]
 conductor init [--config <パス>] [--force] [<パイプライン名>]
 conductor convert <ファイル> --to <yaml|toml>
 conductor --help | --version
@@ -246,7 +246,7 @@ conductor --help | --version
 | `--config <パス>`(`--config=<パス>`) | 定義ファイルのパス。省略時は、実行ディレクトリの `conductor.toml`(`run`・`pipeline`・`watch`・`reset`・`validate`・`graph`・`init`)。`init` では、`-` を指定すると、ファイルを作らずに、ひな形を標準出力に出す |
 | `--force` | `init` だけ(v0.9.0 以降)。値は取りません。既にあるファイルを上書きする。省略すると、何も変えずに終了コード 69 で終わる |
 | `-v`、`--verbose` | ジョブの結果、スキップ、遷移を、標準エラーに表示する(`run`・`pipeline`・`validate` だけ。1 段階)。`graph` では、ジョブごとの詳細(コマンド、リトライ、飛び越し)を図に足す |
-| `--format <text\|mermaid>` | `graph` だけ(v0.9.0 以降)。図の形式。既定は `text` |
+| `--format <text\|mermaid\|dot>` | `graph` だけ(v0.9.0 以降。`dot` は v0.10.0 以降)。図の形式。既定は `text` |
 | `--state` | `graph` だけ(v0.9.0 以降)。ステートを読んで、ジョブの状態を図に重ねる(書かない) |
 | `--dry-run` | `run`・`pipeline` だけ(v0.9.0 以降)。ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を標準出力に出す。「[dry-run の使い方](#dry-run-の使い方v090-以降)」を参照 |
 | `--assume <ジョブID>=<終了コード>` | `--dry-run` と一緒のときだけ(v0.9.0 以降)。計画の中で、ジョブの終了コード(0〜255)を仮定する。複数回指定できる。指定しなかったジョブは、終了コード 0 で終わるものとする |
@@ -281,6 +281,7 @@ conductor validate                     # 定義を実行せずに検査する(�
 conductor validate -v nightly --config /etc/batch/conductor.toml   # 名前も照合し、結果を 1 行表示
 conductor graph                        # ジョブの流れを図(text)で見る
 conductor graph --format mermaid       # Mermaid の図にする
+conductor graph --format dot | dot -Tsvg > flow.svg   # Graphviz の DOT にして、画像にする
 conductor graph --state -v             # 状態と再開位置を重ね、詳細も出す
 conductor pipeline nightly --dry-run   # 実行せずに、実行計画を見る
 conductor pipeline nightly --dry-run --assume extract=3   # extract が終了コード 3 で終わるとしたときの計画
@@ -614,7 +615,7 @@ run ID を与えると、ステートは `<定義ファイル名>.<run-id>.state
 `conductor graph` は、定義の遷移(成功と警告の行き先、`@end`)を図にして、標準出力に書きます。ジョブは実行しません。図の元になる辺は、`run`・`pipeline` が次のジョブを決めるときと同じ判断から取り出すので、図と実際の動きは食い違いません。
 
 ```sh
-conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+conductor graph [-v] [--config <パス>] [--format <text|mermaid|dot>] [--state [--run-id <ID>]] [<パイプライン名>]
 ```
 
 - **検査**: `validate` と同じ検査(定義、`command`、`.env` の読み取り)を行います。誤りは `validate` と同じ表示と終了コード(64)で止まり、図は出ません。`.env` の値は、図にも出力にも含めません。
@@ -724,7 +725,13 @@ o @end
 
 - **辺の一覧に切り替わる形**: レーンの図にするのは、すべてのジョブが、飛び越しなし、通常の飛び越し(次のジョブへの辺と、飛び越しの辺 1 本)、成功と警告の両方の飛び越し、分岐のどれかのグラフで、交差と同じ行き先は、どの組み合わせでも図にします。成功と警告の 2 つの行き先から作れる形は、すべてこの範囲に入ります。図の構造がこの範囲を外れるとき(1 つのジョブから辺が 3 本以上出るなど)だけ、レーンの図の代わりに、注記つきの「辺の一覧」を出します(Mermaid は、どの形でも図になります)。
 - **`--format mermaid`**: `flowchart TD` の図を出します。節の ID は連番で、ジョブ ID は引用符つきのラベルに書きます(`#`、`"`、`<`、`>`、`&`、バッククォートはエスケープします)。主線以外の辺には、成功か警告のラベルが付きます。
-- **`-v`**: ジョブごとに、コマンド、リトライの設定、飛び越しの注記を、詳細の行として足します(`--format mermaid` には影響しません)。環境変数は出しません。
+- **`--format dot`(v0.10.0 以降)**: Graphviz の DOT(`digraph conductor { ... }`)を出します。節と辺は Mermaid と同じで、節の ID は連番(終点は `nend`)、ジョブ ID は二重引用符つきのラベルに書きます(`"` と `\` は `\` で打ち消し、改行などの制御文字は text と同じ見える形にします)。ジョブは四角、終点は楕円で、主線以外の辺には、成功か警告のラベルが付きます。`--state` のときは、ラベルの先頭に状態の記号を付け、再開位置のジョブを太い枠(`penwidth=3`)にします。Graphviz で画像にできます:
+
+```sh
+conductor graph --format dot | dot -Tsvg > flow.svg
+```
+
+- **`-v`**: ジョブごとに、コマンド、リトライの設定、飛び越しの注記を、詳細の行として足します(`--format mermaid` と `--format dot` には影響しません)。環境変数は出しません。
 - **`--state`**: ステートを読んで(完了したものも含めて、書き込みも削除もしません)、状態を `[OK]`(成功・警告)、`[--]`(スキップ)、`[NG]`(エラー)、`[  ]`(未実行)で重ね、再開位置の行に `<- 再開位置`(英語は `<- resume here`)を添えます。完了したステートには、再開位置を示しません。ステートがなければ、すべて `[  ]` です。ステートが定義と食い違うときは、終了コード 65 で止まります。run ID は、`--run-id`、なければ定義の `run_id_env` の環境変数で決めます(`--run-id` は `--state` と一緒のときだけ使えます)。
 - **終了コード**: 成功は 0、定義と `.env` の誤りは 64、ステートの誤りと標準出力に書けないときは 65、使い方の誤り(`--format` の値の誤り、重複、`graph` 以外での `--format`・`--state`、`--state` のない `--run-id`)は 68 です。
 

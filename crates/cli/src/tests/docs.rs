@@ -196,6 +196,10 @@ fn readme_に_graph_の必須の語句と版の表記がある() {
         &[
             "conductor graph",
             "--format mermaid",
+            "--format dot",
+            "--format <text|mermaid|dot>",
+            "dot -Tsvg",
+            "digraph conductor",
             "--state",
             "(v0.9.0 以降)",
             "辺の一覧",
