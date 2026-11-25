@@ -400,6 +400,111 @@ fn watch_と_reset_は定義ファイルがなくても動く() {
     assert!(output.stdout.is_empty() && output.stderr.is_empty());
 }
 
+// ---- 試行の時刻と所要時間(v0.10.0 の U6。FR6.1〜FR6.8) ----
+
+#[test]
+fn u6_fr6_1_ステートに試行の始まりと終わりの時刻が書かれる() {
+    let project = Project::new(&definition(
+        "p",
+        &[
+            job_block("a", &helper_command("exit 0"), ""),
+            job_block("b", &helper_command("exit 3"), "warning_exit_codes = [3]"),
+        ],
+    ));
+    let before = conductor_runtime::now();
+    let output = project.run(&["pipeline", "p"]);
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    let after = conductor_runtime::now();
+
+    let body = std::fs::read_to_string(project.state_path()).expect("読める");
+    assert_eq!(body.matches("[[job.attempt]]").count(), 2, "{body}");
+    let state = conductor_runtime::read_state_raw(&project.def_path(), None)
+        .expect("読める")
+        .expect("完了のステートがある");
+    for job in &state.job_states {
+        assert_eq!(job.attempts.len(), 1, "{}", job.job_id);
+        let attempt = job.attempts[0];
+        let ended = attempt.ended_at.expect("終わりがある");
+        assert!(before <= attempt.started_at && attempt.started_at <= ended);
+        assert!(ended <= after, "{}", job.job_id);
+        // 書いた形は秒までの UTC(`Z`)。
+        let started_text = conductor_core::format_rfc3339(attempt.started_at);
+        assert!(
+            body.contains(&format!("started_at = \"{started_text}\"")),
+            "{body}"
+        );
+    }
+}
+
+#[test]
+fn u6_fr6_4_古い形のステートは_65_で_reset_を案内し_reset_の後は動く() {
+    let project = Project::new(&definition(
+        "p",
+        &[
+            job_block("a", &helper_command("exit 0"), ""),
+            job_block("b", &helper_command("exit 0"), ""),
+        ],
+    ));
+    // v0.9.9 までの形のステート(a は成功で、試行の記録が無い)。
+    std::fs::write(
+        project.state_path(),
+        "format_version = 1\ndefinition_key = \"conductor.toml\"\ndefinition_path = \"conductor.toml\"\n\
+         pipeline_name = \"p\"\njob_order = [\"a\", \"b\"]\nresume_job_id = \"b\"\n\
+         end_reached = false\ncompleted = false\n\n\
+         [[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n\
+         [[job]]\nid = \"b\"\nstatus = \"pending\"\n",
+    )
+    .expect("書ける");
+    for args in [&["run", "b"][..], &["pipeline", "p"][..], &["watch"][..]] {
+        let output = project.run(args);
+        assert_eq!(output.status.code(), Some(65), "{args:?}");
+        let err = text(&output.stderr);
+        assert!(err.contains("state file is corrupt"), "{args:?}: {err}");
+        assert!(err.contains("conductor reset"), "{args:?}: {err}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+    }
+    assert_eq!(project.run(&["reset"]).status.code(), Some(0));
+    assert_eq!(project.run(&["pipeline", "p"]).status.code(), Some(0));
+}
+
+#[test]
+fn u6_fr6_5_watch_の表に所要時間の列がある() {
+    let project = Project::new(&definition(
+        "p",
+        &[
+            job_block("a", &helper_command("exit 0"), ""),
+            job_block("b", &helper_command("exit 0"), ""),
+        ],
+    ));
+    assert_eq!(project.run(&["run", "a"]).status.code(), Some(0));
+    let output = project.run(&["watch"]);
+    assert_eq!(output.status.code(), Some(0));
+    let shown = text(&output.stdout);
+    let lines: Vec<&str> = shown.lines().collect();
+    assert_eq!(
+        lines[1].split_whitespace().collect::<Vec<_>>(),
+        ["JOB", "STATUS", "DURATION", "NOTE"]
+    );
+    // a は終わったジョブ。所要時間は秒の形(短いジョブなので 1 分未満)。
+    let a: Vec<&str> = lines[2].split_whitespace().collect();
+    assert_eq!(a[..2], ["a", "success"], "{shown}");
+    assert!(
+        a[2].ends_with('s') && a[2][..a[2].len() - 1].bytes().all(|b| b.is_ascii_digit()),
+        "{shown}"
+    );
+    // b は動いていないので空。
+    assert_eq!(lines[3].trim_end(), "b    pending", "{shown}");
+
+    let mut command = conductor(&["watch", "--config"]);
+    command.arg(project.def_path()).env("LANG", "ja_JP.UTF-8");
+    let output = run_limited(command, || {});
+    assert!(
+        text(&output.stdout).contains("所要時間"),
+        "{}",
+        text(&output.stdout)
+    );
+}
+
 #[test]
 fn 日本語のロケールでは_エラーが日本語になる() {
     let mut command = conductor(&["bogus"]);
