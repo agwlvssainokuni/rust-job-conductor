@@ -29,6 +29,7 @@
 //! | `sleep [seconds]` | `pid=N` と `ready` を記録して眠り続ける(秒数があれば、その後 99 で終わる)。ハンドラは持たず、シグナルは既定の動作で終わる |
 //! | `timing` | 起動の直後と終了の直前に、UNIX 時刻(ナノ秒)を、`start_ns=`・`end_ns=` で書いて終わる |
 //! | `burn <ms>` | 指定のミリ秒、CPU を使い続けて終わる(CPU 時間の測定用) |
+//! | `flood <bytes>` | 64 バイトごとに改行する英小文字の並び(`i` バイト目は、64 で割った余りが 63 なら改行、それ以外は `a` + 余り % 26)を、標準出力に指定のバイト数だけ書いて終わる(ログの大量の出力の確かめ) |
 //!
 //! 時刻は、プロセスをまたいで比べられる `SystemTime`(UNIX 時刻)で出す(`Instant` は、プロセスをまたいだ
 //! 値を持たず、`unsafe` なしでは、取り出せないため)。
@@ -133,6 +134,28 @@ fn main() {
                     .wrapping_add(1442695040888963407);
                 std::hint::black_box(x);
             }
+        }
+        "flood" => {
+            let total: usize = args.first().and_then(|a| a.parse().ok()).unwrap_or(0);
+            let block: Vec<u8> = (0..64usize)
+                .map(|i| {
+                    if i == 63 {
+                        b'\n'
+                    } else {
+                        b'a' + (i % 26) as u8
+                    }
+                })
+                .collect();
+            let mut out = std::io::stdout().lock();
+            let mut left = total;
+            while left > 0 {
+                let n = left.min(block.len());
+                if out.write_all(&block[..n]).is_err() {
+                    std::process::exit(3);
+                }
+                left -= n;
+            }
+            let _ = out.flush();
         }
         _ => std::process::exit(2),
     }
