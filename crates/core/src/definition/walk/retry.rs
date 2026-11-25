@@ -36,6 +36,23 @@ const RETRY_KEYS: &[&str] = &[
 /// ジョブの `retry` が表でも `false` でもないときの理由(v0.10.0 の BR2.1)。
 const JOB_RETRY_NOT_TABLE_REASON: &str = "`retry` はテーブルか `false` で書きます";
 
+/// `[pipeline]` の `retry` が表でないときの理由(v0.10.0 の BR1.1)。
+const PIPELINE_RETRY_NOT_TABLE_REASON: &str = "`[pipeline.retry]` はテーブルで書きます";
+
+/// `[pipeline.retry]`(全ジョブの既定)の読み取り結果(v0.10.0 の BR1.1、BR1.2)。
+///
+/// 検証の中でだけ持ち、組み立て後の定義には残さない(各ジョブの `retry` に複製して入れる。BR2.4)。
+pub(super) struct PipelineRetryDefault {
+    reading: RawRetry,
+}
+
+impl PipelineRetryDefault {
+    /// 既定から `RetryPolicy` を組み立てる。値が欠けていれば `None`(`build_retry` と同じ)。
+    pub(super) fn into_policy(self) -> Option<RetryPolicy> {
+        build_retry(self.reading)
+    }
+}
+
 /// `retry` の表 1 つの読み取り結果(ジョブの表と既定の表で共有する)。値が正しいものだけが `Some`
 /// (位置は、誤りの報告に使う)。
 pub(super) struct RawRetry {
@@ -75,6 +92,25 @@ impl Walker<'_> {
                 JobRetrySetting::Absent
             }
         }
+    }
+
+    /// `[pipeline]` の `retry`(全ジョブの既定)を読む(v0.10.0 の BR1.1、BR1.2、BR3.5)。書かなければ `None`。
+    ///
+    /// 表でなければ(`false` を含む)`retryNotTable` の誤り。表は `[job.retry]` と同じ手続きで読み、
+    /// 上限と間隔の大小は、ジョブの数によらず、ここで 1 回だけ調べる。
+    pub(super) fn pipeline_retry(
+        &mut self,
+        pipeline: &DeTable<'_>,
+    ) -> Option<PipelineRetryDefault> {
+        let value = pipeline.get("retry")?;
+        let start = value.span().start;
+        let DeValue::Table(table) = value.get_ref() else {
+            self.push(start, Kind::RetryNotTable, PIPELINE_RETRY_NOT_TABLE_REASON);
+            return None;
+        };
+        let reading = self.retry_table(table, start);
+        self.check_retry_interval(&reading);
+        Some(PipelineRetryDefault { reading })
     }
 
     /// `retry` の表 1 つを読む(BR1.2〜BR1.6、BR1.9〜BR1.12)。ジョブの表と既定の表で共有する
@@ -258,6 +294,11 @@ impl Walker<'_> {
                 );
             }
         }
+        self.check_retry_interval(retry);
+    }
+
+    /// 間隔の上限が間隔より小さければ誤り(BR1.13)。ジョブの表と既定の表で共有する。
+    fn check_retry_interval(&mut self, retry: &RawRetry) {
         if let (Some((interval, _)), Some((max_interval, offset))) =
             (&retry.interval, &retry.max_interval)
             && max_interval < interval

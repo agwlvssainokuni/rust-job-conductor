@@ -35,10 +35,10 @@ use crate::definition::version::VERSION_KEY;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
 use crate::types::{
-    Classification, Command, EnvVar, JobDefinition, PipelineDefinition, Transition, TransitionOn,
-    TransitionTarget,
+    Classification, Command, EnvVar, JobDefinition, PipelineDefinition, RetryPolicy, Transition,
+    TransitionOn, TransitionTarget,
 };
-use retry::{JobRetrySetting, build_retry};
+use retry::{JobRetrySetting, PipelineRetryDefault, build_retry};
 
 const ROOT_KEYS: &[&str] = &[VERSION_KEY, "pipeline", "job"];
 const PIPELINE_KEYS: &[&str] = &[
@@ -48,6 +48,7 @@ const PIPELINE_KEYS: &[&str] = &[
     "remove_on_complete",
     "env",
     "env_file",
+    "retry",
 ];
 const JOB_KEYS: &[&str] = &[
     "id",
@@ -261,14 +262,16 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// `[pipeline]` を読む。既定のリトライ(`[pipeline.retry]`)は `PipelineHead` とは別に返し、
+    /// `name` の誤りで既定の検査が省かれないようにする(v0.10.0 の BR1.1、BR3.1)。
     fn pipeline_section(
         &mut self,
         root: &DeTable<'_>,
         expected_name: Option<&str>,
-    ) -> Option<PipelineHead> {
+    ) -> (Option<PipelineHead>, Option<PipelineRetryDefault>) {
         let Some(value) = root.get("pipeline") else {
             self.type_error(0, "必須の値 `pipeline` がありません");
-            return None;
+            return (None, None);
         };
         let start = value.span().start;
         let table = match value.get_ref() {
@@ -278,13 +281,25 @@ impl<'a> Walker<'a> {
                     start,
                     "`pipeline` は 1 つだけで、テーブルで書きます(1 ファイルに 1 パイプライン)",
                 );
-                return None;
+                return (None, None);
             }
             _ => {
                 self.type_error(start, "`pipeline` はテーブルで書きます");
-                return None;
+                return (None, None);
             }
         };
+        let retry_default = self.pipeline_retry(table);
+        let head = self.pipeline_head(table, start, expected_name);
+        (head, retry_default)
+    }
+
+    /// `[pipeline]` の、既定のリトライ以外の値を読む。
+    fn pipeline_head(
+        &mut self,
+        table: &DeTable<'_>,
+        start: usize,
+        expected_name: Option<&str>,
+    ) -> Option<PipelineHead> {
         self.check_keys(table, PIPELINE_KEYS);
         let name = self.string(table, "name", start, true);
         let description = self.string(table, "description", start, false);
@@ -530,7 +545,7 @@ pub fn walk(
         errors: Vec::new(),
     };
     w.check_keys(root, ROOT_KEYS);
-    let pipeline = w.pipeline_section(root, expected_pipeline_name);
+    let (pipeline, retry_default) = w.pipeline_section(root, expected_pipeline_name);
 
     let raw_jobs: Vec<RawJob> = match root.get("job") {
         None => {
@@ -551,9 +566,16 @@ pub fn walk(
     };
     w.cross_check(&raw_jobs);
 
+    // 既定のリトライを 1 度だけ組み立てる。書いていなければ `Some(None)`、書いたのに値が欠けていれば
+    // `None`(定義を組み立てない。v0.10.0 の BR2.2)。
+    let default_policy = match retry_default {
+        None => Some(None),
+        Some(d) => d.into_policy().map(Some),
+    };
     if w.errors.is_empty()
         && let Some(head) = pipeline
-        && let Some(jobs) = build_jobs(raw_jobs)
+        && let Some(default_policy) = default_policy
+        && let Some(jobs) = build_jobs(raw_jobs, default_policy.as_ref())
     {
         return Ok(PipelineDefinition {
             name: head.name,
@@ -580,7 +602,10 @@ pub fn walk(
 }
 
 /// 走査の結果から、ジョブの定義を組み立てる(値は移す。組み立てられないジョブが 1 つでもあれば `None`)。
-fn build_jobs(raw: Vec<RawJob>) -> Option<Vec<JobDefinition>> {
+///
+/// `default` は組み立てた既定のリトライ(`[pipeline.retry]`)。`retry` を書かないジョブに複製して入れる
+/// (v0.10.0 の BR2.2)。
+fn build_jobs(raw: Vec<RawJob>, default: Option<&RetryPolicy>) -> Option<Vec<JobDefinition>> {
     raw.into_iter()
         .map(|job| {
             if !job.complete {
@@ -608,11 +633,12 @@ fn build_jobs(raw: Vec<RawJob>) -> Option<Vec<JobDefinition>> {
                     SuccessCodes::Absent | SuccessCodes::Invalid => None,
                 },
                 transitions,
-                // `[job.retry]` がなければ `None`(BR1.1)。書いたのに値が欠けていれば、組み立てない。
-                // `retry = false` は `None`(v0.10.0 の BR2.3)。
+                // 実効のリトライ(v0.10.0 の BR2.2): 表はその表を丸ごと(書いたのに値が欠けていれば
+                // 組み立てない)、`retry = false` は `None`、書かなければ既定の複製(既定も無ければ `None`)。
                 retry: match job.retry {
-                    JobRetrySetting::Absent | JobRetrySetting::Disabled => None,
                     JobRetrySetting::Table(raw) => Some(build_retry(raw)?),
+                    JobRetrySetting::Disabled => None,
+                    JobRetrySetting::Absent => default.cloned(),
                 },
                 env: job.env,
                 env_file: job.env_file,
