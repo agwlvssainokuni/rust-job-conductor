@@ -61,7 +61,7 @@
 //! | [`graph`] | 図の構造と配置 | `graph` の図の節・辺と配置(純粋) |
 //! | [`plan`] | `--dry-run` の計画 | 実行の模擬と計画(純粋) |
 //! | [`run_id`] | run ID の型と規則 | run ID の検査と、環境変数の名前の規則 |
-//! | [`time`] | 時刻(CoreTime) | UTC の時刻の整形・読み取り・差(純粋。現在の時刻は runtime が取る) |
+//! | [`time`] | 時刻(CoreTime) | UTC の時刻の整形・読み取り・差、ジョブの所要時間(純粋。現在の時刻は runtime が取る) |
 //!
 //! 定義の読み込みの流れは Intake → Parse → Depth → VersionCheck → Walk の順である。
 //!
@@ -116,7 +116,10 @@ pub use plan::{
     PlanInput, PlanMode, PlanRejection, ResumeInfo, SimulatedResult, plan_pipeline, plan_run,
 };
 pub use run_id::{DEFAULT_RUN_ID_ENV, RunId, RunIdError, peek_run_id_env};
-pub use time::{Timestamp, duration_secs, format_compact, format_rfc3339, parse_rfc3339};
+pub use time::{
+    JobDuration, Timestamp, duration_secs, format_compact, format_duration, format_rfc3339,
+    job_duration, parse_rfc3339,
+};
 pub use types::{
     Attempt, Backoff, Classification, Command, Decision, EnvFileRef, EnvVar, ExecutionResult,
     JobDefinition, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition,

@@ -25,6 +25,10 @@
 //! | [`format_compact`] | `YYYYMMDDTHHMMSSZ`(ログのファイル名用) | `20261125T091248Z` |
 //! | [`parse_rfc3339`] | [`format_rfc3339`] の形だけを読む | 小数の秒・時差・小文字は受け付けない |
 //! | [`duration_secs`] | 2 つの時刻の差(秒。負にならない) | |
+//! | [`job_duration`] | ジョブの所要時間([`JobDuration`]。U6 の BR4.1) | |
+//! | [`format_duration`] | 所要時間の短い形(U6 の BR4.2) | `17s`、`1m05s`、`2h03m04s` |
+
+use crate::types::{JobState, JobStatus};
 
 /// 1 日の秒数。
 const SECS_PER_DAY: u64 = 86_400;
@@ -194,6 +198,65 @@ pub fn parse_rfc3339(text: &str) -> Option<Timestamp> {
 /// 2 つの時刻の差(秒)。`end` が `start` より前なら 0(負にしない。NFR2.2)。
 pub fn duration_secs(start: Timestamp, end: Timestamp) -> u64 {
     end.0.saturating_sub(start.0)
+}
+
+/// ジョブの所要時間(表示だけの値。v0.10.0 の U6 の BR4.1。`watch` と U7 の継続表示が使う)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JobDuration {
+    /// 最後の試行が終わっている。最初の試行の始まりから最後の試行の終わりまでの秒。
+    Finished(u64),
+    /// 最後の試行に終わりが無い(動いている最中とみなす。Q1)。最初の試行の始まりから今までの秒。
+    Running(u64),
+}
+
+impl JobDuration {
+    /// 秒数。
+    pub fn secs(self) -> u64 {
+        match self {
+            Self::Finished(secs) | Self::Running(secs) => secs,
+        }
+    }
+}
+
+/// ジョブの所要時間を求める(BR4.1。`reliability-design.md` の 4 の表)。空にするときは `None`。
+///
+/// | ジョブ | 所要時間 |
+/// |---|---|
+/// | 試行が無い | `None` |
+/// | `success`・`warning`・`error` | 最初の `started_at` から最後の `ended_at` まで([`JobDuration::Finished`])。最後の試行に `ended_at` が無ければ(conductor は書かない)`None` |
+/// | `pending` で最後の試行に `ended_at` が無い | 最初の `started_at` から `now` まで([`JobDuration::Running`]) |
+/// | `pending` で最後の試行が終わっている、`skipped` | `None` |
+///
+/// 終わりが始まりより前(時計の戻り)なら 0 秒(負にしない。[`duration_secs`])。
+pub fn job_duration(job: &JobState, now: Timestamp) -> Option<JobDuration> {
+    let first = job.attempts.first()?;
+    let last = job.attempts.last()?;
+    match (job.status, last.ended_at) {
+        (JobStatus::Success | JobStatus::Warning | JobStatus::Error, Some(end)) => {
+            Some(JobDuration::Finished(duration_secs(first.started_at, end)))
+        }
+        (JobStatus::Pending, None) => {
+            Some(JobDuration::Running(duration_secs(first.started_at, now)))
+        }
+        _ => None,
+    }
+}
+
+/// 所要時間を単位つきの短い形にする(BR4.2、Q3)。
+///
+/// 1 分未満は `17s`、1 時間未満は `1m05s`、それ以上は `2h03m04s`。上の単位が 0 なら省き、
+/// 先頭より下の単位は 2 桁にする。
+pub fn format_duration(secs: u64) -> String {
+    let hours = secs / 3600;
+    let minutes = secs % 3600 / 60;
+    let seconds = secs % 60;
+    if hours > 0 {
+        format!("{hours}h{minutes:02}m{seconds:02}s")
+    } else if minutes > 0 {
+        format!("{minutes}m{seconds:02}s")
+    } else {
+        format!("{seconds}s")
+    }
 }
 
 #[cfg(test)]
