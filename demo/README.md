@@ -23,14 +23,14 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 | 7 | 定義を検査する(`validate`)。正しい定義は 0、`command` の中の引用符が閉じていない定義は 64。ジョブは実行されず、ステートも作られない |
 | 8 | run ID でステートを分ける(`--run-id build-1` は `load` で止まり、環境変数 `DEMO_RUN_ID` の `build-2` は最後まで進む。同じ run ID で再実行すると `load` から再開。完了してもステートファイルは残り、`reset --run-id` で片づける) |
 | 9 | 環境変数と後始末(`--run-id` は環境変数に勝つ。`--run-id ""` は run ID なしに固定。`reset --run-id` で 1 つ、`reset --all` で全部を消す) |
-| 10 | リトライ(`[job.retry]`、v0.8.0 以降)。別の定義 `retry.toml` で、`flaky` が 2 回、終了コード 75 で失敗する。`conductor` は、1 秒待つたびに、標準エラーへ知らせを出して実行し直し、3 回目で成功する |
+| 10 | リトライ(`[job.retry]`、v0.8.0 以降。全ジョブの既定 `[pipeline.retry]` と打ち消しの `retry = false`、v0.10.0 以降)。別の定義 `retry.toml` は、`[pipeline.retry]` に既定のリトライを書き、`retry` を書かない `flaky` が既定でリトライする。`flaky` が 2 回、終了コード 75 で失敗する。`conductor` は、1 秒待つたびに、標準エラーへ知らせを出して実行し直し、3 回目で成功する |
 | 11 | 環境変数(`[pipeline.env]`・`[job.env]`・`.env`(`env_file`)、v0.9.0 以降)。別の定義 `env.toml` と `.env`(`demo.env`)で、`show-env` が、渡された環境変数を表示する(優先順位は、`.env` < `[pipeline.env]` < `[job.env]`。`CONDUCTOR_*` は自動で渡る)。`.env` が無いと、ジョブを動かさずに 64 で止まる。`validate` は、`.env` の重複キーを警告する(終了コードは 0)。値は、`conductor` 自身の出力には出ない |
 | 12 | 遷移の図(`graph`、v0.9.0 以降)。`conductor.toml` の遷移(`extract` が警告なら `notify` へ飛ぶ)を、text の図、`-v`(コマンドと飛び越しの注記)、`--format mermaid` で見せる。`load` で止めてから `--state` で、状態と再開位置を重ねる。`graph` は、ジョブを実行せず、ステートを読むだけ |
 | 13 | 実行計画(`--dry-run`、`--assume`、v0.9.0 以降)。`pipeline nightly --dry-run` で、ジョブを実行せずに計画を出す。`--assume extract=1`(警告で `transform` と `load` が飛ばされる)と `--assume load=2`(そこで停止する)で、終了コードを仮定した流れを見せる。`run extract --dry-run` は、次の動きを示す。何も実行されず、ステートも作られない |
 | 14 | 定義のひな形(`init`、v0.9.0 以降)。`init --config new.toml starter` で、ひな形を作る(`[pipeline.env]` と `[job.retry]` の例を含む)。もう一度 `init` すると、既にあるので、何も変えず、終了コード 69 で終わる。`--force` で上書きし、`--config -` で標準出力に出す。作ったひな形は、`validate` に通る |
 
 - 定義は `conductor.toml`(場面 10 だけ `retry.toml`、場面 11 だけ `env.toml` と `demo.env`)、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。
-- 場面 10 の `flaky` は、実行した回数を、一時ディレクトリの `flaky.count` に覚えます。環境変数 `DEMO_FLAKY_FAILS`(既定 2)の回数までは、終了コード 75 で失敗します。`DEMO_FLAKY_FAILS` を 4 以上にすると、回数(最大 3 回のリトライ)を使い切って、終了コード 75 で止まります。リトライの待ち時間(1 秒)は、`DEMO_SLEEP` では変わりません(定義の `interval` で決まります)。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。
+- 場面 10 の `flaky` は、実行した回数を、一時ディレクトリの `flaky.count` に覚えます。環境変数 `DEMO_FLAKY_FAILS`(既定 2)の回数までは、終了コード 75 で失敗します。`DEMO_FLAKY_FAILS` を 4 以上にすると、回数(最大 3 回のリトライ)を使い切って、終了コード 75 で止まります。リトライの待ち時間(1 秒)は、`DEMO_SLEEP` では変わりません(定義の `[pipeline.retry]` の `interval` で決まります)。`retry.toml` のコメントに、ジョブごとの `[job.retry]`(既定と混ぜず、丸ごとその表を使う)と、既定を打ち消す `retry = false` の書き方の例があります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。
 - `DEMO_PAUSE` は、値が `1` のときだけ、各場面のあとで Enter を待ちます(既定は待ちません)。
 - `notify` の `command` は、文字列の配列(`["sh", "scripts/notify.sh"]`)で書いています。ほかのジョブは、文字列です。
 - 定義の `[pipeline]` に、`run_id_env = "DEMO_RUN_ID"` を書いています。run ID は、`--run-id` か、この環境変数で指定します(`--run-id` が優先。`--run-id ""` は、環境変数があっても、run ID なしに固定)。run ID ごとに、ステートファイルが別になります(`conductor.toml.<run ID>.state`)。規則の詳細は、ルートの [README](../README.md) の「[run ID でステートを分ける](../README.md#run-id-でステートを分けるv050-以降)」にあります。
