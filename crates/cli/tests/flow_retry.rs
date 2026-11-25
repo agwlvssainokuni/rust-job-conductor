@@ -19,7 +19,10 @@
 mod common;
 
 use common::*;
-use conductor_core::JobStatus;
+use conductor_core::{JobStatus, PipelineState};
+use conductor_runtime::Durability;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// a だけが、終了コード 75 でリトライする(最大 3 回、30 秒おき)。b、c は設定なし。
 const RETRY_A: &str = r#"format_version = 1
@@ -127,8 +130,8 @@ fn run_使い切ると_最後の終了コードで終わり_再開位置はそ�
 
 #[test]
 fn run_結果は最後に_1_回だけ_durable_で書かれ_試行の境目は_fast_で書く() {
-    // 試行ごとに始まり(Fast)、リトライの前に閉じた試行(Fast)を書く(U6 の BR1.1、BR1.2)。
-    // 結果の記録(Durable)は最後の 1 回だけ。リトライ 2 回で Fast 5 回、Durable 1 回。
+    // 試行ごとに始まり(Fast)を書く(U6 の BR1.1)。リトライの前には書かず、試行を開いたまま待つ
+    // (U7 の BR3.4)。結果の記録(Durable)は最後の 1 回だけ。リトライ 2 回で Fast 3 回、Durable 1 回。
     let mut h = Harness::new(RETRY_A);
     h.runtime
         .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
@@ -138,11 +141,9 @@ fn run_結果は最後に_1_回だけ_durable_で書かれ_試行の境目は_fa
         [
             "write:fast",
             "run:a",
-            "write:fast",
             "wait:30",
             "write:fast",
             "run:a",
-            "write:fast",
             "wait:30",
             "write:fast",
             "run:a",
@@ -304,7 +305,7 @@ fn pipeline_使い切ると_そこで停止し_再開位置はそのジョブ() 
 
 #[test]
 fn pipeline_結果はジョブごとに最後に_durable_で書かれ_試行の境目は_fast_で書く() {
-    // リトライ 1 回のジョブは Fast 3 回、Durable 1 回(U6 の NFR1.3)。
+    // リトライ 1 回のジョブは Fast 2 回、Durable 1 回(U6 の NFR1.3、U7 の BR3.4)。
     let mut h = Harness::new(RETRY_A);
     h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
     h.run(&["pipeline", "p"]);
@@ -313,7 +314,6 @@ fn pipeline_結果はジョブごとに最後に_durable_で書かれ_試行の�
         [
             "write:fast",
             "run:a",
-            "write:fast",
             "wait:30",
             "write:fast",
             "run:a",
@@ -607,16 +607,77 @@ fn u6_br1_2_リトライの試行ごとに始まりと終わりを記録する()
 }
 
 #[test]
-fn u6_br1_2_リトライの前に閉じた試行を書いてから待つ() {
-    // 待っている間のステートには、終わった試行が 1 つあり、状態は pending のまま。
+fn u7_br3_4_リトライの待ちの間のステートでは最後の試行が開いている() {
+    // 待ちの途中で中断し、最後の Durable の書き込みを失敗させると、ファイルには待ちの間のステートが残る。
+    // 試行は開いたまま、状態は pending のまま、動きの様子は Running(`watch --follow` が止まったと見ない)。
+    let mut h = Harness::new(RETRY_A);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    h.runtime.interrupt_wait.set(Some((0, 15)));
+    h.runtime
+        .write_failure
+        .set(WriteFailure::OnDurability(Durability::Durable));
+    assert_eq!(h.run(&["run", "a"]).code, 65);
+    assert_eq!(attempts(&h, "a"), [(fake_now(0), None)]);
+    let state = h.state_raw().expect("ステート");
+    assert_eq!(status_in(&state, "a"), JobStatus::Pending);
+    assert_eq!(
+        conductor_core::pipeline_activity(&state),
+        conductor_core::PipelineActivity::Running
+    );
+    let log = flow_log(&h);
+    let wait = log.iter().position(|l| l == "wait:30").expect("待った");
+    assert_eq!(log[wait - 1], "run:a", "待つ前に書かない: {log:?}");
+}
+
+#[test]
+fn u7_br3_4_次の試行の書き込みで前の試行を本当の終わりの時刻で閉じる() {
+    // 2 回目の試行の実行中に、ファイルにあるステートを見る(2 回目の始まりの書き込みの後)。
+    let mut h = Harness::new(RETRY_A);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    let path = h.def_path();
+    let seen: Rc<RefCell<Vec<PipelineState>>> = Default::default();
+    let seen_in_hook = Rc::clone(&seen);
+    *h.runtime.during_job.borrow_mut() = Some(Box::new(move |_, _| {
+        let state = conductor_runtime::read_state_raw(&path, None)
+            .expect("読める")
+            .expect("ある");
+        seen_in_hook.borrow_mut().push(state);
+    }));
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    let seen = seen.borrow();
+    assert_eq!(seen.len(), 2);
+    // 1 回目: now() の 0 回目で始まり、開いている。
+    assert_eq!(seen[0].job_states[0].attempts.len(), 1);
+    assert_eq!(seen[0].job_states[0].attempts[0].ended_at, None);
+    // 2 回目: 前の試行の終わりは、1 回目の試行の後の now()(1 回目)の値。待ちの後の時刻(2 回目)ではない。
+    let a = &seen[1].job_states[0].attempts;
+    assert_eq!(a[0].started_at, fake_now(0));
+    assert_eq!(a[0].ended_at, Some(fake_now(1)));
+    assert_eq!(a[1].started_at, fake_now(2));
+    assert_eq!(a[1].ended_at, None);
+}
+
+#[test]
+fn u7_br3_4_待ちの途中の中断では持っていた時刻で閉じて_durable_で書く() {
     let mut h = Harness::new(RETRY_A);
     h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
     h.runtime.interrupt_wait.set(Some((0, 15)));
     assert_eq!(h.run(&["run", "a"]).code, 143);
     assert_eq!(attempts(&h, "a"), [(fake_now(0), Some(fake_now(1)))]);
+    assert_eq!(
+        flow_log(&h),
+        ["write:fast", "run:a", "wait:30", "write:durable"]
+    );
+}
+
+#[test]
+fn u7_br3_4_リトライ_1_回で_fast_2_回_durable_1_回() {
+    let mut h = Harness::new(RETRY_A);
+    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
     let log = flow_log(&h);
-    let wait = log.iter().position(|l| l == "wait:30").expect("待った");
-    assert_eq!(log[wait - 1], "write:fast", "待つ前に書く: {log:?}");
+    assert_eq!(log.iter().filter(|l| *l == "write:fast").count(), 2);
+    assert_eq!(log.iter().filter(|l| *l == "write:durable").count(), 1);
 }
 
 #[test]
@@ -642,28 +703,11 @@ fn u6_br1_3_リトライの待ちの中断では新しい試行を足さない()
 }
 
 #[test]
-fn u6_リトライの前の書き込みに失敗したら_65_で待たない() {
-    let mut h = Harness::new(RETRY_A);
-    h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
-    // 0: 1 回目の始まり、1: リトライの前。
-    h.runtime.write_failure.set(WriteFailure::OnCall(1));
-    let out = h.run(&["run", "a"]);
-    assert_eq!(out.code, 65);
-    assert!(
-        out.err.contains("the job has already been executed"),
-        "{}",
-        out.err
-    );
-    assert!(h.runtime.waits.borrow().is_empty(), "待たない");
-    assert_eq!(h.runtime.ran(), ["a"]);
-}
-
-#[test]
 fn u6_リトライの_2_回目の始まりの書き込みに失敗したら_65_で起動しない() {
     let mut h = Harness::new(RETRY_A);
     h.runtime.script("a", &[Exec::Exit(75), Exec::Exit(0)]);
-    // 0: 1 回目の始まり、1: リトライの前、2: 2 回目の始まり。
-    h.runtime.write_failure.set(WriteFailure::OnCall(2));
+    // 0: 1 回目の始まり、1: 2 回目の始まり(リトライの前には書かない。U7 の BR3.4)。
+    h.runtime.write_failure.set(WriteFailure::OnCall(1));
     let out = h.run(&["run", "a"]);
     assert_eq!(out.code, 65);
     assert!(out.err.contains("the job was not started"), "{}", out.err);

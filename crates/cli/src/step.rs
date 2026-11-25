@@ -22,7 +22,7 @@
 //! | [`record_skip`] | 土台(ステート、無ければ初期ステート)に `apply_skip`。変わったときだけ `Durable` で書く |
 //! | [`run_step`] | リトライつきの実行 → 分類 → 表示 → 記録 → `Durable` で書く(空なら初期ステートから始める) |
 //! | [`remove_if_requested`] | `remove_on_complete` が真なら、ステートを削除する |
-//! | `run_job_with_retry`(非公開) | `run_step` のリトライつきの実行。試行を始めて `Fast` で書く → 実行 → 試行を閉じる → 判断 →(リトライなら `Fast` で書く)→ 知らせ → 待機 → 繰り返し |
+//! | `run_job_with_retry`(非公開) | `run_step` のリトライつきの実行。試行を始めて `Fast` で書く → 実行 → 終わりの時刻を取る → 判断 →(リトライなら試行を開いたまま)知らせ → 待機 → 繰り返し |
 //! | `report_execution`(非公開) | `run_step` の表示。結果・起動の失敗・成功コードに含まれない 0・遷移・中断 |
 //!
 //! 書く順序、`Durability`、表示の文脈(`StateContext`)は、各関数の説明のとおり。
@@ -33,8 +33,9 @@
 
 use conductor_core::{
     Classification, EnvContext, ExecutionResult, JobDefinition, JobExecution, JobOutcome, NextStep,
-    PipelineState, RetryDecision, RunMode, SkipCause, apply_outcome, apply_skip, cancel_attempt,
-    classify_and_decide, end_attempt, initial_state, merge_env, retry_decision, start_attempt,
+    PipelineState, RetryDecision, RunMode, SkipCause, Timestamp, apply_outcome, apply_skip,
+    cancel_attempt, classify_and_decide, end_attempt, initial_state, merge_env, retry_decision,
+    start_attempt,
 };
 use std::path::{Path, PathBuf};
 
@@ -179,8 +180,10 @@ pub(crate) fn run_step(
 /// - 起動の前に合図が立っていた(`NotStarted`)ときは、試行を取り除く(`cancel_attempt`。BR1.3)。
 ///   それ以外(終わった、起動の失敗、ログを作れずに起動しなかった)は、試行の後に時刻を取って閉じる
 ///   (`end_attempt`。BR1.2)。
-/// - リトライするときは、閉じた試行を `Fast` で書いてから(文脈は「起動した」)知らせて待つ。待ちの中断では
-///   新しい試行を足さない(BR1.3)。
+/// - リトライするときは、試行の終わりの時刻をメモリ(`pending_end`)に持ち、試行を開いたまま書かずに知らせて
+///   待つ(v0.10.0 の U7 の BR3.4。待ちの間に `watch --follow` から止まったと見えないように)。次の試行の
+///   始めに、持っていた時刻で閉じて(`end_attempt`)から新しい試行を足し、`Fast` で 1 回書く。待ちの中断では、
+///   持っていた時刻で閉じてから抜け、新しい試行を足さない(呼び出し側の `Durable` の書き込みに入る。BR1.3)。
 ///
 /// 書き込みの失敗は、表示したうえで、終了コード(65)を `Err` で返す(開始の書き込みの失敗では、起動しない)。
 fn run_job_with_retry(
@@ -202,6 +205,8 @@ fn run_job_with_retry(
         .map(|dir| resolve_log_dir(&session.checked.base.path, dir));
     let mut retries_done: u32 = 0;
     let mut last_wait_secs: u64 = 0;
+    // リトライの待ちの間、まだ書いていない前の試行の終わりの時刻(U7 の BR3.4)。
+    let mut pending_end: Option<Timestamp> = None;
     loop {
         // 試行ごとに、足す環境を作り直す(`CONDUCTOR_ATTEMPT` は、この呼び出しのリトライの回数 + 1。
         // 再開すると 1 に戻る。BR5.2、FR1.10)。
@@ -218,7 +223,11 @@ fn run_job_with_retry(
             },
         );
         let started_at = ctx.runtime.now();
-        // 試行を始めた記録を、起動の前に書く(U6 の BR1.1)。
+        // リトライなら、前の試行を持っていた時刻で閉じる(U7 の BR3.4)。続けて、試行を始めた記録を足し、
+        // 起動の前に 1 回書く(U6 の BR1.1)。
+        if let Some(ended_at) = pending_end.take() {
+            *state = end_attempt(state, &job.id, ended_at);
+        }
         *state = start_attempt(state, &job.id, started_at);
         ctx.write(
             path,
@@ -238,11 +247,15 @@ fn run_job_with_retry(
         let (execution, log) =
             ctx.runtime
                 .run_job(line, &env.additions(), &unset, signal, target.as_ref());
-        // 試行を閉じる。起動の前に合図が立っていたときだけ、起動していないので取り除く(U6 の BR1.2、BR1.3)。
-        *state = match execution.result {
-            ExecutionResult::NotStarted { .. } => cancel_attempt(state, &job.id),
+        // 試行の終わりの時刻を取る。起動の前に合図が立っていたときだけ、起動していないので試行を取り除く
+        // (U6 の BR1.2、BR1.3)。
+        let ended_at = match execution.result {
+            ExecutionResult::NotStarted { .. } => {
+                *state = cancel_attempt(state, &job.id);
+                None
+            }
             ExecutionResult::StartFailed | ExecutionResult::Exited { .. } => {
-                end_attempt(state, &job.id, ctx.runtime.now())
+                Some(ctx.runtime.now())
             }
         };
         report_log_warnings(ctx, &log);
@@ -253,17 +266,15 @@ fn run_job_with_retry(
             max,
         } = retry_decision(job, &execution, retries_done, last_wait_secs)
         else {
+            // リトライしない。試行を閉じて返す(呼び出し側の `Durable` の書き込みに入る。U6 の BR1.2)。
+            if let Some(at) = ended_at {
+                *state = end_attempt(state, &job.id, at);
+            }
             return Ok((execution, log));
         };
 
-        // 閉じた試行を、待つ前に書く(U6 の BR1.2)。
-        ctx.write(
-            path,
-            run_id,
-            state,
-            Durability::Fast,
-            StateContext::JobExecuted,
-        )?;
+        // リトライする。試行は開いたまま、終わりの時刻をメモリに持って待つ(書かない。U7 の BR3.4)。
+        pending_end = ended_at;
 
         // 待機の前に、常に知らせる(BR2.4)。
         ctx.show(&DisplayEvent::RetryScheduled {
@@ -280,6 +291,10 @@ fn run_job_with_retry(
                 last_wait_secs = wait_secs;
             }
             WaitOutcome::Interrupted(number) => {
+                // 持っていた時刻で閉じてから抜ける(U7 の BR3.4)。
+                if let Some(at) = pending_end.take() {
+                    *state = end_attempt(state, &job.id, at);
+                }
                 return Ok((JobExecution::not_started(number), LogOutcome::default()));
             }
         }
