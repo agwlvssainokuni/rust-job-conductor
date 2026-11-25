@@ -53,6 +53,7 @@ const PIPELINE_KEYS: &[&str] = &[
     "env",
     "env_file",
     "retry",
+    "log_dir",
 ];
 const JOB_KEYS: &[&str] = &[
     "id",
@@ -77,6 +78,7 @@ struct PipelineHead {
     remove_on_complete: bool,
     env: Vec<EnvVar>,
     env_file: Vec<EnvFileRef>,
+    log_dir: Option<String>,
 }
 
 struct RawTransition {
@@ -322,6 +324,7 @@ impl<'a> Walker<'a> {
         let remove_on_complete = self.boolean(table, "remove_on_complete");
         let env = self.env_table(table);
         let env_file = self.env_file(table);
+        let log_dir = self.log_dir(table, start);
         let (name, name_offset) = name?;
         if name.trim().is_empty() {
             self.push(name_offset, Kind::EmptyField, "`name` が空です");
@@ -341,7 +344,19 @@ impl<'a> Walker<'a> {
             remove_on_complete,
             env,
             env_file,
+            log_dir,
         })
+    }
+
+    /// `[pipeline].log_dir` を読む(v0.10.0 の BR1.1)。文字列でなければ `typeMismatch`、空なら
+    /// `emptyField`。書かなければ `None`。
+    fn log_dir(&mut self, table: &DeTable<'_>, start: usize) -> Option<String> {
+        let (dir, offset) = self.string(table, "log_dir", start, false)?;
+        if dir.is_empty() {
+            self.push(offset, Kind::EmptyField, "`log_dir` が空です");
+            return None;
+        }
+        Some(dir)
     }
 
     fn transitions(&mut self, job: &DeTable<'_>) -> Vec<RawTransition> {
@@ -594,6 +609,7 @@ pub fn walk(
             job: jobs,
             env: head.env,
             env_file: head.env_file,
+            log_dir: head.log_dir,
         });
     }
 

@@ -189,6 +189,7 @@ fn br4_1_既定を書かない定義は今と同じ定義に組み立てられ�
         ],
         env: Vec::new(),
         env_file: Vec::new(),
+        log_dir: None,
     };
     assert_eq!(def, expected);
 }

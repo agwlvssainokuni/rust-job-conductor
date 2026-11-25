@@ -62,6 +62,7 @@ pub fn definition(ids: &[&str], transitions: &[Spec<'_>]) -> PipelineDefinition 
         job,
         env: Vec::new(),
         env_file: Vec::new(),
+        log_dir: None,
     }
 }
 

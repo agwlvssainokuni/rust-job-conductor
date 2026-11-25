@@ -89,6 +89,7 @@ pub fn definition(name: &str, jobs: Vec<JobDefinition>) -> PipelineDefinition {
         job: jobs,
         env: vec![],
         env_file: vec![],
+        log_dir: None,
     }
 }
 

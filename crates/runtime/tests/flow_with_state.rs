@@ -79,6 +79,7 @@ impl Scene {
             job: jobs,
             env: vec![],
             env_file: vec![],
+            log_dir: None,
         }
     }
 }

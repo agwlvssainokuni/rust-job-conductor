@@ -42,5 +42,6 @@ pub(crate) fn definition(name: &str, jobs: Vec<JobDefinition>) -> PipelineDefini
         job: jobs,
         env: Vec::new(),
         env_file: Vec::new(),
+        log_dir: None,
     }
 }

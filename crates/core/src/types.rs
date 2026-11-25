@@ -43,6 +43,10 @@ pub struct PipelineDefinition {
     /// `[pipeline].env_file` の内容。書いた順を保つ。項目 1 つは要素 1 つの並びにする(FR1.4)。
     /// 文字列の項目は `required = true` の [`EnvFileRef`] になる(v0.10.0 の BR1.1、BR1.3)。
     pub env_file: Vec<EnvFileRef>,
+    /// `[pipeline].log_dir` の値(省略可。空でない。v0.10.0 の FR5.1、BR1.1)。書いた文字列のまま持ち、
+    /// 相対なら定義ファイルのディレクトリが基準(解決は使う側)。書かなければ `None` で、ジョブの出力は
+    /// 今と同じく引き継ぐだけ(BR1.2)。
+    pub log_dir: Option<String>,
 }
 
 /// 定義の `env_file` の 1 項目(v0.10.0 の BR1.1〜BR1.3。契約 C1)。
