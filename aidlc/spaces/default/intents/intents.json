@@ -270,5 +270,13 @@
     "scope": "refactor",
     "status": "complete",
     "request": "e3c13094"
+  },
+  {
+    "uuid": "01a210dc-55e4-720d-8e22-3fc7a6958ac4",
+    "slug": "small-feature-batch",
+    "dirName": "261125-small-feature-batch",
+    "scope": "feature",
+    "status": "in-flight",
+    "request": "9267d02d"
   }
 ]
