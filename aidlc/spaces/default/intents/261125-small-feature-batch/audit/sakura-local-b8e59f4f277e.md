@@ -18593,3 +18593,96 @@
 **Error**: Refusing to complete unit "u7-watch-follow" for "functional-design": its review (iteration 2) is still waiting for a verdict. Record it with `aidlc engine log review --stage functional-design --reviewer aidlc-architecture-reviewer-agent --unit u7-watch-follow --iteration 2 --verdict <READY|NOT-READY>`; if the reviewer gave none, rerun that command with `--retry-pending` instead and dispatch the reviewer again. If their message 2fc03853 (sent 2026-11-25T23:09:50Z) or fa72c4dc (sent 2026-11-25T22:33:59Z) or f6895661 (sent 2026-11-25T22:24:04Z) or 6d475fe1 (sent 2026-11-25T22:22:43Z) or e56d977c (sent 2026-11-25T21:46:22Z) or 893f18ae (sent 2026-11-25T17:00:16Z) or 5b406a39 (sent 2026-11-25T16:22:44Z) or 6191f1e0 (sent 2026-11-25T15:40:03Z) or 9f1a2a1a (sent 2026-11-25T15:34:18Z) or 0baabab5 (sent 2026-11-25T14:36:42Z) or 23728f5a (sent 2026-11-25T13:48:15Z) or ded60097 (sent 2026-11-25T13:26:00Z) or 3ba52deb (sent 2026-11-25T13:25:46Z) or a2cc8e08 (sent 2026-11-25T13:17:17Z) or efaaef94 (sent 2026-11-25T13:14:31Z) asked for it, run the same command with --message <id>. Otherwise: If the person says to go on without this review, run this completion again with --message <id>, the message they said it in. Their approval (the Unit checkpoint's `verify --over-unfinished-review`, or the stage gate) goes over the review.
 
 ---
+
+## Review Requested
+**Timestamp**: 2026-11-25T23:14:26Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u7-watch-follow
+**Iteration**: 2
+**Retry**: pending-request
+**Artifact Fingerprint**: sha256:ce3eba8cb4d69ddbce5d79f78f02c4f84ebdb56c134caccee5359f1c03052870
+**Request Id**: review:52ca9bb783753a59d216cb9a224f7919
+**Review File**: .aidlc-engine/reviews/functional-design/units/u7-watch-follow/d0dc83cb6f948d1a/2.52ca9bb783753a59d216cb9a224f7919.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T23:14:43Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T23:14:47Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a044386923c25b107
+**Message**: 続けて
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T23:14:50Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a7933f0d09fbca495
+**Message**: 続けて
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T23:15:02Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/functional-design/units/u7-watch-follow/d0dc83cb6f948d1a/2.52ca9bb783753a59d216cb9a224f7919.review.md
+**Context**: .aidlc-engine > reviews > functional-design > units > u7-watch-follow > d0dc83cb6f948d1a > 2.52ca9bb783753a59d216cb9a224f7919.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T23:15:06Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a82d29c312d567e66
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u7-watch-follow/d0dc83cb6f948d1a/2.52ca9bb783753a59d216cb9a224f7919.review.md=634ffe2db4e5dfdbd2e27464b85c0d15116c10dce596d9c91c6ede5770653556
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T23:15:07Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u7-watch-follow
+**Iteration**: 2
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:ce3eba8cb4d69ddbce5d79f78f02c4f84ebdb56c134caccee5359f1c03052870
+**Artifact Fingerprint**: sha256:ce3eba8cb4d69ddbce5d79f78f02c4f84ebdb56c134caccee5359f1c03052870
+**Request Id**: review:52ca9bb783753a59d216cb9a224f7919
+**Review Record**: .aidlc-engine/reviews/functional-design/units/u7-watch-follow/d0dc83cb6f948d1a/2.json
+**Review Record Digest**: sha256:99154e404bb3f3089c1f1b4ad033b6a5794921958ef6b2208f16cba02b2c3f3f
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T23:15:09Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-25T23:15:12Z
+**Event**: UNIT_COMPLETED
+**Stage**: functional-design
+**Unit**: u7-watch-follow
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
