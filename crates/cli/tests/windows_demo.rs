@@ -126,10 +126,42 @@ fn 場面_2_警告で_notify_へ進み_0() {
 }
 
 #[test]
-fn 場面_3_と_4_load_の失敗は_2_で_再実行すると_load_から再開する() {
+fn 場面_3_と_4_load_の失敗は_2_で_watch_に所要時間が出て_再実行すると_load_から再開する() {
     let demo = Demo::new();
     let failed = demo.run(&["pipeline", "-v", "nightly"], &[("DEMO_LOAD_EXIT", "2")]);
     assert_eq!(failed.status.code(), Some(2), "{}", text(&failed.stderr));
+
+    // 場面 3: watch の表に所要時間の列(v0.10.0 の U6)。値は時刻に左右されるので、形だけを見る
+    let stopped = demo.run(&["watch"], &[]);
+    assert_eq!(stopped.status.code(), Some(0), "{}", text(&stopped.stderr));
+    let table = text(&stopped.stdout);
+    assert!(
+        table.contains("JOB        STATUS   DURATION  NOTE\n"),
+        "{table}"
+    );
+    for id in ["extract", "transform", "load"] {
+        let row = table
+            .lines()
+            .find(|l| l.starts_with(&format!("{id} ")))
+            .unwrap_or_else(|| panic!("{id} の行: {table}"));
+        let duration = row.split_whitespace().nth(2).expect("所要時間");
+        assert!(
+            duration.ends_with('s')
+                && duration[..duration.len() - 1]
+                    .bytes()
+                    .all(|b| b.is_ascii_digit()),
+            "{row}"
+        );
+    }
+    let notify = table
+        .lines()
+        .find(|l| l.starts_with("notify "))
+        .expect("notify の行");
+    assert_eq!(
+        notify.trim_end(),
+        "notify     pending",
+        "動いていないジョブは空"
+    );
 
     let resumed = demo.run(&["pipeline", "-v", "nightly"], &[]);
     assert_eq!(resumed.status.code(), Some(0), "{}", text(&resumed.stderr));

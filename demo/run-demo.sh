@@ -81,7 +81,7 @@ pause
 scene "3. エラーで止まる: load が失敗(終了コード 2)。conductor の終了コードも 2"
 ( DEMO_LOAD_EXIT=2; export DEMO_LOAD_EXIT; cmd "$CONDUCTOR" pipeline -v nightly )
 echo
-echo "止まった位置を見る(watch):"
+echo "止まった位置と、ジョブごとの所要時間を見る(watch。所要時間の列は v0.10.0 以降):"
 cmd "$CONDUCTOR" watch
 pause
 

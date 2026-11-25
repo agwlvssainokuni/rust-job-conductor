@@ -65,6 +65,35 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("definition is valid"), "{out}");
     assert!(out.contains("command has an unclosed quote"), "{out}");
     assert!(out.contains("→ 終了コード 64"), "{out}");
+    // 場面 3: watch の表に所要時間の列(v0.10.0 の U6)。値は時刻に左右されるので、形だけを見る
+    let scene3 = &out[out.find("=== 3. ").expect("場面 3")..out.find("=== 4. ").expect("場面 4")];
+    assert!(
+        scene3.contains("JOB        STATUS   DURATION  NOTE\n"),
+        "{scene3}"
+    );
+    for id in ["extract", "transform", "load"] {
+        let row = scene3
+            .lines()
+            .find(|l| l.starts_with(&format!("{id} ")))
+            .unwrap_or_else(|| panic!("{id} の行: {scene3}"));
+        let duration = row.split_whitespace().nth(2).expect("所要時間");
+        assert!(
+            duration.ends_with('s')
+                && duration[..duration.len() - 1]
+                    .bytes()
+                    .all(|b| b.is_ascii_digit()),
+            "{row}"
+        );
+    }
+    let notify = scene3
+        .lines()
+        .find(|l| l.starts_with("notify "))
+        .expect("notify の行");
+    assert_eq!(
+        notify.trim_end(),
+        "notify     pending",
+        "動いていないジョブは空"
+    );
     // 場面 4: 完了してもステートは残り、watch が完了を示す。--remove-on-complete で消える
     assert!(out.contains("\ncompleted\n"), "{out}");
     assert!(out.contains("--remove-on-complete nightly"), "{out}");

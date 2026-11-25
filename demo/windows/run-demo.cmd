@@ -85,7 +85,7 @@ set "DEMO_LOAD_EXIT=2"
 call :runcmd pipeline -v nightly
 endlocal
 echo.
-echo 止まった位置を見る(watch):
+echo 止まった位置と、ジョブごとの所要時間を見る(watch。所要時間の列は v0.10.0 以降):
 call :runcmd watch
 call :pause
 
