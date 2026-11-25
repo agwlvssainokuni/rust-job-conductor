@@ -1,0 +1,30 @@
+{
+  "stage": "nfr-design",
+  "unit": "u7-watch-follow",
+  "upstream_ids": ["NFR1.6","NFR1.7","NFR6.1","NFR6.2","NFR6.3","NFR6.4","NFR5.1","NFR1.8","NFR1.1","NFR1.2","NFR1.3","NFR1.4","NFR1.5","NFR2.1","NFR2.2","NFR2.3","NFR3.1","NFR3.2","NFR3.3","NFR1.9","NFR1.10","NFR4.1","NFR7.1"],
+  "coverage": [
+    { "id": "NFR1.6", "status": "OK", "target": "performance-design.md: 1 回の描画と Runtime::wait" },
+    { "id": "NFR1.7", "status": "OK", "target": "performance-design.md、reliability-design.md の 2: Fast 2 回" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design.md の 1" },
+    { "id": "NFR6.2", "status": "OK", "target": "security-design.md の 2" },
+    { "id": "NFR6.3", "status": "OK", "target": "security-design.md の 3: platform の判定と端末の判定" },
+    { "id": "NFR6.4", "status": "OK", "target": "security-design.md の 4" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design.md の 5" },
+    { "id": "NFR1.8", "status": "OK", "target": "scalability-design.md: 持ち越すのは 3 つの小さな値だけ" },
+    { "id": "NFR1.1", "status": "OK", "target": "reliability-design.md の 4: 今のテスト(U6 のリトライの期待の直しを除く)" },
+    { "id": "NFR1.2", "status": "OK", "target": "reliability-design.md の 3: wait の中断で 0" },
+    { "id": "NFR1.3", "status": "OK", "target": "reliability-design.md の 1、2" },
+    { "id": "NFR1.4", "status": "OK", "target": "reliability-design.md の 3: 無い・消えた・読めない(一時的な失敗の読み直し)" },
+    { "id": "NFR1.5", "status": "OK", "target": "observability-design.md: README の記載と docs の必須の語句" },
+    { "id": "NFR2.1", "status": "OK", "target": "reliability-design.md の 4: core → cli のテストの配置" },
+    { "id": "NFR2.2", "status": "OK", "target": "reliability-design.md の 4: binary_*.rs" },
+    { "id": "NFR2.3", "status": "OK", "target": "reliability-design.md の 4: 差し替え口の偽物" },
+    { "id": "NFR3.1", "status": "OK", "target": "reliability-design.md の 4: CI" },
+    { "id": "NFR3.2", "status": "OK", "target": "reliability-design.md の 4: デモのテスト" },
+    { "id": "NFR3.3", "status": "OK", "target": "reliability-design.md の 4: 版のコミットで版に関わるテストを合わせる" },
+    { "id": "NFR1.9", "status": "OK", "target": "observability-design.md: 描き方" },
+    { "id": "NFR1.10", "status": "OK", "target": "observability-design.md: 使い方の表" },
+    { "id": "NFR4.1", "status": "OK", "target": "logical-components.md: 既存の部品だけで作り、依存を足さない" },
+    { "id": "NFR7.1", "status": "OK", "target": "logical-components.md: 変更する部品の範囲で fmt と clippy を通す(CI の lint)" }
+  ]
+}
