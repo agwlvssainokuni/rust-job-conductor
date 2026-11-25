@@ -46,6 +46,7 @@ fn pipeline_state() -> PipelineState {
         status,
         exit_code,
         skip_reason,
+        attempts: vec![],
     };
     PipelineState {
         pipeline_name: "nightly".into(),

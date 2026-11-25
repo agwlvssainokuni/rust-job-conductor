@@ -115,8 +115,8 @@ pub use plan::{
 pub use run_id::{DEFAULT_RUN_ID_ENV, RunId, RunIdError, peek_run_id_env};
 pub use time::{Timestamp, duration_secs, format_compact, format_rfc3339, parse_rfc3339};
 pub use types::{
-    Backoff, Classification, Command, Decision, EnvFileRef, EnvVar, ExecutionResult, JobDefinition,
-    JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition, PipelineState,
-    RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason, Transition,
-    TransitionOn, TransitionTarget,
+    Attempt, Backoff, Classification, Command, Decision, EnvFileRef, EnvVar, ExecutionResult,
+    JobDefinition, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition,
+    PipelineState, RejectReason, ResumePoint, RetryPolicy, RunMode, SkipCause, SkipReason,
+    Transition, TransitionOn, TransitionTarget,
 };

@@ -448,6 +448,7 @@ fn 完了の判定ができないときは_65_で_初期化しない() {
                 status: JobStatus::Success,
                 exit_code: Some(0),
                 skip_reason: None,
+                attempts: vec![],
             })
             .collect(),
         resume_job_id: None,

@@ -241,6 +241,7 @@ mod tests {
                     status: JobStatus::Error,
                     exit_code: Some(3),
                     skip_reason: None,
+                    attempts: vec![],
                 },
                 JobState::pending("b"),
             ],

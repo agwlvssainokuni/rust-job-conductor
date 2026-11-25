@@ -126,6 +126,7 @@ mod tests {
             status,
             exit_code: None,
             skip_reason: reason,
+            attempts: vec![],
         }
     }
 

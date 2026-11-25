@@ -332,6 +332,7 @@ fn walk_job(job: &toml::Table) -> Result<JobState, ParseFailure> {
         status,
         exit_code,
         skip_reason,
+        attempts: Vec::new(),
     })
 }
 

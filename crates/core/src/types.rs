@@ -23,6 +23,8 @@
 //! 終了コードは、プロセスの終了コードに合わせて `i32` で持つ。定義ファイルに書かれた
 //! `i32` の範囲を超える整数は、読み込み時に `typeMismatch` になる。
 
+use crate::time::Timestamp;
+
 /// 定義ファイル 1 つに書かれたパイプラインの定義(契約 C1)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PipelineDefinition {
@@ -351,6 +353,19 @@ impl SkipReason {
     }
 }
 
+/// 1 回の試行(ジョブの 1 回の起動)の時刻(v0.10.0 の FR6.1、FR6.3、U6 の BR1.1、BR2.2)。
+///
+/// 時刻のほかの値(コマンド、環境変数、出力、終了コード)は持たない。ステートファイルでは
+/// `[[job.attempt]]` の 1 つの表になる(契約 C4)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Attempt {
+    /// 起動の直前に取った時刻(ログのファイル名の時刻と同じ値)。
+    pub started_at: Timestamp,
+    /// 試行が終わった後に取った時刻。動いている最中、または conductor が強制終了されたときは `None`
+    /// (BR3.2: `None` を許すのは各ジョブの最後の試行だけ)。
+    pub ended_at: Option<Timestamp>,
+}
+
 /// パイプラインの中の 1 つのジョブの、これまでの状態(契約 C1。保持は conductor-runtime)。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobState {
@@ -358,16 +373,19 @@ pub struct JobState {
     pub status: JobStatus,
     pub exit_code: Option<i32>,
     pub skip_reason: Option<SkipReason>,
+    /// 試行の時刻。古いものから順。再開しても前の試行を残し、後ろに足す(v0.10.0 の FR6.5、U6 の BR1.4)。
+    pub attempts: Vec<Attempt>,
 }
 
 impl JobState {
-    /// まだ何も起きていないジョブの状態(pending)。
+    /// まだ何も起きていないジョブの状態(pending。試行は無い)。
     pub fn pending(job_id: impl Into<String>) -> Self {
         Self {
             job_id: job_id.into(),
             status: JobStatus::Pending,
             exit_code: None,
             skip_reason: None,
+            attempts: Vec::new(),
         }
     }
 }
@@ -607,5 +625,6 @@ mod tests {
         let s = JobState::pending("a");
         assert_eq!(s.status, JobStatus::Pending);
         assert!(s.exit_code.is_none() && s.skip_reason.is_none());
+        assert!(s.attempts.is_empty());
     }
 }

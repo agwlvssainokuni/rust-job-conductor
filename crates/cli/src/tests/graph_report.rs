@@ -312,6 +312,7 @@ fn 完了したステートは_状態の記号があり_再開位置は示さな
             status: *status,
             exit_code: None,
             skip_reason: None,
+            attempts: vec![],
         })
         .collect(),
         resume_job_id: Some("e".into()),

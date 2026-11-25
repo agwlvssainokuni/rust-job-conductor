@@ -364,12 +364,14 @@ mod tests {
                 status: JobStatus::Success,
                 exit_code: Some(0),
                 skip_reason: None,
+                attempts: vec![],
             },
             JobState {
                 job_id: "j1".into(),
                 status: JobStatus::Error,
                 exit_code: Some(1),
                 skip_reason: None,
+                attempts: vec![],
             },
         ];
         let s = run(&d, "j1", 0, &states, RunMode::Individual);
@@ -388,6 +390,7 @@ mod tests {
             status: JobStatus::Skipped,
             exit_code: None,
             skip_reason: Some(SkipReason::ByTransition),
+            attempts: vec![],
         }];
         let s = run(&d, "j0", 0, &states, RunMode::Pipeline);
         assert_eq!(s.skipped_job_ids, vec!["j2"]);

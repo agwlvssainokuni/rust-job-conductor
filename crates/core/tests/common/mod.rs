@@ -102,6 +102,7 @@ pub fn state(jobs: &[(&str, JobStatus)], resume: Option<&str>, completed: bool) 
                 status: *status,
                 exit_code: None,
                 skip_reason: (*status == JobStatus::Skipped).then_some(SkipReason::ByTransition),
+                attempts: vec![],
             })
             .collect(),
         resume_job_id: resume.map(str::to_string),

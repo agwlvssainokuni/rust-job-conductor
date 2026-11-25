@@ -93,6 +93,7 @@ fn state(jobs: &[(&str, JobStatus)], resume: Option<&str>, run_id: Option<&str>)
                 status: *status,
                 exit_code: None,
                 skip_reason: None,
+                attempts: vec![],
             })
             .collect(),
         resume_job_id: resume.map(str::to_string),

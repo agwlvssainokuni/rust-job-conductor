@@ -160,6 +160,7 @@ fn random_state(rng: &mut Rng) -> PipelineState {
             status: statuses[rng.below(5)],
             exit_code: [None, Some(0), Some(-5), Some(300)][rng.below(4)],
             skip_reason: reasons[rng.below(3)],
+            attempts: vec![],
         })
         .collect();
     let resume = ["a", "b", "c", "zzz", ""][rng.below(5)];
