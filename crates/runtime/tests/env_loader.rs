@@ -181,6 +181,129 @@ fn 複数のファイルの誤りを集めて行番号つきで返し値を含�
     assert!(e[0].file.ends_with("a.env") && e[2].file.ends_with("b.env"));
 }
 
+#[test]
+fn 無いファイルは必ず要るなら_file_missing_要らないなら誤りにせず引き当てにも載せない() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+    write(dir.path(), "ok.env", "A=1\n");
+
+    // 必ず要る: 今までどおり FileMissing(v0.10.0 の BR2.5)
+    let e = load_env_files(&def, &[env_ref("ok.env", true), env_ref("none.env", true)])
+        .expect_err("誤り");
+    assert_eq!(kinds(&e), [(None, K::FileMissing)]);
+
+    // 要らない: 誤りにせず、その記述は引き当てに無い(v0.10.0 の BR2.3)
+    let loaded = load_env_files(&def, &[env_ref("ok.env", true), env_ref("none.env", false)])
+        .expect("読める");
+    assert_eq!(loaded.files().len(), 1);
+    assert!(loaded.get("ok.env").is_some());
+    assert!(loaded.get("none.env").is_none());
+
+    // 要らないファイルだけで、どれも無い: 空の結果
+    let loaded = load_env_files(&def, &[env_ref("none.env", false)]).expect("読める");
+    assert!(loaded.files().is_empty());
+}
+
+#[test]
+fn 親のディレクトリが無いときも無いとして扱う() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+    let loaded = load_env_files(&def, &[env_ref("nodir/x.env", false)]).expect("読める");
+    assert!(loaded.get("nodir/x.env").is_none());
+    let e = load_env_files(&def, &[env_ref("nodir/x.env", true)]).expect_err("誤り");
+    assert_eq!(kinds(&e), [(None, K::FileMissing)]);
+}
+
+#[test]
+fn 必ず要らないファイルでもあって読めないものは今までどおりの誤り() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+    std::fs::create_dir(dir.path().join("d.env")).expect("ディレクトリ");
+    write(dir.path(), "big.env", &"x".repeat(MAX + 1));
+    let mut bytes = format!("A={SECRET}").into_bytes();
+    bytes.push(0xff);
+    std::fs::write(dir.path().join("bin.env"), bytes).expect("書き込み");
+    write(dir.path(), "bad.env", &format!("NOEQUALS {SECRET}\n"));
+
+    let e = load_env_files(
+        &def,
+        &[
+            env_ref("d.env", false),
+            env_ref("big.env", false),
+            env_ref("bin.env", false),
+            env_ref("bad.env", false),
+        ],
+    )
+    .expect_err("誤り");
+    assert_eq!(
+        kinds(&e),
+        [
+            (None, K::Unreadable),
+            (None, K::TooLarge),
+            (None, K::NotUtf8),
+            (Some(1), K::MissingEquals),
+        ]
+    );
+    for err in &e {
+        assert!(!err.to_string().contains(SECRET), "{err}");
+    }
+}
+
+#[test]
+fn 同じパスに解決される記述はどれか_1_つが必ず要るなら必ず要る() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+
+    // 片方だけ必ず要る(前でも後ろでも): 無ければ FileMissing が 1 つだけ
+    for refs in [
+        [env_ref("x.env", false), env_ref("./x.env", true)],
+        [env_ref("x.env", true), env_ref("./x.env", false)],
+    ] {
+        let e = load_env_files(&def, &refs).expect_err("誤り");
+        assert_eq!(kinds(&e), [(None, K::FileMissing)], "{refs:?}");
+    }
+
+    // どちらも要らない: 誤りにしない
+    let loaded = load_env_files(&def, &[env_ref("x.env", false), env_ref("./x.env", false)])
+        .expect("読める");
+    assert!(loaded.files().is_empty());
+
+    // あれば、どちらの書き方からも同じ内容を引ける
+    write(dir.path(), "x.env", "X=1\n");
+    let loaded =
+        load_env_files(&def, &[env_ref("x.env", false), env_ref("./x.env", true)]).expect("読める");
+    assert_eq!(loaded.files().len(), 1);
+    assert_eq!(loaded.get("x.env"), loaded.get("./x.env"));
+}
+
+#[test]
+fn 誤りの並びは記述の出現順で読み飛ばしたファイルは入らない() {
+    let dir = tempfile::tempdir().expect("一時ディレクトリ");
+    let def = dir.path().join("c.toml");
+    let mut bytes = b"A=1".to_vec();
+    bytes.push(0xff);
+    std::fs::write(dir.path().join("bin.env"), bytes).expect("書き込み");
+    write(dir.path(), "ok.env", "B=1\n");
+
+    let e = load_env_files(
+        &def,
+        &[
+            env_ref("opt.env", false),
+            env_ref("bin.env", false),
+            env_ref("ok.env", true),
+            env_ref("must.env", true),
+            env_ref("./opt.env", false),
+        ],
+    )
+    .expect_err("誤り");
+    assert_eq!(kinds(&e), [(None, K::NotUtf8), (None, K::FileMissing)]);
+    assert!(e[0].file.ends_with("bin.env") && e[1].file.ends_with("must.env"));
+    assert!(
+        e.iter().all(|err| !err.file.contains("opt.env")),
+        "読み飛ばしたファイルは表示しない: {e:?}"
+    );
+}
+
 /// 読む権限のない 1 MiB 超の `.env` は、大きさより先に開けないことで `unreadable`(3b。定義ファイルの
 /// 読み込みと同じ順。v0.9.6 までは、パスのメタデータで大きさを先に見たため `tooLarge` だった)。
 #[cfg(unix)]
