@@ -209,3 +209,44 @@ fn fr1_2_配列の_command_は要素のまま保持される() {
     );
     assert_eq!(def.job[1].command, Command::Line("echo x".into()));
 }
+
+/// `[pipeline]` に `log_dir` を足した定義。`value` は TOML の右辺をそのまま書く。
+fn with_log_dir(value: &str) -> String {
+    format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nlog_dir = {value}\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+    )
+}
+
+#[test]
+fn br1_1_log_dir_は書いた文字列のまま読める() {
+    // 相対・絶対・空白や日本語を含むパスも、解決せずそのまま持つ(解決は使う側)。
+    for (value, expected) in [
+        ("\"logs\"", "logs"),
+        ("\"logs/nightly\"", "logs/nightly"),
+        ("\"/var/log/conductor\"", "/var/log/conductor"),
+        ("\"../ログ dir\"", "../ログ dir"),
+        ("\" \"", " "),
+        ("'C:\\logs'", "C:\\logs"),
+    ] {
+        let def = parse_definition(&with_log_dir(value), "t.toml", None).expect(value);
+        assert_eq!(def.log_dir.as_deref(), Some(expected), "{value}");
+    }
+}
+
+#[test]
+fn br1_2_log_dir_を書かなければ_none() {
+    let text =
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
+    let def = parse_definition(text, "t.toml", None).unwrap();
+    assert_eq!(def.log_dir, None);
+}
+
+#[test]
+fn br1_1_log_dir_はほかの_pipeline_のキーと共存する() {
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\nlog_dir = \"logs\"\nremove_on_complete = true\nrun_id_env = \"X_ID\"\n\
+        [pipeline.retry]\nexit_codes = [75]\nmax = 1\ninterval = \"1s\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
+    let def = parse_definition(text, "t.toml", None).unwrap();
+    assert_eq!(def.log_dir.as_deref(), Some("logs"));
+    assert!(def.remove_on_complete);
+    assert!(def.job[0].retry.is_some());
+}

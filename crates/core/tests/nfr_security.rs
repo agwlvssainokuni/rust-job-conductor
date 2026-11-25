@@ -225,6 +225,13 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
                 "env_file = {{ path = \"a.env\", required = \"{SENTINEL}\" }}\n"
             )),
         ),
+        // v0.10.0: `log_dir` の型の誤り(値の位置に目印。BR1.1、NFR6.1)。
+        (
+            K::TypeMismatch,
+            format!(
+                "format_version = 1\n[pipeline]\nname = \"p\"\nlog_dir = [\"{SENTINEL}\"]\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+            ),
+        ),
     ]
 }
 

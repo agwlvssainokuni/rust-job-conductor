@@ -501,3 +501,53 @@ fn fr2_2_remove_on_complete_は他のキーと共存し_未知のキーは今ま
     let unknown = "format_version = 1\n[pipeline]\nname = \"p\"\nremove_on_complet = true\n[[job]]\nid = \"a\"\ncommand = \"c\"\n";
     assert_eq!(run(unknown), vec![(K::UnknownKey, Some(4))]);
 }
+
+/// `[pipeline]` に `log_dir` を足した定義。`value` は TOML の右辺をそのまま書く。
+fn with_log_dir(value: &str) -> String {
+    format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nlog_dir = {value}\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+    )
+}
+
+#[test]
+fn br1_1_log_dir_が文字列でなければ型の誤り() {
+    for bad in ["1", "true", "[\"logs\"]", "{ path = \"logs\" }"] {
+        assert_eq!(
+            run(&with_log_dir(bad)),
+            vec![(K::TypeMismatch, Some(4))],
+            "{bad}"
+        );
+    }
+    let errs = parse_definition(&with_log_dir("1"), "t.toml", None).unwrap_err();
+    assert!(
+        errs[0].to_string().contains("`log_dir` は文字列で書きます"),
+        "{}",
+        errs[0]
+    );
+}
+
+#[test]
+fn br1_1_log_dir_が空なら空の誤り() {
+    assert_eq!(run(&with_log_dir("\"\"")), vec![(K::EmptyField, Some(4))]);
+    let errs = parse_definition(&with_log_dir("\"\""), "t.toml", None).unwrap_err();
+    assert!(
+        errs[0].to_string().contains("`log_dir` が空です"),
+        "{}",
+        errs[0]
+    );
+}
+
+#[test]
+fn br1_1_log_dir_を_job_に書けば知らないキー() {
+    let text = with_header("[[job]]\nid = \"a\"\ncommand = \"c\"\nlog_dir = \"logs\"\n");
+    assert_eq!(run(&text), vec![(K::UnknownKey, Some(7))]);
+}
+
+#[test]
+fn br1_1_log_dir_の誤りはほかの誤りと一緒に集める() {
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\nlog_dir = 5\n[[job]]\nid = \"a\"\ncommand = \"\"\n";
+    assert_eq!(
+        run(text),
+        vec![(K::TypeMismatch, Some(4)), (K::EmptyField, Some(7))]
+    );
+}
