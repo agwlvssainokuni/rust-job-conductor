@@ -346,3 +346,79 @@ fn 両方の飛び越しと通常の飛び越しが交差する定義_n1_はレ�
         .collect();
     assert_eq!(firsts, vec![' ', ' ', ' ', '|', '|', '|'], "{stdout}");
 }
+
+// ---- `--format dot`(U4。FR4.1〜FR4.4、NFR2.2、NFR6.2) ----
+
+const G2_DOT: &str = "digraph conductor {\n  rankdir=TB;\n  n0 [label=\"a\", shape=box];\n  n1 [label=\"b\", shape=box];\n  n2 [label=\"c\", shape=box];\n  n3 [label=\"d\", shape=box];\n  n4 [label=\"e\", shape=box];\n  nend [label=\"@end\", shape=oval];\n  n0 -> n1 [label=\"warning\"];\n  n0 -> n3 [label=\"success\"];\n  n1 -> n2;\n  n2 -> n3;\n  n3 -> n4;\n  n4 -> nend;\n}\n";
+
+#[test]
+fn format_dot_の出力は例と一致し_v_を付けても同じで_ジョブは動かない() {
+    let project = Project::new(&g2_definition(0));
+    let out = project.run(&["graph", "--format", "dot"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(text(&out.stdout), G2_DOT);
+    assert_eq!(text(&out.stderr), "");
+    // `-v` は、DOT には影響しない(BR2.5)。
+    let verbose = project.run(&["graph", "--format", "dot", "-v"]);
+    assert_eq!(verbose.status.code(), Some(0));
+    assert_eq!(text(&verbose.stdout), G2_DOT);
+    // ステートは作られない。
+    assert!(!project.state_path().exists());
+}
+
+#[test]
+fn format_dot_と_state_は_状態の記号と再開位置の太い枠を出す() {
+    let project = Project::new(&g2_definition(1));
+    let run = project.run(&["pipeline", "p"]);
+    assert_eq!(run.status.code(), Some(1), "{}", text(&run.stderr));
+    let before = std::fs::read(project.state_path()).unwrap();
+
+    let out = project.run(&["graph", "--format", "dot", "--state"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    let dot = text(&out.stdout);
+    assert!(
+        dot.contains(
+            "  n0 [label=\"[OK] a\", shape=box];\n  n1 [label=\"[--] b\", shape=box];\n  n2 [label=\"[--] c\", shape=box];\n  n3 [label=\"[NG] d\", shape=box, penwidth=3];\n  n4 [label=\"[  ] e\", shape=box];\n"
+        ),
+        "{dot}"
+    );
+    assert_eq!(dot.matches("penwidth=3").count(), 1, "{dot}");
+    assert_eq!(std::fs::read(project.state_path()).unwrap(), before);
+}
+
+#[test]
+fn format_の値が_text_mermaid_dot_の外なら_68_で_値は表示しない() {
+    let project = Project::new(&g2_definition(0));
+    let out = project.run(&["graph", "--format", "svg"]);
+    assert_eq!(out.status.code(), Some(68));
+    assert_eq!(text(&out.stdout), "");
+    let err = text(&out.stderr);
+    assert!(err.contains("--format"), "{err}");
+    assert!(err.contains("--format <text|mermaid|dot>"), "{err}");
+    assert!(!err.contains("svg"), "{err}");
+}
+
+#[test]
+fn format_dot_は_コマンドとパイプライン名を出さない() {
+    let marker = "MARK-dot-secret-42";
+    let command = format!("{} {marker}", helper_command("exit 0"));
+    let jobs = [job_block("a", &command, ""), job_block("b", &command, "")];
+    let project = Project::new(&definition(marker, &jobs));
+    for args in [
+        &["graph", "--format", "dot"][..],
+        &["graph", "--format", "dot", "-v"][..],
+        &["graph", "--format", "dot", "--state"][..],
+    ] {
+        let out = project.run(args);
+        assert_eq!(
+            out.status.code(),
+            Some(0),
+            "{args:?}: {}",
+            text(&out.stderr)
+        );
+        assert!(text(&out.stdout).starts_with("digraph conductor {\n"));
+        for stream in [text(&out.stdout), text(&out.stderr)] {
+            assert!(!stream.contains(marker), "{args:?}: 目印が出ている");
+        }
+    }
+}

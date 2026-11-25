@@ -238,3 +238,59 @@ fn 標準出力に書けなければ_65() {
     );
     assert_eq!(h.runtime.run_calls.get(), 0);
 }
+
+// ---- `--format dot`(U4。BR2.1、BR2.5、NFR6.3) ----
+
+#[test]
+fn format_dot_は_0_で終わり_標準出力にdotを1回で書き_v_で変わらない() {
+    let mut h = Harness::new(G2);
+    let out = h.run(&["graph", "--format", "dot"]);
+    assert_eq!(out.code, 0, "{}", out.err);
+    assert_eq!(out.err, "");
+    assert!(out.out.starts_with("digraph conductor {\n  rankdir=TB;\n"));
+    assert!(out.out.ends_with("  n4 -> nend;\n}\n"), "{}", out.out);
+    assert_eq!(h.sink.out_writes, 1, "標準出力へは 1 回で書く");
+    assert_eq!(h.runtime.run_calls.get(), 0);
+    assert!(!h.state_path().exists());
+    // `-v` は DOT に影響しない(BR2.5)。
+    let verbose = h.run(&["graph", "--format", "dot", "-v"]);
+    assert_eq!(verbose.code, 0);
+    assert_eq!(verbose.out, out.out);
+    // `--state` は、記号と再開位置の太い枠。
+    h.runtime.script("d", &[Exec::Exit(1)]);
+    assert_ne!(h.run(&["pipeline", "p"]).code, 0);
+    let state = h.run(&["graph", "--format", "dot", "--state"]);
+    assert_eq!(state.code, 0, "{}", state.err);
+    assert!(
+        state
+            .out
+            .contains("  n3 [label=\"[NG] d\", shape=box, penwidth=3];\n"),
+        "{}",
+        state.out
+    );
+}
+
+#[test]
+fn 誤りのある定義は_format_dot_でも_text_と同じ標準エラーと終了コード() {
+    let unclosed = "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"echo 'abc\"\n";
+    let bad_target = G2.replace("next = \"d\"", "next = \"nowhere\"");
+    for definition in [unclosed.to_string(), bad_target] {
+        let mut h = Harness::new(&definition);
+        let text = h.run(&["graph", "--format", "text"]);
+        let dot = h.run(&["graph", "--format", "dot"]);
+        assert_eq!(dot.code, text.code);
+        assert_eq!(dot.code, 64, "{}", dot.err);
+        assert_eq!(dot.out, "");
+        assert_eq!(dot.err, text.err);
+    }
+    // ステートが定義と食い違うときも同じ(65)。
+    let mut h = Harness::new(G2);
+    h.runtime.script("d", &[Exec::Exit(1)]);
+    assert_ne!(h.run(&["pipeline", "p"]).code, 0);
+    h.set_definition(REORDERED);
+    let text = h.run(&["graph", "--state"]);
+    let dot = h.run(&["graph", "--state", "--format", "dot"]);
+    assert_eq!(dot.code, 65, "{}", dot.err);
+    assert_eq!(dot.out, "");
+    assert_eq!(dot.err, text.err);
+}
