@@ -1,0 +1,14 @@
+{
+  "stage": "nfr-requirements",
+  "unit": "u6-attempt-times",
+  "upstream_ids": ["NFR1","NFR2","NFR3","NFR4","NFR5","NFR6","NFR7"],
+  "coverage": [
+    { "id": "NFR1", "status": "OK", "target": "reliability-requirements.md の NFR1.1、NFR1.2、NFR1.6、NFR1.7、NFR1.8、performance-requirements.md の NFR1.3、scalability-requirements.md の NFR1.4、observability-requirements.md の NFR1.5" },
+    { "id": "NFR2", "status": "OK", "target": "reliability-requirements.md の NFR2.1、NFR2.2、NFR2.3、performance-requirements.md の NFR1.9" },
+    { "id": "NFR3", "status": "OK", "target": "reliability-requirements.md の NFR3.1、NFR3.2" },
+    { "id": "NFR4", "status": "OK", "target": "tech-stack-decisions.md の NFR4.1" },
+    { "id": "NFR5", "status": "OK", "target": "security-requirements.md の NFR5.1" },
+    { "id": "NFR6", "status": "OK", "target": "security-requirements.md の NFR6.1、NFR6.2、NFR6.3、observability-requirements.md の NFR6.4" },
+    { "id": "NFR7", "status": "OK", "target": "tech-stack-decisions.md の NFR7.1" }
+  ]
+}
