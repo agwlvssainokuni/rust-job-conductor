@@ -37,7 +37,8 @@ use crate::report::{DisplayEvent, StateContext};
 use crate::run_id::aux_run_id;
 use crate::types::{CliCommand, GraphFormat, InitTarget, UsageError, UsageErrorKind};
 
-/// `conductor watch`: ステートを 1 回だけ一覧にして終わる(BR7.1)。
+/// `conductor watch`: ステートを 1 回だけ一覧にして終わる(BR7.1)。所要時間の列のため、表を作る前に
+/// 今の時刻を 1 回だけ取る(v0.10.0 の U6 の BR4.1)。
 ///
 /// 定義ファイルは検証しない。環境変数の名前だけは、`--run-id` がないとき、定義から、ゆるく読む(FR4.3)。
 pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
@@ -52,8 +53,12 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         Ok(state) => state,
         Err(error) => return ctx.state_error(&error, context),
     };
+    // 今の時刻は、表を作る前に 1 回だけ取る(動いている最中のジョブの経過時間。v0.10.0 の U6 の BR4.1)。
     let output = match &state {
-        Some(state) => DisplayEvent::WatchTable(state),
+        Some(state) => DisplayEvent::WatchTable {
+            state,
+            now: ctx.runtime.now(),
+        },
         None => DisplayEvent::WatchEmpty,
     };
     // 標準出力に書けない(閉じたパイプなど)。パニックにせず、65 で終わる(security-design の差分)。

@@ -28,7 +28,7 @@ use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, DefinitionErrorKind, EnvFileError, EnvFileErrorKind,
     EnvWarning, EnvWarningKind, JobState, JobStatus, MismatchKind, PipelineState, RejectReason,
-    SkipCause, SkipReason, TransitionOn, TransitionTarget,
+    SkipCause, SkipReason, Timestamp, TransitionOn, TransitionTarget,
 };
 use conductor_runtime::{CommandError, CommandErrorKind, CreateError, StateError, StateErrorKind};
 
@@ -66,6 +66,14 @@ fn pipeline_state() -> PipelineState {
         end_reached: false,
         completed: false,
         run_id: None,
+    }
+}
+
+/// `watch` の表のイベント。今の時刻は 2026-11-25T09:13:53Z(`pipeline_state` の試行の時刻と合わせる)。
+fn watch_table(state: &PipelineState) -> DisplayEvent<'_> {
+    DisplayEvent::WatchTable {
+        state,
+        now: Timestamp::from_unix_seconds(1_795_598_033).expect("範囲の中"),
     }
 }
 
@@ -253,7 +261,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         wait_secs: 30,
     });
     let state = pipeline_state();
-    f(&DisplayEvent::WatchTable(&state));
+    f(&watch_table(&state));
     f(&DisplayEvent::WatchEmpty);
     f(&DisplayEvent::Graph("* a\no @end\n"));
     f(&DisplayEvent::Plan("plan\n"));
@@ -730,7 +738,7 @@ fn 色は端末で_no_color_が無いか空で_unix_のときだけ() {
 fn watch_の表は_3_列で_状態は文字で書く() {
     let env = env_for(Language::En);
     let reporter = Reporter::new(&env, false);
-    let text = reporter.render(&DisplayEvent::WatchTable(&pipeline_state()));
+    let text = reporter.render(&watch_table(&pipeline_state()));
     let expected = "\
 Pipeline: nightly
 JOB        STATUS   NOTE
@@ -748,7 +756,7 @@ fn watch_の表は端末のとき_状態に色をつけても_文字は残る() 
     let mut env = env_for(Language::En);
     env.terminal = true;
     let reporter = Reporter::new(&env, false);
-    let text = reporter.render(&DisplayEvent::WatchTable(&pipeline_state()));
+    let text = reporter.render(&watch_table(&pipeline_state()));
     if cfg!(unix) {
         assert!(text.contains("\x1b[33mwarning\x1b[0m"), "{text:?}");
         assert!(text.contains("\x1b[36mskipped\x1b[0m"));
@@ -781,7 +789,7 @@ fn strip_ansi(text: &str) -> String {
 fn watch_の表は日本語の見出しと補足() {
     let env = env_for(Language::Ja);
     let reporter = Reporter::new(&env, false);
-    let text = reporter.render(&DisplayEvent::WatchTable(&pipeline_state()));
+    let text = reporter.render(&watch_table(&pipeline_state()));
     assert!(text.starts_with("パイプライン: nightly\n"), "{text}");
     assert!(text.contains("ジョブ") && text.contains("状態") && text.contains("補足"));
     assert!(text.contains("終了コード 1"));
@@ -807,7 +815,7 @@ fn ジョブidの制御文字は表の中でもエスケープされる() {
     let mut state = pipeline_state();
     state.job_states[0].job_id = "e\x1b[31mx".to_string();
     state.pipeline_name = "n\nm".to_string();
-    let text = reporter.render(&DisplayEvent::WatchTable(&state));
+    let text = reporter.render(&watch_table(&state));
     assert!(text.contains("e\\u{1b}[31mx"));
     assert!(text.contains("n\\nm"));
     assert!(!text.contains('\x1b'));

@@ -13,19 +13,30 @@
 // limitations under the License.
 
 //! `watch` の表(WatchView。BR7.1)。ステートから、パイプライン名の 1 行と、
-//! ジョブ・状態・補足の 3 列の表を組み立てる(純粋)。
+//! ジョブ・状態・所要時間・補足の 4 列の表を組み立てる(純粋。所要時間の列は v0.10.0 の U6 の BR4.1)。
 //!
 //! 状態は、色に関わらず、常に文字で書く。色は装飾で、色を使うときも、列の幅は、色を除いた文字で決める。
+//! 所要時間の計算と書き方は core の `job_duration`・`format_duration`(U7 の継続表示も使う)。
 
-use conductor_core::{JobState, JobStatus, PipelineState, SkipReason};
+use conductor_core::{
+    JobState, JobStatus, PipelineState, SkipReason, Timestamp, format_duration, job_duration,
+};
 
 use super::escape_name;
 use super::messages::{
-    COMPLETED, EXIT_CODE, HEADER_JOB, HEADER_NOTE, HEADER_STATUS, SKIPPED_AFTER_END,
-    SKIPPED_BY_TRANSITION, WATCH_PIPELINE, WATCH_RUN_ID,
+    COMPLETED, EXIT_CODE, HEADER_DURATION, HEADER_JOB, HEADER_NOTE, HEADER_STATUS,
+    SKIPPED_AFTER_END, SKIPPED_BY_TRANSITION, WATCH_PIPELINE, WATCH_RUN_ID,
 };
 use super::push_line;
 use crate::types::Language;
+
+/// 表の 1 行(ジョブ ID はエスケープ済み)。
+struct Row {
+    job: String,
+    status: JobStatus,
+    duration: String,
+    note: String,
+}
 
 /// 状態を表す文字(言語に関わらず英語のまま。[`JobStatus::as_str`] と同じ)。
 fn status_word(status: JobStatus) -> &'static str {
@@ -72,27 +83,51 @@ fn pad(text: &str, to: usize) -> String {
     out
 }
 
-/// 表の全体(最後の改行を含む)。
-pub(crate) fn render_table(lang: Language, state: &PipelineState, color: bool) -> String {
-    let rows: Vec<(String, JobStatus, String)> = state
+/// 所要時間の列の文字(v0.10.0 の U6 の BR4.1、BR4.2)。空にするジョブは空の文字列。
+fn duration_cell(job: &JobState, now: Timestamp) -> String {
+    job_duration(job, now)
+        .map(|d| format_duration(d.secs()))
+        .unwrap_or_default()
+}
+
+/// 表の全体(最後の改行を含む)。`now` は表示の時点の時刻(動いている最中のジョブの経過時間に使う)。
+pub(crate) fn render_table(
+    lang: Language,
+    state: &PipelineState,
+    color: bool,
+    now: Timestamp,
+) -> String {
+    let rows: Vec<Row> = state
         .job_states
         .iter()
-        .map(|job| (escape_name(&job.job_id), job.status, note(lang, job)))
+        .map(|job| Row {
+            job: escape_name(&job.job_id),
+            status: job.status,
+            duration: duration_cell(job, now),
+            note: note(lang, job),
+        })
         .collect();
 
     let job_header = HEADER_JOB.get(lang);
     let status_header = HEADER_STATUS.get(lang);
+    let duration_header = HEADER_DURATION.get(lang);
     let note_header = HEADER_NOTE.get(lang);
     let job_width = rows
         .iter()
-        .map(|r| width(&r.0))
+        .map(|r| width(&r.job))
         .chain([width(job_header)])
         .max()
         .unwrap_or(0);
     let status_width = rows
         .iter()
-        .map(|r| width(status_word(r.1)))
+        .map(|r| width(status_word(r.status)))
         .chain([width(status_header)])
+        .max()
+        .unwrap_or(0);
+    let duration_width = rows
+        .iter()
+        .map(|r| width(&r.duration))
+        .chain([width(duration_header)])
         .max()
         .unwrap_or(0);
 
@@ -106,19 +141,26 @@ pub(crate) fn render_table(lang: Language, state: &PipelineState, color: bool) -
         out.push_str(&format!("{WATCH_RUN_ID}: {}\n", escape_name(run_id)));
     }
     out.push_str(&format!(
-        "{}  {}  {}\n",
+        "{}  {}  {}  {}\n",
         pad(job_header, job_width),
         pad(status_header, status_width),
+        pad(duration_header, duration_width),
         note_header
     ));
-    for (job, status, note) in rows {
-        let word = status_word(status);
+    for row in rows {
+        let word = status_word(row.status);
         let padding = " ".repeat(status_width.saturating_sub(word.len()));
-        let status_cell = match (color, status_color(status)) {
+        let status_cell = match (color, status_color(row.status)) {
             (true, Some(code)) => format!("\x1b[{code}m{word}\x1b[0m{padding}"),
             _ => format!("{word}{padding}"),
         };
-        let line = format!("{}  {}  {}", pad(&job, job_width), status_cell, note);
+        let line = format!(
+            "{}  {}  {}  {}",
+            pad(&row.job, job_width),
+            status_cell,
+            pad(&row.duration, duration_width),
+            row.note
+        );
         push_line(&mut out, &line);
     }
     // 完了のステートは、表の下に、完了を示す行を足す(FR3.1)。

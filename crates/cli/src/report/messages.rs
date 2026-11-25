@@ -541,6 +541,8 @@ pub const WATCH_EMPTY: Text = Text::new(
 pub const COMPLETED: Text = Text::new("completed", "完了");
 pub const HEADER_JOB: Text = Text::new("JOB", "ジョブ");
 pub const HEADER_STATUS: Text = Text::new("STATUS", "状態");
+/// 所要時間の列の見出し(v0.10.0 の U6 の BR4.1。ほかの見出しに合わせて英語は大文字)。
+pub const HEADER_DURATION: Text = Text::new("DURATION", "所要時間");
 pub const HEADER_NOTE: Text = Text::new("NOTE", "補足");
 
 // ---- graph(U2。BR2.8、BR3.1〜BR3.3、BR4.2、BR5.3、BR7.1) ----

@@ -44,8 +44,8 @@ use std::path::Path;
 use conductor_converter::ConversionError;
 use conductor_core::{
     Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, MismatchKind,
-    PipelineState, RejectReason, RunId, SkipCause, TransitionOn, TransitionTarget, escape_display,
-    summarize_errors,
+    PipelineState, RejectReason, RunId, SkipCause, Timestamp, TransitionOn, TransitionTarget,
+    escape_display, summarize_errors,
 };
 use conductor_runtime::{CommandError, CreateError, StateError};
 
@@ -216,7 +216,12 @@ pub enum DisplayEvent<'a> {
         job_count: usize,
     },
     // ---- output(標準出力) ----
-    WatchTable(&'a PipelineState),
+    /// `watch` の表。`now` は表示の時点で 1 回だけ取った今の時刻(動いている最中のジョブの経過時間に
+    /// 使う。v0.10.0 の U6 の BR4.1)。
+    WatchTable {
+        state: &'a PipelineState,
+        now: Timestamp,
+    },
     WatchEmpty,
     /// `graph` の図(組み立て済みの text か Mermaid。そのまま出す。BR6.3)。
     Graph(&'a str),
@@ -263,7 +268,7 @@ impl DisplayEvent<'_> {
             | Self::Transition { .. }
             | Self::Interrupted { .. }
             | Self::DefinitionValid { .. } => Level::Verbose,
-            Self::WatchTable(_)
+            Self::WatchTable { .. }
             | Self::WatchEmpty
             | Self::Graph(_)
             | Self::Plan(_)
@@ -462,8 +467,8 @@ impl<'a> Reporter<'a> {
                 "{VERBOSE_PREFIX}{}\n",
                 messages::definition_valid(lang(), *job_count)
             ),
-            DisplayEvent::WatchTable(state) => {
-                watch::render_table(lang(), state, self.color_enabled())
+            DisplayEvent::WatchTable { state, now } => {
+                watch::render_table(lang(), state, self.color_enabled(), *now)
             }
             DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang())),
             DisplayEvent::InitCreated { path } => {
