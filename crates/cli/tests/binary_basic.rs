@@ -505,6 +505,69 @@ fn u6_fr6_5_watch_の表に所要時間の列がある() {
     );
 }
 
+// ---- watch --follow(v0.10.0 の U7。FR7.1〜FR7.5) ----
+
+#[test]
+fn u7_fr7_3_完了のステートを_follow_で見ると_1_回描いて_0_でパイプに制御の文字が無い() {
+    let project = Project::new(&definition(
+        "p",
+        &[
+            job_block("a", &helper_command("exit 0"), ""),
+            job_block("b", &helper_command("exit 0"), ""),
+        ],
+    ));
+    assert_eq!(project.run(&["pipeline", "p"]).status.code(), Some(0));
+    // 標準出力はパイプ(端末ではない)。
+    let output = project.run(&["watch", "--follow", "--interval", "1"]);
+    assert_eq!(output.status.code(), Some(0));
+    let shown = text(&output.stdout);
+    assert_eq!(shown.matches("Pipeline: p\n").count(), 1, "{shown}");
+    assert!(shown.starts_with("Pipeline: p\n"), "{shown:?}");
+    assert!(shown.ends_with("completed\n"), "{shown}");
+    assert!(!shown.contains('\x1b'), "{shown:?}");
+    assert!(output.stderr.is_empty(), "{}", text(&output.stderr));
+}
+
+#[test]
+fn u7_fr7_3_止まったステートを_follow_で見ると_0_で終わる() {
+    let project = Project::new(&definition(
+        "p",
+        &[
+            job_block("a", &helper_command("exit 7"), ""),
+            job_block("b", &helper_command("exit 0"), ""),
+        ],
+    ));
+    assert_eq!(project.run(&["pipeline", "p"]).status.code(), Some(7));
+    let output = project.run(&["watch", "--follow"]);
+    assert_eq!(output.status.code(), Some(0));
+    let shown = text(&output.stdout);
+    assert_eq!(shown.matches("Pipeline: p\n").count(), 1, "{shown}");
+    assert!(!shown.contains('\x1b'), "{shown:?}");
+}
+
+#[test]
+fn u7_fr7_2_interval_の誤りは_68_で値を出さない() {
+    for value in ["0", "3601", "99999abc"] {
+        let output = run_limited(
+            conductor(&["watch", "--follow", "--interval", value]),
+            || {},
+        );
+        assert_eq!(output.status.code(), Some(68), "{value}");
+        assert!(output.stdout.is_empty(), "{value}");
+        let err = text(&output.stderr);
+        // 誤りの行(1 行目)に、対象の綴りはあり、値は無い(後ろの使い方の文は値によらず同じ)。
+        let line = err.lines().next().expect("誤りの行");
+        assert_eq!(
+            line, "conductor: error: invalid value: '--interval'",
+            "{value}"
+        );
+        assert!(err.contains("Usage:"), "{err}");
+    }
+    // `--follow` の無い `--interval` も 68。
+    let output = run_limited(conductor(&["watch", "--interval", "5"]), || {});
+    assert_eq!(output.status.code(), Some(68));
+}
+
 #[test]
 fn 日本語のロケールでは_エラーが日本語になる() {
     let mut command = conductor(&["bogus"]);
