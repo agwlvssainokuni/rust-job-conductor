@@ -17,8 +17,8 @@
 use std::path::{Path, PathBuf};
 
 use conductor_core::{
-    Command, DefinitionErrorKind, JobDefinition, Transition, TransitionOn, TransitionTarget,
-    load_definition, parse_definition,
+    Backoff, Command, DefinitionErrorKind, JobDefinition, PipelineDefinition, RetryPolicy,
+    Transition, TransitionOn, TransitionTarget, load_definition, parse_definition,
 };
 
 fn fixture(name: &str) -> PathBuf {
@@ -141,6 +141,56 @@ fn 定義の外の遷移も_next_が_end_なら受理される() {
         [[job]]\nid = \"b\"\ncommand = \"c\"\n";
     let def = parse_definition(text, "m.toml", None).unwrap();
     assert_eq!(def.job[0].transitions.len(), 2);
+}
+
+#[test]
+fn br4_1_既定を書かない定義は今と同じ定義に組み立てられる() {
+    // `[pipeline.retry]` を書かない、v0.9.9 で受理される定義。`[job.retry]` を書いたジョブだけがリトライを持つ。
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\n\
+        [[job]]\nid = \"a\"\ncommand = \"c\"\nwarning_exit_codes = [4]\n\
+        [job.retry]\nexit_codes = [75]\nmax = 3\ninterval = \"30s\"\nmultiplier = 2\nmax_interval = \"10m\"\n\
+        [[job]]\nid = \"b\"\ncommand = \"c\"\n";
+    let def = parse_definition(text, "t.toml", None).expect("受理される");
+    let expected = PipelineDefinition {
+        name: "p".into(),
+        description: None,
+        run_id_env: None,
+        remove_on_complete: false,
+        format_version: 1,
+        job: vec![
+            JobDefinition {
+                id: "a".into(),
+                command: Command::Line("c".into()),
+                warning_exit_codes: vec![4],
+                success_exit_codes: None,
+                transitions: Vec::new(),
+                retry: Some(RetryPolicy {
+                    exit_codes: vec![75],
+                    max: 3,
+                    interval_secs: 30,
+                    backoff: Some(Backoff {
+                        multiplier: 2,
+                        max_interval_secs: 600,
+                    }),
+                }),
+                env: Vec::new(),
+                env_file: Vec::new(),
+            },
+            JobDefinition {
+                id: "b".into(),
+                command: Command::Line("c".into()),
+                warning_exit_codes: Vec::new(),
+                success_exit_codes: None,
+                transitions: Vec::new(),
+                retry: None,
+                env: Vec::new(),
+                env_file: Vec::new(),
+            },
+        ],
+        env: Vec::new(),
+        env_file: Vec::new(),
+    };
+    assert_eq!(def, expected);
 }
 
 #[test]

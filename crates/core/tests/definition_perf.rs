@@ -18,6 +18,9 @@
 //! 時間にならないことを、1 回の `parse_definition` の時間の 5 回の中央値で確かめる。上限は、直した
 //! 後の見積もりの約 5 倍の余裕のある値で、大きな退行だけを止める(D9)。直す前の形に戻ったことは、
 //! このテストでは確実には検知できない(直す前と後の時間は、コード生成の記録に残す)。
+//!
+//! P3 は、v0.10.0 の既定のリトライ(`[pipeline.retry]`)を 1 万のジョブに当てはめる定義の読み込みが、
+//! 同じ数のジョブで既定を持たない定義と同じ程度に収まることを確かめる(u1-pipeline-retry の NFR1.3)。
 
 mod common;
 
@@ -34,6 +37,11 @@ const LIMIT_P1: Duration = Duration::from_millis(350);
 const LIMIT_P2: Duration = Duration::from_millis(1_600);
 /// P2 の、1 つのジョブに書く `success` と `warning` の遷移の数(それぞれ)。
 const TRANSITIONS: usize = 20_000;
+/// P3 の上限(debug。u1-pipeline-retry の NFR1.3、NFR1.4。実測の約 140 ms(既定なしの同じ数のジョブで
+/// 約 137 ms)の約 5 倍。D9 と同じ決め方)。
+const LIMIT_P3: Duration = Duration::from_millis(700);
+/// P3 の、既定を当てはめるジョブの数。
+const DEFAULT_RETRY_JOBS: usize = 10_000;
 
 /// `[pipeline.env]` に `K0` … `K<n-1>` を書いた定義(ジョブは 1 つ)。
 fn env_definition(n: usize, extra: &str) -> String {
@@ -77,6 +85,64 @@ fn p1_一万項目の_pipeline_env_の定義の読み込みは_350ms_以内() {
     assert_eq!(kinds, [K::EnvNameCaseConflict]);
 
     assert!(m < LIMIT_P1, "中央値 {m:?} が上限 {LIMIT_P1:?} を超えた");
+}
+
+/// `[pipeline.retry]` を書き(`with_default` のとき)、`retry` を書かないジョブを `n` 個並べた定義。
+/// 各ジョブは警告の終了コードを持ち、既定との重なりの検査をすべてのジョブで行う(重ならない値)。
+fn default_retry_definition(n: usize, with_default: bool) -> String {
+    let mut text = String::from("format_version = 1\n[pipeline]\nname = \"p\"\n");
+    if with_default {
+        text.push_str(
+            "[pipeline.retry]\nexit_codes = [75, 76, 77]\nmax = 3\ninterval = \"30s\"\nmultiplier = 2\nmax_interval = \"10m\"\n",
+        );
+    }
+    for i in 0..n {
+        text.push_str(&format!(
+            "[[job]]\nid = \"j{i}\"\ncommand = \"c\"\nwarning_exit_codes = [3, 4]\n"
+        ));
+    }
+    text
+}
+
+/// 1 回の `parse_definition` の時間を `SAMPLES` 回測り、中央値と最後の結果を返す。
+fn measure(text: &str) -> (Duration, conductor_core::PipelineDefinition) {
+    let mut last = None;
+    let samples: Vec<Duration> = (0..SAMPLES)
+        .map(|_| {
+            let start = Instant::now();
+            let definition = parse_definition(text, "t.toml", None).expect("正しい定義");
+            let elapsed = start.elapsed();
+            last = Some(definition);
+            elapsed
+        })
+        .collect();
+    (median(samples), last.expect("読んだ"))
+}
+
+#[test]
+fn p3_一万のジョブに既定のリトライを当てはめる定義の読み込みは_700ms_以内() {
+    let with_default = default_retry_definition(DEFAULT_RETRY_JOBS, true);
+    let without_default = default_retry_definition(DEFAULT_RETRY_JOBS, false);
+
+    let (m, definition) = measure(&with_default);
+    let (base, _) = measure(&without_default);
+    eprintln!(
+        "P3: 既定あり 中央値 {m:?}、既定なし 中央値 {base:?}({} バイト)",
+        with_default.len()
+    );
+
+    // 結果の中身: すべてのジョブに、既定と同じリトライが入る(NFR1.3)。
+    assert_eq!(definition.job.len(), DEFAULT_RETRY_JOBS);
+    let first = definition.job[0].retry.clone().expect("既定が入る");
+    assert_eq!(first.exit_codes, vec![75, 76, 77]);
+    assert!(
+        definition
+            .job
+            .iter()
+            .all(|j| j.retry.as_ref() == Some(&first))
+    );
+
+    assert!(m < LIMIT_P3, "中央値 {m:?} が上限 {LIMIT_P3:?} を超えた");
 }
 
 #[test]

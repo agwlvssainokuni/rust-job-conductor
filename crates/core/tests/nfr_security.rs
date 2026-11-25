@@ -125,6 +125,25 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
             ),
         ),
         (K::RetryNotTable, job(&format!("retry = \"{SENTINEL}\"\n"))),
+        // v0.10.0: 既定(`[pipeline.retry]`)の型の誤り(NFR6.1)。
+        (
+            K::RetryNotTable,
+            format!(
+                "format_version = 1\n[pipeline]\nname = \"p\"\nretry = \"{SENTINEL}\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+            ),
+        ),
+        // v0.10.0: ジョブの `retry` の型の誤り(表でも `false` でもない。NFR6.1)。
+        (
+            K::RetryNotTable,
+            job(&format!("retry = [\"{SENTINEL}\"]\n")),
+        ),
+        // v0.10.0: 既定との重なり(値とジョブの ID の位置に目印。NFR6.1)。
+        (
+            K::RetryExitCodesOverlap,
+            format!(
+                "format_version = 1\n[pipeline]\nname = \"p\"\n[pipeline.retry]\nexit_codes = [97]\nmax = 1\ninterval = \"1s\"\n[[job]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\nwarning_exit_codes = [97]\n"
+            ),
+        ),
         (K::RetryMissingKey, job("[job.retry]\n")),
         (
             K::RetryExitCodesEmpty,
@@ -230,6 +249,20 @@ fn nfr4_6_すべての種類で表示の文に入力の値が出ない() {
     for kind in DEFINITION_ERROR_KINDS {
         assert!(seen.contains(&kind), "{kind:?} のテストがない");
     }
+}
+
+#[test]
+fn nfr6_1_既定との重なりの表示に終了コードの値もジョブの_id_も出ない() {
+    // 目印の数(終了コード 173)と、目印の文字列(ジョブの ID)。
+    let text = format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\n[pipeline.retry]\nexit_codes = [173]\nmax = 1\ninterval = \"1s\"\n[[job]]\nid = \"{SENTINEL}\"\ncommand = \"c\"\nsuccess_exit_codes = [0, 173]\n"
+    );
+    let errs = parse_definition(&text, "t.toml", None).unwrap_err();
+    assert_eq!(errs.len(), 1);
+    assert_eq!(errs[0].kind, DefinitionErrorKind::RetryExitCodesOverlap);
+    let shown = errs[0].to_string();
+    assert!(!shown.contains(SENTINEL), "{shown}");
+    assert!(!shown.contains("173"), "{shown}");
 }
 
 #[test]
