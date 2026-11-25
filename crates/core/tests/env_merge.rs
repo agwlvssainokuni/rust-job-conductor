@@ -16,7 +16,7 @@
 
 mod common;
 
-use common::{SECRET, add_env_file, paths};
+use common::{SECRET, add_env_file, env_ref, paths};
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvFileContent, LoadedEnvFiles, PipelineDefinition, env_file_refs,
     merge_env, parse_definition, parse_env_file,
@@ -206,6 +206,74 @@ fn 読む対象の一覧は_pipeline_が全ジョブ_run_が_1_ジョブで重�
         "format_version = 1\n[pipeline]\nname = \"p\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\nenv_file = []\n",
     );
     assert!(env_file_refs(&none, None).is_empty());
+}
+
+const OPTIONAL: &str = "format_version = 1
+[pipeline]
+name = \"p\"
+env_file = [\"p.env\", { path = \"local.env\", required = false }]
+[[job]]
+id = \"a\"
+command = \"c\"
+env_file = [{ path = \"opt.env\", required = false }, { path = \"p.env\", required = false }]
+[[job]]
+id = \"b\"
+command = \"c\"
+env_file = [\"local.env\", { path = \"opt.env\", required = false }]
+";
+
+#[test]
+fn 読む対象の一覧は同じパスの文字列を_1_つにまとめ_required_を論理和にする() {
+    let d = def(OPTIONAL);
+    // 全体: local.env は b が必ず要るとするので必ず要る。opt.env はどこでも要らない。
+    assert_eq!(
+        env_file_refs(&d, None),
+        [
+            env_ref("p.env", true),
+            env_ref("local.env", true),
+            env_ref("opt.env", false),
+        ]
+    );
+    // run a: b の記述は範囲の外なので、local.env は要らないまま。p.env は pipeline が必ず要る。
+    assert_eq!(
+        env_file_refs(&d, Some("a")),
+        [
+            env_ref("p.env", true),
+            env_ref("local.env", false),
+            env_ref("opt.env", false),
+        ]
+    );
+    // run b: 後ろの記述が必ず要るなら、前の要らない記述も必ず要るに変わる(位置は前のまま)。
+    assert_eq!(
+        env_file_refs(&d, Some("b")),
+        [
+            env_ref("p.env", true),
+            env_ref("local.env", true),
+            env_ref("opt.env", false),
+        ]
+    );
+}
+
+#[test]
+fn 無くてもよいファイルが無く引き当てに無い記述は何も足さない() {
+    let d = def(OPTIONAL);
+    let mut files = LoadedEnvFiles::new();
+    // p.env だけ読めた(local.env と opt.env は無くて飛ばした)状態
+    add_env_file(&mut files, "p.env", content("P=1\n"));
+    let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
+    assert_eq!(
+        names(&env),
+        [
+            "P",
+            "CONDUCTOR_PIPELINE",
+            "CONDUCTOR_JOB_ID",
+            "CONDUCTOR_ATTEMPT"
+        ]
+    );
+    // 読めたファイルは、表で書いた記述からも引ける
+    add_env_file(&mut files, "opt.env", content("O=2\n"));
+    let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
+    assert_eq!(get(&env, "O"), Some("2"));
 }
 
 #[test]

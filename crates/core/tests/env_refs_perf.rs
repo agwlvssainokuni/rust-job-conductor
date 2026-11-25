@@ -65,6 +65,44 @@ fn p3_一万個の_env_file_の記述の一覧は_40ms_以内() {
     assert!(m < LIMIT, "中央値 {m:?} が上限 {LIMIT:?} を超えた");
 }
 
+/// 表の項目(`required = false`)を混ぜた入力でも、同じ上限の中で一覧を作れる(v0.10.0 の BR2.1、NFR1.3)。
+///
+/// `[pipeline].env_file` は偶数番目が必ず要る、奇数番目が要らない 10,000 個。ジョブの `env_file` は
+/// 同じ 10,000 個で、要るかどうかを逆にする。重複を除くたびに required の論理和を取るので、結果は
+/// 10,000 個すべてが必ず要る。
+#[test]
+fn p3_表を混ぜた一万個の_env_file_の記述の一覧も_40ms_以内で_required_は論理和() {
+    let pipeline: Vec<EnvFileRef> = (0..MAX_ENV_ENTRIES)
+        .map(|i| env_ref(&format!("e{i}.env"), i % 2 == 0))
+        .collect();
+    let job: Vec<EnvFileRef> = (0..MAX_ENV_ENTRIES)
+        .map(|i| env_ref(&format!("e{i}.env"), i % 2 == 1))
+        .collect();
+    let mut definition = empty_definition();
+    definition.env_file = pipeline;
+    definition.job[0].env_file = job;
+
+    let mut last = None;
+    let samples: Vec<Duration> = (0..SAMPLES)
+        .map(|_| {
+            let start = Instant::now();
+            let out = env_file_refs(&definition, None);
+            let elapsed = start.elapsed();
+            last = Some(out);
+            elapsed
+        })
+        .collect();
+    let m = median(samples.clone());
+    eprintln!("P3(表を混ぜた入力): 中央値 {m:?}(各回 {samples:?})");
+
+    let out = last.expect("作った");
+    assert_eq!(out.len(), MAX_ENV_ENTRIES);
+    assert!(out.iter().all(|r| r.required), "どれも必ず要る");
+    assert_eq!(out[1], env_ref("e1.env", true));
+
+    assert!(m < LIMIT, "中央値 {m:?} が上限 {LIMIT:?} を超えた");
+}
+
 /// ジョブが 1 つ(`a`)で、`env_file` を書いていない定義。
 fn empty_definition() -> PipelineDefinition {
     parse_definition(

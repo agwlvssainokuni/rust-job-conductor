@@ -201,6 +201,30 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
             K::InvalidEnvValue,
             job(&format!("[job.env]\nFOO = \"{SENTINEL}\\u0000\"\n")),
         ),
+        // v0.10.0: `env_file` の表の型の誤り(`path` が文字列でない。NFR6.1)。
+        (
+            K::TypeMismatch,
+            job(&format!("env_file = {{ path = [\"{SENTINEL}\"] }}\n")),
+        ),
+        // v0.10.0: `env_file` の配列の要素が文字列でも表でもない(NFR6.1)。
+        (
+            K::TypeMismatch,
+            job(&format!("env_file = [[\"{SENTINEL}\"]]\n")),
+        ),
+        // v0.10.0: `env_file` の表の知らないキー(値の位置に目印。NFR6.1)。
+        (
+            K::UnknownKey,
+            job(&format!(
+                "env_file = {{ path = \"a.env\", optional = \"{SENTINEL}\" }}\n"
+            )),
+        ),
+        // v0.10.0: `required` の型の誤り(NFR6.1)。
+        (
+            K::TypeMismatch,
+            job(&format!(
+                "env_file = {{ path = \"a.env\", required = \"{SENTINEL}\" }}\n"
+            )),
+        ),
     ]
 }
 

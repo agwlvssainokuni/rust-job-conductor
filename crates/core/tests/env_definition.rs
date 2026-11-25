@@ -100,6 +100,107 @@ fn 値が文字列でない_env_file_の要素が文字列でないか空は誤�
 }
 
 #[test]
+fn env_file_の表は_path_と_required_を読み_required_を省くと必ず要る() {
+    let d = ok(&def(
+        "env_file = [\".env\", { path = \"local.env\", required = false }, { path = \"m.env\" }, { path = \"r.env\", required = true }]\n",
+        "",
+    ));
+    assert_eq!(
+        d.env_file,
+        [
+            env_ref(".env", true),
+            env_ref("local.env", false),
+            env_ref("m.env", true),
+            env_ref("r.env", true),
+        ]
+    );
+}
+
+#[test]
+fn env_file_は表_1_つでも書け_pipeline_と_job_の両方で読める() {
+    let d = ok(&def(
+        "env_file = { path = \"p.env\", required = false }\n",
+        "env_file = [{ path = \"j.env\" }, \"k.env\"]\n",
+    ));
+    assert_eq!(d.env_file, [env_ref("p.env", false)]);
+    assert_eq!(
+        d.job[0].env_file,
+        [env_ref("j.env", true), env_ref("k.env", true)]
+    );
+}
+
+#[test]
+fn env_file_の表の誤りは固定の理由で返す() {
+    let cases: [(&str, K, &str); 6] = [
+        (
+            "env_file = { required = false }\n",
+            K::TypeMismatch,
+            "必須の値 `path` がありません",
+        ),
+        (
+            "env_file = { path = 1 }\n",
+            K::TypeMismatch,
+            "`path` は文字列で書きます",
+        ),
+        (
+            "env_file = { path = \"\" }\n",
+            K::EmptyField,
+            "`env_file` に空の文字列は書けません",
+        ),
+        (
+            "env_file = { path = \"a\", required = \"no\" }\n",
+            K::TypeMismatch,
+            "`required` は真偽値(`true` または `false`)で書きます",
+        ),
+        (
+            "env_file = { path = \"a\", optional = true }\n",
+            K::UnknownKey,
+            "キー `optional` は定義にありません",
+        ),
+        (
+            "env_file = [\"a\", { path = \"b\" }, 2]\n",
+            K::TypeMismatch,
+            "`env_file` の配列の要素は、文字列かテーブルで書きます",
+        ),
+    ];
+    for (p, kind, reason) in cases {
+        let errs = parse(&def(p, "")).unwrap_err();
+        assert_eq!(errs.len(), 1, "{p}: {errs:?}");
+        assert_eq!(errs[0].0, kind, "{p}");
+        assert!(errs[0].1.contains(reason), "{p}: {}", errs[0].1);
+        // ジョブに書いても同じ
+        let errs = parse(&def("", p)).unwrap_err();
+        assert_eq!(errs.len(), 1, "job {p}: {errs:?}");
+        assert_eq!(errs[0].0, kind, "job {p}");
+    }
+    let errs = parse(&def("env_file = 3\n", "")).unwrap_err();
+    assert!(
+        errs[0]
+            .1
+            .contains("`env_file` は、文字列かテーブル、またはその配列で書きます"),
+        "{}",
+        errs[0].1
+    );
+}
+
+#[test]
+fn env_file_の配列の複数の誤りはすべて集める() {
+    assert_eq!(
+        kinds(&def(
+            "env_file = [{ path = \"\" }, true, { path = \"a\", required = 1, x = 2 }]\n",
+            "",
+        )),
+        // 位置の順(`required = 1` の値は、知らないキー `x` より前)
+        [
+            K::EmptyField,
+            K::TypeMismatch,
+            K::TypeMismatch,
+            K::UnknownKey
+        ]
+    );
+}
+
+#[test]
 fn 名前の規則に合わない名前は誤り() {
     for bad in ["\"1A\"", "\"A-B\"", "\"A B\"", "\"\"", "\"日本\""] {
         let text = def(&format!("env = {{ {bad} = \"v\" }}\n"), "");
