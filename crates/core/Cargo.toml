@@ -1,6 +1,6 @@
 [package]
 name = "conductor-core"
-version = "0.9.9"
+version = "0.10.0"
 description = "conductor の中核ライブラリ(定義の読み込み・検証と、フローの判断)"
 edition.workspace = true
 rust-version.workspace = true

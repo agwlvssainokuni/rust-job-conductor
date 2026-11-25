@@ -1,4 +1,4 @@
-# 09. 変換器(TOML と YAML の相互変換。rust 版 conductor v0.9.9)
+# 09. 変換器(TOML と YAML の相互変換。rust 版 conductor v0.10.0)
 
 この文書は、`conductor convert <ファイル> --to <yaml|toml>` の中身である変換器(`crates/converter`、クレート `conductor-converter`)の振る舞いを定める。根拠は実装(`crates/converter/src/*`)とテスト(`crates/converter/tests/*`、fixtures を含む。途中の表現を比べる単体テスト `crates/converter/src/tests/*`)、および実際に実行して確かめた出力である。確認できなかった点は「未確認」と書く。
 
