@@ -19,7 +19,8 @@
 
 #![allow(unsafe_code)]
 
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::process::{CommandExt, ExitStatusExt};
 use std::path::Path;
 use std::process::{Command, ExitStatus};
@@ -33,6 +34,11 @@ pub(crate) fn termination_signal(status: &ExitStatus) -> Option<i32> {
 pub(crate) fn sync_dir(dir: &Path) {
     let dir = crate::temp_file::dir_or_current(dir);
     let _ = File::open(dir).and_then(|f| f.sync_all());
+}
+
+/// 新しく作るファイルの権限を、本人だけが読み書きできる 0600 にする(ログのファイル。v0.10.0 の BR3.4)。
+pub(crate) fn restrict_to_owner(options: &mut OpenOptions) {
+    options.mode(0o600);
 }
 
 /// ジョブを、conductor とは別の、新しいプロセスグループで起動する(BR1.7)。

@@ -179,7 +179,7 @@ impl Runtime for SystemRuntime {
         env: &[(&str, &str)],
         signal: &InterruptSignal,
     ) -> JobExecution {
-        conductor_runtime::run_job(line, env, signal)
+        conductor_runtime::run_job(line, env, signal, None).0
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

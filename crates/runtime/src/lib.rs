@@ -23,7 +23,10 @@
 //!
 //! | 関数 | 役割 | 入出力 | 失敗 |
 //! |------|------|--------|------|
-//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x) | 分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、[`InterruptSignal`] → `JobExecution` | なし(起動失敗は `StartFailed` の値) |
+//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x)。ログの指定があれば出力をファイルにも残す(v0.10.0 の BR4.x) | 分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、[`InterruptSignal`]、`Option<&`[`LogTarget`]`>` → (`JobExecution`, [`LogOutcome`]) | なし(起動失敗は `StartFailed` の値、ログの失敗は [`LogOutcome`] の値) |
+//! | [`now`] | 現在の時刻(v0.10.0 の BR2.3) | なし → `Timestamp` | なし(範囲の外は端に寄せる) |
+//! | [`open_log_file`] | 試行のログのファイルを、無いときだけ作る(v0.10.0 の BR3.1〜BR3.4) | [`LogTarget`] → ファイルとパス | 表示用のパス |
+//! | [`safe_log_stem`] | ジョブ ID をファイル名に使える名前にする(v0.10.0 の BR3.2) | ジョブ ID → 文字列 | なし(純粋) |
 //! | [`load_env_files`] | `env_file` の `.env` を読む(U1。BR1.7、BR3.x、BR6.4) | 定義ファイルのパス、`env_file` の記述 → `LoadedEnvFiles` | `EnvFileError` の並び(複数) |
 //! | [`wait_for`] | リトライの前の待機。中断の合図を短い間隔で確かめる(BR2.13、NFR7) | 秒数、[`InterruptSignal`] → [`WaitOutcome`] | なし |
 //! | [`check_command`] | command を、起動せずに検査する(BR1.1) | [`Command`](文字列または配列) → [`CommandLine`] | [`CommandError`] |
@@ -41,8 +44,8 @@
 //! run ID があるときのステートは `<定義ファイル名>.<run-id>.state` で、中身の `run_id` と照合する。
 //!
 //! ファイルに触れるのは、`read_state`、`read_state_raw`、`write_state`、`reset_state`、
-//! `reset_all_states`、`load_env_files`、`create_file` だけ。プロセスに触れるのは、
-//! `run_job` だけ。それ以外は、引数だけから結果を決める純粋な処理で、ファイルにもプロセスにも
+//! `reset_all_states`、`load_env_files`、`create_file`、`open_log_file`(と、ログの指定があるときの
+//! `run_job`)だけ。プロセスに触れるのは、`run_job` だけ。時計に触れるのは、`now` だけ。それ以外は、引数だけから結果を決める純粋な処理で、ファイルにもプロセスにも
 //! 環境変数にも触れない。
 //!
 //! # モジュールの構成(logical-components との対応)
@@ -52,7 +55,7 @@
 //! | `types` | 型(Types) | [`CommandLine`]、[`InterruptSignal`]、[`StateLocation`]、[`Durability`] |
 //! | `error` | 表示用の組み立て(Describe) | kind ごとの固定の文と、ステートファイルのパスだけでエラーを表示する |
 //! | `split` | 分け方(Split) | BR1.1 の規則を、文字を 1 つずつ読む状態機械で実装する(再帰なし) |
-//! | `runner` | 起動(Spawn)、待ちのくり返し(WaitLoop) | 直接起動し、`try_wait` のくり返し(1ms から 10ms)で待つ。回収はここだけ |
+//! | `runner` | 起動(Spawn)、待ちのくり返し(WaitLoop) | 直接起動し、`try_wait` のくり返し(1ms から 10ms)で待つ。回収はここだけ。ログの指定があれば、出力を端末とファイルへ複製する |
 //! | `platform` | 送信(platform::signal)ほか | OS 固有のコードは、ここだけ。`unsafe` は、UNIX 系の `kill` の呼び出し 1 か所だけ |
 //! | `bounded_read` | 上限つきの読み取り(BoundedRead) | 通常のファイルだけを開き、上限 + 1 バイトまで読む(形 B)。`.env` とステートが共有する |
 //! | `state::reader` | ステートの読み込み(StateReader) | 読み取りは `bounded_read`。長さ 0 は空、版の確認(先)、走査、矛盾の検査 |
@@ -62,6 +65,8 @@
 //! | `file_create` | ファイルの作成(RuntimeFileCreate) | `init` の出力先を、排他的に作る、または置き換える |
 //! | `temp_file` | 一時ファイル(TempFile) | 一時ファイルの名前と新規作成、連番(1 つ)、親のディレクトリの扱い、一時ファイルに書いて置き換える処理(`replace_via_temp`)。`state`・`file_create`・`platform` が共有する |
 //! | `wait` | 待機(Wait) | リトライの前の待機と、中断の合図の確認 |
+//! | `clock` | 時計(RuntimeClock) | 現在の時刻(v0.10.0 の BR2.3) |
+//! | `log` | ログのファイル(RuntimeLog) | 安全な名前、衝突の番号、ディレクトリの作成、0600(v0.10.0 の BR3.x) |
 //! | `src/bin/conductor-test-helper.rs` | テスト専用の補助の実行ファイル | 引数・環境変数・終了コード・シグナルの受信を出力する。配布には使わない |
 //!
 //! # 呼び出しの順序(契約 C2 の順序の続き)
@@ -109,9 +114,11 @@
 #![deny(unsafe_code)]
 
 mod bounded_read;
+mod clock;
 mod envfile;
 mod error;
 mod file_create;
+mod log;
 mod platform;
 mod runner;
 mod split;
@@ -120,9 +127,11 @@ mod temp_file;
 mod types;
 mod wait;
 
+pub use clock::now;
 pub use envfile::load_env_files;
 pub use error::{CommandError, CommandErrorKind, StateError, StateErrorKind};
 pub use file_create::{CreateError, CreateOutcome, create_file};
+pub use log::{LogOutcome, LogTarget, open_log_file, safe_log_stem};
 pub use runner::run_job;
 pub use split::check_command;
 pub use state::reader::{read_state, read_state_raw};

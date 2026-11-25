@@ -17,8 +17,12 @@
 //! ジョブは、同じコンソールで起動し、Ctrl+C は OS が同じコンソールのジョブに配る。この Unit は、
 //! 追加の送信をしない(BR1.7)。
 
+use std::fs::OpenOptions;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
+
+/// Windows は、新しく作るファイルの権限を既定のままにする(ログのファイル。v0.10.0 の BR3.4)。
+pub(crate) fn restrict_to_owner(_options: &mut OpenOptions) {}
 
 /// Windows では、ディレクトリの同期を行わない。
 pub(crate) fn sync_dir(_dir: &Path) {}

@@ -17,19 +17,35 @@
 //! 待ちは、1 つのスレッドの、短い間隔(1ms から 10ms)の `try_wait` のくり返しで行う。
 //! ジョブを回収する(`try_wait` が終了を返す)のは、このくり返しの中だけであり、シグナルを送るのは、
 //! 直前の `try_wait` が「まだ終わっていない」を返した回に限る。
+//!
+//! ログの指定(`log_dir`。v0.10.0 の BR4.1〜BR4.5)があるときだけ、子の標準出力と標準エラーを
+//! パイプで受け、それぞれ 1 つの読み取りのスレッド(Copier)が、読んだ分を端末(conductor の同じ流れ)と
+//! ログのファイルの両方へ書く。待ちのくり返しとシグナルの転送は、ログの有無によらず同じ。
 
-use std::io;
-use std::process::{Child, Command, ExitStatus};
-use std::time::Duration;
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::path::PathBuf;
+use std::process::{Child, Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use conductor_core::{ExecutionResult, JobExecution};
 
+use crate::log::{LogOutcome, LogTarget, open_log_file};
 use crate::platform;
 use crate::types::{CommandLine, InterruptSignal};
 
 /// 待ちの間隔の最初と最大(ミリ秒)。
 const FIRST_INTERVAL_MS: u64 = 1;
 const MAX_INTERVAL_MS: u64 = 10;
+
+/// 読み取りの 1 回の枠(NFR1.3。出力の全体を溜めない)。
+const COPY_CHUNK_BYTES: usize = 8 * 1024;
+
+/// 子の終了の後、読み取りのスレッドの終わりを待つ時間の上限(合わせて。BR4.5)。
+const DRAIN_LIMIT: Duration = Duration::from_secs(2);
 
 /// `try_wait` と pid だけを持つ、子プロセスの見え方(待ちのくり返しを、プロセスなしで試すため)。
 trait Waitable {
@@ -97,14 +113,29 @@ fn wait_loop<C: Waitable>(
 ///   ジョブに 1 回だけ転送する(BR1.7)。
 /// - 終了を観測したら `Exited`。その直後に合図が立っていれば、`interrupted_by` にその番号(BR1.7)。
 ///
-/// 失敗は、すべて戻り値(`JobExecution`)で返し、パニックしない(NFR4.7)。
-pub fn run_job(line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSignal) -> JobExecution {
+/// ログの指定 `log`(v0.10.0 の `log_dir`。BR1.2、BR4.1〜BR4.5、BR5.1〜BR5.3):
+///
+/// - `None` なら、今と同じ経路で起動する(標準出力と標準エラーは引き継ぐ。パイプもスレッドも作らない)。
+///   [`LogOutcome`] はすべて空。
+/// - `Some` なら、合図の確認の後、起動の前に [`open_log_file`] でファイルを作る。作れなければ起動せず
+///   `StartFailed` と `log_not_created`(BR5.1)。作れたら、標準出力と標準エラーをパイプにして起動し
+///   (標準入力は引き継ぐ。BR4.3)、読んだ分を端末とファイルへ書く(BR4.1、BR4.2)。ファイルへの
+///   書き込みに失敗したら、以後ファイルには書かず `write_failed`(BR5.2)。子の終了の後(中断のときも)、
+///   読み取りの終わりを最大 2 秒待ち、待ち切れたら以後どこにも書かず `output_cut_short`(BR4.5)。
+///
+/// 失敗は、すべて戻り値(`JobExecution` と [`LogOutcome`])で返し、パニックしない(NFR4.7)。
+pub fn run_job(
+    line: &CommandLine,
+    env: &[(&str, &str)],
+    signal: &InterruptSignal,
+    log: Option<&LogTarget>,
+) -> (JobExecution, LogOutcome) {
     if line.program.trim().is_empty() {
-        return JobExecution::start_failed();
+        return (JobExecution::start_failed(), LogOutcome::default());
     }
 
     if let Some(number) = signal.signal_number() {
-        return JobExecution::not_started(number);
+        return (JobExecution::not_started(number), LogOutcome::default());
     }
 
     let mut command = Command::new(&line.program);
@@ -113,13 +144,35 @@ pub fn run_job(line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSigna
         command.env(name, value);
     }
     platform::configure_spawn(&mut command);
-    let mut child = match command.spawn() {
-        Ok(child) => child,
-        Err(_) => return JobExecution::start_failed(),
-    };
 
+    let Some(target) = log else {
+        return (spawn_and_wait(&mut command, signal), LogOutcome::default());
+    };
+    let (file, path) = match open_log_file(target) {
+        Ok(opened) => opened,
+        Err(path) => {
+            let outcome = LogOutcome {
+                log_not_created: Some(path),
+                ..LogOutcome::default()
+            };
+            return (JobExecution::start_failed(), outcome);
+        }
+    };
+    run_with_log(&mut command, signal, file, path)
+}
+
+/// 起動して終了を待つ(標準出力と標準エラーは、`command` の指定のまま)。
+fn spawn_and_wait(command: &mut Command, signal: &InterruptSignal) -> JobExecution {
+    match command.spawn() {
+        Ok(mut child) => wait_child(&mut child, signal),
+        Err(_) => JobExecution::start_failed(),
+    }
+}
+
+/// 子の終了を待ち、結果にする(シグナルの転送を含む。BR1.7)。
+fn wait_child(child: &mut Child, signal: &InterruptSignal) -> JobExecution {
     let waited = wait_loop(
-        &mut child,
+        child,
         signal,
         &mut platform::forward_signal,
         &mut std::thread::sleep,
@@ -132,6 +185,154 @@ pub fn run_job(line: &CommandLine, env: &[(&str, &str)], signal: &InterruptSigna
         }),
         // 終了の状態を取得できない。起動失敗として返し、conductor-core がエラー(127)として扱う(安全側)。
         Waited::WaitFailed => JobExecution::start_failed(),
+    }
+}
+
+/// ログのファイル `file`(パス `path`)を用意できたときの起動と待ち(BR4.1〜BR4.5)。
+fn run_with_log(
+    command: &mut Command,
+    signal: &InterruptSignal,
+    file: File,
+    path: PathBuf,
+) -> (JobExecution, LogOutcome) {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(_) => return (JobExecution::start_failed(), LogOutcome::default()),
+    };
+    let shared = Arc::new(Shared::new(file));
+    let (done_tx, done_rx) = mpsc::channel::<()>();
+    let mut spawn_failed = false;
+    if let Some(stdout) = child.stdout.take() {
+        spawn_failed |= !start_copier(stdout, io::stdout(), &shared, &done_tx);
+    }
+    if let Some(stderr) = child.stderr.take() {
+        spawn_failed |= !start_copier(stderr, io::stderr(), &shared, &done_tx);
+    }
+    // 送り手は読み取りのスレッドだけが持つ(全員が終われば、受け手は切断を知る)。
+    drop(done_tx);
+    if spawn_failed {
+        // スレッドを作れず、その流れの出力をファイルに残せない(パイプは閉じた)。
+        shared.mark_file_failed();
+    }
+
+    let execution = wait_child(&mut child, signal);
+    let cut_short = !wait_copiers(&done_rx, DRAIN_LIMIT);
+    if cut_short {
+        shared.stop.store(true, Ordering::SeqCst);
+    }
+    let outcome = LogOutcome {
+        log_not_created: None,
+        write_failed: shared
+            .file_failed
+            .load(Ordering::SeqCst)
+            .then(|| path.clone()),
+        output_cut_short: cut_short.then_some(path),
+    };
+    (execution, outcome)
+}
+
+/// 読み取りのスレッドと共有する状態。
+struct Shared<F> {
+    /// 待ち切れたあとに立てる。立っていれば、読んだ分をどこにも書かない(BR4.5)。
+    stop: AtomicBool,
+    /// ファイルへの書き込みに一度でも失敗したか(BR5.2)。
+    file_failed: AtomicBool,
+    /// ログのファイル。2 つの流れは、この鍵で順に書く。書き込みに失敗したら `None` にする。
+    file: Mutex<Option<F>>,
+}
+
+impl<F: Write> Shared<F> {
+    fn new(file: F) -> Self {
+        Self {
+            stop: AtomicBool::new(false),
+            file_failed: AtomicBool::new(false),
+            file: Mutex::new(Some(file)),
+        }
+    }
+
+    fn lock_file(&self) -> MutexGuard<'_, Option<F>> {
+        // 鍵を持ったスレッドがパニックしても、ファイルへの書き込みは続けられる(中身は壊れていない)。
+        self.file
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// 読んだ分をファイルへ書く。失敗したら印を立て、以後ファイルには書かない(BR5.2)。
+    fn write_file(&self, chunk: &[u8]) {
+        let mut guard = self.lock_file();
+        if let Some(file) = guard.as_mut()
+            && file.write_all(chunk).is_err()
+        {
+            *guard = None;
+            self.file_failed.store(true, Ordering::SeqCst);
+        }
+    }
+
+    fn mark_file_failed(&self) {
+        *self.lock_file() = None;
+        self.file_failed.store(true, Ordering::SeqCst);
+    }
+}
+
+/// 1 つの流れの読み取りのスレッドを始める。スレッドを作れなければ `false`(パイプは閉じる)。
+fn start_copier<R, T>(reader: R, terminal: T, shared: &Arc<Shared<File>>, done: &Sender<()>) -> bool
+where
+    R: Read + Send + 'static,
+    T: Write + Send + 'static,
+{
+    let shared = Arc::clone(shared);
+    let done = done.clone();
+    std::thread::Builder::new()
+        .name("conductor-log-copier".into())
+        .spawn(move || {
+            let mut terminal = terminal;
+            copy_stream(reader, &mut terminal, &shared);
+            // 終わりの知らせ(送り手を手放す。受け手は、全員が手放したことで終わりを知る)。
+            drop(done);
+        })
+        .is_ok()
+}
+
+/// 1 つの流れを、終わりまで 8 KiB ずつ読み、端末とファイルへ書く(BR4.1、BR4.2、`reliability-design.md` の 2)。
+///
+/// - 読んだバイト列は、そのまま書く(conductor は何も書き足さない)。端末へは書くたびに flush する。
+/// - 端末への書き込みに失敗したら、端末へ書くのをやめるが、読み続けてファイルへは書く。
+/// - 「止める」印が立っていたら、読んだ分をどこにも書かずに終わる。
+fn copy_stream<R: Read, T: Write, F: Write>(mut reader: R, terminal: &mut T, shared: &Shared<F>) {
+    let mut buf = [0u8; COPY_CHUNK_BYTES];
+    let mut terminal_ok = true;
+    loop {
+        let n = match reader.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(_) => break,
+        };
+        if shared.stop.load(Ordering::SeqCst) {
+            break;
+        }
+        let chunk = &buf[..n];
+        if terminal_ok {
+            terminal_ok = terminal
+                .write_all(chunk)
+                .and_then(|()| terminal.flush())
+                .is_ok();
+        }
+        shared.write_file(chunk);
+    }
+}
+
+/// 読み取りのスレッドが全員終わるのを、合わせて `limit` まで待つ(BR4.5)。終われば `true`。
+fn wait_copiers(done: &mpsc::Receiver<()>, limit: Duration) -> bool {
+    let deadline = Instant::now() + limit;
+    loop {
+        let left = deadline.saturating_duration_since(Instant::now());
+        match done.recv_timeout(left) {
+            Ok(()) => continue,
+            Err(RecvTimeoutError::Disconnected) => return true,
+            Err(RecvTimeoutError::Timeout) => return false,
+        }
     }
 }
 
@@ -237,8 +438,9 @@ mod tests {
                 program: program.into(),
                 args: vec![],
             };
-            let e = run_job(&empty, &[], &InterruptSignal::new());
+            let (e, log) = run_job(&empty, &[], &InterruptSignal::new(), None);
             assert_eq!(e.result, ExecutionResult::StartFailed);
+            assert_eq!(log, LogOutcome::default());
         }
     }
 
@@ -246,17 +448,19 @@ mod tests {
     fn 起動前の合図は起動しない() {
         let s = InterruptSignal::new();
         s.raise(2);
-        let e = run_job(&line("definitely-not-run"), &[], &s);
+        let (e, _) = run_job(&line("definitely-not-run"), &[], &s, None);
         assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
     }
 
     #[test]
     fn 存在しないコマンドは起動失敗() {
-        let e = run_job(
+        let (e, log) = run_job(
             &line("conductor-no-such-command-zzz --flag"),
             &[],
             &InterruptSignal::new(),
+            None,
         );
         assert_eq!(e.result, ExecutionResult::StartFailed);
+        assert_eq!(log, LogOutcome::default());
     }
 }
