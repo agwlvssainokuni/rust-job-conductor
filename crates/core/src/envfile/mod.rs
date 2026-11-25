@@ -186,6 +186,8 @@ pub struct EnvWarning {
 pub struct EnvEntry {
     pub name: String,
     pub value: String,
+    /// その項目の行番号(1 始まり。`unset_env` との重なりの誤りの位置。U3 の BR2.2)。
+    pub line: usize,
 }
 
 impl fmt::Debug for EnvEntry {
@@ -193,6 +195,7 @@ impl fmt::Debug for EnvEntry {
         f.debug_struct("EnvEntry")
             .field("name", &self.name)
             .field("value", &"***")
+            .field("line", &self.line)
             .finish()
     }
 }
@@ -200,6 +203,9 @@ impl fmt::Debug for EnvEntry {
 /// 1 つの `.env` を読み取った結果。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvFileContent {
+    /// 表示用のファイル名([`parse_env_file`] に渡した名前。`unset_env` との重なりの誤りに書く。
+    /// U3 の BR2.2)。
+    pub file: String,
     /// 書いた順。同じ名前の重複は、後ろの項目だけが、末尾側に残る。
     pub entries: Vec<EnvEntry>,
     pub warnings: Vec<EnvWarning>,

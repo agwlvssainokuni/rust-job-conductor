@@ -101,11 +101,13 @@ pub fn parse_env_file(text: &str, file: &str) -> Result<EnvFileContent, Vec<EnvF
         entries.push(Some(EnvEntry {
             name: key.to_string(),
             value,
+            line: line_no,
         }));
     }
 
     if errors.is_empty() {
         Ok(EnvFileContent {
+            file: file.to_string(),
             entries: entries.into_iter().flatten().collect(),
             warnings,
         })

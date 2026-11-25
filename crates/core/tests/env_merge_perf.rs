@@ -42,12 +42,14 @@ const BUILTINS: [&str; 4] = [
 /// 名前の並びから `.env` の内容を作る。
 fn content(path: &str, names: &[String]) -> EnvFileContent {
     EnvFileContent {
+        file: path.to_string(),
         entries: names
             .iter()
             .enumerate()
             .map(|(i, n)| EnvEntry {
                 name: n.clone(),
                 value: format!("{path}-{i}"),
+                line: i + 1,
             })
             .collect(),
         warnings: Vec::new(),
