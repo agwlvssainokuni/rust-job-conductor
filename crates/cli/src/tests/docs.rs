@@ -488,3 +488,51 @@ fn readme_のひな形の例は_実際の日本語のひな形と一致する() 
     let example = &body[..body.find("```").expect("閉じている")];
     assert_eq!(example, render_template(Language::Ja, "my-pipeline"));
 }
+
+// ---- `watch --follow` の説明(v0.10.0 の U7。BR5.1、FR8.1、NFR1.5、NFR1.10) ----
+
+const FOLLOW_HEADING: &str = "### watch で表示し直しを続ける(`--follow`)(v0.10.0 以降)";
+
+#[test]
+fn u7_readme_に_watch_follow_の必須の語句と版の表記がある() {
+    let text = readme();
+    assert!(text.contains(FOLLOW_HEADING), "見出し");
+    assert_readme_has(
+        &text,
+        &[
+            "--follow",
+            "--interval <秒>",
+            "conductor watch --follow",
+            "1〜3600 の整数",
+            "既定は 2",
+            "画面を消してから描き直します",
+            "空の 1 行を置いて",
+            "**完了した**",
+            "**止まった**",
+            "**消えた**",
+            "止まったと判定して終わることがあります",
+            "3 回続けば 65",
+            "`--follow` の無い `--interval`",
+        ],
+    );
+    assert_docs_check_words(&text);
+}
+
+#[test]
+fn u7_nfr1_10_使い方の_watch_の行は_args_messages_readme_で揃う() {
+    use crate::report::messages::USAGE;
+    let ja = "conductor watch [--config <パス>] [--run-id <ID>] [--follow [--interval <秒>]]";
+    let en = "conductor watch [--config <path>] [--run-id <id>] [--follow [--interval <seconds>]]";
+    assert!(USAGE.ja.contains(ja), "日本語の使い方");
+    assert!(USAGE.en.contains(en), "英語の使い方");
+    let text = readme();
+    let usage = block_after_heading(&text, "## 使い方", "text");
+    assert!(usage.contains(ja), "README の使い方: {usage}");
+    // オプションの説明も、使い方の文と README の表にある。
+    for usage_text in [USAGE.en, USAGE.ja] {
+        assert!(usage_text.contains("\n  --follow "), "{usage_text}");
+        assert!(usage_text.contains("\n  --interval <"), "{usage_text}");
+    }
+    assert!(text.contains("| `--follow` |"), "README の表");
+    assert!(text.contains("| `--interval <秒>`"), "README の表");
+}
