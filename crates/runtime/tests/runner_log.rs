@@ -23,8 +23,6 @@ mod common;
 
 use std::fs;
 use std::path::Path;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 use common::*;
 use conductor_core::{ExecutionResult, JobExecution, Timestamp};
@@ -166,6 +164,7 @@ fn br3_1_ディレクトリが無ければ作ってから起動する() {
 #[cfg(unix)]
 #[test]
 fn br4_5_孫が出力を持ち続けても_10_秒以内に戻り_待ち切れを返す() {
+    use std::time::{Duration, Instant};
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let started = Instant::now();
     let (e, log) = run_logged(helper("orphan 30"), Some(target(dir.path(), "orphan")));
@@ -195,6 +194,8 @@ fn br4_5_孫が出力を持ち続けても_10_秒以内に戻り_待ち切れを
 #[cfg(unix)]
 #[test]
 fn br4_4_ログありでもシグナルは今と同じく転送され_出力を待って戻る() {
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
     let logs = dir.path().join("logs");
