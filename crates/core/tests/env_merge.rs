@@ -13,13 +13,15 @@
 // limitations under the License.
 
 //! 層の統合と自動の変数(U1。BR4.1〜BR4.4、BR5.1〜BR5.3、BR6.1、BR8.2)。
+//! 消す名前と `.env` との重なり(v0.10.0 の U3。BR2.2、BR3.1)。
 
 mod common;
 
 use common::{SECRET, add_env_file, env_ref, paths};
 use conductor_core::{
-    EffectiveEnv, EnvContext, EnvFileContent, LoadedEnvFiles, PipelineDefinition, env_file_refs,
-    merge_env, parse_definition, parse_env_file,
+    EffectiveEnv, EnvContext, EnvFileContent, EnvFileError, EnvFileErrorKind, LoadedEnvFiles,
+    PipelineDefinition, check_unset_conflicts, env_file_refs, merge_env, parse_definition,
+    parse_env_file,
 };
 
 fn def(text: &str) -> PipelineDefinition {
@@ -274,6 +276,137 @@ fn 無くてもよいファイルが無く引き当てに無い記述は何も�
     add_env_file(&mut files, "opt.env", content("O=2\n"));
     let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
     assert_eq!(get(&env, "O"), Some("2"));
+}
+
+// ---- v0.10.0 の U3: 消す名前(`removals`)と `.env` との重なり(BR2.2、BR3.1) ----
+
+#[test]
+fn removals_はパイプラインの次にジョブの順で完全に同じ名前は最初の_1_つ() {
+    let d = def(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nunset_env = [\"A\", \"HTTP_PROXY\"]\n\
+                 [[job]]\nid = \"a\"\ncommand = \"c\"\nunset_env = [\"B\", \"A\", \"a\"]\n",
+    );
+    let env = merge_env(&d, &d.job[0], &LoadedEnvFiles::new(), &ctx(None, 1));
+    assert_eq!(env.removals, ["A", "HTTP_PROXY", "B", "a"]);
+}
+
+#[test]
+fn unset_env_を書かなければ_removals_は空で_entries_は今と同じ() {
+    // BR4.2、契約 C1: 足す変数の形は変えない
+    let d = def(LAYERED);
+    let mut files = LoadedEnvFiles::new();
+    add_env_file(&mut files, "p.env", content("P=1\n"));
+    let env = merge_env(&d, &d.job[0], &files, &ctx(None, 1));
+    assert!(env.removals.is_empty());
+    // unset_env を足した定義でも、足す変数の並びと値は同じ
+    let with_unset = def(&LAYERED.replace(
+        "command = \"c\"\n",
+        "command = \"c\"\nunset_env = [\"HTTP_PROXY\"]\n",
+    ));
+    let env2 = merge_env(&with_unset, &with_unset.job[0], &files, &ctx(None, 1));
+    assert_eq!(env2.entries, env.entries);
+    assert_eq!(env2.removals, ["HTTP_PROXY"]);
+}
+
+const UNSET_FILES: &str = "format_version = 1
+[pipeline]
+name = \"p\"
+env_file = \"shared.env\"
+[[job]]
+id = \"a\"
+command = \"c\"
+unset_env = [\"foo\"]
+[[job]]
+id = \"b\"
+command = \"c\"
+env_file = \"b.env\"
+unset_env = [\"FOO\", \"B_ONLY\"]
+";
+
+fn unset_files() -> LoadedEnvFiles {
+    let mut files = LoadedEnvFiles::new();
+    let i = files.push_file(parse_env_file("X=1\nFOO=2\n", "/abs/shared.env").unwrap());
+    files.link("shared.env", i);
+    let i = files.push_file(parse_env_file("# c\nB_ONLY=1\nY=2\n", "/abs/b.env").unwrap());
+    files.link("b.env", i);
+    files
+}
+
+fn shown(errs: &[EnvFileError]) -> Vec<(String, Option<usize>, EnvFileErrorKind)> {
+    errs.iter()
+        .map(|e| (e.file.clone(), e.line, e.kind))
+        .collect()
+}
+
+#[test]
+fn env_との重なりはファイルと行の誤りで同じファイルと行は_1_つにまとめる() {
+    let d = def(UNSET_FILES);
+    let files = unset_files();
+    // 全ジョブ: shared.env の FOO は a と b の両方で重なるが 1 つ。b.env の B_ONLY は b で重なる。
+    let errs = check_unset_conflicts(&d, None, &files);
+    assert_eq!(
+        shown(&errs),
+        [
+            (
+                "/abs/shared.env".into(),
+                Some(2),
+                EnvFileErrorKind::UnsetConflict
+            ),
+            (
+                "/abs/b.env".into(),
+                Some(2),
+                EnvFileErrorKind::UnsetConflict
+            ),
+        ]
+    );
+    // 表示に値も名前も出ない(理由の文は固定)
+    for e in &errs {
+        let text = e.to_string();
+        assert!(
+            text.contains("`unset_env` の名前と同じ名前があります"),
+            "{text}"
+        );
+        assert!(!text.contains("FOO") && !text.contains("B_ONLY"), "{text}");
+    }
+}
+
+#[test]
+fn 重なりの範囲は_run_ならそのジョブだけ() {
+    let d = def(UNSET_FILES);
+    let files = unset_files();
+    // a は shared.env だけを読み、消す名前は foo(大文字小文字を区別しないで FOO と重なる)
+    assert_eq!(
+        shown(&check_unset_conflicts(&d, Some("a"), &files)),
+        [(
+            "/abs/shared.env".into(),
+            Some(2),
+            EnvFileErrorKind::UnsetConflict
+        )]
+    );
+    assert_eq!(check_unset_conflicts(&d, Some("b"), &files).len(), 2);
+    assert!(check_unset_conflicts(&d, Some("zz"), &files).is_empty());
+}
+
+#[test]
+fn パイプラインの_unset_env_は全ジョブの_env_file_と比べ_重ならなければ空() {
+    let d = def(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nunset_env = [\"Y\"]\n\
+                 [[job]]\nid = \"a\"\ncommand = \"c\"\n\
+                 [[job]]\nid = \"b\"\ncommand = \"c\"\nenv_file = \"b.env\"\n",
+    );
+    let files = unset_files();
+    assert_eq!(
+        shown(&check_unset_conflicts(&d, None, &files)),
+        [(
+            "/abs/b.env".into(),
+            Some(3),
+            EnvFileErrorKind::UnsetConflict
+        )]
+    );
+    assert!(check_unset_conflicts(&d, Some("a"), &files).is_empty());
+    // unset_env が無い定義と、読めていないファイルは何も返さない
+    assert!(check_unset_conflicts(&def(LAYERED), None, &files).is_empty());
+    assert!(check_unset_conflicts(&d, None, &LoadedEnvFiles::new()).is_empty());
 }
 
 #[test]

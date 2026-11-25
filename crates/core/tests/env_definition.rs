@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //! 定義の新しいキー `env`、`env_file` の読み取りと検査(U1。BR1.1〜BR1.8、FR1.1〜FR1.4、FR1.9、FR1.11、FR1.13)。
+//! `unset_env` の読み取りと `env` との重なり(v0.10.0 の U3。BR1.1〜BR1.3、BR2.1)。
 
 mod common;
 
@@ -246,6 +247,172 @@ fn nul_を含む値は誤り() {
 }
 
 #[test]
+fn unset_env_を_pipeline_と_job_で書いた順に読み同じ名前は最初の_1_つにまとめる() {
+    // U3 の BR1.1、BR1.3
+    let d = ok(&def(
+        "unset_env = [\"HTTP_PROXY\", \"A\", \"HTTP_PROXY\"]\n",
+        "unset_env = [\"SECRET_TOKEN\", \"a\", \"SECRET_TOKEN\"]\n",
+    ));
+    assert_eq!(d.unset_env, ["HTTP_PROXY", "A"]);
+    // 大文字小文字だけが違う名前は、まとめない(完全一致でまとめる)
+    assert_eq!(d.job[0].unset_env, ["SECRET_TOKEN", "a"]);
+    // 空の配列と、書かない定義は空
+    assert!(ok(&def("unset_env = []\n", "")).unset_env.is_empty());
+    let d = ok(&def("", ""));
+    assert!(d.unset_env.is_empty() && d.job[0].unset_env.is_empty());
+}
+
+#[test]
+fn unset_env_の型の誤りは固定の理由で返す() {
+    // U3 の BR1.1
+    let cases: [(&str, &str); 3] = [
+        (
+            "unset_env = \"HTTP_PROXY\"\n",
+            "`unset_env` は、文字列の配列で書きます",
+        ),
+        (
+            "unset_env = { A = 1 }\n",
+            "`unset_env` は、文字列の配列で書きます",
+        ),
+        (
+            "unset_env = [\"A\", 1]\n",
+            "`unset_env` の要素は、文字列で書きます",
+        ),
+    ];
+    for (text, reason) in cases {
+        for t in [def(text, ""), def("", text)] {
+            let errs = parse(&t).unwrap_err();
+            assert_eq!(errs.len(), 1, "{t}: {errs:?}");
+            assert_eq!(errs[0].0, K::TypeMismatch, "{t}");
+            assert!(errs[0].1.contains(reason), "{t}: {}", errs[0].1);
+        }
+    }
+}
+
+#[test]
+fn unset_env_の空の名前と規則違反と予約名は誤りで理由は_unset_env_の文() {
+    // U3 の BR1.2
+    let cases: [(&str, K, &str); 5] = [
+        (
+            "\"\"",
+            K::EmptyField,
+            "`unset_env` に空の文字列は書けません",
+        ),
+        ("\"1A\"", K::InvalidEnvName, "`unset_env` の名前 `1A` は、"),
+        (
+            "\"A-B\"",
+            K::InvalidEnvName,
+            "`unset_env` の名前 `A-B` は、",
+        ),
+        (
+            "\"CONDUCTOR_JOB_ID\"",
+            K::ReservedEnvName,
+            "`unset_env` の名前 `CONDUCTOR_JOB_ID` は、`CONDUCTOR_` で始まるため書けません",
+        ),
+        (
+            "\"conductor_x\"",
+            K::ReservedEnvName,
+            "`unset_env` の名前 `conductor_x` は、",
+        ),
+    ];
+    for (name, kind, reason) in cases {
+        for t in [
+            def(&format!("unset_env = [{name}]\n"), ""),
+            def("", &format!("unset_env = [{name}]\n")),
+        ] {
+            let errs = parse(&t).unwrap_err();
+            assert_eq!(errs.len(), 1, "{t}: {errs:?}");
+            assert_eq!(errs[0].0, kind, "{t}");
+            assert!(errs[0].1.contains(reason), "{t}: {}", errs[0].1);
+        }
+    }
+    // 複数の誤りは、すべて集める(位置の順)
+    assert_eq!(
+        kinds(&def("unset_env = [\"\", \"1A\", 2, \"CONDUCTOR_A\"]\n", "")),
+        [
+            K::EmptyField,
+            K::InvalidEnvName,
+            K::TypeMismatch,
+            K::ReservedEnvName
+        ]
+    );
+}
+
+#[test]
+fn unset_env_と同じジョブに当てはまる_env_の重なりは大文字小文字を区別せずに誤り() {
+    // U3 の BR2.1(比べ方は security-design の 1)
+    let conflict = |p: &str, j: &str| {
+        let errs = parse(&def(p, j)).unwrap_err();
+        assert!(
+            errs.iter().all(|(k, _)| *k == K::UnsetEnvConflict),
+            "{p} / {j}: {errs:?}"
+        );
+        assert!(
+            errs[0]
+                .1
+                .contains("`unset_env` の名前が、`env` の名前と重なっています"),
+            "{}",
+            errs[0].1
+        );
+        errs.len()
+    };
+    // ジョブの unset_env とそのジョブの env、パイプラインの env
+    assert_eq!(
+        conflict("", "unset_env = [\"FOO\"]\n[job.env]\nFOO = \"x\"\n"),
+        1
+    );
+    assert_eq!(
+        conflict("[pipeline.env]\nFOO = \"x\"\n", "unset_env = [\"FOO\"]\n"),
+        1
+    );
+    // パイプラインの unset_env とパイプラインの env、ジョブの env
+    assert_eq!(
+        conflict("unset_env = [\"FOO\"]\n[pipeline.env]\nFOO = \"x\"\n", ""),
+        1
+    );
+    assert_eq!(
+        conflict("unset_env = [\"FOO\"]\n", "[job.env]\nFOO = \"x\"\n"),
+        1
+    );
+    // 大文字小文字だけが違う名前も重なり(どの OS でも)
+    assert_eq!(
+        conflict("", "unset_env = [\"foo\"]\n[job.env]\nFOO = \"x\"\n"),
+        1
+    );
+    assert_eq!(
+        conflict("unset_env = [\"Path\"]\n", "[job.env]\nPATH = \"x\"\n"),
+        1
+    );
+    // 名前ごとに 1 つ
+    assert_eq!(
+        conflict(
+            "unset_env = [\"A\", \"B\"]\n[pipeline.env]\nA = \"1\"\nB = \"2\"\n",
+            ""
+        ),
+        2
+    );
+}
+
+#[test]
+fn ほかのジョブの_env_とは重ならず_重なりの誤りは名前の位置の行() {
+    // ジョブの unset_env は、ほかのジョブの env と比べない(U3 の BR2.1)
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\n\
+                [[job]]\nid = \"a\"\ncommand = \"c\"\nunset_env = [\"FOO\"]\n\
+                [[job]]\nid = \"b\"\ncommand = \"c\"\n[job.env]\nFOO = \"x\"\n";
+    let d = ok(text);
+    assert_eq!(d.job[0].unset_env, ["FOO"]);
+    assert_eq!(d.job[1].env[0].name, "FOO");
+    // 誤りの行は unset_env の名前の行
+    let text = "format_version = 1\n[pipeline]\nname = \"p\"\n\
+                [[job]]\nid = \"a\"\ncommand = \"c\"\nunset_env = [\n  \"A\",\n  \"FOO\",\n]\n\
+                [job.env]\nFOO = \"x\"\n";
+    let errs = parse_definition(text, "t.toml", None).unwrap_err();
+    assert_eq!(errs.len(), 1, "{errs:?}");
+    assert_eq!(errs[0].kind, K::UnsetEnvConflict);
+    assert_eq!(errs[0].line, Some(9));
+}
+
+#[test]
 fn 誤りの表示に値が含まれない() {
     let cases = [
         def(&format!("env = {{ A = \"{SECRET}\\u0000\" }}\n"), ""),
@@ -254,6 +421,12 @@ fn 誤りの表示に値が含まれない() {
         def(&format!("env = {{ \"1x\" = \"{SECRET}\" }}\n"), ""),
         def(&format!("env = \"{SECRET}\"\n"), ""),
         def("", &format!("env = {{ A = [\"{SECRET}\"] }}\n")),
+        // U3: unset_env の型の誤りと、env との重なり(値に目印)
+        def(&format!("unset_env = \"{SECRET}\"\n"), ""),
+        def(
+            "",
+            &format!("unset_env = [\"A\"]\n[job.env]\nA = \"{SECRET}\"\n"),
+        ),
     ];
     for text in cases {
         for (_, shown) in parse(&text).unwrap_err() {

@@ -17,6 +17,8 @@
 //! - A3a: `[pipeline].env_file` の 1 ファイルに 10,000 項目(すべて別の名前)。5 回の中央値が 50 ms 以内。
 //! - A3b: `[pipeline].env_file` と `[job].env_file` に 10,000 項目ずつ(同じ名前。後ろが勝つ)。
 //!   5 回の中央値が 100 ms 以内。
+//! - U3(v0.10.0): 一万の消す名前(`unset_env`)を持つ入力の統合と、`.env` との重なりの検査。
+//!   それぞれ 5 回の中央値が 50 ms 以内。
 //!
 //! 項目の数に比例する時間。二乗の時間に戻ると、手元の機械でも上限を大きく超える。
 
@@ -28,7 +30,7 @@ use common::{add_env_file, median};
 use conductor_core::envfile::MAX_ENV_ENTRIES;
 use conductor_core::{
     EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, LoadedEnvFiles, PipelineDefinition,
-    merge_env, parse_definition,
+    check_unset_conflicts, merge_env, parse_definition,
 };
 
 const SAMPLES: usize = 5;
@@ -121,6 +123,48 @@ fn a3a_一万項目の_env_file_一つの統合は_50ms_以内() {
             .iter()
             .all(|e| e.value.starts_with("p.env-"))
     );
+    assert!(
+        m < Duration::from_millis(50),
+        "中央値 {m:?} が上限 50ms を超えた"
+    );
+}
+
+#[test]
+fn u3_一万の消す名前と一万項目の_env_file_の統合と重なりの検査はそれぞれ_50ms_以内() {
+    // v0.10.0 の U3(performance-design): 消す名前のまとめと重なりの検査は、名前の数に比例する時間。
+    // 上限は A3a と同じ 50 ms。パイプラインとジョブに同じ一万の名前を書き(まとめの最悪)、
+    // `.env` の一万項目と比べる(重なりは無い)。
+    let names: Vec<String> = (0..MAX_ENV_ENTRIES).map(|i| format!("K{i}")).collect();
+    let unset: Vec<String> = (0..MAX_ENV_ENTRIES).map(|i| format!("\"U{i}\"")).collect();
+    let list = unset.join(", ");
+    let text = format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nenv_file = \"p.env\"\nunset_env = [{list}]\n[[job]]\nid = \"a\"\ncommand = \"c\"\nunset_env = [{list}]\n"
+    );
+    let d = parse_definition(&text, "t.toml", None).expect("正しい定義");
+    let mut files = LoadedEnvFiles::new();
+    add_env_file(&mut files, "p.env", content("p.env", &names));
+
+    let (m, samples, env) = measure(&d, &files);
+    eprintln!("U3 統合: 中央値 {m:?}(各回 {samples:?})");
+    assert_order(&env, &names);
+    assert_eq!(env.removals.len(), MAX_ENV_ENTRIES);
+    assert_eq!(env.removals[0], "U0");
+    assert!(
+        m < Duration::from_millis(50),
+        "中央値 {m:?} が上限 50ms を超えた"
+    );
+
+    let samples: Vec<Duration> = (0..SAMPLES)
+        .map(|_| {
+            let start = Instant::now();
+            let errs = check_unset_conflicts(&d, None, &files);
+            let elapsed = start.elapsed();
+            assert!(errs.is_empty());
+            elapsed
+        })
+        .collect();
+    let m = median(samples.clone());
+    eprintln!("U3 重なり: 中央値 {m:?}(各回 {samples:?})");
     assert!(
         m < Duration::from_millis(50),
         "中央値 {m:?} が上限 50ms を超えた"

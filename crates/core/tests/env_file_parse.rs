@@ -120,6 +120,35 @@ fn 重複は後ろが勝ち警告に行と名前を持つ() {
 }
 
 #[test]
+fn 項目は行番号を持ち結果は表示用のファイル名を持つ() {
+    // v0.10.0 の U3(reliability-design の 1): コメント・空行・BOM・CRLF を数えた行番号。
+    let c = parse_env_file(
+        "\u{FEFF}# c\r\n\r\nA=1\r\nexport B=2\r\n  C = 3\r\n",
+        "dir/t.env",
+    )
+    .unwrap();
+    let lines: Vec<_> = c
+        .entries
+        .iter()
+        .map(|e| (e.name.as_str(), e.line))
+        .collect();
+    assert_eq!(lines, [("A", 3), ("B", 4), ("C", 5)]);
+    assert_eq!(c.file, "dir/t.env");
+    // 重複は後ろの項目の行
+    let c = parse_env_file("A=1\nB=2\nA=3\n", "t.env").unwrap();
+    let lines: Vec<_> = c
+        .entries
+        .iter()
+        .map(|e| (e.name.as_str(), e.line))
+        .collect();
+    assert_eq!(lines, [("B", 2), ("A", 3)]);
+    // 空のファイルも、ファイル名を持つ
+    let c = parse_env_file("", "empty.env").unwrap();
+    assert!(c.entries.is_empty());
+    assert_eq!(c.file, "empty.env");
+}
+
+#[test]
 fn 同じファイルの大文字小文字だけが違う名前は誤り() {
     assert_eq!(errs("foo=1\nFOO=2\n"), [(Some(2), K::CaseConflict)]);
 }

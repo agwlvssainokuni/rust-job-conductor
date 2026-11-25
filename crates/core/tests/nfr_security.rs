@@ -18,7 +18,10 @@
 mod common;
 
 use common::kinds::DEFINITION_ERROR_KINDS;
-use conductor_core::{Command, DefinitionErrorKind, load_definition, parse_definition};
+use conductor_core::{
+    Command, DefinitionErrorKind, EnvFileErrorKind, LoadedEnvFiles, check_unset_conflicts,
+    load_definition, parse_definition, parse_env_file,
+};
 
 const SENTINEL: &str = "SENTINEL_VALUE_9f3a";
 
@@ -232,6 +235,24 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
                 "unset_env = [\"X{SENTINEL}\"]\n[job.env]\nx{SENTINEL} = \"{SENTINEL}\"\n"
             )),
         ),
+        // v0.10.0 の U3: `unset_env` の型の誤り(配列でない、要素が文字列でない。BR1.1、NFR6.1)。
+        (
+            K::TypeMismatch,
+            format!(
+                "format_version = 1\n[pipeline]\nname = \"p\"\nunset_env = \"{SENTINEL}\"\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+            ),
+        ),
+        (
+            K::TypeMismatch,
+            job(&format!("unset_env = [{{ x = \"{SENTINEL}\" }}]\n")),
+        ),
+        // v0.10.0 の U3: パイプラインの `unset_env` とジョブの `env` の重なり(値に目印。BR2.1)。
+        (
+            K::UnsetEnvConflict,
+            format!(
+                "format_version = 1\n[pipeline]\nname = \"p\"\nunset_env = [\"TOKEN\"]\n[[job]]\nid = \"a\"\ncommand = \"c\"\n[job.env]\ntoken = \"{SENTINEL}\"\n"
+            ),
+        ),
         // v0.10.0: `log_dir` の型の誤り(値の位置に目印。BR1.1、NFR6.1)。
         (
             K::TypeMismatch,
@@ -301,6 +322,30 @@ fn nfr6_1_既定との重なりの表示に終了コードの値もジョブの_
     let shown = errs[0].to_string();
     assert!(!shown.contains(SENTINEL), "{shown}");
     assert!(!shown.contains("173"), "{shown}");
+}
+
+#[test]
+fn nfr6_2_env_と_unset_env_の重なりの表示に値も名前も出ない() {
+    // v0.10.0 の U3(BR2.2、security-design の 2): `.env` の重なりの誤りは固定の文だけ。
+    let def = parse_definition(
+        &format!(
+            "format_version = 1\n[pipeline]\nname = \"p\"\nenv_file = \"a.env\"\nunset_env = [\"x{SENTINEL}\"]\n[[job]]\nid = \"a\"\ncommand = \"c\"\n"
+        ),
+        "t.toml",
+        None,
+    )
+    .expect("正しい定義");
+    let mut files = LoadedEnvFiles::new();
+    let i = files.push_file(
+        parse_env_file(&format!("X{SENTINEL}={SENTINEL}\n"), "a.env").expect("正しい .env"),
+    );
+    files.link("a.env", i);
+    let errs = check_unset_conflicts(&def, None, &files);
+    assert_eq!(errs.len(), 1);
+    assert_eq!(errs[0].kind, EnvFileErrorKind::UnsetConflict);
+    let shown = errs[0].to_string();
+    assert!(!shown.contains(SENTINEL), "{shown}");
+    assert!(!shown.contains(&SENTINEL.to_ascii_lowercase()), "{shown}");
 }
 
 #[test]
