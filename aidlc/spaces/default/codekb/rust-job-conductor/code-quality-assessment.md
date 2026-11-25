@@ -1,65 +1,73 @@
-# コード品質の評価
-
-## 総評
-
-小さく責務の分かれた、品質の高いコードベース。純粋関数と入出力の分離、固定の文によるエラー表示、網羅的なテスト(非機能のテストを含む)、3 OS の CI が揃っている。主な負債は、型のリテラルの散在と、複数の場所に同じ知識が重複する箇所である。
-
-## 評価(3 段階: good / fair / poor)
-
-| 観点 | 評価 | 根拠 |
-|------|------|------|
-| 命名の明快さ | good | Rust の標準の命名。日本語のドキュメントコメントが契約と規則の番号(BR/NFR/FR)に対応している |
-| 関数の大きさ | fair | `walk.rs`(801 行)に検査が集中。`Walker` のメソッドは小さく分かれている。`args.rs::build_command` は約 150 行で長い |
-| エラー処理 | good | 失敗は値で返す。入力に対してパニックしない。固定の文だけで表示し、入力の値を含めない |
-| テストの有無 | good | 全クレートに単体と統合のテスト。実バイナリのテスト、シグナルの実テスト、非機能のテスト |
-| 重複 | fair | `prepare`/`run_individual`/`run_pipeline` の流れが似ている。使い方の表が 3 か所。`peek_run_id_env` と `walk` の `run_id_env` 知識 |
-| 不要なコード | good | 目立つ死んだコードは見当たらない(今回は読み取りのみで、警告は未確認) |
+# コードの品質の評価
 
 ## テスト
 
-- 配置は code-structure.md の「テストの配置」を参照。ファイルは core 10、runtime 13、cli 21、converter 5(いずれも tests/ の直下。補助を除く)。
-- 流れのテスト(`flow_*.rs`)は偽の `Runtime`/`Sink`/`Env`/`Signals`(`crates/cli/tests/common/mod.rs`)を注入し、実際のプロセスを起動せずに検査する。実バイナリのテスト(`binary_*.rs`)は `conductor-cli-test-helper` を使う。
-- 非機能のテスト(`nfr_*.rs`): ソースの検索(`unsafe`、ネットワーク、`cfg` の位置、依存)、性能(起動のオーバーヘッド)、堅牢性、セキュリティ(converter、core)、ステートの内容(runtime)。
-- 網羅のテスト: `DefinitionErrorKind::ALL`、`UsageErrorKind::ALL`、`ConversionErrorKind::ALL` を使い、すべての種類に文があることを確かめる。
-- カバレッジ: CI の `coverage` ジョブが行カバレッジ 80% 未満で失敗する(`cargo llvm-cov`)。実測値は今回確認していない(実行しない方針)。
-- テスト名は日本語。チームの方針(test-after、行カバレッジ 80%)と一致する。
+| 項目 | 状態 |
+|------|------|
+| 枠組み | Rust 標準の `#[test]` だけ。テスト名は日本語 |
+| 数 | `#[test]` の数: core 381、runtime 200、cli 473、converter 116(合計 1,170) |
+| 統合テスト | core 33、runtime 14、cli 25、converter 2 のファイル(`tests/`)。単体テストは各モジュールの `mod tests` と、`crates/cli/src/tests/`、`crates/converter/src/tests/` |
+| 流れのテスト | `cli/tests/flow_*.rs`(10 ファイル)が、偽の `Runtime`/`Sink`/`Env`/`Signals` を注入して、終了コード・表示・ステートの書き込みの順序を確かめる |
+| 実バイナリのテスト | `cli/tests/binary_*.rs`(7 ファイル)が、`conductor` とテスト専用の補助バイナリを動かす。シグナルは `binary_signal.rs`、`signals_real.rs`、`signals_order.rs` |
+| 非機能のテスト | 性能(`*_perf.rs`、`nfr_performance.rs`、`nfr_perf.rs`)、安全性(`nfr_security.rs`)、頑健さ(`nfr_robust.rs`)、ソースの検査(`nfr_source.rs`: `unsafe` の位置、`cfg` の位置、ネットワークの不在)、内容(`nfr_content.rs`: エラーの表示とステートの内容に入力の値が現れない) |
+| 網羅のテスト | `CommandKind::ALL` などの配列で、種類の追加漏れを捕まえる |
+| 参照出力との一致 | `core/tests/graph_layout_oracle.rs` が、`fixtures/graph_layout_oracle*.md`(参照実装の出力。最大 48,529 行)と配置を比べる |
+| 文書との一致 | `cli/src/tests/docs.rs`(README と使い方の表)、`cli/tests/msrv_consistency.rs`(MSRV)、デモのテスト(`unix_demo.rs`、`windows_demo.rs`) |
+| カバレッジ | CI の `coverage` で行 80% 以上を強制(テスト専用の補助バイナリは除外)。チームの方針(test-after、行カバレッジ 80%)と一致する |
+| OS | CI の `test` で ubuntu・macos・windows。`msrv-test` で 1.100.0 |
 
-## Lint と整形
+評価: 良い。純粋な中核と差し替え口の分離で、流れの失敗の経路(書き込みの失敗、シグナル、出力の失敗)まで偽の実装で試せる。
 
-- `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`(CI `lint`)。設定ファイル(`rustfmt.toml`、`clippy.toml`)は無く、既定。
-- `Cargo.lock` を追跡し、CI はすべて `--locked`。
+## 静的検査と書式
 
-## CI/CD(`.github/workflows/`)
+- `cargo fmt --all -- --check` と `cargo clippy --workspace --all-targets --locked -- -D warnings` が CI の `lint` で関門になる。設定ファイルは無く既定。
+- `#[allow]` は `runtime/src/platform/unix.rs` の `#![allow(unsafe_code)]` 1 つだけ。lint の抑止は無い。
 
-| ファイル | ジョブ | 内容 |
-|----------|--------|------|
-| `ci.yml` | lint | fmt と clippy(ubuntu) |
-| | build-check | ubuntu と windows。MSRV 1.100.0 で全ターゲットをビルド。Linux で C ビルド依存と `-sys` クレートを検査 |
-| | test | ubuntu、macos、windows で `cargo test --workspace --locked` |
-| | msrv-test | 1.100.0 でテスト |
-| | coverage | `cargo llvm-cov --fail-under-lines 80` |
-| | docs-check | README に 7 つの必須語句(SHA-256、Gatekeeper、終了コードの表、ステートファイルの場所、at-least-once、シグナル、convert) |
-| | startup-bench | 3 OS。警告のみ(`STARTUP_BENCH_ENFORCE=false`、`continue-on-error`) |
-| `release.yml` | verify-tag、checks、build(4 対象)、smoke test、draft-release | タグ `v*`。main 上のタグと cli の版の一致を確認。SHA256SUMS。下書き |
-| `audit.yml` | cargo audit | PR と毎週月曜。`continue-on-error`、警告のみ |
+## CI/CD
 
-トリガー: push(main)、pull_request(main)、`workflow_call`(release が CI を再利用)。`concurrency` で同じ参照の古い実行を取り消す。
+- マージの関門(`ci.yml`): `lint`、`build-check`(MSRV、C のビルドの不在)、`test`(3 OS)、`msrv-test`、`coverage`、`docs-check`。`startup-bench` は警告のみ。
+- リリース(`release.yml`): タグが `main` の上にあり `crates/cli/Cargo.toml` の版と一致すること → `ci.yml` の再利用 → 4 対象のビルドと smoke test → 下書きのリリース。
+- `audit.yml`: `cargo audit`(PR と毎週。警告のみ)。
+- 変更は PR を使わず `main` に直接コミットする運用(`team.md`)のため、関門は `push` の CI で事後に効く。
 
-## ドキュメントの質
+## 文書
 
-- README(利用者向け)が、必須語句の検査つきで保たれている。
-- 各 `lib.rs` に、契約、呼び出し順序、保証の範囲、守る性質が詳しく書かれている。
-- `docs/spec/` は 7 版の仕様書。`docs/spec/rust/` は v0.8.0 の忠実な記述で、実装と README の差を明記している。今回の intent の機能が入ると、更新が要る。
-- `demo/` に Unix 版・Windows 版の例。
+- `README.md`(772 行)は、インストール、クイックスタート、使い方、定義の書き方(retry、env)、ステート、終了コード、保証、シグナル、graph、dry-run、init、convert、ロケールを書く。必須の語句は `docs-check` が検査。
+- 各モジュールの冒頭の `//!` が、責務、契約、規則の番号(BR/NFR/FR)、守る性質を日本語で書く。
+- `docs/spec/` に 7 言語版の再構築用の仕様(各 13 文書)。
 
-## 技術的負債とリスク
+## 簡易評価(良い / 普通 / 弱い)
 
-1. 定義の型のリテラルの散在: `JobDefinition`、`PipelineDefinition` を構造体リテラルで直接作るテストが core(`types.rs`、`flow/decide.rs`、`flow/*`)、runtime(`runner.rs`)、cli(`tests/common/mod.rs` ほか)に多数ある。フィールドを足すと全箇所の修正が要る。
-2. エラー種類の追加の連動: core の `error.rs`(`#[error]`、`code()`、`ALL: [_; 30]`)、cli の `definition_kind`(英語)、`report_messages.rs` などの網羅のテスト。
-3. 使い方の表の重複(`args.rs` のコメント、`USAGE`、README)。
-4. 3 か所の流れの重複(`prepare`、`run_individual`、`run_pipeline`)。`--dry-run` は、起動の直前と記録の前後の 3 か所に影響しうる。
-5. `run_job` に環境変数を渡す口が無い(`Command` の環境は継承のみ)。`Runtime` trait の `run_job` の署名変更は、偽実装を持つテストに波及する。
-6. `.idea/` が追跡されている。
-7. `startup-bench` と `audit` は警告のみで、失敗しない。
-8. macOS(Intel)の成果物は、クロスビルドで動作の確認をしていない。
-9. セキュリティ上の既存の性質(ステートに環境変数を書かない、エラーに入力の値を含めない)は、`.env` の値の扱いを設計するときの制約になる。
+| 観点 | 評価 | 根拠 |
+|------|------|------|
+| 命名の明瞭さ | 良い | Rust 標準の命名。型・関数の名前が責務を表し、文書が規則の番号と結ぶ |
+| 関数の大きさ | 普通 | 多くは小さい。`walk`、`args` の解釈、文言の表は長いが、表の形で単一の責務 |
+| エラーの扱い | 良い | 失敗はすべて戻り値(パニックしない)。固定の文。表示の失敗も値で扱う |
+| テストの存在 | 良い | 主要な経路にすべてテストがある |
+| 重複 | 普通 | 使い方の表が 3 か所(`args.rs`、`messages.rs`、README)。escape の規則が core と converter に写しで 2 つ(同じ期待値の表で揃える) |
+| 不要なコード | 良い | `TODO`/`FIXME`/`HACK` は無い。古い引数を除いた経緯は文書に残す(例: `run_job` の旧い引数) |
+
+## 守る性質(コードで確認したもの)
+
+- `unsafe` は runtime の `platform/unix.rs` の `libc::kill` 1 か所。runtime は `#![deny(unsafe_code)]` で、`unix.rs` だけ `#![allow(unsafe_code)]`。core・converter・cli(`main.rs`、補助バイナリを含む)は `#![forbid(unsafe_code)]`。
+- 本体のコードの `cfg(unix)`/`cfg(windows)` は `runtime/src/platform/` と `cli/src/platform/` の中だけ。ほかの出現は `#[cfg(test)]` のテストの中(`core/src/definition/intake.rs`、`converter/src/intake.rs`、`cli/src/tests/`)と、`Cargo.toml` の対象別の依存。
+- ネットワークのコードとライブラリは無い。
+- エラーの表示に入力の値・ライブラリのエラー文を含めない。キー名・ジョブID・パスは escape して切り詰める。
+- ステートに command・環境変数・出力・時刻を書かない。環境変数の値を持つ型(`EnvVar`、`EnvEntry`、`EffectiveEntry`)の `Debug` は伏せ字。計画と図は環境変数の値を持たない。
+- 入力の大きさの上限(定義・`.env`・ステート・変換の入力は 1 MiB、入れ子 32 段、`.env` は 10,000 項目、変換の展開は 100,000 ノードと 16 MiB)。
+
+## 技術的負債と、この intent への影響
+
+| 項目 | 場所 | 影響 |
+|------|------|------|
+| ステートの読み取りが知らないキーを拒否する | `runtime/src/state/reader.rs` の `TOP_KEYS`・`JOB_KEYS` | 開始・終了の時刻を足すと、旧版の `conductor` が新しいステートを 65 で拒否する。`format_version` の扱い(上げる/据え置く)と、読み取りの互換を設計で決める必要がある |
+| 時刻を扱う仕組みが無い | core は純粋、runtime・cli にも時刻の型が無い | 時刻の取得(cli か runtime)と、ステートへの書式(UNIX 時刻か RFC 3339 か。暦の計算を自前で書くか)を決める必要がある。依存を加えない方針 |
+| リトライはジョブだけ | `core/src/types.rs` の `JobDefinition.retry`、`walk/mod.rs` の `PIPELINE_KEYS` | `[pipeline.retry]` は、読み取りで各ジョブへ合成するか、型に既定を持たせて `retry_decision` で選ぶかの選択。`--dry-run` の `retryable`、`graph -v` のリトライの表示も同じ値を使う必要がある |
+| 起動の口が「足す」環境だけを受け取る | `runtime/src/runner.rs` の `run_job`、`core/src/envfile/merge.rs` の `EffectiveEnv` | `unset_env` には、消す名前を統合の結果と起動の口に通す変更が要る。自動の変数(`CONDUCTOR_*`)や `env` との優先の規則、`--dry-run` の名前の要約も揃える必要がある |
+| `env_file` は必須のファイルだけ | `runtime/src/envfile.rs` の `read_one`、`core/src/types.rs` の `env_file: Vec<String>` | 任意の `.env` には、定義の書式(印の付け方)と、型(必須かどうかの情報)、読み取りの分岐が要る。`validate`・`graph`・`--dry-run` も同じ読み取りを通る |
+| 標準入出力は引き継ぐだけ | `runtime/src/runner.rs` | `log_dir` には、ファイルの作成(runtime の責務)と、パスの解決(定義ファイルの基準)、試行ごとの扱い、`Runtime` trait の拡張が要る |
+| `watch` は 1 回だけ | `cli/src/aux_commands.rs` の `run_watch` | 連続表示には、待機と中断(今はシグナルの準備をしない)、画面の書き換え(Windows では色を使わない方針)が要る |
+| `graph` の形式は 2 つ | `cli/src/types.rs` の `GraphFormat`、`args.rs` の値の検査、`report/graph_mermaid.rs` | DOT は Mermaid と同じく `FlowGraph` からの純粋な整形で足せる。ラベルの escape の規則を DOT 用に持つ必要がある |
+| 公開の構造体のフィールドが公開 | `core/src/types.rs` | フィールドの追加で、テストのリテラルの組み立てが広く変わる |
+| 使い方の表の重複 | `args.rs`、`report/messages.rs`、`README.md` | 新しいキー・オプションのたびに 3 か所の更新が要る(`src/tests/docs.rs` が一部を検査) |
+| `team.md` のテストファイルの数が古い | `aidlc/spaces/default/memory/team.md` の Testing Posture | 現状は core 33、runtime 14、cli 25、converter 2。記述の更新の候補 |
