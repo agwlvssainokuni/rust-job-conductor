@@ -211,6 +211,8 @@ pub struct CliCommand {
     pub interval: Option<u32>,
 }
 
+/// `watch --follow` の間隔の既定(秒。v0.10.0 の U7 の BR1.2)。
+pub(crate) const DEFAULT_FOLLOW_INTERVAL_SECS: u32 = 2;
 /// `--interval` の最小(秒。BR1.2)。
 pub(crate) const MIN_FOLLOW_INTERVAL_SECS: u32 = 1;
 /// `--interval` の最大(秒。BR1.2)。

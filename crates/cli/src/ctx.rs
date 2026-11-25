@@ -190,8 +190,9 @@ impl Ctx<'_> {
         self.check_run_inputs(cmd, checked, None)
     }
 
-    /// シグナルの監視を始める(BR4.1)。失敗は表示して、70 を `Err` で返す。
-    fn start_signals(&mut self) -> Result<Arc<InterruptSignal>, i32> {
+    /// シグナルの監視を始める(BR4.1)。失敗は表示して、70 を `Err` で返す。`run`・`pipeline` の準備と、
+    /// `watch --follow`(v0.10.0 の U7 の BR3.2)が使う。
+    pub(crate) fn start_signals(&mut self) -> Result<Arc<InterruptSignal>, i32> {
         let signal = Arc::new(InterruptSignal::new());
         match self.signals.start(&signal) {
             Ok(()) => Ok(signal),

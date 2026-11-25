@@ -223,6 +223,12 @@ pub enum DisplayEvent<'a> {
         now: Timestamp,
     },
     WatchEmpty,
+    /// `watch --follow` の 1 回分の表示(v0.10.0 の U7。BR2.1、BR2.2)。前に `prefix` を置き、続けて
+    /// 1 回の `watch` と同じ表(`state` があるとき。時刻は表示の時点の今)か「ステートが無い」を書く。
+    WatchFrame {
+        prefix: FramePrefix,
+        state: Option<(&'a PipelineState, Timestamp)>,
+    },
     /// `graph` の図(組み立て済みの text か Mermaid。そのまま出す。BR6.3)。
     Graph(&'a str),
     /// `--dry-run` の計画(組み立て済み。そのまま出す。U3 の BR3.4)。
@@ -233,6 +239,42 @@ pub enum DisplayEvent<'a> {
     Help,
     /// 版(`--version`)。
     Version,
+}
+
+/// `watch --follow` の 1 回分の表示の前に置くもの(v0.10.0 の U7。BR2.2、NFR6.3)。
+///
+/// どれにするかは、流れが初めに 1 回だけ決めた「画面を消せるか」(UNIX 系の端末)と、何回目の表示かで決める。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FramePrefix {
+    /// 何も置かない(追記の 1 回目)。
+    Nothing,
+    /// 画面を消してカーソルを左上に戻す(UNIX 系の端末。1 回目から毎回)。
+    ClearScreen,
+    /// 空の 1 行(Windows・パイプ・ファイルの追記の 2 回目から)。
+    BlankLine,
+}
+
+/// 画面を消してカーソルを左上に戻す制御の文字列(`ESC[H ESC[2J`)。
+pub(crate) const CLEAR_SCREEN: &str = "\x1b[H\x1b[2J";
+
+impl FramePrefix {
+    /// 描き直しの `n` 回目(0 始まり)の前に置くもの。`clear` は画面を消せるか(流れが初めに 1 回だけ決める)。
+    pub fn for_frame(clear: bool, n: usize) -> Self {
+        match (clear, n) {
+            (true, _) => Self::ClearScreen,
+            (false, 0) => Self::Nothing,
+            (false, _) => Self::BlankLine,
+        }
+    }
+
+    /// 前に置く文字列。
+    pub fn text(self) -> &'static str {
+        match self {
+            Self::Nothing => "",
+            Self::ClearScreen => CLEAR_SCREEN,
+            Self::BlankLine => "\n",
+        }
+    }
 }
 
 impl DisplayEvent<'_> {
@@ -270,6 +312,7 @@ impl DisplayEvent<'_> {
             | Self::DefinitionValid { .. } => Level::Verbose,
             Self::WatchTable { .. }
             | Self::WatchEmpty
+            | Self::WatchFrame { .. }
             | Self::Graph(_)
             | Self::Plan(_)
             | Self::InitTemplate(_)
@@ -471,6 +514,13 @@ impl<'a> Reporter<'a> {
                 watch::render_table(lang(), state, self.color_enabled(), *now)
             }
             DisplayEvent::WatchEmpty => format!("{}\n", messages::WATCH_EMPTY.get(lang())),
+            DisplayEvent::WatchFrame { prefix, state } => {
+                let body = match state {
+                    Some((state, now)) => DisplayEvent::WatchTable { state, now: *now },
+                    None => DisplayEvent::WatchEmpty,
+                };
+                format!("{}{}", prefix.text(), self.render(&body))
+            }
             DisplayEvent::InitCreated { path } => {
                 format!("{}\n", messages::init_created(lang(), &show_path(path)))
             }

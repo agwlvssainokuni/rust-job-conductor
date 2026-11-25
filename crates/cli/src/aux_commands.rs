@@ -15,38 +15,59 @@
 //! 補助のコマンド(W4〜W6、WF6、U4 の WF2。BR7.1〜BR7.3): `watch`、`reset`、`validate`、`convert`、
 //! `graph`、`init`。
 //!
-//! シグナルの準備は行わない(既定の動作で終わる。BR4.1)。`graph` と `init` の規則の番号は、
+//! シグナルの準備は行わない(既定の動作で終わる。BR4.1)。ただし `watch --follow` だけは、中断の合図で
+//! 0 で終わるために準備する(v0.10.0 の U7 の BR3.2)。`graph` と `init` の規則の番号は、
 //! [`run_graph`]・[`run_init`] の説明にある。シグナルの準備をする `run`・`pipeline`・`--dry-run` は、
 //! 1 コマンド 1 ファイル(`run.rs`、`pipeline.rs`、`dry_run.rs`)。
 
 use std::path::Path;
 
-use conductor_core::PipelineDefinition;
 use conductor_core::graph::{
     StateOverlay, build_graph, layout_graph, overlay_from_state, pending_overlay,
 };
-use conductor_runtime::{CreateError, CreateOutcome};
+use conductor_core::{
+    PipelineActivity, PipelineDefinition, PipelineState, RunId, Timestamp, pipeline_activity,
+};
+use conductor_runtime::{CreateError, CreateOutcome, InterruptSignal, StateErrorKind, WaitOutcome};
 
 use crate::ctx::{Ctx, StateRead, definition_path};
 use crate::exit::{EXIT_CONVERSION, EXIT_EXISTS, EXIT_OK, EXIT_STATE};
+use crate::platform;
 use crate::report::graph_dot::render_dot;
 use crate::report::graph_mermaid::render_mermaid;
 use crate::report::graph_text::render_text;
 use crate::report::init_template::render_template;
-use crate::report::{DisplayEvent, StateContext};
+use crate::report::{DisplayEvent, FramePrefix, StateContext};
 use crate::run_id::aux_run_id;
-use crate::types::{CliCommand, GraphFormat, InitTarget, UsageError, UsageErrorKind};
+use crate::types::{
+    CliCommand, DEFAULT_FOLLOW_INTERVAL_SECS, GraphFormat, InitTarget, UsageError, UsageErrorKind,
+};
 
 /// `conductor watch`: ステートを 1 回だけ一覧にして終わる(BR7.1)。所要時間の列のため、表を作る前に
 /// 今の時刻を 1 回だけ取る(v0.10.0 の U6 の BR4.1)。
 ///
 /// 定義ファイルは検証しない。環境変数の名前だけは、`--run-id` がないとき、定義から、ゆるく読む(FR4.3)。
+///
+/// `--follow` のときは、[`follow_watch`] で表示し直しを続ける(v0.10.0 の U7。BR1.1)。無ければ今のまま 1 回。
 pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
+    // 継続表示は、`run`・`pipeline` と同じく、ほかの検査より先に合図の準備をする(失敗は 70。BR3.3)。
+    let signal = if cmd.follow {
+        match ctx.start_signals() {
+            Ok(signal) => Some(signal),
+            Err(code) => return code,
+        }
+    } else {
+        None
+    };
     let path = definition_path(cmd);
     let run_id = match aux_run_id(ctx, cmd, &path) {
         Ok(run_id) => run_id,
         Err(error) => return ctx.usage_error(&error),
     };
+    if let Some(signal) = signal {
+        let interval = cmd.interval.unwrap_or(DEFAULT_FOLLOW_INTERVAL_SECS);
+        return follow_watch(ctx, &path, run_id.as_ref(), interval, &signal).exit_code();
+    }
     let context = StateContext::for_read(run_id.as_ref());
     // 完了のステートも読む(FR3.1)。`WatchEmpty` は、ファイルなし・長さ 0 のときだけ。
     let state = match ctx.runtime.read_state_raw(&path, run_id.as_ref()) {
@@ -63,6 +84,134 @@ pub(crate) fn run_watch(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
     };
     // 標準出力に書けない(閉じたパイプなど)。パニックにせず、65 で終わる(security-design の差分)。
     ctx.show_output(&output, &DisplayEvent::OutputFailed)
+}
+
+/// `watch --follow` が終わった理由(v0.10.0 の U7。entities の FollowEnd)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FollowEnd {
+    /// ステートが完了になった。
+    Completed,
+    /// 一度見えたステートが消えた(2 回続けて無い)。
+    Removed,
+    /// エラーか中断で止まった(`PipelineActivity::Stopped`)。
+    Stopped,
+    /// 中断の合図(Ctrl-C など)。
+    Interrupted,
+    /// ステートが読めない(表示済み)。
+    StateError,
+    /// 標準出力に書けない(表示済み)。
+    OutputFailed,
+}
+
+impl FollowEnd {
+    /// 終了コード(BR3.3)。終わったとき・中断は 0、読めない・書けないは 65。
+    fn exit_code(self) -> i32 {
+        match self {
+            Self::Completed | Self::Removed | Self::Stopped | Self::Interrupted => EXIT_OK,
+            Self::StateError | Self::OutputFailed => EXIT_STATE,
+        }
+    }
+}
+
+/// ステートが読めない(`Unreadable`)ときに、読み直すまでの秒(利用者の間隔によらない。reliability-design の 3)。
+const UNREADABLE_RETRY_SECS: u64 = 1;
+/// ステートが読めない(`Unreadable`)のが、この回数続いたら 65 で終わる(reliability-design の 3)。
+const UNREADABLE_LIMIT: u32 = 3;
+
+/// `watch --follow`: ステートを読み直して表を描き、パイプラインが終わるまで繰り返す(v0.10.0 の U7。
+/// BR2.1、BR2.2、BR3.1〜BR3.3、BR4.1、BR4.2)。ステートは読むだけで、書かない・消さない(NFR6.2)。
+///
+/// 1 回ごとに: 合図が立っていれば終わる → 読む → 描く → 終わりの判定 → 待つ(合図で打ち切る)。
+///
+/// - 有る: 今の時刻を取って表を描く。[`pipeline_activity`] が完了か止まったなら、その表を最後に終わる。
+///   読めない回数と「無い」の続きを戻す。
+/// - 無い: 一度も見ていなければ「ステートが無い」を描いて待つ(BR4.1)。見た後なら、2 回続けて無いときだけ
+///   消えたとして終わる(置き換えの瞬間に読めないことがある Windows のため)。読めない回数を戻す。
+/// - 読めない(`Unreadable`): 何も描かず、1 秒後に読み直す。3 回続けば誤りを表示して 65。「無い」の続きを戻す。
+/// - ほかの誤り(壊れた、古い形、大きすぎる): 今の `watch` と同じ誤りの表示で 65(BR4.2)。
+///
+/// 画面を消せるか(UNIX 系の端末)は、初めに 1 回だけ決める(BR2.2)。消せるなら毎回、画面を消してから描く。
+/// 消せないなら、2 回目から空の 1 行を前に置いて追記する。
+fn follow_watch(
+    ctx: &mut Ctx<'_>,
+    path: &Path,
+    run_id: Option<&RunId>,
+    interval: u32,
+    signal: &InterruptSignal,
+) -> FollowEnd {
+    let clear = platform::clear_screen_supported() && ctx.env.stdout_is_terminal();
+    let context = StateContext::for_read(run_id);
+    let mut frames: usize = 0;
+    let mut seen = false;
+    let mut absent_once = false;
+    let mut read_failures: u32 = 0;
+    loop {
+        if signal.signal_number().is_some() {
+            return FollowEnd::Interrupted;
+        }
+        let wait_secs = match ctx.runtime.read_state_raw(path, run_id) {
+            Ok(Some(state)) => {
+                seen = true;
+                absent_once = false;
+                read_failures = 0;
+                let now = ctx.runtime.now();
+                if !draw_frame(ctx, clear, &mut frames, Some((&state, now))) {
+                    return FollowEnd::OutputFailed;
+                }
+                match pipeline_activity(&state) {
+                    PipelineActivity::Completed => return FollowEnd::Completed,
+                    PipelineActivity::Stopped => return FollowEnd::Stopped,
+                    PipelineActivity::Running | PipelineActivity::Between => {}
+                }
+                u64::from(interval)
+            }
+            Ok(None) => {
+                read_failures = 0;
+                if seen {
+                    if absent_once {
+                        return FollowEnd::Removed;
+                    }
+                    absent_once = true;
+                } else if !draw_frame(ctx, clear, &mut frames, None) {
+                    return FollowEnd::OutputFailed;
+                }
+                u64::from(interval)
+            }
+            Err(error) if error.kind == StateErrorKind::Unreadable => {
+                absent_once = false;
+                read_failures += 1;
+                if read_failures >= UNREADABLE_LIMIT {
+                    ctx.state_error(&error, context);
+                    return FollowEnd::StateError;
+                }
+                UNREADABLE_RETRY_SECS
+            }
+            Err(error) => {
+                ctx.state_error(&error, context);
+                return FollowEnd::StateError;
+            }
+        };
+        if let WaitOutcome::Interrupted(_) = ctx.runtime.wait(wait_secs, signal) {
+            return FollowEnd::Interrupted;
+        }
+    }
+}
+
+/// 継続表示の 1 回分を描く(BR2.2)。書けなければ誤りを表示して `false`(呼び出し側は 65 で終わる)。
+fn draw_frame(
+    ctx: &mut Ctx<'_>,
+    clear: bool,
+    frames: &mut usize,
+    state: Option<(&PipelineState, Timestamp)>,
+) -> bool {
+    let prefix = FramePrefix::for_frame(clear, *frames);
+    *frames += 1;
+    if ctx.show(&DisplayEvent::WatchFrame { prefix, state }) {
+        true
+    } else {
+        ctx.show(&DisplayEvent::OutputFailed);
+        false
+    }
 }
 
 /// `conductor reset`: ステートを消す(BR7.2)。読み込みも検査も迂回する。ステートがなくても成功。

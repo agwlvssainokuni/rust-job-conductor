@@ -21,6 +21,7 @@
 //!   プロセスで 1 回だけ呼ぶ(本番は `Ctx::prepare_session` の 1 か所)。2 回呼んだときの動きは
 //!   契約の外(UNIX 系は監視が 2 つになり、Windows は `Failed`)。
 //! - 端末の色が使える OS か(UNIX 系だけ。Windows は色なし。BR6.5)。
+//! - 端末の画面を消して描き直せる OS か(UNIX 系だけ。Windows は追記。v0.10.0 の U7 の BR2.2)。
 
 #[cfg(unix)]
 mod unix;
@@ -34,5 +35,11 @@ pub(crate) use windows::spawn_watcher as start_signal_watcher;
 
 /// 端末に、色(ANSI の制御文字)を出してよい OS か。
 pub(crate) fn color_supported() -> bool {
+    cfg!(unix)
+}
+
+/// 端末の画面を消して描き直してよい OS か(UNIX 系だけ。Windows は追記。v0.10.0 の U7 の BR2.2、NFR6.3)。
+/// 標準出力が端末かどうかと合わせて、`watch --follow` の流れの初めに 1 回だけ使う。
+pub(crate) fn clear_screen_supported() -> bool {
     cfg!(unix)
 }
