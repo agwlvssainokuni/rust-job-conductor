@@ -186,6 +186,46 @@ fn readme_の例の定義と_env_を実際の読み取りと解析に通せる()
     assert_eq!(get("DB_PORT").as_deref(), Some("5432"));
 }
 
+// ---- ログのファイルの説明(v0.10.0 の U5。BR6.1、BR6.2、FR8.1) ----
+
+const LOG_HEADING: &str = "### ジョブの出力をファイルに残す(`log_dir`)(v0.10.0 以降)";
+
+#[test]
+fn readme_に_log_dir_の必須の語句と版の表記がある() {
+    let text = readme();
+    assert!(text.contains(LOG_HEADING), "見出し");
+    assert_readme_has(
+        &text,
+        &[
+            "`[pipeline]` の `log_dir`",
+            "<ジョブ ID>.<開始の時刻>.<試行の番号>.log",
+            "-2`、`-3`",
+            "0600",
+            "2 つの流れの間の順",
+            "端末ではなくなります",
+            "最大 2 秒",
+            "古いログは消しません",
+            "`log_dir` のログのファイルを作れず",
+        ],
+    );
+    // 表示の 3 つの文(日本語・英語)が、そのまま書かれている(BR5.1〜BR5.3)。
+    use crate::report::messages::{LOG_NOT_CREATED, LOG_OUTPUT_CUT_SHORT, LOG_WRITE_FAILED};
+    for message in [LOG_NOT_CREATED, LOG_WRITE_FAILED, LOG_OUTPUT_CUT_SHORT] {
+        assert!(text.contains(message.ja), "{}", message.ja);
+    }
+    assert!(text.contains(LOG_NOT_CREATED.en), "{}", LOG_NOT_CREATED.en);
+    assert_docs_check_words(&text);
+}
+
+#[test]
+fn readme_の_log_dir_の例の定義を実際の読み取りに通せる() {
+    let text = readme();
+    let example = block_after_heading(&text, LOG_HEADING, "toml");
+    let def =
+        conductor_core::parse_definition(&example, "conductor.toml", None).expect("誤りなく読める");
+    assert_eq!(def.log_dir.as_deref(), Some("logs"));
+}
+
 // ---- `graph` の説明(U2。BR7.2、FR5.2) ----
 
 #[test]
