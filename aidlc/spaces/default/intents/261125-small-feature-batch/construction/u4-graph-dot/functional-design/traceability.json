@@ -1,0 +1,12 @@
+{
+  "stage": "functional-design",
+  "unit": "u4-graph-dot",
+  "upstream_ids": ["FR4.1", "FR4.2", "FR4.3", "FR4.4", "FR8.1"],
+  "coverage": [
+    { "id": "FR4.1", "status": "OK", "target": "BR1.1, BR2.1, BR2.2, BR2.3" },
+    { "id": "FR4.2", "status": "OK", "target": "BR2.4, BR2.5" },
+    { "id": "FR4.3", "status": "OK", "target": "BR3.1, BR3.2" },
+    { "id": "FR4.4", "status": "OK", "target": "BR1.1, BR4.1" },
+    { "id": "FR8.1", "status": "OK", "target": "BR1.2, BR4.2" }
+  ]
+}

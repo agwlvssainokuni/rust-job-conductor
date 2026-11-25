@@ -10979,3 +10979,367 @@
 **Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/code-generation/code-generation-plan.md","id":"R-01","fingerprint":"sha256:a7e430669641875722e5f8ab5d0966be1d8807e0586dca81099652ea2982aa9d","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/code-generation/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:73064b7de27bb103b782efc006cd7a97184014c83aeb4640927657cfe026eb84"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:2aa300ee054b43490f40df6c4bbd15ad3a56d70d903580a3abff0c630823c928","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:e3351d453ff439d82eaa4ebbc7f7d37e29b2429c3429fa0490b5d883c87dd9f8"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:d7abead325a901f51036e33d0bae9426d290f81baed930d1d60836a73a4148ee","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:e3351d453ff439d82eaa4ebbc7f7d37e29b2429c3429fa0490b5d883c87dd9f8"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:2a5c596ec774711172843cacff80150aa5bc9e31b1ece0bc845668ee0e93edb7","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:e3351d453ff439d82eaa4ebbc7f7d37e29b2429c3429fa0490b5d883c87dd9f8"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/nfr-design/security-design.md","id":"R-01","fingerprint":"sha256:d68bf84f8764492a25f94c26b34524405da9365d8170c67f558a2a601157b690","status":"Approved autonomously","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:308961326747b931658ebfe4ed5a4e7e2561280e65fc61cc6690ae07c027eb45"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/nfr-design/security-design.md","id":"R-02","fingerprint":"sha256:635383555fec01dc17c0f3668fdc4050440b651eccfc601cc358671288c173fe","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-design/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:308961326747b931658ebfe4ed5a4e7e2561280e65fc61cc6690ae07c027eb45"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/nfr-requirements/security-requirements.md","id":"R-01","fingerprint":"sha256:c2546edba474a8b14e0d590d3aa3581436be110ab3b5d98f795d8112fdb8f135","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:dfa5cf7fb35d8777d52b63e5af95038977c5dfb59608276b9dc996dfbe9f497b"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u2-optional-env-file/nfr-requirements/security-requirements.md","id":"R-02","fingerprint":"sha256:1f10203c9709b8f153721b7ca29b77040749f3c21707a51a6a22d73f83b7433c","status":"Approved autonomously","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/nfr-requirements/units/u2-optional-env-file/d0dc83cb6f948d1a/1.json","digest":"sha256:dfa5cf7fb35d8777d52b63e5af95038977c5dfb59608276b9dc996dfbe9f497b"}}]}
 
 ---
+
+## Unit Started
+**Timestamp**: 2026-11-25T13:46:25Z
+**Event**: UNIT_STARTED
+**Stage**: functional-design
+**Unit**: u4-graph-dot
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:46:52Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-design-questions.md
+**Context**: construction > u4-graph-dot > functional-design > functional-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-25T13:46:54Z
+**Event**: DECISION_RECORDED
+**Stage**: functional-design
+**Decision**: Q1, Q2
+**Options**: Q1: A. mermaid と同じ記号と太い枠 / B. 記号と塗りの色 / C. 色だけ,Q2: A. -v は影響しない / B. ラベルに複数行 / C. tooltip に入れる
+**Unit**: u4-graph-dot
+**Question Id**: 505e9035
+**Question Type**: stage-question
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:eaf260d114df3c4b91a2d71f7f6e693ab047472e169a6f1cda64eb67440cb5c9
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T13:48:15Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. mermaid と同じ (Recommended)","A. -v は影響しない (Recommended)"]
+**Message Id**: 23728f5a
+**Open Questions**: f8c5e6be, 34e612cb, 5532df64, 505e9035
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-design-questions.md","entries":{"Q1":"2f125841fd1e625e","Q2":"b1ab11f98903b80c"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T13:48:15Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: [利用者] graph --format dot --state のとき、ジョブの状態を DOT でどう見分けますか?(今の text と mermaid はラベルの先頭に [OK] などの記号を付け、mermaid は再開位置を太い線で示します)
+**Reply**: A. mermaid と同じ (Recommended)
+**Options**: ["A. mermaid と同じ (Recommended)","B. 記号と塗りの色","C. 色だけ"]
+**Recommended**: ["A. mermaid と同じ"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T13:48:15Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: [利用者] graph --format dot -v のとき、何を出しますか?(text の -v はコマンドとリトライの要約を出し、mermaid は -v を無視しています)
+**Reply**: A. -v は影響しない (Recommended)
+**Options**: ["A. -v は影響しない (Recommended)","B. ラベルに複数行","C. tooltip に入れる"]
+**Recommended**: ["A. -v は影響しない"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-25T13:48:18Z
+**Event**: QUESTION_ANSWERED
+**Stage**: functional-design
+**Details**: Q1: A. mermaid と同じ (Recommended); Q2: A. -v は影響しない (Recommended)
+**Unit**: u4-graph-dot
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T13:48:19Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-design-questions.md
+**Context**: construction > u4-graph-dot > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T13:48:21Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-design-questions.md
+**Context**: construction > u4-graph-dot > functional-design > functional-design-questions.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:48:41Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/entities.md
+**Context**: construction > u4-graph-dot > functional-design > entities.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:49:01Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/rules.md
+**Context**: construction > u4-graph-dot > functional-design > rules.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:49:19Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-spec.md
+**Context**: construction > u4-graph-dot > functional-design > functional-spec.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:49:25Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/traceability.json
+**Context**: construction > u4-graph-dot > functional-design > traceability.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:49:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: 19a902e4
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:49:27Z
+**Event**: SENSOR_PASSED
+**Fire id**: 19a902e4
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/entities.md
+**Duration ms**: 82
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:49:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: 0eae0d03
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/rules.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_PASSED
+**Fire id**: 0eae0d03
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/rules.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_FIRED
+**Fire id**: 69216274
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-spec.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_PASSED
+**Fire id**: 69216274
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/functional-spec.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_FIRED
+**Fire id**: bb556709
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_PASSED
+**Fire id**: bb556709
+**Sensor ID**: required-sections
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/traceability.json
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_FIRED
+**Fire id**: 01a9da4e
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/entities.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_PASSED
+**Fire id**: 01a9da4e
+**Sensor ID**: upstream-coverage
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/entities.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_FIRED
+**Fire id**: 783520fd
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/traceability.json
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T13:49:28Z
+**Event**: SENSOR_PASSED
+**Fire id**: 783520fd
+**Sensor ID**: traceability
+**Stage slug**: functional-design
+**Unit**: u4-graph-dot
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/construction/u4-graph-dot/functional-design/traceability.json
+**Duration ms**: 90
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-25T13:49:29Z
+**Event**: REVIEW_REQUESTED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u4-graph-dot
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:bccaa81e8c0b63912c93426405aa30d976f7b367d0f8700338eed041243f135e
+**Request Id**: review:c86ed2ee30c91d07f6be4a3f242f4b2f
+**Review File**: .aidlc-engine/reviews/functional-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.c86ed2ee30c91d07f6be4a3f242f4b2f.review.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:49:33Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviewer-dispatch.json
+**Context**: .aidlc-engine > reviewer-dispatch.json
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T13:49:43Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-25T13:50:04Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: reviewer-scope
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: functional-design
+**Tool**: Bash
+**Details**: . (unit u4-graph-dot)
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T13:50:29Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/functional-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.c86ed2ee30c91d07f6be4a3f242f4b2f.review.md
+**Context**: .aidlc-engine > reviews > functional-design > units > u4-graph-dot > d0dc83cb6f948d1a > 1.c86ed2ee30c91d07f6be4a3f242f4b2f.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T13:50:35Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a44bb7c53f6095216
+**Review File Digest**: .aidlc-engine/reviews/functional-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.c86ed2ee30c91d07f6be4a3f242f4b2f.review.md=6267e5134c8be64e2b1e7b9c06f6630f72dc48d7f405638ca29659378650ff21
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T13:50:37Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T13:50:40Z
+**Event**: REVIEW_COMPLETED
+**Stage**: functional-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Unit**: u4-graph-dot
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:bccaa81e8c0b63912c93426405aa30d976f7b367d0f8700338eed041243f135e
+**Artifact Fingerprint**: sha256:bccaa81e8c0b63912c93426405aa30d976f7b367d0f8700338eed041243f135e
+**Request Id**: review:c86ed2ee30c91d07f6be4a3f242f4b2f
+**Review Record**: .aidlc-engine/reviews/functional-design/units/u4-graph-dot/d0dc83cb6f948d1a/1.json
+**Review Record Digest**: sha256:d11ba6f0d4140cd9bf9595a046a11703b092b572e10eed09d2e72faea726190d
+
+---
+
+## Unit Completed
+**Timestamp**: 2026-11-25T13:50:41Z
+**Event**: UNIT_COMPLETED
+**Stage**: functional-design
+**Unit**: u4-graph-dot
+**Run floor**: WORKFLOW_STARTED:2026-11-25T04:00:05Z#1
+
+---
