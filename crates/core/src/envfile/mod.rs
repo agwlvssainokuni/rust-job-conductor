@@ -35,7 +35,7 @@ use crate::run_id::env_name_rule;
 use crate::types::{EnvFileRef, PipelineDefinition};
 
 pub use merge::merge_env;
-pub(crate) use merge::merge_env_names;
+pub(crate) use merge::{merge_env_names, merge_unset_names};
 pub use parse::parse_env_file;
 
 /// `.env` の大きさの上限(1 MiB。BR3.1)。
@@ -282,11 +282,16 @@ impl fmt::Debug for EffectiveEntry {
     }
 }
 
-/// 1 つのジョブの 1 回の起動に、引き継いだ環境へ「足す」環境変数(層を統合した結果)。
+/// 1 つのジョブの 1 回の起動に渡す環境の変更(層を統合した結果)。引き継いだ環境へ「足す」環境変数と、
+/// 引き継いだ環境から「消す」名前を持つ。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveEnv {
     /// 層の順。完全に同じ名前は 1 つ(後ろの層が勝つ)。
     pub entries: Vec<EffectiveEntry>,
+    /// 引き継いだ環境から、足す前に消す名前(U3 の BR3.1、BR3.2)。パイプライン、次にジョブの
+    /// `unset_env` の書いた順で、完全に同じ名前は最初の 1 つ。`entries` の名前とは重ならない
+    /// (定義と `.env` の検証で止める)。`unset_env` を書かなければ空。
+    pub removals: Vec<String>,
 }
 
 impl EffectiveEnv {

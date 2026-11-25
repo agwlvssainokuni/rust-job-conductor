@@ -14,7 +14,7 @@
 
 //! 層の統合(WF4。BR4.1〜BR4.4、BR5.1〜BR5.3)。純粋な関数。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{EffectiveEntry, EffectiveEnv, EnvContext, LoadedEnvFiles};
 use crate::types::{EnvFileRef, EnvVar, JobDefinition, PipelineDefinition};
@@ -25,6 +25,9 @@ use crate::types::{EnvFileRef, EnvVar, JobDefinition, PipelineDefinition};
 /// 完全に同じ名前は、後ろの層が勝って 1 つになる。大文字小文字だけが違う名前は、別の名前として、
 /// 層の順に並べる(BR4.3)。`files` から引けない `env_file` の記述は、何も足さない
 /// (読み取りは、実行の前に済んでいる前提)。
+///
+/// 親から引き継いだ環境から消す名前(`unset_env`)は `removals` に入れる(U3 の BR3.1。並べ方は
+/// [`merge_unset_names`])。足す変数(`entries`)の形は変えない(契約 C1)。
 pub fn merge_env(
     def: &PipelineDefinition,
     job: &JobDefinition,
@@ -49,7 +52,28 @@ pub fn merge_env(
                 value: (*value).to_string(),
             })
             .collect(),
+        removals: merge_unset_names(def, job)
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
     }
+}
+
+/// 親から引き継いだ環境から消す名前を、パイプライン、次にジョブの `unset_env` の書いた順に並べ、
+/// 完全に同じ名前は最初の 1 つにまとめる(U3 の BR3.1、BR1.3)。
+///
+/// [`merge_env`] の `removals` と、`--dry-run` の計画の消す名前(BR4.1)が使う。値を読まない。
+pub(crate) fn merge_unset_names<'a>(
+    def: &'a PipelineDefinition,
+    job: &'a JobDefinition,
+) -> Vec<&'a str> {
+    let mut seen: HashSet<&'a str> = HashSet::new();
+    def.unset_env
+        .iter()
+        .chain(&job.unset_env)
+        .map(String::as_str)
+        .filter(|name| seen.insert(name))
+        .collect()
 }
 
 /// [`merge_env`] と同じ並べ方と同じ「最後に残す」規則で、名前だけを返す(値を読まない。2e)。

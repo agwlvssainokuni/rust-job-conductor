@@ -27,7 +27,7 @@ use super::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
     PlanRejection, ResumeInfo, SimulatedResult,
 };
-use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names};
+use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names, merge_unset_names};
 use crate::flow::{
     apply_outcome_in, apply_skip_in, classify_and_decide, decide_from_state, initial_state,
     is_retry_target,
@@ -287,7 +287,8 @@ fn simulate_job(
     )
 }
 
-/// 計画の項目を作る。コマンド、環境変数の名前(試行 1。値は持たない)、リトライの設定を持たせる(BR1.5)。
+/// 計画の項目を作る。コマンド、環境変数の名前(試行 1。値は持たない)、消す名前(U3 の BR4.1)、
+/// リトライの設定を持たせる(BR1.5)。
 fn entry(
     input: &PlanInput<'_>,
     index: usize,
@@ -309,12 +310,20 @@ fn entry(
             name: name.to_string(),
         })
         .collect();
+    // 消す名前は、名前だけの統合とは別の関数で作る(U3 の BR4.1)。
+    let unset_names = merge_unset_names(def, job)
+        .into_iter()
+        .map(|name| EnvNameEntry {
+            name: name.to_string(),
+        })
+        .collect();
     PlanEntry {
         job_id: job.id.clone(),
         disposition,
         is_resume,
         command_words: input.commands.get(index).cloned().unwrap_or_default(),
         env_names,
+        unset_names,
         retry: job.retry.clone(),
     }
 }

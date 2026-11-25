@@ -35,6 +35,7 @@ fn 計画の項目は_扱いと結果と名前の要約を持つ() {
         is_resume: true,
         command_words: vec!["echo".into(), "a".into()],
         env_names: Vec::new(),
+        unset_names: Vec::new(),
         retry: None,
     };
     assert_eq!(entry.clone(), entry);

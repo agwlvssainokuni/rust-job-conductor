@@ -112,6 +112,8 @@ pub struct PlanEntry {
     pub command_words: Vec<String>,
     /// 渡される環境変数の名前(試行 1)。
     pub env_names: Vec<EnvNameEntry>,
+    /// 親から引き継いだ環境から消す名前(`unset_env`。U3 の BR4.1)。値は無い。無ければ空。
+    pub unset_names: Vec<EnvNameEntry>,
     pub retry: Option<RetryPolicy>,
 }
 
