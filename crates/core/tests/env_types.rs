@@ -60,10 +60,10 @@ fn 定義の誤りの種類は_33_種で表示が空でない() {
 }
 
 #[test]
-fn env_file_の誤りの種類は_13_種で理由が重複しない() {
-    // 13 種であることと重複の無いことは、写しの型とコンパイル時の確かめが保つ。
+fn env_file_の誤りの種類は_14_種で理由が重複しない() {
+    // 14 種であることと重複の無いことは、写しの型とコンパイル時の確かめが保つ。
     let reasons: HashSet<_> = ENV_FILE_ERROR_KINDS.iter().map(|k| k.reason()).collect();
-    assert_eq!(reasons.len(), 13);
+    assert_eq!(reasons.len(), 14);
     for k in ENV_FILE_ERROR_KINDS {
         assert!(!k.label().is_empty());
         assert!(!k.reason().is_empty());
@@ -105,8 +105,8 @@ fn 誤りの要約は_20_件で打ち切り残りの件数を返す() {
     assert_eq!(shown[19].line, Some(20));
 }
 
-/// `.env` の誤りの種類の文(13 種)。変更前の文を固定の文字列で書く(1h、1j、D10)。
-const ENV_FILE_KIND_TEXTS: [(EnvFileErrorKind, &str); 13] = [
+/// `.env` の誤りの種類の文(14 種)。変更前の文を固定の文字列で書く(1h、1j、D10)。
+const ENV_FILE_KIND_TEXTS: [(EnvFileErrorKind, &str); 14] = [
     (
         EnvFileErrorKind::FileMissing,
         "環境変数ファイルが存在しません",
@@ -147,9 +147,13 @@ const ENV_FILE_KIND_TEXTS: [(EnvFileErrorKind, &str); 13] = [
         "閉じた引用符のあとに余計な文字があります",
     ),
     (EnvFileErrorKind::NulInValue, "値に NUL が含まれています"),
+    (
+        EnvFileErrorKind::UnsetConflict,
+        "消す環境変数の名前と重なっています",
+    ),
 ];
 
-/// 定義の誤りの種類の文(33 種)。変更前の文を固定の文字列で書く(1j、D10)。
+/// 定義の誤りの種類の文(34 種)。変更前の文を固定の文字列で書く(1j、D10)。
 const DEFINITION_KIND_TEXTS: [(DefinitionErrorKind, &str); 34] = [
     (
         DefinitionErrorKind::FileMissing,

@@ -100,8 +100,8 @@ pub use consistency::{ConsistencyResult, MismatchKind, check_consistency};
 pub use definition::{load_definition, parse_definition};
 pub use envfile::{
     EffectiveEntry, EffectiveEnv, EnvContext, EnvEntry, EnvFileContent, EnvFileError,
-    EnvFileErrorKind, EnvWarning, EnvWarningKind, LoadedEnvFiles, env_file_refs, merge_env,
-    parse_env_file, summarize_errors,
+    EnvFileErrorKind, EnvWarning, EnvWarningKind, LoadedEnvFiles, check_unset_conflicts,
+    env_file_refs, merge_env, parse_env_file, summarize_errors,
 };
 pub use error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display};
 pub use flow::{

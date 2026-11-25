@@ -25,7 +25,7 @@
 mod merge;
 mod parse;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt;
 
 use thiserror::Error;
@@ -66,7 +66,7 @@ pub(crate) fn is_reserved_env_name(name: &str) -> bool {
             .eq_ignore_ascii_case(RESERVED_ENV_PREFIX.as_bytes())
 }
 
-/// `.env` の読み取りの誤りの種類(13 種)。
+/// `.env` の読み取りの誤りの種類(14 種)。
 ///
 /// 種類の文(日本語)は [`EnvFileErrorKind::label`] の 1 か所に持ち、誤りの表示(`EnvFileError`)はそれを書く(D10)。
 /// 仕様書の識別子(`kind`)は、変種の名前の先頭を小文字にしたもの(例: `NotUtf8` は `notUtf8`)。
@@ -85,6 +85,8 @@ pub enum EnvFileErrorKind {
     InvalidEscape,
     TrailingGarbage,
     NulInValue,
+    /// 名前が、そのファイルを読むジョブに当てはまる `unset_env` の名前と重なる(U3 の BR2.2)。
+    UnsetConflict,
 }
 
 impl EnvFileErrorKind {
@@ -104,6 +106,7 @@ impl EnvFileErrorKind {
             Self::InvalidEscape => "許されないエスケープです",
             Self::TrailingGarbage => "閉じた引用符のあとに余計な文字があります",
             Self::NulInValue => "値に NUL が含まれています",
+            Self::UnsetConflict => "消す環境変数の名前と重なっています",
         }
     }
 
@@ -127,6 +130,7 @@ impl EnvFileErrorKind {
             }
             Self::TrailingGarbage => "閉じた引用符のあとは、空白とコメントだけを書けます",
             Self::NulInValue => "値に NUL(U+0000)は書けません",
+            Self::UnsetConflict => "`unset_env` の名前と同じ名前があります",
         }
     }
 }
@@ -293,6 +297,62 @@ impl EffectiveEnv {
             .map(|e| (e.name.as_str(), e.value.as_str()))
             .collect()
     }
+}
+
+/// 読んだ `.env` の名前と、そのファイルを読むジョブに当てはまる `unset_env` の名前の重なりを調べる
+/// (U3 の BR2.2)。
+///
+/// 範囲は [`env_file_refs`] と同じ(`job_id` が `None` ならすべてのジョブ、`Some` ならそのジョブ)。
+/// 範囲のジョブごとに、パイプラインとジョブの `env_file` で読めたファイルの名前を、パイプラインと
+/// ジョブの `unset_env` の名前と比べる。比べ方は、どの OS でも ASCII の大文字小文字を区別しない
+/// (security-design の 1)。重なった項目ごとに、そのファイルと行で `UnsetConflict` を 1 つ返す。同じ
+/// ファイルを複数のジョブが読んでも、誤りは「ファイルと行」で 1 つにまとめ、ファイルの読み取り順、
+/// 行の順に並べる(reliability-design の 1)。誤りに値も名前も入れない。
+pub fn check_unset_conflicts(
+    def: &PipelineDefinition,
+    job_id: Option<&str>,
+    files: &LoadedEnvFiles,
+) -> Vec<EnvFileError> {
+    // 重なった項目の (ファイルの位置, 行)。並べ替えと重複の除きを兼ねる。
+    let mut found: BTreeSet<(usize, usize)> = BTreeSet::new();
+    let jobs = def
+        .job
+        .iter()
+        .filter(|job| job_id.is_none_or(|id| id == job.id));
+    for job in jobs {
+        let unset: HashSet<String> = def
+            .unset_env
+            .iter()
+            .chain(&job.unset_env)
+            .map(|name| name.to_ascii_lowercase())
+            .collect();
+        if unset.is_empty() {
+            continue;
+        }
+        for r in def.env_file.iter().chain(&job.env_file) {
+            let Some(&index) = files.by_ref.get(&r.path) else {
+                continue;
+            };
+            let Some(content) = files.files.get(index) else {
+                continue;
+            };
+            for entry in &content.entries {
+                if unset.contains(&entry.name.to_ascii_lowercase()) {
+                    found.insert((index, entry.line));
+                }
+            }
+        }
+    }
+    found
+        .into_iter()
+        .map(|(index, line)| {
+            EnvFileError::new(
+                files.files[index].file.clone(),
+                Some(line),
+                EnvFileErrorKind::UnsetConflict,
+            )
+        })
+        .collect()
 }
 
 /// 読む対象の `env_file` の記述の一覧を作る(BR6.1。v0.10.0 の BR2.1)。

@@ -115,7 +115,7 @@ const _: () = {
 
 /// `.env` の誤りの種類のすべて(テストの写し。種類を足したら、下の `match` がコンパイルで止まるので、
 /// ここにも足す)。
-pub const ENV_FILE_ERROR_KINDS: [E; 13] = [
+pub const ENV_FILE_ERROR_KINDS: [E; 14] = [
     E::FileMissing,
     E::Unreadable,
     E::TooLarge,
@@ -129,6 +129,7 @@ pub const ENV_FILE_ERROR_KINDS: [E; 13] = [
     E::InvalidEscape,
     E::TrailingGarbage,
     E::NulInValue,
+    E::UnsetConflict,
 ];
 
 /// `.env` の誤りの種類の、一覧の中の位置(網羅の `match`。`_` を使わない)。
@@ -147,6 +148,7 @@ const fn env_file_position(kind: E) -> usize {
         E::InvalidEscape => 10,
         E::TrailingGarbage => 11,
         E::NulInValue => 12,
+        E::UnsetConflict => 13,
     }
 }
 

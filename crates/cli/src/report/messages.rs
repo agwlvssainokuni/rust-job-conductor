@@ -311,6 +311,7 @@ pub fn env_file_kind(kind: EnvFileErrorKind) -> Text {
         K::InvalidEscape => "invalid escape sequence",
         K::TrailingGarbage => "unexpected characters after the closing quote",
         K::NulInValue => "value contains NUL",
+        K::UnsetConflict => "name is also listed in unset_env",
     };
     Text::new(en, kind.label())
 }
@@ -341,6 +342,7 @@ pub fn env_file_reason(kind: EnvFileErrorKind) -> Text {
         }
         K::TrailingGarbage => "only spaces and a comment can follow the closing quote",
         K::NulInValue => "a value cannot contain NUL (U+0000)",
+        K::UnsetConflict => "the same name is listed in `unset_env`",
     };
     Text::new(en, kind.reason())
 }
