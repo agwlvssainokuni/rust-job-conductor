@@ -1,0 +1,24 @@
+{
+  "stage": "nfr-design",
+  "unit": "u3-unset-env",
+  "upstream_ids": ["NFR1.3","NFR6.1","NFR6.2","NFR6.3","NFR5.1","NFR4.1","NFR1.4","NFR1.1","NFR1.2","NFR2.1","NFR2.2","NFR2.3","NFR3.1","NFR3.2","NFR1.5","NFR6.4","NFR7.1"],
+  "coverage": [
+    { "id": "NFR1.3", "status": "OK", "target": "performance-design.md: 小文字の集合で引く" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design.md の 1: env_remove と、大文字小文字を区別しない重なりの検査" },
+    { "id": "NFR6.2", "status": "OK", "target": "security-design.md の 2: 固定の理由の文と nfr_security.rs" },
+    { "id": "NFR6.3", "status": "OK", "target": "security-design.md の 2: dry-run は親を読まない" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design.md の 3: std の env_remove" },
+    { "id": "NFR4.1", "status": "OK", "target": "security-design.md の 3: 依存を足さない" },
+    { "id": "NFR1.4", "status": "OK", "target": "scalability-design.md: ファイル名と行で重複を除く" },
+    { "id": "NFR1.1", "status": "OK", "target": "reliability-design.md の 2: 空なら今の起動" },
+    { "id": "NFR1.2", "status": "OK", "target": "reliability-design.md の 2: entries は変えず removals を足す" },
+    { "id": "NFR2.1", "status": "OK", "target": "reliability-design.md の 3: core → runtime → cli のテストの配置" },
+    { "id": "NFR2.2", "status": "OK", "target": "reliability-design.md の 3: binary_env.rs" },
+    { "id": "NFR2.3", "status": "OK", "target": "reliability-design.md の 3: 確認のコマンド" },
+    { "id": "NFR3.1", "status": "OK", "target": "reliability-design.md の 3: CI(Windows の大文字小文字)" },
+    { "id": "NFR3.2", "status": "OK", "target": "reliability-design.md の 3: デモのテスト" },
+    { "id": "NFR1.5", "status": "OK", "target": "observability-design.md: dry-run の消す名前の行" },
+    { "id": "NFR6.4", "status": "OK", "target": "observability-design.md: UnsetConflict を今の .env の表示で" },
+    { "id": "NFR7.1", "status": "OK", "target": "logical-components.md: 変更する部品の範囲で fmt と clippy を通す(CI の lint)" }
+  ]
+}
