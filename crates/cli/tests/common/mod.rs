@@ -160,7 +160,12 @@ pub struct ScriptedRuntime {
     pub log_outcomes: RefCell<VecDeque<LogOutcome>>,
     /// `run_job` に渡された、(ジョブID、消す名前の並び)。起動のたびに記録する(v0.10.0 の U3)。
     pub run_unsets: RefCell<Vec<RunUnset>>,
+    /// `read_state_raw` が返す結果の並び(先頭から使い、尽きたら実際に読む。v0.10.0 の U7 の継続表示)。
+    pub raw_reads: RefCell<VecDeque<RawRead>>,
 }
+
+/// `read_state_raw` の 1 回分の結果(v0.10.0 の U7)。
+pub type RawRead = Result<Option<PipelineState>, StateError>;
 
 /// `run_job` に渡された、(ジョブID、消す名前の並び)(v0.10.0 の U3)。
 pub type RunUnset = (String, Vec<String>);
@@ -372,6 +377,9 @@ impl Runtime for ScriptedRuntime {
         self.push("read-raw");
         if let Some(error) = self.read_failure.borrow().clone() {
             return Err(error);
+        }
+        if let Some(result) = self.raw_reads.borrow_mut().pop_front() {
+            return result;
         }
         self.inner.read_state_raw(path, run_id)
     }

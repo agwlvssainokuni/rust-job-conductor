@@ -19,6 +19,7 @@ mod common;
 
 use common::*;
 use conductor_converter::{ConversionError, ConversionErrorKind};
+use conductor_core::{Attempt, JobState, JobStatus, PipelineState};
 use conductor_runtime::StateErrorKind;
 
 const YAML_DEFINITION: &str = "\
@@ -521,4 +522,416 @@ fn ステートの読み込みの失敗の種類ごとに_65() {
         assert_eq!(out.code, 65, "{kind:?}");
         assert!(out.err.contains("conductor.toml.state"));
     }
+}
+
+// ---- watch --follow(v0.10.0 の U7。BR2.1〜BR4.2) ----
+
+/// 継続表示のテストのステート。a と b の 2 つのジョブ。
+fn follow_state(
+    a: (JobStatus, Option<Option<usize>>),
+    b: (JobStatus, Option<Option<usize>>),
+    resume: Option<&str>,
+    completed: bool,
+) -> PipelineState {
+    let job = |id: &str, (status, attempt): (JobStatus, Option<Option<usize>>)| {
+        let mut job = JobState::pending(id);
+        job.status = status;
+        if status != JobStatus::Pending {
+            job.exit_code = Some(if status == JobStatus::Error { 1 } else { 0 });
+        }
+        if let Some(end) = attempt {
+            job.attempts.push(Attempt {
+                started_at: fake_now(0),
+                ended_at: end.map(fake_now),
+            });
+        }
+        job
+    };
+    PipelineState {
+        pipeline_name: "p".into(),
+        definition_path: "conductor.toml".into(),
+        job_states: vec![job("a", a), job("b", b)],
+        resume_job_id: resume.map(str::to_string),
+        end_reached: false,
+        completed,
+        run_id: None,
+    }
+}
+
+/// ジョブとジョブの間(a が成功、b はまだ。表示を続ける)。
+fn between() -> RawRead {
+    Ok(Some(follow_state(
+        (JobStatus::Success, Some(Some(1))),
+        (JobStatus::Pending, None),
+        Some("b"),
+        false,
+    )))
+}
+
+/// b が動いている(表示を続ける)。
+fn running() -> RawRead {
+    Ok(Some(follow_state(
+        (JobStatus::Success, Some(Some(1))),
+        (JobStatus::Pending, Some(None)),
+        Some("b"),
+        false,
+    )))
+}
+
+/// 完了(表示して終わる)。
+fn completed() -> RawRead {
+    Ok(Some(follow_state(
+        (JobStatus::Success, Some(Some(1))),
+        (JobStatus::Success, Some(Some(2))),
+        None,
+        true,
+    )))
+}
+
+/// a がエラーで止まった(表示して終わる)。
+fn stopped() -> RawRead {
+    Ok(Some(follow_state(
+        (JobStatus::Error, Some(Some(1))),
+        (JobStatus::Pending, None),
+        Some("a"),
+        false,
+    )))
+}
+
+fn absent() -> RawRead {
+    Ok(None)
+}
+
+fn unreadable(h: &Harness) -> RawRead {
+    Err(state_error(&h.state_path(), StateErrorKind::Unreadable))
+}
+
+fn queue(h: &Harness, reads: Vec<RawRead>) {
+    h.runtime.raw_reads.borrow_mut().extend(reads);
+}
+
+/// 表を描いた回数。
+fn tables(out: &str) -> usize {
+    out.matches("Pipeline: p\n").count()
+}
+
+fn reads(h: &Harness) -> usize {
+    h.runtime.log().iter().filter(|l| *l == "read-raw").count()
+}
+
+/// ステートを書いた・消した呼び出しが無い(読むだけ。NFR6.2)。
+fn assert_read_only(h: &Harness) {
+    let log = h.runtime.log();
+    assert!(
+        !log.iter()
+            .any(|l| l.starts_with("write:") || l.starts_with("reset")),
+        "{log:?}"
+    );
+    assert_eq!(h.runtime.write_calls.get(), 0);
+}
+
+#[test]
+fn u7_br3_1_完了のステートは_1_回描いて_0() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.err, "");
+    assert_eq!(tables(&out.out), 1);
+    assert!(out.out.ends_with("completed\n"), "{}", out.out);
+    assert!(h.runtime.waits.borrow().is_empty(), "待たない");
+    assert_eq!(h.signals.started.get(), 1, "合図の準備をする");
+    assert_read_only(&h);
+}
+
+#[test]
+fn u7_br3_1_止まったステートは_1_回描いて_0() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![stopped()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(tables(&out.out), 1);
+    assert!(h.runtime.waits.borrow().is_empty());
+}
+
+#[test]
+fn u7_br2_1_動いている間は既定の_2_秒おきに描き直す() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![between(), running(), running(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(tables(&out.out), 4);
+    assert_eq!(*h.runtime.waits.borrow(), [2, 2, 2]);
+    // 描くたびに今の時刻を 1 回取る(BR2.1)。
+    assert_eq!(h.runtime.now_calls.get(), 4);
+    assert_read_only(&h);
+}
+
+#[test]
+fn u7_br1_2_interval_の秒数で待つ() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![running(), completed()]);
+    let out = h.run(&["watch", "--follow", "--interval", "5"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(*h.runtime.waits.borrow(), [5]);
+}
+
+#[test]
+fn u7_br2_2_端末でないときは_2_回目から空の_1_行を置いて追記する() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.env.terminal = false;
+    queue(&h, vec![running(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert!(out.out.starts_with("Pipeline: p\n"), "{:?}", out.out);
+    assert!(out.out.contains("\n\nPipeline: p\n"), "{:?}", out.out);
+    assert!(!out.out.contains('\x1b'), "制御の文字を出さない");
+    assert_eq!(h.sink.out_writes, 2, "1 回分ずつ 1 回で書く");
+}
+
+#[test]
+fn u7_br2_2_unix_の端末では毎回画面を消してから描く() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.env.terminal = true;
+    h.env.vars.insert("NO_COLOR".into(), "1".into());
+    queue(&h, vec![running(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    let clear = "\x1b[H\x1b[2J";
+    if cfg!(unix) {
+        assert!(out.out.starts_with(clear), "{:?}", out.out);
+        assert_eq!(out.out.matches(clear).count(), 2);
+        assert!(!out.out.contains("\n\nPipeline"), "空の行は置かない");
+    } else {
+        // Windows は端末でも追記する。
+        assert!(!out.out.contains('\x1b'), "{:?}", out.out);
+        assert!(out.out.contains("\n\nPipeline: p\n"), "{:?}", out.out);
+    }
+}
+
+#[test]
+fn u7_br4_1_ステートが無ければ待ち_できたら表を描く() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.env.terminal = false;
+    queue(&h, vec![absent(), absent(), running(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(
+        out.out.matches("no state (nothing has run yet)\n").count(),
+        2,
+        "見る前の「無い」は毎回描く"
+    );
+    assert!(
+        out.out.starts_with(
+            "no state (nothing has run yet)\n\nno state (nothing has run yet)\n\nPipeline: p\n"
+        ),
+        "{:?}",
+        out.out
+    );
+    assert_eq!(tables(&out.out), 2);
+    assert_eq!(*h.runtime.waits.borrow(), [2, 2, 2]);
+    assert_eq!(h.runtime.now_calls.get(), 2, "「無い」では時刻を取らない");
+}
+
+#[test]
+fn u7_br3_1_一度見えたステートが_1_回だけ無いなら続ける() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![running(), absent(), running(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(tables(&out.out), 3, "1 回だけの「無い」は何も描かない");
+    assert_eq!(reads(&h), 4);
+}
+
+#[test]
+fn u7_br3_1_一度見えたステートが_2_回続けて無いなら_0_で終わる() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![running(), absent(), absent(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.err, "");
+    assert_eq!(tables(&out.out), 1);
+    assert_eq!(reads(&h), 3, "消えたと判定して終わる");
+    assert_eq!(*h.runtime.waits.borrow(), [2, 2]);
+}
+
+#[test]
+fn u7_読めないときは何も描かず_1_秒後に読み直し_読めたら続ける() {
+    let mut h = Harness::new(THREE_JOBS);
+    let reads_in = vec![running(), unreadable(&h), unreadable(&h), completed()];
+    queue(&h, reads_in);
+    let out = h.run(&["watch", "--follow", "--interval", "30"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.err, "");
+    assert_eq!(tables(&out.out), 2);
+    assert_eq!(*h.runtime.waits.borrow(), [30, 1, 1]);
+}
+
+#[test]
+fn u7_読めないのが_3_回続けば_65() {
+    let mut h = Harness::new(THREE_JOBS);
+    let reads_in = vec![
+        running(),
+        unreadable(&h),
+        unreadable(&h),
+        unreadable(&h),
+        completed(),
+    ];
+    queue(&h, reads_in);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 65);
+    assert_eq!(out.err.matches("cannot read state file").count(), 1);
+    assert!(out.err.contains("conductor.toml.state"), "{}", out.err);
+    assert_eq!(*h.runtime.waits.borrow(), [2, 1, 1]);
+}
+
+#[test]
+fn u7_読めた後は読めない回数を数え直す() {
+    // 読めない 2 回 → 無い(読めた)→ 読めない 2 回 → 完了。3 回続かないので 65 にならない。
+    let mut h = Harness::new(THREE_JOBS);
+    let reads_in = vec![
+        unreadable(&h),
+        unreadable(&h),
+        absent(),
+        unreadable(&h),
+        unreadable(&h),
+        completed(),
+    ];
+    queue(&h, reads_in);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(*h.runtime.waits.borrow(), [1, 1, 2, 1, 1]);
+}
+
+#[test]
+fn u7_読めないときは無いの続きを戻す() {
+    // 有る → 無い → 読めない → 無い → 完了。「無い」が 2 回続いていないので、消えたとしない。
+    let mut h = Harness::new(THREE_JOBS);
+    let reads_in = vec![running(), absent(), unreadable(&h), absent(), completed()];
+    queue(&h, reads_in);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(tables(&out.out), 2);
+    assert_eq!(reads(&h), 5);
+}
+
+#[test]
+fn u7_br4_2_壊れたステートは今の_watch_と同じ表示で_65() {
+    for kind in [
+        StateErrorKind::Corrupt,
+        StateErrorKind::TooLarge,
+        StateErrorKind::VersionMismatch,
+    ] {
+        let mut h = Harness::new(THREE_JOBS);
+        let error = Err(state_error(&h.state_path(), kind));
+        queue(&h, vec![running(), error]);
+        let out = h.run(&["watch", "--follow"]);
+        assert_eq!(out.code, 65, "{kind:?}");
+        assert!(out.err.contains("conductor.toml.state"), "{}", out.err);
+        assert_eq!(*h.runtime.waits.borrow(), [2], "{kind:?}");
+    }
+}
+
+#[test]
+fn u7_br4_2_古い形のステートは_reset_を案内して_65() {
+    let mut h = Harness::new(THREE_JOBS);
+    std::fs::write(h.state_path(), OLD_STATE).expect("書ける");
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 65);
+    assert!(out.err.contains("conductor reset"), "{}", out.err);
+    assert_eq!(out.out, "");
+}
+
+#[test]
+fn u7_br3_2_待ちの途中の合図で_0() {
+    let mut h = Harness::new(THREE_JOBS);
+    queue(&h, vec![running(), running(), completed()]);
+    h.runtime.interrupt_wait.set(Some((1, 2)));
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.err, "");
+    assert_eq!(tables(&out.out), 2);
+    assert_eq!(reads(&h), 2, "合図の後は読まない");
+}
+
+#[test]
+fn u7_br3_2_描く前に合図が立っていれば何も読まずに_0() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.signals = FakeSignals::new(SignalMode::RaiseOnStart(15));
+    queue(&h, vec![running()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.out, "");
+    assert_eq!(reads(&h), 0);
+}
+
+#[test]
+fn u7_br3_3_合図の準備に失敗したら_70_で何も読まない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.signals = FakeSignals::new(SignalMode::Fail);
+    queue(&h, vec![completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 70);
+    assert_eq!(
+        out.err,
+        "conductor: error: failed to set up signal handling\n"
+    );
+    assert_eq!(out.out, "");
+    assert_eq!(reads(&h), 0);
+}
+
+#[test]
+fn u7_br1_1_follow_の無い_watch_は合図の準備をしない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.signals = FakeSignals::new(SignalMode::Fail);
+    queue(&h, vec![running()]);
+    let out = h.run(&["watch"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(tables(&out.out), 1);
+    assert_eq!(h.signals.started.get(), 0);
+    assert!(h.runtime.waits.borrow().is_empty());
+}
+
+#[test]
+fn u7_標準出力に書けなければ_65() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.sink.fail_out = true;
+    queue(&h, vec![running(), completed()]);
+    let out = h.run(&["watch", "--follow"]);
+    assert_eq!(out.code, 65);
+    assert!(
+        out.err.contains("cannot write to standard output"),
+        "{}",
+        out.err
+    );
+    assert!(h.runtime.waits.borrow().is_empty());
+    // 「無い」の表示でも同じ。
+    let mut h = Harness::new(THREE_JOBS);
+    h.sink.fail_out = true;
+    queue(&h, vec![absent()]);
+    assert_eq!(h.run(&["watch", "--follow"]).code, 65);
+}
+
+#[test]
+fn u7_run_id_のステートを読む() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.runtime.script("a", &[Exec::Exit(0)]);
+    assert_eq!(h.run(&["pipeline", "p", "--run-id", "r1"]).code, 0);
+    let out = h.run(&["watch", "--follow", "--run-id", "r1"]);
+    assert_eq!(out.code, 0);
+    assert!(out.out.contains("Run ID: r1\n"), "{}", out.out);
+    assert!(out.out.ends_with("completed\n"), "{}", out.out);
+}
+
+#[test]
+fn u7_1000_回の繰り返しでも動き_書き込みをしない() {
+    let mut h = Harness::new(THREE_JOBS);
+    h.env.terminal = false;
+    let mut reads_in: Vec<RawRead> = (0..999).map(|_| running()).collect();
+    reads_in.push(completed());
+    queue(&h, reads_in);
+    let out = h.run(&["watch", "--follow", "--interval", "1"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(tables(&out.out), 1000);
+    assert_eq!(h.runtime.waits.borrow().len(), 999);
+    assert_read_only(&h);
 }

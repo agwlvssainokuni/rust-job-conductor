@@ -22,7 +22,7 @@ use super::common::kinds::{
     USAGE_ERROR_KINDS,
 };
 use super::common::{FakeEnv, FakeSink};
-use crate::report::{DisplayEvent, Reporter, ResultDetail, StateContext};
+use crate::report::{DisplayEvent, FramePrefix, Reporter, ResultDetail, StateContext};
 use crate::types::{Language, Level, UsageError, UsageErrorKind};
 use conductor_converter::ConversionError;
 use conductor_core::{
@@ -86,8 +86,13 @@ fn attempt(start: u64, end: Option<u64>) -> Attempt {
 fn watch_table(state: &PipelineState) -> DisplayEvent<'_> {
     DisplayEvent::WatchTable {
         state,
-        now: Timestamp::from_unix_seconds(1_795_598_033).expect("範囲の中"),
+        now: watch_now(),
     }
+}
+
+/// `watch` の表の今の時刻(2026-11-25T09:13:53Z)。
+fn watch_now() -> Timestamp {
+    Timestamp::from_unix_seconds(1_795_598_033).expect("範囲の中")
 }
 
 /// 全種類のイベントを作って、`f` に渡す。
@@ -276,6 +281,17 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
     let state = pipeline_state();
     f(&watch_table(&state));
     f(&DisplayEvent::WatchEmpty);
+    // 継続表示(U7)。画面を消す前置き(制御の文字)は、下の専用のテストで確かめる。
+    for prefix in [FramePrefix::Nothing, FramePrefix::BlankLine] {
+        f(&DisplayEvent::WatchFrame {
+            prefix,
+            state: Some((&state, watch_now())),
+        });
+        f(&DisplayEvent::WatchFrame {
+            prefix,
+            state: None,
+        });
+    }
     f(&DisplayEvent::Graph("* a\no @end\n"));
     f(&DisplayEvent::Plan("plan\n"));
     f(&DisplayEvent::InitTemplate("template\n"));
@@ -904,6 +920,61 @@ fn watch_の表は日本語の見出しと補足() {
     assert!(text.contains("遷移によりスキップ") && text.contains("@end の後ろのためスキップ"));
     // 状態は、言語に関わらず英語の文字
     assert!(text.contains("warning") && text.contains("pending"));
+}
+
+#[test]
+fn u7_br2_2_継続表示の前置きは画面を消すか_2_回目から空の_1_行() {
+    // 画面を消せるなら、1 回目から毎回消す。消せないなら、1 回目は何も置かず、2 回目から空の 1 行。
+    assert_eq!(FramePrefix::for_frame(true, 0), FramePrefix::ClearScreen);
+    assert_eq!(FramePrefix::for_frame(true, 5), FramePrefix::ClearScreen);
+    assert_eq!(FramePrefix::for_frame(false, 0), FramePrefix::Nothing);
+    assert_eq!(FramePrefix::for_frame(false, 1), FramePrefix::BlankLine);
+    assert_eq!(FramePrefix::ClearScreen.text(), "\x1b[H\x1b[2J");
+    assert_eq!(FramePrefix::BlankLine.text(), "\n");
+    assert_eq!(FramePrefix::Nothing.text(), "");
+}
+
+#[test]
+fn u7_nfr1_9_継続表示の中身は_1_回の_watch_と同じ() {
+    for lang in [Language::En, Language::Ja] {
+        let env = env_for(lang);
+        let reporter = Reporter::new(&env, false);
+        let state = pipeline_state();
+        let table = reporter.render(&watch_table(&state));
+        let empty = reporter.render(&DisplayEvent::WatchEmpty);
+        for prefix in [
+            FramePrefix::Nothing,
+            FramePrefix::ClearScreen,
+            FramePrefix::BlankLine,
+        ] {
+            let frame = reporter.render(&DisplayEvent::WatchFrame {
+                prefix,
+                state: Some((&state, watch_now())),
+            });
+            assert_eq!(frame, format!("{}{table}", prefix.text()), "{prefix:?}");
+            let frame = reporter.render(&DisplayEvent::WatchFrame {
+                prefix,
+                state: None,
+            });
+            assert_eq!(frame, format!("{}{empty}", prefix.text()), "{prefix:?}");
+        }
+    }
+}
+
+#[test]
+fn u7_継続表示は標準出力に出る() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let mut sink = FakeSink::default();
+    let event = DisplayEvent::WatchFrame {
+        prefix: FramePrefix::BlankLine,
+        state: None,
+    };
+    assert_eq!(event.level(), Level::Output);
+    assert!(reporter.show(&mut sink, &event));
+    assert_eq!(sink.out_text(), "\nno state (nothing has run yet)\n");
+    sink.fail_out = true;
+    assert!(!reporter.show(&mut sink, &event));
 }
 
 #[test]
