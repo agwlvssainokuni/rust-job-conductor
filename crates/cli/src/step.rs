@@ -36,7 +36,11 @@ use conductor_core::{
     PipelineState, RetryDecision, RunMode, SkipCause, apply_outcome, apply_skip,
     classify_and_decide, initial_state, merge_env, retry_decision,
 };
-use conductor_runtime::{CommandLine, Durability, InterruptSignal, WaitOutcome};
+use std::path::{Path, PathBuf};
+
+use conductor_runtime::{
+    CommandLine, Durability, InterruptSignal, LogOutcome, LogTarget, WaitOutcome,
+};
 
 use crate::ctx::{Ctx, Session};
 use crate::exit::outcome_exit_code;
@@ -140,9 +144,9 @@ pub(crate) fn run_step(
         }
     };
 
-    let execution = run_job_with_retry(ctx, session, job, command);
+    let (execution, log) = run_job_with_retry(ctx, session, job, command);
     let (outcome, next) = classify_and_decide(job, &execution, &base.job_states, definition, mode);
-    report_execution(ctx, job, command, &execution, &outcome, &next);
+    report_execution(ctx, job, command, &execution, &log, &outcome, &next);
 
     let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
     // 起動前の中断(`NotStarted`)は、ジョブが実行されていない。
@@ -174,13 +178,25 @@ pub(crate) fn run_step(
 ///   (`NotStarted`)を返す。
 ///   既存の分類で、分類なし・終了コード 128 + 番号・再開位置はそのジョブ、エラーとして記録しない
 ///   扱いになる(BR2.5)。
+///
+/// 試行ごとに、起動の前に現在の時刻を 1 回だけ取る(v0.10.0 の BR2.3)。定義に `log_dir` があれば、
+/// その時刻と試行の番号でログの指定([`LogTarget`])を作って渡す(BR3.1)。試行の後、ファイルへの
+/// 書き込みの失敗と、出力の待ち切れを、1 行ずつ警告する(BR5.2、BR5.3。終了コードは変えない)。
+/// 最後の試行のログの結果を、実行結果に添えて返す(ログを作れなかった表示に使う。BR5.1)。
 fn run_job_with_retry(
     ctx: &mut Ctx<'_>,
     session: &Session,
     job: &JobDefinition,
     line: &CommandLine,
-) -> JobExecution {
+) -> (JobExecution, LogOutcome) {
     let signal: &InterruptSignal = &session.signal;
+    let log_dir = session
+        .checked
+        .base
+        .definition
+        .log_dir
+        .as_deref()
+        .map(|dir| resolve_log_dir(&session.checked.base.path, dir));
     let mut retries_done: u32 = 0;
     let mut last_wait_secs: u64 = 0;
     loop {
@@ -198,7 +214,17 @@ fn run_job_with_retry(
                 attempt: retries_done + 1,
             },
         );
-        let execution = ctx.runtime.run_job(line, &env.additions(), signal);
+        let started_at = ctx.runtime.now();
+        let target = log_dir.as_ref().map(|dir| LogTarget {
+            dir: dir.clone(),
+            job_id: job.id.clone(),
+            started_at,
+            attempt: retries_done + 1,
+        });
+        let (execution, log) = ctx
+            .runtime
+            .run_job(line, &env.additions(), signal, target.as_ref());
+        report_log_warnings(ctx, &log);
         // `Retry` は、リトライの対象になった最後の終了コードと、最大回数を持つ(BR2.4)。
         let RetryDecision::Retry {
             wait_secs,
@@ -206,7 +232,7 @@ fn run_job_with_retry(
             max,
         } = retry_decision(job, &execution, retries_done, last_wait_secs)
         else {
-            return execution;
+            return (execution, log);
         };
 
         // 待機の前に、常に知らせる(BR2.4)。
@@ -224,9 +250,33 @@ fn run_job_with_retry(
                 last_wait_secs = wait_secs;
             }
             WaitOutcome::Interrupted(number) => {
-                return JobExecution::not_started(number);
+                return (JobExecution::not_started(number), LogOutcome::default());
             }
         }
+    }
+}
+
+/// `log_dir` を解決する(相対なら (定義ファイルのディレクトリ)/(パス)、絶対ならそのまま。v0.10.0 の
+/// BR1.1。`env_file` と同じ規則)。`~` と変数は展開しない。
+fn resolve_log_dir(definition_path: &Path, log_dir: &str) -> PathBuf {
+    let dir = Path::new(log_dir);
+    if dir.is_absolute() {
+        dir.to_path_buf()
+    } else {
+        definition_path
+            .parent()
+            .unwrap_or_else(|| Path::new(""))
+            .join(dir)
+    }
+}
+
+/// 試行の後のログの警告(v0.10.0 の BR5.2、BR5.3)。書き込みの失敗と待ち切れを、それぞれ 1 行。
+fn report_log_warnings(ctx: &mut Ctx<'_>, log: &LogOutcome) {
+    if let Some(path) = &log.write_failed {
+        ctx.show(&DisplayEvent::LogWriteFailed { path });
+    }
+    if let Some(path) = &log.output_cut_short {
+        ctx.show(&DisplayEvent::LogOutputCutShort { path });
     }
 }
 
@@ -248,11 +298,15 @@ pub(crate) fn remove_if_requested(
 /// ジョブを実行したあとの表示(BR2.6、BR6.3、BR6.4)。`-v` の結果・遷移・中断と、
 /// 常に表示する起動の失敗・成功コードに含まれない 0。`command` は、定義の検査で分割したそのジョブの
 /// コマンド(起動の失敗の表示に、コマンド名を使う)。
+///
+/// ログのファイルを作れずに起動しなかったとき(`log.log_not_created`)は、起動の失敗の表示の代わりに、
+/// ログを作れない 1 行だけを出す(v0.10.0 の BR5.1)。
 fn report_execution(
     ctx: &mut Ctx<'_>,
     job: &JobDefinition,
     command: &CommandLine,
     execution: &JobExecution,
+    log: &LogOutcome,
     outcome: &JobOutcome,
     next: &NextStep,
 ) {
@@ -266,10 +320,13 @@ fn report_execution(
     });
 
     if detail == ResultDetail::StartFailure {
-        ctx.show(&DisplayEvent::StartFailure {
-            job_id: &job.id,
-            command: &command.program,
-        });
+        match &log.log_not_created {
+            Some(path) => ctx.show(&DisplayEvent::LogNotCreated { path }),
+            None => ctx.show(&DisplayEvent::StartFailure {
+                job_id: &job.id,
+                command: &command.program,
+            }),
+        };
     }
     if outcome.conductor_error {
         ctx.show(&DisplayEvent::SuccessCodeNotListed { job_id: &job.id });

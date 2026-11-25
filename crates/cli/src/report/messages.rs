@@ -487,6 +487,19 @@ pub const COMPLETION_UNDETERMINED: Text = Text::new(
     "パイプラインが完了したかを判定できません",
 );
 
+// ---- ログのファイル(v0.10.0 の BR5.1〜BR5.3。後ろに `: <パス>` を付ける) ----
+
+pub const LOG_NOT_CREATED: Text =
+    Text::new("cannot create the log file", "ログのファイルを作れません");
+pub const LOG_WRITE_FAILED: Text = Text::new(
+    "failed to write to the log file; output after that point is not in the file",
+    "ログのファイルへの書き込みに失敗しました。途中からファイルに残していません",
+);
+pub const LOG_OUTPUT_CUT_SHORT: Text = Text::new(
+    "output continued after the job ended; the rest is not in the log file",
+    "ジョブの終了の後も出力が続いたため、残りを残していません",
+);
+
 // ---- -v の文言 ----
 
 pub const EXIT_CODE: Text = Text::new("exit code", "終了コード");

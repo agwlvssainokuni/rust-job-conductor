@@ -154,6 +154,19 @@ pub enum DisplayEvent<'a> {
     },
     /// `init --config -` で、ひな形を標準出力に書けなかった(終了コード 65。BR1.5)。
     InitStdoutFailed,
+    /// ログのファイルを作れず、ジョブを起動しなかった(終了コード 127。v0.10.0 の BR5.1)。
+    /// 起動の失敗の表示([`DisplayEvent::StartFailure`])の代わりに出す。
+    LogNotCreated {
+        path: &'a Path,
+    },
+    /// ログのファイルへの書き込みに失敗し、途中からファイルに残していない(警告。v0.10.0 の BR5.2)。
+    LogWriteFailed {
+        path: &'a Path,
+    },
+    /// ジョブの終了の後も出力が続き、残りをファイルに残していない(警告。v0.10.0 の BR5.3)。
+    LogOutputCutShort {
+        path: &'a Path,
+    },
     // ---- notice(標準エラー。常に。エラーではない知らせ) ----
     /// リトライの前の知らせ(BR2.4、BR2.15)。待機の前に出す。
     RetryScheduled {
@@ -238,6 +251,9 @@ impl DisplayEvent<'_> {
             | Self::InitExists { .. }
             | Self::InitFailed { .. }
             | Self::InitStdoutFailed
+            | Self::LogNotCreated { .. }
+            | Self::LogWriteFailed { .. }
+            | Self::LogOutputCutShort { .. }
             | Self::CompletionUndetermined { .. } => Level::Error,
             Self::RetryScheduled { .. } | Self::InitCreated { .. } | Self::InitReplaced { .. } => {
                 Level::Notice
@@ -463,6 +479,21 @@ impl<'a> Reporter<'a> {
             DisplayEvent::InitFailed { path, error } => format!(
                 "{ERROR_PREFIX}{}\n",
                 messages::init_cannot_create(lang(), *error, &show_path(path))
+            ),
+            DisplayEvent::LogNotCreated { path } => format!(
+                "{ERROR_PREFIX}{}: {}\n",
+                messages::LOG_NOT_CREATED.get(lang()),
+                show_path(path)
+            ),
+            DisplayEvent::LogWriteFailed { path } => format!(
+                "{WARNING_PREFIX}{}: {}\n",
+                messages::LOG_WRITE_FAILED.get(lang()),
+                show_path(path)
+            ),
+            DisplayEvent::LogOutputCutShort { path } => format!(
+                "{WARNING_PREFIX}{}: {}\n",
+                messages::LOG_OUTPUT_CUT_SHORT.get(lang()),
+                show_path(path)
             ),
             DisplayEvent::InitStdoutFailed => {
                 format!(

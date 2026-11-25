@@ -31,11 +31,11 @@ use conductor_cli::{Deps, Env, Runtime, SignalError, Signals, Sink, SystemRuntim
 use conductor_converter::{ConversionError, TargetFormat};
 use conductor_core::{
     Command, DefinitionError, EnvFileError, EnvFileRef, ExecutionResult, JobExecution, JobStatus,
-    LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
+    LoadedEnvFiles, PipelineDefinition, PipelineState, RunId, Timestamp,
 };
 use conductor_runtime::{
-    CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
-    ResetAllReport, StateError, StateErrorKind, WaitOutcome,
+    CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal, LogOutcome,
+    LogTarget, ResetAllReport, StateError, StateErrorKind, WaitOutcome,
 };
 
 // ---- Env ----
@@ -152,6 +152,20 @@ pub struct ScriptedRuntime {
     pub create_calls: RefCell<Vec<CreateCall>>,
     /// `create_file` の結果を、実際の作成の代わりに返す(`None` は実際に作る。U4)。
     pub create_override: RefCell<Option<Result<CreateOutcome, CreateError>>>,
+    /// `now` の呼び出しの回数。`now` は [`FAKE_NOW_BASE`] + 回数(0 始まり)の時刻を順に返す。
+    pub now_calls: Cell<usize>,
+    /// `run_job` に渡された、ログの指定。起動のたびに記録する(v0.10.0 の U5)。
+    pub run_logs: RefCell<Vec<Option<LogTarget>>>,
+    /// `run_job` が返すログの結果(先頭から使い、尽きたら空)。起動しない合図のときは使わない。
+    pub log_outcomes: RefCell<VecDeque<LogOutcome>>,
+}
+
+/// 偽の `now` が返す最初の時刻(2026-11-25T09:12:48Z)。呼ぶたびに 1 秒ずつ進む。
+pub const FAKE_NOW_BASE: u64 = 1_795_597_968;
+
+/// 偽の `now` の `n` 回目(0 始まり)の時刻。
+pub fn fake_now(n: usize) -> Timestamp {
+    Timestamp::from_unix_seconds(FAKE_NOW_BASE + n as u64).expect("範囲の中")
 }
 
 /// `create_file` に渡された、(パス、内容、`force`)。
@@ -214,36 +228,9 @@ impl ScriptedRuntime {
     fn push(&self, line: impl Into<String>) {
         self.log.borrow_mut().push(line.into());
     }
-}
 
-impl Runtime for ScriptedRuntime {
-    fn load_definition(
-        &self,
-        path: &Path,
-        expected: Option<&str>,
-    ) -> Result<PipelineDefinition, Vec<DefinitionError>> {
-        self.push("load");
-        self.inner.load_definition(path, expected)
-    }
-
-    fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError> {
-        self.inner.check_command(command)
-    }
-
-    fn load_env_files(
-        &self,
-        definition_path: &Path,
-        refs: &[EnvFileRef],
-    ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
-        self.push("load-env");
-        self.env_loads.borrow_mut().push(refs.to_vec());
-        if let Some(result) = self.env_override.borrow().as_ref() {
-            return result.clone();
-        }
-        self.inner.load_env_files(definition_path, refs)
-    }
-
-    fn run_job(
+    /// 偽の起動(台本で結果を決める)。呼び出しを記録する。
+    fn scripted_run(
         &self,
         line: &CommandLine,
         env: &[(&str, &str)],
@@ -294,6 +281,60 @@ impl Runtime for ScriptedRuntime {
             hook(&job_id, signal);
         }
         execution
+    }
+}
+
+impl Runtime for ScriptedRuntime {
+    fn load_definition(
+        &self,
+        path: &Path,
+        expected: Option<&str>,
+    ) -> Result<PipelineDefinition, Vec<DefinitionError>> {
+        self.push("load");
+        self.inner.load_definition(path, expected)
+    }
+
+    fn check_command(&self, command: &Command) -> Result<CommandLine, CommandError> {
+        self.inner.check_command(command)
+    }
+
+    fn load_env_files(
+        &self,
+        definition_path: &Path,
+        refs: &[EnvFileRef],
+    ) -> Result<LoadedEnvFiles, Vec<EnvFileError>> {
+        self.push("load-env");
+        self.env_loads.borrow_mut().push(refs.to_vec());
+        if let Some(result) = self.env_override.borrow().as_ref() {
+            return result.clone();
+        }
+        self.inner.load_env_files(definition_path, refs)
+    }
+
+    fn now(&self) -> Timestamp {
+        let n = self.now_calls.get();
+        self.now_calls.set(n + 1);
+        fake_now(n)
+    }
+
+    fn run_job(
+        &self,
+        line: &CommandLine,
+        env: &[(&str, &str)],
+        signal: &InterruptSignal,
+        log: Option<&LogTarget>,
+    ) -> (JobExecution, LogOutcome) {
+        self.run_logs.borrow_mut().push(log.cloned());
+        let execution = self.scripted_run(line, env, signal);
+        let outcome = match execution.result {
+            ExecutionResult::NotStarted { .. } => LogOutcome::default(),
+            _ => self
+                .log_outcomes
+                .borrow_mut()
+                .pop_front()
+                .unwrap_or_default(),
+        };
+        (execution, outcome)
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
@@ -642,17 +683,23 @@ impl Runtime for MemRuntime {
         Ok(LoadedEnvFiles::new())
     }
 
+    fn now(&self) -> Timestamp {
+        fake_now(0)
+    }
+
     fn run_job(
         &self,
         _line: &CommandLine,
         _env: &[(&str, &str)],
         signal: &InterruptSignal,
-    ) -> JobExecution {
+        _log: Option<&LogTarget>,
+    ) -> (JobExecution, LogOutcome) {
         // 合図を先に見て、起動するときだけ台本を消費する(`ScriptedRuntime` と同じ順)。
-        match signal.signal_number() {
+        let execution = match signal.signal_number() {
             Some(n) => JobExecution::not_started(n),
             None => JobExecution::exited(self.exit_codes.borrow_mut().pop_front().unwrap_or(0)),
-        }
+        };
+        (execution, LogOutcome::default())
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

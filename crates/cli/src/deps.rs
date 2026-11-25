@@ -28,11 +28,11 @@ use std::sync::Arc;
 use conductor_converter::{ConversionError, ConversionRequest, TargetFormat};
 use conductor_core::{
     Command, DefinitionError, EnvFileError, EnvFileRef, JobExecution, LoadedEnvFiles,
-    PipelineDefinition, PipelineState, RunId,
+    PipelineDefinition, PipelineState, RunId, Timestamp,
 };
 use conductor_runtime::{
-    CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal,
-    ResetAllReport, StateError, WaitOutcome,
+    CommandError, CommandLine, CreateError, CreateOutcome, Durability, InterruptSignal, LogOutcome,
+    LogTarget, ResetAllReport, StateError, WaitOutcome,
 };
 
 use crate::platform;
@@ -92,13 +92,17 @@ pub trait Runtime {
         definition_path: &Path,
         refs: &[EnvFileRef],
     ) -> Result<LoadedEnvFiles, Vec<EnvFileError>>;
+    /// 現在の時刻(`now`。v0.10.0 の BR2.3、契約 C2)。流れが試行の前に 1 回だけ呼ぶ。
+    fn now(&self) -> Timestamp;
     /// ジョブを、分割済みのコマンド `line` で、`env` を足した環境で起動し、終了を待つ(`run_job`。BR2.2)。
+    /// `log` があれば、出力をそのログのファイルにも残す(v0.10.0 の BR4.x)。ログの結果を添えて返す。
     fn run_job(
         &self,
         line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
-    ) -> JobExecution;
+        log: Option<&LogTarget>,
+    ) -> (JobExecution, LogOutcome);
     /// リトライの前に `secs` 秒待つ(`wait_for`。BR2.13)。合図が立てば、すぐ `Interrupted` を返す。
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome;
     /// ステートを読む(`read_state`。`None` は空)。`run_id` は、ファイル名の run ID。
@@ -173,13 +177,18 @@ impl Runtime for SystemRuntime {
         conductor_runtime::load_env_files(definition_path, refs)
     }
 
+    fn now(&self) -> Timestamp {
+        conductor_runtime::now()
+    }
+
     fn run_job(
         &self,
         line: &CommandLine,
         env: &[(&str, &str)],
         signal: &InterruptSignal,
-    ) -> JobExecution {
-        conductor_runtime::run_job(line, env, signal, None).0
+        log: Option<&LogTarget>,
+    ) -> (JobExecution, LogOutcome) {
+        conductor_runtime::run_job(line, env, signal, log)
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {
