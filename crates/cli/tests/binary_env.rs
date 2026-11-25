@@ -264,6 +264,84 @@ fn 無くてもよいファイルでもあって_utf8_でなければ_64_で必�
     }
 }
 
+// ---- v0.10.0 の U3: 消す名前(`unset_env`) ----
+
+#[test]
+fn unset_env_の名前は親から引き継いだ環境から消えてほかは残る() {
+    // パイプラインとジョブの両方に書く。PATH は、Windows では親の `Path` も消える(大文字小文字を
+    // 区別しない。BR3.2、security-design の 1)。
+    let project = Project::new(&definition_with(
+        "unset_env = [\"T_INHERITED\"]\n",
+        "unset_env = [\"PATH\"]\n[job.env]\nT_JENV = \"je\"\n",
+        "T_INHERITED PATH T_OVERRIDDEN T_JENV",
+    ));
+    for args in [&["run", "show"][..], &["pipeline", "p"][..]] {
+        let output = run_clean(&project, args);
+        let out = text(&output.stdout);
+        assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+        assert_eq!(value(&out, "T_INHERITED"), None, "{args:?}");
+        assert_eq!(value(&out, "PATH"), None, "{args:?}");
+        assert_eq!(
+            value(&out, "T_OVERRIDDEN").as_deref(),
+            Some("from-parent"),
+            "消さない名前は残る"
+        );
+        assert_eq!(value(&out, "T_JENV").as_deref(), Some("je"));
+    }
+}
+
+#[test]
+fn unset_env_と_env_や_env_の重なりは_64_で値が出ずジョブもステートも作らない() {
+    let env_conflict = Project::new(&definition_with(
+        "unset_env = [\"T_TOKEN\"]\n",
+        &format!("[job.env]\nt_token = \"{SECRET}\"\n"),
+        "ANY",
+    ));
+    let file_conflict = Project::new(&definition_with(
+        "env_file = \"p.env\"\n",
+        "unset_env = [\"T_TOKEN\"]\n",
+        "ANY",
+    ));
+    put(&file_conflict, "p.env", &format!("A=1\nT_TOKEN={SECRET}\n"));
+    for (project, needle) in [
+        (&env_conflict, "conductor.toml:4:"),
+        (&file_conflict, "p.env:2"),
+    ] {
+        for args in [
+            &["run", "show"][..],
+            &["pipeline", "p"][..],
+            &["validate"][..],
+            &["pipeline", "p", "--dry-run"][..],
+        ] {
+            let output = run_clean(project, args);
+            let (out, err) = (text(&output.stdout), text(&output.stderr));
+            assert_eq!(output.status.code(), Some(64), "{args:?}: {err}");
+            assert!(out.is_empty(), "{args:?}: {out}");
+            assert!(err.contains(needle), "{args:?}: {err}");
+            assert!(!err.contains(SECRET), "値が出ている: {err}");
+            assert!(!project.state_path().exists());
+        }
+    }
+}
+
+#[test]
+fn dry_run_は消す名前を出し親の値を出さない() {
+    let project = Project::new(&definition_with(
+        "unset_env = [\"T_INHERITED\"]\n",
+        "unset_env = [\"T_OVERRIDDEN\"]\n",
+        "ANY",
+    ));
+    let output = run_clean(&project, &["pipeline", "p", "--dry-run"]);
+    let (out, err) = (text(&output.stdout), text(&output.stderr));
+    assert_eq!(output.status.code(), Some(0), "{err}");
+    assert!(
+        out.contains("unset env: T_INHERITED, T_OVERRIDDEN\n"),
+        "{out}"
+    );
+    assert!(!out.contains("from-parent") && !err.contains("from-parent"));
+    assert!(!project.state_path().exists());
+}
+
 #[test]
 fn 秘密の値は標準出力_標準エラー_ステートファイルに含まれない() {
     // 値を表示しないジョブ(`exit 3`)で、失敗のステートも書かせる
