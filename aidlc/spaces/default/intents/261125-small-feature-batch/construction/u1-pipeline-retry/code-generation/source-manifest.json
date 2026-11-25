@@ -1,0 +1,23 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-pipeline-retry",
+  "version": 1,
+  "writes": [
+    { "path": "crates/core/src/definition/walk/retry.rs" },
+    { "path": "crates/core/src/definition/walk/mod.rs" },
+    { "path": "crates/core/src/types.rs" },
+    { "path": "crates/core/tests/definition_retry.rs" },
+    { "path": "crates/core/tests/definition_valid.rs" },
+    { "path": "crates/core/tests/nfr_security.rs" },
+    { "path": "crates/core/tests/definition_perf.rs" },
+    { "path": "crates/cli/tests/flow_retry.rs" },
+    { "path": "crates/cli/tests/flow_validate.rs" },
+    { "path": "crates/cli/tests/binary_basic.rs" },
+    { "path": "crates/cli/src/tests/graph_report.rs" },
+    { "path": "crates/cli/src/tests/plan_report.rs" },
+    { "path": "README.md" },
+    { "path": "demo/retry.toml" },
+    { "path": "demo/windows/retry.toml" },
+    { "path": "demo/README.md" }
+  ]
+}
