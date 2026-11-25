@@ -5695,3 +5695,680 @@
 **Stage**: units-generation
 
 ---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T09:56:43Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-25T09:56:44Z
+**Event**: DECISION_RECORDED
+**Stage**: contract-design
+**Decision**: Q1, Q2, Q3
+**Options**: Q1: A. [[job.attempt]] / B. attempts の 1 行の配列 / C. Not yet defined; Q2: A. --follow と --interval / B. --repeat と --every / C. Not yet defined; Q3: A. 直下に job.時刻.試行.log / B. 実行ごとのディレクトリ / C. Not yet defined
+**Question Id**: 2fe659af
+**Question Type**: stage-question
+**Question Chat**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question Shows**: sha256:4022806842b2d0453679f9cb0e382cbc6c2ece054538de5f370b34c4fea80ed8
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T09:58:14Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: picker
+**Picked**: ["A. [[job.attempt]]","A. --follow と --interval","A. 直下に並べる"]
+**Message Id**: bc072ed2
+**Open Questions**: 2fe659af
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md","entries":{"Q1":"271331c14ef14aa1","Q2":"20fbc481855c0edc","Q3":"d650e9ba68fca5ce"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T09:58:14Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: [設計] Q1. ステート(TOML)の各ジョブ [[job]] に、試行の時刻をどう書きますか。
+**Reply**: A. [[job.attempt]]
+**Options**: ["A. [[job.attempt]]","B. attempts = [...]","C. Not yet defined"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T09:58:14Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: [プロダクト] Q2. watch の継続表示を始めるオプションと、間隔のオプションの名前を決めます(間隔の既定は 2 秒)。
+**Reply**: A. --follow と --interval
+**Options**: ["A. --follow と --interval","B. --repeat と --every","C. Not yet defined"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T09:58:14Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: [設計] Q3. log_dir の下に、試行ごとのファイルを上書きせずに作ります。どう置きますか。
+**Reply**: A. 直下に並べる
+**Options**: ["A. 直下に並べる","B. 実行ごとのディレクトリ","C. Not yet defined"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-25T09:58:17Z
+**Event**: QUESTION_ANSWERED
+**Stage**: contract-design
+**Details**: Q1: A; Q2: A; Q3: A
+**Person Reply**: A. [[job.attempt]]\nA. --follow と --interval\nA. 直下に並べる
+**Message Id**: bc072ed2
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T09:58:18Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T09:58:19Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T09:58:23Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-25T09:58:25Z
+**Event**: DECISION_RECORDED
+**Stage**: contract-design
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Question Id**: e78de806
+**Question Type**: summary-confirmation
+**Question Chat**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question Shows**: sha256:8da93f5f0430b7290785bd00cc9075aef7563f39216c6a3d52a1c2ad491b6a2d
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:01:42Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 3b9a31bc
+**Open Questions**: 2fe659af, e78de806
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md","entries":{"Q1":"271331c14ef14aa1","Q2":"20fbc481855c0edc","Q3":"d650e9ba68fca5ce","Consolidated Summary Confirmation":"494622962743a512"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T10:01:43Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: 契約のまとめを書く前に、この内容で合っていますか。
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T10:01:45Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Context**: inception > contract-design > contract-design-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-25T10:01:47Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: contract-design
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md
+**Questions SHA-256**: 5763e44569db3953f82bc481b67b2b3afc4a1e80e85d8b1764bf710870bbc2f3
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 3b9a31bc
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 010365d9daa5fae3342a3b1ba77af98906618fc44dc8f1f58d9e200f783ea8d8
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T10:02:16Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 010365d9daa5fae3342a3b1ba77af98906618fc44dc8f1f58d9e200f783ea8d8
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:02:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: e06c7650
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:02:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: e06c7650
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 81
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:02:18Z
+**Event**: SENSOR_FIRED
+**Fire id**: 226ae7e8
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:02:18Z
+**Event**: SENSOR_PASSED
+**Fire id**: 226ae7e8
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 127
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-25T10:02:18Z
+**Event**: REVIEW_REQUESTED
+**Stage**: contract-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:b0d2edaba5a3a507edf406cdd7c3fd3506905fdf190cd6175c07321811313cdd
+**Request Id**: review:de767b901b3af2260799c4fc570d027a
+**Review File**: .aidlc-engine/reviews/contract-design/stage/552b85fa4b1ae5c0/1.de767b901b3af2260799c4fc570d027a.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T10:02:28Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T10:02:57Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/contract-design/stage/552b85fa4b1ae5c0/1.de767b901b3af2260799c4fc570d027a.review.md
+**Context**: .aidlc-engine > reviews > contract-design > stage > 552b85fa4b1ae5c0 > 1.de767b901b3af2260799c4fc570d027a.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T10:03:02Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: a87cc6bd919682715
+**Review File Digest**: .aidlc-engine/reviews/contract-design/stage/552b85fa4b1ae5c0/1.de767b901b3af2260799c4fc570d027a.review.md=a3f0f5ffdd3c4a35d104c8376ffbf3b51ead8e59eacf07b0e61b397cdbbea005
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T10:03:04Z
+**Event**: HOST_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T10:03:07Z
+**Event**: REVIEW_COMPLETED
+**Stage**: contract-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:b0d2edaba5a3a507edf406cdd7c3fd3506905fdf190cd6175c07321811313cdd
+**Artifact Fingerprint**: sha256:b0d2edaba5a3a507edf406cdd7c3fd3506905fdf190cd6175c07321811313cdd
+**Request Id**: review:de767b901b3af2260799c4fc570d027a
+**Review Record**: .aidlc-engine/reviews/contract-design/stage/552b85fa4b1ae5c0/1.json
+**Review Record Digest**: sha256:789a854896d08464d0066c151fe386069860bc3bfc83ae6432bb67ee50c9ba00
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:03:08Z
+**Event**: SENSOR_FIRED
+**Fire id**: 1594affe
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:03:08Z
+**Event**: SENSOR_PASSED
+**Fire id**: 1594affe
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 83
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:03:09Z
+**Event**: SENSOR_FIRED
+**Fire id**: 03f92a7e
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:03:09Z
+**Event**: SENSOR_PASSED
+**Fire id**: 03f92a7e
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 74
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-25T10:03:09Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: contract-design
+**Next Stage**: delivery-planning
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md=passed; upstream-coverage@aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md=passed
+**Open Decisions**: 0
+**Question Id**: 1f1d900a
+**Question Type**: gate
+**Question Chat**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question Shows**: sha256:d76cad45581e45e2aea98cdfff11165428ea1c4fe58d371c5cc1e515cb30f30c
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:04:49Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: picker
+**Picked**: ["推奨は？"]
+**Message Id**: a7bfbdae
+**Open Questions**: 2fe659af, 1f1d900a
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md","entries":{"Q1":"271331c14ef14aa1","Q2":"20fbc481855c0edc","Q3":"d650e9ba68fca5ce","Consolidated Summary Confirmation":"494622962743a512"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T10:04:49Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: 契約のまとめを承認して、次の Delivery Planning に進みますか。
+**Reply**: 推奨は？
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T10:04:56Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: ae3e2cc8afe5ddd1b
+**Message**: その方針で R-01 と R-02 を直して
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:04:59Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: typed
+**Message Id**: 9b7c6513
+**Open Questions**: 2fe659af, 1f1d900a
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md","entries":{"Q1":"271331c14ef14aa1","Q2":"20fbc481855c0edc","Q3":"d650e9ba68fca5ce","Consolidated Summary Confirmation":"494622962743a512"}}
+
+---
+
+## Gate Rejected
+**Timestamp**: 2026-11-25T10:05:03Z
+**Event**: GATE_REJECTED
+**Stage**: contract-design
+**Feedback**: 推奨は？\nその方針で R-01 と R-02 を直して
+**Conductor Summary**: R-01 と R-02 を直す。R-01: running は足さず状態の値は今の 5 つのまま。pending で最後の試行に ended_at が無いものを「動いている最中か中断で止まった」と読み、見分け方は U6 の機能の設計で決める。R-02: pending と skipped 以外のジョブに試行が 1 つも無ければ 65。R-03 は機能の設計で扱う
+**Message Id**: 9b7c6513
+**Message Ids**: a7bfbdae,9b7c6513
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Revising
+**Timestamp**: 2026-11-25T10:05:03Z
+**Event**: STAGE_REVISING
+**Stage**: contract-design
+**Revision count**: 2
+**Feedback**: 推奨は？\nその方針で R-01 と R-02 を直して
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T10:05:10Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 010365d9daa5fae3342a3b1ba77af98906618fc44dc8f1f58d9e200f783ea8d8
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-25T10:05:12Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Context**: inception > contract-design > contract-summary.md
+**Summary Authorization Id**: 010365d9daa5fae3342a3b1ba77af98906618fc44dc8f1f58d9e200f783ea8d8
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:05:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: f7dab3e0
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:05:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: f7dab3e0
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:05:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: 2f06822c
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:05:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: 2f06822c
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 74
+
+---
+
+## Review Requested
+**Timestamp**: 2026-11-25T10:05:14Z
+**Event**: REVIEW_REQUESTED
+**Stage**: contract-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Artifact Fingerprint**: sha256:32e1f1c5322f4f80b433b0b32d8cd2e20a7faf0ff35a1d7cf3ba4000c98a6272
+**Request Id**: review:b24e02cf09b110a8c166e2aa9a07b4aa
+**Review File**: .aidlc-engine/reviews/contract-design/stage/f8e8036a2d83bea1/1.b24e02cf09b110a8c166e2aa9a07b4aa.review.md
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-25T10:05:28Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-architecture-reviewer-agent
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-25T10:05:48Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261125-small-feature-batch/.aidlc-engine/reviews/contract-design/stage/f8e8036a2d83bea1/1.b24e02cf09b110a8c166e2aa9a07b4aa.review.md
+**Context**: .aidlc-engine > reviews > contract-design > stage > f8e8036a2d83bea1 > 1.b24e02cf09b110a8c166e2aa9a07b4aa.review.md
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T10:05:51Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-architecture-reviewer-agent
+**Agent ID**: aae1c6c5f2e9a4f70
+**Review File Digest**: .aidlc-engine/reviews/contract-design/stage/f8e8036a2d83bea1/1.b24e02cf09b110a8c166e2aa9a07b4aa.review.md=115edf0a3c4f3b8856aa1aa59da88b8e524596de30024f264efc05b005f7fffc
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-25T10:05:52Z
+**Event**: HOST_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Review Completed
+**Timestamp**: 2026-11-25T10:05:55Z
+**Event**: REVIEW_COMPLETED
+**Stage**: contract-design
+**Reviewer**: aidlc-architecture-reviewer-agent
+**Iteration**: 1
+**Verdict**: READY
+**Review Verdict Dictated**: no
+**Request Fingerprint**: sha256:32e1f1c5322f4f80b433b0b32d8cd2e20a7faf0ff35a1d7cf3ba4000c98a6272
+**Artifact Fingerprint**: sha256:32e1f1c5322f4f80b433b0b32d8cd2e20a7faf0ff35a1d7cf3ba4000c98a6272
+**Request Id**: review:b24e02cf09b110a8c166e2aa9a07b4aa
+**Review Record**: .aidlc-engine/reviews/contract-design/stage/f8e8036a2d83bea1/1.json
+**Review Record Digest**: sha256:1aa9dc1666ff338ae2c04b2fe8ee9a62902ecb4995ba1127d15ec4514112d115
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:05:57Z
+**Event**: SENSOR_FIRED
+**Fire id**: 6ae587fb
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:05:57Z
+**Event**: SENSOR_PASSED
+**Fire id**: 6ae587fb
+**Sensor ID**: required-sections
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-25T10:05:57Z
+**Event**: SENSOR_FIRED
+**Fire id**: 50ecb43d
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-25T10:05:57Z
+**Event**: SENSOR_PASSED
+**Fire id**: 50ecb43d
+**Sensor ID**: upstream-coverage
+**Stage slug**: contract-design
+**Output path**: aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md
+**Duration ms**: 78
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-25T10:05:57Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: contract-design
+**Details**: Re-entering gate after revision
+**Next Stage**: delivery-planning
+**Brief Digest**: sha256:397590f161c2b2e86e83fe0a73a744074c5b780d78fa3848d50b9fdc6a27f63d
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md=passed; upstream-coverage@aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md=passed
+**Open Decisions**: 0
+**Question Id**: 6ef992c4
+**Question Type**: gate
+**Question Chat**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question Shows**: sha256:b732ef5cc024142bb071f7fb6daf49ed918aa130b68c261ce28ed454121b272e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:07:33Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: picker
+**Picked**: ["推奨は？"]
+**Message Id**: e5a6a4f8
+**Open Questions**: 2fe659af, 6ef992c4
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md","entries":{"Q1":"271331c14ef14aa1","Q2":"20fbc481855c0edc","Q3":"d650e9ba68fca5ce","Consolidated Summary Confirmation":"494622962743a512"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T10:07:33Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: 直した契約のまとめを承認して、次の Delivery Planning に進みますか。
+**Reply**: 推奨は？
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-25T10:07:39Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: unknown
+**Agent ID**: a33696af7c7ea3ec5
+**Message**: Approve
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:08:12Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: typed
+**Message Id**: 0594dc6b
+**Open Questions**: 2fe659af, 6ef992c4
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-design-questions.md","entries":{"Q1":"271331c14ef14aa1","Q2":"20fbc481855c0edc","Q3":"d650e9ba68fca5ce","Consolidated Summary Confirmation":"494622962743a512"}}
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-25T10:08:15Z
+**Event**: GATE_APPROVED
+**Stage**: contract-design
+**User Input**: Approve
+**Person Reply**: 推奨は？\nApprove
+**Message Id**: 0594dc6b
+**Message Ids**: e5a6a4f8,0594dc6b
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md","id":"R-03","fingerprint":"sha256:9908076acc488d12f04aef14df599cbb0129a74d3dab7916dc99dd5217a36237","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/f8e8036a2d83bea1/1.json","digest":"sha256:1aa9dc1666ff338ae2c04b2fe8ee9a62902ecb4995ba1127d15ec4514112d115"}},{"artifact":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/contract-design/contract-summary.md","id":"R-04","fingerprint":"sha256:bf8ede654941ba2d5f18e768eb59c6f0a68c5946217df88f6d9bbe502854259e","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/contract-design/stage/f8e8036a2d83bea1/1.json","digest":"sha256:1aa9dc1666ff338ae2c04b2fe8ee9a62902ecb4995ba1127d15ec4514112d115"}}]}
+**Brief Digest**: sha256:38c0d20562066b373d763ff92c6f9dbf0269b4c759bdf048eae0514781942f88
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-25T10:08:15Z
+**Event**: STAGE_COMPLETED
+**Stage**: contract-design
+**Validation Basis**: {"graphContract":"sha256:ad5599bf4da38de3dec2bfb4bf705de33d27113e18b6a160549a97c4b694fea3","inputs":[{"artifact":"components","contentHash":"sha256:f6e714d64b973492e16f77d8719b9f8a1f39ec053c1bc169ce23313d8ebbe481","instanceCount":1,"presentCount":1,"producer":"domain-design","required":false,"structureHash":"sha256:cdaf66fb16e2b3ad60e941de8963434ae9db976cb406df8508a27944760e9adb"},{"artifact":"requirements","contentHash":"sha256:81a22ff1d817f5b97ddc95ef1b7a6a2c5087b9f3ec6ee7e0450b1f33a05e00a5","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":false,"structureHash":"sha256:1f6d88477243c08682b432fa393ee17d7ac5afb02c94a2138724ab392e200297"},{"artifact":"unit-of-work-dependency","contentHash":"sha256:74ebf352ad17aa87f94d614b5219e423e603b5d89edb512c47326a189b934358","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:f8ed83ba264d2248d96bdfe835d1ca44d96fad1284c626b1a178762666afc07b"},{"artifact":"unit-of-work","contentHash":"sha256:32ef4a420925786f300636a6d30a8d104afc93160ca2e413cd577727ca18a6ea","instanceCount":1,"presentCount":1,"producer":"units-generation","required":true,"structureHash":"sha256:bfada59cd1bb2ff6059a2251fd9d1b4308f1495c612db5baa61f9c1b848fb93e"}],"outputs":[{"artifact":"contract-summary","contentHash":"sha256:b3c7d002f6beeeb53ffa5609819eb86ef3f7a502a12707bd1952c42ea7746c01","instanceCount":1,"presentCount":1,"producer":"contract-design","required":true,"structureHash":"sha256:08a1463b33580e24494c3ca98803053c56110063bbfa08af4533648c435ae810"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Contract Design approved by gate
+**Tokens In**: 74
+**Tokens Out**: 27864
+**Cache Read**: 16284596
+**Cache Write**: 167530
+**Cost USD**: 4.38
+**By Model**: opus-5-5=3.97; sonnet-5-5=0.41
+**By Agent**: main=3.97; aidlc-architecture-reviewer-agent=0.41
+**Tokens By Model**: opus-5-5=54/22k/15.7M/48.2k; sonnet-5-5=20/5.9k/563.9k/119.3k
+**Tokens By Agent**: main=54/22k/15.7M/48.2k; aidlc-architecture-reviewer-agent=20/5.9k/563.9k/119.3k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-25T10:08:15Z
+**Event**: STAGE_STARTED
+**Stage**: delivery-planning
+**Agent**: aidlc-delivery-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-25T10:08:16Z
+**Event**: MEMORY_EMPTY
+**Stage**: contract-design
+
+---
