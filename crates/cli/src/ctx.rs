@@ -23,7 +23,7 @@ use std::sync::Arc;
 use conductor_core::DEFAULT_RUN_ID_ENV;
 use conductor_core::{
     ConsistencyResult, DefinitionError, LoadedEnvFiles, PipelineDefinition, PipelineState, RunId,
-    check_consistency, env_file_refs,
+    check_consistency, check_unset_conflicts, env_file_refs,
 };
 use conductor_runtime::{CommandLine, Durability, InterruptSignal, StateError, StateLocation};
 
@@ -310,6 +310,9 @@ impl Ctx<'_> {
 
     /// 読む対象の `env_file`(`job_id` があればそのジョブの分、なければ全ジョブの分と
     /// `[pipeline].env_file`)を、すべて読む(BR6.1、BR7.1)。誤りは表示して、64 を `Err` で返す(BR2.8)。
+    ///
+    /// 読めた後、同じ範囲のジョブについて、`.env` の名前と `unset_env` の名前の重なりを調べる
+    /// (v0.10.0 の U3 の BR2.2)。重なりは `.env` の誤りと同じく表示して、64 を `Err` で返す。
     pub(crate) fn load_env_files(
         &mut self,
         definition_path: &Path,
@@ -320,13 +323,18 @@ impl Ctx<'_> {
         if refs.is_empty() {
             return Ok(LoadedEnvFiles::new());
         }
-        match self.runtime.load_env_files(definition_path, &refs) {
-            Ok(loaded) => Ok(loaded),
-            Err(errors) => {
-                self.show(&DisplayEvent::EnvFileErrors(&errors));
-                Err(EXIT_DEFINITION)
+        let errors = match self.runtime.load_env_files(definition_path, &refs) {
+            Ok(loaded) => {
+                let conflicts = check_unset_conflicts(definition, job_id, &loaded);
+                if conflicts.is_empty() {
+                    return Ok(loaded);
+                }
+                conflicts
             }
-        }
+            Err(errors) => errors,
+        };
+        self.show(&DisplayEvent::EnvFileErrors(&errors));
+        Err(EXIT_DEFINITION)
     }
 
     /// 定義の読み込みと検証(64)、全ジョブの `command` の検査(64)。`run`・`pipeline` の準備と `validate`・`graph` が共有する。
