@@ -23,6 +23,7 @@ mod args_grammar;
 mod docs;
 mod escape_table;
 mod exit_codes;
+mod graph_dot;
 mod graph_report;
 mod init_template;
 mod plan_report;
