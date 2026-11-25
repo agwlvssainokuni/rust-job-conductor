@@ -142,7 +142,7 @@ fn 完了のステートでも_run_id_は検査される() {
     let a = id("a");
     let done = |r: &str| {
         format!(
-            "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = true\ncompleted = true\nrun_id = \"{r}\"\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n"
+            "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = true\ncompleted = true\nrun_id = \"{r}\"\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:13:05Z\"\n"
         )
     };
     put(dir.path(), "x.toml.a.state", &done("a"));
@@ -286,7 +286,7 @@ fn reset_all_は定義のあるディレクトリがなければ成功する() {
 fn reset_all_は完了のまま残った一致するステートを消す() {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let p = dir.path();
-    let done = "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = true\ncompleted = true\nrun_id = \"a\"\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n";
+    let done = "format_version = 1\ndefinition_key = \"x.toml\"\ndefinition_path = \"x.toml\"\npipeline_name = \"p\"\njob_order = [\"a\"]\nend_reached = true\ncompleted = true\nrun_id = \"a\"\n\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:13:05Z\"\n";
     put(p, "x.toml.a.state", done);
     reset_all_states(&def(p)).expect("成功");
     assert!(!exists(p, "x.toml.a.state"));

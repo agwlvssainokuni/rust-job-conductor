@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use conductor_core::{Command, JobDefinition, PipelineDefinition};
+use conductor_core::{Attempt, Command, JobDefinition, PipelineDefinition, Timestamp};
 use conductor_runtime::{CommandLine, check_command};
 
 /// ディレクトリ `dir` の定義ファイル `x.toml` のパス(ファイルそのものは無くてよい)。
@@ -76,6 +76,15 @@ pub fn job(id: &str, command: impl Into<String>) -> JobDefinition {
         env: vec![],
         env_file: vec![],
         unset_env: vec![],
+    }
+}
+
+/// 終わった試行(`2026-11-25T09:12:48Z` から `2026-11-25T09:13:05Z` まで)。動いたジョブ
+/// (success・warning・error)を持つ固定のステートに足す(v0.10.0 の U6 の BR3.1)。
+pub fn finished_attempt() -> Attempt {
+    Attempt {
+        started_at: Timestamp::from_unix_seconds(1_795_597_968).expect("範囲の中"),
+        ended_at: Timestamp::from_unix_seconds(1_795_597_985),
     }
 }
 

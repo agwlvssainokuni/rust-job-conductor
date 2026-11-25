@@ -22,7 +22,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 
-use conductor_core::{JobState, PipelineState, RunId};
+use conductor_core::{Attempt, JobState, PipelineState, RunId, format_rfc3339};
 
 use crate::error::{StateError, StateErrorKind, reason};
 use crate::platform;
@@ -166,6 +166,31 @@ fn job_table(job: &JobState) -> toml::Table {
     if let Some(r) = job.skip_reason {
         t.insert("skip_reason".into(), toml::Value::String(r.as_str().into()));
     }
+    // 試行があるときだけ `[[job.attempt]]` を書く(無ければ今と同じ形。v0.10.0 の U6 の BR2.1、BR2.2)。
+    if !job.attempts.is_empty() {
+        t.insert(
+            "attempt".into(),
+            toml::Value::Array(
+                job.attempts
+                    .iter()
+                    .map(|a| toml::Value::Table(attempt_table(a)))
+                    .collect(),
+            ),
+        );
+    }
+    t
+}
+
+/// 1 つの試行の表。キーは開始と終了の時刻だけ(UTC の RFC 3339。終わりが無ければ書かない)。
+fn attempt_table(attempt: &Attempt) -> toml::Table {
+    let mut t = toml::Table::new();
+    t.insert(
+        "started_at".into(),
+        toml::Value::String(format_rfc3339(attempt.started_at)),
+    );
+    if let Some(end) = attempt.ended_at {
+        t.insert("ended_at".into(), toml::Value::String(format_rfc3339(end)));
+    }
     t
 }
 
@@ -241,7 +266,11 @@ mod tests {
                     status: JobStatus::Error,
                     exit_code: Some(3),
                     skip_reason: None,
-                    attempts: vec![],
+                    attempts: vec![Attempt {
+                        started_at: conductor_core::Timestamp::from_unix_seconds(1_795_597_968)
+                            .expect("範囲の中"),
+                        ended_at: None,
+                    }],
                 },
                 JobState::pending("b"),
             ],
@@ -269,6 +298,24 @@ mod tests {
         assert_eq!(text.matches("\"d/conductor.toml\"").count(), 2);
         assert!(text.contains("resume_job_id = \"a\""));
         assert!(text.contains("exit_code = 3"));
+    }
+
+    #[test]
+    fn 試行は時刻の_2_つのキーだけで_あるときだけ書く() {
+        let text = serialize(&state()).expect("直列化できる");
+        assert_eq!(text.matches("[[job.attempt]]").count(), 1, "{text}");
+        assert!(text.contains("started_at = \"2026-11-25T09:12:48Z\""));
+        assert!(!text.contains("ended_at"), "終わりが無ければ書かない");
+
+        let mut s = state();
+        s.job_states[0].attempts[0].ended_at =
+            conductor_core::Timestamp::from_unix_seconds(1_795_597_985);
+        let text = serialize(&s).expect("直列化できる");
+        assert!(text.contains("ended_at = \"2026-11-25T09:13:05Z\""));
+
+        s.job_states[0].attempts.clear();
+        let text = serialize(&s).expect("直列化できる");
+        assert!(!text.contains("attempt"), "試行が無ければ今と同じ形");
     }
 
     #[test]

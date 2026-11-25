@@ -120,6 +120,12 @@ pub(crate) mod reason {
     pub const RESUME_NOT_IN_ORDER: &str = "resume_job_id が job_order にありません";
     pub const COMPLETED_WITH_RESUME: &str = "completed と resume_job_id が両立しません";
     pub const RUN_ID_MISMATCH: &str = "run_id がファイル名の run ID と一致しません";
+    /// 動いたジョブ(success・warning・error)に試行が無い(v0.10.0 の U6 の BR3.1。v0.9.9 までのステート)。
+    pub const NO_ATTEMPT: &str = "動いたジョブに試行の記録がありません(古い形式の可能性があります)";
+    /// 試行の時刻が `YYYY-MM-DDTHH:MM:SSZ` の形でない(U6 の BR2.1)。
+    pub const BAD_TIME: &str = "時刻の書式が誤っています";
+    /// 最後でない試行に `ended_at` が無い(U6 の BR3.2)。
+    pub const UNFINISHED_ATTEMPT: &str = "終わりの時刻の無い試行が、最後の試行ではありません";
 
     pub const WRITE_FAILED: &str = "書き込みに失敗しました";
     pub const SERIALIZE_FAILED: &str = "内容を TOML にできません";

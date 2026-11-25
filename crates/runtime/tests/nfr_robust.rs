@@ -50,6 +50,10 @@ id = "a"
 status = "success"
 exit_code = 0
 
+[[job.attempt]]
+started_at = "2026-11-25T09:12:48Z"
+ended_at = "2026-11-25T09:13:05Z"
+
 [[job]]
 id = "b"
 status = "pending"

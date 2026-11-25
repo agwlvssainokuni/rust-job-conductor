@@ -30,12 +30,12 @@ use common::*;
 use conductor_core::{
     Classification, ConsistencyResult, Decision, ExecutionResult, JobDefinition, JobOutcome,
     JobStatus, MismatchKind, NextStep, PipelineDefinition, PipelineState, RunMode, SkipCause,
-    Transition, TransitionOn, TransitionTarget, apply_outcome, apply_skip, check_consistency,
-    classify_and_decide, decide_from_state,
+    Transition, TransitionOn, TransitionTarget, apply_outcome, apply_skip, cancel_attempt,
+    check_consistency, classify_and_decide, decide_from_state, end_attempt, start_attempt,
 };
 // run ID なしの呼び出し(この統合テストは、run ID を使わない流れ)は、`common::without_run_id`。
 use conductor_runtime::{
-    Durability, InterruptSignal, StateError, StateErrorKind, check_command, run_job,
+    Durability, InterruptSignal, StateError, StateErrorKind, check_command, now, run_job,
 };
 
 /// 試験用の場面: 一時ディレクトリ、定義ファイルのパス、ジョブの起動の記録のファイル。
@@ -167,8 +167,9 @@ struct Step {
     started: bool,
 }
 
-/// ジョブを 1 つ実行して記録する(cli の `step::run_step`)。空なら初期ステートを `Fast` で書き、
-/// 実行・分類・記録・`Durable` で書く。`stop_before_record` なら、記録の前に `None` で止まる。
+/// ジョブを 1 つ実行して記録する(cli の `step::run_step`)。空なら初期ステートから始め、試行を始めて
+/// `Fast` で書き(初期化を兼ねる)、実行・試行を閉じる(起動しなければ取り除く)・分類・記録・`Durable` で
+/// 書く。`stop_before_record` なら、記録の前に `None` で止まる(試行は始まったまま)。
 fn run_step(
     def_path: &Path,
     definition: &PipelineDefinition,
@@ -178,19 +179,18 @@ fn run_step(
     signal: &InterruptSignal,
     stop_before_record: bool,
 ) -> Result<Option<Step>, Failure> {
-    let base = match base {
-        Some(state) => state,
-        None => {
-            let initial = initial_state(definition, def_path);
-            write_state(def_path, &initial, Durability::Fast)?;
-            initial
-        }
-    };
+    let base = base.unwrap_or_else(|| initial_state(definition, def_path));
+    let base = start_attempt(&base, &job.id, now());
+    write_state(def_path, &base, Durability::Fast)?;
     let line = check_command(&job.command).expect("分けられる");
     let execution = run_job(&line, &[], &[], signal, None).0;
     if stop_before_record {
         return Ok(None);
     }
+    let base = match execution.result {
+        ExecutionResult::NotStarted { .. } => cancel_attempt(&base, &job.id),
+        _ => end_attempt(&base, &job.id, now()),
+    };
     let (outcome, next) = classify_and_decide(job, &execution, &base.job_states, definition, mode);
     let recorded = apply_outcome(&base, &job.id, &execution, &outcome, &next);
     write_state(def_path, &recorded, Durability::Durable)?;
@@ -685,9 +685,10 @@ fn 完了のまま残ったステートは先頭から再実行できる() {
     let scene = Scene::new();
     let def = scene.definition(vec![scene.job("a", 0), scene.job("b", 0)]);
     let mut done = initial_state(&def, &scene.def_path());
-    done.job_states
-        .iter_mut()
-        .for_each(|j| j.status = JobStatus::Success);
+    done.job_states.iter_mut().for_each(|j| {
+        j.status = JobStatus::Success;
+        j.attempts = vec![finished_attempt()];
+    });
     done.completed = true;
     write_state(&scene.def_path(), &done, Durability::Durable).expect("書ける");
     // 空として扱われるため、alreadyExecuted でスキップされず、a から動く。

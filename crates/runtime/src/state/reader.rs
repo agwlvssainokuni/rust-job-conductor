@@ -22,7 +22,9 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use conductor_core::{JobState, JobStatus, PipelineState, RunId, SkipReason};
+use conductor_core::{
+    Attempt, JobState, JobStatus, PipelineState, RunId, SkipReason, Timestamp, parse_rfc3339,
+};
 
 use crate::bounded_read::{ReadFailure, read_regular_file};
 use crate::error::{StateError, StateErrorKind, reason};
@@ -200,7 +202,10 @@ const TOP_KEYS: [&str; 10] = [
     "completed",
 ];
 
-const JOB_KEYS: [&str; 4] = ["id", "status", "exit_code", "skip_reason"];
+const JOB_KEYS: [&str; 5] = ["id", "status", "exit_code", "skip_reason", "attempt"];
+
+/// `[[job.attempt]]` のキー(開始と終了の時刻だけ。v0.10.0 の U6 の BR2.2)。
+const ATTEMPT_KEYS: [&str; 2] = ["started_at", "ended_at"];
 
 fn required<'a>(table: &'a toml::Table, key: &str) -> Result<&'a toml::Value, ParseFailure> {
     table.get(key).ok_or_else(|| corrupt(reason::MISSING_KEY))
@@ -327,13 +332,62 @@ fn walk_job(job: &toml::Table) -> Result<JobState, ParseFailure> {
     if exit_code.is_some() && !has_result {
         return Err(corrupt(reason::EXIT_CODE_MISMATCH));
     }
+    let attempts = match job.get("attempt") {
+        None => Vec::new(),
+        Some(v) => walk_attempts(v)?,
+    };
+    // 動いたジョブに試行が無いのは、v0.9.9 までのステートか壊れたステート(U6 の BR3.1)。
+    if has_result && attempts.is_empty() {
+        return Err(corrupt(reason::NO_ATTEMPT));
+    }
     Ok(JobState {
         job_id,
         status,
         exit_code,
         skip_reason,
-        attempts: Vec::new(),
+        attempts,
     })
+}
+
+/// `[[job.attempt]]` の表の並びを読む(v0.10.0 の U6 の BR2.1、BR2.2、BR3.2)。
+///
+/// 各表のキーは `started_at`(必須)と `ended_at`(任意)だけで、値は
+/// `YYYY-MM-DDTHH:MM:SSZ` の文字列。`ended_at` が無くてよいのは最後の試行だけ。終わりが始まりより
+/// 前でも誤りにしない(時計の戻り)。
+fn walk_attempts(value: &toml::Value) -> Result<Vec<Attempt>, ParseFailure> {
+    let tables = value
+        .as_array()
+        .ok_or_else(|| corrupt(reason::WRONG_TYPE))?;
+    let mut attempts = Vec::with_capacity(tables.len());
+    for table in tables {
+        let table = table
+            .as_table()
+            .ok_or_else(|| corrupt(reason::WRONG_TYPE))?;
+        if table.keys().any(|k| !ATTEMPT_KEYS.contains(&k.as_str())) {
+            return Err(corrupt(reason::UNKNOWN_KEY));
+        }
+        let started_at = as_time(required(table, "started_at")?)?;
+        let ended_at = match table.get("ended_at") {
+            None => None,
+            Some(v) => Some(as_time(v)?),
+        };
+        attempts.push(Attempt {
+            started_at,
+            ended_at,
+        });
+    }
+    if let Some((_, earlier)) = attempts.split_last()
+        && earlier.iter().any(|a| a.ended_at.is_none())
+    {
+        return Err(corrupt(reason::UNFINISHED_ATTEMPT));
+    }
+    Ok(attempts)
+}
+
+/// 時刻の文字列を読む。文字列でなければ `WRONG_TYPE`、形が違えば `BAD_TIME`(U6 の BR2.1)。
+fn as_time(value: &toml::Value) -> Result<Timestamp, ParseFailure> {
+    let text = value.as_str().ok_or_else(|| corrupt(reason::WRONG_TYPE))?;
+    parse_rfc3339(text).ok_or_else(|| corrupt(reason::BAD_TIME))
 }
 
 #[cfg(test)]
@@ -355,10 +409,19 @@ id = "a"
 status = "success"
 exit_code = 0
 
+[[job.attempt]]
+started_at = "2026-11-25T09:12:48Z"
+ended_at = "2026-11-25T09:13:05Z"
+
 [[job]]
 id = "b"
 status = "pending"
 "#;
+
+    /// `VALID` の `[[job]]` の並び全体(配列を別の値に置き換えるテストが使う)。
+    const JOB_TABLES: &str = "\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n\
+        [[job.attempt]]\nstarted_at = \"2026-11-25T09:12:48Z\"\nended_at = \"2026-11-25T09:13:05Z\"\n\n\
+        [[job]]\nid = \"b\"\nstatus = \"pending\"\n";
 
     fn kind_of(text: &str) -> (StateErrorKind, &'static str) {
         match parse_state(text.as_bytes()) {
@@ -468,9 +531,10 @@ status = "pending"
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
         let t = VALID.replace("[[job]]\nid = \"a\"", "[[job]]\nid = 1");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
-        let t = VALID.replace("\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job]]\nid = \"b\"\nstatus = \"pending\"\n", "job = [1]\n");
+        assert!(VALID.contains(JOB_TABLES));
+        let t = VALID.replace(JOB_TABLES, "job = [1]\n");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
-        let t = VALID.replace("\n[[job]]\nid = \"a\"\nstatus = \"success\"\nexit_code = 0\n\n[[job]]\nid = \"b\"\nstatus = \"pending\"\n", "job = \"x\"\n");
+        let t = VALID.replace(JOB_TABLES, "job = \"x\"\n");
         assert_eq!(kind_of(&t), (StateErrorKind::Corrupt, reason::WRONG_TYPE));
     }
 
