@@ -33,7 +33,11 @@ const RETRY_KEYS: &[&str] = &[
     "max_interval",
 ];
 
-/// `[job.retry]` の読み取り結果。値が正しいものだけが `Some`(位置は、誤りの報告に使う)。
+/// ジョブの `retry` が表でも `false` でもないときの理由(v0.10.0 の BR2.1)。
+const JOB_RETRY_NOT_TABLE_REASON: &str = "`retry` はテーブルか `false` で書きます";
+
+/// `retry` の表 1 つの読み取り結果(ジョブの表と既定の表で共有する)。値が正しいものだけが `Some`
+/// (位置は、誤りの報告に使う)。
 pub(super) struct RawRetry {
     exit_codes: Option<(Vec<i32>, usize)>,
     max: Option<u32>,
@@ -42,17 +46,40 @@ pub(super) struct RawRetry {
     max_interval: Option<(u64, usize)>,
 }
 
+/// ジョブに書いた `retry` の読み取りの結果(v0.10.0 の BR2.1)。
+pub(super) enum JobRetrySetting {
+    /// `retry` を書いていない(既定があれば既定を当てはめる。BR2.2)。
+    Absent,
+    /// `retry = false`(既定を打ち消し、リトライしない。BR2.2、BR2.3)。
+    Disabled,
+    /// `[job.retry]` の表(丸ごと使い、既定と混ぜない。BR2.2)。
+    Table(RawRetry),
+}
+
 impl Walker<'_> {
-    /// `[job.retry]` を読む(BR1.2〜BR1.6、BR1.9〜BR1.12)。書かなければ `None`(BR1.1)。
+    /// ジョブの `retry` を読む(v0.10.0 の BR2.1)。書かなければ `Absent`、`false` なら `Disabled`、
+    /// 表なら `Table`。`true` やほかの型は `retryNotTable` の誤りで、`Absent` として扱う
+    /// (誤りがあれば定義は組み立てないので、扱いは結果に影響しない)。
     ///
     /// 成功・警告の終了コードとの重なり(BR1.7)と、上限と間隔の大小(BR1.13)は、`cross_check` が見る。
-    pub(super) fn retry(&mut self, job: &DeTable<'_>) -> Option<RawRetry> {
-        let value = job.get("retry")?;
-        let start = value.span().start;
-        let DeValue::Table(table) = value.get_ref() else {
-            self.push(start, Kind::RetryNotTable, "`retry` はテーブルで書きます");
-            return None;
+    pub(super) fn job_retry(&mut self, job: &DeTable<'_>) -> JobRetrySetting {
+        let Some(value) = job.get("retry") else {
+            return JobRetrySetting::Absent;
         };
+        let start = value.span().start;
+        match value.get_ref() {
+            DeValue::Boolean(false) => JobRetrySetting::Disabled,
+            DeValue::Table(table) => JobRetrySetting::Table(self.retry_table(table, start)),
+            _ => {
+                self.push(start, Kind::RetryNotTable, JOB_RETRY_NOT_TABLE_REASON);
+                JobRetrySetting::Absent
+            }
+        }
+    }
+
+    /// `retry` の表 1 つを読む(BR1.2〜BR1.6、BR1.9〜BR1.12)。ジョブの表と既定の表で共有する
+    /// (v0.10.0 の BR1.2。`start` は表の位置で、必須のキーが無いときの誤りの位置)。
+    fn retry_table(&mut self, table: &DeTable<'_>, start: usize) -> RawRetry {
         self.check_keys(table, RETRY_KEYS);
         let exit_codes = self.retry_exit_codes(table, start);
         let max = self.retry_integer(table, "max", start, true, 1..=100, Kind::RetryMaxInvalid);
@@ -73,13 +100,13 @@ impl Walker<'_> {
                 "`multiplier` と `max_interval` は、両方を書くか、両方とも書きません",
             );
         }
-        Some(RawRetry {
+        RawRetry {
             exit_codes,
             max,
             interval,
             multiplier,
             max_interval,
-        })
+        }
     }
 
     /// 必須のキーがないとき、`retryMissingKey`(キー名だけを示す。BR1.3)。
@@ -208,7 +235,7 @@ impl Walker<'_> {
 
     /// リトライの設定のうち、ほかの値との関係を見るもの(BR1.7、BR1.13)。
     pub(super) fn check_retry(&mut self, job: &RawJob) {
-        let Some(retry) = &job.retry else {
+        let JobRetrySetting::Table(retry) = &job.retry else {
             return;
         };
         if let Some((codes, offset)) = &retry.exit_codes {

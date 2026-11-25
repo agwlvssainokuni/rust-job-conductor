@@ -38,7 +38,7 @@ use crate::types::{
     Classification, Command, EnvVar, JobDefinition, PipelineDefinition, Transition, TransitionOn,
     TransitionTarget,
 };
-use retry::{RawRetry, build_retry};
+use retry::{JobRetrySetting, build_retry};
 
 const ROOT_KEYS: &[&str] = &[VERSION_KEY, "pipeline", "job"];
 const PIPELINE_KEYS: &[&str] = &[
@@ -95,8 +95,8 @@ struct RawJob {
     warning: Option<(Vec<i32>, usize)>,
     success: SuccessCodes,
     transitions: Vec<RawTransition>,
-    /// `[job.retry]`。書かなければ `None`。
-    retry: Option<RawRetry>,
+    /// ジョブの `retry`(無し・`false`・表。v0.10.0 の BR2.1)。
+    retry: JobRetrySetting,
     env: Vec<EnvVar>,
     env_file: Vec<String>,
     /// 構造の誤りがなく、定義に組み立てられるか。
@@ -390,7 +390,7 @@ impl<'a> Walker<'a> {
             warning: None,
             success: SuccessCodes::Absent,
             transitions: Vec::new(),
-            retry: None,
+            retry: JobRetrySetting::Absent,
             env: Vec::new(),
             env_file: Vec::new(),
             complete: false,
@@ -410,7 +410,7 @@ impl<'a> Walker<'a> {
             None => SuccessCodes::Absent,
         };
         raw.transitions = self.transitions(table);
-        raw.retry = self.retry(table);
+        raw.retry = self.job_retry(table);
         raw.env = self.env_table(table);
         raw.env_file = self.env_file(table);
         raw.complete = self.errors.len() == errors_before;
@@ -609,9 +609,10 @@ fn build_jobs(raw: Vec<RawJob>) -> Option<Vec<JobDefinition>> {
                 },
                 transitions,
                 // `[job.retry]` がなければ `None`(BR1.1)。書いたのに値が欠けていれば、組み立てない。
+                // `retry = false` は `None`(v0.10.0 の BR2.3)。
                 retry: match job.retry {
-                    None => None,
-                    Some(raw) => Some(build_retry(raw)?),
+                    JobRetrySetting::Absent | JobRetrySetting::Disabled => None,
+                    JobRetrySetting::Table(raw) => Some(build_retry(raw)?),
                 },
                 env: job.env,
                 env_file: job.env_file,
