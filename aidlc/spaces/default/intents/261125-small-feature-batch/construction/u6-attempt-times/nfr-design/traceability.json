@@ -1,0 +1,28 @@
+{
+  "stage": "nfr-design",
+  "unit": "u6-attempt-times",
+  "upstream_ids": ["NFR1.3","NFR1.9","NFR6.1","NFR6.2","NFR6.3","NFR5.1","NFR1.4","NFR1.1","NFR1.2","NFR1.6","NFR1.7","NFR1.8","NFR2.1","NFR2.2","NFR2.3","NFR3.1","NFR3.2","NFR1.5","NFR6.4","NFR4.1","NFR7.1"],
+  "coverage": [
+    { "id": "NFR1.3", "status": "OK", "target": "performance-design.md: 開始の書き込みが初期化を兼ねる" },
+    { "id": "NFR1.9", "status": "OK", "target": "performance-design.md: 試行の数に比例する読み込み" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design.md の 1: attempt の 2 つのキーだけと nfr_content.rs" },
+    { "id": "NFR6.2", "status": "OK", "target": "security-design.md の 2: 固定の理由の文" },
+    { "id": "NFR6.3", "status": "OK", "target": "security-design.md の 3: 印のファイルを作らない" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design.md の 4" },
+    { "id": "NFR1.4", "status": "OK", "target": "scalability-design.md: 試行 1 つは 3 行、上限は 1 MiB のまま" },
+    { "id": "NFR1.1", "status": "OK", "target": "reliability-design.md の 5: 今のテストの直しの例外(固定のステートに試行を足す)" },
+    { "id": "NFR1.2", "status": "OK", "target": "reliability-design.md の 2: 開始を書いてから起動" },
+    { "id": "NFR1.6", "status": "OK", "target": "reliability-design.md の 1: start_attempt が閉じ忘れの試行を閉じる" },
+    { "id": "NFR1.7", "status": "OK", "target": "reliability-design.md の 2 の表(ログを作れないときは足して閉じるに改める)" },
+    { "id": "NFR1.8", "status": "OK", "target": "reliability-design.md の 4 の表" },
+    { "id": "NFR2.1", "status": "OK", "target": "reliability-design.md の 5: core → runtime → cli のテストの配置" },
+    { "id": "NFR2.2", "status": "OK", "target": "reliability-design.md の 5: binary_*.rs" },
+    { "id": "NFR2.3", "status": "OK", "target": "reliability-design.md の 5: 偽の Runtime::now()、確認のコマンド" },
+    { "id": "NFR3.1", "status": "OK", "target": "reliability-design.md の 5: CI" },
+    { "id": "NFR3.2", "status": "OK", "target": "reliability-design.md の 5: デモのテストは形だけ" },
+    { "id": "NFR1.5", "status": "OK", "target": "observability-design.md: 所要時間の列と format_duration" },
+    { "id": "NFR6.4", "status": "OK", "target": "observability-design.md: 今の Corrupt の表示の経路" },
+    { "id": "NFR4.1", "status": "OK", "target": "logical-components.md: U5 の時刻の部品を使い、依存を足さない" },
+    { "id": "NFR7.1", "status": "OK", "target": "logical-components.md: 変更する部品の範囲で fmt と clippy を通す(CI の lint)" }
+  ]
+}
