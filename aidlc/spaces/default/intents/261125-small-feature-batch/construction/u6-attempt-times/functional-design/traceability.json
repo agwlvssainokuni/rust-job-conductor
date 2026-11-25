@@ -1,0 +1,17 @@
+{
+  "stage": "functional-design",
+  "unit": "u6-attempt-times",
+  "upstream_ids": ["FR6.1","FR6.2","FR6.3","FR6.4","FR6.5","FR6.6","FR6.7","FR6.8","FR6.9","FR8.1"],
+  "coverage": [
+    { "id": "FR6.1", "status": "OK", "target": "rules.md の BR1.1、BR1.2、BR1.3、functional-spec.md の 2" },
+    { "id": "FR6.2", "status": "OK", "target": "rules.md の BR2.1、entities.md のステートファイル" },
+    { "id": "FR6.3", "status": "OK", "target": "rules.md の BR2.2、entities.md の Attempt" },
+    { "id": "FR6.4", "status": "OK", "target": "rules.md の BR3.1、functional-spec.md の 3" },
+    { "id": "FR6.5", "status": "OK", "target": "rules.md の BR4.1、BR4.2、BR1.4、functional-spec.md の 4" },
+    { "id": "FR6.6", "status": "OK", "target": "rules.md の BR2.1(U5 の時刻の整形と読み取りを使う)" },
+    { "id": "FR6.7", "status": "OK", "target": "rules.md の BR3.1(ステートを読むすべてのコマンド)" },
+    { "id": "FR6.8", "status": "OK", "target": "rules.md の BR3.1(65 と reset の案内)、functional-spec.md の 3 の 4" },
+    { "id": "FR6.9", "status": "OK", "target": "rules.md の BR3.2、BR1.4" },
+    { "id": "FR8.1", "status": "OK", "target": "rules.md の BR5.2、BR5.1" }
+  ]
+}
