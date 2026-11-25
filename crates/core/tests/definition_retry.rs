@@ -13,6 +13,9 @@
 // limitations under the License.
 
 //! リトライの設定 `[job.retry]` の読み取りと検証(U1。BR1.1〜BR1.16、FR1.1〜FR1.9、FR7.1)。
+//!
+//! v0.10.0 の `[pipeline.retry]`(全ジョブの既定)と `retry = false`(打ち消し)の読み取りと検証
+//! (u1-pipeline-retry。BR1.1〜BR4.1、FR1.1〜FR1.6)も、ここで確かめる。
 
 mod common;
 
@@ -443,6 +446,317 @@ fn br1_14_ほかの定義の誤りと一緒に位置の順に集められる() {
 #[test]
 fn br1_14_誤りがあれば定義は組み立てられない() {
     assert!(parse_definition(&base("multiplier = 2\n"), "t.toml", None).is_err());
+}
+
+// ---- v0.10.0: `[pipeline.retry]`(全ジョブの既定)と `retry = false`(BR1.1〜BR4.1、FR1.1〜FR1.6) ----
+
+/// 正しく書いた既定の本体(`[pipeline.retry]` の見出しの次の 5〜7 行目)。
+const DEFAULT_BODY: &str = "exit_codes = [75]\nmax = 3\ninterval = \"30s\"\n";
+
+/// 見出し(3 行)と `[pipeline.retry]`(4 行目)と `body`(5 行目から)に、`jobs` を続けた定義。
+fn default_def(body: &str, jobs: &str) -> String {
+    format!("format_version = 1\n[pipeline]\nname = \"p\"\n[pipeline.retry]\n{body}{jobs}")
+}
+
+/// ジョブ 1 つ(`[[job]]`、`id`、`command` の 3 行と、`extra`)。
+fn job(id: &str, extra: &str) -> String {
+    format!("[[job]]\nid = \"{id}\"\ncommand = \"c\"\n{extra}")
+}
+
+fn default_policy() -> RetryPolicy {
+    RetryPolicy {
+        exit_codes: vec![75],
+        max: 3,
+        interval_secs: 30,
+        backoff: None,
+    }
+}
+
+fn reasons(text: &str) -> Vec<String> {
+    parse_definition(text, "t.toml", None)
+        .unwrap_err()
+        .into_iter()
+        .map(|e| e.reason)
+        .collect()
+}
+
+#[test]
+fn br1_2_既定を読み_retry_を書かないジョブに既定が入る() {
+    let def = parse_ok(&default_def(
+        DEFAULT_BODY,
+        &format!("{}{}", job("a", ""), job("b", "")),
+    ));
+    assert_eq!(def.job[0].retry, Some(default_policy()));
+    assert_eq!(def.job[1].retry, Some(default_policy()));
+}
+
+#[test]
+fn br1_2_既定の倍率と上限も読める() {
+    let def = parse_ok(&default_def(
+        "exit_codes = [75, 3, 75]\nmax = 5\ninterval = \"1m\"\nmultiplier = 2\nmax_interval = \"10m\"\n",
+        &job("a", ""),
+    ));
+    let p = def.job[0].retry.clone().expect("既定が入る");
+    assert_eq!(p.exit_codes, vec![3, 75]);
+    assert_eq!(p.max, 5);
+    assert_eq!(p.interval_secs, 60);
+    assert_eq!(p.backoff.map(|b| b.multiplier), Some(2));
+    assert_eq!(p.backoff.map(|b| b.max_interval_secs), Some(600));
+}
+
+#[test]
+fn br1_2_既定はインラインテーブルでも書ける() {
+    let t = format!(
+        "format_version = 1\n[pipeline]\nname = \"p\"\nretry = {{ exit_codes = [75], max = 3, interval = \"30s\" }}\n{}",
+        job("a", "")
+    );
+    assert_eq!(parse_ok(&t).job[0].retry, Some(default_policy()));
+}
+
+#[test]
+fn br1_2_既定の誤りはジョブの表と同じ種類で既定の中の位置() {
+    let a = job("a", "");
+    assert_eq!(
+        run(&default_def("max = 3\ninterval = \"30s\"\n", &a)),
+        vec![(K::RetryMissingKey, Some(4))]
+    );
+    assert_eq!(
+        run(&default_def(
+            "exit_codes = [75]\nmax = 0\ninterval = \"30s\"\n",
+            &a
+        )),
+        vec![(K::RetryMaxInvalid, Some(6))]
+    );
+    assert_eq!(
+        run(&default_def(
+            "exit_codes = []\nmax = 3\ninterval = \"30s\"\n",
+            &a
+        )),
+        vec![(K::RetryExitCodesEmpty, Some(5))]
+    );
+    assert_eq!(
+        run(&default_def(&format!("{DEFAULT_BODY}multiplier = 2\n"), &a)),
+        vec![(K::RetryBackoffIncomplete, Some(4))]
+    );
+    assert_eq!(
+        run(&default_def(&format!("{DEFAULT_BODY}retries = 3\n"), &a)),
+        vec![(K::UnknownKey, Some(8))]
+    );
+    assert_eq!(
+        run(&default_def(
+            "exit_codes = [75]\nmax = 3\ninterval = \"0s\"\n",
+            &a
+        )),
+        vec![(K::RetryDurationInvalid, Some(7))]
+    );
+}
+
+#[test]
+fn br3_5_既定の上限が間隔より小さい誤りはジョブの数によらず_1_回() {
+    let jobs = format!("{}{}{}", job("a", ""), job("b", ""), job("c", ""));
+    let t = default_def(
+        "exit_codes = [75]\nmax = 3\ninterval = \"10m\"\nmultiplier = 2\nmax_interval = \"5m\"\n",
+        &jobs,
+    );
+    assert_eq!(run(&t), vec![(K::RetryMaxIntervalTooSmall, Some(9))]);
+}
+
+#[test]
+fn br1_1_pipeline_の_retry_が表でない() {
+    for value in ["false", "true", "3", "\"x\""] {
+        let t = format!(
+            "format_version = 1\n[pipeline]\nname = \"p\"\nretry = {value}\n{}",
+            job("a", "")
+        );
+        assert_eq!(run(&t), vec![(K::RetryNotTable, Some(4))], "{value}");
+        assert_eq!(
+            reasons(&t),
+            vec!["`[pipeline.retry]` はテーブルで書きます".to_string()],
+            "{value}"
+        );
+    }
+}
+
+#[test]
+fn br2_1_ジョブの_retry_が_true_なら表か_false_で書く誤り() {
+    let t = job_with("retry = true\n");
+    assert_eq!(run(&t), vec![(K::RetryNotTable, Some(7))]);
+    let reason = &reasons(&t)[0];
+    assert_eq!(reason, "`retry` はテーブルか `false` で書きます");
+    assert!(reason.contains("`false`"));
+}
+
+#[test]
+fn br2_2_ジョブの表があれば丸ごと使い既定の倍率を混ぜない() {
+    let def = parse_ok(&default_def(
+        "exit_codes = [75]\nmax = 3\ninterval = \"30s\"\nmultiplier = 2\nmax_interval = \"10m\"\n",
+        &format!(
+            "{}{}",
+            job(
+                "a",
+                "[job.retry]\nexit_codes = [9]\nmax = 5\ninterval = \"2s\"\n"
+            ),
+            job("b", "")
+        ),
+    ));
+    assert_eq!(
+        def.job[0].retry,
+        Some(RetryPolicy {
+            exit_codes: vec![9],
+            max: 5,
+            interval_secs: 2,
+            backoff: None,
+        })
+    );
+    assert!(
+        def.job[1]
+            .retry
+            .as_ref()
+            .is_some_and(|r| r.backoff.is_some())
+    );
+}
+
+#[test]
+fn br2_2_retry_が_false_のジョブは既定があっても_none() {
+    let def = parse_ok(&default_def(
+        DEFAULT_BODY,
+        &format!("{}{}", job("a", "retry = false\n"), job("b", "")),
+    ));
+    assert_eq!(def.job[0].retry, None);
+    assert_eq!(def.job[1].retry, Some(default_policy()));
+}
+
+#[test]
+fn br2_3_既定が無くても_retry_が_false_は誤りにならず_none() {
+    let t = job_with("retry = false\n");
+    assert!(run(&t).is_empty());
+    assert_eq!(parse_ok(&t).job[0].retry, None);
+}
+
+#[test]
+fn br2_4_既定を当てはめたジョブは同じ値の表を書いたジョブと同じ定義になる() {
+    let by_default = parse_ok(&default_def(DEFAULT_BODY, &job("a", "")));
+    let by_table = parse_ok(&base(""));
+    assert_eq!(by_default.job, by_table.job);
+}
+
+#[test]
+fn br3_1_br3_2_既定との重なりはジョブごとにそのジョブの行で報告する() {
+    // a は 8〜11 行目(警告と重なる)、b は 12〜15 行目(成功と重なる)、c は 16〜18 行目(重ならない)。
+    let jobs = format!(
+        "{}{}{}",
+        job("a", "warning_exit_codes = [75]\n"),
+        job("b", "success_exit_codes = [0, 75]\n"),
+        job("c", "")
+    );
+    let t = default_def(DEFAULT_BODY, &jobs);
+    assert_eq!(
+        run(&t),
+        vec![
+            (K::RetryExitCodesOverlap, Some(8)),
+            (K::RetryExitCodesOverlap, Some(12)),
+        ]
+    );
+    let expected = "既定のリトライ(`[pipeline.retry]`)の `exit_codes` に、このジョブの成功または警告の終了コードと同じ値があります";
+    assert_eq!(
+        reasons(&t),
+        vec![expected.to_string(), expected.to_string()]
+    );
+}
+
+#[test]
+fn br3_1_成功の終了コードを省略したジョブは_0_だけと比べ既定と重ならない() {
+    let t = default_def(DEFAULT_BODY, &job("a", "warning_exit_codes = [4]\n"));
+    assert!(run(&t).is_empty());
+}
+
+#[test]
+fn br3_1_ジョブが_1_つで警告と重なれば_1_つだけ() {
+    let t = default_def(
+        "exit_codes = [4, 75]\nmax = 3\ninterval = \"30s\"\n",
+        &job("a", "warning_exit_codes = [4, 75]\n"),
+    );
+    assert_eq!(run(&t), vec![(K::RetryExitCodesOverlap, Some(8))]);
+}
+
+#[test]
+fn br3_3_false_のジョブと自分の表のジョブは既定と重なっても誤りにならない() {
+    let jobs = format!(
+        "{}{}",
+        job("a", "warning_exit_codes = [75]\nretry = false\n"),
+        job(
+            "b",
+            "warning_exit_codes = [75]\n[job.retry]\nexit_codes = [9]\nmax = 1\ninterval = \"1s\"\n"
+        )
+    );
+    assert!(run(&default_def(DEFAULT_BODY, &jobs)).is_empty());
+}
+
+#[test]
+fn br3_3_自分の表のジョブは今までどおり自分の表と重なりを調べる() {
+    let t = default_def(
+        DEFAULT_BODY,
+        &job(
+            "a",
+            "warning_exit_codes = [9]\n[job.retry]\nexit_codes = [9]\nmax = 1\ninterval = \"1s\"\n",
+        ),
+    );
+    // ジョブの表の `exit_codes`(13 行目)で、今の理由の文。
+    assert_eq!(run(&t), vec![(K::RetryExitCodesOverlap, Some(13))]);
+    assert_eq!(
+        reasons(&t),
+        vec!["`exit_codes` に、成功または警告の終了コードと同じ値があります".to_string()]
+    );
+}
+
+#[test]
+fn br3_4_既定の_exit_codes_が誤りなら重なりを調べない() {
+    let t = default_def(
+        "exit_codes = [75, 0]\nmax = 3\ninterval = \"30s\"\n",
+        &job("a", "warning_exit_codes = [75]\n"),
+    );
+    assert_eq!(run(&t), vec![(K::RetryExitCodeInvalid, Some(5))]);
+}
+
+#[test]
+fn br3_4_ジョブの成功の終了コードが誤りなら成功との重なりは調べず警告は調べる() {
+    let only_success = default_def(DEFAULT_BODY, &job("a", "success_exit_codes = [\"x\"]\n"));
+    assert_eq!(kinds(&only_success), vec![K::TypeMismatch]);
+    let with_warning = default_def(
+        DEFAULT_BODY,
+        &job(
+            "a",
+            "success_exit_codes = [\"x\"]\nwarning_exit_codes = [75]\n",
+        ),
+    );
+    assert_eq!(
+        kinds(&with_warning),
+        vec![K::RetryExitCodesOverlap, K::TypeMismatch]
+    );
+}
+
+#[test]
+fn name_が空でも既定の誤りと既定との重なりの誤りが出る() {
+    let head = "format_version = 1\n[pipeline]\nname = \"\"\n[pipeline.retry]\n";
+    let bad_default = format!(
+        "{head}exit_codes = [75]\nmax = 0\ninterval = \"30s\"\n{}",
+        job("a", "")
+    );
+    assert_eq!(
+        run(&bad_default),
+        vec![(K::EmptyField, Some(3)), (K::RetryMaxInvalid, Some(6))]
+    );
+    let overlap = format!(
+        "{head}{DEFAULT_BODY}{}",
+        job("a", "warning_exit_codes = [75]\n")
+    );
+    assert_eq!(
+        run(&overlap),
+        vec![
+            (K::EmptyField, Some(3)),
+            (K::RetryExitCodesOverlap, Some(8))
+        ]
+    );
 }
 
 #[test]
