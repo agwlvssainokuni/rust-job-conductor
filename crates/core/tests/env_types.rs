@@ -149,7 +149,7 @@ const ENV_FILE_KIND_TEXTS: [(EnvFileErrorKind, &str); 13] = [
 ];
 
 /// 定義の誤りの種類の文(33 種)。変更前の文を固定の文字列で書く(1j、D10)。
-const DEFINITION_KIND_TEXTS: [(DefinitionErrorKind, &str); 33] = [
+const DEFINITION_KIND_TEXTS: [(DefinitionErrorKind, &str); 34] = [
     (
         DefinitionErrorKind::FileMissing,
         "定義ファイルが存在しません",
@@ -257,6 +257,10 @@ const DEFINITION_KIND_TEXTS: [(DefinitionErrorKind, &str); 33] = [
     (
         DefinitionErrorKind::InvalidEnvValue,
         "環境変数の値が正しくありません",
+    ),
+    (
+        DefinitionErrorKind::UnsetEnvConflict,
+        "消す環境変数の名前が、足す環境変数の名前と重なっています",
     ),
 ];
 

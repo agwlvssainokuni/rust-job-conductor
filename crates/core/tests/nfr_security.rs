@@ -225,6 +225,13 @@ fn cases() -> Vec<(DefinitionErrorKind, String)> {
                 "env_file = {{ path = \"a.env\", required = \"{SENTINEL}\" }}\n"
             )),
         ),
+        // v0.10.0 の U3: `unset_env` と `env` の重なり(値と、大文字小文字の違う名前に目印。BR2.1)。
+        (
+            K::UnsetEnvConflict,
+            job(&format!(
+                "unset_env = [\"X{SENTINEL}\"]\n[job.env]\nx{SENTINEL} = \"{SENTINEL}\"\n"
+            )),
+        ),
         // v0.10.0: `log_dir` の型の誤り(値の位置に目印。BR1.1、NFR6.1)。
         (
             K::TypeMismatch,

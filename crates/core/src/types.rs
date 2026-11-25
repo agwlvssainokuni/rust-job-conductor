@@ -47,6 +47,10 @@ pub struct PipelineDefinition {
     /// 相対なら定義ファイルのディレクトリが基準(解決は使う側)。書かなければ `None` で、ジョブの出力は
     /// 今と同じく引き継ぐだけ(BR1.2)。
     pub log_dir: Option<String>,
+    /// `[pipeline].unset_env` の内容(v0.10.0 の FR3.1、U3 の BR1.1〜BR1.3)。親から引き継いだ環境から
+    /// すべてのジョブで消す名前。名前の規則と予約名の検査は済んでいる。書いた順を保ち、完全に同じ名前は
+    /// 最初の 1 つにまとめてある。書かなければ空。
+    pub unset_env: Vec<String>,
 }
 
 /// 定義の `env_file` の 1 項目(v0.10.0 の BR1.1〜BR1.3。契約 C1)。
@@ -118,6 +122,9 @@ pub struct JobDefinition {
     pub env: Vec<EnvVar>,
     /// `[job].env_file` の内容。書いた順を保つ(FR1.4。項目は v0.10.0 の BR1.1〜BR1.3)。
     pub env_file: Vec<EnvFileRef>,
+    /// `[job].unset_env` の内容(v0.10.0 の FR3.1、U3 の BR1.1〜BR1.3)。親から引き継いだ環境から
+    /// このジョブで消す名前。形は [`PipelineDefinition::unset_env`] と同じ。
+    pub unset_env: Vec<String>,
 }
 
 /// ジョブのリトライの設定(`[job.retry]` または `[pipeline.retry]`。BR1.1〜BR1.13、FR1.1〜FR1.9)。

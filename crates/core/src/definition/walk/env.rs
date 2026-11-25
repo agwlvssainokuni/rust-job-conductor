@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! `env` と `env_file` の検査(Walk の一部。BR1.1〜BR1.6。`env_file` の表は v0.10.0 の BR1.1〜BR1.3)。
+//! `env`、`env_file`、`unset_env` の検査(Walk の一部。BR1.1〜BR1.6。`env_file` の表は v0.10.0 の
+//! BR1.1〜BR1.3。`unset_env` は U3 の BR1.1〜BR1.3、BR2.1)。
 //!
 //! `[pipeline]` とジョブの走査の中で、親のモジュールから呼ばれる。
 
@@ -20,7 +21,7 @@ use std::collections::HashSet;
 
 use toml::de::{DeTable, DeValue};
 
-use super::Walker;
+use super::{PipelineHead, RawJob, Walker};
 use crate::envfile::{is_reserved_env_name, reserved_env_prefix};
 use crate::error::{DefinitionErrorKind as Kind, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
@@ -107,6 +108,102 @@ impl Walker<'_> {
         out
     }
 
+    /// `unset_env` を読む(U3 の BR1.1〜BR1.3)。無ければ空。名前と、その位置を、書いた順に返す。
+    ///
+    /// 文字列の配列で書く。名前の規則は `env` と同じで、空・規則違反・予約名(`CONDUCTOR_*`)は誤り。
+    /// 理由の文は `unset_env` の固定の文で、名前は `quote_key` を通す。完全に同じ名前は誤りにせず、
+    /// 最初の 1 つだけを残す(BR1.3)。
+    pub(super) fn unset_env(&mut self, parent: &DeTable<'_>) -> Vec<(String, usize)> {
+        let Some(value) = parent.get("unset_env") else {
+            return Vec::new();
+        };
+        let DeValue::Array(items) = value.get_ref() else {
+            self.type_error(value.span().start, UNSET_ENV_TYPE_REASON);
+            return Vec::new();
+        };
+        let mut out: Vec<(String, usize)> = Vec::new();
+        // 見た名前(完全一致)。同じ名前は、最初の 1 つにまとめる(BR1.3)。
+        let mut seen: HashSet<&str> = HashSet::new();
+        for item in items.iter() {
+            let at = item.span().start;
+            let DeValue::String(name) = item.get_ref() else {
+                self.type_error(at, UNSET_ENV_ITEM_TYPE_REASON);
+                continue;
+            };
+            let name: &str = name.as_ref();
+            if name.is_empty() {
+                self.push(at, Kind::EmptyField, "`unset_env` に空の文字列は書けません");
+                continue;
+            }
+            if !is_valid_env_name(name) {
+                self.push(
+                    at,
+                    Kind::InvalidEnvName,
+                    format!(
+                        concat!("`unset_env` の名前 {} は、", env_name_rule!(), "で書きます"),
+                        quote_key(name)
+                    ),
+                );
+                continue;
+            }
+            if is_reserved_env_name(name) {
+                self.push(
+                    at,
+                    Kind::ReservedEnvName,
+                    format!(
+                        concat!(
+                            "`unset_env` の名前 {} は、`",
+                            reserved_env_prefix!(),
+                            "` で始まるため書けません"
+                        ),
+                        quote_key(name)
+                    ),
+                );
+                continue;
+            }
+            if seen.insert(name) {
+                out.push((name.to_string(), at));
+            }
+        }
+        out
+    }
+
+    /// `unset_env` の名前が、同じジョブに当てはまる `env` の名前と重なっていないかを調べる(U3 の BR2.1)。
+    ///
+    /// パイプラインの `unset_env` は、パイプラインの `env` とすべてのジョブの `env` と比べる。ジョブの
+    /// `unset_env` は、パイプラインの `env` とそのジョブの `env` と比べる。比べ方は、どの OS でも ASCII の
+    /// 大文字小文字を区別しない(OS によって意味が変わる書き方を止める。security-design の 1)。重なれば、
+    /// `unset_env` の名前の位置で 1 つの `UnsetEnvConflict`。理由の文は固定で、値も名前も入れない。
+    pub(super) fn check_unset_env(&mut self, pipeline: Option<&PipelineHead>, jobs: &[RawJob]) {
+        let (pipeline_env, pipeline_unset) = match pipeline {
+            Some(head) => (head.env.as_slice(), head.unset_env.as_slice()),
+            None => (&[][..], &[][..]),
+        };
+        let pipeline_names = lowercase_names(pipeline_env);
+        if !pipeline_unset.is_empty() {
+            let mut all_names = pipeline_names.clone();
+            for job in jobs {
+                all_names.extend(lowercase_names(&job.env));
+            }
+            self.push_unset_conflicts(pipeline_unset, |name| all_names.contains(name));
+        }
+        for job in jobs.iter().filter(|job| !job.unset_env.is_empty()) {
+            let job_names = lowercase_names(&job.env);
+            self.push_unset_conflicts(&job.unset_env, |name| {
+                pipeline_names.contains(name) || job_names.contains(name)
+            });
+        }
+    }
+
+    /// 小文字にした名前が `overlaps` に当たる `unset_env` の名前ごとに、誤りを 1 つ足す(U3 の BR2.1)。
+    fn push_unset_conflicts(&mut self, unset: &[(String, usize)], overlaps: impl Fn(&str) -> bool) {
+        for (name, at) in unset {
+            if overlaps(&name.to_ascii_lowercase()) {
+                self.push(*at, Kind::UnsetEnvConflict, UNSET_ENV_CONFLICT_REASON);
+            }
+        }
+    }
+
     /// `env_file` を読む(BR1.6。v0.10.0 の BR1.1〜BR1.3)。無ければ空。
     ///
     /// 項目は文字列か表 `{ path, required }`。1 つでも配列でも書け、配列には両方を混ぜて書ける。
@@ -159,6 +256,20 @@ impl Walker<'_> {
         }
     }
 }
+
+/// `env` の名前を、ASCII の小文字にした集合にする(U3 の BR2.1。名前の数に比例する時間で引く)。
+fn lowercase_names(vars: &[EnvVar]) -> HashSet<String> {
+    vars.iter().map(|v| v.name.to_ascii_lowercase()).collect()
+}
+
+/// `unset_env` が配列でないときの理由(U3 の BR1.1)。
+const UNSET_ENV_TYPE_REASON: &str = "`unset_env` は、文字列の配列で書きます";
+
+/// `unset_env` の配列の要素が文字列でないときの理由(U3 の BR1.1)。
+const UNSET_ENV_ITEM_TYPE_REASON: &str = "`unset_env` の要素は、文字列で書きます";
+
+/// `unset_env` の名前が `env` の名前と重なるときの理由(U3 の BR2.1)。値も名前も入れない。
+const UNSET_ENV_CONFLICT_REASON: &str = "`unset_env` の名前が、`env` の名前と重なっています";
 
 /// `env_file` の表の項目に書けるキー(v0.10.0 の BR1.2)。
 const ENV_FILE_TABLE_KEYS: &[&str] = &["path", "required"];

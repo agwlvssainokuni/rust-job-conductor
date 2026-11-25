@@ -80,6 +80,7 @@ pub fn job(id: &str) -> JobDefinition {
         retry: None,
         env: vec![],
         env_file: vec![],
+        unset_env: vec![],
     }
 }
 

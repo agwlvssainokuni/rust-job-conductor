@@ -28,6 +28,7 @@ pub(crate) fn job(id: &str) -> JobDefinition {
         retry: None,
         env: Vec::new(),
         env_file: Vec::new(),
+        unset_env: Vec::new(),
     }
 }
 
@@ -43,5 +44,6 @@ pub(crate) fn definition(name: &str, jobs: Vec<JobDefinition>) -> PipelineDefini
         env: Vec::new(),
         env_file: Vec::new(),
         log_dir: None,
+        unset_env: Vec::new(),
     }
 }

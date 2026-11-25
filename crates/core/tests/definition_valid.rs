@@ -175,6 +175,7 @@ fn br4_1_既定を書かない定義は今と同じ定義に組み立てられ�
                 }),
                 env: Vec::new(),
                 env_file: Vec::new(),
+                unset_env: Vec::new(),
             },
             JobDefinition {
                 id: "b".into(),
@@ -185,11 +186,13 @@ fn br4_1_既定を書かない定義は今と同じ定義に組み立てられ�
                 retry: None,
                 env: Vec::new(),
                 env_file: Vec::new(),
+                unset_env: Vec::new(),
             },
         ],
         env: Vec::new(),
         env_file: Vec::new(),
         log_dir: None,
+        unset_env: Vec::new(),
     };
     assert_eq!(def, expected);
 }

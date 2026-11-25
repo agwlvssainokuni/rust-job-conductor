@@ -289,6 +289,7 @@ pub fn definition_kind(kind: DefinitionErrorKind) -> Text {
         K::ReservedEnvName => "reserved environment variable name",
         K::EnvNameCaseConflict => "environment variable names differ only in letter case",
         K::InvalidEnvValue => "invalid environment variable value",
+        K::UnsetEnvConflict => "a name in unset_env is also set by env",
     };
     Text::new(en, kind.label())
 }

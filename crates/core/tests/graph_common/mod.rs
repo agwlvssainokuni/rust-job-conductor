@@ -51,6 +51,7 @@ pub fn definition(ids: &[&str], transitions: &[Spec<'_>]) -> PipelineDefinition 
             retry: None,
             env: Vec::new(),
             env_file: Vec::new(),
+            unset_env: Vec::new(),
         })
         .collect();
     PipelineDefinition {
@@ -63,6 +64,7 @@ pub fn definition(ids: &[&str], transitions: &[Spec<'_>]) -> PipelineDefinition 
         env: Vec::new(),
         env_file: Vec::new(),
         log_dir: None,
+        unset_env: Vec::new(),
     }
 }
 

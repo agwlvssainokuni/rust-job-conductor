@@ -75,6 +75,7 @@ pub fn job(id: &str, command: impl Into<String>) -> JobDefinition {
         retry: None,
         env: vec![],
         env_file: vec![],
+        unset_env: vec![],
     }
 }
 
@@ -90,6 +91,7 @@ pub fn definition(name: &str, jobs: Vec<JobDefinition>) -> PipelineDefinition {
         env: vec![],
         env_file: vec![],
         log_dir: None,
+        unset_env: vec![],
     }
 }
 

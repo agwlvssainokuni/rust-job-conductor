@@ -80,6 +80,7 @@ impl Scene {
             env: vec![],
             env_file: vec![],
             log_dir: None,
+            unset_env: vec![],
         }
     }
 }

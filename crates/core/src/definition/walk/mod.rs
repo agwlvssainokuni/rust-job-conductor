@@ -19,7 +19,7 @@
 //! 誤りは、すべて集めて返す。型の誤りで検査できなくなった子の後続の検査は、その子だけ省略する。
 //! 理由の文は、固定の文から組み立てる。入力に由来するのは、キー名(エスケープと切り詰めを行う)だけである。
 //!
-//! `[job.retry]` と `[pipeline.retry]` の検査と組み立ては `retry`、`env` と `env_file` の検査は `env` の
+//! `[job.retry]` と `[pipeline.retry]` の検査と組み立ては `retry`、`env`・`env_file`・`unset_env` の検査は `env` の
 //! 子モジュールにある(どちらも `Walker` のメソッドで、ここから呼ぶ。呼ぶ順序は変わらない)。
 //!
 //! 実効のリトライは、検証の中で 1 度だけ決める(v0.10.0 の BR2.2、BR2.4)。ジョブの表があれば丸ごと
@@ -54,6 +54,7 @@ const PIPELINE_KEYS: &[&str] = &[
     "env_file",
     "retry",
     "log_dir",
+    "unset_env",
 ];
 const JOB_KEYS: &[&str] = &[
     "id",
@@ -64,6 +65,7 @@ const JOB_KEYS: &[&str] = &[
     "retry",
     "env",
     "env_file",
+    "unset_env",
 ];
 const TRANSITION_KEYS: &[&str] = &["on", "next"];
 
@@ -79,6 +81,8 @@ struct PipelineHead {
     env: Vec<EnvVar>,
     env_file: Vec<EnvFileRef>,
     log_dir: Option<String>,
+    /// `unset_env` の名前と位置(`env` との重なりの誤りの位置。U3 の BR2.1)。
+    unset_env: Vec<(String, usize)>,
 }
 
 struct RawTransition {
@@ -108,6 +112,8 @@ struct RawJob {
     retry: JobRetrySetting,
     env: Vec<EnvVar>,
     env_file: Vec<EnvFileRef>,
+    /// `unset_env` の名前と位置(U3 の BR2.1)。
+    unset_env: Vec<(String, usize)>,
     /// 構造の誤りがなく、定義に組み立てられるか。
     complete: bool,
 }
@@ -325,6 +331,7 @@ impl<'a> Walker<'a> {
         let env = self.env_table(table);
         let env_file = self.env_file(table);
         let log_dir = self.log_dir(table, start);
+        let unset_env = self.unset_env(table);
         let (name, name_offset) = name?;
         if name.trim().is_empty() {
             self.push(name_offset, Kind::EmptyField, "`name` が空です");
@@ -345,6 +352,7 @@ impl<'a> Walker<'a> {
             env,
             env_file,
             log_dir,
+            unset_env,
         })
     }
 
@@ -430,6 +438,7 @@ impl<'a> Walker<'a> {
             retry: JobRetrySetting::Absent,
             env: Vec::new(),
             env_file: Vec::new(),
+            unset_env: Vec::new(),
             complete: false,
         };
         let DeValue::Table(table) = value.get_ref() else {
@@ -450,13 +459,19 @@ impl<'a> Walker<'a> {
         raw.retry = self.job_retry(table);
         raw.env = self.env_table(table);
         raw.env_file = self.env_file(table);
+        raw.unset_env = self.unset_env(table);
         raw.complete = self.errors.len() == errors_before;
         raw
     }
 
     /// ジョブごとの検査のうち、ほかのジョブとの関係を見るもの(ID、遷移先、終了コード、
-    /// 既定のリトライとの重なり)。
-    fn cross_check(&mut self, jobs: &[RawJob], retry_default: Option<&PipelineRetryDefault>) {
+    /// 既定のリトライとの重なり、`unset_env` と `env` の重なり)。
+    fn cross_check(
+        &mut self,
+        pipeline: Option<&PipelineHead>,
+        jobs: &[RawJob],
+        retry_default: Option<&PipelineRetryDefault>,
+    ) {
         // ジョブIDの検査と、一意の索引
         let mut index: HashMap<&str, usize> = HashMap::new();
         for (i, job) in jobs.iter().enumerate() {
@@ -507,6 +522,7 @@ impl<'a> Walker<'a> {
             self.check_exit_codes(job);
             self.check_retry(job, retry_default);
         }
+        self.check_unset_env(pipeline, jobs);
     }
 
     fn check_exit_codes(&mut self, job: &RawJob) {
@@ -587,7 +603,7 @@ pub fn walk(
             }
         },
     };
-    w.cross_check(&raw_jobs, retry_default.as_ref());
+    w.cross_check(pipeline.as_ref(), &raw_jobs, retry_default.as_ref());
 
     // 既定のリトライを 1 度だけ組み立てる。書いていなければ `Some(None)`、書いたのに値が欠けていれば
     // `None`(定義を組み立てない。v0.10.0 の BR2.2)。
@@ -610,6 +626,7 @@ pub fn walk(
             env: head.env,
             env_file: head.env_file,
             log_dir: head.log_dir,
+            unset_env: names_of(head.unset_env),
         });
     }
 
@@ -666,7 +683,13 @@ fn build_jobs(raw: Vec<RawJob>, default: Option<&RetryPolicy>) -> Option<Vec<Job
                 },
                 env: job.env,
                 env_file: job.env_file,
+                unset_env: names_of(job.unset_env),
             })
         })
         .collect()
+}
+
+/// `unset_env` の名前と位置から、名前だけを取り出す(並びは保つ)。
+fn names_of(unset_env: Vec<(String, usize)>) -> Vec<String> {
+    unset_env.into_iter().map(|(name, _)| name).collect()
 }

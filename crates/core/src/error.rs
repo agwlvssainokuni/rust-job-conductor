@@ -78,6 +78,8 @@ pub enum DefinitionErrorKind {
     EnvNameCaseConflict,
     /// `env` の値に NUL が含まれる(BR1.5)。
     InvalidEnvValue,
+    /// `unset_env` の名前が、同じジョブに当てはまる `env` の名前と重なる(U3 の BR2.1)。
+    UnsetEnvConflict,
 }
 
 impl DefinitionErrorKind {
@@ -121,6 +123,7 @@ impl DefinitionErrorKind {
             Self::ReservedEnvName => "予約された環境変数の名前です",
             Self::EnvNameCaseConflict => "大文字小文字だけが違う環境変数の名前があります",
             Self::InvalidEnvValue => "環境変数の値が正しくありません",
+            Self::UnsetEnvConflict => "消す環境変数の名前が、足す環境変数の名前と重なっています",
         }
     }
 }

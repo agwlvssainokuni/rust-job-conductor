@@ -27,7 +27,7 @@ use conductor_runtime::CreateError as R;
 
 /// 定義の誤りの種類のすべて(テストの写し。種類を足したら、下の `match` がコンパイルで止まるので、
 /// ここにも足す)。
-pub const DEFINITION_ERROR_KINDS: [D; 33] = [
+pub const DEFINITION_ERROR_KINDS: [D; 34] = [
     D::FileMissing,
     D::Unreadable,
     D::TooLarge,
@@ -61,6 +61,7 @@ pub const DEFINITION_ERROR_KINDS: [D; 33] = [
     D::ReservedEnvName,
     D::EnvNameCaseConflict,
     D::InvalidEnvValue,
+    D::UnsetEnvConflict,
 ];
 
 /// 定義の誤りの種類の、一覧の中の位置(網羅の `match`。`_` を使わない)。
@@ -99,6 +100,7 @@ const fn definition_position(kind: D) -> usize {
         D::ReservedEnvName => 30,
         D::EnvNameCaseConflict => 31,
         D::InvalidEnvValue => 32,
+        D::UnsetEnvConflict => 33,
     }
 }
 
