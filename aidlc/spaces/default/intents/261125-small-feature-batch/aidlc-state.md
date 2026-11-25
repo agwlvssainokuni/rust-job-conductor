@@ -47,6 +47,10 @@
 
 
 
+- **Unit Ownership**: solo
+
+- **Skeleton Stance**: off
+
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
 
@@ -108,6 +112,8 @@
 - **Next Stage**: nfr-requirements
 - **Status**: Running
 - **Last Updated**: 2026-11-25T10:14:02Z
+
+- **Construction Autonomy Mode**: autonomous
 
 ## Session Resume Point
 - **Last Completed Stage**: delivery-planning

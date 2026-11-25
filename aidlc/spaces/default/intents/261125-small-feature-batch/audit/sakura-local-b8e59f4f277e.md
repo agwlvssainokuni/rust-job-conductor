@@ -6938,3 +6938,77 @@
 **Stage**: delivery-planning
 
 ---
+
+## Question Asked
+**Timestamp**: 2026-11-25T10:14:06Z
+**Event**: QUESTION_ASKED
+**Question Id**: d2d31733
+**Question Type**: construction-staffing
+**Question Chat**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question Shows**: sha256:2bb6897e0cb2a9fd823375afae3f4f2dfe36bdf746e79204bc966e76d49341f1
+**Stage**: functional-design
+**Options**: ["Just me","Several teams"]
+**State Digest**: 976b1a385ea1fe3b3568fa70fca49956cae5998324d7c225e67df5a8151e08af
+**Question Text SHA-256**: e53251c68407b1d0e6b2be0ce438f5881485f4ca2a5f83e931336ea5e1a43d32
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:14:33Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: picker
+**Open Question**: construction-staffing
+**Picked**: ["Just me"]
+**Message Id**: 5533b713
+**Open Questions**: d2d31733
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261125-small-feature-batch/inception/delivery-planning/delivery-planning-questions.md","entries":{"Q1":"9ad643000605e1ad","Q2":"55741820594eea91","Consolidated Summary Confirmation":"c3d866485551ae09"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T10:14:33Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: Inception が終わり、計画には 7 つのユニットがあります。誰が作りますか。
+**Reply**: Just me
+**Options**: ["Just me","Several teams"]
+
+---
+
+## Unit Ownership Set
+**Timestamp**: 2026-11-25T10:14:36Z
+**Event**: UNIT_OWNERSHIP_SET
+**Mode**: solo
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-25T10:15:55Z
+**Event**: HUMAN_TURN
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Origin**: person
+**Source**: picker
+**Picked**: ["Continue automatically"]
+**Message Id**: c7bdac87
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-25T10:15:56Z
+**Event**: QUESTION_REPLIED
+**Session**: e75f4ea3-0743-498f-b212-c50243d8f423
+**Question**: 残りの作業をどう進めますか。
+**Reply**: Continue automatically
+**Options**: ["Continue automatically","Review each checkpoint"]
+
+---
+
+## Autonomy Mode Set
+**Timestamp**: 2026-11-25T10:15:58Z
+**Event**: AUTONOMY_MODE_SET
+**Mode**: autonomous
+**Message Id**: c7bdac87
+
+---
