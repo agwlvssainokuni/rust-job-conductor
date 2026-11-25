@@ -265,6 +265,9 @@ echo.
 echo --format mermaid は、Mermaid の図を出す^(Markdown や Web ページに貼れる^):
 call :runcmd graph --format mermaid
 echo.
+echo --format dot は、Graphviz の DOT を出す^(dot -Tsvg などで画像にできる^):
+call :runcmd graph --format dot
+echo.
 echo --state で、ジョブの状態と再開位置を重ねる。まず、load で止める:
 setlocal
 set "DEMO_LOAD_EXIT=2"

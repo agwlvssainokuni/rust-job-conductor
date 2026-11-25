@@ -114,7 +114,7 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("[show-env] CONDUCTOR_ATTEMPT=1"), "{out}");
     assert!(out.contains("missing.env"), "{out}");
     assert!(out.contains("duplicate key `A`"), "{out}");
-    // 場面 12: graph(遷移の図、-v、Mermaid、--state の状態と再開位置)
+    // 場面 12: graph(遷移の図、-v、Mermaid、DOT、--state の状態と再開位置)
     assert!(
         out.contains("*   extract\n|\\\n* | transform\n* | load\n|/\n* notify\no @end\n"),
         "{out}"
@@ -125,6 +125,7 @@ fn assert_demo_output(output: &Output) {
         "-v の飛び越しの注記: {out}"
     );
     assert!(out.contains("flowchart TD"), "{out}");
+    assert!(out.contains("\ndigraph conductor {\n"), "{out}");
     assert!(out.contains("[NG] load  <- resume here"), "{out}");
     assert!(out.contains("[OK] extract"), "{out}");
     // 場面 13: --dry-run(計画、--assume の仮定、run の次の動き。何も実行されず、ステートも作られない)

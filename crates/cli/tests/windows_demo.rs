@@ -429,6 +429,13 @@ fn 場面_12_graph_は遷移を図にし_state_で状態と再開位置を重ね
     assert!(out.contains("success -> transform"), "{out}");
     let mermaid = demo.run(&["graph", "--format", "mermaid"], &[]);
     assert!(text(&mermaid.stdout).starts_with("flowchart TD"));
+    let dot = demo.run(&["graph", "--format", "dot"], &[]);
+    assert_eq!(dot.status.code(), Some(0), "{}", text(&dot.stderr));
+    assert!(
+        text(&dot.stdout)
+            .replace("\r\n", "\n")
+            .starts_with("digraph conductor {\n")
+    );
     // load で止めて、状態を重ねる。
     let failed = demo.run(&["pipeline", "nightly"], &[("DEMO_LOAD_EXIT", "2")]);
     assert_eq!(failed.status.code(), Some(2), "{}", text(&failed.stderr));

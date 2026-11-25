@@ -217,6 +217,9 @@ echo
 echo "--format mermaid は、Mermaid の図を出す(Markdown や Web ページに貼れる):"
 cmd "$CONDUCTOR" graph --format mermaid
 echo
+echo "--format dot は、Graphviz の DOT を出す(dot -Tsvg などで画像にできる):"
+cmd "$CONDUCTOR" graph --format dot
+echo
 echo "--state で、ジョブの状態と再開位置を重ねる。まず、load で止める:"
 ( DEMO_LOAD_EXIT=2; export DEMO_LOAD_EXIT; cmd "$CONDUCTOR" pipeline nightly )
 cmd "$CONDUCTOR" graph --state
