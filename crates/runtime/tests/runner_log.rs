@@ -155,10 +155,11 @@ fn br3_1_ディレクトリが無ければ作ってから起動する() {
     let (e, log) = run_logged(helper("streams 1"), Some(target(&logs, "mk")));
     assert_eq!(e.result, exited(0));
     assert_eq!(log, LogOutcome::default());
-    assert_eq!(
-        fs::read_to_string(logs.join(format!("mk.{TIME}.1.log"))).expect("読める"),
-        "out 0\nerr 0\n"
-    );
+    // 2 つの流れの間の順は読んだ順なので、行の集まりで比べる(BR4.1)。
+    let text = fs::read_to_string(logs.join(format!("mk.{TIME}.1.log"))).expect("読める");
+    let mut lines: Vec<&str> = text.lines().collect();
+    lines.sort_unstable();
+    assert_eq!(lines, ["err 0", "out 0"], "{text:?}");
 }
 
 #[cfg(unix)]
