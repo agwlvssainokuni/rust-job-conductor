@@ -146,7 +146,7 @@ fn 使い方の誤りは_68_で_ジョブを起動しない() {
     let mut h = Harness::new(G2);
     for args in [
         &["graph", "--run-id", "r1"][..],
-        &["graph", "--format", "dot"][..],
+        &["graph", "--format", "svg"][..],
         &["graph", "--format", "text", "--format", "text"][..],
         &["graph", "--state", "--state"][..],
         &["run", "a", "--format", "text"][..],

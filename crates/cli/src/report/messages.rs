@@ -78,7 +78,7 @@ Usage:
   conductor watch [--config <path>] [--run-id <id>]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
-  conductor graph [-v] [--config <path>] [--format <text|mermaid>] [--state [--run-id <id>]] [<pipeline-name>]
+  conductor graph [-v] [--config <path>] [--format <text|mermaid|dot>] [--state [--run-id <id>]] [<pipeline-name>]
   conductor init [--config <path>] [--force] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
@@ -93,8 +93,8 @@ Options:
                       remove the state file when the run completes (run, pipeline; default: keep it, or the
                       remove_on_complete setting of the definition)
   --all               remove every state file of the definition, with or without a run ID (reset only)
-  --format <text|mermaid>
-                      output format of graph (default: text)
+  --format <text|mermaid|dot>
+                      output format of graph: text, mermaid or dot (Graphviz) (default: text)
   --state             overlay the state of the jobs on the graph (graph only; reads the state file, never writes it)
   --dry-run           print the execution plan without running jobs, writing the state or setting up signals (run, pipeline)
   --assume <job-id>=<code>
@@ -111,7 +111,7 @@ Options:
   conductor watch [--config <パス>] [--run-id <ID>]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
-  conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+  conductor graph [-v] [--config <パス>] [--format <text|mermaid|dot>] [--state [--run-id <ID>]] [<パイプライン名>]
   conductor init [--config <パス>] [--force] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
@@ -125,8 +125,8 @@ Options:
   --remove-on-complete
                       完了のときにステートファイルを消す(run、pipeline。省略時: 残す。定義の remove_on_complete に従う)
   --all               定義のステートファイルを、run ID の有無によらず、すべて消す(reset のみ)
-  --format <text|mermaid>
-                      graph の出力の形式(省略時: text)
+  --format <text|mermaid|dot>
+                      graph の出力の形式。text、mermaid、dot(Graphviz)のどれか(省略時: text)
   --state             ジョブの状態を図に重ねる(graph のみ。ステートファイルを読むだけで、書かない)
   --dry-run           ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を表示する(run、pipeline)
   --assume <ジョブID>=<終了コード>

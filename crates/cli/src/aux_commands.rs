@@ -29,6 +29,7 @@ use conductor_runtime::{CreateError, CreateOutcome};
 
 use crate::ctx::{Ctx, StateRead, definition_path};
 use crate::exit::{EXIT_CONVERSION, EXIT_EXISTS, EXIT_OK, EXIT_STATE};
+use crate::report::graph_dot::render_dot;
 use crate::report::graph_mermaid::render_mermaid;
 use crate::report::graph_text::render_text;
 use crate::report::init_template::render_template;
@@ -157,6 +158,8 @@ pub(crate) fn run_graph(ctx: &mut Ctx<'_>, cmd: &CliCommand) -> i32 {
         }
         // `-v` は、Mermaid には影響しない(BR3.1)。
         GraphFormat::Mermaid => render_mermaid(lang, &graph),
+        // `-v` は、DOT にも影響しない(U4。BR2.5)。
+        GraphFormat::Dot => render_dot(lang, &graph),
     };
     // 標準出力に書けない(閉じたパイプなど)。`watch` と同じに、65 で終わる(BR6.3)。
     ctx.show_output(&DisplayEvent::Graph(&text), &DisplayEvent::OutputFailed)

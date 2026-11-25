@@ -30,6 +30,7 @@
 //!   単体テストの、同じ期待値の表で揃える。
 //! - 標準エラーへの書き込みの失敗は、無視する(本筋を止めない)。標準出力の失敗は、値で返す。
 
+pub mod graph_dot;
 pub mod graph_mermaid;
 pub mod graph_text;
 pub mod init_template;

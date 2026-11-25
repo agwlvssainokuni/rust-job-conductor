@@ -34,7 +34,7 @@
 //! - `init` だけが、`--force`(値なし。1 回だけ)を取る(U4。BR1.1、BR1.5、BR2.2、BR3.1)。`init` は、`--config` と
 //!   `--force` 以外のオプションを、すべて許さない(68)。名前が空、または空白だけなら `invalidValue`
 //!   (対象は固定で、名前の値は含めない)。`--config -` は標準出力(`InitTarget::Stdout`)。
-//! - `graph` だけが、`--format <text|mermaid>`(値あり)と `--state`(値なし)を取る。どちらも 1 回だけ。
+//! - `graph` だけが、`--format <text|mermaid|dot>`(値あり)と `--state`(値なし)を取る。どちらも 1 回だけ。
 //!   ほかのコマンドでは、許されないオプション。
 //! - `run` と `pipeline` だけが、`--dry-run`(値なし。1 回だけ)と、`--assume <ジョブID>=<終了コード>`
 //!   (複数回)を取る(U3。BR2.1、BR2.2)。`--assume` は、`--dry-run` と一緒のときだけ。ほかのコマンドでは、
@@ -564,11 +564,12 @@ fn parse_assumptions(values: Vec<OsString>) -> Result<Vec<Assumption>, UsageErro
     Ok(out)
 }
 
-/// `--format` の値の検査。`text` か `mermaid`。誤りの文に、値は含めない。
+/// `--format` の値の検査。`text`、`mermaid`、`dot` のどれか(BR1.1)。誤りの文に、値は含めない。
 fn parse_graph_format(value: &OsString) -> Result<GraphFormat, UsageError> {
     match value.to_str() {
         Some("text") => Ok(GraphFormat::Text),
         Some("mermaid") => Ok(GraphFormat::Mermaid),
+        Some("dot") => Ok(GraphFormat::Dot),
         _ => Err(UsageError::with_subject(
             Kind::InvalidValue,
             Opt::Format.subject(),

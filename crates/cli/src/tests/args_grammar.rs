@@ -764,9 +764,13 @@ fn graph_の_run_id_は_state_と一緒のときだけ() {
 }
 
 #[test]
-fn graph_の_format_は_text_か_mermaid_だけで_重複と値の欠けは誤り() {
+fn graph_の_format_は_text_か_mermaid_か_dot_だけで_重複と値の欠けは誤り() {
     assert_eq!(
-        kind_of(&["graph", "--format", "dot"]),
+        command(&["graph", "--format", "dot"]).graph.format,
+        GraphFormat::Dot
+    );
+    assert_eq!(
+        kind_of(&["graph", "--format", "svg"]),
         UsageErrorKind::InvalidValue
     );
     assert_eq!(

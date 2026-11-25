@@ -149,6 +149,8 @@ pub enum GraphFormat {
     #[default]
     Text,
     Mermaid,
+    /// Graphviz の DOT(U4。BR1.1)。
+    Dot,
 }
 
 /// `graph` のオプション(entities の GraphOptions)。`-v` と `--run-id` は、`CliCommand` の
