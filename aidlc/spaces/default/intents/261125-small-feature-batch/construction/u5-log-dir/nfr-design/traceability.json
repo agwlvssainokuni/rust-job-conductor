@@ -1,0 +1,33 @@
+{
+  "stage": "nfr-design",
+  "unit": "u5-log-dir",
+  "upstream_ids": ["NFR1.3","NFR1.4","NFR1.5","NFR6.1","NFR6.2","NFR6.3","NFR6.4","NFR6.5","NFR5.1","NFR4.1","NFR1.6","NFR1.7","NFR1.1","NFR1.2","NFR1.10","NFR1.11","NFR2.1","NFR2.2","NFR2.3","NFR2.4","NFR3.1","NFR3.2","NFR1.8","NFR1.9","NFR6.6","NFR7.1"],
+  "coverage": [
+    { "id": "NFR1.3", "status": "OK", "target": "performance-design.md: 8 KiB の枠、16 MiB のテスト" },
+    { "id": "NFR1.4", "status": "OK", "target": "performance-design.md: recv_timeout で最大 2 秒、止める印" },
+    { "id": "NFR1.5", "status": "OK", "target": "performance-design.md: log_dir が無いときは今の経路" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design.md の 2: platform で mode 0600" },
+    { "id": "NFR6.2", "status": "OK", "target": "security-design.md の 3: 読んだバイト列だけを書く" },
+    { "id": "NFR6.3", "status": "OK", "target": "security-design.md の 1: safe_log_stem(予約名と末尾を含む)と対の表" },
+    { "id": "NFR6.4", "status": "OK", "target": "security-design.md の 3: 固定の文と escape したパス" },
+    { "id": "NFR6.5", "status": "OK", "target": "security-design.md の 2: create_new" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design.md の 4: cfg は platform の中だけ" },
+    { "id": "NFR4.1", "status": "OK", "target": "security-design.md の 4: std だけ" },
+    { "id": "NFR1.6", "status": "OK", "target": "scalability-design.md: 消さない、README" },
+    { "id": "NFR1.7", "status": "OK", "target": "scalability-design.md: 番号の上限 1000" },
+    { "id": "NFR1.1", "status": "OK", "target": "reliability-design.md の 4: 今の経路" },
+    { "id": "NFR1.2", "status": "OK", "target": "reliability-design.md の 1: LogOutcome の log_not_created" },
+    { "id": "NFR1.10", "status": "OK", "target": "reliability-design.md の 2: 止める印と読み捨て" },
+    { "id": "NFR1.11", "status": "OK", "target": "reliability-design.md の 3: 待ちのくり返しは今のまま" },
+    { "id": "NFR2.1", "status": "OK", "target": "reliability-design.md の 5: core → runtime → cli のテストの配置" },
+    { "id": "NFR2.2", "status": "OK", "target": "reliability-design.md の 5: time_format.rs の境界の表" },
+    { "id": "NFR2.3", "status": "OK", "target": "reliability-design.md の 5: binary_log.rs" },
+    { "id": "NFR2.4", "status": "OK", "target": "reliability-design.md の 5: 時計は差し替え口で偽に" },
+    { "id": "NFR3.1", "status": "OK", "target": "reliability-design.md の 5: CI" },
+    { "id": "NFR3.2", "status": "OK", "target": "reliability-design.md の 5: デモのテスト" },
+    { "id": "NFR1.8", "status": "OK", "target": "observability-design.md: 流れごとに端末へ" },
+    { "id": "NFR1.9", "status": "OK", "target": "observability-design.md: すぐ flush、前後の表示の順" },
+    { "id": "NFR6.6", "status": "OK", "target": "observability-design.md: DisplayEvent と英日の文" },
+    { "id": "NFR7.1", "status": "OK", "target": "logical-components.md: 変更する部品の範囲で fmt と clippy を通す(CI の lint)" }
+  ]
+}
