@@ -51,11 +51,22 @@
 
 - **Skeleton Stance**: off
 
-- **Parked**: 2026-11-25T10:18:51Z
 
-- **Parked At Stage**: functional-design
 
-- **Parked By**: person
+
+
+
+
+
+
+
+
+
+
+
+
+
+- **Construction Verification Command**: cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -117,7 +128,7 @@
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-11-25T10:18:51Z
+- **Last Updated**: 2026-11-25T10:55:54Z
 
 - **Construction Autonomy Mode**: autonomous
 
