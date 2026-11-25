@@ -96,10 +96,12 @@ pub trait Runtime {
     fn now(&self) -> Timestamp;
     /// ジョブを、分割済みのコマンド `line` で、`env` を足した環境で起動し、終了を待つ(`run_job`。BR2.2)。
     /// `log` があれば、出力をそのログのファイルにも残す(v0.10.0 の BR4.x)。ログの結果を添えて返す。
+    /// `unset` の名前は、`env` を足す前に引き継いだ環境から除く(v0.10.0 の U3 の BR3.2)。
     fn run_job(
         &self,
         line: &CommandLine,
         env: &[(&str, &str)],
+        unset: &[&str],
         signal: &InterruptSignal,
         log: Option<&LogTarget>,
     ) -> (JobExecution, LogOutcome);
@@ -185,10 +187,11 @@ impl Runtime for SystemRuntime {
         &self,
         line: &CommandLine,
         env: &[(&str, &str)],
+        unset: &[&str],
         signal: &InterruptSignal,
         log: Option<&LogTarget>,
     ) -> (JobExecution, LogOutcome) {
-        conductor_runtime::run_job(line, env, signal, log)
+        conductor_runtime::run_job(line, env, unset, signal, log)
     }
 
     fn wait(&self, secs: u64, signal: &InterruptSignal) -> WaitOutcome {

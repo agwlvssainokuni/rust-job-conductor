@@ -36,7 +36,7 @@ fn run_and_raise(command: String, out: &Path, number: i32) -> JobExecution {
         let signal = signal.clone();
         std::thread::spawn(move || {
             let line = command_line(command);
-            let _ = tx.send(run_job(&line, &[], &signal, None).0);
+            let _ = tx.send(run_job(&line, &[], &[], &signal, None).0);
         });
     }
     assert!(
@@ -116,7 +116,7 @@ fn ジョブは新しいプロセスグループで起動される() {
         let signal = signal.clone();
         std::thread::spawn(move || {
             let line = command_line(command);
-            let _ = tx.send(run_job(&line, &[], &signal, None).0);
+            let _ = tx.send(run_job(&line, &[], &[], &signal, None).0);
         });
     }
     assert!(wait_for_line(&out2, "ready", Duration::from_secs(20)));
@@ -152,7 +152,7 @@ fn シグナルは_1回だけ転送される() {
         let signal = signal.clone();
         std::thread::spawn(move || {
             let line = command_line(command);
-            let _ = tx.send(run_job(&line, &[], &signal, None).0);
+            let _ = tx.send(run_job(&line, &[], &[], &signal, None).0);
         });
     }
     assert!(wait_for_line(&out, "ready", Duration::from_secs(20)));
@@ -194,7 +194,7 @@ fn 先に終わったジョブは転送なしで観測される() {
         move || {
             let s = InterruptSignal::new();
             let line = command_line(command);
-            let e = run_job(&line, &[], &s, None).0;
+            let e = run_job(&line, &[], &[], &s, None).0;
             s.raise(15);
             e
         }

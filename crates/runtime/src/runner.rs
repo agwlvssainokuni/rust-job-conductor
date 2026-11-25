@@ -108,6 +108,9 @@ fn wait_loop<C: Waitable>(
 /// - 起動する(UNIX 系は新しいプロセスグループ)。作業ディレクトリ、環境変数、標準入出力は引き継ぐ。
 ///   `env` の名前と値を、並びの順に足す(引き継いだ環境は残し、同じ名前は上書きする。同じ名前が
 ///   並びに 2 回あれば、後ろが勝つ。U1 の BR4.3、BR4.4、FR1.3)。
+///   `env` を足す前に、`unset` の名前を引き継いだ環境から除く(std の `Command::env_remove`。
+///   v0.10.0 の U3 の BR3.2)。名前の比べ方は OS に任せる(UNIX 系は完全一致、Windows は大文字小文字を
+///   区別しない)。引き継いだ環境に無い名前は何もしない。`unset` が空なら呼ばない(BR4.2)。
 ///   起動できなければ `StartFailed`(BR1.2〜BR1.4)。
 /// - 終了まで待つ。時間切れにしない。再試行しない(BR1.5)。実行中に合図が立てば、シグナルを
 ///   ジョブに 1 回だけ転送する(BR1.7)。
@@ -127,6 +130,7 @@ fn wait_loop<C: Waitable>(
 pub fn run_job(
     line: &CommandLine,
     env: &[(&str, &str)],
+    unset: &[&str],
     signal: &InterruptSignal,
     log: Option<&LogTarget>,
 ) -> (JobExecution, LogOutcome) {
@@ -140,6 +144,10 @@ pub fn run_job(
 
     let mut command = Command::new(&line.program);
     command.args(&line.args);
+    // 消してから足す(U3 の BR3.2)。
+    for name in unset {
+        command.env_remove(name);
+    }
     for (name, value) in env {
         command.env(name, value);
     }
@@ -438,7 +446,7 @@ mod tests {
                 program: program.into(),
                 args: vec![],
             };
-            let (e, log) = run_job(&empty, &[], &InterruptSignal::new(), None);
+            let (e, log) = run_job(&empty, &[], &[], &InterruptSignal::new(), None);
             assert_eq!(e.result, ExecutionResult::StartFailed);
             assert_eq!(log, LogOutcome::default());
         }
@@ -448,7 +456,7 @@ mod tests {
     fn 起動前の合図は起動しない() {
         let s = InterruptSignal::new();
         s.raise(2);
-        let (e, _) = run_job(&line("definitely-not-run"), &[], &s, None);
+        let (e, _) = run_job(&line("definitely-not-run"), &[], &[], &s, None);
         assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
     }
 
@@ -456,6 +464,7 @@ mod tests {
     fn 存在しないコマンドは起動失敗() {
         let (e, log) = run_job(
             &line("conductor-no-such-command-zzz --flag"),
+            &[],
             &[],
             &InterruptSignal::new(),
             None,
@@ -479,7 +488,13 @@ mod tests {
         let logs = dir.path().join("logs");
         let s = InterruptSignal::new();
         s.raise(15);
-        let (e, log) = run_job(&line("definitely-not-run"), &[], &s, Some(&target(&logs)));
+        let (e, log) = run_job(
+            &line("definitely-not-run"),
+            &[],
+            &[],
+            &s,
+            Some(&target(&logs)),
+        );
         assert_eq!(e.result, ExecutionResult::NotStarted { signal: 15 });
         assert_eq!(log, LogOutcome::default());
         assert!(!logs.exists(), "ディレクトリも作らない");
@@ -490,6 +505,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("一時ディレクトリ");
         let (e, log) = run_job(
             &line("conductor-no-such-command-zzz"),
+            &[],
             &[],
             &InterruptSignal::new(),
             Some(&target(dir.path())),

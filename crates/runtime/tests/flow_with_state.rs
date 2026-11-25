@@ -187,7 +187,7 @@ fn run_step(
         }
     };
     let line = check_command(&job.command).expect("分けられる");
-    let execution = run_job(&line, &[], signal, None).0;
+    let execution = run_job(&line, &[], &[], signal, None).0;
     if stop_before_record {
         return Ok(None);
     }

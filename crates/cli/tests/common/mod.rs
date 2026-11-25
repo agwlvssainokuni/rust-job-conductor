@@ -158,7 +158,12 @@ pub struct ScriptedRuntime {
     pub run_logs: RefCell<Vec<Option<LogTarget>>>,
     /// `run_job` が返すログの結果(先頭から使い、尽きたら空)。起動しない合図のときは使わない。
     pub log_outcomes: RefCell<VecDeque<LogOutcome>>,
+    /// `run_job` に渡された、(ジョブID、消す名前の並び)。起動のたびに記録する(v0.10.0 の U3)。
+    pub run_unsets: RefCell<Vec<RunUnset>>,
 }
+
+/// `run_job` に渡された、(ジョブID、消す名前の並び)(v0.10.0 の U3)。
+pub type RunUnset = (String, Vec<String>);
 
 /// 偽の `now` が返す最初の時刻(2026-11-25T09:12:48Z)。呼ぶたびに 1 秒ずつ進む。
 pub const FAKE_NOW_BASE: u64 = 1_795_597_968;
@@ -321,10 +326,15 @@ impl Runtime for ScriptedRuntime {
         &self,
         line: &CommandLine,
         env: &[(&str, &str)],
+        unset: &[&str],
         signal: &InterruptSignal,
         log: Option<&LogTarget>,
     ) -> (JobExecution, LogOutcome) {
         self.run_logs.borrow_mut().push(log.cloned());
+        self.run_unsets.borrow_mut().push((
+            job_id_of(env),
+            unset.iter().map(|n| n.to_string()).collect(),
+        ));
         let execution = self.scripted_run(line, env, signal);
         let outcome = match execution.result {
             ExecutionResult::NotStarted { .. } => LogOutcome::default(),
@@ -711,6 +721,7 @@ impl Runtime for MemRuntime {
         &self,
         _line: &CommandLine,
         _env: &[(&str, &str)],
+        _unset: &[&str],
         signal: &InterruptSignal,
         _log: Option<&LogTarget>,
     ) -> (JobExecution, LogOutcome) {

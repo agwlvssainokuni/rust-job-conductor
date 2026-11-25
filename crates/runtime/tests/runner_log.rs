@@ -48,6 +48,7 @@ fn run_logged(command: String, target: Option<LogTarget>) -> (JobExecution, LogO
             run_job(
                 &command_line(command),
                 &[],
+                &[],
                 &InterruptSignal::new(),
                 target.as_ref(),
             )
@@ -207,7 +208,13 @@ fn br4_4_ログありでもシグナルは今と同じく転送され_出力を�
         let command = helper_command(&out, "sleep 25");
         let target = target(&logs, "sleepy");
         std::thread::spawn(move || {
-            let _ = tx.send(run_job(&command_line(command), &[], &signal, Some(&target)));
+            let _ = tx.send(run_job(
+                &command_line(command),
+                &[],
+                &[],
+                &signal,
+                Some(&target),
+            ));
         });
     }
     assert!(wait_for_line(&out, "ready", Duration::from_secs(20)));

@@ -28,7 +28,7 @@ fn run(command: Command) -> conductor_core::JobExecution {
         || {},
         move || {
             let line = check_command(&command).expect("分けられる");
-            run_job(&line, &[], &InterruptSignal::new(), None).0
+            run_job(&line, &[], &[], &InterruptSignal::new(), None).0
         },
     )
 }
@@ -109,7 +109,7 @@ fn 配列の_command_の先頭が空なら起動失敗() {
         };
         let e = run_with_limit(
             || {},
-            move || run_job(&line, &[], &InterruptSignal::new(), None).0,
+            move || run_job(&line, &[], &[], &InterruptSignal::new(), None).0,
         );
         assert_eq!(e.result, ExecutionResult::StartFailed);
     }
@@ -181,7 +181,7 @@ fn 渡した分割済みのコマンドで起動し_command_を分け直さな�
     assert!(check_command(&Command::Line("'".into())).is_err());
     let e = run_with_limit(
         || {},
-        move || run_job(&line, &[], &InterruptSignal::new(), None).0,
+        move || run_job(&line, &[], &[], &InterruptSignal::new(), None).0,
     );
     assert_eq!(
         e.result,
@@ -227,7 +227,7 @@ fn 起動前の合図が立っていれば起動しない() {
             let signal = InterruptSignal::new();
             signal.raise(2);
             let line = command_line(command);
-            run_job(&line, &[], &signal, None).0
+            run_job(&line, &[], &[], &signal, None).0
         },
     );
     assert_eq!(e.result, ExecutionResult::NotStarted { signal: 2 });
@@ -270,7 +270,7 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
                 s.raise(10);
             });
             let line = command_line(command);
-            let e = run_job(&line, &[], &signal, None).0;
+            let e = run_job(&line, &[], &[], &signal, None).0;
             let _ = t.join();
             e
         },
@@ -290,11 +290,16 @@ fn 終了の観測の直後に合図が立っていれば_interrupted_を足す(
 
 /// 子で `env <names...>` を実行し、出力の行を返す。
 fn child_env(env: &[(&str, &str)], names: &[&str]) -> Vec<String> {
+    child_env_unset(env, &[], names)
+}
+
+/// `unset` の名前を消し、`env` を足した子で `env <names...>` を実行し、出力の行を返す(U3)。
+fn child_env_unset(env: &[(&str, &str)], unset: &[&str], names: &[&str]) -> Vec<String> {
     let dir = tempfile::tempdir().expect("一時ディレクトリ");
     let out = dir.path().join("out.txt");
     let command = helper_command(&out, &format!("env {}", names.join(" ")));
     let line = command_line(command);
-    let e = run_job(&line, env, &InterruptSignal::new(), None).0;
+    let e = run_job(&line, env, unset, &InterruptSignal::new(), None).0;
     assert!(matches!(
         e.result,
         ExecutionResult::Exited {

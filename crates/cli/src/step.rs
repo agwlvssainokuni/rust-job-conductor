@@ -221,9 +221,11 @@ fn run_job_with_retry(
             started_at,
             attempt: retries_done + 1,
         });
-        let (execution, log) = ctx
-            .runtime
-            .run_job(line, &env.additions(), signal, target.as_ref());
+        // 引き継いだ環境から消す名前(U3 の BR3.1、BR3.2。足す前に消す)。
+        let unset: Vec<&str> = env.removals.iter().map(String::as_str).collect();
+        let (execution, log) =
+            ctx.runtime
+                .run_job(line, &env.additions(), &unset, signal, target.as_ref());
         report_log_warnings(ctx, &log);
         // `Retry` は、リトライの対象になった最後の終了コードと、最大回数を持つ(BR2.4)。
         let RetryDecision::Retry {
