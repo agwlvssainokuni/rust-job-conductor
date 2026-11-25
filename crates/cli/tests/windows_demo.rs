@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! Windows 向けデモ(`demo/windows`)のテスト(FR1.3、FR2.1、FR2.2、FR6.1)。
-//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜14 の終了コードと結果を確かめる。
+//! 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で場面 1〜15 の終了コードと結果を確かめる。
 #![cfg(windows)]
 
 mod bin_support;
@@ -42,6 +42,8 @@ impl Demo {
         .expect("定義を写せる");
         std::fs::copy(src.join("retry.toml"), dir.path().join("retry.toml"))
             .expect("リトライの定義を写せる");
+        std::fs::copy(src.join("log.toml"), dir.path().join("log.toml"))
+            .expect("ログの定義を写せる");
         for name in ["env.toml", "demo.env"] {
             std::fs::copy(src.join(name), dir.path().join(name))
                 .expect("環境変数の場面の定義を写せる");
@@ -358,6 +360,32 @@ fn 場面_10_リトライで_2_回失敗してから成功する() {
     assert_eq!(all.matches("conductor: retry: ").count(), 2, "{all}");
     assert!(all.contains("[flaky] 3 回目の実行"), "{all}");
     assert!(all.contains("job=flaky result=success"), "{all}");
+}
+
+#[test]
+fn 場面_15_log_dir_で試行ごとにファイルができ_中身はジョブの出力() {
+    let demo = Demo::new();
+    let output = demo.run(&["pipeline", "--config", "log.toml", "log-demo"], &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    let logs = demo.dir.path().join("logs");
+    let mut names: Vec<String> = std::fs::read_dir(&logs)
+        .expect("ログのディレクトリがある")
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names.len(), 3, "{names:?}");
+    for (i, name) in names.iter().enumerate() {
+        assert!(name.starts_with("flaky."), "{name}");
+        assert!(name.ends_with(&format!(".{}.log", i + 1)), "{names:?}");
+        let content = std::fs::read_to_string(logs.join(name)).expect("読める");
+        assert!(
+            content.contains(&format!("[flaky] {} 回目の実行", i + 1)),
+            "{content}"
+        );
+    }
+    // 端末にも同じ出力が出る。
+    assert!(text(&output.stdout).contains("[flaky] 3 回目の実行"));
 }
 
 #[test]

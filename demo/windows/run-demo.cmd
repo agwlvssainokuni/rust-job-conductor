@@ -58,6 +58,7 @@ set "work=%TEMP%\conductor-demo-%RANDOM%%RANDOM%"
 mkdir "%work%"
 copy /y "%here%conductor.toml" "%work%\" >nul
 copy /y "%here%retry.toml" "%work%\" >nul
+copy /y "%here%log.toml" "%work%\" >nul
 copy /y "%here%env.toml" "%work%\" >nul
 copy /y "%here%demo.env" "%work%\" >nul
 xcopy /e /i /q /y "%here%scripts" "%work%\scripts" >nul
@@ -312,6 +313,28 @@ echo.
 echo --config - なら、ファイルを作らずに、ひな形を標準出力に出す:
 call :runcmd init --config - starter
 del /q new.toml >nul 2>&1
+call :pause
+
+call :scene "15. ログのファイル: [pipeline] log_dir で、ジョブの出力を端末に出しつつ、ファイルにも残す"
+echo 定義^(log.toml^)。log_dir に、ログのディレクトリを書く:
+type log.toml
+echo.
+echo flaky は、2 回失敗してから成功する。端末の出力は、log_dir が無いときと同じ:
+if exist flaky.count del flaky.count
+call :runcmd pipeline --config log.toml log-demo
+echo.
+echo 試行ごとに 1 つのファイル^(^<ジョブ ID^>.^<開始の時刻^(UTC^)^>.^<試行の番号^>.log^):
+echo $ dir /b logs
+dir /b logs
+for %%f in (logs\*.log) do (
+  echo --- %%f
+  type "%%f"
+)
+echo.
+echo conductor は、古いログを消さない。片づけは利用者が行う:
+echo $ rmdir /s /q logs
+rmdir /s /q logs
+call :runcmd reset --config log.toml
 call :pause
 
 echo デモは以上です。

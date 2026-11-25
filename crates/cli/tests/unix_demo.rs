@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! UNIX 向けデモ(`demo/run-demo.sh`)のテスト(FR6.2)。
-//! スクリプトを `sh` で実行し、場面 0〜14 の見出しと要点の行が出て、0 で終わることを確かめる。
+//! スクリプトを `sh` で実行し、場面 0〜15 の見出しと要点の行が出て、0 で終わることを確かめる。
 #![cfg(unix)]
 
 mod bin_support;
@@ -58,7 +58,7 @@ fn assert_demo_output(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{err}");
     // `-v` の行やエラーは標準エラーに出るので、標準出力と合わせて見る。
     let out = format!("{}{err}", text(&output.stdout));
-    for n in 0..=14 {
+    for n in 0..=15 {
         assert!(out.contains(&format!("=== {n}. ")), "場面 {n}\n{out}");
     }
     // 場面 7: validate
@@ -159,10 +159,27 @@ fn assert_demo_output(output: &Output) {
     assert!(out.contains("→ 終了コード 69"), "{out}");
     assert!(out.contains("replaced new.toml\n"), "{out}");
     assert!(out.contains("format_version = 1\n"), "{out}");
+    // 場面 15: log_dir(試行ごとに 1 つのファイル、0600、中身はジョブの出力、片づけは利用者)
+    let scene15 = &out[out.find("=== 15. ").expect("場面 15")..];
+    assert!(scene15.contains("log_dir = \"logs\""), "{scene15}");
+    for attempt in 1..=3 {
+        let header = scene15
+            .lines()
+            .find(|l| l.starts_with("--- logs/flaky.") && l.ends_with(&format!(".{attempt}.log")))
+            .unwrap_or_else(|| panic!("試行 {attempt} のファイル: {scene15}"));
+        assert_eq!(header.len(), "--- logs/flaky.20261125T091248Z.1.log".len());
+    }
+    assert!(scene15.contains("-rw-------"), "{scene15}");
+    assert!(
+        scene15
+            .contains(".3.log\n  [flaky] 3 回目の実行...\n  [flaky] 終了コード 0 で終わります\n"),
+        "{scene15}"
+    );
+    assert!(scene15.contains("$ rm -r logs"), "{scene15}");
 }
 
 #[test]
-fn デモは_0_で完走し_場面_0_から_14_の要点の行が出る() {
+fn デモは_0_で完走し_場面_0_から_15_の要点の行が出る() {
     let tmp = tempfile::tempdir().expect("一時ディレクトリ");
     let output = run_demo(tmp.path(), &[]);
     assert_demo_output(&output);

@@ -28,8 +28,9 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 | 12 | 遷移の図(`graph`、v0.9.0 以降)。`conductor.toml` の遷移(`extract` が警告なら `notify` へ飛ぶ)を、text の図、`-v`(コマンドと飛び越しの注記)、`--format mermaid`、`--format dot`(Graphviz の DOT。v0.10.0 以降)で見せる。`load` で止めてから `--state` で、状態と再開位置を重ねる。`graph` は、ジョブを実行せず、ステートを読むだけ |
 | 13 | 実行計画(`--dry-run`、`--assume`、v0.9.0 以降)。`pipeline nightly --dry-run` で、ジョブを実行せずに計画を出す。`--assume extract=1`(警告で `transform` と `load` が飛ばされる)と `--assume load=2`(そこで停止する)で、終了コードを仮定した流れを見せる。`run extract --dry-run` は、次の動きを示す。何も実行されず、ステートも作られない |
 | 14 | 定義のひな形(`init`、v0.9.0 以降)。`init --config new.toml starter` で、ひな形を作る(`[pipeline.env]` と `[job.retry]` の例を含む)。もう一度 `init` すると、既にあるので、何も変えず、終了コード 69 で終わる。`--force` で上書きし、`--config -` で標準出力に出す。作ったひな形は、`validate` に通る |
+| 15 | ログのファイル(`[pipeline] log_dir`、v0.10.0 以降)。別の定義 `log.toml` は `log_dir = "logs"` と既定のリトライを書き、`flaky` が 2 回失敗してから成功する。端末の出力は `log_dir` が無いときと同じで、`logs/` に試行ごとのファイル(`flaky.<開始の時刻(UTC)>.<試行の番号>.log`。UNIX 系は本人だけが読み書きできる 0600)が 3 つでき、中身はその試行のジョブの出力だけ。`conductor` は古いログを消さないので、デモの終わりに `logs/` を消して見せる |
 
-- 定義は `conductor.toml`(場面 10 だけ `retry.toml`、場面 11 だけ `env.toml` と `demo.env`)、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。
+- 定義は `conductor.toml`(場面 10 だけ `retry.toml`、場面 11 だけ `env.toml` と `demo.env`、場面 15 だけ `log.toml`)、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。
 - 場面 10 の `flaky` は、実行した回数を、一時ディレクトリの `flaky.count` に覚えます。環境変数 `DEMO_FLAKY_FAILS`(既定 2)の回数までは、終了コード 75 で失敗します。`DEMO_FLAKY_FAILS` を 4 以上にすると、回数(最大 3 回のリトライ)を使い切って、終了コード 75 で止まります。リトライの待ち時間(1 秒)は、`DEMO_SLEEP` では変わりません(定義の `[pipeline.retry]` の `interval` で決まります)。`retry.toml` のコメントに、ジョブごとの `[job.retry]`(既定と混ぜず、丸ごとその表を使う)と、既定を打ち消す `retry = false` の書き方の例があります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。
 - `DEMO_PAUSE` は、値が `1` のときだけ、各場面のあとで Enter を待ちます(既定は待ちません)。
 - `notify` の `command` は、文字列の配列(`["sh", "scripts/notify.sh"]`)で書いています。ほかのジョブは、文字列です。
@@ -39,7 +40,7 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 
 ## Windows 版
 
-Windows では、`sh` のスクリプトは動きません。代わりに、`demo\windows\` の cmd 版を使います(PowerShell でも、コマンドプロンプトでも動きます)。見せる場面は、UNIX 版と同じ(場面 0〜14)です。run ID の環境変数 `DEMO_RUN_ID` は、定義(`demo\windows\conductor.toml`)の `run_id_env` で受け取ります。
+Windows では、`sh` のスクリプトは動きません。代わりに、`demo\windows\` の cmd 版を使います(PowerShell でも、コマンドプロンプトでも動きます)。見せる場面は、UNIX 版と同じ(場面 0〜15)です。run ID の環境変数 `DEMO_RUN_ID` は、定義(`demo\windows\conductor.toml`)の `run_id_env` で受け取ります。
 
 ```bat
 rem リポジトリの根から。実行ファイルが無ければ、リリースビルドを作る
@@ -60,7 +61,7 @@ demo\windows\run-demo.cmd
 
 PowerShell では、`set` の代わりに `$env:DEMO_PAUSE = "1"` のように書きます。
 
-- 定義は `demo\windows\conductor.toml`(場面 10 だけ `demo\windows\retry.toml`、場面 11 だけ `demo\windows\env.toml` と `demo\windows\demo.env`)、ジョブは `demo\windows\scripts\*.cmd` です。ジョブの終了コードは、UNIX 版と同じく `DEMO_<ジョブ名>_EXIT`(既定 0)で決まります。
+- 定義は `demo\windows\conductor.toml`(場面 10 だけ `demo\windows\retry.toml`、場面 11 だけ `demo\windows\env.toml` と `demo\windows\demo.env`、場面 15 だけ `demo\windows\log.toml`)、ジョブは `demo\windows\scripts\*.cmd` です。ジョブの終了コードは、UNIX 版と同じく `DEMO_<ジョブ名>_EXIT`(既定 0)で決まります。
 - `DEMO_SLEEP`(各ジョブの待ち時間)は、整数の秒です(既定 1 秒。`0` で待たない)。小数は使えません。UNIX 版の既定(0.5 秒)とは違います。
 - `DEMO_PAUSE` は、UNIX 版と同じく、値が `1` のときだけ Enter を待ちます。
 - 画面に色は付きません(`watch` の出力も、色なしです)。

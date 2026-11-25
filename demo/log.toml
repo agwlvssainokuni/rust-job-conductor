@@ -1,0 +1,19 @@
+format_version = 1
+
+[pipeline]
+name = "log-demo"
+description = "ログのファイルのデモ"
+# ジョブの出力(標準出力と標準エラー)を、端末に出しつつ、logs/ にもファイルで残す(v0.10.0 以降)。
+# 相対パスは、定義ファイルのあるディレクトリが基準。試行ごとに 1 つのファイル
+# <ジョブ ID>.<開始の時刻(UTC)>.<試行の番号>.log ができる。古いファイルは消さない。
+log_dir = "logs"
+
+# flaky は 2 回失敗(終了コード 75)してから成功するので、リトライで 3 つのファイルができる。
+[pipeline.retry]
+exit_codes = [75]
+max = 3
+interval = "1s"
+
+[[job]]
+id = "flaky"
+command = "sh scripts/flaky.sh"
