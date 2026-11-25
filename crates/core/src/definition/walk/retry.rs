@@ -12,10 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! `[job.retry]` の検査と組み立て(Walk の一部。BR1.1〜BR1.13)。
+//! `[job.retry]` と `[pipeline.retry]` の検査と組み立て(Walk の一部。BR1.1〜BR1.13)。
 //!
-//! 読み取り(`retry`)はジョブの走査の中で、ほかの値との関係の検査(`check_retry`)は `cross_check` の中で、
-//! 組み立て(`build_retry`)は定義の組み立ての中で、親のモジュールから呼ばれる。
+//! 読み取り(ジョブの `job_retry`、既定の `pipeline_retry`)は走査の中で、ほかの値との関係の検査
+//! (`check_retry`)は `cross_check` の中で、組み立て(`build_retry`)は定義の組み立ての中で、
+//! 親のモジュールから呼ばれる。
+//!
+//! v0.10.0 から、`[pipeline.retry]` を全ジョブの既定にできる。表 1 つの読み取りはジョブと既定で
+//! 共有する(BR1.1、BR1.2)。ジョブの `retry` は無し・`false`・表の 3 つ(BR2.1)。既定と打ち消しの
+//! 規則(BR2.2、BR2.3)、既定と成功・警告の重なり(BR3.1〜BR3.4)、既定の上限と間隔の大小(BR3.5)を扱う。
+//! v0.10.0 の規則の番号は、v0.8.0 の `[job.retry]` の規則の番号とは別である。
 
 use toml::de::{DeTable, DeValue};
 

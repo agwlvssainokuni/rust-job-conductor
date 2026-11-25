@@ -91,7 +91,9 @@ pub struct JobDefinition {
     pub success_exit_codes: Option<Vec<i32>>,
     /// 結果ごとの遷移(`on` ごとに高々 1 つ)。
     pub transitions: Vec<Transition>,
-    /// リトライの設定。`[job.retry]` を書かなければ `None`(リトライしない。BR1.1、FR1.2)。
+    /// 実効のリトライ(ジョブの `[job.retry]`、無ければ `[pipeline.retry]`、`retry = false` なら `None`)。
+    /// どちらも無ければ `None`(リトライしない。BR1.1、FR1.2、v0.10.0 の BR2.2〜BR2.4)。
+    /// 既定から来たかは持たない。
     pub retry: Option<RetryPolicy>,
     /// `[job.env]` の内容。書いた順を保つ(FR1.1)。
     pub env: Vec<EnvVar>,
@@ -99,7 +101,7 @@ pub struct JobDefinition {
     pub env_file: Vec<String>,
 }
 
-/// ジョブのリトライの設定(`[job.retry]`。BR1.1〜BR1.13、FR1.1〜FR1.9)。
+/// ジョブのリトライの設定(`[job.retry]` または `[pipeline.retry]`。BR1.1〜BR1.13、FR1.1〜FR1.9)。
 ///
 /// 値はすべて整数で持つ(浮動小数点は使わない。要件 C1)。検証は、定義の読み取りで済んでいる。
 #[derive(Debug, Clone, PartialEq, Eq)]
