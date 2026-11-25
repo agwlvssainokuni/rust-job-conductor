@@ -20,6 +20,7 @@
 //! 各ジョブの記録(`JobState`)が無いジョブは、pending と同じ扱いにする。
 
 // 下位モジュールは crate の中。関数と型は、下の再公開の名前(`flow::classify_and_decide` など)で出る。
+mod attempt;
 mod classify;
 mod decide;
 mod next_step;
@@ -27,6 +28,7 @@ mod record;
 mod resume;
 mod retry;
 
+pub use attempt::{cancel_attempt, end_attempt, start_attempt};
 pub use decide::decide_from_state;
 pub use next_step::classify_and_decide;
 pub(crate) use next_step::{TransitionResolution, resolve_transition};

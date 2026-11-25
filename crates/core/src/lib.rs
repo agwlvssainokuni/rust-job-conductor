@@ -33,8 +33,10 @@
 //! | [`apply_skip`] | スキップを記録し、完了を判定する(BR2.8) | ステート、理由、定義 → ステート | なし(純粋) |
 //! | [`apply_interrupt`] | 中断を記録する(BR2.8) | ステート、[`ResumePoint`] → ステート | なし(純粋) |
 //! | [`check_consistency`] | ステートと定義の食い違いを検知する(BR2.5) | ステート、定義 → [`ConsistencyResult`] | なし(純粋) |
+//! | [`start_attempt`]、[`end_attempt`]、[`cancel_attempt`] | 試行の時刻を記録する(v0.10.0 の U6 の BR1.1〜BR1.4) | ステート、ジョブ ID、時刻 → ステート | なし(純粋) |
 //!
 //! ステートの更新の関数(`initial_state`、`apply_*`)は、本番の流れと `--dry-run` の模擬が共に使う。
+//! 試行の関数(`*_attempt`)は本番の流れだけが使い、模擬は試行を記録しない。
 //! `conductor-runtime` は、これらと `check_consistency` を再公開しない(使う側は、この crate から使う)。
 //! ほかの公開の関数(`.env` の解析と統合、図、計画、run ID など)は、各モジュールにある。
 //!
@@ -105,8 +107,9 @@ pub use envfile::{
 };
 pub use error::{DefinitionError, DefinitionErrorKind, MAX_KEY_DISPLAY_CHARS, escape_display};
 pub use flow::{
-    RetryDecision, apply_interrupt, apply_outcome, apply_skip, classify_and_decide,
-    decide_from_state, initial_state, resume_point_on_interrupt, retry_decision,
+    RetryDecision, apply_interrupt, apply_outcome, apply_skip, cancel_attempt, classify_and_decide,
+    decide_from_state, end_attempt, initial_state, resume_point_on_interrupt, retry_decision,
+    start_attempt,
 };
 pub use plan::{
     Assumption, EnvNameEntry, ExecutionPlan, NextStepNote, PlanDisposition, PlanEnd, PlanEntry,
