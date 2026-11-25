@@ -268,6 +268,10 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         });
     }
     f(&DisplayEvent::InitStdoutFailed);
+    let log_path = Path::new("logs/a.20261125T091248Z.1.log");
+    f(&DisplayEvent::LogNotCreated { path: log_path });
+    f(&DisplayEvent::LogWriteFailed { path: log_path });
+    f(&DisplayEvent::LogOutputCutShort { path: log_path });
     f(&DisplayEvent::Help);
     f(&DisplayEvent::Version);
 }
@@ -1092,4 +1096,78 @@ fn 日本語の誤りの表示は_各クレートの_label_を使う() {
             "{kind:?}: {text}"
         );
     }
+}
+
+// ---- ログのファイルの 3 つの文(v0.10.0 の BR5.1〜BR5.3、NFR6.6) ----
+
+#[test]
+fn ログの_3_つの文の英語() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let path = Path::new("logs/a_b.20261125T091248Z.1.log");
+    assert_eq!(
+        reporter.render(&DisplayEvent::LogNotCreated { path }),
+        "conductor: error: cannot create the log file: logs/a_b.20261125T091248Z.1.log\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::LogWriteFailed { path }),
+        "conductor: warning: failed to write to the log file; output after that point is not in the file: logs/a_b.20261125T091248Z.1.log\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::LogOutputCutShort { path }),
+        "conductor: warning: output continued after the job ended; the rest is not in the log file: logs/a_b.20261125T091248Z.1.log\n"
+    );
+}
+
+#[test]
+fn ログの_3_つの文の日本語() {
+    let env = env_for(Language::Ja);
+    let reporter = Reporter::new(&env, false);
+    let path = Path::new("logs/a.20261125T091248Z.1.log");
+    assert_eq!(
+        reporter.render(&DisplayEvent::LogNotCreated { path }),
+        "conductor: error: ログのファイルを作れません: logs/a.20261125T091248Z.1.log\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::LogWriteFailed { path }),
+        "conductor: warning: ログのファイルへの書き込みに失敗しました。途中からファイルに残していません: logs/a.20261125T091248Z.1.log\n"
+    );
+    assert_eq!(
+        reporter.render(&DisplayEvent::LogOutputCutShort { path }),
+        "conductor: warning: ジョブの終了の後も出力が続いたため、残りを残していません: logs/a.20261125T091248Z.1.log\n"
+    );
+}
+
+#[test]
+fn ログの文のパスはエスケープされ_1_行に収まる() {
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let path = Path::new("logs/x\u{1b}[31m\ny.log");
+    for event in [
+        DisplayEvent::LogNotCreated { path },
+        DisplayEvent::LogWriteFailed { path },
+        DisplayEvent::LogOutputCutShort { path },
+    ] {
+        let text = reporter.render(&event);
+        assert_eq!(text.matches('\n').count(), 1, "{text:?}");
+        assert!(!has_control(text.trim_end_matches('\n')), "{text:?}");
+    }
+}
+
+#[test]
+fn ログを作れない文はエラーで_警告の_2_つは知らせの水準() {
+    let path = Path::new("l.log");
+    assert_eq!(DisplayEvent::LogNotCreated { path }.level(), Level::Error);
+    assert_eq!(DisplayEvent::LogWriteFailed { path }.level(), Level::Notice);
+    assert_eq!(
+        DisplayEvent::LogOutputCutShort { path }.level(),
+        Level::Notice
+    );
+    // `-v` なしでも標準エラーに出て、標準出力には出ない。
+    let env = env_for(Language::En);
+    let reporter = Reporter::new(&env, false);
+    let mut sink = FakeSink::default();
+    assert!(reporter.show(&mut sink, &DisplayEvent::LogWriteFailed { path }));
+    assert!(sink.out.is_empty());
+    assert!(sink.err_text().starts_with("conductor: warning: "));
 }

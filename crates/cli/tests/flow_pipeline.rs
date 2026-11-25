@@ -492,3 +492,96 @@ fn 個別実行と一括実行だけがシグナルを準備する() {
     h.run(&["reset"]);
     assert_eq!(h.signals.started.get(), 1, "watch・reset では準備しない");
 }
+
+// ---- ログのファイル(v0.10.0 の U5。BR2.3、BR3.1、BR5.1、BR5.4) ----
+
+#[test]
+fn br3_1_各ジョブの試行ごとにログの指定と時刻を渡す() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let out = h.run(&["pipeline", "p"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.err, "");
+    assert_eq!(
+        log_attempts(&h.runtime),
+        [
+            ("a".to_string(), 1, fake_now(0)),
+            ("b".to_string(), 1, fake_now(1)),
+            ("c".to_string(), 1, fake_now(2)),
+        ]
+    );
+    let logs = h.runtime.run_logs.borrow();
+    assert!(
+        logs.iter()
+            .flatten()
+            .all(|t| t.dir == h.dir.path().join("logs"))
+    );
+}
+
+#[test]
+fn br1_2_log_dir_が無ければ_どのジョブにも指定が無い() {
+    let mut h = Harness::new(THREE_JOBS);
+    assert_eq!(h.run(&["pipeline", "p"]).code, 0);
+    assert_eq!(*h.runtime.run_logs.borrow(), [None, None, None]);
+    assert_eq!(h.runtime.now_calls.get(), 3);
+}
+
+#[test]
+fn br5_1_途中のジョブでログを作れなければ_127_で止まり_1_行だけ() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let path = h.dir.path().join("logs").join("b.1.log");
+    h.runtime.script("b", &[Exec::StartFailure]);
+    {
+        let mut outcomes = h.runtime.log_outcomes.borrow_mut();
+        outcomes.push_back(conductor_runtime::LogOutcome::default());
+        outcomes.push_back(conductor_runtime::LogOutcome {
+            log_not_created: Some(path.clone()),
+            ..Default::default()
+        });
+    }
+    let out = h.run(&["pipeline", "p"]);
+    assert_eq!(out.code, 127);
+    assert_eq!(h.runtime.ran(), ["a", "b"], "c は動かない");
+    assert_eq!(
+        out.err,
+        format!(
+            "conductor: error: cannot create the log file: {}\n",
+            path.display()
+        )
+    );
+    let state = h.state().expect("ステートが残る");
+    assert_eq!(state.resume_job_id.as_deref(), Some("b"));
+}
+
+#[test]
+fn br5_3_待ち切れの警告は次のジョブの前に出て_終了コードは変わらない() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let path = h.dir.path().join("logs").join("a.1.log");
+    h.runtime
+        .log_outcomes
+        .borrow_mut()
+        .push_back(conductor_runtime::LogOutcome {
+            output_cut_short: Some(path.clone()),
+            ..Default::default()
+        });
+    let out = h.run(&["pipeline", "-v", "p"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(h.runtime.ran(), ["a", "b", "c"]);
+    let lines: Vec<&str> = out.err.lines().collect();
+    assert!(
+        lines[0].starts_with("conductor: warning: output continued after the job ended"),
+        "{}",
+        out.err
+    );
+    assert!(lines[1].starts_with("[conductor] job=a result=success"));
+}
+
+#[test]
+fn br5_4_validate_graph_dry_run_はログの指定も時刻も使わない() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    assert_eq!(h.run(&["validate"]).code, 0);
+    assert_eq!(h.run(&["graph"]).code, 0);
+    assert_eq!(h.run(&["pipeline", "--dry-run", "p"]).code, 0);
+    assert_eq!(h.runtime.run_calls.get(), 0);
+    assert_eq!(h.runtime.now_calls.get(), 0);
+    assert!(!h.dir.path().join("logs").exists());
+}

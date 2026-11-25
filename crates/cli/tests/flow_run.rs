@@ -512,6 +512,131 @@ fn 起動できないときは_127_で_cannot_start_command() {
     assert_eq!(status_of(&h, "a"), JobStatus::Error);
 }
 
+// ---- ログのファイル(v0.10.0 の U5。BR2.3、BR3.1、BR5.1〜BR5.4) ----
+
+#[test]
+fn br3_1_log_dir_があれば_定義のディレクトリで解決した指定を試行の時刻とともに渡す() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(out.err, "");
+    assert_eq!(h.runtime.now_calls.get(), 1, "試行の前に 1 回だけ");
+    assert_eq!(
+        *h.runtime.run_logs.borrow(),
+        [Some(conductor_runtime::LogTarget {
+            dir: h.dir.path().join("logs"),
+            job_id: "a".into(),
+            started_at: fake_now(0),
+            attempt: 1,
+        })]
+    );
+}
+
+#[test]
+fn br3_1_絶対パスの_log_dir_はそのまま渡す() {
+    let elsewhere = tempfile::tempdir().expect("一時ディレクトリ");
+    let abs = elsewhere.path().join("abs-logs");
+    let value = format!("{:?}", abs.display().to_string());
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, &value));
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    let logs = h.runtime.run_logs.borrow();
+    assert_eq!(logs[0].as_ref().map(|t| t.dir.clone()), Some(abs));
+}
+
+#[test]
+fn br1_2_log_dir_が無ければ指定は無く_時刻だけは試行の前に取る() {
+    let mut h = Harness::new(THREE_JOBS);
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(*h.runtime.run_logs.borrow(), [None]);
+    assert_eq!(h.runtime.now_calls.get(), 1);
+}
+
+#[test]
+fn br5_1_ログを作れなければ_127_で_ログの_1_行だけを出す() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let path = h.dir.path().join("logs").join("a.x.1.log");
+    h.runtime.script("a", &[Exec::StartFailure]);
+    h.runtime
+        .log_outcomes
+        .borrow_mut()
+        .push_back(conductor_runtime::LogOutcome {
+            log_not_created: Some(path.clone()),
+            ..Default::default()
+        });
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 127);
+    assert_eq!(
+        out.err,
+        format!(
+            "conductor: error: cannot create the log file: {}\n",
+            path.display()
+        ),
+        "起動の失敗の表示は出さない"
+    );
+    assert_eq!(status_of(&h, "a"), JobStatus::Error);
+}
+
+#[test]
+fn br5_1_ログを作れないときの日本語の_1_行() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    h.env = FakeEnv::for_language(Language::Ja);
+    let path = h.dir.path().join("logs").join("a.x.1.log");
+    h.runtime.script("a", &[Exec::StartFailure]);
+    h.runtime
+        .log_outcomes
+        .borrow_mut()
+        .push_back(conductor_runtime::LogOutcome {
+            log_not_created: Some(path.clone()),
+            ..Default::default()
+        });
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 127);
+    assert_eq!(
+        out.err,
+        format!(
+            "conductor: error: ログのファイルを作れません: {}\n",
+            path.display()
+        )
+    );
+}
+
+#[test]
+fn br5_2_br5_3_書き込みの失敗と待ち切れは警告を_1_行ずつ出し_終了コードは変わらない() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let path = h.dir.path().join("logs").join("a.x.1.log");
+    h.runtime.script("a", &[Exec::Exit(4)]);
+    h.runtime
+        .log_outcomes
+        .borrow_mut()
+        .push_back(conductor_runtime::LogOutcome {
+            log_not_created: None,
+            write_failed: Some(path.clone()),
+            output_cut_short: Some(path.clone()),
+        });
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 4, "ジョブの終了コードのまま");
+    let shown = path.display();
+    assert_eq!(
+        out.err,
+        format!(
+            "conductor: warning: failed to write to the log file; output after that point is not in the file: {shown}\n\
+             conductor: warning: output continued after the job ended; the rest is not in the log file: {shown}\n"
+        )
+    );
+    assert_eq!(status_of(&h, "a"), JobStatus::Error);
+}
+
+#[test]
+fn br5_4_dry_run_は時刻もログの指定も使わない() {
+    let mut h = Harness::new(&with_log_dir(THREE_JOBS, "\"logs\""));
+    let out = h.run(&["run", "--dry-run", "a"]);
+    assert_eq!(out.code, 0);
+    assert_eq!(h.runtime.run_calls.get(), 0);
+    assert_eq!(h.runtime.now_calls.get(), 0);
+    assert!(!h.dir.path().join("logs").exists());
+}
+
 #[test]
 fn 配列の_command_の起動失敗は先頭の要素の名前を表示する() {
     let mut h = Harness::new(ARRAY_JOB);

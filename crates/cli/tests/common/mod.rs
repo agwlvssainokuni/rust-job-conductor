@@ -518,6 +518,26 @@ pub fn with_remove_on_complete(definition: &str, value: &str) -> String {
     )
 }
 
+/// 定義の `[pipeline]` に、`log_dir = <値>` を足した文字列にする(`value` は TOML の右辺)。
+pub fn with_log_dir(definition: &str, value: &str) -> String {
+    definition.replacen(
+        "name = \"p\"\n",
+        &format!("name = \"p\"\nlog_dir = {value}\n"),
+        1,
+    )
+}
+
+/// ログの指定の (ジョブ ID、試行の番号、時刻) の並び(`run_logs` の要約。指定が無い起動は除く)。
+pub fn log_attempts(runtime: &ScriptedRuntime) -> Vec<(String, u32, Timestamp)> {
+    runtime
+        .run_logs
+        .borrow()
+        .iter()
+        .flatten()
+        .map(|t| (t.job_id.clone(), t.attempt, t.started_at))
+        .collect()
+}
+
 // ---- 実行の枠 ----
 
 pub struct Outcome {

@@ -452,3 +452,109 @@ fn リトライのたびに同じ分割済みのコマンドを渡す() {
         [("a".to_string(), first.clone())]
     );
 }
+
+// ---- ログのファイル(v0.10.0 の U5。BR2.3、BR3.1、BR5.1〜BR5.3) ----
+
+#[test]
+fn br2_3_リトライの試行ごとに時刻を取り_試行の番号が増える() {
+    let mut h = Harness::new(&with_log_dir(RETRY_A, "\"logs\""));
+    h.runtime
+        .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    assert_eq!(h.runtime.now_calls.get(), 3);
+    assert_eq!(
+        log_attempts(&h.runtime),
+        [
+            ("a".to_string(), 1, fake_now(0)),
+            ("a".to_string(), 2, fake_now(1)),
+            ("a".to_string(), 3, fake_now(2)),
+        ]
+    );
+    // 再開すると、試行の番号は 1 に戻る(CONDUCTOR_ATTEMPT と同じ)。
+    let mut h = Harness::new(&with_log_dir(RETRY_A, "\"logs\""));
+    h.runtime.script("a", &[Exec::Exit(1), Exec::Exit(0)]);
+    assert_eq!(h.run(&["run", "a"]).code, 1);
+    assert_eq!(h.run(&["run", "a"]).code, 0);
+    let attempts: Vec<u32> = log_attempts(&h.runtime).iter().map(|a| a.1).collect();
+    assert_eq!(attempts, [1, 1]);
+}
+
+#[test]
+fn br5_2_警告は試行ごとに_リトライの知らせの前に出る() {
+    let mut h = Harness::new(&with_log_dir(RETRY_A, "\"logs\""));
+    let first = h.dir.path().join("logs").join("a.1.log");
+    let third = h.dir.path().join("logs").join("a.3.log");
+    h.runtime
+        .script("a", &[Exec::Exit(75), Exec::Exit(75), Exec::Exit(0)]);
+    {
+        let mut outcomes = h.runtime.log_outcomes.borrow_mut();
+        outcomes.push_back(conductor_runtime::LogOutcome {
+            write_failed: Some(first.clone()),
+            ..Default::default()
+        });
+        outcomes.push_back(conductor_runtime::LogOutcome::default());
+        outcomes.push_back(conductor_runtime::LogOutcome {
+            output_cut_short: Some(third.clone()),
+            ..Default::default()
+        });
+    }
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 0, "警告では終了コードは変わらない");
+    let lines: Vec<&str> = out.err.lines().collect();
+    assert_eq!(lines.len(), 4, "{}", out.err);
+    assert!(lines[0].starts_with("conductor: warning: failed to write to the log file"));
+    assert!(lines[0].ends_with(&first.display().to_string()));
+    assert!(lines[1].starts_with("conductor: retry: "));
+    assert!(lines[2].starts_with("conductor: retry: "));
+    assert!(lines[3].starts_with("conductor: warning: output continued after the job ended"));
+    assert!(lines[3].ends_with(&third.display().to_string()));
+}
+
+#[test]
+fn br5_1_ログを作れない起動の失敗は_127_が一覧にあってもリトライしない() {
+    let mut h = Harness::new(&with_log_dir(RETRY_75_127, "\"logs\""));
+    let path = h.dir.path().join("logs").join("a.1.log");
+    h.runtime.script("a", &[Exec::StartFailure, Exec::Exit(0)]);
+    h.runtime
+        .log_outcomes
+        .borrow_mut()
+        .push_back(conductor_runtime::LogOutcome {
+            log_not_created: Some(path.clone()),
+            ..Default::default()
+        });
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 127);
+    assert_eq!(h.runtime.ran(), ["a"]);
+    assert_eq!(
+        out.err,
+        format!(
+            "conductor: error: cannot create the log file: {}\n",
+            path.display()
+        )
+    );
+}
+
+#[test]
+fn br5_1_リトライの後の試行でログを作れなければ_その試行の_1_行で終わる() {
+    let mut h = Harness::new(&with_log_dir(RETRY_A, "\"logs\""));
+    let path = h.dir.path().join("logs").join("a.2.log");
+    h.runtime.script("a", &[Exec::Exit(75), Exec::StartFailure]);
+    {
+        let mut outcomes = h.runtime.log_outcomes.borrow_mut();
+        outcomes.push_back(conductor_runtime::LogOutcome::default());
+        outcomes.push_back(conductor_runtime::LogOutcome {
+            log_not_created: Some(path.clone()),
+            ..Default::default()
+        });
+    }
+    let out = h.run(&["run", "a"]);
+    assert_eq!(out.code, 127);
+    assert_eq!(
+        out.err,
+        format!(
+            "conductor: retry: job 'a' exited with code 75; retry 1 of 3 in 30 seconds\n\
+             conductor: error: cannot create the log file: {}\n",
+            path.display()
+        )
+    );
+}
