@@ -1,0 +1,22 @@
+{
+  "stage": "nfr-design",
+  "unit": "u2-optional-env-file",
+  "upstream_ids": ["NFR1.3","NFR6.1","NFR6.2","NFR6.3","NFR5.1","NFR4.1","NFR1.4","NFR1.1","NFR1.2","NFR2.1","NFR2.2","NFR2.3","NFR2.4","NFR3.1","NFR3.2"],
+  "coverage": [
+    { "id": "NFR1.3", "status": "OK", "target": "performance-design.md: 表で引く重複除きと、解決したパスの表(env_refs_perf.rs)" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design.md の 2: 固定の理由の文と core の nfr_security.rs" },
+    { "id": "NFR6.2", "status": "OK", "target": "security-design.md の 3: 飛ばした項目を誤り・警告・引き当てに入れない" },
+    { "id": "NFR6.3", "status": "OK", "target": "security-design.md の 3: Missing かつ required=false だけ飛ばす(env_loader.rs)" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design.md の 4: read_regular_file の結果だけで見分ける" },
+    { "id": "NFR4.1", "status": "OK", "target": "security-design.md の 4: 既存の toml と bounded_read だけを使う" },
+    { "id": "NFR1.4", "status": "OK", "target": "scalability-design.md: 上限は今のまま" },
+    { "id": "NFR1.1", "status": "OK", "target": "reliability-design.md の 1: 文字列は required=true の EnvFileRef" },
+    { "id": "NFR1.2", "status": "OK", "target": "reliability-design.md の 1: 組み立て方だけを直すテスト" },
+    { "id": "NFR2.1", "status": "OK", "target": "reliability-design.md の 2: core → runtime → cli のテストの配置" },
+    { "id": "NFR2.2", "status": "OK", "target": "reliability-design.md の 2: binary_env.rs" },
+    { "id": "NFR2.3", "status": "OK", "target": "reliability-design.md の 2: 確認のコマンドのカバレッジ" },
+    { "id": "NFR2.4", "status": "OK", "target": "reliability-design.md の 2: 偽の Runtime は引数の型だけ合わせる" },
+    { "id": "NFR3.1", "status": "OK", "target": "reliability-design.md の 2: CI の test、build-check、msrv-test" },
+    { "id": "NFR3.2", "status": "OK", "target": "reliability-design.md の 2: unix_demo.rs と windows_demo.rs" }
+  ]
+}
