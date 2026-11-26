@@ -3783,3 +3783,62 @@
 **Context**: construction > build-and-test > memory.md
 
 ---
+
+## Stage Jump
+**Timestamp**: 2026-11-26T23:13:35Z
+**Event**: STAGE_JUMPED
+**Direction**: BACKWARD
+**Source**: build-and-test
+**Target**: code-generation
+**Scope**: refactor
+**Details**: BACKWARD jump from build-and-test to code-generation (3.5). Scope: refactor.
+**Changed Upstream Artifacts**: ["aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/code-generation-plan.md","aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/code-summary.md","aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/traceability.json","aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/unit-test-instructions.md"]
+**Invalidated Downstream Artifacts**: ["aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-and-test-summary.md","aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md","aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/test-results.md"]
+**Invalidated Downstream Reviews**: []
+**Source Baseline**: sha256:649f97eacb61631c775208fae5e6fae507e7f5c10361c6d86ceae3846481109d
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-26T23:13:35Z
+**Event**: STAGE_STARTED
+**Stage**: code-generation
+**Agent**: aidlc-developer-agent
+**Answer Mode**: guide (reused from requirements-analysis)
+**Source Baseline**: sha256:649f97eacb61631c775208fae5e6fae507e7f5c10361c6d86ceae3846481109d
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-26T23:13:38Z
+**Event**: QUESTION_ASKED
+**Question Id**: 365a465c
+**Question Type**: plan-approval
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:1bcb95de11683804eb093fda15909385c8690299ed7636ffba8b6a0f22e36a2f
+**Stage**: code-generation
+**Ask Id**: fdc32199712e8b904ee457d010d7e161
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: f9130f37b257072ebbd4554a40a4fdb3e2d4ca6638e48c0ec54eb70feb460884
+**Questions File**: aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/code-generation-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-26T23:14:00Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-26T23:14:03Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---

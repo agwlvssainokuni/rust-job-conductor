@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Builds: ログの名前の予約名の検査で前後の空白を除く(F2)、読み取りの前にも「止める」印を見る(F2)、計画の模擬の測定と、二乗が原因なら flow の内部の入口での直し(F3)、デモの場面 4 の待ち(F5)、README の `watch --follow` の注意の書き直し(F1)、契約の表と「33 種」の直し、版を 0.10.1 にする
+- Builds: ログの名前の予約名の検査で前後の空白を除く(F2)、読み取りの前にも「止める」印を見る(F2)、計画の模擬の測定と、flow の内部の入口での二乗の走査の直し(F3。やり直し 1 で人が直すと決めた)、デモの場面 4 の待ち(F5)、README の `watch --follow` の注意の書き直し(F1)、契約の表と「33 種」の直し、版を 0.10.1 にする
 - Touches: runtime の `log.rs`・`runner.rs`・`lib.rs`・`tests/log_file.rs`、(F3 で直すときだけ)core の `flow/decide.rs`・`flow/next_step.rs`・`flow/record.rs`・`flow/mod.rs`・`plan/simulate.rs`、`demo/run-demo.sh`・`demo/README.md`、`crates/cli/tests/unix_demo.rs`、`README.md`、`docs/spec/rust/` の 6 章、2 つのテストの注釈、版の 22 ファイル
 - Tests: 単体テスト 2〜3(名前の表の行、読む前の印、F3 で直すときは判断の一致)、デモのテスト 1、既存のテストすべて(流れ・計画・性能・文書)
 
@@ -90,6 +90,20 @@
 ### Step 12: 記録
 
 - [x] `code-summary.md`(変更の一覧、測定の表、走査ごとの判断、テストの結果、コミット)と `traceability.json` を書く。
+
+## やり直し 1(Build and Test の Loop-back 1)
+
+Build and Test で、CI 45908344996 の `coverage`(ubuntu、`cargo llvm-cov` の下)が `plan_simulate_perf.rs` の P1(161ms)・P2(155ms)で上限 150ms を超えた(`construction/build-and-test/test-results.md` の Loop-Back Log)。手元の速い機械で BR3.3 を当てて「直さない」とした判定が根で、人が「Retry with fix」を選び、この判定を覆して Step 6 の直しを行うことを決めた。Step 1〜5・7〜12 の済んだ作業はそのまま残す。
+
+### Step 13: F3 の直し(Step 6 の内容を、人の決定で行う)とその層のテスト
+
+- [ ] Step 6 の 1〜4 番目の項目(`flow` の内部の入口と目印を進める関数、`plan/simulate.rs` からの呼び出し、R-06 の判断の一致のテスト、core のテスト)を、そのとおりに行う。R-05 の表(`code-summary.md` の走査ごとの表)の「直すときに使う値」を使い、1,000 ジョブで時間の大半を占める走査(`job_index`、`record_of`、規則 6 の前のジョブの走査、`apply_skip_in` の `any(Error)` と `first_pending`)を直す。`pending_ids` は直さない(R-05 の表で効かないと分かったため)(BR3.4、FR3.3)。
+- [ ] Step 5 と同じ形の使い捨ての測定で、直す前と後を比べる。合否は BR3.5(llvm-cov の下で 1,000 ジョブが 75ms 以下、2 倍ごとの伸び 2.5 倍以下)。測定用のファイルは消し、表を `code-summary.md` に書き足す。届かなければ、Step 6 の 6 番目の項目のとおり戻して記録する(BR3.5、BR3.6)。
+- [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
+- [ ] `code-summary.md`(やり直し 1 の変更、内部の入口の名前、測定の表、テストの結果、コミット)と `traceability.json`(BR3.4・BR3.5 の行)を書き直す。
+
+- 版はすでに 0.10.1(152c4a1)。この直しのコミットは版の更新の後に入るが、タグはまだ付けておらず、版は変えない(BR7.1 の「すべてを片づけてから版を上げる」からのずれとして記録する)。
+- CI の `coverage` が通ることは、Build and Test で、人の push の後に確かめる。
 
 ## コミット
 
