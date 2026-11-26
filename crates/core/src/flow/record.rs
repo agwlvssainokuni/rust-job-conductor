@@ -21,7 +21,7 @@
 
 use std::path::Path;
 
-use super::status_at;
+use super::SimulationMarks;
 use crate::run_id::RunId;
 use crate::types::{
     ExecutionResult, JobExecution, JobOutcome, JobState, JobStatus, NextStep, PipelineDefinition,
@@ -95,7 +95,8 @@ pub fn apply_outcome(
     next: &NextStep,
 ) -> PipelineState {
     let mut out = state.clone();
-    apply_outcome_in(&mut out, None, job_id, execution, outcome, next);
+    let mut marks = SimulationMarks::new();
+    apply_outcome_in(&mut out, None, job_id, execution, outcome, next, &mut marks);
     out
 }
 
@@ -103,6 +104,9 @@ pub fn apply_outcome(
 ///
 /// `hint` は、記録を探し始める位置(模擬は定義の位置)。`hint` があれば、スキップの並びは直前に
 /// 見つけた位置の次から探す。`None`(公開の関数)は、どの探索も先頭から行う(今と同じ、最初に一致したもの)。
+///
+/// `marks` は、計画の模擬が持ち回る目印。状態を変えるたびに、`error` の数を直す(v0.10.1 の BR3.4)。
+/// 公開の関数は、新しい目印を渡す。
 pub(crate) fn apply_outcome_in(
     state: &mut PipelineState,
     hint: Option<usize>,
@@ -110,12 +114,15 @@ pub(crate) fn apply_outcome_in(
     execution: &JobExecution,
     outcome: &JobOutcome,
     next: &NextStep,
+    marks: &mut SimulationMarks,
 ) {
     if let Some(index) = locate(&state.job_states, hint.unwrap_or(0), job_id) {
         let job = &mut state.job_states[index];
         if let Some(classification) = outcome.classification {
             // 分類から状態へ(`From<Classification> for JobStatus`)。
-            job.status = JobStatus::from(classification);
+            let status = JobStatus::from(classification);
+            marks.note_status_change(job.status, status);
+            job.status = status;
             job.skip_reason = None;
         }
         job.exit_code = match execution.result {
@@ -135,6 +142,7 @@ pub(crate) fn apply_outcome_in(
         }
         if let Some(index) = locate(&state.job_states, from.unwrap_or(0), skipped) {
             let job = &mut state.job_states[index];
+            marks.note_status_change(job.status, JobStatus::Skipped);
             job.status = JobStatus::Skipped;
             job.exit_code = None;
             job.skip_reason = Some(reason);
@@ -161,18 +169,30 @@ pub fn apply_skip(
     definition: &PipelineDefinition,
 ) -> PipelineState {
     let mut out = state.clone();
-    apply_skip_in(&mut out, None, job_id, reason, definition);
+    apply_skip_in(
+        &mut out,
+        None,
+        job_id,
+        reason,
+        definition,
+        &mut SimulationMarks::new(),
+    );
     out
 }
 
 /// [`apply_skip`] の、その場で書き換える版(crate の中だけ。2a、D8)。`hint` は、記録を探し始める位置
 /// (模擬は定義の位置。`None`(公開の関数)は、先頭から探す。[`apply_outcome_in`] と同じ)。
+///
+/// `marks` は、計画の模擬が持ち回る目印(v0.10.1 の BR3.4)。「エラーがあるか」は目印の `error` の数で、
+/// 「最初の pending」は目印の「pending の無い前置き」から続けて決める。公開の関数は、新しい目印を
+/// 渡す(数は 1 回数え、前置きは先頭から走査するので、今までと同じ答えになる)。
 pub(crate) fn apply_skip_in(
     state: &mut PipelineState,
     hint: Option<usize>,
     job_id: &str,
     reason: SkipCause,
     definition: &PipelineDefinition,
+    marks: &mut SimulationMarks,
 ) {
     let skip_reason = match reason {
         SkipCause::SkipTarget => SkipReason::ByTransition,
@@ -182,6 +202,7 @@ pub(crate) fn apply_skip_in(
     match locate(&state.job_states, hint.unwrap_or(0), job_id) {
         Some(index) => {
             let job = &mut state.job_states[index];
+            marks.note_status_change(job.status, JobStatus::Skipped);
             job.status = JobStatus::Skipped;
             job.exit_code = None;
             job.skip_reason = Some(skip_reason);
@@ -192,21 +213,15 @@ pub(crate) fn apply_skip_in(
         state.end_reached = true;
     }
 
-    // 状態は、定義の位置で引く([`status_at`]。位置が一致すれば O(1)、一致しなければ探す)。
-    // これで 1 回の `apply_skip` は O(n) になる(BR2.3)。
-    if state
-        .job_states
-        .iter()
-        .any(|j| j.status == JobStatus::Error)
-    {
+    // 状態は、定義の位置で引く(`status_at`。位置が一致すれば O(1)、一致しなければ探す)。
+    // これで 1 回の `apply_skip` は O(n) になる(BR2.3)。模擬では、目印から続けるので、
+    // 計画の全体で O(n) になる(v0.10.1 の BR3.4)。
+    if marks.has_error(&state.job_states) {
         return;
     }
-    let first_pending = definition
-        .job
-        .iter()
-        .enumerate()
-        .find(|(i, j)| status_at(&state.job_states, *i, &j.id) == JobStatus::Pending)
-        .map(|(_, j)| j.id.clone());
+    let first_pending = marks
+        .first_pending(definition, &state.job_states)
+        .map(|i| definition.job[i].id.clone());
     let is_last = definition.job.last().is_some_and(|j| j.id == job_id);
     state.completed = is_last && first_pending.is_none();
     state.resume_job_id = first_pending;

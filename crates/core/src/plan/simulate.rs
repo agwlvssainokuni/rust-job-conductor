@@ -19,6 +19,10 @@
 //! この関数の中だけで持ち、返さず、保存しない。ステートの更新は、本番と同じ手順
 //! (`flow::record` の `initial_state`、`apply_skip`・`apply_outcome` のその場で書き換える版
 //! `apply_skip_in`・`apply_outcome_in`)で行う(BR1.8)。ステートは出発点の 1 回だけ複製する(2a)。
+//!
+//! `plan_pipeline` は、定義の順に進むことを使い、ジョブの位置と目印(`SimulationMarks`)を持ち回って、
+//! `flow` の内部の入口(`decide_at`、`classify_and_decide_at`)と記録の関数に渡す。判断と記録の規則は
+//! `flow` の 1 か所にあり、ここには書き写さない。目印を進めるのも `flow` の関数(v0.10.1 の BR3.4、FR3.3)。
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -29,8 +33,8 @@ use super::{
 };
 use crate::envfile::{EnvContext, LoadedEnvFiles, merge_env_names, merge_unset_names};
 use crate::flow::{
-    apply_outcome_in, apply_skip_in, classify_and_decide, decide_from_state, initial_state,
-    is_retry_target,
+    SimulationMarks, apply_outcome_in, apply_skip_in, classify_and_decide, classify_and_decide_at,
+    decide_at, decide_from_state, initial_state, is_retry_target,
 };
 use crate::types::{
     Classification, Decision, JobDefinition, JobExecution, JobOutcome, JobState, NextStep,
@@ -69,6 +73,8 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
     let initial_resume = state.resume_job_id.clone();
     let mut stopped: Option<String> = None;
     let mut entries: Vec<PlanEntry> = Vec::with_capacity(def.job.len());
+    // 判断と記録の本体へ渡す目印。中身は `flow` が進め、ここでは持ち回るだけ(v0.10.1 の BR3.4)。
+    let mut marks = SimulationMarks::new();
 
     for (index, job) in def.job.iter().enumerate() {
         let is_resume = initial_resume.as_deref() == Some(job.id.as_str());
@@ -76,23 +82,23 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
             entries.push(entry(input, index, PlanDisposition::NotReached, is_resume));
             continue;
         }
-        let decision = decide_from_state(&job.id, def, Some(&state));
+        let decision = decide_at(&job.id, index, def, &state, &mut marks);
         match decision {
             Decision::Reject(reason) => return Err(rejection(&job.id, reason)),
             Decision::Skip(reason) => {
                 // スキップは、本番と同じ手順(`apply_skip` のその場で書き換える版)で記録する(BR1.8)。
                 // ステートは複製しない。記録は定義の位置から探す(2a、D8)。
                 entries.push(entry(input, index, skip_disposition(reason), is_resume));
-                apply_skip_in(&mut state, Some(index), &job.id, reason, def);
+                apply_skip_in(&mut state, Some(index), &job.id, reason, def, &mut marks);
             }
             Decision::Run => {
                 let (code, assumed) = assumed_exit_code(input.assumptions, &job.id);
                 let (result, execution, outcome, next) = simulate_job(
                     job,
+                    Some(index),
                     def,
                     &state.job_states,
-                    code,
-                    assumed,
+                    (code, assumed),
                     RunMode::Pipeline,
                 );
                 // 結果は、本番と同じ手順(`apply_outcome` のその場で書き換える版)で記録する(再開位置と
@@ -104,6 +110,7 @@ pub fn plan_pipeline(input: &PlanInput<'_>) -> Result<ExecutionPlan, PlanRejecti
                     &execution,
                     &outcome,
                     &next,
+                    &mut marks,
                 );
                 if result.classification == Classification::Error {
                     stopped = Some(job.id.clone());
@@ -172,7 +179,7 @@ pub fn plan_run(job_id: &str, input: &PlanInput<'_>) -> Result<ExecutionPlan, Pl
             // 模擬の分類と遷移に渡す、各ジョブの状態の記録(ステートが無ければ空)。
             let states: &[JobState] = active_state(input).map_or(&[], |s| s.job_states.as_slice());
             let (result, _, _, next) =
-                simulate_job(job, def, states, code, assumed, RunMode::Individual);
+                simulate_job(job, None, def, states, (code, assumed), RunMode::Individual);
             let stopped = result.classification == Classification::Error;
             note = Some(next_step_note(stopped, &next));
             let end = if stopped {
@@ -257,16 +264,24 @@ fn unused_assumptions(assumptions: &[Assumption], ran: &HashSet<&str>) -> Vec<St
 /// 計画の結果のほかに、ステートの記録(`apply_outcome`)に使う、仮定の実行(`JobExecution`)と
 /// 分類の結果(`JobOutcome`)も返す。結果の語は、`classify_and_decide` の分類で決める。
 /// リトライの対象かは、`is_retry_target` で決める。
+///
+/// `index` は、`plan_pipeline` が持ち回るジョブの位置。あれば `flow` の内部の入口
+/// (`classify_and_decide_at`)に渡し、無ければ(`plan_run`)公開の `classify_and_decide` を呼ぶ。
+/// どちらも同じ本体を通る(v0.10.1 の BR3.4)。`assumption` は、仮定した終了コードと、指定したか。
 fn simulate_job(
     job: &JobDefinition,
+    index: Option<usize>,
     definition: &PipelineDefinition,
     states: &[JobState],
-    exit_code: i32,
-    assumed: bool,
+    assumption: (i32, bool),
     mode: RunMode,
 ) -> (SimulatedResult, JobExecution, JobOutcome, NextStep) {
+    let (exit_code, assumed) = assumption;
     let execution = JobExecution::exited(exit_code);
-    let (outcome, next) = classify_and_decide(job, &execution, states, definition, mode);
+    let (outcome, next) = match index {
+        Some(index) => classify_and_decide_at(job, index, &execution, states, definition, mode),
+        None => classify_and_decide(job, &execution, states, definition, mode),
+    };
     // 合成した実行は `Exited { exit_code: Some(..), .. }` なので、`classify` の手順 5 を通り、分類は
     // 必ず `Some`(`None` は起動しなかったときだけ)。`None` の枝は到達しない。
     let classification = outcome.classification.unwrap_or(Classification::Error);

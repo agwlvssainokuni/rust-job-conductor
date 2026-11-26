@@ -31,16 +31,17 @@ mod retry;
 
 pub use activity::{PipelineActivity, pipeline_activity};
 pub use attempt::{cancel_attempt, end_attempt, start_attempt};
+pub(crate) use decide::decide_at;
 pub use decide::decide_from_state;
 pub use next_step::classify_and_decide;
-pub(crate) use next_step::{TransitionResolution, resolve_transition};
+pub(crate) use next_step::{TransitionResolution, classify_and_decide_at, resolve_transition};
 pub use record::{apply_interrupt, apply_outcome, apply_skip, initial_state};
 pub(crate) use record::{apply_outcome_in, apply_skip_in};
 pub use resume::resume_point_on_interrupt;
 pub(crate) use retry::is_retry_target;
 pub use retry::{RetryDecision, retry_decision};
 
-use crate::types::{JobState, JobStatus, SkipReason};
+use crate::types::{JobState, JobStatus, PipelineDefinition, SkipReason};
 
 /// ジョブの記録を引く。記録が無ければ pending(理由なし)として返す。
 pub(crate) fn record_of(states: &[JobState], job_id: &str) -> (JobStatus, Option<SkipReason>) {
@@ -51,15 +52,137 @@ pub(crate) fn record_of(states: &[JobState], job_id: &str) -> (JobStatus, Option
         .unwrap_or((JobStatus::Pending, None))
 }
 
+/// 記述順の位置 `index` のジョブ `job_id` の記録(状態とスキップの理由)。記録が同じ位置にあれば
+/// それを使い(O(1))、なければ [`record_of`] と同じに引く(記録が無ければ pending)。
+///
+/// 記録の順が定義と違う、記録が欠ける、といったステートでも、[`record_of`] と同じ答えになる
+/// (ステートのジョブ ID は一意という前提。定義の検証と読み込みが重複を拒む。v0.10.1 の BR3.4)。
+pub(crate) fn record_at(
+    states: &[JobState],
+    index: usize,
+    job_id: &str,
+) -> (JobStatus, Option<SkipReason>) {
+    match states.get(index) {
+        Some(s) if s.job_id == job_id => (s.status, s.skip_reason),
+        _ => record_of(states, job_id),
+    }
+}
+
 /// 記述順の位置 `index` のジョブ `job_id` の状態。記録が同じ位置にあればそれを使い(O(1))、
 /// なければ [`record_of`] と同じに引く(記録が無ければ pending)。
 ///
 /// ステートの記録は、ふつう定義の記述順に並ぶので、位置で引けばジョブの数に比例する時間で
 /// 全ジョブを見られる(1,000 ジョブの計画の性能のため。U3 の BR6.3、BR2.3)。
 pub(crate) fn status_at(states: &[JobState], index: usize, job_id: &str) -> JobStatus {
-    match states.get(index) {
-        Some(s) if s.job_id == job_id => s.status,
-        _ => record_of(states, job_id).0,
+    record_at(states, index, job_id).0
+}
+
+/// ジョブ `job_id` の、定義の記述順の位置。手がかりの位置 `hint` のジョブが `job_id` なら、それを
+/// 使い(O(1))、違えば `job_index` で探す(v0.10.1 の BR3.4)。
+///
+/// 手がかりが正しくなくても、`definition.job_index(job_id)` と同じ答えになる(定義のジョブ ID は
+/// 一意。定義の検証が重複を拒む)。
+pub(crate) fn position_of(
+    definition: &PipelineDefinition,
+    hint: usize,
+    job_id: &str,
+) -> Option<usize> {
+    match definition.job.get(hint) {
+        Some(j) if j.id == job_id => Some(hint),
+        _ => definition.job_index(job_id),
+    }
+}
+
+/// 計画の模擬が、ジョブごとに判断と記録の本体へ渡す目印(`PlanSimulationLookup`。v0.10.1 の
+/// BR3.4、FR3.3)。
+///
+/// 目印は、定義の記述順に進む模擬が、前のジョブから続けて走査するためのもの。各目印の意味と、
+/// それが正しいままである理由は次のとおり。
+///
+/// - `settled_prefix`: 定義の位置 `0..settled_prefix` のジョブは、すべて済んでいる(成功・警告・
+///   スキップ。規則 6 の前のジョブの走査に使う)。
+/// - `pending_prefix`: 定義の位置 `0..pending_prefix` のジョブに、pending(記録なしを含む)は無い
+///   (`apply_skip` の「最初の pending」に使う)。
+/// - `error_records`: ステートの記録のうち、`error` の数(`apply_skip` の「エラーがあるか」に使う)。
+///   `None` は、まだ数えていない(要るときに 1 回だけ数える)。
+///
+/// 目印は、1 つのステートに対して、`flow` の記録の関数([`apply_outcome_in`]・[`apply_skip_in`])
+/// だけでそのステートを変えながら使う。これらの関数は、済んだジョブを済んでいない状態に戻さず
+/// (実行するのは pending か error のジョブだけ。規則 1〜3)、どのジョブも pending に戻さない。
+/// だから 2 つの前置きの目印は、記録を変えても正しいまま。`error` の数は、記録の関数が状態を
+/// 変えるたびに [`SimulationMarks::note_status_change`] で直す。
+///
+/// 今の公開の入口(`decide_from_state`・`apply_skip`・`apply_outcome`)は、呼ぶたびに
+/// [`SimulationMarks::new`] で作り直す。どの目印も先頭から(数は未計数から)始まるので、今までと
+/// 同じ走査になる。フィールドは `flow` の外から見えず、`plan` は値を持ち回るだけ。
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SimulationMarks {
+    settled_prefix: usize,
+    pending_prefix: usize,
+    error_records: Option<usize>,
+}
+
+impl SimulationMarks {
+    /// 先頭から始める目印(どの前置きも 0、`error` の数は未計数)。
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    /// 定義の位置 `index` より前のジョブが、すべて済んでいるか(規則 6)。`settled_prefix` を、
+    /// 済んでいないジョブか `index` に着くまで進める(前のジョブから続けて走査する)。
+    fn predecessors_settled(
+        &mut self,
+        definition: &PipelineDefinition,
+        states: &[JobState],
+        index: usize,
+    ) -> bool {
+        while self.settled_prefix < index {
+            let job = &definition.job[self.settled_prefix];
+            if !is_settled(status_at(states, self.settled_prefix, &job.id)) {
+                return false;
+            }
+            self.settled_prefix += 1;
+        }
+        true
+    }
+
+    /// 定義の順で最初の pending のジョブの位置(無ければ `None`)。`pending_prefix` を、pending の
+    /// ジョブか定義の終わりに着くまで進める。
+    fn first_pending(
+        &mut self,
+        definition: &PipelineDefinition,
+        states: &[JobState],
+    ) -> Option<usize> {
+        while let Some(job) = definition.job.get(self.pending_prefix) {
+            if status_at(states, self.pending_prefix, &job.id) == JobStatus::Pending {
+                return Some(self.pending_prefix);
+            }
+            self.pending_prefix += 1;
+        }
+        None
+    }
+
+    /// ステートに `error` の記録があるか。数えていなければ、ここで 1 回だけ数える。
+    fn has_error(&mut self, states: &[JobState]) -> bool {
+        let count = *self.error_records.get_or_insert_with(|| {
+            states
+                .iter()
+                .filter(|j| j.status == JobStatus::Error)
+                .count()
+        });
+        count > 0
+    }
+
+    /// 記録の状態が `old` から `new` に変わったことを、`error` の数に映す(数えていなければ何もしない)。
+    fn note_status_change(&mut self, old: JobStatus, new: JobStatus) {
+        if let Some(count) = self.error_records.as_mut() {
+            if old == JobStatus::Error {
+                *count -= 1;
+            }
+            if new == JobStatus::Error {
+                *count += 1;
+            }
+        }
     }
 }
 

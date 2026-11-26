@@ -15,7 +15,7 @@
 //! 次の動きと完了(`classify_and_decide`)。BR1.10、BR3.1〜BR3.4、BR3.6。
 
 use super::classify::classify;
-use super::{is_settled, status_at};
+use super::{is_settled, position_of, status_at};
 use crate::types::{
     Classification, JobDefinition, JobExecution, JobOutcome, JobState, NextStep,
     PipelineDefinition, RunMode, SkipReason, TransitionOn, TransitionTarget,
@@ -54,7 +54,27 @@ pub fn classify_and_decide(
     run_mode: RunMode,
 ) -> (JobOutcome, NextStep) {
     let outcome = classify(job, execution);
-    let step = next_step(job, &outcome, job_states, definition, run_mode);
+    let index = definition.job_index(&job.id);
+    let step = next_step(job, &outcome, job_states, definition, run_mode, index);
+    (outcome, step)
+}
+
+/// 計画の模擬の、分類と次の動き(内部の入口。v0.10.1 の BR3.4、FR3.3)。
+///
+/// `index` は、模擬が定義の順に進めている位置。[`classify_and_decide`] と同じ本体(`classify` と
+/// `next_step`)で決め、同じ入力には同じ結果になる。`index` のジョブが `job` でなければ、
+/// `job_index` で探し直す(定義になければ停止)。
+pub(crate) fn classify_and_decide_at(
+    job: &JobDefinition,
+    index: usize,
+    execution: &JobExecution,
+    job_states: &[JobState],
+    definition: &PipelineDefinition,
+    run_mode: RunMode,
+) -> (JobOutcome, NextStep) {
+    let outcome = classify(job, execution);
+    let index = position_of(definition, index, &job.id);
+    let step = next_step(job, &outcome, job_states, definition, run_mode, index);
     (outcome, step)
 }
 
@@ -111,12 +131,15 @@ fn stop(job: &JobDefinition) -> NextStep {
     }
 }
 
+/// 次の動きの本体(実行と模擬が共に通る 1 か所。v0.10.1 の BR3.4)。`index` は、`job` の定義の
+/// 記述順の位置(呼び出し側が求めた値。定義になければ `None`)。
 fn next_step(
     job: &JobDefinition,
     outcome: &JobOutcome,
     job_states: &[JobState],
     definition: &PipelineDefinition,
     run_mode: RunMode,
+    index: Option<usize>,
 ) -> NextStep {
     // エラー、起動しなかった中断は、止まる。
     let Some(on) = outcome
@@ -125,7 +148,7 @@ fn next_step(
     else {
         return stop(job);
     };
-    let Some(index) = definition.job_index(&job.id) else {
+    let Some(index) = index else {
         return stop(job);
     };
     let jobs = &definition.job;

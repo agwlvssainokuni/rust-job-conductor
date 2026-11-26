@@ -14,7 +14,7 @@
 
 //! 起動前の判断(`decide_before_run`、ステートからの `decide_from_state`)。BR3.5、BR3.8。
 
-use super::{is_settled, record_of, status_at};
+use super::{SimulationMarks, position_of, record_at};
 use crate::types::{
     Decision, JobState, JobStatus, PipelineDefinition, PipelineState, RejectReason, SkipCause,
     SkipReason,
@@ -43,6 +43,9 @@ use crate::types::{
 /// 完了と再開位置は `apply_skip` が書く(最後のジョブをスキップとして記録し、`pending` が無ければ
 /// `completed = true`。BR3.6)。[`resume_point_on_interrupt`](super::resume_point_on_interrupt) は、
 /// `pipeline` のジョブのあいだの中断にだけ使う。
+///
+/// 位置と目印は、ここで自分で求める(位置は `job_index`、目印は先頭から)。本体は
+/// [`decide_with`] で、計画の模擬の [`decide_at`] と同じ本体を通る(v0.10.1 の BR3.4)。
 fn decide_before_run(
     job_id: &str,
     definition: &PipelineDefinition,
@@ -53,7 +56,42 @@ fn decide_before_run(
     let Some(index) = definition.job_index(job_id) else {
         return Decision::Reject(RejectReason::OutOfOrder);
     };
-    let (status, skip_reason) = record_of(job_states, job_id);
+    let input = DecideInput {
+        job_id,
+        index,
+        definition,
+        job_states,
+        resume_job_id,
+        end_reached,
+    };
+    decide_with(&input, &mut SimulationMarks::new())
+}
+
+/// 判断の本体への入力。`index` は、`job_id` の定義の記述順の位置(呼び出し側が確かめた値)。
+struct DecideInput<'a> {
+    job_id: &'a str,
+    index: usize,
+    definition: &'a PipelineDefinition,
+    job_states: &'a [JobState],
+    resume_job_id: Option<&'a str>,
+    end_reached: bool,
+}
+
+/// 起動前の判断の本体(規則 1〜7。[`decide_before_run`] の説明のとおり)。実行と模擬が共に通る
+/// 1 か所(v0.10.1 の BR3.4)。
+///
+/// 記録は位置で引き([`record_at`]。位置が合えば O(1)、合わなければ探す)、規則 6 の前のジョブの
+/// 走査は、目印の [`SimulationMarks`] の「済んだ前置き」から続ける。
+fn decide_with(input: &DecideInput<'_>, marks: &mut SimulationMarks) -> Decision {
+    let DecideInput {
+        job_id,
+        index,
+        definition,
+        job_states,
+        resume_job_id,
+        end_reached,
+    } = *input;
+    let (status, skip_reason) = record_at(job_states, index, job_id);
 
     // 1, 2
     if status == JobStatus::Skipped {
@@ -75,15 +113,37 @@ fn decide_before_run(
     }
     // 5 は 6 に含まれる(ここまでで `status` は pending。`index == 0` なら前のジョブが無い)。
     // 6
-    let predecessors_settled = definition.job[..index]
-        .iter()
-        .enumerate()
-        .all(|(i, j)| is_settled(status_at(job_states, i, &j.id)));
-    if predecessors_settled {
+    if marks.predecessors_settled(definition, job_states, index) {
         return Decision::Run;
     }
     // 7
     Decision::Reject(RejectReason::OutOfOrder)
+}
+
+/// 計画の模擬の、起動前の判断(内部の入口。v0.10.1 の BR3.4、FR3.3)。
+///
+/// `index` は、模擬が定義の順に進めている位置。`marks` は、模擬が持ち回る目印。判断は
+/// [`decide_from_state`] と同じ本体([`decide_with`])で決め、同じ入力には同じ判断になる。
+/// `index` のジョブが `job_id` でなければ、`job_index` で探し直す(定義になければ順序外)。
+pub(crate) fn decide_at(
+    job_id: &str,
+    index: usize,
+    definition: &PipelineDefinition,
+    state: &PipelineState,
+    marks: &mut SimulationMarks,
+) -> Decision {
+    let Some(index) = position_of(definition, index, job_id) else {
+        return Decision::Reject(RejectReason::OutOfOrder);
+    };
+    let input = DecideInput {
+        job_id,
+        index,
+        definition,
+        job_states: &state.job_states,
+        resume_job_id: state.resume_job_id.as_deref(),
+        end_reached: state.end_reached,
+    };
+    decide_with(&input, marks)
 }
 
 /// ステート(無いこともある)から、ジョブを起動する前の判断を決める(W2、BR3.5)。
