@@ -24,31 +24,31 @@
 
 ### Step 1: テストの準備を確かめる
 
-- [x] 変更の前に、`unit-test-instructions.md` のコマンドをそのまま走らせ、結果を `code-summary.md` に記録する(書き方の誤りを早く見つけるため。v0.10.0 の振り返り)。
+- [ ] 変更の前に、`unit-test-instructions.md` のコマンドをそのまま走らせ、結果を `code-summary.md` に記録する(書き方の誤りを早く見つけるため。v0.10.0 の振り返り)。
 
 ### Step 2: F2 ログの名前(runtime)とその層のテスト
 
-- [x] `crates/runtime/src/log.rs` の `safe_log_stem` で、最初の `.` より前の部分を予約名と比べるときに、前後の ASCII の空白を除いた値で比べる。名前そのものは変えない。ドキュメントコメントの手順 3 を直す(BR2.1、FR2.1)。
-- [x] `crates/runtime/tests/log_file.rs` の名前の表に、要件の FR2.1 の表の行(`con`、`console`、`con `、` con`、` con `、`con .x`、`nul .tar.gz`)を足す(BR2.2、FR2.2)。
-- [x] `README.md` の「名前の置き換え」に、空白の例(`con ` → `_con_`)を足す(BR2.2、FR2.2)。
-- [x] runtime のコマンドを走らせる。
+- [ ] `crates/runtime/src/log.rs` の `safe_log_stem` で、最初の `.` より前の部分を予約名と比べるときに、前後の ASCII の空白を除いた値で比べる。名前そのものは変えない。ドキュメントコメントの手順 3 を直す(BR2.1、FR2.1)。
+- [ ] `crates/runtime/tests/log_file.rs` の名前の表に、要件の FR2.1 の表の行(`con`、`console`、`con `、` con`、` con `、`con .x`、`nul .tar.gz`)を足す(BR2.2、FR2.2)。
+- [ ] `README.md` の「名前の置き換え」に、空白の例(`con ` → `_con_`)を足す(BR2.2、FR2.2)。
+- [ ] runtime のコマンドを走らせる。
 
 ### Step 3: F2 読む前の「止める」印(runtime)とその層のテスト
 
-- [x] `crates/runtime/src/runner.rs` の `copy_stream` の繰り返しの初めに、印を見て立っていれば抜ける確かめを足す。読んだ後の確かめは変えない。ドキュメントコメントを直す(BR2.3、BR2.4、FR2.3)。
-- [x] `runner.rs` の `mod tests` に、印を立てた共有の状態と、`read` の回数を数える読み手で `copy_stream` を呼び、`read` が 0 回、端末とファイルに何も書かれないことを確かめるテストを足す。今の `Shared::new` と既存の補助を使い、本番にテスト専用の引数・`pub` を足さない(BR2.3)。
-- [x] runtime のコマンド(`runner_log.rs` を含む)を走らせる(BR2.4)。
+- [ ] `crates/runtime/src/runner.rs` の `copy_stream` の繰り返しの初めに、印を見て立っていれば抜ける確かめを足す。読んだ後の確かめは変えない。ドキュメントコメントを直す(BR2.3、BR2.4、FR2.3)。
+- [ ] `runner.rs` の `mod tests` に、印を立てた共有の状態と、`read` の回数を数える読み手で `copy_stream` を呼び、`read` が 0 回、端末とファイルに何も書かれないことを確かめるテストを足す。今の `Shared::new` と既存の補助を使い、本番にテスト専用の引数・`pub` を足さない(BR2.3)。
+- [ ] runtime のコマンド(`runner_log.rs` を含む)を走らせる(BR2.4)。
 
 ### Step 4: 変更の前の全体の確かめ
 
-- [x] `cargo test --workspace --locked` を走らせ、Step 2・3 の後も全体が通ることを確かめる。
+- [ ] `cargo test --workspace --locked` を走らせ、Step 2・3 の後も全体が通ることを確かめる。
 
 ### Step 5: F3 の測定と判定(使い捨ての仕組み)
 
-- [x] 使い捨ての測定用のテストを `crates/core/tests/` に一時的に置き(コミットしない)、ジョブの数 250・500・1,000・2,000 で、`plan_simulate_perf.rs` と同じ形の計画を作る時間の中央値を、通常の `cargo test --release` ではなく debug(`cargo test`)と `cargo llvm-cov` の下の両方で測る(BR3.2、FR3.2)。
-- [x] 走査ごとの効き目を確かめる(R-05)。測定の表と、走査ごとの判断を `code-summary.md` に書く。
-- [x] BR3.3 で判定する(llvm-cov の下で、2 倍ごとの伸びがすべて 3 倍以上なら原因)。
-- [x] 測定用のファイルを消し、作業の木に残っていないことを `git status` で確かめる。
+- [ ] 使い捨ての測定用のテストを `crates/core/tests/` に一時的に置き(コミットしない)、ジョブの数 250・500・1,000・2,000 で、`plan_simulate_perf.rs` と同じ形の計画を作る時間の中央値を、通常の `cargo test --release` ではなく debug(`cargo test`)と `cargo llvm-cov` の下の両方で測る(BR3.2、FR3.2)。
+- [ ] 走査ごとの効き目を確かめる(R-05)。測定の表と、走査ごとの判断を `code-summary.md` に書く。
+- [ ] BR3.3 で判定する(llvm-cov の下で、2 倍ごとの伸びがすべて 3 倍以上なら原因)。
+- [ ] 測定用のファイルを消し、作業の木に残っていないことを `git status` で確かめる。
 
 ### Step 6: F3 の直し(Step 5 で原因と判定したときだけ)とその層のテスト
 
@@ -62,34 +62,34 @@
 
 ### Step 7: F5 デモの場面 4 とその層のテスト
 
-- [x] `demo/run-demo.sh` の場面 4 で、`watch --follow` の説明の 2 行の後、`cmd "$CONDUCTOR" watch --follow` の前に `pause` を足す(BR5.1、FR5.1)。`demo/windows/run-demo.cmd` は変えない(BR5.3)。
-- [x] `demo/README.md` の `DEMO_PAUSE` の説明に、UNIX 版では場面 4 の `watch --follow` の前でも待つことを書き足す(BR5.4、FR5.4)。
-- [x] `crates/cli/tests/unix_demo.rs` に、`DEMO_PAUSE=1` を足して動かし(標準入力は `run_limited` の既定の空のまま)、場面 4 の範囲で `(Enter で次へ)` が 1 回の `watch` の完了の行より後、`watch --follow` のコマンドの行より前に出ることを確かめるテストを足す(BR5.5、FR5.5)。既存のテストは変えない(BR5.2)。
-- [x] cli のデモのコマンドを走らせる。
+- [ ] `demo/run-demo.sh` の場面 4 で、`watch --follow` の説明の 2 行の後、`cmd "$CONDUCTOR" watch --follow` の前に `pause` を足す(BR5.1、FR5.1)。`demo/windows/run-demo.cmd` は変えない(BR5.3)。
+- [ ] `demo/README.md` の `DEMO_PAUSE` の説明に、UNIX 版では場面 4 の `watch --follow` の前でも待つことを書き足す(BR5.4、FR5.4)。
+- [ ] `crates/cli/tests/unix_demo.rs` に、`DEMO_PAUSE=1` を足して動かし(標準入力は `run_limited` の既定の空のまま)、場面 4 の範囲で `(Enter で次へ)` が 1 回の `watch` の完了の行より後、`watch --follow` のコマンドの行より前に出ることを確かめるテストを足す(BR5.5、FR5.5)。既存のテストは変えない(BR5.2)。
+- [ ] cli のデモのコマンドを走らせる。
 
 ### Step 8: F1 README の注意
 
-- [x] `README.md` の `watch --follow` の節で、「エラーの後に続くジョブがあるときの注意」を W5 のとおり書き直す(起きる使い方、起きること、端末 A・B の例、避け方)。「ステートが無いとき」の項と区別できるようにする(BR1.1、BR1.2、FR1.1、FR1.2)。`crates/core/src/flow/activity.rs` は変えない(BR1.3、FR1.3)。
-- [x] `src/tests/docs.rs` の必須の語句がこの節の語に依るときは、合わせて直す。cli の文書のテストを走らせる。
+- [ ] `README.md` の `watch --follow` の節で、「エラーの後に続くジョブがあるときの注意」を W5 のとおり書き直す(起きる使い方、起きること、端末 A・B の例、避け方)。「ステートが無いとき」の項と区別できるようにする(BR1.1、BR1.2、FR1.1、FR1.2)。`crates/core/src/flow/activity.rs` は変えない(BR1.3、FR1.3)。
+- [ ] `src/tests/docs.rs` の必須の語句がこの節の語に依るときは、合わせて直す。cli の文書のテストを走らせる。
 
 ### Step 9: 文書のずれ
 
-- [x] `crates/runtime/src/lib.rs` の契約の表の `run_job` の行に、`unset` の引数を書き足す(BR6.1、FR6.1)。
-- [x] 「33 種」を「34 種」に直す: `docs/spec/rust/00-README.md` 23 行、`02-architecture.md` 103 行(v0.10.0 の `UnsetEnvConflict` の追加も書く)・297 行、`03-definition-format.md` 523 行の見出し、`10-errors-and-exit-codes.md` 120 行、`11-quality-and-build.md` 213 行、`12-rebuild-guide.md` 22 行・24 行・321 行、`crates/core/tests/env_types.rs` 56 行の注釈、`crates/cli/src/tests/report_messages.rs` 1225 行の注釈(R-07)。`12-rebuild-guide.md` の 105 行と 285 行は残す(BR6.2、FR6.2)。
-- [x] `grep -rn '33 種' docs/spec/rust/ crates/` の結果が `12-rebuild-guide.md` の 105 行だけであることを確かめる。
+- [ ] `crates/runtime/src/lib.rs` の契約の表の `run_job` の行に、`unset` の引数を書き足す(BR6.1、FR6.1)。
+- [ ] 「33 種」を「34 種」に直す: `docs/spec/rust/00-README.md` 23 行、`02-architecture.md` 103 行(v0.10.0 の `UnsetEnvConflict` の追加も書く)・297 行、`03-definition-format.md` 523 行の見出し、`10-errors-and-exit-codes.md` 120 行、`11-quality-and-build.md` 213 行、`12-rebuild-guide.md` 22 行・24 行・321 行、`crates/core/tests/env_types.rs` 56 行の注釈、`crates/cli/src/tests/report_messages.rs` 1225 行の注釈(R-07)。`12-rebuild-guide.md` の 105 行と 285 行は残す(BR6.2、FR6.2)。
+- [ ] `grep -rn '33 種' docs/spec/rust/ crates/` の結果が `12-rebuild-guide.md` の 105 行だけであることを確かめる。
 
 ### Step 10: 全体の確かめ
 
-- [x] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
+- [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
 
 ### Step 11: 版を 0.10.1 にする
 
-- [x] 4 クレートの `Cargo.toml` と `Cargo.lock`、`crates/cli/tests/binary_basic.rs` の `--version` の期待、`docs/spec/` の版の表記(e112426 と同じ 22 ファイル)を 0.10.1 にする。「v0.10.0 から」などの注記は上げない(BR7.1、FR7.1)。件名は「版を 0.10.1 にする」の 1 コミット。
-- [x] `cargo test --workspace --locked` を走らせる。
+- [ ] 4 クレートの `Cargo.toml` と `Cargo.lock`、`crates/cli/tests/binary_basic.rs` の `--version` の期待、`docs/spec/` の版の表記(e112426 と同じ 22 ファイル)を 0.10.1 にする。「v0.10.0 から」などの注記は上げない(BR7.1、FR7.1)。件名は「版を 0.10.1 にする」の 1 コミット。
+- [ ] `cargo test --workspace --locked` を走らせる。
 
 ### Step 12: 記録
 
-- [x] `code-summary.md`(変更の一覧、測定の表、走査ごとの判断、テストの結果、コミット)と `traceability.json` を書く。
+- [ ] `code-summary.md`(変更の一覧、測定の表、走査ごとの判断、テストの結果、コミット)と `traceability.json` を書く。
 
 ## やり直し 1(Build and Test の Loop-back 1)
 
@@ -97,10 +97,10 @@ Build and Test で、CI 45908344996 の `coverage`(ubuntu、`cargo llvm-cov` の
 
 ### Step 13: F3 の直し(Step 6 の内容を、人の決定で行う)とその層のテスト
 
-- [ ] Step 6 の 1〜4 番目の項目(`flow` の内部の入口と目印を進める関数、`plan/simulate.rs` からの呼び出し、R-06 の判断の一致のテスト、core のテスト)を、そのとおりに行う。R-05 の表(`code-summary.md` の走査ごとの表)の「直すときに使う値」を使い、1,000 ジョブで時間の大半を占める走査(`job_index`、`record_of`、規則 6 の前のジョブの走査、`apply_skip_in` の `any(Error)` と `first_pending`)を直す。`pending_ids` は直さない(R-05 の表で効かないと分かったため)(BR3.4、FR3.3)。
-- [ ] Step 5 と同じ形の使い捨ての測定で、直す前と後を比べる。合否は BR3.5(llvm-cov の下で 1,000 ジョブが 75ms 以下、2 倍ごとの伸び 2.5 倍以下)。測定用のファイルは消し、表を `code-summary.md` に書き足す。届かなければ、Step 6 の 6 番目の項目のとおり戻して記録する(BR3.5、BR3.6)。
-- [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
-- [ ] `code-summary.md`(やり直し 1 の変更、内部の入口の名前、測定の表、テストの結果、コミット)と `traceability.json`(BR3.4・BR3.5 の行)を書き直す。
+- [x] Step 6 の 1〜4 番目の項目(`flow` の内部の入口と目印を進める関数、`plan/simulate.rs` からの呼び出し、R-06 の判断の一致のテスト、core のテスト)を、そのとおりに行う。R-05 の表(`code-summary.md` の走査ごとの表)の「直すときに使う値」を使い、1,000 ジョブで時間の大半を占める走査(`job_index`、`record_of`、規則 6 の前のジョブの走査、`apply_skip_in` の `any(Error)` と `first_pending`)を直す。`pending_ids` は直さない(R-05 の表で効かないと分かったため)(BR3.4、FR3.3)。
+- [x] Step 5 と同じ形の使い捨ての測定で、直す前と後を比べる。合否は BR3.5(llvm-cov の下で 1,000 ジョブが 75ms 以下、2 倍ごとの伸び 2.5 倍以下)。測定用のファイルは消し、表を `code-summary.md` に書き足す。届かなければ、Step 6 の 6 番目の項目のとおり戻して記録する(BR3.5、BR3.6)。
+- [x] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
+- [x] `code-summary.md`(やり直し 1 の変更、内部の入口の名前、測定の表、テストの結果、コミット)と `traceability.json`(BR3.4・BR3.5 の行)を書き直す。
 
 - 版はすでに 0.10.1(152c4a1)。この直しのコミットは版の更新の後に入るが、タグはまだ付けておらず、版は変えない(BR7.1 の「すべてを片づけてから版を上げる」からのずれとして記録する)。
 - CI の `coverage` が通ることは、Build and Test で、人の push の後に確かめる。
