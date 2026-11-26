@@ -24,31 +24,31 @@
 
 ### Step 1: テストの準備を確かめる
 
-- [ ] 変更の前に、`unit-test-instructions.md` のコマンドをそのまま走らせ、結果を `code-summary.md` に記録する(書き方の誤りを早く見つけるため。v0.10.0 の振り返り)。
+- [x] 変更の前に、`unit-test-instructions.md` のコマンドをそのまま走らせ、結果を `code-summary.md` に記録する(書き方の誤りを早く見つけるため。v0.10.0 の振り返り)。
 
 ### Step 2: F2 ログの名前(runtime)とその層のテスト
 
-- [ ] `crates/runtime/src/log.rs` の `safe_log_stem` で、最初の `.` より前の部分を予約名と比べるときに、前後の ASCII の空白を除いた値で比べる。名前そのものは変えない。ドキュメントコメントの手順 3 を直す(BR2.1、FR2.1)。
-- [ ] `crates/runtime/tests/log_file.rs` の名前の表に、要件の FR2.1 の表の行(`con`、`console`、`con `、` con`、` con `、`con .x`、`nul .tar.gz`)を足す(BR2.2、FR2.2)。
-- [ ] `README.md` の「名前の置き換え」に、空白の例(`con ` → `_con_`)を足す(BR2.2、FR2.2)。
-- [ ] runtime のコマンドを走らせる。
+- [x] `crates/runtime/src/log.rs` の `safe_log_stem` で、最初の `.` より前の部分を予約名と比べるときに、前後の ASCII の空白を除いた値で比べる。名前そのものは変えない。ドキュメントコメントの手順 3 を直す(BR2.1、FR2.1)。
+- [x] `crates/runtime/tests/log_file.rs` の名前の表に、要件の FR2.1 の表の行(`con`、`console`、`con `、` con`、` con `、`con .x`、`nul .tar.gz`)を足す(BR2.2、FR2.2)。
+- [x] `README.md` の「名前の置き換え」に、空白の例(`con ` → `_con_`)を足す(BR2.2、FR2.2)。
+- [x] runtime のコマンドを走らせる。
 
 ### Step 3: F2 読む前の「止める」印(runtime)とその層のテスト
 
-- [ ] `crates/runtime/src/runner.rs` の `copy_stream` の繰り返しの初めに、印を見て立っていれば抜ける確かめを足す。読んだ後の確かめは変えない。ドキュメントコメントを直す(BR2.3、BR2.4、FR2.3)。
-- [ ] `runner.rs` の `mod tests` に、印を立てた共有の状態と、`read` の回数を数える読み手で `copy_stream` を呼び、`read` が 0 回、端末とファイルに何も書かれないことを確かめるテストを足す。今の `Shared::new` と既存の補助を使い、本番にテスト専用の引数・`pub` を足さない(BR2.3)。
-- [ ] runtime のコマンド(`runner_log.rs` を含む)を走らせる(BR2.4)。
+- [x] `crates/runtime/src/runner.rs` の `copy_stream` の繰り返しの初めに、印を見て立っていれば抜ける確かめを足す。読んだ後の確かめは変えない。ドキュメントコメントを直す(BR2.3、BR2.4、FR2.3)。
+- [x] `runner.rs` の `mod tests` に、印を立てた共有の状態と、`read` の回数を数える読み手で `copy_stream` を呼び、`read` が 0 回、端末とファイルに何も書かれないことを確かめるテストを足す。今の `Shared::new` と既存の補助を使い、本番にテスト専用の引数・`pub` を足さない(BR2.3)。
+- [x] runtime のコマンド(`runner_log.rs` を含む)を走らせる(BR2.4)。
 
 ### Step 4: 変更の前の全体の確かめ
 
-- [ ] `cargo test --workspace --locked` を走らせ、Step 2・3 の後も全体が通ることを確かめる。
+- [x] `cargo test --workspace --locked` を走らせ、Step 2・3 の後も全体が通ることを確かめる。
 
 ### Step 5: F3 の測定と判定(使い捨ての仕組み)
 
-- [ ] 使い捨ての測定用のテストを `crates/core/tests/` に一時的に置き(コミットしない)、ジョブの数 250・500・1,000・2,000 で、`plan_simulate_perf.rs` と同じ形の計画を作る時間の中央値を、通常の `cargo test --release` ではなく debug(`cargo test`)と `cargo llvm-cov` の下の両方で測る(BR3.2、FR3.2)。
-- [ ] 走査ごとの効き目を確かめる(R-05)。測定の表と、走査ごとの判断を `code-summary.md` に書く。
-- [ ] BR3.3 で判定する(llvm-cov の下で、2 倍ごとの伸びがすべて 3 倍以上なら原因)。
-- [ ] 測定用のファイルを消し、作業の木に残っていないことを `git status` で確かめる。
+- [x] 使い捨ての測定用のテストを `crates/core/tests/` に一時的に置き(コミットしない)、ジョブの数 250・500・1,000・2,000 で、`plan_simulate_perf.rs` と同じ形の計画を作る時間の中央値を、通常の `cargo test --release` ではなく debug(`cargo test`)と `cargo llvm-cov` の下の両方で測る(BR3.2、FR3.2)。
+- [x] 走査ごとの効き目を確かめる(R-05)。測定の表と、走査ごとの判断を `code-summary.md` に書く。
+- [x] BR3.3 で判定する(llvm-cov の下で、2 倍ごとの伸びがすべて 3 倍以上なら原因)。
+- [x] 測定用のファイルを消し、作業の木に残っていないことを `git status` で確かめる。
 
 ### Step 6: F3 の直し(Step 5 で原因と判定したときだけ)とその層のテスト
 
@@ -62,34 +62,34 @@
 
 ### Step 7: F5 デモの場面 4 とその層のテスト
 
-- [ ] `demo/run-demo.sh` の場面 4 で、`watch --follow` の説明の 2 行の後、`cmd "$CONDUCTOR" watch --follow` の前に `pause` を足す(BR5.1、FR5.1)。`demo/windows/run-demo.cmd` は変えない(BR5.3)。
-- [ ] `demo/README.md` の `DEMO_PAUSE` の説明に、UNIX 版では場面 4 の `watch --follow` の前でも待つことを書き足す(BR5.4、FR5.4)。
-- [ ] `crates/cli/tests/unix_demo.rs` に、`DEMO_PAUSE=1` を足して動かし(標準入力は `run_limited` の既定の空のまま)、場面 4 の範囲で `(Enter で次へ)` が 1 回の `watch` の完了の行より後、`watch --follow` のコマンドの行より前に出ることを確かめるテストを足す(BR5.5、FR5.5)。既存のテストは変えない(BR5.2)。
-- [ ] cli のデモのコマンドを走らせる。
+- [x] `demo/run-demo.sh` の場面 4 で、`watch --follow` の説明の 2 行の後、`cmd "$CONDUCTOR" watch --follow` の前に `pause` を足す(BR5.1、FR5.1)。`demo/windows/run-demo.cmd` は変えない(BR5.3)。
+- [x] `demo/README.md` の `DEMO_PAUSE` の説明に、UNIX 版では場面 4 の `watch --follow` の前でも待つことを書き足す(BR5.4、FR5.4)。
+- [x] `crates/cli/tests/unix_demo.rs` に、`DEMO_PAUSE=1` を足して動かし(標準入力は `run_limited` の既定の空のまま)、場面 4 の範囲で `(Enter で次へ)` が 1 回の `watch` の完了の行より後、`watch --follow` のコマンドの行より前に出ることを確かめるテストを足す(BR5.5、FR5.5)。既存のテストは変えない(BR5.2)。
+- [x] cli のデモのコマンドを走らせる。
 
 ### Step 8: F1 README の注意
 
-- [ ] `README.md` の `watch --follow` の節で、「エラーの後に続くジョブがあるときの注意」を W5 のとおり書き直す(起きる使い方、起きること、端末 A・B の例、避け方)。「ステートが無いとき」の項と区別できるようにする(BR1.1、BR1.2、FR1.1、FR1.2)。`crates/core/src/flow/activity.rs` は変えない(BR1.3、FR1.3)。
-- [ ] `src/tests/docs.rs` の必須の語句がこの節の語に依るときは、合わせて直す。cli の文書のテストを走らせる。
+- [x] `README.md` の `watch --follow` の節で、「エラーの後に続くジョブがあるときの注意」を W5 のとおり書き直す(起きる使い方、起きること、端末 A・B の例、避け方)。「ステートが無いとき」の項と区別できるようにする(BR1.1、BR1.2、FR1.1、FR1.2)。`crates/core/src/flow/activity.rs` は変えない(BR1.3、FR1.3)。
+- [x] `src/tests/docs.rs` の必須の語句がこの節の語に依るときは、合わせて直す。cli の文書のテストを走らせる。
 
 ### Step 9: 文書のずれ
 
-- [ ] `crates/runtime/src/lib.rs` の契約の表の `run_job` の行に、`unset` の引数を書き足す(BR6.1、FR6.1)。
-- [ ] 「33 種」を「34 種」に直す: `docs/spec/rust/00-README.md` 23 行、`02-architecture.md` 103 行(v0.10.0 の `UnsetEnvConflict` の追加も書く)・297 行、`03-definition-format.md` 523 行の見出し、`10-errors-and-exit-codes.md` 120 行、`11-quality-and-build.md` 213 行、`12-rebuild-guide.md` 22 行・24 行・321 行、`crates/core/tests/env_types.rs` 56 行の注釈、`crates/cli/src/tests/report_messages.rs` 1225 行の注釈(R-07)。`12-rebuild-guide.md` の 105 行と 285 行は残す(BR6.2、FR6.2)。
-- [ ] `grep -rn '33 種' docs/spec/rust/ crates/` の結果が `12-rebuild-guide.md` の 105 行だけであることを確かめる。
+- [x] `crates/runtime/src/lib.rs` の契約の表の `run_job` の行に、`unset` の引数を書き足す(BR6.1、FR6.1)。
+- [x] 「33 種」を「34 種」に直す: `docs/spec/rust/00-README.md` 23 行、`02-architecture.md` 103 行(v0.10.0 の `UnsetEnvConflict` の追加も書く)・297 行、`03-definition-format.md` 523 行の見出し、`10-errors-and-exit-codes.md` 120 行、`11-quality-and-build.md` 213 行、`12-rebuild-guide.md` 22 行・24 行・321 行、`crates/core/tests/env_types.rs` 56 行の注釈、`crates/cli/src/tests/report_messages.rs` 1225 行の注釈(R-07)。`12-rebuild-guide.md` の 105 行と 285 行は残す(BR6.2、FR6.2)。
+- [x] `grep -rn '33 種' docs/spec/rust/ crates/` の結果が `12-rebuild-guide.md` の 105 行だけであることを確かめる。
 
 ### Step 10: 全体の確かめ
 
-- [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
+- [x] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR7、NFR1)。
 
 ### Step 11: 版を 0.10.1 にする
 
-- [ ] 4 クレートの `Cargo.toml` と `Cargo.lock`、`crates/cli/tests/binary_basic.rs` の `--version` の期待、`docs/spec/` の版の表記(e112426 と同じ 22 ファイル)を 0.10.1 にする。「v0.10.0 から」などの注記は上げない(BR7.1、FR7.1)。件名は「版を 0.10.1 にする」の 1 コミット。
-- [ ] `cargo test --workspace --locked` を走らせる。
+- [x] 4 クレートの `Cargo.toml` と `Cargo.lock`、`crates/cli/tests/binary_basic.rs` の `--version` の期待、`docs/spec/` の版の表記(e112426 と同じ 22 ファイル)を 0.10.1 にする。「v0.10.0 から」などの注記は上げない(BR7.1、FR7.1)。件名は「版を 0.10.1 にする」の 1 コミット。
+- [x] `cargo test --workspace --locked` を走らせる。
 
 ### Step 12: 記録
 
-- [ ] `code-summary.md`(変更の一覧、測定の表、走査ごとの判断、テストの結果、コミット)と `traceability.json` を書く。
+- [x] `code-summary.md`(変更の一覧、測定の表、走査ごとの判断、テストの結果、コミット)と `traceability.json` を書く。
 
 ## コミット
 
@@ -100,3 +100,70 @@
 - ファイルの作成と編集はファイルの道具だけで行い、シェル(`sed -i`、`python3`、heredoc)で書き換えない(v0.10.0 の振り返り)。
 - 新しい依存を足さない。`unsafe` と `cfg` の場所の決まりを守る。エラーの表示に入力の値を含めない。テストの都合で本番を曲げない。
 - 性能のテストの上限、カバレッジの下限を下げない。
+
+## Testing Contract
+
+```json
+{
+  "version": 1,
+  "methodology": "test-after",
+  "source": "team",
+  "ordering": "各テスト可能な層を実装してから、その層のテストを書いて実行する。",
+  "scope": "refactor",
+  "test_strategy": "minimal",
+  "project_type": "brownfield",
+  "applicable_notes": [
+    {
+      "layer": "org",
+      "text": "We treat tests as a first-class deliverable in every Bolt. The specific\nmethodology (TDD, BDD, ATDD, or classic test-after) is affirmed at\npractices-discovery and recorded in `team.md` under this heading with explicit\n`Methodology` and `Ordering` fields; Code Generation resolves those fields\nindependently from coverage, tooling, and scope notes.\n\nWhen no posture has been affirmed, our default per scope is:\n- **Methodology**: test-after\n- **Ordering**: implement each applicable testable layer, then write and run\n  that layer's tests.\n- `mvp`, `enterprise`, `feature`, `infra` add an 80% line-coverage\n  floor and CI execution before merge.\n- `bugfix`, `security-patch` add a targeted regression for the specific\n  bug/vulnerability and require the existing suite to remain green.\n- `express` uses the Minimal strategy: requirement-driven unit tests (one per\n  requirement, with a happy-path floor per component); existing tests remain\n  green.\n- `poc`, `refactor`, `workshop`, `classic` add no extra new-test floor and require the\n  existing suite to remain green.\n\nThe active `Test Strategy` still applies in every scope and determines test\nvolume/types. Scope floors are additive; they never reduce or replace the\nselected strategy.\n\nBuild and Test verifies defined coverage floors and affirmed quality targets;\nthey may not be weakened to make a step pass.\n\nAffirm a stricter posture in `team.md` if the team commits to one."
+    },
+    {
+      "layer": "team",
+      "text": "- **Methodology**: test-after\n- **Methodology evidence**: チームは test-after を続けると決めた(インタビュー Q3)。履歴も整合する。v0.9.0 の U4 では、`create_file` の追加(602d15c)の後にそのテスト(90a27fa)、ひな形の生成(0fbd466)の後にひな形のテスト(5b750f8)が続く。U3 も流れ(a9eb237)の後に流れのテスト(365f45c)と実バイナリのテスト(062c627)が続く。`code-quality-assessment.md` も「チームの方針(test-after、行カバレッジ 80%)と一致する」と記す。\n- **Ordering**: 各テスト可能な層を実装してから、その層のテストを書いて実行する。\n- テストの種類: 各クレートの `tests/` に統合テスト(core 33、runtime 14、cli 25、converter 2 のファイル)。単体テストは各モジュールの `mod tests` と、`crates/cli/src/tests/`(11 ファイル)、`crates/converter/src/tests/`(4 ファイル)。`#[test]` は合計 1,170。\n- 流れのテストは偽の `Runtime`/`Sink`/`Env`/`Signals` を注入する。実バイナリのテストは `conductor` とテスト専用の補助バイナリを動かす。非機能のテスト(`nfr_*.rs`、`*_perf.rs`)、網羅のテスト(`ALL` 配列)、参照出力との一致(`graph_layout_oracle.rs`)、文書との一致(`src/tests/docs.rs`、`msrv_consistency.rs`)、デモのテスト(`unix_demo.rs`、`windows_demo.rs`)を含む。テスト名は日本語。\n- テストの都合で本番のコードを曲げない。テスト専用の引数・`pub`・関数を本番に残さず、流れのテストは公開の入口と差し替え口で書く(インタビュー Q6)。\n- 行カバレッジ 80% を下限とする。CI の `coverage` ジョブが `cargo llvm-cov --fail-under-lines 80` で強制する(テスト専用の補助バイナリは除外)。\n- 主な開発環境の OS は macOS で、テストはローカルの macOS で実行する。他の OS のテストは GitHub Actions の CI(`test`: ubuntu、macos、windows)で確認する。マージ前に CI を通す(インタビュー Q3)。\n- 最小の Rust(1.100.0)でもテストを実行する(`msrv-test`)。\n- 起動の性能(`nfr_perf.rs`)は `startup-bench` で測るが、警告のみで失敗にしない(`STARTUP_BENCH_ENFORCE=false`、`continue-on-error`)。\n- v0.10.0 の機能にも、test-after と 80% の下限、単体テストと実バイナリを動かす統合テストを続ける(インタビュー Q3)。\n- ステートの中身を調べるテスト(`nfr_content.rs`)は、B6 のために開始と終了の時刻だけを許すように直す。それ以外(コマンド・環境変数・出力)は今までどおり検査する(インタビュー Q7)。"
+    }
+  ],
+  "obligations": {
+    "strategy": "minimal",
+    "strategy_volume": [
+      "One verifiable test per requirement at the narrowest effective level.",
+      "At least one happy-path unit test per component.",
+      "Unit tests are the default; a bugfix/security scope floor may require an integration or E2E regression when that is the narrowest level that reproduces the defect."
+    ],
+    "scope_floor": [
+      "Keep the existing test suite green.",
+      "This scope adds no extra new-test floor beyond the selected test strategy."
+    ],
+    "combination_rule": "Apply every selected-strategy obligation and every scope-floor obligation; neither replaces the other, and a targeted scope regression may add the narrowest necessary test type beyond the strategy default."
+  },
+  "plan_profile": {
+    "methodology": "test-after",
+    "runner_step": "Verify the existing test runner/configuration and record the exact unit-scoped command.",
+    "runner_ready_before_first_test": true,
+    "testable_layers": [
+      "Data model / database behavior",
+      "Repository / data access",
+      "Business logic",
+      "API / endpoint",
+      "Frontend behavior"
+    ],
+    "steps": [
+      "Project structure and production configuration skeleton.",
+      "Verify the existing test runner/configuration and record the exact unit-scoped command.",
+      "Data model / database behavior - implement.",
+      "Data model / database behavior - write and run its tests after implementation.",
+      "Repository / data access - implement.",
+      "Repository / data access - write and run its tests after implementation.",
+      "Business logic - implement.",
+      "Business logic - write and run its tests after implementation.",
+      "API / endpoint - implement.",
+      "API / endpoint - write and run its tests after implementation.",
+      "Frontend behavior - implement.",
+      "Frontend behavior - write and run its tests after implementation.",
+      "Environment/build configuration.",
+      "Documentation and traceability."
+    ]
+  },
+  "input_sha256": "sha256:7e9d968db97062fa027a5e051451ae9a45cf716ab34c770cf5bad3d7158ab724",
+  "contract_sha256": "sha256:728ba30aa54828358fc5a5af6a5cb1934005ee548cf618e9d67080e927739be0"
+}
+```
