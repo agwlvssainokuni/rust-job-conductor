@@ -135,3 +135,94 @@ F3 を直さなかったため、`flow::` と計画・流れ・性能のテス�
 - そのため Step 6(直し)は飛ばした。コードもテストも変えていない(BR3.6)。どの走査も直していない。
 - 参考: 手元の llvm-cov の下で、1,000 ジョブの計画は約 24ms で、`plan_simulate_perf.rs` の上限 150ms の 6 分の 1 ほど。CI で上限を超えた原因は、この測定からは分からない(F4 の記録の手順に回る)。
 - この表と理由は、Build and Test で `build-and-test-summary.md` にも書く(BR3.6)。
+
+## やり直し 1(Build and Test の Loop-back 1。Step 13)
+
+CI 45908344996 の `coverage`(ubuntu、`cargo llvm-cov` の下)で `plan_simulate_perf.rs` の P1・P2 が上限 150ms を超えたため、人が「Retry with fix」を選び、Step 5 の「直さない」の判定を覆して、Step 6 の直しを行った(`build-and-test/test-results.md` の Loop-Back Log)。上の Step 1〜12 の記録は、そのまま残す。
+
+### 変えたファイル
+
+| ファイル | 中身 | 規則 |
+|---|---|---|
+| `crates/core/src/flow/mod.rs` | 目印の型 `SimulationMarks`(`pub(crate)`。フィールドは `flow` の外から見えない)と、目印を進める関数(`predecessors_settled`、`first_pending`、`has_error`、`note_status_change`)を足した。位置で引く `record_at`(`status_at` はこれを呼ぶ形にした)と、手がかりの位置を確かめて違えば `job_index` で探す `position_of` を足した。`mod tests` に R-06 のテストを 5 つ足した | BR3.4 |
+| `crates/core/src/flow/decide.rs` | 判断の本体を `decide_with`(規則 1〜7)に分け、公開の側(`decide_before_run` → `decide_from_state`)は位置を `job_index` で、目印を `SimulationMarks::new()` で求めて本体を呼ぶ形にした。模擬の内部の入口 `decide_at` を足した | BR3.4 |
+| `crates/core/src/flow/next_step.rs` | 本体の `next_step` は位置を引数で受け取る形にした。公開の `classify_and_decide` は `job_index` で求めて渡し、模擬の内部の入口 `classify_and_decide_at` は `position_of` で求めて渡す | BR3.4 |
+| `crates/core/src/flow/record.rs` | `apply_outcome_in`・`apply_skip_in` に目印を足した。状態を変えるたびに `error` の数を直し、`apply_skip_in` の「エラーがあるか」と「最初の pending」は目印から決める。公開の `apply_outcome`・`apply_skip` は新しい目印を渡す | BR3.4 |
+| `crates/core/src/plan/simulate.rs` | `plan_pipeline` が位置と目印を持ち回り、`decide_at`・`classify_and_decide_at`・目印つきの記録の関数を呼ぶ。判断と記録の規則は書き写していない。`plan_run` は今までどおり公開の入口を呼ぶ | BR3.4 |
+
+変えていないもの(確かめ済み): `job_index`(`types.rs`)・`record_of`(`flow/mod.rs`)の中身、公開の API(`lib.rs` の再公開)、`plan_simulate_perf.rs`(BR3.1)、`next_step.rs` の `pending_ids`(R-05 の表で効かないと分かったため)、`resolve_transition` の遷移先の `job_index`(遷移のあるジョブでだけ呼ばれ、R-05 の走査の対象でない)。
+
+### 内部の入口と目印の名前
+
+- 内部の入口: `flow::decide_at(job_id, index, definition, state, marks)`、`flow::classify_and_decide_at(job, index, execution, job_states, definition, run_mode)`(どちらも `pub(crate)`)。
+- 目印: `flow::SimulationMarks`(設計の `PlanSimulationLookup` の目印にあたる。位置は別の引数 `index` で渡す)。作るのは `SimulationMarks::new()`。
+
+### 走査ごとの直し方(R-05 の表の「直すときに使う値」)
+
+| 走査 | 直し方 | 目印が正しくない入力のとき |
+|---|---|---|
+| `job_index`(`decide.rs`、`next_step.rs`) | 模擬が渡す位置 `index` を `position_of` で確かめて使う(O(1)) | 位置のジョブが違えば `job_index` で探す(定義になければ、今までどおり順序外・停止) |
+| `record_of`(`decide.rs`) | 位置で引く `record_at`(O(1)) | 記録の位置が違う・記録が欠けるときは `record_of` で探す(`status_at` と同じ形) |
+| 規則 6 の `job[..index]` | 目印の「済んだ前置き」(`0..settled_prefix` はすべて済んでいる)から続けて走査する(計画の全体で O(n)) | 状態は `status_at` で引く。前置きは、`flow` の記録の関数が済んだジョブを済んでいない状態に戻さない(実行するのは pending か error のジョブだけ)ので、記録を変えても正しいまま |
+| `apply_skip_in` の `any(Error)` | 目印の `error` の数(要るときに 1 回だけ数え、記録の関数が状態を変えるたびに直す) | 数は定義に無い記録も含めて数える(`any` と同じ範囲) |
+| `apply_skip_in` の `first_pending` | 目印の「pending の無い前置き」から続けて走査する(計画の全体で O(n)) | 状態は `status_at` で引く(記録なしは pending)。記録の関数はどのジョブも pending に戻さないので、前置きは正しいまま |
+
+公開の入口は、呼ぶたびに新しい目印を作る(前置きは 0、数は未計数)ので、走査は今までと同じになる。
+
+### 直す前と後の測定(使い捨てのテスト)
+
+- 測り方は Step 5 と同じ(`crates/core/tests/tmp_f3_measure.rs` を Write で作り、P1・P2 を各 5 回作って中央値を取る)。測り終えて `rm` で消し、`git status` で残っていないことを確かめた(コミットしていない)。手元の macOS(Apple Silicon)。
+- 直す前は、この作業の初め(5405854 の前、152c4a1 の後の木)に測り直した値。Step 5 の表とほぼ同じ。
+
+計画を作る時間の中央値:
+
+| ジョブの数 | 直す前 debug P1 / P2 | 直す前 llvm-cov P1 / P2 | 直した後 debug P1 / P2 | 直した後 llvm-cov P1 / P2(1 回目) | 直した後 llvm-cov P1(2・3・4 回目) | 直した後 llvm-cov P2(2・3・4 回目) |
+|---|---|---|---|---|---|---|
+| 250 | 4.24 / 2.85ms | 4.39 / 2.81ms | 0.91 / 0.74ms | 0.92 / 0.75ms | 2.42 / 1.77 / 2.09ms | 1.31 / 1.25 / 1.26ms |
+| 500 | 6.87 / 5.95ms | 7.22 / 6.42ms | 1.79 / 1.52ms | 1.80 / 1.48ms | 2.40 / 2.31 / 2.40ms | 1.74 / 1.71 / 1.73ms |
+| 1,000 | 21.56 / 21.11ms | 23.65 / 23.06ms | 3.60 / 2.89ms | 3.56 / 2.98ms | 3.53 / 3.54 / 3.54ms | 2.75 / 2.77 / 2.77ms |
+| 2,000 | 74.61 / 75.09ms | 84.20 / 83.86ms | 7.02 / 5.73ms | 7.17 / 5.85ms | 6.72 / 6.67 / 6.69ms | 5.47 / 5.51 / 5.42ms |
+
+2 倍ごとの伸び(llvm-cov の下):
+
+| 段 | 直す前 P1 / P2 | 直した後 P1(1〜4 回目) | 直した後 P2(1〜4 回目) |
+|---|---|---|---|
+| 250 → 500 | 1.64 / 2.29 倍 | 1.97 / 0.99 / 1.31 / 1.15 倍 | 1.97 / 1.33 / 1.37 / 1.38 倍 |
+| 500 → 1,000 | 3.27 / 3.59 倍 | 1.98 / 1.47 / 1.53 / 1.47 倍 | 2.01 / 1.58 / 1.62 / 1.60 倍 |
+| 1,000 → 2,000 | 3.56 / 3.64 倍 | 2.01 / 1.90 / 1.88 / 1.89 倍 | 1.96 / 1.99 / 1.99 / 1.96 倍 |
+
+- 2〜4 回目の 250・500 は、1 回目より遅く、伸びが 2 倍を下回った。小さい数では、1 回の時間がジョブの数によらない分(初めの割り当てなど)に左右されるためと見る。どの回も、伸びは 2.5 倍以下。
+- 1,000 ジョブは、llvm-cov の下で 23.65ms → 3.53〜3.56ms(約 6.6 分の 1)、P2 は 23.06ms → 2.75〜2.98ms(約 8 分の 1)。
+
+### 判定(BR3.5)
+
+- **合格**。llvm-cov の下で 1,000 ジョブが P1 3.56ms・P2 2.98ms(1 回目。上限 75ms)、2 倍ごとの伸びはどの回・どの段でも 2.5 倍以下(最大 2.01 倍)。直しは戻していない(BR3.6 の戻しの枝には進まない)。
+- 参考: CI の ubuntu の llvm-cov の下は手元より約 6〜9 倍遅かった(`test-results.md` の診断)。同じ比で見積もると、1,000 ジョブは約 20〜35ms で、`plan_simulate_perf.rs` の上限 150ms に収まる見込み。CI の `coverage` が通ることは、Build and Test で、人の push の後に確かめる。
+
+### テストの結果
+
+| コマンド | 結果 |
+|---|---|
+| `cargo test -p conductor-core --lib --locked -- flow::` | 56 passed(5 増。R-06 のテスト) |
+| `cargo test -p conductor-core --test plan_pipeline --test plan_run --test plan_assume --test plan_simulate_perf --test flow_sequences --test flow_perf --test retry_flow --test attempt_flow --locked` | attempt_flow 8、flow_perf 1、flow_sequences 9、plan_assume 5、plan_pipeline 10、plan_run 5、plan_simulate_perf 3、retry_flow 17 passed(どのテストも変えていない) |
+| `cargo fmt --all -- --check` | 通った |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings` | 通った |
+| `cargo test --workspace --locked` | 1,437 passed、0 failed、1 ignored(前からのもの) |
+
+- R-06 のテスト(`flow::tests`)は、定義の順に全ジョブを、公開の入口(`decide_from_state`・`classify_and_decide`・`apply_skip`・`apply_outcome`)と内部の入口(`decide_at`・`classify_and_decide_at`・目印つきの `apply_skip_in`・`apply_outcome_in`)の 2 通りで進め、各ジョブで判断・分類・次の動き・記録が一致することを確かめる。入力は、記録が逆順のステート、記録の欠け(一部、すべて)、再開位置と error の記録(遷移で error のジョブをスキップに変える)、途中のエラーの後の順序外、`end_reached`、位置の手がかりの違い(別のジョブ、範囲の外、定義にないジョブ)。拒否やエラーの後も止めずに進める。
+- テストが効くことを確かめるため、一時的に `note_status_change` の減らす側を外して走らせ、「再開位置とエラーの記録があるステート」のテストが落ちることを見てから、元に戻した(コミットには入っていない)。
+
+### コミット
+
+| コミット | 件名 |
+|---|---|
+| 5405854 | core: 計画の模擬に位置と目印を渡す内部の入口を足す |
+| 6104853 | core: 内部の入口と公開の入口の判断と記録が一致するテストを足す |
+
+この記録(`code-summary.md`、`traceability.json`)は、最後の `aidlc:` のコミットに入れる。計画のファイル、監査の記録、承認の質問のファイルは、呼び出し側に任せ、コミットしていない。
+
+### 計画からのずれ
+
+- この直しのコミットは、版の更新(152c4a1、0.10.1)の後に入った。タグはまだ付けておらず、版は変えていない(BR7.1 の「すべてを片づけてから版を上げる」からのずれ。計画のやり直し 1 に書かれたとおり)。
+- `simulate_job` の引数が 7 つになるのを避けるため、仮定した終了コードと「指定したか」を 1 つの組 `(i32, bool)` にまとめた(動きは同じ)。
+- `traceability.json` の BR3.4 を `crates/core/src/flow/mod.rs`、BR3.5 を `crates/core/src/plan/simulate.rs` を指す OK にした。BR3.6 は Deferred のまま(戻しはしていない。Build and Test で扱う)。
