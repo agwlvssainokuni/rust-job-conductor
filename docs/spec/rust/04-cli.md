@@ -1,4 +1,4 @@
-# 04. コマンドライン(`conductor` v0.10.0)
+# 04. コマンドライン(`conductor` v0.10.1)
 
 実装: `crates/cli/src/{main,lib,args,types,ctx,run,pipeline,aux_commands,dry_run}.rs`。
 引数の解釈は `lexopt` で字句に分け、コマンドごとの文法の表で検査する。引数はシェルを介さず、解釈も展開もしない。
@@ -247,13 +247,13 @@ conductor --help | --version
 ## 8. ヘルプとバージョン
 
 - `-h`/`--help`: 使い方全文を標準出力に出して 0。言語はロケールに従う。全文は 08 章に掲載。
-- `-V`/`--version`: 標準出力に `conductor <版>\n`(版は `CARGO_PKG_VERSION`。v0.10.0 では `conductor 0.10.0`。このリポジトリの 4 クレートの `Cargo.toml` の版は `0.10.0` である)。ロケールを判定しない。終了コード 0。
+- `-V`/`--version`: 標準出力に `conductor <版>\n`(版は `CARGO_PKG_VERSION`。v0.10.1 では `conductor 0.10.1`。このリポジトリの 4 クレートの `Cargo.toml` の版は `0.10.1` である)。ロケールを判定しない。終了コード 0。
 
 実際の出力:
 
 ```text
 $ conductor --version
-conductor 0.10.0
+conductor 0.10.1
 ```
 
 ## 9. 実際の実行例(`LANG=C`)
