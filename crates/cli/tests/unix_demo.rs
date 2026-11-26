@@ -253,6 +253,24 @@ fn 利用者の環境の_run_id_と_ロケールに左右されない() {
 }
 
 #[test]
+fn br5_5_demo_pause_のとき場面_4_は_watch_follow_の前で待つ() {
+    // 標準入力は `run_limited` の既定(空)。`read` は EOF ですぐ戻るので、デモは止まらずに終わる。
+    let tmp = tempfile::tempdir().expect("一時ディレクトリ");
+    let output = run_demo(tmp.path(), &[("DEMO_PAUSE", "1")]);
+    assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
+    let out = text(&output.stdout);
+    let scene4 = &out[out.find("=== 4. ").expect("場面 4")..out.find("=== 5. ").expect("場面 5")];
+    let completed = scene4.find("\ncompleted\n").expect("1 回の watch の完了の行");
+    let follow = scene4
+        .find("watch --follow\u{1b}[0m\n")
+        .expect("watch --follow のコマンドの行");
+    let wait = scene4.find("(Enter で次へ)").expect("待ちの表示");
+    assert!(completed < wait && wait < follow, "{scene4}");
+    // 場面の終わりの待ちと合わせて 2 回(BR5.1)。
+    assert_eq!(scene4.matches("(Enter で次へ)").count(), 2, "{scene4}");
+}
+
+#[test]
 fn デモの一時ディレクトリは_終わると残らない() {
     let tmp = tempfile::tempdir().expect("一時ディレクトリ");
     let output = run_demo(tmp.path(), &[]);
