@@ -1,6 +1,6 @@
 # 規則: v0.10.1 の整理・修正
 
-出典: 要件(`requirements.md`、承認済み。要件の承認で直すと決めた R-07 を含む)、設計の質問(`functional-design-questions.md` の Q1)、コードの知識(`aidlc/spaces/default/codekb/rust-job-conductor/`)。
+出典: 要件(`requirements.md`、承認済み。要件の承認で直すと決めた R-07 を含む)、設計の質問(`functional-design-questions.md` の Q1 と、それを見直した Q2)、コードの知識(`aidlc/spaces/default/codekb/rust-job-conductor/`)。
 
 ```yaml
 rules:
@@ -69,7 +69,7 @@ rules:
     violation: コード生成の確かめで差分を見つけたら戻す
     source: FR3.1, NFR8
   - id: BR3.2
-    statement: 直す前に、ジョブの数 250・500・1,000・2,000 で、通常の cargo test とカバレッジの計測の下の両方の所要時間を測って記録する。測るための仕組みは使い捨てとし、リポジトリに残さない
+    statement: 直す前に、ジョブの数 250・500・1,000・2,000 で、通常の cargo test とカバレッジの計測の下の両方の所要時間を測り、code-summary.md に記録する。時間のかかる関数も特定する。測るための仕組みは使い捨てとし、リポジトリに残さない
     category: policy
     applies_to: コード生成の作業
     trigger: F3 の作業の初め
@@ -85,27 +85,27 @@ rules:
     violation: 該当なし(判定の規則)
     source: FR3.3
   - id: BR3.4
-    statement: 直すときは、計画の模擬の側(crates/core/src/plan/)だけを直す。ジョブの位置は定義の順から渡し、記録は位置で引く今の status_at の形を使う。共有の job_index・record_of と実行の流れ(flow/decide.rs、flow/next_step.rs)は変えない。計画の結果は変えない
+    statement: 直すときは、crates/core/src/flow/ の中に、ジョブの位置(と最初の済んでいないジョブの位置の目印)を受け取る内部の入口(pub(crate))を足し、計画の模擬はそれを呼ぶ。判断と記録の規則は flow の中の 1 か所のままにし、plan に書き写さない。今の公開の入口は、位置を自分で求めて同じ本体を呼ぶ。共有の公開の関数 job_index・record_of そのものと、実行の流れの動きと結果、計画の結果は変えない
     category: constraint
-    applies_to: crates/core/src/plan/
+    applies_to: crates/core/src/flow/、crates/core/src/plan/simulate.rs
     trigger: BR3.3 で原因と判定したとき
-    logic: IF 直しが plan の外のファイルに差分を作る THEN 範囲の外として戻す
-    violation: コード生成の確かめで差分を見つけたら戻す。既存の計画のテストが落ちる
+    logic: IF plan に判断や記録の規則の写しがある、または job_index・record_of の中身が変わる、または既存の流れ・計画のテストが落ちる THEN 戻す
+    violation: コード生成の確かめで見つけたら戻す。既存の流れと計画のテストが落ちる
     source: FR3.3
   - id: BR3.5
     statement: 直した後、カバレッジの計測の下で 1,000 ジョブの計画が 75ms 以下で作れ、ジョブの数を 2 倍にしたときの伸びが 2.5 倍以下になる
     category: validation
     applies_to: 直した後の測定
     trigger: 直した後
-    logic: IF 75ms を超える、または伸びが 2.5 倍を超える THEN 直しが足りないとして続ける
+    logic: IF 75ms を超える、または伸びが 2.5 倍を超える THEN 直しを戻して BR3.6 に進む(直しの繰り返しはしない)
     violation: Build and Test の確かめで不合格
     source: FR3.3
   - id: BR3.6
-    statement: 原因と判定しなかったときは、コードもテストも変えず、測った結果と判定の理由を build-and-test-summary.md に書く
+    statement: 原因と判定しなかったとき、または直しても BR3.5 に届かず戻したときは、コードもテストも変えない。測った結果の表と、直さない理由(どの段で 3 倍に届かなかったか、または届かなかった直しの結果)を build-and-test-summary.md に書く(要件の FR3.3 のとおり)。code-summary.md の測定の表はそのまま残す
     category: policy
     applies_to: この intent の記録
-    trigger: BR3.3 で原因と判定しなかったとき
-    logic: 測定の表と、どの段で 3 倍に届かなかったかを書く
+    trigger: BR3.3 で原因と判定しなかったとき、または BR3.5 に届かなかったとき
+    logic: 測定の表と理由を build-and-test-summary.md に書く
     violation: 記録が無ければ Build and Test を終えない
     source: FR3.3
   - id: BR4.1
@@ -149,7 +149,7 @@ rules:
     violation: レビューで差し戻す
     source: FR5.4
   - id: BR5.5
-    statement: unix_demo.rs に、DEMO_PAUSE=1 で標準入力に十分な数の改行を与えてデモを動かすテストを足し、場面 4 で、1 回の watch の完了の行の後、watch --follow を呼ぶコマンドの行の前に、"(Enter で次へ)" が出ることを確かめる
+    statement: unix_demo.rs に、DEMO_PAUSE=1 を足してデモを動かすテストを足す。標準入力は今の補助 run_limited の既定(空)のままにし、read は EOF ですぐ戻る。場面 4 で、1 回の watch の完了の行の後、watch --follow を呼ぶコマンドの行の前に、"(Enter で次へ)" が出ることを確かめる。今の補助は変えない
     category: validation
     applies_to: crates/cli/tests/unix_demo.rs
     trigger: テストのとき
@@ -196,9 +196,9 @@ rules:
 | BR3.1 | constraint | perf のテスト | 上限とテストを変えない | FR3.1、NFR8 |
 | BR3.2 | policy | 測定 | 4 つのジョブの数で 2 つの条件を測る。仕組みは残さない | FR3.2 |
 | BR3.3 | calculation | 判定 | 2 倍で 3 倍以上なら原因 | FR3.3 |
-| BR3.4 | constraint | plan | 直すのは plan の中だけ | FR3.3 |
-| BR3.5 | validation | 直した後 | 75ms 以下、伸び 2.5 倍以下 | FR3.3 |
-| BR3.6 | policy | 記録 | 直さないときは記録だけ | FR3.3 |
+| BR3.4 | constraint | flow・plan | flow に位置を受け取る内部の入口。規則は 1 か所 | FR3.3 |
+| BR3.5 | validation | 直した後 | 75ms 以下、伸び 2.5 倍以下。届かなければ戻す | FR3.3 |
+| BR3.6 | policy | 記録 | 直さない・戻したときは記録だけ | FR3.3 |
 | BR4.1 | policy | 記録 | 失敗の記録の手順の節 | FR4.1 |
 | BR5.1 | policy | run-demo.sh | 場面 4 の follow の前で待つ | FR5.1 |
 | BR5.2 | constraint | デモ | 待たないときは変えない | FR5.2 |

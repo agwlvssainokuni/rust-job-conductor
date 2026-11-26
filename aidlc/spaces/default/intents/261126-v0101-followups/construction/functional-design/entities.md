@@ -1,6 +1,6 @@
 # 実体: v0.10.1 の整理・修正
 
-出典: 要件(`requirements.md`、承認済み)、設計の質問(`functional-design-questions.md` の Q1、まとめの確かめ済み)、コードの知識(`aidlc/spaces/default/codekb/rust-job-conductor/`)。refactor の作業のため、Units とドメインの設計は無く、今のコードの形をそのままドメインの設計として扱う。新しい永続のデータ(ステートの形、定義の書式)は足さない。
+出典: 要件(`requirements.md`、承認済み)、設計の質問(`functional-design-questions.md` の Q1 と、それを見直した Q2、まとめの確かめ済み)、コードの知識(`aidlc/spaces/default/codekb/rust-job-conductor/`)。refactor の作業のため、Units とドメインの設計は無く、今のコードの形をそのままドメインの設計として扱う。新しい永続のデータ(ステートの形、定義の書式)は足さない。
 
 ```yaml
 entities:
@@ -35,13 +35,17 @@ entities:
         cardinality: none
         note: 関係は無い。同じ F2 の課題に属するだけ
   - name: PlanSimulationLookup
-    description: 計画の模擬が、ジョブごとに使う「定義の位置」と「記録の状態」の引き方。F3 で直すときだけ形が変わる(Q1 A)。
-    owner: conductor-core (plan)
+    description: 計画の模擬が、ジョブごとに判断の本体へ渡す「定義の位置」と「最初の済んでいないジョブの位置の目印」。F3 で直すときだけ現れる(Q2 A)。判断の本体と目印を進める関数は flow が持ち、plan は値を持ち回るだけ。
+    owner: conductor-core (flow。plan は持ち回るだけ)
     attributes:
       - name: position
         type: integer
         required: true
-        constraints: 定義の記述順の位置(0 始まり)。模擬は定義の順に進むので、一覧の順から渡せる
+        constraints: 定義の記述順の位置(0 始まり)。模擬は定義の順に進むので、繰り返しの位置から渡せる
+      - name: first_unsettled
+        type: integer
+        required: false
+        constraints: 記述順で最初の、成功・警告・スキップのどれでもないジョブの位置。状態は済む向きにしか変わらないので、模擬の中では減らない。flow の関数が進める
       - name: recorded_status
         type: enum
         allowed: [pending, success, warning, error, skipped]
@@ -85,6 +89,6 @@ entities:
 ## まとめ
 
 - `LogStem` と `CopyStop` は F2 の 2 つの直しの対象で、どちらも runtime の中に閉じる。外から見える変化は、空白を除くと予約名になるジョブ ID のログの名前だけ(FR2.2)。
-- `PlanSimulationLookup` は F3 で直すときの対象で、core の `plan` の中に閉じる。共有の `job_index`・`record_of` と実行の流れは変えない(Q1 A)。
+- `PlanSimulationLookup` は F3 で直すときの対象。判断の本体と目印を進める関数は `flow` が持ち、`plan` は位置と目印を持ち回るだけ。共有の公開の関数 `job_index`・`record_of` そのものと、実行の流れの動きは変えない(Q2 A)。
 - `DemoPause` は F5 の対象で、UNIX 版のデモのスクリプトだけを変える。
 - `FlakeRecord` は F4 の手順が求める項目で、記録の文書にだけ現れる。

@@ -1,6 +1,6 @@
 # 機能の仕様: v0.10.1 の整理・修正
 
-出典: 要件(`requirements.md`、承認済み。R-07 を含む)、設計の質問(`functional-design-questions.md` の Q1、まとめの確かめ済み)、`entities.md`、`rules.md`、コードの知識(`aidlc/spaces/default/codekb/rust-job-conductor/`)。refactor の作業のため、Units・ユーザーストーリー・ドメインの設計は無い。この文書は、手順の並びと動きの移り変わりの正本である。
+出典: 要件(`requirements.md`、承認済み。R-07 を含む)、設計の質問(`functional-design-questions.md` の Q1 と、それを見直した Q2、まとめの確かめ済み)、`entities.md`、`rules.md`、コードの知識(`aidlc/spaces/default/codekb/rust-job-conductor/`)。refactor の作業のため、Units・ユーザーストーリー・ドメインの設計は無い。この文書は、手順の並びと動きの移り変わりの正本である。
 
 ## 1. 作業の順序
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | 1 | F2 名前 | runtime `log.rs` の `safe_log_stem`、`tests/log_file.rs` の表、README の「名前の置き換え」 | BR2.1、BR2.2 |
 | 2 | F2 印 | runtime `runner.rs` の `copy_stream`、その `mod tests` | BR2.3、BR2.4 |
-| 3 | F3 | 測定(使い捨て) → 判定 → 直す(`crates/core/src/plan/`)か記録だけ | BR3.1〜BR3.6 |
+| 3 | F3 | 測定(使い捨て) → 判定 → 直す(`crates/core/src/flow/` に内部の入口、`crates/core/src/plan/simulate.rs` から呼ぶ)か記録だけ | BR3.1〜BR3.6 |
 | 4 | F5 | `demo/run-demo.sh`、`demo/README.md`、`crates/cli/tests/unix_demo.rs` | BR5.1〜BR5.5 |
 | 5 | F1 | README の `watch --follow` の注意 | BR1.1〜BR1.3 |
 | 6 | 文書のずれ | runtime `lib.rs` の契約の表、`docs/spec/rust/` と 2 つのテストの注釈の「33 種」 | BR6.1、BR6.2 |
@@ -47,21 +47,24 @@ loop:
 
 ```mermaid
 flowchart TD
-  M[測る: 250・500・1,000・2,000 ジョブ<br>cargo test と llvm-cov の下] --> J{llvm-cov の下で<br>2 倍ごとの伸びが<br>すべて 3 倍以上か}
-  J -- はい --> F[plan の中だけを直す<br>位置は定義の順から渡す<br>記録は status_at の形で引く]
+  M[測る: 250・500・1,000・2,000 ジョブ<br>cargo test と llvm-cov の下<br>遅さの元の関数も特定] --> J{llvm-cov の下で<br>2 倍ごとの伸びが<br>すべて 3 倍以上か}
+  J -- はい --> F[flow に位置を受け取る<br>内部の入口を足し<br>模擬からそれを呼ぶ]
   F --> V{1,000 ジョブで 75ms 以下<br>かつ伸び 2.5 倍以下か}
-  V -- いいえ --> F
-  V -- はい --> R1[直す前と後の測定を記録]
-  J -- いいえ --> R2[コードもテストも変えず<br>測定と理由を記録]
+  V -- はい --> R1[直す前と後の測定を<br>code-summary.md に記録]
+  V -- いいえ --> B[直しを戻す]
+  B --> R2
+  J -- いいえ --> R2[コードもテストも変えず<br>測定の表と理由を<br>build-and-test-summary.md に]
 ```
 
-文字の代替: 測る → 判定(llvm-cov の下で、2 倍ごとの伸びがすべて 3 倍以上か)。はいなら plan の中だけを直し、1,000 ジョブで 75ms 以下かつ伸び 2.5 倍以下になるまで直しを続け、直す前と後の測定を記録する。いいえなら、コードもテストも変えず、測定と理由を記録する。
+文字の代替: 測る(遅さの元の関数も特定する) → 判定(llvm-cov の下で、2 倍ごとの伸びがすべて 3 倍以上か)。はいなら、`flow` に位置を受け取る内部の入口を足して模擬から呼び、1,000 ジョブで 75ms 以下かつ伸び 2.5 倍以下かを確かめる。届けば直す前と後の測定を `code-summary.md` に記録する。届かなければ直しを戻し、直さないときと同じ記録にする。判定がいいえなら、コードもテストも変えず、測定の表と直さない理由を `build-and-test-summary.md` に書く(要件の FR3.3 のとおり)。
 
-1. 測る仕組みは使い捨てとし、リポジトリにコミットしない(BR3.2)。測定の表は、コード生成の記録(`code-summary.md`)に残す。
-2. 直すときは、計画の模擬が定義の順にジョブを進むことを使い、各ジョブの位置を `job_index` で探さずに、繰り返しの位置から渡す。記録の状態は、位置で引いて位置のジョブ ID が違うときだけ探す今の `status_at` の形で引く(BR3.4)。
-3. 直しは `crates/core/src/plan/` の中に閉じる。共有の `job_index`(`types.rs`)・`record_of`(`flow/mod.rs`)と、実行の流れ(`flow/decide.rs`、`flow/next_step.rs`)は変えない。模擬の中で共有の関数を呼んでいて、それが遅さの元のときは、plan の中に同じ答えを返す位置つきの引き方を置き、呼ぶ側を差し替える。
-4. 計画の結果(項目、次の動き、終わり)は変えない。既存の計画のテスト(`plan_*.rs`、`dry_run*.rs` など)がすべて変えずに通ることで確かめる。
-5. `plan_simulate_perf.rs` の `LIMIT`(150ms)と中身は変えない(BR3.1)。
+1. 測る仕組みは使い捨てとし、リポジトリにコミットしない(BR3.2)。測定の表は、どの枝でも、まずコード生成の記録(`code-summary.md`)に残す。直さない枝では、同じ表と理由を `build-and-test-summary.md` にも書く(BR3.6)。測るときに、時間のかかる関数(`job_index`・`record_of` の探索、規則 6 の前のジョブの走査、記録の `apply_skip` の走査など)も特定する。
+2. 直すときは、`crates/core/src/flow/` の中に、ジョブの位置(と、必要なら「前のジョブがすべて済んでいる」所までの位置、つまり最初の済んでいないジョブの位置)を受け取る**内部の入口**(`pub(crate)`)を足す。判断の本体(`decide_before_run` の規則 1〜7、`classify_and_decide`、記録の規則)は `flow` の中の 1 か所のままにし、今の公開の入口(`decide_from_state` など)は、位置を自分で求めてその本体を呼ぶ形にする。こうすれば、実行と模擬は同じ本体を通る(BR3.4)。
+3. 計画の模擬(`crates/core/src/plan/simulate.rs`)は、定義の順に進むことを使って、位置(と最初の済んでいないジョブの位置の目印)を持ち回り、内部の入口を呼ぶ。目印を進める関数も `flow` に置き、plan は値を持ち回るだけにする。判断や記録の規則を plan に書き写さない。
+4. 共有の公開の関数 `job_index`(`types.rs`)・`record_of`(`flow/mod.rs`)そのものは変えない。実行の流れ(`cli` からの呼び出し)の動きと結果は変えない。既存の流れのテスト(`flow` の `mod tests`、`crates/core/tests/` の流れのテスト)がすべて変えずに通ることで確かめる。
+5. 計画の結果(項目、次の動き、終わり)は変えない。既存の計画のテスト(`plan_*.rs`、`dry_run*.rs` など)がすべて変えずに通ることで確かめる。
+6. 直しても BR3.5 に届かないときは、直しを戻し(コミットしないか、戻すコミットを入れる)、BR3.6 の記録にする。直しの繰り返しはしない(R-04)。
+7. `plan_simulate_perf.rs` の `LIMIT`(150ms)と中身は変えない(BR3.1)。
 
 ### W4. デモの場面 4(F5、BR5.1〜BR5.5)
 
@@ -79,7 +82,7 @@ pause(場面の終わり。今のまま)
 - 足すのは、説明の 2 行の後、`watch --follow` の前の `pause` の呼び出し 1 つ。読み手は、待ちの間に再開の出力と 1 回の `watch` の表と説明を読める。Enter で `watch --follow` が画面を消して描く。
 - `DEMO_PAUSE` が無いとき、`pause` は何もしないので、出力は変わらない(BR5.2)。
 - Windows 版は変えない(BR5.3)。
-- テスト(BR5.5): `unix_demo.rs` に、`DEMO_PAUSE=1` を与え、子の標準入力に、すべての `pause`(場面の数と、足した 1 つ)を越える数の改行を与えてデモを動かすテストを足す。場面 4 の範囲(`=== 4. ` から `=== 5. ` の前まで)で、`(Enter で次へ)` が、1 回の `watch` の完了の行より後で、`watch --follow` を呼ぶコマンドの行より前に出ることを確かめる。子の標準入力を与える方法は、今のテストの補助(`run_limited`)の使い方に合わせてコード生成で決める。
+- テスト(BR5.5): `unix_demo.rs` に、今の `run_demo` に `DEMO_PAUSE=1` を足してデモを動かすテストを足す。標準入力は、今の補助 `run_limited` の既定(空。`crates/cli/tests/bin_support/mod.rs` が `Stdio::null()` にする)のままにする。`run-demo.sh` は `set -e` を使わないので、`read -r _` は EOF ですぐ戻り、デモは止まらずに終わる。場面 4 の範囲(`=== 4. ` から `=== 5. ` の前まで)で、`(Enter で次へ)` が、1 回の `watch` の完了の行より後で、`watch --follow` を呼ぶコマンドの行より前に出ることを確かめる。今の補助は変えない。
 
 ### W5. README の注意(F1、BR1.1〜BR1.3)
 
@@ -119,6 +122,7 @@ erDiagram
   }
   PlanSimulationLookup {
     int position
+    int first_unsettled
     string recorded_status
   }
   DemoPause {
@@ -140,7 +144,7 @@ erDiagram
 
 - F1: BR1.1・BR1.2(README の書き直し)、BR1.3(判定は変えない)。
 - F2: BR2.1・BR2.2(空白を除いて比べる、表のとおり)、BR2.3・BR2.4(read の前にも印を見る、後の確かめは変えない)。
-- F3: BR3.1(上限は変えない)、BR3.2・BR3.3(測って判定)、BR3.4・BR3.5(plan の中だけを直し、75ms と 2.5 倍)、BR3.6(直さないときの記録)。
+- F3: BR3.1(上限は変えない)、BR3.2・BR3.3(測って判定)、BR3.4・BR3.5(flow に位置を受け取る内部の入口を足し、実行と模擬が同じ本体を通る。75ms と 2.5 倍)、BR3.6(直さないとき・届かないときの記録)。
 - F4: BR4.1(手順の節)。
 - F5: BR5.1〜BR5.5(UNIX 版だけ待ちを足す、README、テスト)。
 - 文書のずれ: BR6.1・BR6.2。版: BR7.1。
