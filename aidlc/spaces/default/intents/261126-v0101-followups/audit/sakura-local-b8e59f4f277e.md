@@ -4750,3 +4750,191 @@
 **Question Shows**: sha256:8795f632c65e20bb3866f437182df3123353cc82b3e0b3ad92100983e9e588cb
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-11-26T23:43:35Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: b8d88a8e
+**Open Questions**: b0e65e2e, 3edacf6d, 4ed026d3
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-26T23:43:36Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: ビルドとテストを承認しますか?(推奨: Approve)
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-26T23:43:41Z
+**Event**: GATE_APPROVED
+**Stage**: build-and-test
+**User Input**: Approve
+**Person Reply**: pushしました\nApprove
+**Message Id**: b8d88a8e
+**Message Ids**: 2e3d389e,b8d88a8e
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-26T23:43:41Z
+**Event**: STAGE_COMPLETED
+**Stage**: build-and-test
+**Validation Basis**: {"graphContract":"sha256:1aed809bd5f1f235d6ab1b1495c41997dd8cc201478d4991c474c4f1638a2b55","inputs":[{"artifact":"code-generation-plan","contentHash":"sha256:32b584c6915ae91ee00ed147dee41206ff5359609032b4f1315d2328205f509c","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:fb7bb0c960258c97b1d9e27d846c294c98fc2dcadc2d430cc85bf51e0b935e0a"},{"artifact":"code-summary","contentHash":"sha256:2d7b3a87704876c9aaac245604108d512d79b7f5b09774467452b38edf1d7c48","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:c2ae96366ed6243f6f518b3628a9e125a692fd46211a6420f0523010ae6bd298"},{"artifact":"unit-test-instructions","contentHash":"sha256:5acf536d29ba34b6eb71e27717f8c57355b8dc7da800c91fc7f305bd1563ec4a","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:13a2ab76c885ac23764734e583cdcdf18b4bd44dc5d397e092a350c1ef0824fc"}],"outputs":[{"artifact":"build-and-test-summary","contentHash":"sha256:6f6a3916066f6034ba96cfe3cbfe3a0e38ef87bc79eca3ccc0c2442fde9bd7b7","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:83b0a37c3098b734f0287a02f2e8d9bb11657e747b68ef61f352a852828b0c15"},{"artifact":"build-instructions","contentHash":"sha256:5a23a736cb7ce74d9cec730e8ae0b27193dd23190b91721ee5e30a16656425b0","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:ce743f68ea1b9763f9bd4d58d6c81c338f1d2f70f6d4c98f70a810cb910cc0f6"},{"artifact":"build-test-results","contentHash":"sha256:cd267ff67c5ab615924883a80ce095f96bdb30d5220f154ceeeaef41609271ba","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:fc2b6e50e1657bb8bd9b6a872c1bd0926c0b7e0a933b721f48e7359fa4cd66a0"},{"artifact":"cross-unit-traceability","contentHash":"sha256:306acf6aba69fbd2e3104333a53a42cab399fe9a6f9b9cb6c79e12aac571c55f","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:0e5f430906897dc29a0bd6611798361c0c7e7a4dd85a7d2491862d8340089ece"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Build and Test approved by gate
+**Tokens In**: 104
+**Tokens Out**: 32729
+**Cache Read**: 24161344
+**Cache Write**: 76183
+**Cost USD**: 6.10
+**By Model**: opus-5-5=6.10
+**By Agent**: main=6.10
+**Tokens By Model**: opus-5-5=104/32.7k/24.2M/76.2k
+**Tokens By Agent**: main=104/32.7k/24.2M/76.2k
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-26T23:43:41Z
+**Event**: PHASE_COMPLETED
+**From phase**: construction
+**To phase**: operation
+**Stages completed**: 8
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-26T23:43:41Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: construction → operation
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-26T23:43:41Z
+**Event**: PHASE_STARTED
+**Phase**: operation
+**Scope**: refactor
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-26T23:43:41Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-pipeline
+**Agent**: aidlc-pipeline-deploy-agent
+**Answer Mode**: guide (reused from requirements-analysis)
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T23:44:31Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Context**: operation > deployment-pipeline > deployment-pipeline-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-26T23:44:34Z
+**Event**: DECISION_RECORDED
+**Stage**: deployment-pipeline
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Question Id**: a5aa7279
+**Question Type**: summary-confirmation
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:da77e03522ed469085cddac3d686841698dddf07809da1a6ddd02af8c8f394ec
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-26T23:44:47Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: 01c90153
+**Open Questions**: a5aa7279
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/deployment-pipeline-questions.md","entries":{"Q1":"15022b6901b1ee86","Q2":"bace92ea1f5e89f3","Q3":"d321bccec27d4907","Q4":"3499ac88652892c1","Q5":"73fbab45eaec0f6a","Consolidated Summary Confirmation":"e6c65dedf8da1ccd"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-26T23:44:48Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: このまとめで、配る仕組みの記録を作ってよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-26T23:44:52Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Context**: operation > deployment-pipeline > deployment-pipeline-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-26T23:44:53Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: deployment-pipeline
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Questions SHA-256**: 36da9cab44bdacb84c206d20dc7ade66b5f0e34385eb81aaa2026e5a27228768
+**Hash Scope**: confirmed-content-v2
+**Message Id**: 01c90153
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 677c710557f52f110bf67c834ab7d02af58228561aadd2ea214ee72105501220
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T23:45:01Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/cd-config.md
+**Context**: operation > deployment-pipeline > cd-config.md
+**Summary Authorization Id**: 677c710557f52f110bf67c834ab7d02af58228561aadd2ea214ee72105501220
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T23:45:09Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/deployment-strategy.md
+**Context**: operation > deployment-pipeline > deployment-strategy.md
+**Summary Authorization Id**: 677c710557f52f110bf67c834ab7d02af58228561aadd2ea214ee72105501220
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T23:45:16Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/operation/deployment-pipeline/rollback-runbook.md
+**Context**: operation > deployment-pipeline > rollback-runbook.md
+**Summary Authorization Id**: 677c710557f52f110bf67c834ab7d02af58228561aadd2ea214ee72105501220
+
+---
