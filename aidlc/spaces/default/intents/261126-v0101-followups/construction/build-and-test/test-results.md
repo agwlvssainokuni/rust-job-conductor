@@ -69,6 +69,15 @@
 - 遅い機械(CI の llvm-cov の下)では、二乗で伸びる走査(`job_index`、`record_of`、規則 6 の前のジョブの走査、`apply_skip_in` の `any(Error)` と `first_pending`。1,000 ジョブで計画の時間の大半)が、上限 150ms を超えさせている。**根は、コード生成で選んだ「直さない」という判断(BR3.3 の基準を速い手元の機械で当てたこと)にある**。この段階の設定(テストの設定、ビルドの手順)の問題ではない。
 - 上限を下げる・テストを外す・`coverage` のジョブから外すことは、要件(NFR8、FR3.1)と規則(BR3.1)で禁じられており、直し方にならない。
 
+## Loop-Back Log
+
+### Loop-back 1 — 2026-11-26T23:10:00Z
+
+- **Diagnosis**: CI 45908344996 の `coverage`(ubuntu-24.04、`cargo llvm-cov` の下)で、`plan_simulate_perf.rs` の P1(中央値 161.33ms)と P2(154.96ms)が上限 150ms を超えた。手元の macOS より約 6〜9 倍遅い機械で、計画の模擬の二乗で伸びる走査(`job_index`、`record_of`、規則 6 の前のジョブの走査、`apply_skip_in` の `any(Error)` と `first_pending`)が上限を超えさせている。
+- **Root-cause stage**: code-generation(Step 5 の BR3.3 の判定で「直さない」とし、Step 6 を飛ばした判断)。人が「Retry with fix」を選び、この判定を覆して直すことを決めた。
+- **Planned fix**: 承認済みの設計(functional-spec.md の W3 の手順 2〜7、rules.md の BR3.4〜BR3.6、Q2 A)と計画の Step 6 のとおり、`crates/core/src/flow/` に、位置と目印(R-05 で走査ごとに決める値)を受け取る `pub(crate)` の内部の入口と目印を進める関数を足し、`crates/core/src/plan/simulate.rs` から呼ぶ。判断と記録の規則は flow の 1 か所のまま。R-06 の判断の一致のテストを足す。`job_index`・`record_of` そのもの、実行の流れの動き、計画の結果、`plan_simulate_perf.rs` は変えない。合否は BR3.5(llvm-cov の下で 1,000 ジョブが 75ms 以下、2 倍ごとの伸び 2.5 倍以下)に加え、push の後の CI の `coverage` が通ること。
+- **Estimated impact**: 手間は core の `flow`(`decide.rs`・`next_step.rs`・`record.rs`・`mod.rs`)と `plan/simulate.rs` とテストの変更(開発の担当への 1 回の依頼の程度)。費用は CI の実行の分のみ。危険は中(実行と模擬が共有する判断の経路に手が入る)。判断の一致のテストと全体のテストで押さえる。
+
 ## Target Verification Matrix の最終の判定
 
 `build-and-test-summary.md` の表を参照。T-CI は **Not Met**(45908344996 の `coverage` の失敗)。他の 9 つは Met。
