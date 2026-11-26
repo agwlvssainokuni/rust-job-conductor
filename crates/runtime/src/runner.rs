@@ -619,6 +619,52 @@ mod tests {
         assert_eq!(file_bytes(&shared).as_deref(), Some(&b""[..]));
     }
 
+    /// `read` の呼ばれた回数を数える読み手。`stop` があれば、読んだときにその印を立てる。
+    struct CountingReader<'a> {
+        reads: usize,
+        stop: Option<&'a AtomicBool>,
+    }
+    impl Read for CountingReader<'_> {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            self.reads += 1;
+            if let Some(stop) = self.stop {
+                stop.store(true, Ordering::SeqCst);
+            }
+            buf[..4].copy_from_slice(b"late");
+            Ok(4)
+        }
+    }
+
+    #[test]
+    fn br2_3_止める印が立っていれば_read_を呼ばずに終わる() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        shared.stop.store(true, Ordering::SeqCst);
+        let mut terminal = FailAfter::new(usize::MAX);
+        let mut reader = CountingReader {
+            reads: 0,
+            stop: None,
+        };
+        copy_stream(&mut reader, &mut terminal, &shared);
+        assert_eq!(reader.reads, 0, "read を呼ばない");
+        assert!(terminal.written.is_empty());
+        assert_eq!(terminal.flushes, 0);
+        assert_eq!(file_bytes(&shared).as_deref(), Some(&b""[..]));
+    }
+
+    #[test]
+    fn br2_4_読んでいる間に印が立てば_読んだ分を書かずに終わる() {
+        let shared = Shared::new(FailAfter::new(usize::MAX));
+        let mut terminal = FailAfter::new(usize::MAX);
+        let mut reader = CountingReader {
+            reads: 0,
+            stop: Some(&shared.stop),
+        };
+        copy_stream(&mut reader, &mut terminal, &shared);
+        assert_eq!(reader.reads, 1, "読むのは 1 回だけ");
+        assert!(terminal.written.is_empty());
+        assert_eq!(file_bytes(&shared).as_deref(), Some(&b""[..]));
+    }
+
     #[test]
     fn 読み取りの割り込みは読み直し_そのほかの誤りで終わる() {
         let shared = Shared::new(FailAfter::new(usize::MAX));
