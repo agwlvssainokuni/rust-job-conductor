@@ -200,3 +200,253 @@ pub(crate) fn has_end_skip(states: &[JobState]) -> bool {
         .iter()
         .any(|s| s.status == JobStatus::Skipped && s.skip_reason == Some(SkipReason::ByEnd))
 }
+
+/// 内部の入口(位置と目印を渡す)と、公開の入口(位置を自分で求める)が、同じ入力に同じ判断と
+/// 同じ記録になることを確かめる(v0.10.1 の BR3.4、設計のレビューの R-06)。
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{
+        Decision, JobExecution, PipelineState, RunMode, Transition, TransitionOn, TransitionTarget,
+    };
+
+    /// `j0`〜`j{n-1}` の定義。`transitions` は、(位置, 成功のときの行き先)。
+    fn def(n: usize, transitions: &[(usize, TransitionTarget)]) -> PipelineDefinition {
+        let mut jobs: Vec<_> = (0..n)
+            .map(|i| crate::test_support::job(&format!("j{i}")))
+            .collect();
+        for (i, next) in transitions {
+            jobs[*i].transitions = vec![Transition {
+                on: TransitionOn::Success,
+                next: next.clone(),
+            }];
+        }
+        crate::test_support::definition("p", jobs)
+    }
+
+    fn rec(id: &str, status: JobStatus, reason: Option<SkipReason>) -> JobState {
+        JobState {
+            job_id: id.into(),
+            status,
+            exit_code: (status == JobStatus::Error).then_some(1),
+            skip_reason: reason,
+            attempts: vec![],
+        }
+    }
+
+    fn state(job_states: Vec<JobState>, resume: Option<&str>, end_reached: bool) -> PipelineState {
+        PipelineState {
+            pipeline_name: "p".into(),
+            definition_path: "t.toml".into(),
+            job_states,
+            resume_job_id: resume.map(str::to_string),
+            end_reached,
+            completed: false,
+            run_id: None,
+        }
+    }
+
+    /// 初めの形のステート(すべてのジョブが pending の記録を持つ。`initial_state` と同じ)。
+    fn all_pending(def: &PipelineDefinition) -> PipelineState {
+        let records = def.job.iter().map(|j| JobState::pending(j.id.clone()));
+        state(records.collect(), None, false)
+    }
+
+    /// 定義の順にすべてのジョブを、公開の入口と内部の入口の 2 通りで進め、各ジョブで判断・分類・
+    /// 次の動き・記録が一致することを確かめる。拒否やエラーの後も止めずに続ける(目印が、済んで
+    /// いないジョブや error の記録をまたいでも正しいことを見るため)。判断の並びを返す。
+    fn walk(
+        name: &str,
+        def: &PipelineDefinition,
+        start: &PipelineState,
+        failing: &[&str],
+    ) -> Vec<Decision> {
+        let mut public = start.clone();
+        let mut internal = start.clone();
+        let mut marks = SimulationMarks::new();
+        let mut decisions = Vec::new();
+        for (index, job) in def.job.iter().enumerate() {
+            let at = format!("{name}: {}", job.id);
+            let decision = decide_from_state(&job.id, def, Some(&public));
+            assert_eq!(
+                decide_at(&job.id, index, def, &internal, &mut marks),
+                decision,
+                "{at} の判断"
+            );
+            decisions.push(decision);
+            match decision {
+                Decision::Reject(_) => {}
+                Decision::Skip(reason) => {
+                    public = apply_skip(&public, &job.id, reason, def);
+                    apply_skip_in(&mut internal, Some(index), &job.id, reason, def, &mut marks);
+                }
+                Decision::Run => {
+                    let code = i32::from(failing.contains(&job.id.as_str()));
+                    let exec = JobExecution::exited(code);
+                    let mode = RunMode::Pipeline;
+                    let (outcome, next) =
+                        classify_and_decide(job, &exec, &public.job_states, def, mode);
+                    let at_index =
+                        classify_and_decide_at(job, index, &exec, &internal.job_states, def, mode);
+                    assert_eq!(at_index, (outcome.clone(), next.clone()), "{at} の次の動き");
+                    public = apply_outcome(&public, &job.id, &exec, &outcome, &next);
+                    let hint = Some(index);
+                    apply_outcome_in(
+                        &mut internal,
+                        hint,
+                        &job.id,
+                        &exec,
+                        &outcome,
+                        &next,
+                        &mut marks,
+                    );
+                }
+            }
+            assert_eq!(internal, public, "{at} の記録");
+        }
+        decisions
+    }
+
+    #[test]
+    fn 記録が定義の順でないステートでも判断と記録が一致する() {
+        use JobStatus::*;
+        let d = def(5, &[]);
+        // 記録を逆順に並べる(位置で引くと外れ、探し直しになる)。
+        let start = state(
+            vec![
+                rec("j4", Pending, None),
+                rec("j3", Pending, None),
+                rec("j2", Pending, None),
+                rec("j1", Success, None),
+                rec("j0", Success, None),
+            ],
+            None,
+            false,
+        );
+        let decisions = walk("逆順", &d, &start, &[]);
+        assert_eq!(
+            decisions,
+            [
+                Decision::Skip(crate::types::SkipCause::AlreadyExecuted),
+                Decision::Skip(crate::types::SkipCause::AlreadyExecuted),
+                Decision::Run,
+                Decision::Run,
+                Decision::Run,
+            ]
+        );
+    }
+
+    #[test]
+    fn 記録が欠けたステートでも判断と記録が一致する() {
+        use JobStatus::*;
+        let d = def(5, &[]);
+        // j1 と j3 の記録が無い(pending と同じ)。j4 は遷移のスキップの記録。
+        let start = state(
+            vec![
+                rec("j0", Success, None),
+                rec("j2", Pending, None),
+                rec("j4", Skipped, Some(SkipReason::ByTransition)),
+            ],
+            None,
+            false,
+        );
+        walk("欠け", &d, &start, &[]);
+        // 記録がまったく無いステートも同じ(どのジョブも pending と同じで、記録の関数は何も書かない)。
+        walk("空", &d, &state(vec![], None, false), &["j2"]);
+    }
+
+    #[test]
+    fn 再開位置とエラーの記録があるステートでも判断と記録が一致する() {
+        use JobStatus::*;
+        // j1 の成功で j4 へ遷移する(間の j2(error)と j3 をスキップに変える)。
+        let d = def(6, &[(1, TransitionTarget::Job("j4".into()))]);
+        let start = state(
+            vec![
+                rec("j0", Skipped, Some(SkipReason::ByTransition)),
+                rec("j1", Error, None),
+                rec("j2", Error, None),
+                rec("j3", Pending, None),
+                rec("j4", Pending, None),
+                rec("j5", Skipped, Some(SkipReason::ByTransition)),
+            ],
+            Some("j1"),
+            false,
+        );
+        // j0 のスキップで error の数を数え(2)、j1 の成功と j2 のスキップで 0 に戻り、j5 のスキップで
+        // 「最初の pending」を決める。
+        let decisions = walk("再開とエラー", &d, &start, &[]);
+        assert_eq!(decisions[1], Decision::Run);
+        assert_eq!(decisions[4], Decision::Run);
+
+        // 途中でエラーになり、後ろのジョブが順序外になる(済んだ前置きが error で止まる)。
+        let d = def(4, &[]);
+        let decisions = walk("途中のエラー", &d, &all_pending(&d), &["j1"]);
+        assert_eq!(decisions[..2], [Decision::Run, Decision::Run]);
+        assert_eq!(
+            decisions[2..],
+            [
+                Decision::Reject(crate::types::RejectReason::OutOfOrder),
+                Decision::Reject(crate::types::RejectReason::OutOfOrder),
+            ]
+        );
+    }
+
+    #[test]
+    fn end_reached_のステートでも判断と記録が一致する() {
+        use JobStatus::*;
+        let d = def(5, &[(0, TransitionTarget::End)]);
+        // `run j0` で `@end` に着いた後(j0 は成功、残りは pending か記録なし)。
+        let start = state(
+            vec![
+                rec("j0", Success, None),
+                rec("j1", Pending, None),
+                rec("j3", Pending, None),
+            ],
+            None,
+            true,
+        );
+        let decisions = walk("end_reached", &d, &start, &[]);
+        assert!(
+            decisions[1..]
+                .iter()
+                .all(|d| *d == Decision::Skip(crate::types::SkipCause::AfterEnd))
+        );
+        // 記録のないジョブは記録の関数が無視するので、j2・j4 は pending のまま(完了しない)。
+        // 初めの形(すべて pending)から、j0 の成功で `@end` に着く流れも同じ。
+        let decisions = walk("end の遷移", &d, &all_pending(&d), &[]);
+        assert_eq!(decisions[0], Decision::Run);
+        assert!(
+            decisions[1..]
+                .iter()
+                .all(|d| *d == Decision::Skip(crate::types::SkipCause::AfterEnd))
+        );
+    }
+
+    #[test]
+    fn 位置の手がかりが違っても公開の入口と同じ答えになる() {
+        use JobStatus::*;
+        let d = def(4, &[(0, TransitionTarget::Job("j2".into()))]);
+        let s = state(
+            vec![rec("j0", Success, None), rec("j1", Pending, None)],
+            None,
+            false,
+        );
+        let exec = JobExecution::exited(0);
+        for (id, wrong) in [("j0", 3), ("j1", 0), ("j2", 99), ("zz", 1)] {
+            assert_eq!(
+                decide_at(id, wrong, &d, &s, &mut SimulationMarks::new()),
+                decide_from_state(id, &d, Some(&s)),
+                "{id} の判断(手がかり {wrong})"
+            );
+        }
+        let stranger = crate::test_support::job("zz");
+        for (job, wrong) in [(&d.job[0], 2), (&d.job[1], 99), (&stranger, 0)] {
+            assert_eq!(
+                classify_and_decide_at(job, wrong, &exec, &s.job_states, &d, RunMode::Pipeline),
+                classify_and_decide(job, &exec, &s.job_states, &d, RunMode::Pipeline),
+                "{} の次の動き(手がかり {wrong})",
+                job.id
+            );
+        }
+    }
+}
