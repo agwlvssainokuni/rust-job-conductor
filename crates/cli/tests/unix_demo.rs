@@ -260,7 +260,9 @@ fn br5_5_demo_pause_のとき場面_4_は_watch_follow_の前で待つ() {
     assert_eq!(output.status.code(), Some(0), "{}", text(&output.stderr));
     let out = text(&output.stdout);
     let scene4 = &out[out.find("=== 4. ").expect("場面 4")..out.find("=== 5. ").expect("場面 5")];
-    let completed = scene4.find("\ncompleted\n").expect("1 回の watch の完了の行");
+    let completed = scene4
+        .find("\ncompleted\n")
+        .expect("1 回の watch の完了の行");
     let follow = scene4
         .find("watch --follow\u{1b}[0m\n")
         .expect("watch --follow のコマンドの行");
