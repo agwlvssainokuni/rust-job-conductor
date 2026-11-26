@@ -93,6 +93,8 @@ cmd "$CONDUCTOR" watch
 echo
 echo "watch --follow は、表を描き直し続け、完了か止まったのを見ると自分で終わる(v0.10.0 以降。Ctrl-C でも終わる)。"
 echo "端末では画面を消してから描く。ここは完了したステートなので、1 回描いてすぐに終わる:"
+# 画面が消える前に、ここまでの出力を読めるように待つ(DEMO_PAUSE=1 のときだけ)
+pause
 cmd "$CONDUCTOR" watch --follow
 states
 echo

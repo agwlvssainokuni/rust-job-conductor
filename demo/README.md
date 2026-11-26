@@ -32,7 +32,7 @@ CONDUCTOR=/path/to/conductor demo/run-demo.sh   # 配布のバイナリを使う
 
 - 定義は `conductor.toml`(場面 10 だけ `retry.toml`、場面 11 だけ `env.toml` と `demo.env`、場面 15 だけ `log.toml`)、ジョブは `scripts/*.sh` です。ジョブの終了コードは、環境変数 `DEMO_<ジョブ名>_EXIT`(ジョブ名は大文字。例 `DEMO_LOAD_EXIT=2`。既定 0)で決まります。
 - 場面 10 の `flaky` は、実行した回数を、一時ディレクトリの `flaky.count` に覚えます。環境変数 `DEMO_FLAKY_FAILS`(既定 2)の回数までは、終了コード 75 で失敗します。`DEMO_FLAKY_FAILS` を 4 以上にすると、回数(最大 3 回のリトライ)を使い切って、終了コード 75 で止まります。リトライの待ち時間(1 秒)は、`DEMO_SLEEP` では変わりません(定義の `[pipeline.retry]` の `interval` で決まります)。`retry.toml` のコメントに、ジョブごとの `[job.retry]`(既定と混ぜず、丸ごとその表を使う)と、既定を打ち消す `retry = false` の書き方の例があります。`DEMO_SLEEP` で、各ジョブの待ち時間(既定 0.5 秒。`sleep` に渡すので、小数も使えます)を変えられます。
-- `DEMO_PAUSE` は、値が `1` のときだけ、各場面のあとで Enter を待ちます(既定は待ちません)。
+- `DEMO_PAUSE` は、値が `1` のときだけ、各場面のあとで Enter を待ちます(既定は待ちません)。場面 4 では、`watch --follow` が画面を消す前にも 1 度待ちます(v0.10.1 以降。それまでの再開の出力と `watch` の表を読めるように)。
 - `notify` の `command` は、文字列の配列(`["sh", "scripts/notify.sh"]`)で書いています。ほかのジョブは、文字列です。
 - 定義の `[pipeline]` に、`run_id_env = "DEMO_RUN_ID"` を書いています。run ID は、`--run-id` か、この環境変数で指定します(`--run-id` が優先。`--run-id ""` は、環境変数があっても、run ID なしに固定)。run ID ごとに、ステートファイルが別になります(`conductor.toml.<run ID>.state`)。規則の詳細は、ルートの [README](../README.md) の「[run ID でステートを分ける](../README.md#run-id-でステートを分けるv050-以降)」にあります。
 - 場面 8 と 9 では、`DEMO_RUN_ID` を、デモが自分で設定します。デモの最初に、`DEMO_RUN_ID` と `CONDUCTOR_RUN_ID` は消すので、利用者の環境の値は影響しません。`LC_ALL` と `LC_MESSAGES` も消すので、`DEMO_LANG` の言語で表示されます。
