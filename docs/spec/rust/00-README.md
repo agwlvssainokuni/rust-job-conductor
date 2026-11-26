@@ -20,7 +20,7 @@
 | [00-README.md](00-README.md) | この文書。範囲、目次、読む順序、用語集、表記の規約 |
 | [01-overview.md](01-overview.md) | 目的、ユースケース、設計方針、非目標、制約、利用者像、主要な概念の概観 |
 | [02-architecture.md](02-architecture.md) | 4 クレートの責務と依存方向、公開 API、実行時の流れ、差し替え点、モジュール構成 |
-| [03-definition-format.md](03-definition-format.md) | 定義ファイル(`conductor.toml`)の書式と、読み込み時の検証(33 種のエラーの種類、行番号、順序) |
+| [03-definition-format.md](03-definition-format.md) | 定義ファイル(`conductor.toml`)の書式と、読み込み時の検証(34 種のエラーの種類、行番号、順序) |
 | [04-cli.md](04-cli.md) | コマンドラインの文法(8 サブコマンド、オプション、解釈の順序)、run ID の決定、各コマンドの動作 |
 | [05-execution-flow.md](05-execution-flow.md) | `run`・`pipeline` の実行の意味論(分類、遷移、起動前の判断、再開、リトライ、環境変数の注入、`--dry-run` の計画、完了)と、`graph`・`init` の流れ |
 | [06-state-file.md](06-state-file.md) | ステートファイルの形式・場所・読み書き・整合性の検査・初期化(`reset`)、`init` が使うファイルの排他的な作成 |

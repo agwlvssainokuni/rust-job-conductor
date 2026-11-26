@@ -1222,7 +1222,7 @@ fn 使い方に_init_と_force_がある() {
 fn 日本語の誤りの表示は_各クレートの_label_を使う() {
     let env = env_for(Language::Ja);
     let reporter = Reporter::new(&env, false);
-    // 定義の誤り(33 種)。
+    // 定義の誤り(34 種)。
     for kind in DEFINITION_ERROR_KINDS {
         let errors = [DefinitionError::new("c.toml", Some(1), kind, "R")];
         let text = reporter.render(&DisplayEvent::DefinitionErrors(&errors));

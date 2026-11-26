@@ -100,7 +100,7 @@
 
 | 型 | 内容 |
 |----|------|
-| `DefinitionErrorKind` | 33 種(v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を追加)。仕様の識別子(`fileMissing` など)は、変種の名前の先頭を小文字にしたもの。03 の 9.3、10 の 7.1 |
+| `DefinitionErrorKind` | 34 種(v0.9.0 で `ReservedEnvName`・`EnvNameCaseConflict`・`InvalidEnvValue` を、v0.10.0 で `UnsetEnvConflict` を追加)。仕様の識別子(`fileMissing` など)は、変種の名前の先頭を小文字にしたもの。03 の 9.3、10 の 7.1 |
 | `DefinitionError` | `{ file: String, line: Option<usize>, kind, reason: String }`。`Display` は `<file>[:<line>]: <種類の文>: <reason>` |
 | `RunIdError` | 種類を持たない(`struct RunIdError;`)。4 つの条件(空・64 バイト超・不正な文字・先頭 `.`)のどれかで返す |
 | `EnvFileErrorKind` / `EnvFileError`(`envfile`。v0.9.0 以降) | 13 種(`reason()`。識別子は変種の名前の先頭を小文字にしたもの)/ `{ file: String, line: Option<usize>, kind }`。理由は `kind.reason()`(v0.9.6 までは同じ文の写しをフィールド `reason: String` に持った)。`Display` は `<file>[:<line>]: <種類の文>: <reason>`(書式は `DefinitionError` と共有する `error::render_error`)。03 の 6.7、10 の 7.1 |
@@ -294,7 +294,7 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `lib.rs` | 公開の再公開 |
 | `types.rs` | 共有する型(2.1)。型と語の対応(`as_str`、`parse`)、`DEFAULT_SUCCESS_EXIT_CODES`、`JobExecution` の組み立ての関数と `ExecutionResult` |
 | `consistency.rs` | ステートと定義の照合 `check_consistency`、`ConsistencyResult`、`MismatchKind`(純粋)。照合の単体テストも持つ |
-| `error.rs` | `DefinitionErrorKind`(33 種)、`DefinitionError`、`escape_display`、`quote_key`、`Locate`(位置→行番号)、ファイル名の表示の上限 `MAX_FILE_DISPLAY_CHARS`(256。`envfile` と共通) |
+| `error.rs` | `DefinitionErrorKind`(34 種)、`DefinitionError`、`escape_display`、`quote_key`、`Locate`(位置→行番号)、ファイル名の表示の上限 `MAX_FILE_DISPLAY_CHARS`(256。`envfile` と共通) |
 | `envfile/mod.rs`(v0.9.0 以降) | `.env` の型(`EnvFileErrorKind` 13 種、`EnvFileError`、`EnvWarning`、`EnvEntry`、`EnvFileContent`、`LoadedEnvFiles`、`EnvContext`、`EffectiveEntry`、`EffectiveEnv`)、定数(`MAX_ENV_FILE_BYTES = 1_048_576`、`MAX_ENV_ENTRIES = 10_000`。crate の中の `MAX_REPORTED_ERRORS = 20`、`RESERVED_ENV_PREFIX`)、`is_reserved_env_name`(crate の中)、`env_file_refs`、`summarize_errors` |
 | `envfile/parse.rs`(同) | `parse_env_file`(`.env` の解析) |
 | `envfile/merge.rs`(同) | `merge_env`(層の統合と自動の変数) |
