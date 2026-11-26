@@ -10,7 +10,7 @@
 | リリースの最適化 | `opt-level = 3`、`lto = "thin"`、`codegen-units = 1`、`strip = true` | `[profile.release]` |
 | 依存の固定 | `Cargo.lock` を追跡。CI は常に `--locked` | `ci.yml` |
 | 書式・静的検査 | `rustfmt`、`clippy -D warnings`(設定ファイルなし、既定) | `ci.yml` の `lint` |
-| カバレッジ | `cargo-llvm-cov`(行 80% 以上) | `ci.yml` の `coverage` |
+| カバレッジ | `cargo-llvm-cov`(行 80% 以上。テスト専用の補助バイナリを除く) | `ci.yml` の `coverage` |
 | 脆弱性の検査 | `cargo-audit`(警告のみ) | `audit.yml` |
 | C のビルド | 持たない(`cc`・`cmake`・`pkg-config`・`bindgen` と `-sys` クレートを検査で拒否。`linux-raw-sys`・`windows-sys` は例外) | `ci.yml` の `build-check` |
 
@@ -18,11 +18,11 @@
 
 | クレート | 版(`Cargo.toml` / ロック) | 使う場所 | 目的 |
 |----------|---------------------------|----------|------|
-| `toml` | 1.2.1 / 1.2.1+spec-1.1.0 | core(`parse`、`std`)、runtime・converter(`parse`、`std`、`display`、`serde`) | 定義・ステートの読み取り(位置つきの `DeTable`)、ステートと変換の書き出し |
+| `toml` | 1.2.1 / 1.2.1+spec-1.1.0 | core(`parse`、`std`)、runtime・converter(`parse`、`std`、`display`、`serde`) | 定義・ステートの読み取り、ステートと変換の書き出し |
 | `thiserror` | 2.0.21 | core、runtime、converter | エラー型の `Display` と `Error` |
 | `lexopt` | 0.3.2 | cli | 引数の字句の分割 |
 | `saphyr-parser` | 0.3.4 | converter | YAML のイベントの読み取り |
-| `signal-hook` | 0.4.6(`default-features = false`、`iterator`) | cli(UNIX) | シグナルの監視(`low_level` は使わない) |
+| `signal-hook` | 0.4.6(`default-features = false`、`iterator`) | cli(UNIX) | シグナルの監視 |
 | `ctrlc` | 3.5.2 | cli(Windows) | Ctrl+C の監視 |
 | `libc` | 0.2 / 0.2.191 | runtime(UNIX) | `kill`(1 か所) |
 
@@ -30,19 +30,23 @@
 
 | クレート | 版 | 目的 |
 |----------|----|------|
-| `tempfile` | 3.27.0 | テストの一時ディレクトリ(4 クレート) |
+| `tempfile` | 3.27.0 | テストの一時ディレクトリ(4 クレート)。runtime の `log.rs` の単体テストでも使う |
+
+推移的な依存と依存の方針は `dependencies.md` を参照。
 
 ## 標準ライブラリで自前に書いているもの
 
-外部のライブラリを使わず、標準ライブラリで書いている主なもの(新しい依存を加えない方針。`project.md`)。
+新しい依存を加えない方針(`project.md` の Forbidden、`team.md` の Code Style)に従い、標準ライブラリで書いている主なもの。
 
 - command の分割(`runtime::split`)、プロセスの起動と待ち(`std::process`、`try_wait` のくり返し)
+- ジョブの出力の複製(`std::thread` と `std::sync::mpsc`、8 KiB ずつの読み取り。`runtime::runner`)
+- 時刻(UTC の秒、グレゴリオ暦の計算、RFC 3339 と詰めた形の整形・読み取り。`core::time`)と時計(`SystemTime`。`runtime::clock`)
 - `.env` の解析(`core::envfile::parse`)
-- 図の配置と整形(text、Mermaid)
-- 表示の escape、英日の文言、ロケールの判定、端末の色(ANSI の SGR)
-- ファイルの原子的な置き換え、上限つきの読み取り
+- 図の配置と整形(text、Mermaid、DOT)
+- `watch --follow` の描き直し(ANSI の `ESC[H ESC[2J`)、表示の escape、英日の文言、ロケールの判定、端末の色
+- ファイルの原子的な置き換え、上限つきの読み取り、ログのファイルの排他的な作成
 - 待機(`std::thread::sleep` と `Instant`)
-- 非同期ランタイム、ログの枠組み、日時のライブラリ、シリアライズの derive は使っていない(時刻は、一時ファイルの名前と古さの判定に `SystemTime` を使うだけ)
+- 非同期ランタイム、ログの枠組み、日時のライブラリ、シリアライズの derive は使っていない
 
 ## 対象の OS と配布
 
@@ -61,9 +65,11 @@
 - `test`: ubuntu-24.04、macos-latest、windows-2022(stable)
 - `build-check`: ubuntu-24.04、windows-2022(1.100.0)
 - `msrv-test`、`coverage`、`lint`、`docs-check`: ubuntu-24.04
-- `startup-bench`: 3 つの OS(`continue-on-error`、`STARTUP_BENCH_ENFORCE=false`)
+- `startup-bench`: 3 つの OS(`continue-on-error`、`STARTUP_BENCH_ENFORCE=false`、`--release`)
+- 性能のテスト(`crates/core/tests/*_perf.rs` など)は、`test`・`msrv-test` では debug で、`coverage` では計測つきの debug で走る。上限は「debug の見積もりの約 5 倍」で決めている(例 `plan_simulate_perf.rs` の 150ms)。
 
 ## 開発環境
 
-- `.idea/` の IntelliJ 系(RustRover など)のプロジェクト設定を追跡している(個人の設定は `.idea/.gitignore` で除く)。
-- `crates/cli/tests/fixtures/*.toml` は `.gitattributes` で LF に固定(Windows での比較のため)。
+- 主な開発環境の OS は macOS(`team.md`)。デモは UNIX 系の `sh` と Windows の cmd の 2 本。
+- `.idea/` の IntelliJ 系のプロジェクト設定を追跡している(この走査では開いていない)。
+- `crates/cli/tests/fixtures/*.toml` は `.gitattributes` で LF に固定。

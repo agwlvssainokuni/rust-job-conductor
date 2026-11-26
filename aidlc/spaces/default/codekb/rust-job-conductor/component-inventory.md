@@ -1,22 +1,28 @@
 # コンポーネント一覧
 
-見出しの名前は、`reverse-engineering-timestamp.md` の Scope of Analysis の `components` と一致させる。
+見出しの名前は、`reverse-engineering-timestamp.md` の Scope of Analysis の `components` と一致させる。ファイルの配置と分類は `code-structure.md`、外部の版は `technology-stack.md` を参照。
 
 ## conductor-core
 
-- 責務: 定義ファイルの読み込み・検証と、純粋な判断(分類・次の動き・再開位置・リトライ)、ステートの更新、照合、`.env` の解析と層の統合、図の構造と配置、`--dry-run` の計画。
+- 責務: 定義ファイルの読み込み・検証と、純粋な判断(分類・次の動き・再開位置・リトライ)、ステートの更新と試行の時刻、時刻の整形、照合、`.env` の解析と層の統合、図の構造と配置、`--dry-run` の計画、`watch --follow` の終わりの判定。
 - 依存: 外部は `toml`、`thiserror` のみ。ほかのクレートには依存しない。`#![forbid(unsafe_code)]`。
 - 場所: `crates/core/`
 
 ## core::types
 
-- 責務: 共有の型(定義、実行結果、ステートの内容、判断の結果)。`EnvVar` の `Debug` は値を伏せ字にする。
-- 依存: なし
+- 責務: 共有の型(`PipelineDefinition`(`log_dir`、`unset_env` を含む)、`JobDefinition`(実効の `retry`、`unset_env`)、`EnvFileRef { path, required }`、`JobExecution`、`JobState`(`attempts`)、`Attempt { started_at, ended_at }`、`PipelineState`、判断の結果)。`EnvVar` の `Debug` は値を伏せ字にする。フィールドは公開。
+- 依存: `core::time`
 - 場所: `crates/core/src/types.rs`
+
+## core::time
+
+- 責務: `Timestamp`(UTC の UNIX 秒。1970〜9999 年)、`format_rfc3339`・`parse_rfc3339`(ステート)、`format_compact`(ログの名前)、`duration_secs`、`job_duration`・`format_duration`(`watch` の所要時間)。暦の計算は自前。時計には触れない。
+- 依存: `core::types`
+- 場所: `crates/core/src/time.rs`
 
 ## core::error
 
-- 責務: `DefinitionErrorKind`(33 種)と `DefinitionError`、表示の escape(`escape_display`、`quote_key`)、行番号の変換(`Locate`)、`.env` と共有する表示の書式(`render_error`)。
+- 責務: `DefinitionErrorKind`(34 種)と `DefinitionError`、表示の escape(`escape_display`)、行番号の変換。
 - 依存: `thiserror`
 - 場所: `crates/core/src/error.rs`
 
@@ -28,21 +34,21 @@
 
 ## core::definition
 
-- 責務: Intake → Parse → Depth → VersionCheck → Walk の順で、定義を `PipelineDefinition` にする。キーの許可(`ROOT_KEYS`、`PIPELINE_KEYS`、`JOB_KEYS`、`RETRY_KEYS`)、型、構造、遷移、終了コード、retry、env、名前を検査し、誤りをすべて集める。core で唯一ファイルに触れる(`intake`)。
+- 責務: Intake → Parse → Depth → VersionCheck → Walk の順で、定義を `PipelineDefinition` にする。キーの許可、型、構造、遷移、終了コード、retry(`[pipeline.retry]` の既定の当てはめと `retry = false`)、env・env_file(テーブルの項目)・unset_env、`log_dir` を検査し、誤りをすべて集める。core で唯一ファイルに触れる(`intake`)。
 - 依存: `core::error`、`core::run_id`、`core::envfile`(予約名)、`core::types`、`toml`
 - 場所: `crates/core/src/definition/`
 
 ## core::envfile
 
-- 責務: `.env` の解析(`parse_env_file`)、層の統合(`merge_env`、`merge_env_names`)、読む対象の一覧(`env_file_refs`)、誤りの種類(13 種)と要約。値を持つ型の `Debug` は伏せ字。
+- 責務: `.env` の解析(`parse_env_file`)、層の統合(`merge_env`、名前だけの `merge_env_names`、消す名前の `merge_unset_names`)、読む対象の一覧(`env_file_refs`)、`unset_env` と足す名前の重なりの検査(`check_unset_conflicts`)、誤りの種類(14 種)と要約。
 - 依存: `core::error`、`core::run_id`、`core::types`、`thiserror`
 - 場所: `crates/core/src/envfile/`
 
 ## core::flow
 
-- 責務: 純粋な判断(`decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision`)と、ステートの記録(`initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`)。
-- 依存: `core::types`
-- 場所: `crates/core/src/flow/`
+- 責務: 純粋な判断(`decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision`)、ステートの記録(`initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`)、試行の時刻(`start_attempt`、`end_attempt`、`cancel_attempt`)、動きの様子(`pipeline_activity`)。
+- 依存: `core::types`、`core::time`
+- 場所: `crates/core/src/flow/`(`activity.rs`、`attempt.rs`、`classify.rs`、`decide.rs`、`next_step.rs`、`record.rs`、`resume.rs`、`retry.rs`)
 
 ## core::consistency
 
@@ -52,174 +58,192 @@
 
 ## core::graph
 
-- 責務: 図の構造(`FlowGraph`、`FlowEdge`、`GraphNode`)、辺の取り出し(実行と同じ遷移の解決)、状態の重ね合わせ(`StateOverlay`)、レーンの配置(`GraphLayout::{Lanes, EdgeList}`)。文字への変換は持たない。
+- 責務: 図の構造(`FlowGraph`)、辺の取り出し(実行と同じ遷移の解決)、状態の重ね合わせ、レーンの配置(`GraphLayout`)。文字への変換は持たない。
 - 依存: `core::flow`(`resolve_transition`)、`core::types`
 - 場所: `crates/core/src/graph/`
 
 ## core::plan
 
-- 責務: `--dry-run` の計画の型(`ExecutionPlan`、`PlanEntry`、`Assumption` など)と、模擬(`plan_pipeline`、`plan_run`)。環境変数は名前だけ持つ。
-- 依存: `core::flow`、`core::envfile`(`merge_env_names`)、`core::types`
+- 責務: `--dry-run` の計画の型(`ExecutionPlan`、`PlanEntry`(足す名前と消す名前)、`PlanDisposition`、`PlanEnd`)と模擬(`plan_pipeline`、`plan_run`)。本番と同じ判断と記録を使い、試行は記録しない。
+- 依存: `core::flow`、`core::envfile`、`core::types`
 - 場所: `crates/core/src/plan/`
 
 ## conductor-runtime
 
-- 責務: ジョブの直接起動とシグナルの転送、リトライの待機、command の分割、ステートの保持・初期化、`.env` の読み取り、`init` のファイルの作成。
+- 責務: ジョブの起動と待ち、シグナルの転送、ログのファイル、時計、ステートの読み書きと削除、`.env` の読み取り、`init` のファイルの作成。
 - 依存: `conductor-core`、`toml`、`thiserror`、`libc`(UNIX)。`#![deny(unsafe_code)]`。
 - 場所: `crates/runtime/`
 
 ## runtime::types
 
-- 責務: `CommandLine`(分割済みのプログラムと引数)、`InterruptSignal`(最初のシグナルの番号を持つ Atomic)、`StateLocation`(ステートのパスの決定)、`Durability`(`Fast`・`Durable`)。
-- 依存: `conductor-core::RunId`
+- 責務: `CommandLine`、`InterruptSignal`(Atomic。立ったら下りない)、`StateLocation`、`Durability`(`Fast`・`Durable`)。
+- 依存: `conductor-core`(`RunId`)
 - 場所: `crates/runtime/src/types.rs`
 
 ## runtime::error
 
-- 責務: `CommandError`(2 種)、`StateError`(6 種)と、固定の理由の文。
+- 責務: `CommandError`(2 種)、`StateError`(6 種)と固定の理由の文。
 - 依存: `thiserror`
 - 場所: `crates/runtime/src/error.rs`
 
 ## runtime::split
 
-- 責務: command の分割(空白区切り、`'...'`、`"..."` とバックスラッシュの規則。状態機械)。`check_command`。
-- 依存: `conductor-core::Command`、`runtime::error`、`runtime::types`
+- 責務: `check_command`(文字列の command を状態機械で分割。配列はそのまま)。
+- 依存: `conductor-core`(`Command`)、`runtime::types`、`runtime::error`
 - 場所: `crates/runtime/src/split.rs`
 
 ## runtime::runner
 
-- 責務: `run_job`。分割済みの command で `Command::new` を起動し、`try_wait` のくり返し(1ms から 10ms)で待ち、合図を子の pid に 1 回だけ転送する。環境は引き継いで足すだけ、標準入出力は引き継ぐ。
-- 依存: `runtime::platform`、`runtime::types`、`conductor-core::JobExecution`
+- 責務: `run_job`(消してから足す環境、直接起動、1〜10ms の `try_wait` のくり返し、シグナルの 1 回の転送)。ログの指定があるときは、出力をパイプにし、流れごとの読み取りのスレッドで端末とファイルへ書き、終了後に最大 2 秒待つ。「止める」印は読み取りが返った後に見る(`runner.rs:313-322`)。
+- 依存: `runtime::log`、`runtime::platform`、`runtime::types`、`conductor-core`
 - 場所: `crates/runtime/src/runner.rs`
+
+## runtime::log
+
+- 責務: `LogTarget`、`LogOutcome`、`safe_log_stem`(安全な名前。予約名の比較は `log.rs:88-94`)、`open_log_file`(ディレクトリの作成、`create_new`、0600、`-2`〜`-1000`)。
+- 依存: `conductor-core`(`Timestamp`、`format_compact`)、`runtime::platform`
+- 場所: `crates/runtime/src/log.rs`
+
+## runtime::clock
+
+- 責務: `now`(`SystemTime` → `Timestamp`。範囲の外は端に寄せる)。時計に触れる唯一の場所。
+- 依存: `conductor-core`(`Timestamp`)
+- 場所: `crates/runtime/src/clock.rs`
 
 ## runtime::wait
 
-- 責務: リトライの待機(`wait_for`)。合図を 50ms 以下の間隔で確認する。
+- 責務: `wait_for`(リトライと `watch --follow` の待ち。合図を 50ms 以下の間隔で確認)。
 - 依存: `runtime::types`
 - 場所: `crates/runtime/src/wait.rs`
 
 ## runtime::envfile
 
-- 責務: `load_env_files`。`env_file` のパスを定義ファイルのディレクトリ基準で解決し、同じパスは 1 回だけ読み、誤りを集める。解析は core。
-- 依存: `runtime::bounded_read`、`conductor-core::envfile`
+- 責務: `load_env_files`(パスの解決、`required = false` の無いファイルの読み飛ばし、上限つきの読み取り、UTF-8。解析は core)。
+- 依存: `conductor-core`(`envfile`)、`runtime::bounded_read`
 - 場所: `crates/runtime/src/envfile.rs`
 
 ## runtime::bounded_read
 
-- 責務: 通常のファイルだけを、上限 + 1 バイトまで読む(名前付きパイプで待たない)。`.env` とステートが共有する。
+- 責務: 通常のファイルだけを、上限 + 1 バイトまで読む(`.env` とステートが共有)。
 - 依存: 標準ライブラリ
 - 場所: `crates/runtime/src/bounded_read.rs`
 
 ## runtime::temp_file
 
-- 責務: 一時ファイルの名前と排他の作成、`replace_via_temp`(書いて置き換える)。ステートと `init` が共有する。
+- 責務: 一時ファイルの名前と作成、`replace_via_temp`(ステートと `init` が共有)。
 - 依存: `runtime::platform`
 - 場所: `crates/runtime/src/temp_file.rs`
 
 ## runtime::file_create
 
-- 責務: `create_file`(`init` の出力先を排他的に作る、`--force` で置き換える)。親のディレクトリは作らない。
+- 責務: `create_file`(`init` の排他的な作成、`--force` で置き換え)。
 - 依存: `runtime::temp_file`
 - 場所: `crates/runtime/src/file_create.rs`
 
 ## runtime::state
 
-- 責務: ステートの読み込み(`reader`。厳格なキーの表と矛盾の検査)、書き込みと初期化(`writer`)、すべての初期化(`reset_all`)。
-- 依存: `conductor-core`、`toml`、`runtime::bounded_read`、`runtime::temp_file`、`runtime::platform`
+- 責務: `read_state`・`read_state_raw`(厳格なキーの表、試行の検査)、`write_state`(原子的な置き換え。試行を書く)、`reset_state`、`reset_all_states`、古い一時ファイルの後始末。
+- 依存: `conductor-core`(型、`parse_rfc3339`、`format_rfc3339`)、`runtime::bounded_read`、`runtime::temp_file`、`toml`
 - 場所: `crates/runtime/src/state/`
 
 ## runtime::platform
 
-- 責務: OS 固有の呼び出し(プロセスグループ、シグナルの送信、シグナル終了の読み取り、ディレクトリの同期)。`unsafe` は `unix.rs` の `libc::kill` 1 か所だけ。
+- 責務: プロセスグループ、シグナルの送信(`unsafe` の `libc::kill` 1 か所)、シグナル終了の読み取り、ディレクトリの同期、新しいファイルの 0600。
 - 依存: `libc`(UNIX)
 - 場所: `crates/runtime/src/platform/`
 
 ## conductor-converter
 
-- 責務: 定義ファイルの YAML と TOML の相互変換。アンカー・エイリアス・マージキーを展開し、上限(100,000 ノード、16 MiB、深さ 32)を守る。定義の書式は知らない。
-- 依存: `toml`、`thiserror`、`saphyr-parser`。core には依存しない。`#![forbid(unsafe_code)]`。
+- 責務: YAML と TOML の相互変換(アンカー・エイリアス・マージキーの展開と上限)。定義のキーは知らない。
+- 依存: `toml`、`thiserror`、`saphyr-parser`。`#![forbid(unsafe_code)]`。
 - 場所: `crates/converter/`
 
 ## conductor-cli
 
-- 責務: コマンドの受け付け、流れの組み立て、シグナル、表示(英日)、終了コード。実行ファイル `conductor`。
+- 責務: 実行ファイル `conductor`。引数、流れの組み立て、シグナル、表示(英日)、終了コード。
 - 依存: `conductor-core`、`conductor-runtime`、`conductor-converter`、`lexopt`、`signal-hook`(UNIX)、`ctrlc`(Windows)。`#![forbid(unsafe_code)]`。
 - 場所: `crates/cli/`
 
 ## cli::types
 
-- 責務: `CommandKind`(8 種と `ALL`)、`CliCommand`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitOptions`、`InitTarget`、`RunIdArg`、`UsageError`、`ParsedArgs`、`Language`。
-- 依存: `conductor-core`(`RunId`、`Assumption`)、`conductor-converter::TargetFormat`
+- 責務: `CommandKind`(8 種、`ALL`)、`CliCommand`(`follow`、`interval` を含む)、`GraphFormat`(`Text`・`Mermaid`・`Dot`)、`InitTarget`、`UsageErrorKind`(8 種)、`Language`、`Level`、`--interval` の既定と範囲の定数。
+- 依存: `conductor-core`、`conductor-converter`(`TargetFormat`)
 - 場所: `crates/cli/src/types.rs`
 
 ## cli::args
 
-- 責務: 引数の解釈。オプションの表(`OPTIONS`)、コマンドごとの許可・重複・併用の検査、値の検査(`--format`、`--run-id`、`--assume`、`--to`、`init` の名前)。
-- 依存: `lexopt`、`cli::types`
+- 責務: 引数の解釈(`lexopt`、オプションの表 `OPTIONS`、コマンドごとの文法)。
+- 依存: `cli::types`、`lexopt`
 - 場所: `crates/cli/src/args.rs`
 
 ## cli::ctx
 
-- 責務: 流れの共通部分(`Ctx`、`Checked`、`Session`、`FlowTarget`)。実行の前の検査の順序(シグナル → 定義 → command → ジョブID → run ID → `.env` → ステート → 照合)、`check_definition_and_env`(`validate`・`graph`)、ステートの書き込み・初期化とその失敗の表示、実効の `remove_on_complete`。
-- 依存: `cli::deps`、`cli::report`、`cli::run_id`、core、runtime
+- 責務: `Ctx`、`Checked`、`Session`、実行の前の検査(定義 → command → ジョブID → run ID → `.env` → `unset_env` の重なり → ステート)、シグナルの準備、ステートの書き込み・初期化とその失敗の表示。
+- 依存: `cli::deps`、`cli::report`、`cli::run_id`、`conductor-core`、`conductor-runtime`
 - 場所: `crates/cli/src/ctx.rs`
 
 ## cli::step
 
-- 責務: 1 つのジョブの手順(`record_skip`、`run_step`、リトライつきの実行 `run_job_with_retry`、`remove_if_requested`、実行後の表示)。試行ごとに `merge_env` で環境を作り直す。
-- 依存: `cli::ctx`、`cli::report`、`cli::exit`、core(`merge_env`、`retry_decision`、`classify_and_decide`、`apply_*`)
+- 責務: 1 つのジョブの手順(`record_skip`、`run_step`、`run_job_with_retry`、`remove_if_requested`)。試行ごとに時刻を取り、`start_attempt` → `Fast` の書き込み → 起動(ログの指定)→ `end_attempt`/`cancel_attempt`。リトライの待ちの間は試行を開いたまま(`pending_end`)。`log_dir` の解決とログの警告。
+- 依存: `cli::ctx`、`cli::report`、`cli::exit`、`conductor-core`、`conductor-runtime`
 - 場所: `crates/cli/src/step.rs`
 
 ## cli::flows
 
-- 責務: コマンドごとの流れ。`run`(個別実行)、`pipeline`(一括実行、ジョブのあいだの中断)、`dry_run`(計画)、`aux_commands`(`watch`、`reset`、`validate`、`convert`、`graph`、`init`)。
-- 依存: `cli::ctx`、`cli::step`、`cli::report`、core の純粋な関数
-- 場所: `crates/cli/src/{run,pipeline,dry_run,aux_commands}.rs`
+- 責務: `run`(個別実行)、`pipeline`(一括実行)、`dry_run`(計画)、`aux_commands`(`watch` と `follow_watch`、`reset`、`validate`、`convert`、`graph`、`init`)の流れ。
+- 依存: `cli::ctx`、`cli::step`、`cli::report`、`cli::platform`、`conductor-core`、`conductor-runtime`
+- 場所: `crates/cli/src/run.rs`、`pipeline.rs`、`dry_run.rs`、`aux_commands.rs`
 
 ## cli::run_id
 
-- 責務: `--run-id` と環境変数から run ID を決める(`resolve_run_id`、`aux_run_id`)。
-- 依存: `cli::deps::Env`、`core::run_id`
+- 責務: run ID の解決(`--run-id`、環境変数、`watch`・`reset` のゆるい読み取り)。
+- 依存: `cli::ctx`、`cli::deps`、`conductor-core`
 - 場所: `crates/cli/src/run_id.rs`
 
 ## cli::report
 
-- 責務: `Reporter` と `DisplayEvent`(33 種)、英日の文言の表、escape、`watch` の表、図(text、Mermaid)、計画、ひな形の整形。言語(`LC_ALL`・`LC_MESSAGES`・`LANG`)と色(UNIX 系の端末、`NO_COLOR`)は遅延で判定。
-- 依存: core・runtime・converter のエラー型と図・計画の型
+- 責務: `DisplayEvent`(37 種)、`Reporter`(言語・色の遅延判定)、`FramePrefix`(`Nothing`・`ClearScreen`・`BlankLine`。`report/mod.rs:248-278`)、英日の文言(`messages.rs`)、整形(`watch.rs`、`graph_text.rs`、`graph_mermaid.rs`、`graph_dot.rs`、`plan_text.rs`、`init_template.rs`)。
+- 依存: `cli::types`、`conductor-core`、`conductor-runtime`(エラーの型)、`conductor-converter`(エラーの型)
 - 場所: `crates/cli/src/report/`
 
 ## cli::deps
 
-- 責務: 差し替え口の trait(`Runtime` 13 メソッド、`Sink`、`Env`、`Signals`)と本番の実装。
-- 依存: core、runtime、converter、`cli::platform`
+- 責務: 差し替え口の trait(`Runtime` 14 メソッド、`Sink`、`Env`、`Signals`)と本番の実装。
+- 依存: `cli::platform`、`conductor-core`、`conductor-runtime`、`conductor-converter`
 - 場所: `crates/cli/src/deps.rs`
 
 ## cli::platform
 
-- 責務: シグナルの監視(UNIX は `signal-hook`、Windows は `ctrlc`)。プロセスで 1 回だけ登録。色が使える OS か。
-- 依存: `signal-hook`/`ctrlc`、`conductor-runtime::InterruptSignal`
+- 責務: シグナルの監視(UNIX は `signal-hook`、Windows は `ctrlc`)、`color_supported`、`clear_screen_supported`(どちらも `cfg!(unix)`)。
+- 依存: `signal-hook`、`ctrlc`、`conductor-runtime`(`InterruptSignal`)
 - 場所: `crates/cli/src/platform/`
 
 ## cli::exit
 
-- 責務: 終了コードの定数(0、64〜70)と、0〜255 への合わせ、シグナルの終了コード。
-- 依存: `conductor-core::JobOutcome`
+- 責務: 終了コードの定数と、0〜255 への合わせ。
+- 依存: `conductor-core`
 - 場所: `crates/cli/src/exit.rs`
 
 ## cli::panic_hook
 
-- 責務: パニックのときの固定の英語の文と終了コード 70。
-- 依存: `cli::exit`
+- 責務: パニックのとき固定の英語の文を出し、70 で終わる。
+- 依存: 標準ライブラリ
 - 場所: `crates/cli/src/panic_hook.rs`
 
 ## test-helpers
 
-- 責務: テスト専用の補助バイナリ(`conductor-test-helper`、`conductor-cli-test-helper`)。引数・環境変数・終了コード・シグナル・時刻・出力の記録。配布しない(`release.yml` は `--bin conductor` だけをビルド)。カバレッジの対象外。
-- 依存: 標準ライブラリのみ
-- 場所: `crates/runtime/src/bin/`、`crates/cli/src/bin/`
+- 責務: テスト専用の補助バイナリ(`conductor-test-helper`、`conductor-cli-test-helper`)。引数・環境変数・終了コード・シグナルの受信・出力を決めた形で返す。配布せず、カバレッジから除く。
+- 依存: 標準ライブラリ
+- 場所: `crates/runtime/src/bin/conductor-test-helper.rs`、`crates/cli/src/bin/conductor-cli-test-helper.rs`
+
+## demo
+
+- 責務: 主な動きを場面 0〜15 で見せるスクリプト(UNIX の `run-demo.sh`、Windows の `run-demo.cmd`)と、その定義・`.env`・ジョブのスクリプト。`DEMO_PAUSE=1` で場面ごとに Enter を待つ。場面 4 で `watch --follow` を呼ぶ(`run-demo.sh:94-96`)。
+- 依存: ビルドした `conductor`(無ければ `cargo build --release`)
+- 場所: `demo/`
 
 ## ci-workflows
 
-- 責務: マージの関門(`ci.yml`: lint、build-check、test、msrv-test、coverage、docs-check、startup-bench)、リリース(`release.yml`: verify-tag、checks、build、draft-release)、脆弱性の検査(`audit.yml`)。
+- 責務: マージの関門(`ci.yml`)、リリース(`release.yml`)、脆弱性の検査(`audit.yml`)。
 - 依存: GitHub Actions(`actions/checkout@v6`、`dtolnay/rust-toolchain`、`taiki-e/install-action@v2`、`actions/upload-artifact@v7`、`actions/download-artifact@v8`)
 - 場所: `.github/workflows/`
