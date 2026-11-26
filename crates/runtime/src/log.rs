@@ -71,8 +71,10 @@ pub struct LogOutcome {
 ///
 /// 1. `/` `\` `:` `*` `?` `"` `<` `>` `|` と、制御文字(U+0000〜U+001F、U+007F〜U+009F)を `_` にする。
 /// 2. 先頭の `.` を `_` にする(隠しファイルや `..` を作らない)。
-/// 3. 最初の `.` より前の部分が、大文字小文字を問わず Windows の予約名なら、先頭に `_` を足す
-///    (`NUL.x` → `_NUL.x`、`con` → `_con`)。
+/// 3. 最初の `.` より前の部分から前後の ASCII の空白(` `)を除いた値が、大文字小文字を問わず
+///    Windows の予約名なら、先頭に `_` を足す(`NUL.x` → `_NUL.x`、`con` → `_con`、
+///    `con ` → `_con_`、`nul .tar.gz` → `_nul .tar.gz`。BR2.1、FR2.1)。空白を除くのは比べる
+///    ときだけで、名前そのものからは除かない。
 /// 4. 100 バイトまでに切る(UTF-8 の文字の途中では切らない)。
 /// 5. 末尾の `.` か空白を `_` にする(Windows が名前から落とすもの)。
 ///
@@ -85,7 +87,7 @@ pub fn safe_log_stem(job_id: &str) -> String {
     if stem.starts_with('.') {
         stem.replace_range(..1, "_");
     }
-    let head = stem.split('.').next().unwrap_or_default();
+    let head = stem.split('.').next().unwrap_or_default().trim_matches(' ');
     if RESERVED_NAMES
         .iter()
         .any(|name| name.eq_ignore_ascii_case(head))
