@@ -64,6 +64,13 @@ fn br3_2_安全な名前の対の表() {
         ("LPT9", "_LPT9"),
         ("NUL.x", "_NUL.x"),
         ("nul.tar.gz", "_nul.tar.gz"),
+        // v0.10.1: 予約名と比べるときだけ前後の空白を除く(BR2.1、BR2.2、FR2.1 の表)。
+        ("console", "console"),
+        ("con ", "_con_"),
+        (" con", "_ con"),
+        (" con ", "_ con_"),
+        ("con .x", "_con .x"),
+        ("nul .tar.gz", "_nul .tar.gz"),
         ("CONX", "CONX"),
         ("COM0", "COM0"),
         ("x.CON", "x.CON"),
