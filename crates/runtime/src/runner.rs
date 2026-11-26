@@ -306,11 +306,15 @@ where
 ///
 /// - 読んだバイト列は、そのまま書く(conductor は何も書き足さない)。端末へは書くたびに flush する。
 /// - 端末への書き込みに失敗したら、端末へ書くのをやめるが、読み続けてファイルへは書く。
-/// - 「止める」印が立っていたら、読んだ分をどこにも書かずに終わる。
+/// - 読む前に「止める」印を見て、立っていたら読まずに終わる(BR2.3、FR2.3)。
+/// - 読んだ後にも印を見て、立っていたら、読んだ分をどこにも書かずに終わる(BR2.4)。
 fn copy_stream<R: Read, T: Write, F: Write>(mut reader: R, terminal: &mut T, shared: &Shared<F>) {
     let mut buf = [0u8; COPY_CHUNK_BYTES];
     let mut terminal_ok = true;
     loop {
+        if shared.stop.load(Ordering::SeqCst) {
+            break;
+        }
         let n = match reader.read(&mut buf) {
             Ok(0) => break,
             Ok(n) => n,
