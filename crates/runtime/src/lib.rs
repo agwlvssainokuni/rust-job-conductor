@@ -23,7 +23,7 @@
 //!
 //! | 関数 | 役割 | 入出力 | 失敗 |
 //! |------|------|--------|------|
-//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x)。ログの指定があれば出力をファイルにも残す(v0.10.0 の BR4.x) | 分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、[`InterruptSignal`]、`Option<&`[`LogTarget`]`>` → (`JobExecution`, [`LogOutcome`]) | なし(起動失敗は `StartFailed` の値、ログの失敗は [`LogOutcome`] の値) |
+//! | [`run_job`] | ジョブを、シェルを介さずに起動し、終了を待つ(W1。BR1.x)。ログの指定があれば出力をファイルにも残す(v0.10.0 の BR4.x) | 分割済みの [`CommandLine`]([`check_command`] の結果)、足す環境変数、消す環境変数の名前の並び(`unset`。v0.10.0 の `unset_env`)、[`InterruptSignal`]、`Option<&`[`LogTarget`]`>` → (`JobExecution`, [`LogOutcome`]) | なし(起動失敗は `StartFailed` の値、ログの失敗は [`LogOutcome`] の値) |
 //! | [`now`] | 現在の時刻(v0.10.0 の BR2.3) | なし → `Timestamp` | なし(範囲の外は端に寄せる) |
 //! | [`open_log_file`] | 試行のログのファイルを、無いときだけ作る(v0.10.0 の BR3.1〜BR3.4) | [`LogTarget`] → ファイルとパス | 表示用のパス |
 //! | [`safe_log_stem`] | ジョブ ID をファイル名に使える名前にする(v0.10.0 の BR3.2) | ジョブ ID → 文字列 | なし(純粋) |
