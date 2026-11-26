@@ -4461,3 +4461,292 @@
 **Context**: construction > build-and-test > cross-unit-traceability.md
 
 ---
+
+## Decision Recorded
+**Timestamp**: 2026-11-26T23:40:59Z
+**Event**: DECISION_RECORDED
+**Stage**: build-and-test
+**Decision**: Keep for next time: 時間の上限を持つテストの判断は、手元の測定だけでなく CI の計測の値も使う
+**Options**: Yes, for this project,Yes, for the team,No
+**Question Kind**: learnings-note
+**Question Id**: 3edacf6d
+**Question Type**: learnings-note
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:6d29e0f5e3ebf3968547b27763102e7c622c65213b219d93a6ff0be64b6d7cf0
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-26T23:42:55Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["No"]
+**Message Id**: 2cc1c9bc
+**Open Questions**: b0e65e2e, 3edacf6d
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-26T23:42:56Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: 次の教訓を、次の作業のために残しますか?「時間の上限を持つテストを直すかどうかは、手元の速い機械での測定だけで判断しない。CI での計測の値も使って判断する」(推奨: Yes, for this project)
+**Reply**: No
+**Options**: ["Yes, for this project","Yes, for the team","No"]
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-26T23:43:00Z
+**Event**: QUESTION_ANSWERED
+**Stage**: build-and-test
+**Details**: No
+**Message Id**: 2cc1c9bc
+**Person Reply**: No
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T23:43:01Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/.aidlc-engine/learnings/build-and-test-selections.json
+**Context**: .aidlc-engine > learnings > build-and-test-selections.json
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T23:43:06Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/.aidlc-engine/learnings/build-and-test-selections.json
+**Context**: .aidlc-engine > learnings > build-and-test-selections.json
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:08Z
+**Event**: SENSOR_FIRED
+**Fire id**: a8d509b6
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_PASSED
+**Fire id**: a8d509b6
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_FIRED
+**Fire id**: 976f2ad9
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-and-test-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_PASSED
+**Fire id**: 976f2ad9
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-and-test-summary.md
+**Duration ms**: 100
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_FIRED
+**Fire id**: f8b33bf7
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/test-results.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_PASSED
+**Fire id**: f8b33bf7
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/test-results.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_FIRED
+**Fire id**: 5cdc0519
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/cross-unit-traceability.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:09Z
+**Event**: SENSOR_PASSED
+**Fire id**: 5cdc0519
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/cross-unit-traceability.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9ce39542
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: 9ce39542
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: b2cf77ce
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: b2cf77ce
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: bf918723
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-and-test-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: bf918723
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-and-test-summary.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_FIRED
+**Fire id**: 60437a48
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/test-results.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:10Z
+**Event**: SENSOR_PASSED
+**Fire id**: 60437a48
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/test-results.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: 17a16fc6
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/cross-unit-traceability.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: 17a16fc6
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/cross-unit-traceability.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-26T23:43:11Z
+**Event**: SENSOR_FIRED
+**Fire id**: d02a548d
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-26T23:43:11Z
+**Event**: SENSOR_PASSED
+**Fire id**: d02a548d
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md
+**Duration ms**: 78
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-26T23:43:11Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: build-and-test
+**Next Stage**: deployment-pipeline
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md=passed; required-sections@aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-and-test-summary.md=passed; required-sections@aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/test-results.md=passed; required-sections@aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/cross-unit-traceability.md=passed; upstream-coverage@aidlc/spaces/default/intents/261126-v0101-followups/construction/build-and-test/build-instructions.md=passed
+**Open Decisions**: 0
+**Question Id**: 4ed026d3
+**Question Type**: gate
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:8795f632c65e20bb3866f437182df3123353cc82b3e0b3ad92100983e9e588cb
+
+---
