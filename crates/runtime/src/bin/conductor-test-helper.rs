@@ -113,9 +113,15 @@ fn main() {
                 .unwrap_or(1);
             let mut out = std::io::stdout();
             let mut err = std::io::stderr();
+            // 1 行を 1 回の書き込みで出す。標準エラーはバッファを持たないため、`writeln!` だと
+            // 「err 」「番号」「改行」が別々に書かれ、もう一方の流れの行が間に入りうる(Windows で起きた)。
             for i in 0..n {
-                let _ = writeln!(out, "out {i}").and_then(|()| out.flush());
-                let _ = writeln!(err, "err {i}").and_then(|()| err.flush());
+                let _ = out
+                    .write_all(format!("out {i}\n").as_bytes())
+                    .and_then(|()| out.flush());
+                let _ = err
+                    .write_all(format!("err {i}\n").as_bytes())
+                    .and_then(|()| err.flush());
             }
         }
         "orphan" => {
