@@ -78,6 +78,33 @@
 - **Planned fix**: 承認済みの設計(functional-spec.md の W3 の手順 2〜7、rules.md の BR3.4〜BR3.6、Q2 A)と計画の Step 6 のとおり、`crates/core/src/flow/` に、位置と目印(R-05 で走査ごとに決める値)を受け取る `pub(crate)` の内部の入口と目印を進める関数を足し、`crates/core/src/plan/simulate.rs` から呼ぶ。判断と記録の規則は flow の 1 か所のまま。R-06 の判断の一致のテストを足す。`job_index`・`record_of` そのもの、実行の流れの動き、計画の結果、`plan_simulate_perf.rs` は変えない。合否は BR3.5(llvm-cov の下で 1,000 ジョブが 75ms 以下、2 倍ごとの伸び 2.5 倍以下)に加え、push の後の CI の `coverage` が通ること。
 - **Estimated impact**: 手間は core の `flow`(`decide.rs`・`next_step.rs`・`record.rs`・`mod.rs`)と `plan/simulate.rs` とテストの変更(開発の担当への 1 回の依頼の程度)。費用は CI の実行の分のみ。危険は中(実行と模擬が共有する判断の経路に手が入る)。判断の一致のテストと全体のテストで押さえる。
 
+## やり直し 1 の後の実行(2026-11-26、コミット 3a0b491)
+
+コード生成のやり直し 1(5405854、6104853、3862d2d)の後に、この段階を Modify で再び実行した。
+
+### 手元(macOS)
+
+| コマンド | 結果 |
+|---|---|
+| `cargo build --workspace --locked` | exit 0 |
+| `cargo fmt --all -- --check` | exit 0 |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings` | exit 0 |
+| `cargo test -p conductor-runtime --test log_file --test runner_log --locked` | exit 0。19 passed |
+| `cargo test -p conductor-runtime --lib --locked -- runner::tests` | exit 0。17 passed |
+| `cargo test -p conductor-core --lib --locked -- flow::` | exit 0。56 passed(R-06 の 5 つを含む) |
+| `cargo test -p conductor-core --test plan_pipeline --test plan_run --test plan_assume --test plan_simulate_perf --test flow_sequences --test flow_perf --test retry_flow --test attempt_flow --locked` | exit 0。58 passed |
+| `cargo test -p conductor-cli --test unix_demo --locked` | exit 0。4 passed |
+| `cargo test -p conductor-cli --lib --locked -- tests::docs tests::report_messages` | exit 0。67 passed |
+| `cargo test -p conductor-core --test env_types --locked` | exit 0。6 passed |
+| `cargo test --workspace --locked` | exit 0。1,437 passed、0 failed、1 ignored(前からのもの) |
+| `cargo llvm-cov --workspace --locked --ignore-filename-regex 'bin/conductor-(cli-)?test-helper' --fail-under-lines 80 --summary-only` | exit 0。行カバレッジ 98.22%(10,823 行のうち 193 行が未通過)、領域 97.92%、関数 98.27% |
+| 依存 | `Cargo.lock` の package 46(変わらず) |
+
+### CI 45912018052(コミット 3a0b491)
+
+- 12 のジョブがすべて成功(`lint`、`build-check` ×2、`test`(ubuntu-24.04、macos-latest、windows-2022)、`msrv-test`、`coverage`、`docs-check`、`startup-bench` ×3)。
+- `coverage` の中で、`plan_simulate_perf.rs` の `p1_千個のジョブがすべて実行する計画は_150ms_以内`・`p2_終点のあとの_999_個のスキップの計画は_150ms_以内` は ok(テストのファイル全体が約 0.07 秒で終わった)。CI の行カバレッジの TOTAL は 98.22%。
+
 ## Target Verification Matrix の最終の判定
 
-`build-and-test-summary.md` の表を参照。T-CI は **Not Met**(45908344996 の `coverage` の失敗)。他の 9 つは Met。
+`build-and-test-summary.md` の表を参照。最初の実行では T-CI が **Not Met**(45908344996 の `coverage` の失敗)だった。やり直し 1 の後の実行で、T-CI を含む 10 の目標すべてが Met。
