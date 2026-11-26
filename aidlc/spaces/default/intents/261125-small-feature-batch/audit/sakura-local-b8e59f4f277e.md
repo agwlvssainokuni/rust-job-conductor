@@ -21166,3 +21166,21 @@
 **Stage**: deployment-pipeline
 
 ---
+
+## Stage Skip
+**Timestamp**: 2026-11-26T00:14:04Z
+**Event**: STAGE_SKIPPED
+**Stage**: environment-provisioning
+**Reason**: 単一バイナリの CLI で、配る先は利用者の手元だけ。用意する環境(クラウド、サーバ、ステージング)が無い(team.md の Deployment)。リリースの置き場所の GitHub Releases は既存で、release.yml が使う
+**Skip Kind**: conditional-runtime
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-26T00:14:04Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-execution
+**Agent**: aidlc-pipeline-deploy-agent
+**Answer Mode**: guide (reused from intent-capture)
+
+---
