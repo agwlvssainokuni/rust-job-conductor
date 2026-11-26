@@ -19,7 +19,7 @@ cargo test -p conductor-cli --test flow_retry --test flow_validate --test binary
 ```
 
 ```bash
-cargo test -p conductor-cli --lib --locked tests::graph_report tests::plan_report tests::docs
+cargo test -p conductor-cli --lib --locked -- tests::graph_report tests::plan_report tests::docs
 ```
 
 - `windows_demo.rs` は Windows でだけ動くため、CI の windows の `test` で確かめる。
