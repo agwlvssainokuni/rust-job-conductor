@@ -2793,3 +2793,92 @@
 **Question Shows**: sha256:c275d828c103ca7b417868184985f521d2f32b6d2e640e1eba340ac64a0d0eab
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-11-26T22:27:52Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["承認、R-05 と R-06 も直して"]
+**Message Id**: 52265197
+**Open Questions**: 4d666846, d740361b, a8722acd
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261126-v0101-followups/construction/functional-design/functional-design-questions.md","entries":{"Q1":"0426bc131adffdb6","Consolidated Summary Confirmation":"6923480b84f7e430","Requested Changes Feedback":"e96fa868a719abfb","Q2":"9f338fffa031ca5b"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-26T22:27:52Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: 設計をどうしますか?(推奨: 承認し、R-05・R-06 を直すよう頼む → Other で「承認、R-05 と R-06 も直して」など)
+**Reply**: 承認、R-05 と R-06 も直して
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-26T22:27:57Z
+**Event**: GATE_APPROVED
+**Stage**: functional-design
+**User Input**: Approve
+**Person Reply**: 承認、R-05 と R-06 も直して
+**Message Id**: 52265197
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261126-v0101-followups/construction/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:b4771151bfb67fb1658993772917821994b3934c011b073d4afb97dc383e7f42","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/9ef00bb1da46b7de/1.json","digest":"sha256:0c7f409ce02bb97e83058d389ef9a75b765414593f2603c5ebe962dc69956a90"}},{"artifact":"aidlc/spaces/default/intents/261126-v0101-followups/construction/functional-design/functional-spec.md","id":"R-06","fingerprint":"sha256:eacdf001d5812262600d6bdbbb8bf83d2dc70535f27241c6552c4bb36fd5cf08","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/9ef00bb1da46b7de/1.json","digest":"sha256:0c7f409ce02bb97e83058d389ef9a75b765414593f2603c5ebe962dc69956a90"}}]}
+**Brief Digest**: sha256:3ac57d54fb49338940c6ab9888fd01e832cbf33a792de1952290dd7d79d5f462
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-26T22:27:57Z
+**Event**: STAGE_COMPLETED
+**Stage**: functional-design
+**Validation Basis**: {"graphContract":"sha256:9bcda5bd8a06c0847db3e05cd9c841a992450b498f36fead53d3737b78517a4e","inputs":[{"artifact":"components","contentHash":"sha256:2b586645ff21096e34d5c64b489f2abfd40e329643a4eba0e215a851b468eeee","instanceCount":1,"presentCount":0,"producer":"domain-design","required":true,"structureHash":"sha256:abc4e4778d598a4858178fe87899d7f7173f647da4368241987239b34cfe11f9"},{"artifact":"requirements","contentHash":"sha256:dd51c6e9686d2a349fe7181d82f31b1ac5532917543e5651b0901bc8d92517c4","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:ccdbbfb20f6c822651d45ced57e7fd3356efe2b692f905e311352ba9db9bcd87"},{"artifact":"unit-of-work","contentHash":"sha256:99c252e7c7374fcb4d1ebc24f720f859c342b074ec2a788c8f8e272f016ef455","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:6198f738f30551c47be2337c734ca2ad78ba3f0422f9d6eb782a0cf26cdc710e"}],"outputs":[{"artifact":"entities","contentHash":"sha256:6992ca3fce6461b28f030fab2044dd7bf10aa179e54629cc5021592411100904","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:dd01b5da58c679794134254077f388975f3695aa495b1bb02b4b4be01c0c25e6"},{"artifact":"functional-spec","contentHash":"sha256:286b150ef78c5ec40dc1d0e365b52fcbbc2cb2c990ba893cf7b8e9c0c0cc7fd3","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:f8629d55cc253ba0e8b5bac93c9cfd58124c1e37b5cee7cf02e1ca6de9d06d32"},{"artifact":"rules","contentHash":"sha256:c4577aac7c86ecc27e026dd58e815d6e5965bd92d35ffc5ac6db128486a7d5ed","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:fcd4600f1bac818829674d8077946c4db98aa8d29cd37597270d03f86b185fc6"},{"artifact":"traceability","contentHash":"sha256:b29d97fc0ff93fc69feec71cacbfb65bb834becc6da85ef19e9b474c241c1393","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:966d018391a7c12a1ec8a9ed745ba10d81cf0ca897a2749f7eb08a1d5a7e167a"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Functional Design approved by gate
+**Tokens In**: 112
+**Tokens Out**: 67320
+**Cache Read**: 12328057
+**Cache Write**: 285971
+**Cost USD**: 4.80
+**By Model**: opus-5-5=4.06; sonnet-5-5=0.75
+**By Agent**: main=4.06; aidlc-architecture-reviewer-agent=0.75
+**Tokens By Model**: opus-5-5=78/52.1k/11M/101.7k; sonnet-5-5=34/15.2k/1.3M/184.3k
+**Tokens By Agent**: main=78/52.1k/11M/101.7k; aidlc-architecture-reviewer-agent=34/15.2k/1.3M/184.3k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-26T22:27:57Z
+**Event**: STAGE_STARTED
+**Stage**: code-generation
+**Agent**: aidlc-developer-agent
+**Answer Mode**: guide (reused from requirements-analysis)
+**Source Baseline**: sha256:040bdf655373869b9755c87816eb78ef1b3de6e9f7fd93f5bc8eb8b391ffbc5d
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-26T22:27:57Z
+**Event**: MEMORY_EMPTY
+**Stage**: functional-design
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T22:29:12Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-26T22:29:31Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261126-v0101-followups/construction/code-generation/unit-test-instructions.md
+**Context**: construction > code-generation > unit-test-instructions.md
+
+---
