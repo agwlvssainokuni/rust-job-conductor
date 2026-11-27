@@ -1,6 +1,6 @@
 [package]
 name = "conductor-runtime"
-version = "0.10.1"
+version = "0.10.2"
 description = "conductor の実行ライブラリ(ジョブの起動とシグナルの転送、ステートの保持と照合)"
 edition.workspace = true
 rust-version.workspace = true
