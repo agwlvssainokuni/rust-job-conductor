@@ -6,17 +6,17 @@
 
 | 終了コード | 名前 | 意味 | 主な発生箇所 |
 |------------|------|------|--------------|
-| 0 | OK | 成功。ジョブの成功・警告、スキップ(実行済み・遷移・`@end`)、`watch`・`reset`・`validate`・`convert` の成功、`--help`・`--version`。`reset --all` の警告(読めなくて残したファイル)も 0。v0.9.0 以降: `graph`・`init` の成功、`--dry-run` の計画を出せたとき(模擬の結果がエラーでの停止でも 0)、`validate` の `.env` の重複キーの警告 | 全般 |
+| 0 | OK | 成功。ジョブの成功・警告、スキップ(実行済み・遷移・`@end`)、`watch`・`reset`・`validate`・`convert` の成功、`--help`・`--version`。`reset --all` の警告(読めなくて残したファイル)も 0。v0.9.0 以降: `graph`・`init` の成功、`--dry-run` の計画を出せたとき(模擬の結果がエラーでの停止でも 0)、`validate` の `.env` の重複キーの警告。v0.10.0 以降: `watch --follow` が終わったとき(ステートが完了になった、エラーか中断で止まった、一度見えたステートが消えた、中断の合図で終わった。05 の 20 章)、ログのファイルへの書き込みの失敗・出力の待ち切れの警告(ジョブの終了コードを変えない) | 全般 |
 | 1 | UNLISTED_ZERO | ジョブが終了コード 0 で終わったが、`success_exit_codes` に 0 がない。または、ジョブの終了コードがエラーで、下位 8 ビットが 0 になる(例: 256)。または、起動して終わったのに終了コードが得られない(起こらない想定) | ジョブの結果の分類、終了コードの範囲合わせ |
 | 1〜255 | (ジョブの値) | エラーになったジョブの終了コードを、そのまま。範囲外は下位 8 ビット(0 になるなら 1)。4 章 | 範囲合わせ |
-| 64 | DEFINITION | 定義の誤り: ファイルがない・読めない・大きすぎる・文法・検証の誤り(パイプライン名の不一致、`run_id_env` や `remove_on_complete` の型・形の誤り、`[job.retry]` の誤りを含む)、`command` の誤り(引用符が閉じていない・空)。`validate` の失敗も 64。v0.9.0 以降: `env`・`env_file` の誤り(`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` ほか)と、`.env` が無い・読めない・大きすぎる・UTF-8 でない・書式の誤り(13 種)。`graph`・`--dry-run` の定義と `.env` の誤りも 64 | `run`, `pipeline`, `validate`, `graph`, `--dry-run` |
-| 65 | STATE | ステートの誤り: 読めない・大きすぎる・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みの失敗・削除(初期化)の失敗。`reset`・`reset --all` で消すのに失敗。`watch` が標準出力に書けない。`pipeline` が完了を判定できない。v0.9.0 以降: `graph`・`--dry-run` のステートの読み取りの誤りと、標準出力に書けないとき。`init` がファイルを作れない(親のディレクトリが無い・書く権限がない・作る先がディレクトリ・そのほかの入出力の誤り)・ひな形を標準出力に書けない | `run`, `pipeline`, `watch`, `reset`, `graph`, `--dry-run`, `init` |
+| 64 | DEFINITION | 定義の誤り: ファイルがない・読めない・大きすぎる・文法・検証の誤り(パイプライン名の不一致、`run_id_env` や `remove_on_complete` の型・形の誤り、`[job.retry]` の誤りを含む)、`command` の誤り(引用符が閉じていない・空)。`validate` の失敗も 64。v0.9.0 以降: `env`・`env_file` の誤り(`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` ほか)と、`.env` が無い・読めない・大きすぎる・UTF-8 でない・書式の誤り。`graph`・`--dry-run` の定義と `.env` の誤りも 64。v0.10.0 以降: `[pipeline.retry]` と `retry` の誤り(`retry = true` など)、`log_dir` の型・空の誤り、`unset_env` の誤りと、`unset_env` と `env` の重なり(`unsetEnvConflict`)、`env_file` の表 `{ path, required }` の誤り、`.env` の名前と `unset_env` の重なり(`unsetConflict`)。`.env` の誤りは 14 種 | `run`, `pipeline`, `validate`, `graph`, `--dry-run` |
+| 65 | STATE | ステートの誤り: 読めない・大きすぎる・壊れている・版の不一致・定義との食い違い・中身の `run_id` とファイル名の食い違い・書き込みの失敗・削除(初期化)の失敗。`reset`・`reset --all` で消すのに失敗。`watch` が標準出力に書けない。`pipeline` が完了を判定できない。v0.9.0 以降: `graph`・`--dry-run` のステートの読み取りの誤りと、標準出力に書けないとき。`init` がファイルを作れない(親のディレクトリが無い・書く権限がない・作る先がディレクトリ・そのほかの入出力の誤り)・ひな形を標準出力に書けない。v0.10.0 以降: 試行の開始のステートの書き込みの失敗(ジョブは起動していない)、v0.9.9 までに書いたステート(動いたジョブに試行が無い)と試行の記録の誤り(`corrupt`)、`watch --follow` でステートが 3 回続けて読めない・壊れている・標準出力に書けない | `run`, `pipeline`, `watch`, `reset`, `graph`, `--dry-run`, `init` |
 | 66 | REJECTED | 拒否(順序外など。`run` で前のジョブが終わっていない、スキップ対象、`@end` より後ろ、実行済み)。v0.9.0 以降は、`--dry-run` で、本番なら拒否されるとき | `run`, `pipeline`, `--dry-run` |
 | 67 | CONVERSION | 変換の誤り。`convert` が標準出力に書けない | `convert` |
-| 68 | USAGE | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないオプション、使えないオプション、値の欠落・誤り、知らないジョブID、run ID の値の誤り〔引数・環境変数とも〕、重複、`--all` と `--run-id` の併用)。v0.9.0 以降: `--assume` の誤り(書式・範囲外・重複・定義にないジョブID)、`--dry-run` なしの `--assume`、`--format` の値の誤り、`graph` 以外の `--format`・`--state`、`--state` なしの `graph --run-id`、`init` の名前が空、`init` に許されないオプション、`init` 以外への `--force`、`run`・`pipeline` 以外の `--dry-run` | 引数の解釈、run ID の決定、`watch`/`reset`、`--dry-run` の準備 |
+| 68 | USAGE | 使い方の誤り(知らないコマンド、引数の不足、余分な引数、知らないオプション、使えないオプション、値の欠落・誤り、知らないジョブID、run ID の値の誤り〔引数・環境変数とも〕、重複、`--all` と `--run-id` の併用)。v0.9.0 以降: `--assume` の誤り(書式・範囲外・重複・定義にないジョブID)、`--dry-run` なしの `--assume`、`--format` の値の誤り(`text`・`mermaid`・`dot` 以外。`dot` は v0.10.0 以降)、`graph` 以外の `--format`・`--state`、`--state` なしの `graph --run-id`、`init` の名前が空、`init` に許されないオプション、`init` 以外への `--force`、`run`・`pipeline` 以外の `--dry-run`。v0.10.0 以降: `watch` 以外の `--follow`、`--follow` なしの `--interval`、`--interval` の値の誤り(1〜3600 の整数でない)、`--follow`・`--interval` の重複 | 引数の解釈、run ID の決定、`watch`/`reset`、`--dry-run` の準備 |
 | 69 | EXISTS | (v0.9.0 以降)`init` の作る先に、ファイルが既にある(`--force` なし。何も変えない) | `init` |
-| 70 | INTERNAL | 内部の誤り: 想定外の内部失敗(6 章)、シグナルの準備の失敗 | 全般、`run`/`pipeline` の準備 |
-| 127 | START_FAILURE | ジョブを起動できなかった(実行ファイルがない・実行権限がない、など。終了の状態を取得できない場合も安全側で起動失敗扱い) | ジョブの結果の分類 |
+| 70 | INTERNAL | 内部の誤り: 想定外の内部失敗(6 章)、シグナルの準備の失敗(v0.10.0 以降は `watch --follow` の準備の失敗も) | 全般、`run`/`pipeline`(v0.10.0 以降は `watch --follow` も)の準備 |
+| 127 | START_FAILURE | ジョブを起動できなかった(実行ファイルがない・実行権限がない、など。終了の状態を取得できない場合も安全側で起動失敗扱い)。v0.10.0 以降: `log_dir` があり、ログのディレクトリかファイルを作れずに起動しなかった(表示は `cannot create the log file: <パス>`。08 の 4.14) | ジョブの結果の分類 |
 | 128 + 番号 | SIGNAL_BASE | ジョブがシグナルで終了した、または `conductor` が中断された(例: SIGHUP = 129、SIGINT = 130、SIGQUIT = 131、SIGTERM = 143)。リトライの待機中の中断も含む | ジョブの結果の分類、中断 |
 
 - 64〜70(69 を含む)は、ジョブ自身の終了コードと重なりうる。区別は、標準エラーの `conductor: error: ...` の行で行う(70 は固定の英語の文)。
@@ -38,8 +38,8 @@
 | 6 | ステートの読み込み | 65 |
 | 7 | ステートと定義の照合 | 65 |
 | 8 | 起動前の判断 | 拒否は 66。スキップは 0(`run` は 0 で終わる。`pipeline` は続ける) |
-| 9 | (実行のとき)初期ステートの書き込み | 65(ジョブは起動していない) |
-| 10 | ジョブの実行(リトライ込み)、結果の分類 | 結果から決まる(3 章) |
+| 9 | (実行のとき)初期ステートの書き込み(v0.10.0 以降は、試行ごとの、試行の開始の `Fast` の書き込み。最初の試行の書き込みが初期化を兼ねる) | 65(ジョブは起動していない) |
+| 10 | ジョブの実行(リトライ込み)、結果の分類 | 結果から決まる(3 章。ログのファイルを作れなければ 127) |
 | 11 | 結果のステートの書き込み | 65(ジョブは実行済み。ジョブの終了コードより優先) |
 | 12 | 完了で、削除が求められていれば、ステートの削除 | 65 |
 
@@ -47,6 +47,7 @@
 
 - 検査やステートの確認の途中でシグナルを受け取っても、検査は最後まで進む。定義の誤り(64)、ステートの誤り(65)、拒否(66)、スキップ(0)の終了コードが、中断の終了コードより優先する。
 - `watch`: run ID の決定(68)→ ステートの読み込み(65)→ 表の出力(書けなければ 65)。成功は 0。定義は検証しない。シグナルの準備はしない。
+- `watch --follow`(v0.10.0 以降): シグナルの準備(70)→ run ID の決定(68)→ 繰り返し(ステートの読み込み → 表の出力 → 終わりの判定 → 待ち)。読めないが 3 回続く・壊れている・標準出力に書けないは 65。完了・止まった・消えた・中断は 0(05 の 20 章)。
 - `reset`: run ID の決定(68。`--all` のときは決定しない)→ 削除(65)。成功は 0。
 - `validate`: 定義(64)→ `command`(64)→ (v0.9.0 以降)`.env`(64。重複キーの警告は 0)。成功は 0。ステートに触れない。シグナルの準備はしない。
 - `graph`(v0.9.0 以降): 定義(64)→ `command`(64)→ `.env`(64)→(`--state` のとき)run ID の決定(68)→ ステートの読み取り(65)→ 照合(65)→ 標準出力への書き込み(書けなければ 65)。成功は 0。ステートに書かない。シグナルの準備はしない。
@@ -97,7 +98,7 @@
 
 - UNIX 系: `SIGHUP`(1)・`SIGINT`(2)・`SIGQUIT`(3)・`SIGTERM`(15)を、専用の監視で受け取り、最初の番号を中断の合図に記録する。ほぼ同時に複数届くと、番号の小さい方が「最初」になりうる(順序は実装依存。必須ではない)。
 - Windows: Ctrl+C(番号 2)だけ。
-- `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は、OS の既定の動作で終わる(v0.9.0 以降の `graph`・`init`、`--dry-run` も同じ)。
+- `run`・`pipeline` だけがシグナルを準備する。`watch`・`reset`・`validate`・`convert` は、OS の既定の動作で終わる(v0.9.0 以降の `graph`・`init`、`--dry-run` も同じ)。ただし、v0.10.0 以降の `watch --follow` は、中断の合図で 0 で終わるためにシグナルを準備する(07 の 7.1、7.6)。
 - 起動済みのジョブが中断されると、`128 + 番号`、エラーとして記録する。起動前、またはジョブのあいだ、リトライの待機中に中断されたときは、エラーとして記録せず、再開位置を記録して `128 + 番号` で終わる。
 - 準備の失敗は、`conductor: error: failed to set up signal handling` を出して 70。シグナルの監視の登録はプロセスで 1 回だけ(2 回登録したときの動きは契約の外)。
 - 詳細は [07-process-and-signals.md](07-process-and-signals.md)。
@@ -136,15 +137,15 @@
 
 ### 7.1 定義の誤り(終了コード 64)
 
-33 種(v0.9.0 で `reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` を追加)。種類の識別子と、英語・日本語の文は [08-output-and-i18n.md](08-output-and-i18n.md) 4.3 に全件ある。
+34 種(v0.9.0 で `reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` を、v0.10.0 で `unsetEnvConflict` を追加)。種類の識別子と、英語・日本語の文は [08-output-and-i18n.md](08-output-and-i18n.md) 4.3 に全件ある。
 
-識別子(参考の一覧): `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`, `reservedEnvName`, `envNameCaseConflict`, `invalidEnvValue`(最後の 3 つは v0.9.0 以降)。すべて終了コード 64。
+識別子(参考の一覧): `fileMissing`, `unreadable`, `tooLarge`, `syntax`, `typeMismatch`, `unknownKey`, `versionMissing`, `versionUnsupported`, `unknownTarget`, `errorTransition`, `backwardOrSelfTarget`, `overlappingExitCodes`, `zeroAsWarning`, `pipelineNameMismatch`, `duplicateJobId`, `invalidJobId`, `noJobs`, `emptyField`, `duplicateTransition`, `invalidEnvName`, `retryNotTable`, `retryMissingKey`, `retryExitCodesEmpty`, `retryExitCodeInvalid`, `retryExitCodesOverlap`, `retryMaxInvalid`, `retryDurationInvalid`, `retryBackoffIncomplete`, `retryMultiplierInvalid`, `retryMaxIntervalTooSmall`, `reservedEnvName`, `envNameCaseConflict`, `invalidEnvValue`, `unsetEnvConflict`(`reservedEnvName`〜`invalidEnvValue` の 3 つは v0.9.0 以降、`unsetEnvConflict` は v0.10.0 以降)。すべて終了コード 64。
 
 誤りが持つ情報: ファイル(表示するパス)、行(あれば)、種類、原因(日本語の固定の文)。表示は `<ファイル>:<行>: <種類の文>: <原因>`(行がなければ `<ファイル>: <種類の文>: <原因>`)。原因には、入力の値を含めない(入力に由来するのはキー名だけで、`` `キー名` `` の形で入り、64 文字で切る)。原因の文の全件は [03-definition-format.md](03-definition-format.md) にある。
 
 run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通り)は、利用者には区別を見せず、すべて `invalid value`(68)にまとめ、値を含めない。
 
-**`.env` の誤り(v0.9.0 以降。終了コード 64)**: 13 種(`fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`)。識別子・条件は 03 の 7.7、文言は 08 の 4.12。誤りが持つ情報: ファイル(解決済みのパス)、行(あれば)、種類、理由(**言語に従う**固定の文。値を含めない)。表示は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: <種類の文>: <理由>`)。重複キーの警告(ファイル、後ろの行、名前)は誤りではなく、`validate` と `graph` が表示する。
+**`.env` の誤り(v0.9.0 以降。終了コード 64)**: 14 種(`fileMissing`, `unreadable`, `tooLarge`, `notUtf8`, `tooManyEntries`, `invalidName`, `reservedName`, `caseConflict`, `missingEquals`, `unterminatedQuote`, `invalidEscape`, `trailingGarbage`, `nulInValue`, `unsetConflict`。`unsetConflict` は v0.10.0 で追加)。識別子・条件は 03 の 7.7、文言は 08 の 4.12。誤りが持つ情報: ファイル(解決済みのパス)、行(あれば)、種類、理由(**言語に従う**固定の文。値を含めない)。表示は `<ファイル>:<行>: <種類の文>: <理由>`(行がなければ `<ファイル>: <種類の文>: <理由>`)。重複キーの警告(ファイル、後ろの行、名前)は誤りではなく、`validate` と `graph` が表示する。
 
 **ファイルの作成の誤り(v0.9.0 以降)**: 5 種。`alreadyExists`(終了コード 69)、`parentMissing`, `isDirectory`, `permissionDenied`, `otherIo`(終了コード 65)。`init` が使う。文言は 08 の 4.13、作成の規則は 06 の 14 章。OS のエラーの文は持たない。
 
@@ -179,6 +180,9 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 | `resume_job_id が job_order にありません` | `Corrupt` | 読み込み |
 | `completed と resume_job_id が両立しません` | `Corrupt` | 読み込み |
 | `run_id がファイル名の run ID と一致しません` | `Corrupt` | 読み込み(`reset --all` では「別の定義のステート」として扱い、消さない) |
+| `動いたジョブに試行の記録がありません(古い形式の可能性があります)`(v0.10.0 以降) | `Corrupt` | 読み込み(success・warning・error のジョブに試行が無い。v0.9.9 までに書いたステート。06 の 2.3) |
+| `時刻の書式が誤っています`(v0.10.0 以降) | `Corrupt` | 読み込み(試行の時刻が `YYYY-MM-DDTHH:MM:SSZ` の形でない) |
+| `終わりの時刻の無い試行が、最後の試行ではありません`(v0.10.0 以降) | `Corrupt` | 読み込み(最後でない試行に `ended_at` が無い) |
 | `書き込みに失敗しました` | `WriteFailed` | 書き込み |
 | `内容を TOML にできません` | `WriteFailed` | 書き込み |
 | `削除に失敗しました` | `RemoveFailed` | `reset`、`reset --all`、完了時の削除 |
@@ -234,10 +238,10 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 | 位置引数なし | `MissingArgument` | なし |
 | コマンド名が未知(空文字も) | `UnknownCommand` | その語 |
 | 文法にないオプション、`--bogus=x` | `UnknownOption` | `--bogus`、`-x` など |
-| そのコマンドで使えないオプション | `OptionNotAllowed` | `-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete`, `--dry-run`, `--force`, `--assume`, `--format`, `--state`(後ろの 5 つは v0.9.0 以降) |
-| 値のないオプション | `MissingValue` | `--config`, `--run-id`, `--to`, `--format`, `--assume` |
-| 重複、`--verbose=x` など、`--all` と `--run-id` の併用、`--run-id` の値の規則違反 | `InvalidValue` | オプション名(`-v`, `--config`, …、併用は `--all`。v0.9.0 以降は `--dry-run`, `--force`, `--format`, `--state` も) |
-| `--assume` の値の誤り(`=` がない、整数でない、範囲外、ジョブID の重複)、`--format` の値の誤り(v0.9.0 以降) | `InvalidValue` | `--assume`、`--format`(値は含めない) |
+| そのコマンドで使えないオプション | `OptionNotAllowed` | `-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete`, `--dry-run`, `--force`, `--assume`, `--format`, `--state`, `--follow`, `--interval`(`--dry-run`〜`--state` の 5 つは v0.9.0 以降、`--follow`・`--interval` は v0.10.0 以降) |
+| 値のないオプション | `MissingValue` | `--config`, `--run-id`, `--to`, `--format`, `--assume`, `--interval`(v0.10.0 以降) |
+| 重複、`--verbose=x` など、`--all` と `--run-id` の併用、`--run-id` の値の規則違反 | `InvalidValue` | オプション名(`-v`, `--config`, …、併用は `--all`。v0.9.0 以降は `--dry-run`, `--force`, `--format`, `--state` も。v0.10.0 以降は `--follow`, `--interval` も) |
+| `--assume` の値の誤り(`=` がない、整数でない、範囲外、ジョブID の重複)、`--format` の値の誤り(v0.9.0 以降)、`--interval` の値の誤り(v0.10.0 以降。1〜3600 の数字だけの整数でない) | `InvalidValue` | `--assume`、`--format`、`--interval`(値は含めない) |
 | `init` のパイプライン名が空・空白だけ(v0.9.0 以降) | `InvalidValue` | `pipeline name`(値は含めない) |
 | `--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む) | `InvalidValue` | `--to`(値は含めない) |
 | 値を取るオプションの直後が `-h`/`--help` | (値として取られるので help にならない。ほかに位置引数がなければ `MissingArgument`) | なし |
@@ -298,7 +302,24 @@ conductor: error: conductor.toml already exists (use --force to overwrite)
 $ conductor init --config /no/such/dir/c.toml
 conductor: error: cannot create /no/such/dir/c.toml: the parent directory does not exist
 → 65
+
+$ conductor pipeline p          # v0.9.9 までに書いたステート(v0.10.0 以降)
+conductor: error: c.toml.state: state file is corrupt: 動いたジョブに試行の記録がありません(古い形式の可能性があります); run `conductor reset` to discard the state
+→ 65
+
+$ conductor pipeline p          # log_dir のディレクトリを作れない(v0.10.0 以降)
+conductor: error: cannot create the log file: logs/a.20261125T091248Z.1.log
+→ 127
+
+$ conductor pipeline p          # [job.env] の FOO と unset_env = ["foo"](v0.10.0 以降)
+conductor: error: c.toml:9: a name in unset_env is also set by env: `unset_env` の名前が、`env` の名前と重なっています
+→ 64
+
+$ conductor watch --follow      # ジョブがエラーで止まった表を最後に描いて終わる(v0.10.0 以降)
+→ 0
 ```
+
+(v0.10.0 以降の 4 つの例は、参照実装の規則から導いた形で、パス・行番号・時刻は例。)
 
 ## 9. 必須の挙動と、実装に任せてよい点
 
@@ -308,6 +329,7 @@ conductor: error: cannot create /no/such/dir/c.toml: the parent directory does n
 - 6 章の 70(固定の 1 行と終了コード)。
 - 標準エラーの `conductor: error: ...` の行の形式と文言(08 章)。
 - 少なくとも 1 回の方針: ステートの書き込みに失敗したとき、ジョブの終了コードより 65 を優先する。
+- (v0.10.0 以降)`watch --follow` の終わりの 0 と 65 の分け方(05 の 20 章)。ログのファイルを作れないときの 127 と、書けない・待ち切れの警告がジョブの終了コードを変えないこと。
 
 実装に任せてよい点:
 
