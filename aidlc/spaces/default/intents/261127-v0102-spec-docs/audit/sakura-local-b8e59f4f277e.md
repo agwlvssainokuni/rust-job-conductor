@@ -2142,3 +2142,664 @@
 **Context**: construction > code-generation > code-generation-plan.md
 
 ---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T17:49:18Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-summary.md
+**Context**: construction > code-generation > code-summary.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T17:49:23Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T17:49:25Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-27T17:49:57Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-27T17:49:57Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a5fe55b9dd9e73e48
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-27T17:50:26Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-developer-agent
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T17:59:54Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:10:48Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:10:50Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:11:51Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-summary.md
+**Context**: construction > code-generation > code-summary.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-27T18:12:21Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-27T18:12:21Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a190fd6823568b3ef
+
+---
+
+## Subagent Dispatched
+**Timestamp**: 2026-11-27T18:12:52Z
+**Event**: SUBAGENT_DISPATCHED
+**Agent Type**: aidlc-developer-agent
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:15:30Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:15:53Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Change Accepted
+**Timestamp**: 2026-11-27T18:15:57Z
+**Event**: CHANGE_ACCEPTED
+**Stage**: code-generation
+**Checkpoint**: plan-approval
+**Changed**: (paths unavailable)
+**Recorded**: sha256:728ba30aa54828358fc5a5af6a5cb1934005ee548cf618e9d67080e927739be0
+**Current**: sha256:400acbdde5df13dffc33dd51dd2e149814f5bcde0642c5c3fc5e831c8563d84f
+**Details**: The Testing Contract changed after the plan was approved; the build follows the plan as approved.
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:15:57Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Bash
+**Details**: grep -rn '33 種\|13 種' docs/spec/rust/ docs/spec/language-agnostic/; echo ====; grep -rn '足すだけ\|取り除かない\|取り除く書き方\|読まない・保存しない\|1 回だけ書\|0〜14' docs/spec/rust/ docs/s
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:16:03Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Bash
+**Details**: grep -c '^scene "' demo/run-demo.sh; sed -n 45,72p crates/core/src/definition/walk/mod.rs | grep -c '"'; grep -n 'PIPELINE_KEYS\|JOB_KEYS' crates/core/src/defin
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:17:54Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/crates/cli/Cargo.toml
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:17:55Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/crates/core/Cargo.toml
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:17:57Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/crates/runtime/Cargo.toml
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:17:58Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/crates/converter/Cargo.toml
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:17:59Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/crates/cli/tests/binary_basic.rs
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:00Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/Cargo.lock
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:01Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/Cargo.lock
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:02Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/Cargo.lock
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:03Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/Cargo.lock
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:25Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/00-README.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:27Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/00-README.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:28Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/00-README.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:29Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/00-README.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:30Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/01-overview.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:32Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/02-architecture.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:33Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/05-execution-flow.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:34Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/06-state-file.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:35Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/07-process-and-signals.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:36Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/11-quality-and-build.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:37Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/11-quality-and-build.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:38Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/12-rebuild-guide.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:40Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/04-cli.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:41Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/language-agnostic/08-output-and-i18n.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:42Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/03-definition-format.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:43Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/04-cli.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:46Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/04-cli.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:47Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/09-converter.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:50Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/11-quality-and-build.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:51Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/11-quality-and-build.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:52Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/12-rebuild-guide.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:54Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Edit
+**Details**: <project-dir>/docs/spec/rust/12-rebuild-guide.md
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:18:59Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Bash
+**Details**: git diff --stat | cat; git show --name-only --format= 152c4a1 | sort > /dev/null; diff <(git show --name-only --format= 152c4a1 | sort) <(git diff --name-only |
+
+---
+
+## Guard Stood Aside
+**Timestamp**: 2026-11-27T18:20:37Z
+**Event**: GUARD_STOOD_ASIDE
+**Guard**: plan-approval
+**Authority**: instruction
+**Grant**: none
+**Actor**: subagent
+**Stage**: code-generation
+**Tool**: Bash
+**Details**: sed -n 1,80p aidlc/spaces/default/intents/261127-v0102-spec-docs/inception/requirements-analysis/requirements.md | grep -E '^\- \*\*(FR|NFR)' | cut -c1-140; gre
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-27T18:21:02Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/traceability.json
+**Context**: construction > code-generation > traceability.json
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:21:53Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-summary.md
+**Context**: construction > code-generation > code-summary.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:21:59Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:22:01Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T18:22:03Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Host Turn
+**Timestamp**: 2026-11-27T18:22:25Z
+**Event**: HOST_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: host
+**Reason**: claude agent message
+**Source**: template
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-11-27T18:22:25Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: aidlc-developer-agent
+**Agent ID**: a50fd1b8fc1f97c5a
+
+---
