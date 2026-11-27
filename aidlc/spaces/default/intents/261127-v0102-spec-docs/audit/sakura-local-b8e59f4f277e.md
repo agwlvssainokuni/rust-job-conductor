@@ -3642,3 +3642,451 @@
 **Summary Authorization Id**: 4a0e0f3554473c2862fe27abfd90aa44547662a4e75adfaf8bb1135de4c38694
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: 0791a1ef
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:12Z
+**Event**: SENSOR_PASSED
+**Fire id**: 0791a1ef
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:12Z
+**Event**: SENSOR_FIRED
+**Fire id**: 546239ac
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-strategy.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_PASSED
+**Fire id**: 546239ac
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-strategy.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_FIRED
+**Fire id**: 086c4736
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/rollback-runbook.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_PASSED
+**Fire id**: 086c4736
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/rollback-runbook.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_FIRED
+**Fire id**: 53b8a3d1
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_PASSED
+**Fire id**: 53b8a3d1
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7c233b47
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7c233b47
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:13Z
+**Event**: SENSOR_FIRED
+**Fire id**: 2375f2df
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: 2375f2df
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: 79b61fca
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-strategy.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: 79b61fca
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-strategy.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: 71e37704
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/rollback-runbook.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: 71e37704
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/rollback-runbook.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: 9138dc67
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: 9138dc67
+**Sensor ID**: required-sections
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_FIRED
+**Fire id**: 09ab51c7
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: SENSOR_PASSED
+**Fire id**: 09ab51c7
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-pipeline
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+**Duration ms**: 75
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-27T23:04:14Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: deployment-pipeline
+**Next Stage**: deployment-execution
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-strategy.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/rollback-runbook.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md=passed; upstream-coverage@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md=passed
+**Open Decisions**: 0
+**Question Id**: 58f9e89d
+**Question Type**: gate
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:80847ba7b1f46b86dc55b16b2de9d6972a0f8031b85098357f88b79c8849af3d
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-27T23:04:25Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: fa77db55
+**Open Questions**: 58f9e89d
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md","entries":{"Q1":"c3802b3e99a6f645","Q2":"4b1344aebb60fdd0","Q3":"5f1a9aaeb2957ea5","Q4":"5620dd9264832dd5","Q5":"a42b503949c2aeba","Consolidated Summary Confirmation":"8961e617a41125bc"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:04:26Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: 配る仕組み(Deployment Pipeline)を承認しますか?(推奨: Approve)
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-27T23:04:30Z
+**Event**: GATE_APPROVED
+**Stage**: deployment-pipeline
+**User Input**: Approve
+**Person Reply**: Approve
+**Message Id**: fa77db55
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-27T23:04:30Z
+**Event**: STAGE_COMPLETED
+**Stage**: deployment-pipeline
+**Validation Basis**: {"graphContract":"sha256:df6962deab365ec2f79f186c672b0f382b3fff1ebf396ae0771425695c8f11eb","inputs":[{"artifact":"ci-config","contentHash":"sha256:c0b0784a6d645f9b34eb26c6eb32955ddae24dcb986b5adea3cbee8283c61222","instanceCount":1,"presentCount":0,"producer":"ci-pipeline","required":true,"structureHash":"sha256:94f90fc6c5e837a3a65a6cf92509897f38a67ed61d83e0837ee7a69434245a1e"},{"artifact":"cicd-pipeline","contentHash":"sha256:f08d19b762c73f4189397a39adeacd6451f2345353e67d587d4c83ed572304dc","instanceCount":1,"presentCount":0,"producer":"infrastructure-design","required":true,"structureHash":"sha256:dfa772e2746a23dc8c16cb72e19795042ff4019c7f7f3089f7235bf6501ebde9"},{"artifact":"infrastructure-specification","contentHash":"sha256:b64084aea355ed0bfe452eda5ff9dcf072d71773105ae5f1b87237718213c695","instanceCount":1,"presentCount":0,"producer":"infrastructure-design","required":true,"structureHash":"sha256:62869a3bb4954559e9f0e74d9f5b06b03b4277934250913ccc1b2dfabe75a47c"},{"artifact":"quality-gates","contentHash":"sha256:39f4d41d32da96a0358b72c66609f63c860d57560ae00bab7282a73f76766537","instanceCount":1,"presentCount":0,"producer":"ci-pipeline","required":true,"structureHash":"sha256:5e2dc425671bc27883ba63f7178e406db59ef24b4ed15655efa70d57f2aafb9b"}],"outputs":[{"artifact":"cd-config","contentHash":"sha256:3acef7ab23cd52637d50a3aaf802c20f8d57a75412e582d2595ae0df714bd961","instanceCount":1,"presentCount":1,"producer":"deployment-pipeline","required":true,"structureHash":"sha256:eba83114293311bda01c6a27786e83648fc1d07e0cd5139c8265b24ae1d93e41"},{"artifact":"deployment-pipeline-questions","contentHash":"sha256:4b4a8b1cf606bed8f7be12baca7ff78b0087a686382bd278527f870d6acee28b","instanceCount":1,"presentCount":1,"producer":"deployment-pipeline","required":true,"structureHash":"sha256:bd2d0052832bce1cd18934646ffab1fa019dbda3b3627cf854ddaa6a10acb231"},{"artifact":"deployment-strategy","contentHash":"sha256:322960af3e9359739a21e3ecd9f653d24e3a609153eb9813a39b635016ddbab0","instanceCount":1,"presentCount":1,"producer":"deployment-pipeline","required":true,"structureHash":"sha256:3d2e9582feae02ebbe13ca3adc0e4e754c32c05e9b0c535d2445e3d41207f352"},{"artifact":"rollback-runbook","contentHash":"sha256:55e3cc0d08ed18b35fcb3dd8249ce98e286fae11ca160c869078a8488bf42957","instanceCount":1,"presentCount":1,"producer":"deployment-pipeline","required":true,"structureHash":"sha256:1908b6629a5ac3d63f290d0539e235193273fbdaa8257f74aebd8483e068d5f1"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Deployment Pipeline approved by gate
+**Tokens In**: 14
+**Tokens Out**: 7112
+**Cache Read**: 5872341
+**Cache Write**: 9359
+**Cost USD**: 1.39
+**By Model**: opus-5-5=1.39
+**By Agent**: main=1.39
+**Tokens By Model**: opus-5-5=14/7.1k/5.9M/9.4k
+**Tokens By Agent**: main=14/7.1k/5.9M/9.4k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-27T23:04:30Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-execution
+**Agent**: aidlc-pipeline-deploy-agent
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-27T23:04:31Z
+**Event**: MEMORY_EMPTY
+**Stage**: deployment-pipeline
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-27T23:04:52Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-27T23:04:54Z
+**Event**: DECISION_RECORDED
+**Stage**: deployment-execution
+**Decision**: Q1 main の push とタグ v0.10.2 の付与と push は誰が行うか / Q2 下書きの注記に変更点を足すか
+**Options**: A,B,X
+**Question Id**: 49e78ca4
+**Question Type**: stage-question
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:f19ddb7ece0e0aa542ee41c1e49a5e0fc86b57b33f46c95b184268c5e9de8328
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-27T23:05:27Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["B","A"]
+**Message Id**: 93103744
+**Open Questions**: 49e78ca4
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md","entries":{"Q1":"ebe43ee7ee045e13","Q2":"e98f98b01aced574","Q3":"21ab5b6ba610ff69"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:05:27Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: Q1. main を push するのと、タグ v0.10.2 を付けて push するのは、誰がやりますか?(推奨: B)
+**Reply**: B
+**Options**: ["A","B"]
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:05:28Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: Q2. 下書きのリリースの注記に、変更点を書き足しますか?(推奨: A)
+**Reply**: A
+**Options**: ["A","B"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T23:05:32Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T23:05:34Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T23:05:37Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Question Answered
+**Timestamp**: 2026-11-27T23:05:38Z
+**Event**: QUESTION_ANSWERED
+**Stage**: deployment-execution
+**Details**: Q1 B, Q2 A
+**Message Id**: 93103744
+**Person Reply**: B\nA
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-27T23:05:40Z
+**Event**: DECISION_RECORDED
+**Stage**: deployment-execution
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Question Id**: 5303bb87
+**Question Type**: summary-confirmation
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:9e29bd42fa9312802fbf849c9e7b4c849670f09c469e9e0232123f7b6ed026d7
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-27T23:05:52Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: d5db80c6
+**Open Questions**: 49e78ca4, 5303bb87
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md","entries":{"Q1":"ebe43ee7ee045e13","Q2":"e98f98b01aced574","Q3":"21ab5b6ba610ff69","Consolidated Summary Confirmation":"52aa34de8695aa3d"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:05:53Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: このまとめで進めてよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T23:05:57Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Context**: operation > deployment-execution > deployment-execution-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-27T23:05:59Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: deployment-execution
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Questions SHA-256**: 8ae930595e13065c8e172e8fd5f8bbcdb1e3dadeffd5998074c85760ec521e23
+**Hash Scope**: confirmed-content-v2
+**Message Id**: d5db80c6
+**Person Reply**: Looks correct
+**Summary Authorization Id**: ebd1765a2cf06d02e852a92314c2e450fc1c9c46695d229c662179a8641848e9
+**Git Name**: agwlvssainokuni
+
+---
