@@ -1,6 +1,6 @@
 # 08. 出力と多言語化
 
-実装: `crates/cli/src/report/{mod,messages,watch}.rs`、`crates/cli/src/platform/mod.rs`、`crates/cli/src/deps.rs`。v0.9.0 以降は、`crates/cli/src/report/{graph_text,graph_mermaid,plan_text,init_template}.rs` も(11、12 章)。
+実装: `crates/cli/src/report/{mod,messages,watch}.rs`、`crates/cli/src/platform/mod.rs`、`crates/cli/src/deps.rs`。v0.9.0 以降は、`crates/cli/src/report/{graph_text,graph_mermaid,plan_text,init_template}.rs` も(11、12 章)。v0.10.0 以降は、`crates/cli/src/report/graph_dot.rs` も(11.8)。
 
 ## 1. 出力先の使い分け
 
@@ -9,24 +9,24 @@
 | 水準 | 出力先 | 出す条件 | 書き込み失敗 |
 |------|--------|----------|--------------|
 | `Error` | 標準エラー | 常に | 無視(本筋を止めない) |
-| `Notice` | 標準エラー | 常に(エラーではない知らせ。リトライの前の知らせと、v0.9.0 以降の `init` の成功の知らせ) | 無視 |
+| `Notice` | 標準エラー | 常に(エラーではない知らせ。リトライの前の知らせと、v0.9.0 以降の `init` の成功の知らせ、v0.10.0 以降のログの警告) | 無視 |
 | `Verbose` | 標準エラー | `-v` のときだけ | 無視 |
 | `Output` | 標準出力 | 常に | 値で返す(`watch` は 65、`convert` は 67、v0.9.0 以降の `graph`・`--dry-run`・`init --config -` は 65 で終わる) |
 
 - どの文言も、最後に改行(`\n`)を含む。複数の誤りは 1 行ずつ。
 - `Sink` は、書き込みのたびに flush する(行ごとに、すぐに見える)。
 - 標準出力に出すのは、`watch` の表(と `no state`)、`--help`、`--version`、`convert` の変換結果と、v0.9.0 以降の `graph` の図、`--dry-run` の計画、`init --config -` のひな形だけ。この 3 つは、組み立て済みの文字列を、そのまま 1 回で書く(`DisplayEvent::Graph`・`Plan`・`InitTemplate`)。
-- ジョブ本体の標準出力・標準エラーは `conductor` が加工せず、そのまま流れる。`conductor` の表示は標準エラーなので、標準出力にはジョブの出力だけが残る。
+- ジョブ本体の標準出力・標準エラーは `conductor` が加工せず、そのまま流れる。`conductor` の表示は標準エラーなので、標準出力にはジョブの出力だけが残る。v0.10.0 以降、`log_dir` があるときは、`conductor` がパイプで読んで、読んだバイト列をそのまま同じ流れとログのファイルへ書く(加工しない。07 の 4.5)。端末に出る内容は、`log_dir` のあり・なしで変わらない。
 - 成功・スキップで `-v` なしのときは、表示が一度もなく、言語も色も判定されない(遅延評価)。
 
 ### 1.1 水準ごとのイベント
 
 | 水準 | イベント |
 |------|----------|
-| Error | 定義の誤り、`command` の誤り、使い方の誤り(+使い方全文)、ステートの誤り、定義との食い違い、`reset --all` の警告(`conductor: warning:`)、拒否、起動失敗、成功コードに含まれない 0、変換の誤り、標準出力に書けない、完了を判定できない、シグナルの準備の失敗。v0.9.0 以降: `.env` の誤り(`EnvFileErrors`)、`.env` の重複キーの警告(`EnvWarnings`。`conductor: warning:`)、`init` の既存(`InitExists`)・作れない(`InitFailed`)・標準出力に書けない(`InitStdoutFailed`) |
-| Notice | リトライの前の知らせ(`conductor: retry:`)。v0.9.0 以降: `init` の成功(`InitCreated`、`InitReplaced`) |
+| Error | 定義の誤り、`command` の誤り、使い方の誤り(+使い方全文)、ステートの誤り、定義との食い違い、`reset --all` の警告(`conductor: warning:`)、拒否、起動失敗、成功コードに含まれない 0、変換の誤り、標準出力に書けない、完了を判定できない、シグナルの準備の失敗。v0.9.0 以降: `.env` の誤り(`EnvFileErrors`)、`.env` の重複キーの警告(`EnvWarnings`。`conductor: warning:`)、`init` の既存(`InitExists`)・作れない(`InitFailed`)・標準出力に書けない(`InitStdoutFailed`)。v0.10.0 以降: ログのファイルを作れない(`LogNotCreated`) |
+| Notice | リトライの前の知らせ(`conductor: retry:`)。v0.9.0 以降: `init` の成功(`InitCreated`、`InitReplaced`)。v0.10.0 以降: ログのファイルへの書き込みの失敗(`LogWriteFailed`)、出力の待ち切れ(`LogOutputCutShort`)(どちらも `conductor: warning:`) |
 | Verbose | ジョブの結果、スキップ、遷移、中断、`validate` が通った |
-| Output | `watch` の表、`watch` の空、`--help`、`--version`。v0.9.0 以降: `graph` の図、`--dry-run` の計画、`init --config -` のひな形 |
+| Output | `watch` の表、`watch` の空、`--help`、`--version`。v0.9.0 以降: `graph` の図、`--dry-run` の計画、`init --config -` のひな形。v0.10.0 以降: `watch --follow` の 1 回分(`WatchFrame`) |
 
 ## 2. `-v`(`--verbose`)
 
@@ -162,6 +162,9 @@ conductor: error: <場所>: <種類の文>[: <原因>]
 | `reservedEnvName`(v0.9.0 以降) | `reserved environment variable name` | `予約された環境変数の名前です` |
 | `envNameCaseConflict`(v0.9.0 以降) | `environment variable names differ only in letter case` | `大文字小文字だけが違う環境変数の名前があります` |
 | `invalidEnvValue`(v0.9.0 以降) | `invalid environment variable value` | `環境変数の値が正しくありません` |
+| `unsetEnvConflict`(v0.10.0 以降) | `a name in unset_env is also set by env` | `消す環境変数の名前が、足す環境変数の名前と重なっています` |
+
+(34 種。理由の文は 03 の各節。)
 
 実出力:
 
@@ -339,8 +342,9 @@ conductor: error: <ファイル>[:<行>]: <種類の文>: <理由>
 | `invalidEscape` | `invalid escape sequence` | ``only `\n`, `\r`, `\t`, `\"` and `\\` can be escaped in double quotes`` |
 | `trailingGarbage` | `unexpected characters after the closing quote` | `only spaces and a comment can follow the closing quote` |
 | `nulInValue` | `value contains NUL` | `a value cannot contain NUL (U+0000)` |
+| `unsetConflict`(v0.10.0 以降) | `name is also listed in unset_env` | ``the same name is listed in `unset_env` `` |
 
-(理由の中の `` ` `` は、文の一部である。)日本語の種類の文と理由は、03 の 6.7 の表。
+(14 種。理由の中の `` ` `` は、文の一部である。)日本語の種類の文と理由は、03 の 6.7 の表。`unsetConflict` は、すべての `.env` が読めたあとに、`unset_env` の名前との重なりを調べて出す(03 の 6.7)。行は、重なった項目の行。
 
 実出力(英語。`x.env` の 3 行目に `=` がない場合):
 
@@ -374,6 +378,19 @@ conductor: warning: <ファイル>:<後ろの行>: 重複キー `<名前>`(後�
 
 OS のエラーの文は含めない。`--config -` の成功では、ひな形だけを標準出力に出し、成功のメッセージは出さない。
 
+### 4.14 ログのファイルのメッセージ(v0.10.0 以降)
+
+`log_dir` があるときの、ログのファイルの 3 つの表示(`messages.rs` の `LOG_NOT_CREATED`、`LOG_WRITE_FAILED`、`LOG_OUTPUT_CUT_SHORT`)。どれも、後ろに `: <パス>` を付ける。パスは、そのログのファイルのパス(`show_path`。`escape_full` で、切らない)。OS のエラーの文は含めない。
+
+| 場面 | 水準 | 英語 | 日本語 |
+|------|------|------|--------|
+| ログのファイルを作れず、ジョブを起動しなかった(`LogNotCreated`。起動の失敗の 1 行の代わりに出す。終了コード 127) | Error | `conductor: error: cannot create the log file: <path>` | `conductor: error: ログのファイルを作れません: <path>` |
+| 実行中にファイルへの書き込みに失敗した(`LogWriteFailed`。終了コードは変えない) | Notice | `conductor: warning: failed to write to the log file; output after that point is not in the file: <path>` | `conductor: warning: ログのファイルへの書き込みに失敗しました。途中からファイルに残していません: <path>` |
+| ジョブの終了の後、出力の読み取りを待ち切れなかった(`LogOutputCutShort`。終了コードは変えない) | Notice | `conductor: warning: output continued after the job ended; the rest is not in the log file: <path>` | `conductor: warning: ジョブの終了の後も出力が続いたため、残りを残していません: <path>` |
+
+- 作れなかったときのパスは、ディレクトリを作れない・番号を使い切ったときは番号なしの名前、ファイルを開けなかったときはその名前(07 の 4.5)。
+- 警告の 2 行は、試行ごとに、その試行の後に出す(リトライの知らせの前)。
+
 ## 5. スキップ・拒否の理由の対応
 
 スキップの理由(`SkipCause`。`-v` のスキップ行 `(…)`):
@@ -399,11 +416,13 @@ OS のエラーの文は含めない。`--config -` の成功では、ひな形�
 ```text
 <Pipeline|パイプライン>: <パイプライン名>
 Run ID: <ID>                       ← run ID があるときだけ。見出しは言語によらず "Run ID"
-<ジョブ見出し>  <状態見出し>  <補足見出し>
-<ジョブID>  <状態>  <補足>
+<ジョブ見出し>  <状態見出し>  <所要時間見出し>  <補足見出し>
+<ジョブID>  <状態>  <所要時間>  <補足>
 ...
 <完了|completed>                  ← ステートが完了のときだけ
 ```
+
+(v0.10.0 以降は 4 列。v0.9.x までは、所要時間の列の無い 3 列 `JOB STATUS NOTE` だった。)
 
 | 要素 | 英語 | 日本語 |
 |------|------|--------|
@@ -411,6 +430,7 @@ Run ID: <ID>                       ← run ID があるときだけ。見出し�
 | run ID 行の見出し | `Run ID` | `Run ID` |
 | 列見出し(ジョブ) | `JOB` | `ジョブ` |
 | 列見出し(状態) | `STATUS` | `状態` |
+| 列見出し(所要時間。v0.10.0 以降) | `DURATION` | `所要時間` |
 | 列見出し(補足) | `NOTE` | `補足` |
 | 完了を示す行 | `completed` | `完了` |
 | ステートなし(ファイルなし・長さ 0) | `no state (nothing has run yet)` | `ステートはありません(まだ実行されていません)` |
@@ -429,10 +449,11 @@ Run ID: <ID>                       ← run ID があるときだけ。見出し�
 | `skipped` | `skip_reason` が `ByEnd` → `skipped after @end` / `@end の後ろのためスキップ`。`ByTransition` → `skipped by a transition` / `遷移によりスキップ`。なければ空 |
 | `pending` | 空 |
 
-- 列は 2 つの半角空白で区切る。ジョブの列の幅 = 見出しと全ジョブID(エスケープ後)の表示幅の最大。状態の列の幅 = 見出しと全状態語の表示幅の最大。
+- 所要時間の決め方(v0.10.0 以降): ステートの試行の時刻(`[[job.attempt]]`)から、`job_duration(job, now)` で求め、`format_duration` で書く(05 の 18.3)。`success`・`warning`・`error` で最後の試行が閉じていれば、最初の試行の始まりから最後の試行の終わりまで。`pending` で最後の試行に終わりが無ければ、最初の試行の始まりから今まで(動いている最中)。そのほか(試行が無い、スキップ、中断で最後の試行が閉じた `pending`)は空。書き方は `17s`、`1m05s`、`2h03m04s`。`now` は、表を作る前に 1 回だけ取る(全ジョブで同じ)。
+- 列は 2 つの半角空白で区切る。ジョブの列の幅 = 見出しと全ジョブID(エスケープ後)の表示幅の最大。状態の列の幅 = 見出しと全状態語の表示幅の最大。所要時間の列の幅 = 見出しと全所要時間の表示幅の最大。
 - 表示幅は、文字ごとに、ASCII なら 1、それ以外は 2 として足す近似(全角を 2 とみなす)。
-- 見出し行: ジョブ見出しとステータス見出しを右に空白で埋めて幅をそろえ、補足見出しは埋めず、行末の空白は取らない(補足見出しは空でない)。
-- データ行: ジョブIDを埋め、状態語を埋め(埋めは状態語の長さ `len` で数える。語は ASCII)、補足を続けて、行全体の行末の空白を削る(補足が空なら、状態語のあとの空白も削られる)。
+- 見出し行: ジョブ見出し・ステータス見出し・所要時間見出しを右に空白で埋めて幅をそろえ、補足見出しは埋めず、行末の空白は取らない(補足見出しは空でない)。
+- データ行: ジョブIDを埋め、状態語を埋め(埋めは状態語の長さ `len` で数える。語は ASCII)、所要時間を埋め、補足を続けて、行全体の行末の空白を削る(補足と所要時間が空なら、状態語のあとの空白も削られる)。
 - `completed`: ステートの `completed` が真のときだけ、表の下に 1 行足す。
 
 ### 6.3 色
@@ -441,15 +462,15 @@ Run ID: <ID>                       ← run ID があるときだけ。見出し�
 - 色は状態語だけに、ANSI の SGR で付ける: `\x1b[<番号>m<語>\x1b[0m` のあとに埋めの空白。`success` = 32(緑)、`warning` = 33(黄)、`error` = 31(赤)、`skipped` = 36(シアン)、`pending` = 色なし。
 - 列の幅は、色の制御文字を除いた文字で決める。ファイルやパイプへの出力には制御文字を含めない。状態は色によらず文字でも表す。
 
-実出力(`LANG=C`):
+出力の形(`LANG=C`。所要時間の値は、形を示すための例):
 
 ```text
 $ conductor watch
 Pipeline: hello
-JOB    STATUS   NOTE
-step1  success  exit code 0
-step2  success  exit code 0
-step3  error
+JOB    STATUS   DURATION  NOTE
+step1  success  1s        exit code 0
+step2  success  2s        exit code 0
+step3  error    0s
 ```
 
 run ID つき・完了(英語/日本語):
@@ -457,22 +478,35 @@ run ID つき・完了(英語/日本語):
 ```text
 Pipeline: nightly
 Run ID: r1
-JOB        STATUS   NOTE
-extract    warning  exit code 1
-transform  skipped  skipped by a transition
-load       success  exit code 0
+JOB        STATUS   DURATION  NOTE
+extract    warning  12s       exit code 1
+transform  skipped            skipped by a transition
+load       success  1m05s     exit code 0
 completed
 ```
 
 ```text
 パイプライン: nightly
 Run ID: r1
-ジョブ     状態     補足
-extract    warning  終了コード 1
-transform  skipped  遷移によりスキップ
-load       success  終了コード 0
+ジョブ     状態     所要時間  補足
+extract    warning  12s       終了コード 1
+transform  skipped            遷移によりスキップ
+load       success  1m05s     終了コード 0
 完了
 ```
+
+### 6.4 `watch --follow` の描き方(v0.10.0 以降)
+
+`watch --follow` は、読み直すたびに、上の表(ステートが無ければ `no state` の 1 行)を 1 回分(`DisplayEvent::WatchFrame`)として標準出力に書く。1 回分の前に置くもの(`FramePrefix`)は、初めに 1 回だけ決めた「画面を消せるか」(UNIX 系で、標準出力が端末。`platform::clear_screen_supported()` かつ `stdout_is_terminal`)と、何回目かで決める。
+
+| 画面を消せるか | 1 回目 | 2 回目から |
+|----------------|--------|------------|
+| 消せる(UNIX 系の端末) | `ESC[H ESC[2J`(`\x1b[H\x1b[2J`。カーソルを左上に戻して画面を消す) | 同じ(毎回) |
+| 消せない(Windows、パイプ・ファイルへの出力) | 何も置かない | 空の 1 行(`\n`)を置いて追記する |
+
+- 表の中身と色の規則は 6.1〜6.3 と同じ(所要時間は、描くたびに今の時刻を取り直す)。
+- 終わりの判定と終了コードは 05 の 20 章、待ちは 07 の 7.6。完了・止まった・消えた・中断で終わるとき、終わりを知らせる行は足さない(最後に描いた表が残る)。
+- 標準出力に書けなければ、`cannot write to standard output` を標準エラーに出して 65。
 
 ## 7. ロケールの決め方
 
@@ -488,16 +522,16 @@ load       success  終了コード 0
 
 ### 8.1 英語
 
-v0.9.0 以降の全文(v0.8.0 以前は、`graph`・`init` の行、`--dry-run`・`--assume`・`--format`・`--state`・`--force` の行を持たない):
+v0.10.0 以降の全文(`crates/cli/src/report/messages.rs` の `USAGE` と同じ。v0.9.x は、`watch` の行に `[--follow [--interval <seconds>]]` が無く、`--format <text|mermaid>`(`dot` なし)で、`--follow`・`--interval` の行を持たない。v0.8.0 以前は、さらに `graph`・`init` の行、`--dry-run`・`--assume`・`--format`・`--state`・`--force` の行を持たない):
 
 ```text
 Usage:
   conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]] <job-id>
   conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]] <pipeline-name>
-  conductor watch [--config <path>] [--run-id <id>]
+  conductor watch [--config <path>] [--run-id <id>] [--follow [--interval <seconds>]]
   conductor reset [--config <path>] [--run-id <id> | --all]
   conductor validate [-v] [--config <path>] [<pipeline-name>]
-  conductor graph [-v] [--config <path>] [--format <text|mermaid>] [--state [--run-id <id>]] [<pipeline-name>]
+  conductor graph [-v] [--config <path>] [--format <text|mermaid|dot>] [--state [--run-id <id>]] [<pipeline-name>]
   conductor init [--config <path>] [--force] [<pipeline-name>]
   conductor convert <file> --to <yaml|toml>
   conductor --help | --version
@@ -512,9 +546,12 @@ Options:
                       remove the state file when the run completes (run, pipeline; default: keep it, or the
                       remove_on_complete setting of the definition)
   --all               remove every state file of the definition, with or without a run ID (reset only)
-  --format <text|mermaid>
-                      output format of graph (default: text)
+  --format <text|mermaid|dot>
+                      output format of graph: text, mermaid or dot (Graphviz) (default: text)
   --state             overlay the state of the jobs on the graph (graph only; reads the state file, never writes it)
+  --follow            redraw the table until the pipeline completes or stops, or until interrupted (watch only)
+  --interval <seconds>
+                      seconds between redraws, an integer from 1 to 3600 (with --follow only; default: 2)
   --dry-run           print the execution plan without running jobs, writing the state or setting up signals (run, pipeline)
   --assume <job-id>=<code>
                       assume the exit code (0-255) of a job in the plan; repeatable (with --dry-run only; default: 0)
@@ -530,10 +567,10 @@ Options:
 使い方:
   conductor run [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <ジョブID>
   conductor pipeline [-v] [--config <パス>] [--run-id <ID>] [--remove-on-complete] [--dry-run [--assume <ジョブID>=<終了コード>]] <パイプライン名>
-  conductor watch [--config <パス>] [--run-id <ID>]
+  conductor watch [--config <パス>] [--run-id <ID>] [--follow [--interval <秒>]]
   conductor reset [--config <パス>] [--run-id <ID> | --all]
   conductor validate [-v] [--config <パス>] [<パイプライン名>]
-  conductor graph [-v] [--config <パス>] [--format <text|mermaid>] [--state [--run-id <ID>]] [<パイプライン名>]
+  conductor graph [-v] [--config <パス>] [--format <text|mermaid|dot>] [--state [--run-id <ID>]] [<パイプライン名>]
   conductor init [--config <パス>] [--force] [<パイプライン名>]
   conductor convert <ファイル> --to <yaml|toml>
   conductor --help | --version
@@ -547,9 +584,12 @@ Options:
   --remove-on-complete
                       完了のときにステートファイルを消す(run、pipeline。省略時: 残す。定義の remove_on_complete に従う)
   --all               定義のステートファイルを、run ID の有無によらず、すべて消す(reset のみ)
-  --format <text|mermaid>
-                      graph の出力の形式(省略時: text)
+  --format <text|mermaid|dot>
+                      graph の出力の形式。text、mermaid、dot(Graphviz)のどれか(省略時: text)
   --state             ジョブの状態を図に重ねる(graph のみ。ステートファイルを読むだけで、書かない)
+  --follow            パイプラインが完了するか止まるまで、または中断されるまで、表を表示し直す(watch のみ)
+  --interval <秒>
+                      表示し直す間隔の秒数。1〜3600 の整数(--follow と一緒のときだけ。省略時: 2)
   --dry-run           ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を表示する(run、pipeline)
   --assume <ジョブID>=<終了コード>
                       計画の中で、ジョブの終了コード(0〜255)を仮定する。複数回指定できる(--dry-run と一緒のときだけ。省略時: 0)
@@ -1241,6 +1281,7 @@ flowchart TD
 | ジョブの項目 | `<番号>. [<扱い>] <ID>`(再開位置のジョブは行末に `  <- 再開位置`) | `<番号>. [<扱い>] <ID>`(`  <- resume here`) |
 | コマンド(`WillRun` のみ) | 5 つの空白 + `コマンド: ["echo", "a"]` | 5 つの空白 + `command: ["echo", "a"]` |
 | 環境変数(同) | 5 つの空白 + `環境変数: A, B, ...`(名前だけ。層の順) | 5 つの空白 + `env: A, B, ...` |
+| 消す環境変数(同。v0.10.0 以降。`unset_env` が 1 つ以上あるジョブだけ。環境変数の行のあと) | 5 つの空白 + `消す環境変数: HTTP_PROXY, ...`(名前だけ。`unset_env` の並び) | 5 つの空白 + `unset env: HTTP_PROXY, ...` |
 | リトライ(同。あれば) | 5 つの空白 + `リトライ: 終了コード 75、76 を最大 3 回、間隔 5 秒` | 5 つの空白 + `retry: exit codes 75, 76, up to 3 times, every 5 s` |
 | 模擬の結果(`pipeline`) | `結果(模擬): <終わり>` | `result (simulated): <終わり>` |
 | 次の動き(`run`) | `次の動き: <動き>` | `next step: <動き>` |
@@ -1375,6 +1416,39 @@ result (simulated): reached @end (completed)
 ```
 
 例 P7(`a` の成功が `c` へ飛ぶ。`run a --dry-run`)の最後の行: `次の動き: 次のジョブ c(スキップ: b)`。例 P8(`a` の成功が `@end` へ)の最後の行: `次の動き: @end に到達(残りのジョブは、呼ばれたときにスキップ)`。`--assume a=1`(エラー)なら、最後の行は、日本語 `次の動き: (仮定: 終了コード 1 → エラー) 停止`、英語 `next step: (assumed: exit code 1 -> error) stop`(`target job: a` の行から始まる)。
+
+### 11.8 `graph --format dot`(G2。v0.10.0 以降)
+
+規則は 05 の 15.8。全文(日本語。`crates/cli/src/tests/graph_dot.rs` の G2 のテストの期待と同じ):
+
+```text
+digraph conductor {
+  rankdir=TB;
+  n0 [label="a", shape=box];
+  n1 [label="b", shape=box];
+  n2 [label="c", shape=box];
+  n3 [label="d", shape=box];
+  n4 [label="e", shape=box];
+  nend [label="@end", shape=oval];
+  n0 -> n1 [label="警告"];
+  n0 -> n3 [label="成功"];
+  n1 -> n2;
+  n2 -> n3;
+  n3 -> n4;
+  n4 -> nend;
+}
+```
+
+(ラベルの語は、英語では `"warning"`、`"success"`。成功と警告の両方の飛び越しは `"成功・警告"` / `"success, warning"`。)`--state` で `a` 成功、`b` エラー、`c` 未実行、`d` スキップ、`e` 未実行、再開位置 `b` のときは、節の定義が次のようになる(状態の記号は text・Mermaid と同じ。再開位置のジョブだけ `penwidth=3`。`e` の行は略)。
+
+```text
+  n0 [label="[OK] a", shape=box];
+  n1 [label="[NG] b", shape=box, penwidth=3];
+  n2 [label="[  ] c", shape=box];
+  n3 [label="[--] d", shape=box];
+```
+
+エスケープ: ジョブ ID `q"1` → `q\"1`、`b\s` → `b\\s`、改行を含む `x<LF>y` → `x\\ny`(まず `escape_full` で `x\ny` にし、そのあと `\` を `\\` にする)。行の数は、節(終点を含む)+ 辺 + 3。
 
 ## 12. `init` のひな形(v0.9.0 以降)
 
