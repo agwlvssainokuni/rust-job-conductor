@@ -3223,3 +3223,422 @@
 **Context**: construction > build-and-test > cross-unit-traceability.md
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: 2031750a
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: 2031750a
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+**Duration ms**: 89
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: a5b008ea
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-and-test-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: a5b008ea
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-and-test-summary.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: e397b2be
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/test-results.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: e397b2be
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/test-results.md
+**Duration ms**: 80
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_FIRED
+**Fire id**: 52996d0d
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/cross-unit-traceability.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:25Z
+**Event**: SENSOR_PASSED
+**Fire id**: 52996d0d
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/cross-unit-traceability.md
+**Duration ms**: 75
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 37b6506a
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 37b6506a
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 571ca390
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 571ca390
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+**Duration ms**: 93
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: 7859d9c5
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-and-test-summary.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: 7859d9c5
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-and-test-summary.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_FIRED
+**Fire id**: d6fa4d71
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/test-results.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:26Z
+**Event**: SENSOR_PASSED
+**Fire id**: d6fa4d71
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/test-results.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: d31df384
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/cross-unit-traceability.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:27Z
+**Event**: SENSOR_PASSED
+**Fire id**: d31df384
+**Sensor ID**: required-sections
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/cross-unit-traceability.md
+**Duration ms**: 74
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:02:27Z
+**Event**: SENSOR_FIRED
+**Fire id**: b376e296
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:02:27Z
+**Event**: SENSOR_PASSED
+**Fire id**: b376e296
+**Sensor ID**: upstream-coverage
+**Stage slug**: build-and-test
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md
+**Duration ms**: 76
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-27T23:02:27Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: build-and-test
+**Next Stage**: deployment-pipeline
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-and-test-summary.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/test-results.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/cross-unit-traceability.md=passed; upstream-coverage@aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/build-and-test/build-instructions.md=passed
+**Open Decisions**: 0
+**Question Id**: 0a11d7cd
+**Question Type**: gate
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:3a1daee9fd8eed913564f64f214be37c9b441f81b4fcd6b05604b3438d1d7a5e
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-27T23:02:45Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 0b1bbc15
+**Open Questions**: 0a11d7cd
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:02:45Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: ビルドとテストを承認しますか?(推奨: Approve)
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: GATE_APPROVED
+**Stage**: build-and-test
+**User Input**: Approve
+**Person Reply**: pushしました\nApprove
+**Message Id**: 0b1bbc15
+**Message Ids**: 4eff6279,0b1bbc15
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: STAGE_COMPLETED
+**Stage**: build-and-test
+**Validation Basis**: {"graphContract":"sha256:1aed809bd5f1f235d6ab1b1495c41997dd8cc201478d4991c474c4f1638a2b55","inputs":[{"artifact":"code-generation-plan","contentHash":"sha256:9f490184b744001efc6b426bd7077fb232feb6e35e8c40596f0a89bf360ff9a4","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:0d195621500b25d712ec4c1d668234dc80e4ecd71692dad214f6d15b04dbbefc"},{"artifact":"code-summary","contentHash":"sha256:6d55ba577bd08f5c58f8fe9af58f2f7400f11359cb9c977238f545f1a52459de","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:213d5fae918fd0940b6bc8f9febaaccd155874454ed8a226f1047de1f836a25e"},{"artifact":"unit-test-instructions","contentHash":"sha256:caf9b91ab147b97acd7a9e3a2e8bea1ff0d557134eef7536035ae4035342d169","instanceCount":1,"presentCount":1,"producer":"code-generation","required":true,"structureHash":"sha256:205a75152ae98923a6ea7b8c9fbf130943531b4990605277e152049a1fb4186d"}],"outputs":[{"artifact":"build-and-test-summary","contentHash":"sha256:cb438b788f7d702317e2f606f761fcf6f10bcd31378805aabb4fac99619cc9e0","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:bc24f8b7422f35d5d598a7f539d1b0f984dd2c10fa87209e7613b7e995be1dba"},{"artifact":"build-instructions","contentHash":"sha256:c94902d712cfee039ccbfc822bd490373602268d0d7b673223a7de9924126c86","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:cbe5411ebc6450961ee2d0127e8940a2edf93d61d375171dd6240f08b24df072"},{"artifact":"build-test-results","contentHash":"sha256:08bcf74d696ddc109248e0ad59dd33cc166efbdaca466c61cd470c0786f04409","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:b8230ac453bef325cbf9a1e6341584772e5ec9273f6f627b321d078da973a353"},{"artifact":"cross-unit-traceability","contentHash":"sha256:85364c92636330095275c8a4ed6136c0b28b0909fd38437dce41c237c9646c15","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:6d7ef3c6970079d7cfeffbbc9db6b99f5d6c819994c019cb2d172a08fe4cac8d"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Build and Test approved by gate
+**Tokens In**: 32
+**Tokens Out**: 8687
+**Cache Read**: 11630031
+**Cache Write**: 808341
+**Cost USD**: 8.97
+**By Model**: opus-5-5=8.97
+**By Agent**: main=8.97
+**Tokens By Model**: opus-5-5=32/8.7k/11.6M/808.3k
+**Tokens By Agent**: main=32/8.7k/11.6M/808.3k
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: PHASE_COMPLETED
+**From phase**: construction
+**To phase**: operation
+**Stages completed**: 8
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: construction → operation
+
+---
+
+## Phase Start
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: PHASE_STARTED
+**Phase**: operation
+**Scope**: refactor
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: STAGE_STARTED
+**Stage**: deployment-pipeline
+**Agent**: aidlc-pipeline-deploy-agent
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-27T23:02:50Z
+**Event**: MEMORY_EMPTY
+**Stage**: build-and-test
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-27T23:03:15Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Context**: operation > deployment-pipeline > deployment-pipeline-questions.md
+
+---
+
+## Decision Recorded
+**Timestamp**: 2026-11-27T23:03:20Z
+**Event**: DECISION_RECORDED
+**Stage**: deployment-pipeline
+**Decision**: Does this all look correct before I generate the artifact?
+**Options**: Looks correct,Request changes
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Question Id**: 3a0e8838
+**Question Type**: summary-confirmation
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:379ac28948bb51de32801665e90edd2189a6ac582cd6ad2e9d02a3c4d9875870
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-27T23:03:45Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Looks correct"]
+**Message Id**: fefe6d00
+**Open Questions**: 3a0e8838
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md","entries":{"Q1":"c3802b3e99a6f645","Q2":"4b1344aebb60fdd0","Q3":"5f1a9aaeb2957ea5","Q4":"5620dd9264832dd5","Q5":"a42b503949c2aeba","Consolidated Summary Confirmation":"8961e617a41125bc"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:03:46Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: このまとめで、配る仕組みの記録を作ってよいですか?
+**Reply**: Looks correct
+**Options**: ["Looks correct","Request changes"]
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-11-27T23:03:50Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Context**: operation > deployment-pipeline > deployment-pipeline-questions.md
+
+---
+
+## Summary Confirmation Recorded
+**Timestamp**: 2026-11-27T23:03:52Z
+**Event**: SUMMARY_CONFIRMATION_RECORDED
+**Stage**: deployment-pipeline
+**Details**: Looks correct
+**Checkpoint**: Consolidated Summary Confirmation
+**Questions File**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-pipeline-questions.md
+**Questions SHA-256**: b23717e1c3afec7bb2f0cc2cd6322ae93c56081818e0f21c66a5695eaf4d2f81
+**Hash Scope**: confirmed-content-v2
+**Message Id**: fefe6d00
+**Person Reply**: Looks correct
+**Summary Authorization Id**: 4a0e0f3554473c2862fe27abfd90aa44547662a4e75adfaf8bb1135de4c38694
+**Git Name**: agwlvssainokuni
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-27T23:03:57Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/cd-config.md
+**Context**: operation > deployment-pipeline > cd-config.md
+**Summary Authorization Id**: 4a0e0f3554473c2862fe27abfd90aa44547662a4e75adfaf8bb1135de4c38694
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-27T23:04:04Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/deployment-strategy.md
+**Context**: operation > deployment-pipeline > deployment-strategy.md
+**Summary Authorization Id**: 4a0e0f3554473c2862fe27abfd90aa44547662a4e75adfaf8bb1135de4c38694
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-27T23:04:09Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-pipeline/rollback-runbook.md
+**Context**: operation > deployment-pipeline > rollback-runbook.md
+**Summary Authorization Id**: 4a0e0f3554473c2862fe27abfd90aa44547662a4e75adfaf8bb1135de4c38694
+
+---
