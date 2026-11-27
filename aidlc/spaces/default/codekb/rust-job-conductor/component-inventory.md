@@ -46,9 +46,9 @@
 
 ## core::flow
 
-- 責務: 純粋な判断(`decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision`)、ステートの記録(`initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`)、試行の時刻(`start_attempt`、`end_attempt`、`cancel_attempt`)、動きの様子(`pipeline_activity`)。
+- 責務: 純粋な判断(`decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision`)、ステートの記録(`initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`)、試行の時刻(`start_attempt`、`end_attempt`、`cancel_attempt`)、動きの様子(`pipeline_activity`)。v0.10.1 から、計画の模擬のための crate の中の入口(`decide_at`、`classify_and_decide_at`、`apply_outcome_in`、`apply_skip_in`)と、位置で引く補助(`record_at`、`status_at`、`position_of`)と目印(`SimulationMarks`)を持つ。公開の関数は目印を作り直して同じ本体を呼ぶ。
 - 依存: `core::types`、`core::time`
-- 場所: `crates/core/src/flow/`(`activity.rs`、`attempt.rs`、`classify.rs`、`decide.rs`、`next_step.rs`、`record.rs`、`resume.rs`、`retry.rs`)
+- 場所: `crates/core/src/flow/`(`activity.rs`、`attempt.rs`、`classify.rs`、`decide.rs`、`mod.rs`、`next_step.rs`、`record.rs`、`resume.rs`、`retry.rs`)
 
 ## core::consistency
 
@@ -64,7 +64,7 @@
 
 ## core::plan
 
-- 責務: `--dry-run` の計画の型(`ExecutionPlan`、`PlanEntry`(足す名前と消す名前)、`PlanDisposition`、`PlanEnd`)と模擬(`plan_pipeline`、`plan_run`)。本番と同じ判断と記録を使い、試行は記録しない。
+- 責務: `--dry-run` の計画の型(`ExecutionPlan`、`PlanEntry`(足す名前と消す名前)、`PlanDisposition`、`PlanEnd`)と模擬(`plan_pipeline`、`plan_run`)。本番と同じ判断と記録を使い、試行は記録しない。`plan_pipeline` は位置と目印を持ち回り、`flow` の内部の入口を呼ぶ(v0.10.1)。`plan_run` は公開の入口を使う。
 - 依存: `core::flow`、`core::envfile`、`core::types`
 - 場所: `crates/core/src/plan/`
 
@@ -82,7 +82,7 @@
 
 ## runtime::error
 
-- 責務: `CommandError`(2 種)、`StateError`(6 種)と固定の理由の文。
+- 責務: `CommandError`(2 種)、`StateError`(6 種)と固定の理由の文(試行の 3 つ `NO_ATTEMPT`・`BAD_TIME`・`UNFINISHED_ATTEMPT` を含む)。
 - 依存: `thiserror`
 - 場所: `crates/runtime/src/error.rs`
 
@@ -94,13 +94,13 @@
 
 ## runtime::runner
 
-- 責務: `run_job`(消してから足す環境、直接起動、1〜10ms の `try_wait` のくり返し、シグナルの 1 回の転送)。ログの指定があるときは、出力をパイプにし、流れごとの読み取りのスレッドで端末とファイルへ書き、終了後に最大 2 秒待つ。「止める」印は読み取りが返った後に見る(`runner.rs:313-322`)。
+- 責務: `run_job`(消してから足す環境、直接起動、1〜10ms の `try_wait` のくり返し、シグナルの 1 回の転送)。ログの指定があるときは、出力をパイプにし、流れごとの読み取りのスレッドで端末とファイルへ書き、終了後に最大 2 秒待つ。「止める」印は読む前と読んだ後に見る(v0.10.1。`runner.rs:315`・`324`)。
 - 依存: `runtime::log`、`runtime::platform`、`runtime::types`、`conductor-core`
 - 場所: `crates/runtime/src/runner.rs`
 
 ## runtime::log
 
-- 責務: `LogTarget`、`LogOutcome`、`safe_log_stem`(安全な名前。予約名の比較は `log.rs:88-94`)、`open_log_file`(ディレクトリの作成、`create_new`、0600、`-2`〜`-1000`)。
+- 責務: `LogTarget`、`LogOutcome`、`safe_log_stem`(安全な名前。予約名は前後の空白を除いて比べる。v0.10.1、`log.rs:90`)、`open_log_file`(ディレクトリの作成、`create_new`、0600、`-2`〜`-1000`)。
 - 依存: `conductor-core`(`Timestamp`、`format_compact`)、`runtime::platform`
 - 場所: `crates/runtime/src/log.rs`
 
@@ -202,7 +202,7 @@
 
 ## cli::report
 
-- 責務: `DisplayEvent`(37 種)、`Reporter`(言語・色の遅延判定)、`FramePrefix`(`Nothing`・`ClearScreen`・`BlankLine`。`report/mod.rs:248-278`)、英日の文言(`messages.rs`)、整形(`watch.rs`、`graph_text.rs`、`graph_mermaid.rs`、`graph_dot.rs`、`plan_text.rs`、`init_template.rs`)。
+- 責務: `DisplayEvent`(37 種)、`Reporter`(言語・色の遅延判定)、`FramePrefix`(`Nothing`・`ClearScreen`・`BlankLine`)、英日の文言(`messages.rs`。使い方の全文、ログの 3 つの文、所要時間の見出しを含む)、整形(`watch.rs`(4 列)、`graph_text.rs`、`graph_mermaid.rs`、`graph_dot.rs`、`plan_text.rs`、`init_template.rs`)。
 - 依存: `cli::types`、`conductor-core`、`conductor-runtime`(エラーの型)、`conductor-converter`(エラーの型)
 - 場所: `crates/cli/src/report/`
 
@@ -238,9 +238,15 @@
 
 ## demo
 
-- 責務: 主な動きを場面 0〜15 で見せるスクリプト(UNIX の `run-demo.sh`、Windows の `run-demo.cmd`)と、その定義・`.env`・ジョブのスクリプト。`DEMO_PAUSE=1` で場面ごとに Enter を待つ。場面 4 で `watch --follow` を呼ぶ(`run-demo.sh:94-96`)。
+- 責務: 主な動きを場面 0〜15 で見せるスクリプト(UNIX の `run-demo.sh`、Windows の `run-demo.cmd`)と、その定義(`conductor.toml`、`retry.toml`、`env.toml`、`log.toml`)・`.env`・ジョブのスクリプト。`DEMO_PAUSE=1` で場面ごとに Enter を待つ。場面 4 で `watch --follow` を呼び、その前に待つ(v0.10.1。`run-demo.sh:94-98`)。場面 15 はログのファイル。
 - 依存: ビルドした `conductor`(無ければ `cargo build --release`)
 - 場所: `demo/`
+
+## spec-docs
+
+- 責務: 再構築用の仕様書。`rust/`(Rust 版の構成と挙動)、`language-agnostic/`(言語に依らない挙動と受け入れ基準)、5 つの言語版の案内。各 13 文書。コードからもテスト・CI からも読まれない(文書だけ)。
+- 依存: なし(実装を書き起こしたもの。実装が正)
+- 場所: `docs/spec/`
 
 ## ci-workflows
 

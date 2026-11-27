@@ -19,9 +19,11 @@ flowchart LR
 | cli | runtime | `run_job`、`now`、`wait_for`、`check_command`、`load_env_files`、ステートの読み書き、`create_file`(すべて `deps::Runtime` 経由)、`CommandLine`、`InterruptSignal`、`Durability`、`StateLocation`、`LogTarget`、`LogOutcome`、エラー型 |
 | cli | converter | `convert`、`TargetFormat`、`ConversionError`(`deps::Runtime::convert` 経由) |
 
+v0.10.1 の crate の中の入口(`decide_at` など)は core の中だけで使い、クレートのあいだの依存は変えていない。
+
 ## クレートの中のモジュールの依存(要点)
 
-- core: `definition` → {`error`、`run_id`、`envfile`(予約名)、`types`}。`types` → `time`。`time` → `types`(`job_duration` が `JobState` を読む)。`graph::edges` → `flow`(`resolve_transition`)。`plan::simulate` → {`flow`(判断と `apply_*_in`)、`envfile`(`merge_env_names`、`merge_unset_names`)}。`flow`・`consistency` → `types`。`types` と `time` は互いの型を使うが、同じクレートの中のモジュールで、関数の循環は無い。
+- core: `definition` → {`error`、`run_id`、`envfile`(予約名)、`types`}。`types` → `time`。`time` → `types`(`job_duration` が `JobState` を読む)。`graph::edges` → `flow`(`resolve_transition`)。`plan::simulate` → {`flow`(公開の判断、内部の入口 `decide_at`・`classify_and_decide_at`・`apply_*_in`、`SimulationMarks`)、`envfile`(`merge_env_names`、`merge_unset_names`)}。`flow`・`consistency` → `types`。`types` と `time` は互いの型を使うが、同じクレートの中のモジュールで、関数の循環は無い。
 - runtime: `state` と `file_create` → `temp_file` → `platform`。`state::reader` と `envfile` → `bounded_read`。`runner` → {`log`、`platform`}。`log` → `platform`(0600)。`state`・`file_create`・`platform` は互いの内部を使わない。
 - cli: `lib` → `args`、`ctx` → {`run`、`pipeline`、`aux_commands`}。`run`・`pipeline` → {`step`、`dry_run::enter_flow`}。`step` → `ctx`。`aux_commands` → `platform`(`clear_screen_supported`)。すべての流れ → `report`、`exit`。`ctx` → `deps`、`run_id`。`deps` → `platform`。
 
@@ -51,7 +53,7 @@ flowchart LR
 | `ctrlc` の系 | `nix`(0.31.3)、`windows-sys`(0.61.2)、`dispatch2`(0.3.1)、`objc2`(0.6.5)、`objc2-encode`(4.1.0)、`block2`(0.6.2)、`bitflags`(2.13.2)、`cfg-if`(1.0.5)、`cfg_aliases`(0.2.2) |
 | `tempfile` の系(開発時) | `fastrand`(2.5.0)、`getrandom`(0.4.3)、`rustix`(1.1.6)、`linux-raw-sys`(0.12.1)、`once_cell`(1.21.4)、`r-efi`(6.0.0)、`windows-link`(0.2.1) |
 
-v0.10.0 の機能(時刻、ログ、`watch --follow`、DOT)は、依存を 1 つも増やしていない。
+v0.10.0 の機能(時刻、ログ、`watch --follow`、DOT)と v0.10.1 の直しは、依存を 1 つも増やしていない(v0.10.1 の `Cargo.lock` の差分は 4 クレートの版だけ)。
 
 ## 依存の方針と検査
 
@@ -60,6 +62,11 @@ v0.10.0 の機能(時刻、ログ、`watch --follow`、DOT)は、依存を 1 つ
 - ネットワークのライブラリを持たない(`crates/cli/tests/nfr_source.rs`、`crates/runtime/tests/nfr_source.rs`)。
 - 既知の脆弱性は `cargo audit` で見るが、マージを止めない。
 - `toml` は機能を絞って使う(core は `parse`・`std` だけで、書き出しを持たない)。
+
+## 文書と実装の依存
+
+- 仕様書(`docs/spec/`)は実装を書き起こしたもので、実装が正(`docs/spec/rust/00-README.md:13`)。仕様書からコードへの依存も、コード・テスト・CI から仕様書への依存も無い。
+- README は、`crates/cli/src/tests/docs.rs`(必須の語句、使い方の表との一致)と `crates/cli/tests/msrv_consistency.rs`(MSRV)と CI の `docs-check` が実装と結ぶ。
 
 ## 外部のシステムへの依存
 
