@@ -1,6 +1,6 @@
 # 11 品質・ビルド・配布(非機能要件、テスト、CI、リリース、デモ)
 
-対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。根拠は `Cargo.toml`(ルートと各クレート)、`Cargo.lock`、`.github/workflows/{ci,audit,release}.yml`、
+対象: `conductor` v0.10.0 の機能と v0.10.1 の直しを含む現在の実装(Rust 実装)。根拠は `Cargo.toml`(ルートと各クレート)、`Cargo.lock`、`.github/workflows/{ci,audit,release}.yml`、
 各クレートの `tests/*.rs` と `src/bin/*.rs`、`demo/*`、`README.md`。この文書の基準を満たせば、同じ品質ゲートを再現できる。
 
 ---
@@ -122,6 +122,11 @@ demo/                      デモ(UNIX 版と demo/windows/ の Windows 版)
 | 定義の `env` の表の大文字小文字の検査(v0.9.8 以降)。`[pipeline.env]` に別々の名前 10,000 個(118,977 バイト)の `parse_definition` を 1 回(P1。結果の並びと、大文字小文字だけが違う名前を足すと誤り 1 件も確かめる) | 5 回の中央値が 350 ms 以内(debug) | **強制** | `core/tests/definition_perf.rs` |
 | 遷移の重複の確認(v0.9.8 以降)。1 つのジョブに `success` の遷移 20,000 個、続けて `warning` の遷移 20,000 個の `parse_definition` を 1 回(P2。`duplicateTransition` 39,998 件と、その位置の順も確かめる) | 5 回の中央値が 1,600 ms 以内(debug) | **強制** | `core/tests/definition_perf.rs` |
 | 読む対象の `env_file` の一覧(v0.9.8 以降)。`[pipeline].env_file` に別々の記述 10,000 個と、ジョブの `env_file` に同じ 10,000 個の `env_file_refs(def, None)` を 1 回(P3。並びも確かめる) | 5 回の中央値が 40 ms 以内(debug) | **強制** | `core/tests/env_refs_perf.rs` |
+| DOT の描画(v0.10.0 以降)。1 万ジョブの直線の図の `render_dot` を 1 回(行の数と再開位置の太い枠も確かめる) | 1 秒以内 | **強制** | `cli/src/tests/graph_dot.rs` |
+| ログのファイルへの写し(v0.10.0 以降)。16 MiB の出力のジョブを `log_dir` つきで実行 | 端末とファイルの中身が一致する(時間の基準なし) | **強制**(中身) | `cli/tests/binary_log.rs` |
+| `watch --follow` の繰り返し(v0.10.0 以降)。偽の Runtime で 1,000 回の読み直し | 動き続け、ステートに書き込まない | **強制** | `cli/tests/flow_aux.rs` |
+
+(v0.10.1 で、計画の模擬の P1・P2 は、位置と目印を持ち回る内部の入口(05 の 16.2)を通るようになった。上限は変えていない。)
 
 P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 約 31 ms、P3 約 71 ms、P4 約 118 ms、P5 約 22 ms)の約 5 倍の、余裕のある値で、遅い CI(特に Windows の debug)で落ちず、大きな退行だけを止める。直す前の形(v0.9.6 までは、手元の debug で P1 約 95 ms、P2 約 104 ms、P3 約 369 ms、P4 約 689 ms、P5 約 103 ms)に戻ったことは、このテストでは検知できない。各テストは、時間と一緒に結果の中身(扱いの並び、重ね合わせの状態、辺の数と行き先、`.env` の項目の並びと値と警告)も確かめる。
 
@@ -157,7 +162,8 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | 引数にメタ文字が入っても注入にならない | `a;b`、`&&`、`|`、`$HOME`、`*`、`>x` などが、そのまま引数として渡る。Windows の `.cmd` への危険な引数(引用符を壊して `& echo injected > file`)で、続くコマンドが実行されない(文字列形式と配列形式) | `runtime/tests/runner_basic.rs` |
 | 検証は副作用を持たない | 定義の検証は、コマンドを解釈・展開・起動しない。ファイルから読んでも定義のディレクトリは変わらない | `core/tests/nfr_security.rs` |
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示 | `core/tests/nfr_security.rs`、`runtime/tests/nfr_content.rs`、`converter/tests/nfr_security.rs` |
-| ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | `runtime/tests/nfr_content.rs` |
+| ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない。v0.10.0 以降は、足してよいのは試行の開始と終了の時刻(`started_at`・`ended_at` のキーと、RFC 3339 の時刻の値)だけ | `runtime/tests/nfr_content.rs` |
+| ログのファイルの権限(v0.10.0 以降) | UNIX 系はログのファイルを 0600 で作る。ファイル名に、ディレクトリの区切りが残らない(安全な ID) | `runtime/tests/log_file.rs`、`cli/tests/binary_log.rs` |
 | 環境変数の値を出さない(v0.9.0 以降) | `env`・`.env` の値(秘密のつもりの文字列)が、標準出力、標準エラー(`-v` を含む)、ステートファイルに現れない。`graph`・`--dry-run` の出力にも現れず、名前だけが出る。`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` の表示にも値が現れない。値を持つ型の `Debug` は値を `"***"` にする | `cli/tests/binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`core/tests/nfr_security.rs`、`env_types.rs` |
 | 表示のエスケープの表 | core の `escape_display`(テストは core から直接使う)が期待値の表のとおりで、converter の写しと同じ入力に同じ結果を返す(制御文字・方向制御文字の無効化) | `cli/src/tests/escape_table.rs` |
 | ネットワークに接続しない | `src/` に `std::net` などがない。依存に HTTP・TLS のライブラリがない | `cli/tests/nfr_source.rs` |
@@ -201,16 +207,19 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 |----------|------|
 | `definition_valid.rs` | 正しい定義の受理と、`load_definition`(ファイルから読む入口) |
 | `definition_errors.rs` | 定義の検証の誤りの網羅(違反の例と受理の例) |
-| `definition_retry.rs` | `[job.retry]` の読み取りと検証 |
+| `definition_retry.rs` | `[job.retry]` の読み取りと検証。v0.10.0 以降は、`[pipeline.retry]` の既定、`retry = false`、既定との重なり、既定の上限と間隔の大小(03 の 6.8) |
 | `flow_sequences.rs` | フローの判断の一連の流れ(`parse_definition` と手元のステートだけ) |
 | `retry_flow.rs` | `retry_decision` の判断 |
 | `library_capability.rs` | `toml` の `DeTable` の確認(要素ごとのバイト範囲、深さ 1,000 の入力で異常終了しない) |
 | `nfr_performance.rs` | NFR1.1 の測定(3.1) |
 | `nfr_security.rs` | NFR4.5〜4.7(3.2、3.3)。v0.9.0 以降は、新しい 3 種(`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue`)の表示に値が出ないことも確かめる |
-| `env_definition.rs` | v0.9.0 以降。`env`・`env_file` の読み取りと検査(03 の 6.6。各誤り、予約名の大文字小文字、NUL、順序) |
+| `env_definition.rs` | v0.9.0 以降。`env`・`env_file` の読み取りと検査(03 の 6.6。各誤り、予約名の大文字小文字、NUL、順序)。v0.10.0 以降は、`env_file` の表 `{ path, required }` と、`unset_env` の読み取り・誤り・`env` との重なり(03 の 6.10) |
 | `env_file_parse.rs` | `parse_env_file`(03 の 6.7。各引用符、エスケープ、BOM、CRLF、`export`、重複、名前の誤り、上限) |
 | `env_merge.rs` | `merge_env`(05 の 14 章。優先順位、配列の順、完全一致、大文字小文字だけが違う名前の順、自動の変数、run ID の有無、試行) |
-| `env_types.rs` | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 34 種、`EnvFileErrorKind` が 13 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
+| `env_types.rs` | 環境変数の型(値を持つ型の `Debug` の伏せ字、`DefinitionErrorKind` が 34 種、`EnvFileErrorKind` が 14 種、`EnvFileError` の表示、`summarize_errors` の 20 件の打ち切り) |
+| `attempt_flow.rs` | v0.10.0 以降。試行の記録(`start_attempt`・`end_attempt`・`cancel_attempt`。強制終了の後の閉じ方、前の試行を消さない。05 の 18.2) |
+| `pipeline_activity.rs` | v0.10.0 以降。`pipeline_activity` の判定(完了・動いている・止まった・あいだ。05 の 20 章) |
+| `time_format.rs` | v0.10.0 以降。時刻の整形・詰めた形・読み取り・差(範囲の端、うるう年、各月末の往復)と、所要時間(`job_duration` の各行、`format_duration` の書き方。05 の 18 章) |
 | `graph_types.rs`、`graph_edges.rs`、`graph_overlay.rs`、`graph_drawable.rs`、`graph_layout_oracle.rs`、`graph_shape_skip.rs`、`graph_shape_same_target.rs`、`graph_shape_both.rs`、`graph_shape_branch.rs`、`graph_perf.rs` | v0.9.0 以降。図の型、辺の取り出し、状態の重ね合わせ、「対応する形」の判定(4 つの種類。定義から作れる形はすべて対応する形で、範囲の外の形は図の構造を直接作って確かめる)、配置を正解データと 1 文字単位で照合(git の出力: `fixtures/graph_layout_oracle.md`、537 例、同じ行き先を含む `fixtures/graph_layout_oracle_same_target.md`、1,517 例、交差する形の `fixtures/graph_layout_oracle_cross.md`、940 例、交差と同じ行き先が混ざる形の `fixtures/graph_layout_oracle_mixed.md`、487 例。規則から導いた図で、git の出力ではない: 分岐を含む `fixtures/graph_layout_oracle_branch.md`、871 例(主線の列 0 の規則で作り直した第 2 版)、「両方の飛び越し」か分岐を含むジョブ 3〜5 個の全形 `fixtures/graph_layout_oracle_offmain.md`、2,748 例、ジョブ 6〜7 個の `fixtures/graph_layout_oracle_offmain_67.md`、300 例)、形ごとの図の全文: 通常の飛び越しと交差の例 C1〜C3(`graph_shape_skip.rs`)、同じ行き先と交差に同じ行き先が混ざる例 M2〜M4(`graph_shape_same_target.rs`)、「両方の飛び越し」の例 D1〜D7 と組み合わせ N1、N3、N4(`graph_shape_both.rs`)、分岐の例 B1〜B4 と組み合わせ N2、N5(`graph_shape_branch.rs`)、辺の一覧に残る形と主線の列 0 の記号(`graph_drawable.rs`)、1,000 ジョブの性能(幅の広い交差、「両方の飛び越し」と分岐の入れ子・交差を含む。`graph_perf.rs`。05 の 15 章)。`graph_common/mod.rs` は補助(`definition`、`letters`、`letter_definition`、`lanes`、`both` など) |
 | `plan_types.rs`、`plan_pipeline.rs`、`plan_run.rs`、`plan_assume.rs` | v0.9.0 以降。計画の型、`plan_pipeline`・`plan_run`、`--assume`(使われなかった仮定、既定の 0)(05 の 16 章) |
 | `flow_perf.rs`、`env_merge_perf.rs` | `@end` に着いたときの残りのジョブの列挙(ジョブ 1,000 個)と、`merge_env`(`.env` 10,000 項目)の性能(3.1 節の表)。結果の中身(名前の並び、値)も確かめる |
@@ -225,7 +234,9 @@ P1〜P5 の上限は、直した後の見積もり(debug の中央値。P1・P2 
 | ファイル | 目的 |
 |----------|------|
 | `runner_basic.rs` | `run_job` の統合テスト(補助の実行ファイルを実際に起動)。メタ文字、配列、環境変数と作業ディレクトリの引き継ぎ、起動失敗(空の `program` を含む)、渡した分割済みのコマンドで起動し `command` を分け直さないこと、終了コード、起動前の合図。v0.9.0 以降は `run_job` の `env` 引数(足した値が子に見える、引き継いだ環境が残る、同じ名前の上書き、並びの後ろが勝つ)。Windows 専用の `cmd` 注入 3 件 |
-| `env_loader.rs` | v0.9.0 以降。`load_env_files`(無い、読めない、大きすぎる、UTF-8 でない、相対と絶対のパス、同じパスの 1 回だけの読み取り、すべての誤りを集める)。v0.9.7 以降: 読む権限のない 1 MiB 超の `.env` は `unreadable`、書き手のいない名前付きパイプは開かずに `unreadable`(どちらも UNIX だけ) |
+| `env_loader.rs` | v0.9.0 以降。`load_env_files`(無い、読めない、大きすぎる、UTF-8 でない、相対と絶対のパス、同じパスの 1 回だけの読み取り、すべての誤りを集める)。v0.9.7 以降: 読む権限のない 1 MiB 超の `.env` は `unreadable`、書き手のいない名前付きパイプは開かずに `unreadable`(どちらも UNIX だけ)。v0.10.0 以降: `required = false` の無いファイルの読み飛ばしと、`required` の論理和 |
+| `log_file.rs` | v0.10.0 以降。ログのファイルの名前と作り方(安全な名前の対の表、100 バイトの切り詰め、ディレクトリの作成、番号、作れないときのパス、UNIX 系の 0600。07 の 4.5) |
+| `runner_log.rs` | v0.10.0 以降。ログの指定つきの `run_job`(出力がファイルに残る、ジョブの出力だけを書く、終了コードが変わらない、ログを作れなければ起動しない、孫が出力を持ち続けても 10 秒以内に戻り待ち切れを返す、シグナルの転送) |
 | `file_create.rs` | v0.9.0 以降。`create_file`(新規で内容がそのまま、既存は壊さない、`--force` の置き換えと一時ファイルが残らない、親が無い、ディレクトリ、宙に浮いたシンボリックリンク、権限がない、同時に作る 2 つのうち 1 つだけが `Created`) |
 | `runner_signal.rs`(UNIX) | SIGTERM・SIGINT の転送、許可外の番号、新しいプロセスグループ、転送は 1 回、先に終わったジョブ |
 | `wait_interruptible.rs` | `wait_for`(経過、0 秒、合図、1 秒以内の打ち切り、最初の番号) |
@@ -260,9 +271,10 @@ converter の単体テスト(`crates/converter/src/tests/`。`#[cfg(test)]`):
 | ファイル | 目的 |
 |----------|------|
 | `flow_env.rs`、`flow_graph.rs`、`flow_dry_run.rs`、`flow_init.rs` | v0.9.0 以降。偽の `Runtime` を使った、`.env` の誤りで 64(ジョブ 0 個、ステートに触れない)と `CONDUCTOR_ATTEMPT` の増加と 20 件の打ち切り、`graph`、`--dry-run`、`init` の流れ |
-| `flow_run.rs`、`flow_pipeline.rs`、`flow_retry.rs`、`flow_run_id.rs`、`flow_aux.rs`、`flow_validate.rs` | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`) |
-| `binary_basic.rs`、`binary_run_id.rs` | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる |
+| `flow_run.rs`、`flow_pipeline.rs`、`flow_retry.rs`、`flow_run_id.rs`、`flow_aux.rs`、`flow_validate.rs` | 偽の `Runtime`・`Sink`・`Env`・`Signals` を使った、各コマンドの流れ(個別実行、一括実行、リトライ、run ID、`watch`/`reset`/`convert`、`validate`)。v0.10.0 以降は、試行の始まりを `Fast` で書いてから起動すること(`flow_run.rs`)、`watch` の所要時間と古い形のステートの 65、`watch --follow` の流れ(完了・止まった・消えたで 0、間隔、描き方、ステートが無いときの待ち、読めないの 3 回で 65、合図で 0、準備の失敗で 70、1,000 回の繰り返しで書き込みをしない。`flow_aux.rs`) |
+| `binary_basic.rs`、`binary_run_id.rs` | 実際のバイナリを起動し、終了コード・標準出力と標準エラーの分け方を確かめる。v0.10.0 以降は、`watch` の所要時間の列と、`watch --follow` の完了・止まったステートで 1 回描いて 0(パイプに制御の文字が無い) |
 | `binary_env.rs`、`binary_graph.rs`、`binary_dry_run.rs`、`binary_init.rs` | v0.9.0 以降。実際のバイナリで: `env`・`.env` の値と優先順位が子の環境に見える(補助の `env <NAME>...` モードで確かめる)、自動の変数、`.env` の誤りで 64、重複キーの警告、値が出力・ステートに無い / `graph` の出力と `--state` / `--dry-run` の出力と、何も実行されない・ステートのバイト列が変わらない / `init`(空のディレクトリで、2 回目は 69、`--force`、`--config -`、特殊な文字の名前) |
+| `binary_log.rs` | v0.10.0 以降。実際のバイナリで: ログのファイルの中身はジョブの出力で、名前は安全な ID・時刻・試行の番号、UNIX 系は 0600、リトライで試行ごとのファイル、作れなければ起動せず 127 と 1 行、`log_dir` のあり・なしで端末の出力が同じ、16 MiB の出力でも端末とファイルが一致、`-v` の行がジョブの出力の後、`validate`・`graph`・`--dry-run` はディレクトリを作らない、`log_dir` の誤りは 64 |
 | `binary_signal.rs`(UNIX) | 実際の SIGTERM → 143 と再開位置、続けた HUP・INT → 129 |
 | `signals_real.rs`、`signals_order.rs`(UNIX) | 本番のシグナル監視(最初の番号が残る、時間を空けた INT のあとの HUP。各ファイルで登録は 1 回だけ) |
 | `nfr_perf.rs`、`nfr_robust.rs`、`nfr_source.rs` | 3 章 |
@@ -288,7 +300,8 @@ cli の単体テスト(`crates/cli/src/tests/`。`#[cfg(test)]`):
 | `docs.rs` | README の検査(必須の語句、版の表記、`docs-check` の 7 語、リトライと `.env` の例が実際の読み取りに通る。v0.9.0 以降は、図・計画・ひな形の例が実際の出力と一致)。補助(`readme`、`DOCS_CHECK_WORDS`、`block_after_heading`、`assert_readme_has`、`assert_docs_check_words`)も持つ |
 | `exit_codes.rs` | 終了コードの決定(純粋な関数の全項目) |
 | `escape_table.rs` | `escape_display` の入力と期待値の表(core の本体を直接使う。converter の写しは converter の単体テストの同じ表で揃える) |
-| `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り 13 種と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む)、ロケール、遅延、色 |
+| `report_messages.rs` | 表示の全種類の文言(英語・日本語。v0.9.0 以降は、`.env` の誤り(v0.10.0 以降は 14 種)と 20 件の打ち切り、重複キーの警告、`init` の全メッセージ、`CreateError` の全種類を含む。v0.10.0 以降は、ログの 3 つの文、`watch` の 4 列、`watch --follow` の描き方の前置き)、ロケール、遅延、色 |
+| `graph_dot.rs` | v0.10.0 以降。`render_dot` の出力(G2 の全文、エスケープの対の表、各行の形、`--state` の記号と太い枠、辺のラベル、Mermaid と節・辺の数が同じ、1 万ジョブの描画の時間の順。05 の 15.8、08 の 11.8) |
 | `graph_report.rs` | v0.9.0 以降。`render_text`・`render_mermaid` の出力が、例 G1〜G4、G6、E1(レーンの図)、E1・E2 の辺の一覧(整形の関数に辺の一覧の配置を直接渡す)、S1、D1、B1、M2、M4(交差に同じ行き先が混ざる図。`-v`、`--state` を含む)、N1(全文と `--state`)、N1・N2・N5 の `-v`(詳細の行の列 0 が主線の列 0 の規則に従う)と 1 文字単位で一致、`--state`、`-v`、Mermaid のエスケープ(08 の 11 章)。text で、65 文字以上のジョブ ID を切らずに出す(レーンの図と辺の一覧。`escape_full` と遷移の表示の `escape_name` の使い分け) |
 | `plan_report.rs` | v0.9.0 以降。`render_plan` の出力が、例 P1〜P8、P2e、P4e と 1 文字単位で一致、エスケープ、環境変数の名前の順(値は出ない) |
 | `init_template.rs` | v0.9.0 以降。ひな形(日本語・英語、名前のエスケープ、`validate` に通る)。原本は統合テストの `tests/fixtures/init_{ja,en}.toml` を `include_str!` で読む |
@@ -445,9 +458,10 @@ demo/README.md                 使い方と各場面の説明
 demo/conductor.toml            UNIX 版の定義(パイプライン nightly)
 demo/retry.toml                UNIX 版のリトライの定義(パイプライン retry-demo)。場面 10 だけが使う
 demo/env.toml, demo/demo.env   UNIX 版の環境変数の定義(パイプライン env-demo)と `.env`。場面 11 だけが使う(v0.9.0 以降)
+demo/log.toml                  UNIX 版のログのファイルの定義(パイプライン log-demo)。場面 15 だけが使う(v0.10.0 以降)
 demo/run-demo.sh               UNIX 版のスクリプト(sh)
 demo/scripts/{extract,transform,load,notify,flaky,show-env}.sh   UNIX 版のジョブ(show-env は v0.9.0 以降)
-demo/windows/conductor.toml, retry.toml, env.toml, demo.env, run-demo.cmd   Windows 版(cmd)
+demo/windows/conductor.toml, retry.toml, env.toml, demo.env, log.toml, run-demo.cmd   Windows 版(cmd。log.toml は v0.10.0 以降)
 demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Windows 版のジョブ
 ```
 
@@ -458,7 +472,7 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 | 実行 | `demo/run-demo.sh`(リポジトリの根から) | `demo\windows\run-demo.cmd` |
 | 実行ファイルの選択 | 環境変数 `CONDUCTOR`。なければ `target/release/conductor`。無ければ `cargo build --release --locked --bin conductor` | `CONDUCTOR`。なければ `target\release\conductor.exe`。無ければ同じビルド |
 | 表示の言語 | `DEMO_LANG`(既定 `ja_JP.UTF-8`。英語は `en_US.UTF-8`)を `LANG` に設定。`LC_ALL`、`LC_MESSAGES` は外す | `DEMO_LANG`(既定 `ja_JP.UTF-8`。`en_US` のようにも書ける)。`LC_ALL`、`LC_MESSAGES` は空に。コードページを実行中だけ 65001 にして、終わりに戻す |
-| 一時停止 | `DEMO_PAUSE=1` のときだけ、各場面のあとで Enter を待つ | 同じ |
+| 一時停止 | `DEMO_PAUSE=1` のときだけ、各場面のあとで Enter を待つ。場面 4 では、`watch --follow` の前でも待つ(端末では画面が消えるので、その前の出力を読めるように。v0.10.1 以降) | 各場面のあとで待つのは同じ。場面 4 の `watch --follow` の前では待たない(Windows は画面を消さず、追記するため) |
 | ジョブの待ち時間 | `DEMO_SLEEP`(既定 0.5 秒。`sleep` に渡すので小数可) | `DEMO_SLEEP`(整数の秒。既定 1。`0` で待たない。内部は `ping -n <秒+1> 127.0.0.1`) |
 | ジョブの終了コード | 環境変数 `DEMO_<ジョブ名の大文字>_EXIT`(既定 0) | 同じ |
 | 作業場所 | `mktemp -d` の一時ディレクトリに定義とスクリプトを写して実行し、終了時に `trap` で消す(リポジトリに何も残らない) | `%TEMP%\conductor-demo-<乱数>` に写して実行し、終わりに `rmdir /s /q` |
@@ -483,6 +497,8 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 
 `demo/env.toml`(v0.9.0 以降。場面 11): `[pipeline] name = "env-demo"`、`description = "環境変数のデモ"`、`env_file = "demo.env"`、`[pipeline.env]` に `DEMO_GREETING = "hello from [pipeline.env]"` と `DEMO_STAGE = "pipeline"`、ジョブ `show-env`(`sh scripts/show-env.sh`)の `[job.env]` に `DEMO_STAGE = "job"`。`demo/demo.env`: `DEMO_FROM_FILE=from demo.env`、`export DEMO_QUOTED="two words"`(コメントつき)、`DEMO_STAGE=dotenv`(コメントで、優先順位の例を説明)。`show-env.sh` は、`DEMO_GREETING`、`DEMO_FROM_FILE`、`DEMO_QUOTED`、`DEMO_STAGE`、`CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(なければ `(なし)`)、`CONDUCTOR_ATTEMPT` を `  [show-env] <名前>=<値>` の形で 1 行ずつ表示する。
 
+`demo/log.toml`(v0.10.0 以降。場面 15): `[pipeline] name = "log-demo"`、`description = "ログのファイルのデモ"`、`log_dir = "logs"`、`[pipeline.retry]` に `exit_codes = [75]`、`max = 3`、`interval = "1s"`(既定のリトライ)、ジョブ `flaky`(`sh scripts/flaky.sh`。`retry` を書かないので既定を当てはめる)。
+
 ### 9.4 場面
 
 | 場面 | 内容(実行するコマンド) | 見せること |
@@ -491,7 +507,7 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 | 1 | `pipeline -v nightly` | 全部成功。書いた順に 1 つずつ |
 | 2 | `DEMO_EXTRACT_EXIT=1` で `pipeline -v nightly` | `extract` が警告 → `transform`・`load` をスキップして `notify` へ |
 | 3 | `DEMO_LOAD_EXIT=2` で `pipeline -v nightly`、続けて `watch` | `load` のエラーで止まり、終了コード 2。`watch` で止まった位置 |
-| 4 | `pipeline -v nightly`(再実行)、`watch`、ステートの一覧、`pipeline -v --remove-on-complete nightly`、一覧、`watch` | `load` から再開(`transform` は再実行しない)。完了してもステートは残り、`watch` が完了の行を出す。`--remove-on-complete` で完了時にステートを消す |
+| 4 | `pipeline -v nightly`(再実行)、`watch`、(v0.10.0 以降)`watch --follow`(`DEMO_PAUSE=1` なら、その前で待つ。v0.10.1 以降)、ステートの一覧、`pipeline -v --remove-on-complete nightly`、一覧、`watch` | `load` から再開(`transform` は再実行しない)。完了してもステートは残り、`watch` が完了の行を出す(v0.10.0 以降は所要時間の列つき)。`watch --follow` は、完了したステートなので 1 回描いて 0 で終わる。`--remove-on-complete` で完了時にステートを消す |
 | 5 | `run -v extract`、`reset` | 個別実行と初期化 |
 | 6 | `convert conductor.toml --to yaml` | TOML から YAML への変換 |
 | 7 | `validate -v`、誤りの定義 `bad.toml`(`command = "sh -c 'echo hi"`)を作って `validate --config bad.toml` | 正しい定義は 0(`definition is valid`)、引用符が閉じていない定義は 64(`command has an unclosed quote`)。ジョブは実行されず、ステートも作られない |
@@ -502,6 +518,7 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 | 12(同) | `graph`、`graph -v`、`graph --format mermaid`、`DEMO_LOAD_EXIT=2` で `pipeline nightly`(`load` で止める)、`graph --state`、`reset` | `extract` が警告なら `notify` へ飛ぶ遷移の図(右の線が飛び越し)、`-v` の詳細、Mermaid、`--state` の `[OK]`・`[NG]`・`[  ]` と再開位置(`[NG] load  <- resume here`)。`graph` はステートを読むだけ |
 | 13(同) | `pipeline nightly --dry-run`、`--assume extract=1`、`--assume load=2`、`run extract --dry-run`、ステートの一覧 | 計画(ジョブは実行されない)、`extract` が警告で `transform`・`load` が遷移でスキップされ `notify` へ、`load` で停止(`result (simulated): stopped (error: load)`)、`run` の次の動き(`next step: next job transform`)。ステートは作られない |
 | 14(同) | `init --config new.toml starter`、`validate --config new.toml starter`、もう一度 `init`、`init --config new.toml --force starter`、`init --config - starter` | `created new.toml`、ひな形が `validate` に通る、2 回目は終了コード 69(`already exists (use --force to overwrite)`)、`--force` で `replaced new.toml`、`--config -` は標準出力にひな形 |
+| 15(v0.10.0 以降) | `cat log.toml`、`rm -f flaky.count`、`pipeline --config log.toml log-demo`、`ls -l logs`、各 `logs/*.log` の中身、`rm -r logs`、`reset --config log.toml` | `flaky` が 2 回失敗してから成功し(既定のリトライ)、試行ごとに 1 つのファイル `flaky.<開始の時刻(UTC)>.<試行の番号>.log` ができる(3 つ)。UNIX 系は `-rw-------`(0600)。ファイルの中身はジョブの出力だけ。端末の出力は `log_dir` が無いときと同じ。`conductor` は古いログを消さない(片づけは利用者)。Windows 版は `ls -l` の代わりに `dir /b logs`、`rm -r` の代わりに `rmdir /s /q logs`(権限の表示は無い) |
 
 最後に `デモは以上です。`(Windows 版も同じ)を出す。
 
@@ -509,8 +526,8 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 
 | テスト | OS | 内容 |
 |--------|----|------|
-| `cli/tests/unix_demo.rs` | UNIX | `sh demo/run-demo.sh` を、`CONDUCTOR=<テスト用のバイナリ>`、`DEMO_LANG=en_US.UTF-8`、`DEMO_SLEEP=0`、`TMPDIR=<一時ディレクトリ>` で実行。終了コード 0、見出し `=== 0. ` から `=== 14. `、場面 7・4・8・9・10 の要点の行(`definition is valid`、`command has an unclosed quote`、`→ 終了コード 64`、`completed`、`conductor.toml.build-1.state`、`skipped (already executed)`、`conductor.toml.opt-1.state`、`no state`、リトライの知らせ 2 行、`[flaky] 3 回目の実行`、`job=flaky result=success`)と、場面 11〜14 の要点の行(`[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`、`missing.env`、``duplicate key `A` ``。`*   extract` から `o @end` までの図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract`。`plan (--dry-run): pipeline nightly` の計画、`assume: extract=1`、`[skip (transition)]`、`stopped (error: load)`、`target job: extract`、`next step: next job transform`。`created new.toml`、`name = "starter"`、`already exists (use --force to overwrite)`、`→ 終了コード 69`、`replaced new.toml`)が出る。利用者の `CONDUCTOR_RUN_ID`・`DEMO_RUN_ID`・`LC_ALL`・`LC_MESSAGES`・`NO_COLOR` に左右されない(`zzz` が出力に現れない)。終了後に `TMPDIR` に何も残らない |
-| `cli/tests/windows_demo.rs` | Windows | 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で、場面 1〜14 の終了コードと結果を確かめる(定義が 4 ジョブと `extract` の警告の遷移を持つこと、場面 1 は 0、場面 2 は `notify` へ進み 0、場面 3・4 は 2 のあと `load` から再開、`run`/`reset`/`convert`、`validate` が 0 と 64、run ID ごとにステートが分かれる、`--run-id` が環境変数に勝つ、`reset --run-id` と `--all`、リトライで 2 回失敗してから成功、場面 11(環境変数が子に渡り優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0)、場面 12(`graph` の図と `--state`)、場面 13(`--dry-run` は何も実行せずステートも作らない)、場面 14(`init` は 2 回目に 69、`--force` で上書き)、利用者の run ID に影響されない) |
+| `cli/tests/unix_demo.rs` | UNIX | `sh demo/run-demo.sh` を、`CONDUCTOR=<テスト用のバイナリ>`、`DEMO_LANG=en_US.UTF-8`、`DEMO_SLEEP=0`、`TMPDIR=<一時ディレクトリ>` で実行。終了コード 0、見出し `=== 0. ` から `=== 15. `(v0.9.x までは `=== 14. ` まで)、場面 7・4・8・9・10 の要点の行(`definition is valid`、`command has an unclosed quote`、`→ 終了コード 64`、`completed`、`conductor.toml.build-1.state`、`skipped (already executed)`、`conductor.toml.opt-1.state`、`no state`、リトライの知らせ 2 行、`[flaky] 3 回目の実行`、`job=flaky result=success`)と、場面 11〜14 の要点の行(`[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`、`missing.env`、``duplicate key `A` ``。`*   extract` から `o @end` までの図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract`。`plan (--dry-run): pipeline nightly` の計画、`assume: extract=1`、`[skip (transition)]`、`stopped (error: load)`、`target job: extract`、`next step: next job transform`。`created new.toml`、`name = "starter"`、`already exists (use --force to overwrite)`、`→ 終了コード 69`、`replaced new.toml`)が出る。v0.10.0 以降: 場面 4 の `watch --follow` が 1 回描いて `→ 終了コード 0`(`Pipeline: nightly` が 1 回、`completed` あり、パイプなので `ESC[H` が無い)、場面 15 の `log_dir = "logs"`、試行 1〜3 のファイル(`--- logs/flaky.<時刻>.<番号>.log` の見出し)、`-rw-------`、3 回目のファイルの中身、`$ rm -r logs`。`DEMO_PAUSE=1` のとき、場面 4 は `watch --follow` の前で待つ(v0.10.1 以降)。利用者の `CONDUCTOR_RUN_ID`・`DEMO_RUN_ID`・`LC_ALL`・`LC_MESSAGES`・`NO_COLOR` に左右されない(`zzz` が出力に現れない)。終了後に `TMPDIR` に何も残らない |
+| `cli/tests/windows_demo.rs` | Windows | 定義とスクリプトを一時ディレクトリへ写し、本物の `conductor` で、場面 1〜15 の終了コードと結果を確かめる(v0.9.x までは 1〜14。定義が 4 ジョブと `extract` の警告の遷移を持つこと、場面 1 は 0、場面 2 は `notify` へ進み 0、場面 3・4 は 2 のあと `load` から再開、`run`/`reset`/`convert`、`validate` が 0 と 64、run ID ごとにステートが分かれる、`--run-id` が環境変数に勝つ、`reset --run-id` と `--all`、リトライで 2 回失敗してから成功、場面 11(環境変数が子に渡り優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0)、場面 12(`graph` の図と `--state`)、場面 13(`--dry-run` は何も実行せずステートも作らない)、場面 14(`init` は 2 回目に 69、`--force` で上書き)、利用者の run ID に影響されない) |
 
 ---
 
