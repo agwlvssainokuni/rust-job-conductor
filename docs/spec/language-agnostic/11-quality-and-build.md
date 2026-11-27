@@ -7,8 +7,8 @@
 | 1 | この文書の位置づけ |
 | 2 | 非機能要件(性能、堅牢性、セキュリティ、保守性)の基準値と、強制か目安かの区別 |
 | 3 | 受け入れテストの共通事項(実行環境、テスト用ジョブ、定義とステートの略記、判定の書き方) |
-| 4 | 受け入れテスト一覧(機能ごと。ID は `AC-xxx`。4.17〜4.20 は v0.9.0 の機能) |
-| 5 | デモの仕様(構成、場面 0〜14、UNIX 系と Windows) |
+| 4 | 受け入れテスト一覧(機能ごと。ID は `AC-xxx`。4.17〜4.20 は v0.9.0 の機能、4.21〜4.27 は v0.10.0 の機能) |
+| 5 | デモの仕様(構成、場面 0〜15、UNIX 系と Windows) |
 | 6 | リリース物の要件(対応 OS、配布の形) |
 | 7 | 品質ゲートの要件(言語中立) |
 | 8 | 未確認の事項 |
@@ -51,13 +51,16 @@ p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は
 | リトライの待機の中断 | 合図から 1 秒以内に返る。確認の間隔は 50 ms 以下 | **強制**(1 秒)/ 目安(50 ms) | AC-275 |
 | 図の生成(v0.9.0 以降)。ジョブ 1,000 個で、構造の組み立てと配置。最悪の 6 つの形(入れ子が最大の形、交差する形、幅の広い交差の形、同じ行き先が離れて重なる形、「両方の飛び越し」と分岐の入れ子、「両方の飛び越し」と分岐の幅広い交差) | 1 秒以内 | **強制** | AC-486 |
 | 計画の生成(v0.9.0 以降)。ジョブ 1,000 個がすべて `env` と `env_file` を持ち、すべて実行する計画 | 1 秒以内 | **強制** | AC-501 |
-| 計画の模擬(v0.9.7 以降)。ジョブ 1,000 個がすべて実行する計画 / `@end` のあとの 999 個のスキップの計画を、それぞれ 1 回 | 参照実装の基準(開発用の版、5 回の中央値): 150 ms / 150 ms | 目安 | — |
+| 計画の模擬(v0.9.7 以降)。ジョブ 1,000 個がすべて実行する計画 / `@end` のあとの 999 個のスキップの計画を、それぞれ 1 回。v0.10.1 以降は、実行と同じ判断を、ジョブの位置と済んだ前の部分の目印を持ち回って、1 つの判断あたり定数の手間で行う(05 の 16.2) | 参照実装の基準(開発用の版、5 回の中央値): 150 ms / 150 ms(v0.10.1 でも変えていない) | 目安 | AC-573 |
 | 図の重ね合わせ(v0.9.7 以降)。ジョブ 1,000 個の状態の重ね合わせを 100 回 | 参照実装の基準(同): 350 ms | 目安 | — |
 | 図の辺の取り出し(v0.9.7 以降)。ジョブ 1,000 個、遷移 1,996 個を 100 回 | 参照実装の基準(同): 600 ms | 目安 | — |
 | `.env` の解析の重複キー(v0.9.7 以降)。10,000 行で後半 5,000 行が逆順の重複を 1 回 | 参照実装の基準(同): 100 ms | 目安 | — |
 | 定義の `env` の表の大文字小文字の検査(v0.9.8 以降)。`[pipeline.env]` に別々の名前 10,000 個の定義の読み込みを 1 回 | 参照実装の基準(同): 350 ms | 目安 | — |
 | 遷移の重複の確認(v0.9.8 以降)。1 つのジョブに `success` の遷移 20,000 個と `warning` の遷移 20,000 個(重複の誤り 39,998 件)の定義の読み込みを 1 回 | 参照実装の基準(同): 1,600 ms | 目安 | — |
 | 読む対象の `env_file` の一覧(v0.9.8 以降)。`[pipeline].env_file` に別々の記述 10,000 個と、ジョブに同じ 10,000 個を 1 回 | 参照実装の基準(同): 40 ms | 目安 | — |
+| DOT の描画(v0.10.0 以降)。直線の 1 万ジョブの図の DOT を 1 回 | 1 秒以内。行の数と再開位置の太い枠も確かめる | **強制** | AC-540 |
+| ログのファイルへの写し(v0.10.0 以降)。16 MiB を出力するジョブを `log_dir` つきで実行 | 端末に出た内容とファイルの中身が一致する(時間の基準なし) | **強制**(中身) | AC-548 |
+| `watch --follow` の繰り返し(v0.10.0 以降)。1,000 回の読み直し | 動き続け、ステートに書き込まない(時間の基準なし) | **強制** | AC-571 |
 | ジョブの終了の確認の間隔 | 1・2・4・8・10 ms、以降 10 ms(上限 10 ms) | 目安 | 07 章 5 章 |
 
 測定のしかた:
@@ -94,7 +97,8 @@ p95 は、昇順に並べた測定値の `ceil(n × 0.95)` 番目。測定値は
 | 引数にメタ文字が入っても注入にならない | `a;b`、`&&`、`\|`、`$HOME`、`*`、`>x` などが、そのまま引数として渡る。Windows の `.cmd` への危険な引数で、続くコマンドが実行されない | 4.2 節 |
 | 検証は副作用を持たない | 定義の検証は、コマンドを解釈・展開・起動しない。定義ファイルのディレクトリは変わらない | AC-415 |
 | 入力の値を表示に出さない | すべての種類のエラーの表示に、入力の値(秘密のつもりの文字列、`command`、ライブラリのエラー文)が現れない。キー名は制御文字をエスケープして表示 | AC-416 |
-| ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない | AC-417 |
+| ステートに機微な値を書かない | ステートファイルに、`command`、引数、環境変数の値、標準出力の内容が現れない。(v0.10.0 以降)足してよいのは、試行の開始と終了の時刻(`started_at`・`ended_at` と、その時刻の値)だけ | AC-417、AC-553 |
+| ログのファイル(v0.10.0 以降) | 中身はジョブの出力だけ(`conductor` の表示を書かない)。UNIX 系は権限 0600 で作る。ファイル名に、ディレクトリの区切りと Windows の予約名が残らない(安全な ID) | AC-541、AC-543、AC-544 |
 | 環境変数の値を出さない(v0.9.0 以降) | `env`・`.env` の値が、標準出力、標準エラー(`-v` を含む)、ステートファイルに現れない。`graph`・`--dry-run` の出力にも現れず、名前だけが出る(`graph` は名前も出さない)。`reservedEnvName`・`envNameCaseConflict`・`invalidEnvValue` の表示にも値が現れない | AC-468、AC-482、AC-492 |
 | 表示のエスケープ | 制御文字・方向制御文字を無効化する(4.14 節の表)。定義・ステート・変換の各部が、同じ入力に同じ結果を返す | 4.14 節 |
 | ネットワークに接続しない | 実行中に外向きの通信をしない。実装に、HTTP・TLS などの通信の部品を含めない | AC-419(点検) |
@@ -192,6 +196,8 @@ S[<id>=<状態>(<終了コード>), ... ; resume=<id>, end=<true|false>, complet
 
 状態は `pending`・`success`・`warning`・`error`・`skipped`。スキップは `skipped/byTransition` か `skipped/byEnd`。終了コードがなければ括弧を省く。
 例: `S[a=success(0), b=error(7), c=pending ; resume=b]`。ステートファイルの書式は [06-state-file.md](06-state-file.md)。
+
+(v0.10.0 以降)動いたジョブ(`success`・`warning`・`error`)は、試行の時刻(`[[job.attempt]]` の `started_at`・`ended_at`。06 の 2.2a)も持つ。時刻は実行のたびに変わるので、略記には書かず、比べるときは除く。試行の期待は 4.26 節に書く。前提のステートを手で作るときは、動いたジョブに試行を 1 つ以上書く(書かなければ、v0.9.9 までの形として 65 になる。AC-559)。
 
 ### 3.5 判定の書き方
 
@@ -436,8 +442,8 @@ next = "nowhere"
 | AC-143 | `--remove-on-complete`(run) | `P(p; a:0)` | `run a --remove-on-complete` | 0。OUT・ERR 空。`T/conductor.toml.state` がない | `binary_basic::fr2_1 run の remove_on_complete も完了でファイルを消す` |
 | AC-144 | 定義の `remove_on_complete` | `P(p remove_on_complete=true; a:0)` | `run a` | 0。ステートがない | `flow_run::fr2_2 定義の remove_on_complete が true なら run でも消える` |
 | AC-145 | 完了でなければ消さない | `P(p; a:0, b:0)` | `run a --remove-on-complete` | 0。ステートが残る(`a=success`、`completed=false`) | `flow_run::fr2_1…`(派生) |
-| AC-146 | ステートの形(エラーで停止) | 定義 `c2.toml`(`P(n2; a:0, b:3, c:0)`) | `pipeline n2 --config c2.toml` | 3。`T/c2.toml.state` の内容は TOML で、`completed=false`、`definition_key="c2.toml"`、`definition_path="c2.toml"`、`end_reached=false`、`format_version=1`、`job_order=["a","b","c"]`、`pipeline_name="n2"`、`resume_job_id="b"`、`[[job]]` は `a=success exit_code=0`、`b=error exit_code=3`、`c=pending`(`run_id` キーなし) | `runtime::state_write::ステートファイルの内容は版つきで e3 のキーを持つ`、06 章 2.5 節 |
-| AC-147 | ステートの書式 | 上のステート | (ファイルを読む) | キーは各テーブル内でアルファベット順、最上位が先で `[[job]]` が続き、各 `[[job]]` の前に空行 | 06 章 2.1 節(派生) |
+| AC-146 | ステートの形(エラーで停止)(v0.10.0 で変更) | 定義 `c2.toml`(`P(n2; a:0, b:3, c:0)`) | `pipeline n2 --config c2.toml` | 3。`T/c2.toml.state` の内容は TOML で、`completed=false`、`definition_key="c2.toml"`、`definition_path="c2.toml"`、`end_reached=false`、`format_version=1`、`job_order=["a","b","c"]`、`pipeline_name="n2"`、`resume_job_id="b"`、`[[job]]` は `a=success exit_code=0`、`b=error exit_code=3`、`c=pending`(`run_id` キーなし)。`a` と `b` は `[[job.attempt]]` を 1 つずつ持ち、どちらも `started_at` と `ended_at` が UTC の `YYYY-MM-DDTHH:MM:SSZ` の形で、実行の前後に取った時刻のあいだにあり、始まり ≦ 終わり。`c` は `attempt` のキーを持たない | `runtime::state_write::ステートファイルの内容は版つきで e3 のキーを持つ`、`binary_basic::u6_fr6_1 ステートに試行の始まりと終わりの時刻が書かれる`、`runtime::state_write::u6 試行が無ければ今と同じ形で attempt を書かない`、06 章 4.2 節 |
+| AC-147 | ステートの書式(v0.10.0 で変更) | 上のステート | (ファイルを読む) | キーは各テーブル内でアルファベット順、最上位が先で `[[job]]` が続き、各 `[[job]]` の前に空行。各 `[[job]]` の中は、スカラーのキーのあとに `[[job.attempt]]` を古い順に続け(中のキーは `ended_at`、`started_at` の順)、各 `[[job.attempt]]` の前に空行 | 06 章 4.1 節(派生) |
 | AC-148 | ステートに機微な値を書かない | `cmd="TJ say SECRET-OUT '' 3"`(終了コード 3 のエラーになる)。環境変数 `SECRET_ENV=SECRET-ENVVAL` を設定 | `run a` | ステートファイル(終了コード 3、`resume=a`)に、`command` の文字列、`SECRET-OUT`、`SECRET-ENVVAL` が現れない | `runtime::nfr_content` |
 | AC-149 | 初期ステートの書き込みに失敗(UNIX 系、非 root) | `T` を書き込み不可にする(定義は読める) | `run a` | 65。ERR に `cannot write state file` と `(the job was not started)`。ジョブは実行されない | `runtime::flow_with_state::書けないディレクトリでは最初のジョブの前に止まる`、`flow_run::初期ステートが書けないときは 65 でジョブを起動しない` |
 | AC-150 | ジョブのあとの書き込みの失敗(UNIX 系、非 root) | 定義 `argv=["sh", "-c", "chmod a-w . ; exit 7"]`(ジョブが `T` を書き込み不可にする) | `run a` | 65(ジョブの 7 ではない)。ERR に `cannot write state file` と `(the job has already been executed)` | `flow_run::ジョブのあとの書き込みの失敗は 65 でジョブは実行済み`(派生の再現) |
@@ -468,14 +474,16 @@ next = "nowhere"
 
 ### 4.5 `watch`
 
+(v0.10.0 以降)表は、所要時間の列(`DURATION` / `所要時間`)を含む 4 列(08 の 6 章)。下の期待の `<D>` は、そのジョブの所要時間(短いジョブなので `0s` のような `<秒>s` の形)を、右に空白を足して所要時間の列の幅(見出しの 8 文字)にそろえたもの。所要時間の値の規則は 4.26 節。
+
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-170 | 表の形(英語) | `P(p; a:0, b:7, c:0)` で `pipeline p`(7 で終わる)のあと | `watch` | 終了 0。OUT = `Pipeline: p`⏎`JOB  STATUS   NOTE`⏎`a    success  exit code 0`⏎`b    error    exit code 7`⏎`c    pending`(行末の空白なし)。ERR 空 | `flow_aux::watch は表を標準出力に 1 回出す`、`report_messages::watch の表は 3 列で 状態は文字で書く` |
+| AC-170 | 表の形(英語)(v0.10.0 で変更) | `P(p; a:0, b:7, c:0)` で `pipeline p`(7 で終わる)のあと | `watch` | 終了 0。OUT = `Pipeline: p`⏎`JOB  STATUS   DURATION  NOTE`⏎`a    success  <D>  exit code 0`⏎`b    error    <D>  exit code 7`⏎`c    pending`(行末の空白なし。`c` は動いていないので所要時間も補足も空)。ERR 空 | `flow_aux::watch は表を標準出力に 1 回出す`、`report_messages::watch の表は 4 列で 状態は文字で書く`、`binary_basic::u6_fr6_5 watch の表に所要時間の列がある` |
 | AC-171 | ステートなし | ステートなし | `watch` | 0。OUT = `no state (nothing has run yet)`(1 行) | `flow_aux::watch はステートが空なら空であることを表示して 0` |
 | AC-172 | ステートなし(日本語) | `LANG=ja_JP.UTF-8` | `watch` | 0。OUT = `ステートはありません(まだ実行されていません)` | `report_messages::watch の空の表示` |
 | AC-173 | 長さ 0 のファイルも「なし」 | 長さ 0 のステートファイル | `watch` | 同上(`no state …`) | `flow_aux::fr3_3 no state はファイルなしと長さ 0 のときだけ` |
-| AC-174 | 完了の行 | `P(nightly; extract:1{w=[1], on=warning->load}, transform:0, load:0)`、`pipeline nightly --run-id r1` のあと | `watch --run-id r1` | OUT = `Pipeline: nightly`⏎`Run ID: r1`⏎`JOB        STATUS   NOTE`⏎`extract    warning  exit code 1`⏎`transform  skipped  skipped by a transition`⏎`load       success  exit code 0`⏎`completed` | `flow_aux::fr3_1 / fr3_2`、08 章 6.3 節 |
-| AC-175 | 日本語の表 | 同上、`LANG=ja_JP.UTF-8` | `watch --run-id r1` | OUT = `パイプライン: nightly`⏎`Run ID: r1`⏎`ジョブ     状態     補足`⏎`extract    warning  終了コード 1`⏎`transform  skipped  遷移によりスキップ`⏎`load       success  終了コード 0`⏎`完了`(状態の語は英語のまま、`Run ID` は日本語でも `Run ID`) | `flow_aux::fr3_1 watch の完了の行は日本語では完了`、`report_messages::watch の表は日本語の見出しと補足` |
+| AC-174 | 完了の行(v0.10.0 で変更) | `P(nightly; extract:1{w=[1], on=warning->load}, transform:0, load:0)`、`pipeline nightly --run-id r1` のあと | `watch --run-id r1` | OUT = `Pipeline: nightly`⏎`Run ID: r1`⏎`JOB        STATUS   DURATION  NOTE`⏎`extract    warning  <D>  exit code 1`⏎`transform  skipped            skipped by a transition`⏎`load       success  <D>  exit code 0`⏎`completed`(スキップの行は所要時間が空で、状態の語のあとに区切り・列の幅・区切りの 12 空白) | `flow_aux::fr3_1 watch は完了のステートの表の下に完了の行を出して 0`、`flow_aux::fr3_2 watch は run id ありの完了のステートにも完了の行を出す`、08 章 6.3 節 |
+| AC-175 | 日本語の表(v0.10.0 で変更) | 同上、`LANG=ja_JP.UTF-8` | `watch --run-id r1` | OUT = `パイプライン: nightly`⏎`Run ID: r1`⏎`ジョブ     状態     所要時間  補足`⏎`extract    warning  <D>  終了コード 1`⏎`transform  skipped            遷移によりスキップ`⏎`load       success  <D>  終了コード 0`⏎`完了`(状態の語は英語のまま、`Run ID` は日本語でも `Run ID`。`所要時間` は表示幅 8 で、列の幅と同じ) | `flow_aux::fr3_1 watch の完了の行は日本語では完了`、`report_messages::watch の表は日本語の見出しと補足`、`report_messages::u6_br4_1 watch の所要時間の見出しは日本語では所要時間` |
 | AC-176 | `@end` のスキップの補足 | `@end` で完了したステート(4.4 節) | `watch` | `b`、`c` の行の NOTE = `skipped after @end` | `report_messages` |
 | AC-177 | 定義ファイルを読まない | 定義ファイルがない、または壊れている。ステートあり | `watch --config missing.toml` | 0。ステートが表示される(定義がなくても動く) | `binary_basic::watch と reset は定義ファイルがなくても動く`、`flow_aux::watch は定義ファイルを読まず検証しない` |
 | AC-178 | ステートなし・定義なしでも 0 | 定義ファイルなし | `watch --config missing.toml` | 0。OUT に `no state` | `binary_basic::watch と reset は定義ファイルがなくても動く` |
@@ -672,7 +680,7 @@ job:
 | AC-275 | 待機中の中断は 1 秒以内 | `interval="1h"`、`fails=99` | 最初の retry の行のあと SIGTERM | SIGTERM を送ってから 1 秒以内に、143 で終わる | `runtime::wait_interruptible::…`(3600 秒の待機に 200 ms 後の合図で、全体が 1.2 秒未満) |
 | AC-276 | 再開は最初の実行から数え直す | 上のあと(`resume=a`) | 再度 `run a`(`interval="1s"`、`fails=1`) | `retry 1 of 3` の行から始まる。0 で完了 | `flow_retry::run 再開すると そのジョブを 最初の実行から数え直す` |
 | AC-277 | 待機中のシグナル(pipeline) | 同様(pipeline) | `pipeline p`、待機中に SIGTERM | 143。以降のジョブを実行しない。`resume=a` | `flow_retry::pipeline 待機中のシグナルで 以降を実行せず 再開位置を記録する` |
-| AC-278 | ステートは最終の結果で 1 回だけ | `RT`(`fails=2`) | `run a` | 実行の途中に、ステートファイルのジョブ `a` の状態が `success`/`error` にならない(最終の結果のときだけ変わる。途中の失敗はステートに書かれない)。リトライの回数はステートに書かれない | `flow_retry::run ステートは 最終の結果で 1 回だけ書かれ 途中では書かれない`。観測: 待機中にステートファイルを読む |
+| AC-278 | 結果の記録は最終の結果で 1 回だけ、試行の境目は試行ごとに書く(v0.10.0 で変更) | `RT`(`fails=2`) | `run a` | 実行の途中に、ステートファイルのジョブ `a` の状態が `success`/`error` にならない(結果の記録は最終の結果で 1 回だけ。耐久性つきの書き込み)。試行の開始のたびに(3 回)、その試行を足したステートが書かれる(同期を省く書き込み)。待機中のステートでは、`a` は `pending` で、最後の試行が終わりの時刻を持たない(開いている。`watch --follow` からは動いている最中に見える)。次の試行の開始の書き込みで、前の試行が、その試行の直後に取った終わりの時刻で閉じる(待ちの後の時刻ではない)。終わったあと、`a=success(0)` の `[[job.attempt]]` は 3 つ(古い順。すべて閉じている) | `flow_retry::run 結果は最後に 1 回だけ durable で書かれ 試行の境目は fast で書く`、`flow_retry::u6_br1_2 リトライの試行ごとに始まりと終わりを記録する`、`flow_retry::u7_br3_4 リトライの待ちの間のステートでは最後の試行が開いている`、`flow_retry::u7_br3_4 次の試行の書き込みで前の試行を本当の終わりの時刻で閉じる`。観測: 待機中にステートファイルを読む。区分: 注入(書き込みの順と時刻) |
 | AC-279 | README のリトライの説明 | README | (検査) | 見出し、5 つのキー名(`exit_codes`、`max`、`interval`、`multiplier`、`max_interval`)があり、載っている TOML の例が実際に読み取りを通る | `docs`。区分: 点検 |
 
 ### 4.10 シグナルと中断
@@ -698,7 +706,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-294 | 実行中の中断の記録(注入) | 同上 | 実行中に合図(2 つ来ても最初の番号) | ジョブを `error` として記録、終了 `128 + 最初の番号` | `flow_run::ジョブの実行中の合図は エラーとして記録して 128 足す番号 / 2 つの合図が来ても 最初の番号が残る`。区分: 注入 |
 | AC-295 | ジョブのあいだの中断(pipeline、注入) | 同上 | 1 つ目のジョブが成功した直後に合図 | 次のジョブを起動せず、再開位置を記録して `128 + 番号`。-v で `[conductor] interrupted by signal N` | `flow_pipeline::ジョブのあいだの合図は 再開位置を記録して 128 足す番号`。区分: 注入 |
 | AC-296 | 検査中の合図より誤りが優先 | 同上 | 定義の検査中に合図が立つ。定義の誤り / 順序外 / スキップ | 64 / 66 / 0(中断の終了コードにならない) | `flow_run::検査中の合図より 定義の誤りの終了コードが優先する / 検査中の合図より reject と skip が優先する`。区分: 注入 |
-| AC-297 | シグナルの準備は検査の前 | 同上 | `run` / `pipeline`、`validate`・`watch`・`reset`・`convert`・引数の誤り | `run`・`pipeline` だけが、定義の検査より前にシグナルを準備する。ほかは準備しない(v0.9.0 以降の `graph`・`init`、`--dry-run` も準備しない) | `flow_run::シグナルの準備は定義の検査より前に行う`、`flow_pipeline::個別実行と一括実行だけがシグナルを準備する`、`flow_run::使い方の誤りでは 何も実行せず シグナルも準備しない`。区分: 注入 |
+| AC-297 | シグナルの準備は検査の前(v0.10.0 で変更) | 同上 | `run` / `pipeline`、`watch --follow`、`validate`・`watch`・`reset`・`convert`・引数の誤り | `run`・`pipeline` は、定義の検査より前にシグナルを準備する。v0.10.0 以降は `watch --follow` も、run ID の決定より前に準備する。ほかは準備しない(`--follow` の無い `watch`、v0.9.0 以降の `graph`・`init`、`--dry-run` も準備しない) | `flow_run::シグナルの準備は 定義の検査より前に行う`、`flow_pipeline::個別実行と一括実行だけがシグナルを準備する`、`flow_run::使い方の誤りでは 何も実行せず シグナルも準備しない`、`flow_aux::u7_br1_1 follow の無い watch は合図の準備をしない`、`flow_aux::u7_br3_3 合図の準備に失敗したら 70 で何も読まない`。区分: 注入 |
 | AC-298 | シグナルの準備の失敗は 70 | 同上 | 準備が失敗する | 70。ERR = `conductor: error: failed to set up signal handling`。定義の検査もジョブの起動もしない | `flow_run::シグナルの準備に失敗したら 70 で 固定の英語の文`。区分: 注入 |
 | AC-299 | (該当なし) | — | — | 登録はプロセスで 1 回だけで、「すでに登録済み」の場面は無い(番号は、範囲の参照のために残す) | — |
 | AC-300 | 標準エラーが閉じていても本来の終了コード | 同上 | 標準エラーへの書き込みが失敗する | 本来の終了コードで終わる | `flow_run::標準エラーが閉じていても 本来の終了コードで終わる`。区分: 注入 |
@@ -708,6 +716,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 
 ここの「実行」は、特に記さない限り `run a`(`P(p; a:0, b:0)`)。すべて、**ジョブは実行されず**、ステートファイルは**変わらず**、OUT は空。ERR の最初の行は `conductor: error: conductor.toml.state: <種類の文>: <理由>; <案内>`。
 案内は ``run `conductor reset` to discard the state``(run ID あり: ``run `conductor reset --run-id <ID>` to discard the state``)。
+(v0.10.0 以降)前提の「正しいステート」は、動いたジョブに試行(`[[job.attempt]]`)を持つもの(3.4 節)。試行の記録の誤り(試行が無い、最後でない試行に終わりが無い、時刻の書式の誤り)と、v0.9.9 までに書いたステートは、4.26 節(AC-559)。
 
 | ID | 機能 | ステートの内容(前提) | 期待(終了 65) | 根拠 |
 |----|------|------------------------|----------------|------|
@@ -784,7 +793,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-352 | `LC_MESSAGES`、`LANG` の順 | `LC_MESSAGES=ja_JP`、`LANG=C` / `LANG=ja_JP`(ほか未設定) | `bogus` | 日本語 / 日本語 | 同上 |
 | AC-353 | 空の値は飛ばす | `LC_ALL=`(空)、`LANG=ja_JP.UTF-8` | `bogus` | 日本語(空の `LC_ALL` は無視) | 同上 |
 | AC-354 | 大文字小文字を区別する | `LANG=JA` / 未設定 | `bogus` | 英語 | 同上 |
-| AC-355 | 標準出力と標準エラーの使い分け | `P(p; a:0)` | `run -v a` ほか | `run`・`pipeline`・`reset`・`validate` は、OUT に何も書かない。OUT に書くのは `watch`、`--help`、`--version`、`convert` と、v0.9.0 以降の `graph`、`--dry-run`、`init --config -` だけ。ジョブ本体の出力は、そのまま流れる | `binary_basic`、`report_messages::level ごとに出力先が決まる` |
+| AC-355 | 標準出力と標準エラーの使い分け(v0.10.0 で変更) | `P(p; a:0)` | `run -v a` ほか | `run`・`pipeline`・`reset`・`validate` は、OUT に何も書かない。OUT に書くのは `watch`、`--help`、`--version`、`convert` と、v0.9.0 以降の `graph`、`--dry-run`、`init --config -` だけ。v0.10.0 以降は、`watch --follow` の描くたびの表(と、その前に置く画面の消去の列か空の 1 行)と `graph --format dot` も OUT。ジョブ本体の出力は、そのまま流れる(`log_dir` があっても、同じ流れに同じバイト列が出て、同時にログのファイルにも写す)。ログのファイルの 3 つの文は ERR | `binary_basic`、`report_messages::level ごとに出力先が決まる`、`report_messages::u7 継続表示は標準出力に出る`、`report_messages::ログを作れない文はエラーで 警告の 2 つは知らせの水準`、`binary_log::fr5_5 log_dir のあり なしで端末の出力が同じ` |
 | AC-356 | 成功・スキップで表示なし | `P(p; a:0)`、`LANG` に不正な値 | `run a` | OUT・ERR 空(表示がなければ言語も色も判定しない) | `flow_run::成功は何も表示せず ロケールも判定しない`、`report_messages::言語と色の判定は 最初に必要になるまで行われない` |
 | AC-357 | -v のトークンは言語によらず英語 | `LANG=ja_JP.UTF-8`、`P(p; a:1{w=[1]})` | `run -v a` | ERR = `[conductor] job=a result=warning (終了コード 1)`(`job=`、`result=`、`warning` は英語) | `flow_run::v は日本語のロケールで日本語になる` |
 | AC-358 | -v の補足: 起動できない | 存在しないプログラム、`-v` | `run -v a` | ERR に `[conductor] job=a result=error (could not start)` と、続いて `conductor: error: job 'a': cannot start command '…'`。日本語は `起動できませんでした` | `report_messages::v の文言`、08 章 2.1 節 |
@@ -842,27 +851,27 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 
 | 終了コード | 意味 | 起こすテスト |
 |------------|------|--------------|
-| 0 | 成功・警告・スキップ・`watch`・`reset`・`validate`・`convert` の成功・`--help`・`--version`・`reset --all` の警告 | AC-389 |
+| 0 | 成功・警告・スキップ・`watch`・`reset`・`validate`・`convert` の成功・`--help`・`--version`・`reset --all` の警告。v0.10.0 以降は `watch --follow` の終わり(完了・止まった・消えた・中断の合図)と、ログのファイルの警告だけのとき | AC-389 |
 | 1 | 成功コードに含まれない 0、エラーで下位 8 ビットが 0 | AC-390 |
 | ジョブの値(1〜255) | エラーのジョブの終了コード | AC-391 |
-| 64 | 定義の誤り・`command` の誤り | 4.1 節 |
-| 65 | ステートの誤り・書き込み・削除の失敗・`watch` の出力失敗・完了判定不能 | 4.11 節、4.3 節、4.6 節、4.5 節 |
+| 64 | 定義の誤り・`command` の誤り。v0.10.0 以降は `[pipeline.retry]`・`retry`・`env_file` の表・`unset_env`・`log_dir` の誤りと、`unset_env` と `env`・`.env` の重なり | 4.1 節、4.21〜4.23 節、4.25 節 |
+| 65 | ステートの誤り・書き込み・削除の失敗・`watch` の出力失敗・完了判定不能。v0.10.0 以降は試行の記録の誤りと v0.9.9 までのステート、`watch --follow` の読めない 3 回・壊れた・出力失敗 | 4.11 節、4.3 節、4.6 節、4.5 節、4.26 節、4.27 節 |
 | 66 | 拒否(順序外) | 4.3 節 |
 | 67 | 変換の誤り・`convert` の出力失敗 | 4.7 節 |
-| 68 | 使い方の誤り(知らないジョブID、run ID の誤りを含む) | 4.3、4.8、4.12 節 |
-| 70 | 内部の誤り・シグナルの準備の失敗 | 4.10 節・4.13 節(注入) |
-| 127 | ジョブを起動できなかった | 4.2 節 |
+| 68 | 使い方の誤り(知らないジョブID、run ID の誤りを含む)。v0.10.0 以降は `--follow`・`--interval` の誤り | 4.3、4.8、4.12 節、4.27 節 |
+| 70 | 内部の誤り・シグナルの準備の失敗(v0.10.0 以降は `watch --follow` の準備の失敗も) | 4.10 節・4.13 節(注入)、4.27 節 |
+| 127 | ジョブを起動できなかった。v0.10.0 以降はログのファイルを作れずに起動しなかったとき | 4.2 節、4.25 節 |
 | 128 + 番号 | ジョブがシグナルで終了、または中断 | 4.3 節、4.9 節、4.10 節 |
 
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-389 | 終了 0 の全種類 | 成功 / 警告(`w=[3]` で `exit 3`)/ スキップ(実行済み)/ `watch`・`reset`・`validate`・`convert`・`--help`・`--version` の成功 / `reset --all` の警告 | 各実行 | すべて 0 | `binary_basic::警告は 0 スキップは 0…` ほか |
+| AC-389 | 終了 0 の全種類(v0.10.0 で変更) | 成功 / 警告(`w=[3]` で `exit 3`)/ スキップ(実行済み)/ `watch`・`reset`・`validate`・`convert`・`--help`・`--version` の成功 / `reset --all` の警告 / v0.10.0 以降は、`watch --follow` で完了したステート・止まったステート・消えたステート・中断の合図、`graph --format dot` の成功、成功したジョブのログのファイルへの書き込みの失敗・出力の待ち切れの警告 | 各実行 | すべて 0 | `binary_basic::警告は 0 スキップは 0 エラーはジョブの値` ほか、`binary_basic::u7_fr7_3 完了のステートを follow で見ると 1 回描いて 0 でパイプに制御の文字が無い`、`binary_basic::u7_fr7_3 止まったステートを follow で見ると 0 で終わる`、`flow_aux::u7_br3_1 一度見えたステートが 2 回続けて無いなら 0 で終わる`、`flow_aux::u7_br3_2 待ちの途中の合図で 0`、`flow_run::br5_2_br5_3 書き込みの失敗と待ち切れは警告を 1 行ずつ出し 終了コードは変わらない` |
 | AC-390 | 終了 1 の 2 種類 | `P(p; a:0{s=[5]})`(成功コードにない 0)/ エラーで下位 8 ビットが 0 になる終了コード | `run a` | 1 / 1(`exit 256` は Windows で確かめる。UNIX 系では OS が 0 にするので成功。関数の検査は下) | `flow_run::成功コードに含まれない 0 は 1…`、`exit_codes::エラーで 0 になる場合は 1` |
 | AC-391 | ジョブの値 | `exit 1`、`exit 2`、`exit 7`、`exit 255` | `run a` | 同じ値 | `binary_basic`、`core::flow_sequences` |
 | AC-392 | 終了コードの範囲合わせ(関数の検査) | 報告する値 `reported`、`is_error` | 範囲合わせの関数 | `0..255` はそのまま。`259`→3、`511`→255、`-1`→255、`-2`→254、`0xC0000005`(32 ビット符号つき)→5。`256`・`512`・`-256`・32 ビットの最小値は、エラーなら 1、エラーでなければ 0 | `exit_codes::範囲内の値はそのまま / 範囲外の値は下位 8 ビット / エラーで 0 になる場合は 1 / エラーでなければ 0 のまま`。区分: 単体 |
 | AC-393 | 中断の終了コード(関数の検査) | シグナル番号 n | `128 + n` を範囲合わせ(エラー扱い) | 15→143、2→130、1→129、3→131、300→172(範囲を超えない) | `exit_codes::中断の終了コードは 128 足す番号 / 中断の終了コードは範囲を超えない`。区分: 単体 |
 | AC-394 | 分類の全 10 項目(関数の検査) | 07 章 4.4 節の表の各行 | 分類の関数 | 順 1: 起動前の中断 → 分類なし、`128 + n`。順 2: 起動なし・中断でもない → エラー 127。順 3: 起動済みの中断 → `128 + n`(ジョブの終了コードを見ない)。順 4: 起動失敗 → 127。順 5: シグナル終了 n → `128 + n`。順 6: 終了コードなし → 1(`conductor` のエラー)。順 7: 成功コード → 0。順 8: 警告コード → 0。順 9: 0 で成功コードにない → 1(`conductor` のエラー)。順 10: そのまま。優先順位は上の行ほど高い | `core::flow_sequences::優先順位 中断と起動失敗とシグナル`、`flow_run`。区分: 単体 |
-| AC-395 | 終了コードの決定順序 | 複数の誤りを同時に持つ入力 | `run` | 検査の順(引数 68 → 準備 70 → 定義 64 → `command` 64 → ジョブID 68 → run ID 68 → `.env` の読み取り 64(v0.9.0 以降)→ ステートの読み込み 65 → 照合 65 → 起動前の判断 66/0 → 初期ステート 65 → ジョブ → 結果の書き込み 65 → 削除 65)で、最初の誤りだけが採られる。具体例は 4.3 節(定義の誤り > ジョブID)、4.8 節(定義 64 > run ID 68 > ステート 65) | `flow_run`、`flow_run_id::run id の決定は…`(10 章 2 節) |
+| AC-395 | 終了コードの決定順序(v0.10.0 で変更) | 複数の誤りを同時に持つ入力 | `run` | 検査の順(引数 68 → 準備 70 → 定義 64 → `command` 64 → ジョブID 68 → run ID 68 → `.env` の読み取り 64(v0.9.0 以降。v0.10.0 以降は、`.env` の名前と `unset_env` の重なりを含む)→ ステートの読み込み 65 → 照合 65 → 起動前の判断 66/0 → 初期ステート 65(v0.10.0 以降は、試行ごとの試行の開始の書き込み。最初の試行の書き込みが初期化を兼ねる)→ ジョブ(v0.10.0 以降は、ログのファイルを作れなければ起動せず 127)→ 結果の書き込み 65 → 削除 65)で、最初の誤りだけが採られる。具体例は 4.3 節(定義の誤り > ジョブID)、4.8 節(定義 64 > run ID 68 > ステート 65) | `flow_run::順序は 判断 初期ステート ジョブ 記録の書き込み`、`flow_run::u6_br1_1 試行の始まりは起動の前に fast で書かれる`、`flow_run_id::run id の決定は定義の検査のあと ステートの読み込みの前`、`flow_env::env の名前と消す名前の重なりは 64 で範囲は読み取りの範囲`(10 章 2 節) |
 | AC-396 | 128 + 番号の例 | ジョブが SIGKILL / 実行中に SIGTERM(UNIX 系) | `run a` | 137 / 143 | `flow_run::シグナルで終了したジョブは 128 足す番号`、`binary_signal` |
 
 ### 4.16 非機能要件の検証
@@ -909,7 +918,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-450 | 層の優先順位と配列の順 | `[pipeline] env_file = "p.env"`、`[pipeline.env]` に `LAYER = "pipeline-env"`、`T_PENV = "pe"`。`show` に `env_file = ["j1.env", "j2.env"]`、`[job.env]` に `LAYER = "job-env"`、`T_JENV = "je w"`。`p.env` = `LAYER=pipeline-file⏎T_PFILE=pf⏎T_SHARED=from-p⏎T_OVERRIDDEN=from-env-file`、`j1.env` = `LAYER=j1⏎T_J1=one⏎T_SHARED=from-j1`、`j2.env` = `export T_J2=two⏎T_SHARED=from-j2⏎T_QUOTED="a b\n"`。環境: `T_INHERITED=from-parent`、`T_OVERRIDDEN=from-parent`。`show` は `LAYER T_PFILE T_PENV T_J1 T_J2 T_JENV T_SHARED T_QUOTED T_NONE T_INHERITED T_OVERRIDDEN` を出す | `run show` | 終了 0。OUT: `LAYER` = `"job-env"`、`T_PFILE` = `"pf"`、`T_PENV` = `"pe"`、`T_J1` = `"one"`、`T_J2` = `"two"`、`T_JENV` = `"je w"`、`T_SHARED` = `"from-j2"`(配列は後ろが勝つ)、`T_QUOTED` = `"a b\n"`(値は、`a`、空白、`b`、LF)、`T_NONE` = unset、`T_INHERITED` = `"from-parent"`(引き継いだ環境は残る)、`T_OVERRIDDEN` = `"from-env-file"`(`.env` が引き継いだ値を上書きする) | `binary_env::env と env_file の値と優先順位が子のプロセスの環境に見える` |
 | AC-451 | 自動の変数 | `show` が `CONDUCTOR_PIPELINE CONDUCTOR_JOB_ID CONDUCTOR_RUN_ID CONDUCTOR_ATTEMPT` を出す | `pipeline p --run-id r-42` / `run show` | 前者の OUT: `CONDUCTOR_PIPELINE` = `"p"`、`CONDUCTOR_JOB_ID` = `"show"`、`CONDUCTOR_RUN_ID` = `"r-42"`、`CONDUCTOR_ATTEMPT` = `"1"`。後者(run ID なし): `CONDUCTOR_JOB_ID` = `"show"`、`CONDUCTOR_RUN_ID` = unset、`CONDUCTOR_ATTEMPT` = `"1"` | `binary_env::自動の変数が run id の有無で渡る` |
 | AC-452 | run ID がないとき、引き継いだ `CONDUCTOR_RUN_ID` はそのまま | `show` が `CONDUCTOR_RUN_ID` を出す。環境: `CONDUCTOR_RUN_ID=zzz` | `run show --run-id ""`(run ID なしに固定) | 終了 0。OUT: `CONDUCTOR_RUN_ID` = `"zzz"`(`conductor` は足さず、取り除かない) | 05 章 14.3(派生) |
-| AC-453 | `CONDUCTOR_ATTEMPT` はリトライごとに増え、再開で 1 に戻る | `show` に `[job.retry] exit_codes = [75], max = 2, interval = "1s"`。起動の部品の差し替えで、1・2 回目は終了コード 75、3 回目は 0 を返す | `run show`。続けて、リトライを使い切るジョブ(常に 75)を `run`、再び `run` | 起動のたびに渡された環境の `CONDUCTOR_ATTEMPT` は `1`、`2`、`3`。使い切って停止したあとの再実行では、また `1` から数える(リトライの回数はステートに書かれない) | `flow_env::リトライで attempt が 1 2 3 と増え再開で 1 に戻る`。区分: 注入 |
+| AC-453 | `CONDUCTOR_ATTEMPT` はリトライごとに増え、再開で 1 に戻る(v0.10.0 で変更) | `show` に `[job.retry] exit_codes = [75], max = 2, interval = "1s"`。起動の部品の差し替えで、1・2 回目は終了コード 75、3 回目は 0 を返す | `run show`。続けて、リトライを使い切るジョブ(常に 75)を `run`、再び `run` | 起動のたびに渡された環境の `CONDUCTOR_ATTEMPT` は `1`、`2`、`3`。使い切って停止したあとの再実行では、また `1` から数える。v0.10.0 以降は、ステートに試行ごとの時刻(`[[job.attempt]]`)が残り、再実行の試行は前の試行の後ろに足される。`CONDUCTOR_ATTEMPT` は、ステートの試行の数から数えない(リトライの回数そのものはステートに書かれない) | `flow_env::リトライで attempt が 1 2 3 と増え再開で 1 に戻る`、`flow_run::u6_br1_4 再実行しても前の試行を残して後ろに足す`。区分: 注入 |
 | AC-454 | `.env` の誤りで、何も実行せず 64 | `[pipeline] env_file = ["ok.env", "bad.env", "missing.env"]`。`ok.env` = `GOOD=SECRET`、`bad.env` = `NOEQ SECRET⏎T_OK=1⏎1BAD=SECRET⏎Q="SECRET\q"`(`missing.env` は無い) | `pipeline p` / `run show` / `validate` | すべて 64。OUT 空(ジョブが動かない)。ERR に、`bad.env:1`(missingEquals)、`bad.env:3`(invalidName)、`bad.env:4`(invalidEscape)、`missing.env`(fileMissing)の行がある。ERR に `SECRET` が現れない。ステートファイルがない | `binary_env::env の誤りは 64 で値が出力に無くジョブもステートも作らない` |
 | AC-455 | 誤りは 20 件で打ち切る | `.env` に、`=` のない行が 25 行 | `validate` | 64。ERR は 21 行。最後の行 = `conductor: error: and 5 more`(日本語 `ほか 5 件`)。先頭の 20 行は、行番号 1〜20 の `missingEquals` | `flow_env::誤りは 20 件で打ち切り残りの件数を示す`、`report_messages::env の誤りは 20 件で打ち切り…` |
 | AC-456 | `validate` の重複キーの警告 | `[pipeline] env_file = "p.env"`、`p.env` = `A=1⏎B=SECRET⏎A=2` | `validate` | 終了 0。OUT 空。ERR に `conductor: warning: ` で始まり、`p.env:3: duplicate key` と `` `A` `` を含む行(英語。日本語は `重複キー`)がある。`SECRET` が現れない。ステートを作らない | `binary_env::validate は重複キーの警告を標準エラーに出して 0` |
@@ -1010,9 +1019,10 @@ demo/README.md                 使い方と各場面の説明
 demo/conductor.toml            UNIX 系の定義(パイプライン nightly)
 demo/retry.toml                UNIX 系のリトライの定義(パイプライン retry-demo)。場面 10 だけが使う
 demo/env.toml, demo/demo.env   UNIX 系の環境変数の定義(パイプライン env-demo)と `.env`。場面 11 だけが使う(v0.9.0 以降)
+demo/log.toml                  UNIX 系のログのファイルの定義(パイプライン log-demo)。場面 15 だけが使う(v0.10.0 以降)
 demo/run-demo.sh               UNIX 系のスクリプト(シェル)
 demo/scripts/{extract,transform,load,notify,flaky,show-env}.sh   UNIX 系のジョブ(show-env は v0.9.0 以降)
-demo/windows/conductor.toml, retry.toml, env.toml, demo.env, run-demo.cmd   Windows 版(コマンドプロンプトのバッチ)
+demo/windows/conductor.toml, retry.toml, env.toml, demo.env, log.toml, run-demo.cmd   Windows 版(コマンドプロンプトのバッチ。log.toml は v0.10.0 以降)
 demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Windows 版のジョブ
 ```
 
@@ -1023,7 +1033,7 @@ demo/windows/scripts/{extract,transform,load,notify,flaky,show-env}.cmd   Window
 | 実行 | `demo/run-demo.sh`(リポジトリの根から) | `demo\windows\run-demo.cmd` |
 | 実行ファイルの選択 | 環境変数 `CONDUCTOR`。なければ、リリースの形のビルドの成果物(`target/release/conductor`)。それも無ければ、実装のビルド手順で、リリースの形のビルドを作る | `CONDUCTOR`。なければ `target\release\conductor.exe`。それも無ければ同様 |
 | 表示の言語 | `DEMO_LANG`(既定 `ja_JP.UTF-8`。英語は `en_US.UTF-8`)を `LANG` に設定。`LC_ALL`、`LC_MESSAGES` は外す | `DEMO_LANG`(既定 `ja_JP.UTF-8`。`en_US` のようにも書ける)。`LC_ALL`、`LC_MESSAGES` は空にする。コードページを実行中だけ 65001(UTF-8)にして、終わりに戻す |
-| 一時停止 | `DEMO_PAUSE=1` のときだけ、各場面のあとで Enter を待つ | 同じ |
+| 一時停止 | `DEMO_PAUSE=1` のときだけ、各場面のあとで Enter を待つ。場面 4 では、`watch --follow` の前でも待つ(端末では画面が消えるので、その前の出力を読めるように。v0.10.1 以降) | 各場面のあとで待つのは同じ。場面 4 の `watch --follow` の前では待たない(Windows は画面を消さず、追記するため) |
 | ジョブの待ち時間 | `DEMO_SLEEP`(既定 0.5 秒。小数可) | `DEMO_SLEEP`(整数の秒。既定 1。`0` で待たない。小数は使えない) |
 | ジョブの終了コード | 環境変数 `DEMO_<ジョブ名の大文字>_EXIT`(既定 0) | 同じ |
 | 作業場所 | 一時ディレクトリを作り、定義とスクリプトを写して実行。終了時に消す | `%TEMP%` の下の一時ディレクトリ(`conductor-demo-<乱数>`)に写して実行し、終わりに消す |
@@ -1073,7 +1083,9 @@ command = ["sh", "scripts/notify.sh"]
 `flaky` の仕様: カレントディレクトリの `flaky.count` の回数を 1 増やす(なければ 0 から)→ `  [flaky] <n> 回目の実行...` を表示する → 待つ → `n` が `DEMO_FLAKY_FAILS`(既定 2)以下なら `  [flaky] 終了コード 75 で終わります(一時的な失敗)` を表示して 75 で終わる。超えたら `  [flaky] 終了コード 0 で終わります` を表示して 0 で終わる。
 (Windows 版のジョブは、待ちに `ping` を使うなど、実現の仕方が違ってよい。表示の文言は同じ。)
 
-`demo/env.toml`(v0.9.0 以降。場面 11): `[pipeline]` の `name = "env-demo"`、`description = "環境変数のデモ"`、`env_file = "demo.env"`、`[pipeline.env]` に `DEMO_GREETING = "hello from [pipeline.env]"` と `DEMO_STAGE = "pipeline"`、ジョブ `show-env`(`command = "sh scripts/show-env.sh"`)の `[job.env]` に `DEMO_STAGE = "job"`。`demo/demo.env`: `DEMO_FROM_FILE=from demo.env`、`export DEMO_QUOTED="two words"`(コメントつき)、`DEMO_STAGE=dotenv`(コメントで、優先順位の例を説明)。`show-env` の仕様: `DEMO_GREETING`、`DEMO_FROM_FILE`、`DEMO_QUOTED`、`DEMO_STAGE`、`CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(なければ `(なし)`)、`CONDUCTOR_ATTEMPT` を、`  [show-env] <名前>=<値>` の形で 1 行ずつ表示する。
+`demo/env.toml`(v0.9.0 以降。場面 11): `[pipeline]` の `name = "env-demo"`、`description = "環境変数のデモ"`、`env_file = ["demo.env", { path = "local.env", required = false }]`(v0.10.0 以降。`local.env` は置いていないので、読み飛ばす。v0.9.x までは `env_file = "demo.env"`)、`[pipeline.env]` に `DEMO_GREETING = "hello from [pipeline.env]"` と `DEMO_STAGE = "pipeline"`、ジョブ `show-env`(`command = "sh scripts/show-env.sh"`)に `unset_env = ["DEMO_PROXY"]`(v0.10.0 以降)と、`[job.env]` に `DEMO_STAGE = "job"`。`demo/demo.env`: `DEMO_FROM_FILE=from demo.env`、`export DEMO_QUOTED="two words"`(コメントつき)、`DEMO_STAGE=dotenv`(コメントで、優先順位の例を説明)。`show-env` の仕様: `DEMO_GREETING`、`DEMO_FROM_FILE`、`DEMO_QUOTED`、`DEMO_STAGE`、`CONDUCTOR_PIPELINE`、`CONDUCTOR_JOB_ID`、`CONDUCTOR_RUN_ID`(なければ `(なし)`)、`CONDUCTOR_ATTEMPT`、(v0.10.0 以降)`DEMO_PROXY`(なければ `(なし)`)を、`  [show-env] <名前>=<値>` の形で 1 行ずつ表示する。
+
+`demo/log.toml`(v0.10.0 以降。場面 15): `[pipeline]` の `name = "log-demo"`、`description = "ログのファイルのデモ"`、`log_dir = "logs"`、`[pipeline.retry]` に `exit_codes = [75]`、`max = 3`、`interval = "1s"`(既定のリトライ)、ジョブ `flaky`(`command = "sh scripts/flaky.sh"`。`retry` を書かないので既定を当てはめる)。
 
 ### 5.4 場面
 
@@ -1083,17 +1095,18 @@ command = ["sh", "scripts/notify.sh"]
 | 1 | 全部成功。書いた順に 1 つずつ | `pipeline -v nightly` |
 | 2 | `extract` が警告(`DEMO_EXTRACT_EXIT=1`)→ `transform`・`load` をスキップして `notify` へ | `pipeline -v nightly` |
 | 3 | `load` のエラー(`DEMO_LOAD_EXIT=2`)で止まり、終了コード 2。止まった位置 | `pipeline -v nightly`、続けて `watch` |
-| 4 | `load` から再開(`transform` は再実行しない)。完了してもステートは残り、`watch` が完了の行を出す。`--remove-on-complete` で完了時にステートを消す | `pipeline -v nightly`、`watch`、ステートの一覧、`pipeline -v --remove-on-complete nightly`、一覧、`watch` |
+| 4 | `load` から再開(`transform` は再実行しない)。完了してもステートは残り、`watch` が完了の行を出す(v0.10.0 以降は所要時間の列つき)。(v0.10.0 以降)`watch --follow` は、完了したステートなので 1 回描いて 0 で終わる。`--remove-on-complete` で完了時にステートを消す | `pipeline -v nightly`、`watch`、(v0.10.0 以降)`watch --follow`(UNIX 系は `DEMO_PAUSE=1` なら、その前で待つ。v0.10.1 以降)、ステートの一覧、`pipeline -v --remove-on-complete nightly`、一覧、`watch` |
 | 5 | 個別実行と初期化 | `run -v extract`、`reset` |
 | 6 | TOML から YAML への変換 | `convert conductor.toml --to yaml` |
 | 7 | 検査。正しい定義は 0(`definition is valid`)、引用符が閉じていない定義は 64(`command has an unclosed quote`)。ジョブは実行されず、ステートも作られない | `validate -v`、誤りの定義 `bad.toml`(`command = "sh -c 'echo hi"`)を作って `validate --config bad.toml`、一覧 |
 | 8 | run ID ごとに別のステートファイル(`conductor.toml.<run ID>.state`)。同じ run ID で再開。完了後もステートは残り、`reset --run-id` で片づける | `pipeline -v --run-id build-1 nightly`(`load` で失敗)、環境変数 `DEMO_RUN_ID=build-2` で `pipeline -v nightly`、一覧、`watch --run-id build-1`、`pipeline -v --run-id build-1 nightly`(再開)、一覧、`watch --run-id build-1`、`reset --run-id build-1`、`reset --run-id build-2`、一覧 |
 | 9 | `--run-id` は環境変数に勝つ。`--run-id ""` は run ID なしに固定。`reset --run-id` は 1 つ、`reset --all` は全部。最後の `watch` は `no state` | `DEMO_RUN_ID=env-1` で `pipeline`(`load` で失敗)、`DEMO_RUN_ID=env-1` と `--run-id opt-1`、`--run-id ""`、`--run-id opt-2`、一覧、`reset --run-id opt-1`、一覧、`reset --all`、一覧、`watch` |
 | 10 | `flaky` が 2 回、終了コード 75 で失敗し、`conductor` は 1 秒待つたびに標準エラーへ `conductor: retry: job 'flaky' exited with code 75; retry <n> of 3 in 1 seconds` を出して実行し直し、3 回目で成功(`job=flaky result=success`) | `rm -f flaky.count`(Windows は `del`)、`pipeline -v --config retry.toml retry-demo` |
-| 11(v0.9.0 以降) | 環境変数。`show-env` が、`.env` < `[pipeline.env]` < `[job.env]` の優先順位で足された環境変数(`DEMO_STAGE=job`)と、自動の `CONDUCTOR_*`(run ID がなければ `CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`)を表示する。`.env` が無いと、ジョブを動かさずに 64。`validate` は、重複キーを警告して 0。値は `conductor` 自身の出力に出ない | `cat env.toml`、`cat demo.env`、`pipeline -v --config env.toml env-demo`。`env_file = "missing.env"` の定義 `bad-env.toml` で `pipeline`。`A=1`・`A=2` の `dup.env` を指す定義 `dup-env.toml` で `validate` |
-| 12(同) | 遷移の図。`extract` が警告なら `notify` へ飛ぶ遷移の図(右の線が飛び越し)、`-v` の詳細、Mermaid、`--state` の `[OK]`・`[NG]`・`[  ]` と再開位置。`graph` はステートを読むだけ | `graph`、`graph -v`、`graph --format mermaid`、`DEMO_LOAD_EXIT=2` で `pipeline nightly`(`load` で止める)、`graph --state`、`reset` |
+| 11(v0.9.0 以降) | 環境変数。`show-env` が、`.env` < `[pipeline.env]` < `[job.env]` の優先順位で足された環境変数(`DEMO_STAGE=job`)と、自動の `CONDUCTOR_*`(run ID がなければ `CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1`)を表示する。(v0.10.0 以降)無くてもよい `local.env` は黙って読み飛ばす。親に置いた `DEMO_PROXY=from-parent` は、`unset_env` で消えて `DEMO_PROXY=(なし)`。`--dry-run` は、消す名前の行(`unset env: DEMO_PROXY`)を出す。`.env` が無いと、ジョブを動かさずに 64。`validate` は、重複キーを警告して 0。値は `conductor` 自身の出力に出ない | `cat env.toml`、`cat demo.env`、`DEMO_PROXY=from-parent` で `pipeline -v --config env.toml env-demo`、(v0.10.0 以降)`pipeline --dry-run --config env.toml env-demo`。`env_file = "missing.env"` の定義 `bad-env.toml` で `pipeline`。`A=1`・`A=2` の `dup.env` を指す定義 `dup-env.toml` で `validate` |
+| 12(同) | 遷移の図。`extract` が警告なら `notify` へ飛ぶ遷移の図(右の線が飛び越し)、`-v` の詳細、Mermaid、(v0.10.0 以降)DOT、`--state` の `[OK]`・`[NG]`・`[  ]` と再開位置。`graph` はステートを読むだけ | `graph`、`graph -v`、`graph --format mermaid`、(v0.10.0 以降)`graph --format dot`、`DEMO_LOAD_EXIT=2` で `pipeline nightly`(`load` で止める)、`graph --state`、`reset` |
 | 13(同) | 実行計画。計画(ジョブは実行されない)、`extract` が警告で `transform`・`load` が遷移でスキップされ `notify` へ、`load` で停止、`run` の次の動き。ステートは作られない | `pipeline nightly --dry-run`、`--assume extract=1`、`--assume load=2`、`run extract --dry-run`、ステートの一覧 |
 | 14(同) | ひな形。`created new.toml`、ひな形が `validate` に通る、2 回目は終了コード 69、`--force` で `replaced new.toml`、`--config -` は標準出力にひな形 | `init --config new.toml starter`、`validate --config new.toml starter`、もう一度 `init`、`init --config new.toml --force starter`、`init --config - starter` |
+| 15(v0.10.0 以降) | ログのファイル。`flaky` が 2 回失敗してから成功し(既定のリトライ)、試行ごとに 1 つのファイル `flaky.<開始の時刻(UTC。詰めた形)>.<試行の番号>.log` ができる(3 つ)。UNIX 系は `-rw-------`(0600)。ファイルの中身はジョブの出力だけ。端末の出力は `log_dir` が無いときと同じ。`conductor` は古いログを消さない(片づけは利用者) | `cat log.toml`、`rm -f flaky.count`、`pipeline --config log.toml log-demo`、`ls -l logs`、各 `logs/*.log` の中身(`--- <パス>` の見出しのあと)、`rm -r logs`、`reset --config log.toml`。Windows 版は `ls -l` の代わりに `dir /b logs`、`rm -r` の代わりに `rmdir /s /q logs`(権限の表示は無い) |
 
 最後に `デモは以上です。`(Windows 版も同じ)を出す。
 
@@ -1103,9 +1116,9 @@ command = ["sh", "scripts/notify.sh"]
 
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-424 | UNIX 系: スクリプトが全部通る | 上の設定 | `sh demo/run-demo.sh` | 終了 0。見出し `=== 0. ` から `=== 14. ` までが順に出る | `unix_demo`。区分: UNIX 系 |
+| AC-424 | UNIX 系: スクリプトが全部通る(v0.10.0 で変更) | 上の設定 | `sh demo/run-demo.sh` | 終了 0。見出し `=== 0. ` から `=== 15. ` までが順に出る(v0.9.x までは `=== 14. ` まで)。場面 3 の `watch` の表の見出しが `JOB        STATUS   DURATION  NOTE` で、`extract`・`transform`・`load` の所要時間が `<秒>s` の形、`notify` の行が `notify     pending`。場面 15 に、`log_dir = "logs"`、試行 1〜3 のファイルの見出し `--- logs/flaky.<詰めた時刻>.<番号>.log`(番号は 1、2、3)、`-rw-------`、3 回目のファイルの中身(`  [flaky] 3 回目の実行...`⏎`  [flaky] 終了コード 0 で終わります`)、`$ rm -r logs` が現れる | `unix_demo::デモは 0 で完走し 場面 0 から 15 の要点の行が出る`。区分: UNIX 系 |
 | AC-425 | UNIX 系: 場面 7(検査) | 同上 | 同上 | 出力に `definition is valid`、`command has an unclosed quote`、`→ 終了コード 64` が現れる。誤りの定義の検査のあと、ステートの一覧が `(なし)` | 同上 |
-| AC-426 | UNIX 系: 場面 4(再開・完了) | 同上 | 同上 | `completed` の行、`skipped (already executed)` が現れる | 同上 |
+| AC-426 | UNIX 系: 場面 4(再開・完了)(v0.10.0 で変更) | 同上 | 同上 | `completed` の行、`skipped (already executed)` が現れる。v0.10.0 以降は、`watch --follow` が 1 回だけ描き(`Pipeline: nightly` が 1 回、`completed` あり。標準出力がパイプなので画面の消去の列 `ESC[H` が無い)、`→ 終了コード 0` で終わる。`DEMO_PAUSE=1` のときは、1 回の `watch` の完了の行のあと、`watch --follow` の前で待つ(場面 4 の待ちは、場面の終わりと合わせて 2 回。v0.10.1 以降) | 同上、`unix_demo::br5_5 demo pause のとき場面 4 は watch follow の前で待つ` |
 | AC-427 | UNIX 系: 場面 8(run ID) | 同上 | 同上 | `conductor.toml.build-1.state` が一覧に現れる。再開のあと `completed`。`reset` のあと一覧は `(なし)` | 同上 |
 | AC-428 | UNIX 系: 場面 9(環境変数と後始末) | 同上 | 同上 | `conductor.toml.opt-1.state` が現れ、最後の `watch` が `no state` | 同上 |
 | AC-429 | UNIX 系: 場面 10(リトライ) | 同上 | 同上 | `conductor: retry: job 'flaky' exited with code 75; retry 1 of 3 in 1 seconds` と `… retry 2 of 3 in 1 seconds` の 2 行、`[flaky] 3 回目の実行`、`job=flaky result=success` が現れる | 同上 |
@@ -1113,16 +1126,16 @@ command = ["sh", "scripts/notify.sh"]
 | AC-431 | UNIX 系: 何も残さない | 同上 | 同上 | 終了後、一時ディレクトリの親 `D` に何も残らない。リポジトリの作業ツリーは変わらない | 同上 |
 | AC-432 | Windows 版: 定義 | 定義 `demo\windows\conductor.toml` | (検査) | 4 ジョブ(`extract`、`transform`、`load`、`notify`)と、`extract` の警告の遷移(`notify` へ)を持つ。`validate` が 0 | `windows_demo`。区分: Windows |
 | AC-433 | Windows 版: 場面 1〜2 | 一時ディレクトリに定義とスクリプトを写す | `pipeline nightly`(場面 1)、`DEMO_EXTRACT_EXIT=1` で `pipeline nightly`(場面 2) | 場面 1 は 0。場面 2 は `notify` へ進み 0 | 同上 |
-| AC-434 | Windows 版: 場面 3〜4 | 同上 | `DEMO_LOAD_EXIT=2` で `pipeline`(2)、続けて `pipeline`(`load` から再開) | 2 のあと、再実行で `load` から再開して 0 | 同上 |
+| AC-434 | Windows 版: 場面 3〜4(v0.10.0 で変更) | 同上 | `DEMO_LOAD_EXIT=2` で `pipeline`(2)、`watch`、続けて `pipeline`(`load` から再開) | 2 のあと、`watch` の表に所要時間の列(`DURATION`)が出る。再実行で `load` から再開して 0 | `windows_demo::場面 3 と 4 load の失敗は 2 で watch に所要時間が出て 再実行すると load から再開する` |
 | AC-435 | Windows 版: 場面 5〜7 | 同上 | `run extract`、`reset`、`convert conductor.toml --to yaml`、`validate`、誤りの定義の `validate` | `run`・`reset`・`convert`・`validate` は 0。誤りの定義は 64 | 同上 |
 | AC-436 | Windows 版: 場面 8〜9 | 同上 | run ID を使う一連(場面 8、9) | run ID ごとにステートが分かれる。`--run-id` が環境変数に勝つ。`reset --run-id` と `--all` が働く | 同上 |
 | AC-437 | Windows 版: 場面 10 | 同上 | `pipeline --config retry.toml retry-demo` | 2 回失敗してから成功する | 同上 |
 | AC-438 | Windows 版: 利用者の run ID に影響されない | 利用者の run ID の環境変数を設定 | 同上 | 結果が変わらない | 同上 |
-| AC-514 | UNIX 系: 場面 11(環境変数。v0.9.0 以降) | 上の設定 | `sh demo/run-demo.sh` | `[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1` の行と、`missing.env`(`.env` が無い誤り)、``duplicate key `A` ``(警告)が現れる | `unix_demo`(場面 11)。区分: UNIX 系 |
-| AC-515 | UNIX 系: 場面 12(`graph`) | 同上 | 同上 | `*   extract`⏎`\|\`⏎`* \| transform`⏎`* \| load`⏎`\|/`⏎`* notify`⏎`o @end` の図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract` が現れる | 同上(場面 12) |
+| AC-514 | UNIX 系: 場面 11(環境変数。v0.9.0 以降)(v0.10.0 で変更) | 上の設定 | `sh demo/run-demo.sh` | `[show-env] DEMO_GREETING=hello from [pipeline.env]`、`DEMO_FROM_FILE=from demo.env`、`DEMO_QUOTED=two words`、`DEMO_STAGE=job`、`CONDUCTOR_PIPELINE=env-demo`、`CONDUCTOR_JOB_ID=show-env`、`CONDUCTOR_RUN_ID=(なし)`、`CONDUCTOR_ATTEMPT=1` の行と、`missing.env`(`.env` が無い誤り)、``duplicate key `A` ``(警告)が現れる。v0.10.0 以降は、`[show-env] DEMO_PROXY=(なし)` が現れ、`[show-env] DEMO_PROXY=from-parent` は現れない。`--dry-run` の計画に `     unset env: DEMO_PROXY` の行が現れる | `unix_demo::デモは 0 で完走し 場面 0 から 15 の要点の行が出る`(場面 11)。区分: UNIX 系 |
+| AC-515 | UNIX 系: 場面 12(`graph`)(v0.10.0 で変更) | 同上 | 同上 | `*   extract`⏎`\|\`⏎`* \| transform`⏎`* \| load`⏎`\|/`⏎`* notify`⏎`o @end` の図、`command: sh scripts/extract.sh`、`success -> transform`、`flowchart TD`、`[NG] load  <- resume here`、`[OK] extract` が現れる。v0.10.0 以降は、`digraph conductor {` の行(DOT)も現れる | 同上(場面 12) |
 | AC-516 | UNIX 系: 場面 13(`--dry-run`) | 同上 | 同上 | `plan (--dry-run): pipeline nightly`⏎`resume: from the start`⏎`1. [run] extract` で始まる計画、`assume: extract=1`、`2. [skip (transition)] transform`、`3. [skip (transition)] load`、`4. [run] notify`、`assume: load=2`、`result (simulated): stopped (error: load)`、`target job: extract`、`next step: next job transform` が現れ、続くステートの一覧は `(なし)` | 同上(場面 13) |
 | AC-517 | UNIX 系: 場面 14(`init`) | 同上 | 同上 | `created new.toml`、`name = "starter"`、`already exists (use --force to overwrite)`、`→ 終了コード 69`、`replaced new.toml`、`format_version = 1`(`--config -` の出力)が現れる | 同上(場面 14) |
-| AC-518 | Windows 版: 場面 11〜14 | 一時ディレクトリに定義とスクリプトを写す | 場面 11〜14 の一連 | 場面 11: 環境変数が子に渡り、優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0。場面 12: `graph` の図と `--state`。場面 13: `--dry-run` は何も実行せずステートも作らない。場面 14: `init` は 2 回目に 69、`--force` で上書き | `windows_demo`(場面 11〜14)。区分: Windows |
+| AC-518 | Windows 版: 場面 11〜15(v0.10.0 で変更) | 一時ディレクトリに定義とスクリプトを写す | 場面 11〜15 の一連 | 場面 11: 環境変数が子に渡り、優先順位は `[job.env]` が最も強い。`.env` が読めないと 64、`validate` は重複キーを警告して 0。v0.10.0 以降は、`unset_env` の名前は、親に置いても(大文字小文字によらず)子に渡らず、`--dry-run` は消す名前を出す。場面 12: `graph` の図と `--state`。場面 13: `--dry-run` は何も実行せずステートも作らない。場面 14: `init` は 2 回目に 69、`--force` で上書き。場面 15(v0.10.0 以降): `log_dir` で試行ごとにファイルができ(3 つ)、中身はジョブの出力 | `windows_demo::場面 11 環境変数が子に渡り 優先順位は job env が最も強い`、`windows_demo::場面 11 unset env の名前は親に置いても大文字小文字によらず渡らず dry run は消す名前を出す`、`windows_demo::場面 11 env が読めないと 64 で validate は重複キーを警告して 0`、`windows_demo::場面 12 graph は遷移を図にし state で状態と再開位置を重ねる`、`windows_demo::場面 13 dry run は計画を出し 何も実行せず ステートも作らない`、`windows_demo::場面 14 init はひな形を作り 2 回目は 69 で force で上書きできる`、`windows_demo::場面 15 log dir で試行ごとにファイルができ 中身はジョブの出力`。区分: Windows |
 
 ---
 
