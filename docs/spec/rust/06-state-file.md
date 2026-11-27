@@ -1,6 +1,6 @@
 # 06. ステートファイル(形式・場所・読み書き・整合性・reset)
 
-対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。ステートファイルは、あるパイプライン定義の、実行の途中経過(どのジョブがどう終わったか、どこから再開するか)を保存する TOML ファイル。実行の意味論(いつ何を記録するか)は [05-execution-flow.md](05-execution-flow.md) にある。この文書は、ファイルの形式、読み書きの手順、異常系の挙動を定める。
+対象: `conductor` v0.10.0 の機能(試行の時刻 `[[job.attempt]]`)を含む現在の実装(Rust 実装)。ステートファイルは、あるパイプライン定義の、実行の途中経過(どのジョブがどう終わったか、どこから再開するか)を保存する TOML ファイル。実行の意味論(いつ何を記録するか)は [05-execution-flow.md](05-execution-flow.md) にある。この文書は、ファイルの形式、読み書きの手順、異常系の挙動を定める。
 
 実装の所在(参考): `crates/runtime/src/state/{reader,writer,reset_all}.rs`、`crates/runtime/src/types.rs`(`StateLocation`)、`crates/runtime/src/error.rs`(理由文)。照合と記録は `crates/core/src/{consistency,flow/record}.rs`。
 
@@ -56,6 +56,21 @@
 | `status` | 文字列 | 必須 | `"pending"` / `"success"` / `"warning"` / `"error"` / `"skipped"`(これ以外は `corrupt`。語と型の対応は `JobStatus::as_str`・`JobStatus::parse` の 1 か所) |
 | `exit_code` | 整数(`i32` の範囲) | 任意 | ジョブの終了コード。`status` が success / warning / error のときだけ持てる。終了コードが無い結果(起動失敗・シグナル終了)の error には書かない。負数も許す(例 `-1`)。`i32` を超える整数は `corrupt` |
 | `skip_reason` | 文字列 | 条件付き | `"byTransition"`(遷移によるスキップ)/ `"byEnd"`(`@end` によるスキップ)。**`status = "skipped"` のときだけ必須、そのほかの `status` では書いてはならない**(語と型の対応は `SkipReason::as_str`・`SkipReason::parse`) |
+| `attempt`(v0.10.0 以降) | テーブルの配列(`[[job.attempt]]`) | 条件付き | 試行(ジョブの 1 回の起動)の時刻の並び。古い順。**`status` が success / warning / error のときは 1 つ以上が必須**(§2.4)。試行が無ければキー自体を書かない(§2.3a) |
+
+`[[job]]` のキーは上の 5 つ(`JOB_KEYS`)だけ。
+
+### 2.3a `[[job.attempt]]` のキー(v0.10.0 以降)
+
+| キー | 型 | 必須 | 意味・値 |
+|---|---|---|---|
+| `started_at` | 文字列(時刻) | 必須 | 試行を始めた時刻。起動の前に取る |
+| `ended_at` | 文字列(時刻) | 任意 | 試行が終わった時刻。**無くてよいのは最後の試行だけ**(動いている最中か、`conductor` が強制終了された後) |
+
+- キーは上の 2 つ(`ATTEMPT_KEYS`)だけ。ほかのキーは `corrupt`(知らないキー)。コマンド・環境変数・ジョブの出力は書かない。
+- 時刻の書式は UTC の RFC 3339 の `YYYY-MM-DDTHH:MM:SSZ` だけ(例 `2026-11-25T09:12:48Z`。`conductor_core::format_rfc3339`)。読むときも、この形だけを受け付ける(`parse_rfc3339`。長さ 20、区切りの位置、数字、`Z`。小数の秒・時差・小文字は不可)。年は 1970〜9999、月は 1〜12、日はその月の日数まで(うるう年を含む。うるう秒は扱わない)、時は 0〜23、分と秒は 0〜59。形に合わなければ `corrupt`(時刻の書式の誤り)。文字列でなければ `corrupt`(値の型の誤り)。
+- 終わりが始まりより前でも、誤りにしない(時計が戻った場合)。
+- 時刻は `conductor_core::Timestamp`(UTC の UNIX 時刻の秒。範囲は 1970-01-01T00:00:00Z〜9999-12-31T23:59:59Z)で持つ。型は `Attempt { started_at: Timestamp, ended_at: Option<Timestamp> }`、`JobState.attempts: Vec<Attempt>`。現在の時刻は runtime の時計(`clock::now`。cli の `Runtime::now`)が取る。
 
 ### 2.4 内容の矛盾(読み込み時に `corrupt` になる条件)
 
@@ -65,8 +80,17 @@
 - `resume_job_id` があるのに `completed = true`(完了と再開位置は両立しない)。
 - `status` が `skipped` なのに `skip_reason` が無い、または `skipped` 以外なのに `skip_reason` がある。
 - `status` が pending / skipped なのに `exit_code` がある。
+- (v0.10.0 以降)`status` が success / warning / error(動いたジョブ)なのに、試行(`[[job.attempt]]`)が 1 つも無い。理由 `動いたジョブに試行の記録がありません(古い形式の可能性があります)`。
+- (v0.10.0 以降)最後でない試行に `ended_at` が無い。理由 `終わりの時刻の無い試行が、最後の試行ではありません`。
+- (v0.10.0 以降)試行の時刻の書式が誤っている(§2.3a)。理由 `時刻の書式が誤っています`。
 
-### 2.5 実ファイルの例(実装の出力。全フィールド)
+pending と skipped のジョブは、試行を持っても持たなくてもよい(中断で終わった試行が残る pending など)。
+
+**v0.9.9 までに書いたステート**: 書式の版は `1` のままだが、v0.9.9 までは試行を書かなかったため、動いたジョブ(success / warning / error)を含むステートは、上の「試行が無い」で `corrupt`(65)になる。`run`・`pipeline`・`--dry-run`・`watch`・`graph --state` のどれでも同じで、`conductor reset`(run ID つきは `reset --run-id <ID>`)の案内を出す(§5.2)。pending と skipped だけのステートは、そのまま読める。
+
+### 2.5 実ファイルの例(実装の出力の形。全フィールド)
+
+v0.10.0 以降、動いたジョブ(success / warning / error)は `[[job.attempt]]` を持つ。各 `[[job]]` の中では、スカラーのキーをアルファベット順に書き、続けて `[[job.attempt]]` を古い順に書く(`[[job.attempt]]` の中も `ended_at`、`started_at` のアルファベット順)。下の例の時刻は、形を示すための値である。
 
 (1)エラーで止まった run ID なしのステート(`conductor.toml` の代わりに `c2.toml`、3 ジョブ。`b` が exit 3)。ファイル名 `c2.toml.state`。
 
@@ -85,10 +109,18 @@ exit_code = 0
 id = "a"
 status = "success"
 
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:05Z"
+started_at = "2026-11-25T09:12:48Z"
+
 [[job]]
 exit_code = 3
 id = "b"
 status = "error"
+
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:06Z"
+started_at = "2026-11-25T09:13:05Z"
 
 [[job]]
 id = "c"
@@ -111,6 +143,10 @@ run_id = "r1"
 exit_code = 0
 id = "a"
 status = "success"
+
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:05Z"
+started_at = "2026-11-25T09:12:48Z"
 
 [[job]]
 id = "b"
@@ -140,10 +176,18 @@ exit_code = 0
 id = "a"
 status = "success"
 
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:05Z"
+started_at = "2026-11-25T09:12:48Z"
+
 [[job]]
 exit_code = 2
 id = "b"
 status = "warning"
+
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:10Z"
+started_at = "2026-11-25T09:13:05Z"
 
 [[job]]
 id = "c"
@@ -154,13 +198,36 @@ status = "skipped"
 exit_code = -1
 id = "d"
 status = "error"
+
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:11Z"
+started_at = "2026-11-25T09:13:10Z"
 ```
 
 (この例は、書き込みテストの試料(`status` ごとの値、`skip_reason`、負の `exit_code`)に基づく。形式は上の実出力と同じ。)
 
+(4)(v0.10.0 以降)リトライを 2 回行い、3 回目の試行が動いている最中のジョブ(`pending`、最後の試行に `ended_at` が無い)。前の 2 回の試行の終わりの時刻は、次の試行を始めるときに書かれる(§3)。
+
+```toml
+[[job]]
+id = "fetch"
+status = "pending"
+
+[[job.attempt]]
+ended_at = "2026-11-25T09:12:50Z"
+started_at = "2026-11-25T09:12:48Z"
+
+[[job.attempt]]
+ended_at = "2026-11-25T09:13:01Z"
+started_at = "2026-11-25T09:13:00Z"
+
+[[job.attempt]]
+started_at = "2026-11-25T09:13:21Z"
+```
+
 ### 2.6 初期ステート(`initial_state`)
 
-定義から作る、記録前のステート: 全ジョブ `pending`、`resume_job_id` 無し、`end_reached = false`、`completed = false`、`definition_key` = `definition_path` = 定義ファイルのパス文字列、`pipeline_name` = 定義の名前、`job_order` = 定義のジョブIDの記述順、`run_id` = 決定した run ID(あれば)。
+定義から作る、記録前のステート: 全ジョブ `pending`、`resume_job_id` 無し、`end_reached = false`、`completed = false`、`definition_key` = `definition_path` = 定義ファイルのパス文字列、`pipeline_name` = 定義の名前、`job_order` = 定義のジョブIDの記述順、`run_id` = 決定した run ID(あれば)。どのジョブも試行を持たない(v0.10.0 以降)。
 
 ---
 
@@ -168,12 +235,14 @@ status = "error"
 
 | 契機 | 内容 | 耐久性 |
 |---|---|---|
-| ステートが空で、最初のジョブが `Run` と決まった直後(ジョブを起動する前) | 初期ステート。完了のまま残ったステートがあっても、同じ名前のファイルを初期ステートで**上書きする** | `Fast`(同期を省く) |
-| ジョブの最終の結果が出た後(リトライを含めて 1 回だけ) | `apply_outcome` の結果。起動前の中断・待機中の中断も、この契機で書く(ジョブの状態は変わらず、`resume_job_id` が付く) | `Durable` |
+| (v0.10.0 以降)試行を始めるとき(ジョブを起動する前。リトライの各試行と再開を含め、試行ごとに 1 回) | 時計から取った時刻で `start_attempt` した結果(最後の試行に終わりが無ければ、その試行を自身の `started_at` で閉じてから、終わりの無い試行を足す)。リトライの 2 回目以降は、前の試行を、メモリに持っていた終わりの時刻で閉じて(`end_attempt`)から足す。ステートが空なら、初期ステート(§2.6)に試行を足したものを書き、これが初期化の書き込みを兼ねる。完了のまま残ったステートがあっても、同じ名前のファイルを**上書きする**。書き込みに失敗したら、ジョブを起動しない | `Fast`(同期を省く) |
+| ジョブの最終の結果が出た後(リトライを含めて 1 回だけ) | `apply_outcome` の結果(試行を閉じたものに)。起動前の中断・待機中の中断も、この契機で書く(ジョブの状態は変わらず、`resume_job_id` が付く) | `Durable` |
 | スキップが決まったとき(`apply_skip` の結果が元と異なるときだけ) | スキップの記録 | `Durable` |
 | `pipeline` のジョブのあいだの中断 | `apply_interrupt` の結果 | `Durable` |
 | 完了(`completed = true`)になったとき | 上の契機の書き込みに含まれる(完了のステートも同じ手順) | `Durable` |
 
+- (v0.10.0 以降)試行の終わり: 起動して終わった・起動に失敗した・ログのファイルを作れずに起動しなかった試行は、試行の後に時計から時刻を取って閉じる(`end_attempt`)。起動の前に中断の合図が立っていて起動しなかった試行(`NotStarted`)は、取り除く(`cancel_attempt`)。リトライするときは、終わりの時刻をメモリ(`pending_end`)に持ち、試行を**開いたまま書かずに**待つ(待ちのあいだ、`watch --follow` には動いている最中に見える)。待ちが中断されたら、持っていた時刻で閉じて、上の `Durable` の書き込みに入る。実装は `crates/cli/src/step.rs` の `run_job_with_retry`、試行の関数は `crates/core/src/flow/attempt.rs`。
+- `apply_outcome` と `apply_skip` は、試行を変えない。
 - `Reject`(66)では何も書かない(初期ステートも)。
 - 書き込みの失敗(65)の表示の末尾に、ジョブの起動前なら `(ジョブは起動していません / the job was not started)`、起動後なら `(ジョブは実行されました / the job has already been executed)` が付く(ロケールに従う)。
 - 結果を書けなかったときは、以降のジョブを起動せず、65 で終わる。
@@ -231,7 +300,7 @@ status = "error"
 | 9 | 最上位に未知のキーがある | `corrupt`(`知らないキーがあります`) |
 | 10 | `run_id` の取り出しと照合 | 型が文字列でない → `corrupt`(`値の型が誤っています`)。中身の `run_id`(無ければ「なし」)がファイル名の run ID(無ければ「なし」)と一致しない → `corrupt`(`run_id がファイル名の run ID と一致しません`) |
 | 11 | 必須キーの取り出し: `definition_key`、`definition_path`、`pipeline_name`、`end_reached`、`completed`、`job_order`、`job`(この順) | 無い → `corrupt`(`必須のキーがありません`)。型が違う → `corrupt`(`値の型が誤っています`) |
-| 12 | `job` の各テーブルを順に検査(§2.3、§2.4 の最後の 2 項) | 未知のキー、`id`/`status` 欠落、`status`/`skip_reason` の不正値、`exit_code` の型・範囲、`skip_reason` と `status` の不整合、`exit_code` と `status` の不整合 → `corrupt` |
+| 12 | `job` の各テーブルを順に検査(§2.3、§2.3a、§2.4 のジョブごとの項) | 未知のキー、`id`/`status` 欠落、`status`/`skip_reason` の不正値、`exit_code` の型・範囲、`skip_reason` と `status` の不整合、`exit_code` と `status` の不整合、(v0.10.0 以降)`[[job.attempt]]` の検査(配列・表でない → `値の型が誤っています`、未知のキー → `知らないキーがあります`、`started_at` 欠落 → `必須のキーがありません`、時刻が文字列でない → `値の型が誤っています`、時刻の形の誤り → `時刻の書式が誤っています`、最後でない試行に `ended_at` が無い → `終わりの時刻の無い試行が、最後の試行ではありません`)、動いたジョブに試行が無い(`動いたジョブに試行の記録がありません(古い形式の可能性があります)`) → `corrupt` |
 | 13 | `resume_job_id` の型 | 文字列でない → `corrupt` |
 | 14 | 内容の矛盾(この順): ジョブIDの重複 → `job` の並びと `job_order` の不一致 → `resume_job_id` が `job_order` に無い → `completed` かつ `resume_job_id` あり | いずれも `corrupt`(それぞれ `ジョブIDが重複しています`、`job の並びが job_order と一致しません`、`resume_job_id が job_order にありません`、`completed と resume_job_id が両立しません`) |
 | 15 | `read_state` のみ: `completed = true` | **空**(完了のまま残ったステート。ファイルは消さない) |
@@ -241,7 +310,7 @@ status = "error"
 - ステートのパスが通常のファイルでない(書き手のいない名前付きパイプ、ディレクトリ、`/dev/zero` などのデバイスへのシンボリックリンク)とき、開かずに `unreadable`(理由は `開く、または読み取ることができません`)。名前付きパイプでも止まらない。v0.9.7 までは、先に開いたため、書き手のいない名前付きパイプのステートで止まり、`/dev/zero` へのリンクは開いて読み、上限 + 1 バイトで止めて `tooLarge` だった。
 - 読む権限のないステートは、1 MiB を超えていても `unreadable`(開く操作が大きさの確認より先に失敗する)。
 - 読み取りでは、ファイルを**消さない・書き換えない**。
-- 「空」= ステートが無いのと同じ扱い。呼び出し側は、すべて pending のステートとして扱い、最初の `Run` の前に初期ステートを書く。
+- 「空」= ステートが無いのと同じ扱い。呼び出し側は、すべて pending のステートとして扱い、最初の `Run` の試行を始めるときに、初期ステートに試行を足したものを書く(§3)。
 
 ### 5.2 失敗の表示と終了コード
 
@@ -274,7 +343,7 @@ conductor: error: c2.toml.r3.state: state file is corrupt: run_id がファイ�
 
 | 状況 | 結果 | ジョブの起動 | ステート |
 |---|---|---|---|
-| ファイルが無い | 空として続行 | する | 最初の `Run` の前に初期ステートを書く |
+| ファイルが無い | 空として続行 | する | 最初の `Run` の試行の前に、初期ステートに試行を足して書く(§3) |
 | 長さ 0 | 空として続行 | する | 同上(上書き) |
 | `completed = true` | 空として続行(定義との照合もしない) | する | 初期ステートで上書き |
 | 読めない(権限等) | 65 | しない | 変更なし |
@@ -400,7 +469,8 @@ conductor: warning: kept state files that could not be read (remove one with `co
 - `end_reached` は単調(true になったら戻らない)。
 - `completed = true` のとき `resume_job_id` は無い(`NextStep` が完了のとき再開位置を持たない。`apply_skip` は `resume_job_id = first_pending` で、完了の条件は `first_pending` が無いこと)。
 - ただし、`apply_outcome` が、エラーのジョブの状態を保つ「起動前の中断」のとき、`status = error` のまま `exit_code` が消える(05 §12 の 2)。
-- (v0.9.0 以降)ステートに、環境変数(名前も値も)、`.env` の内容、`env` の設定を**書かない**。ステートの書式(§2)は v0.8.0 と同じで、`PipelineState` の型に環境変数の項目はない。再開のときも、`.env` は、呼び出しごとに読み直す(05 の 14.5)。
+- (v0.10.0 以降)本番の流れが書く success / warning / error のジョブは、試行を 1 つ以上持ち、最後でない試行は `ended_at` を持つ(試行は `start_attempt` が足し、`end_attempt` が閉じ、`cancel_attempt` が取り除く。§3)。
+- (v0.9.0 以降)ステートに、環境変数(名前も値も)、`.env` の内容、`env` の設定を**書かない**。ステートの書式(§2)は v0.8.0 と同じで(v0.10.0 で、試行の時刻 `[[job.attempt]]` だけを足した)、`PipelineState` の型に環境変数の項目はない。v0.10.0 以降も、ステートに書くのは試行の開始と終了の時刻だけで、コマンド・環境変数・ジョブの出力は書かない(`crates/runtime/tests/nfr_content.rs` が検査する)。再開のときも、`.env` は、呼び出しごとに読み直す(05 の 14.5)。
 - (v0.9.0 以降)`graph --state` は、ステートを `read_state_raw` で、完了したものも含めて**読むだけ**で、書かず・消さない。`--dry-run` は、`read_state`(完了したものは「空」)で読むだけで、書かず・消さない。どちらも、定義との照合(§6)を行い、食い違いは 65。
 
 ---
@@ -410,8 +480,9 @@ conductor: warning: kept state files that could not be read (remove one with `co
 - **排他制御はしない**(ファイルロック、PID ファイルなし)。同じ定義(同じ run ID)で複数の conductor を同時に動かすと、それぞれが読んで書き、後に書いた方が勝つ。書き込み自体は原子的なので、ファイルが壊れることはないが、記録は失われうる。同時の実行は避けること。
 - 別の実行単位(run)で同じ定義を並行して使うときは、run ID でステートを分ける(§1)。run ID ごとに独立したファイルと再開位置を持つ。
 - **at-least-once**: ジョブの終了と、結果の書き込みのあいだに conductor が落ちると、ジョブは未実行として扱われ、再実行されうる。
-- **リトライの回数はステートに書かない**(書式に項目がない)。再開は、そのジョブを最初の実行から数え直す。
-- ステートは、定義ファイルのあるディレクトリに作られる。書き込めないディレクトリでは、最初のジョブの前に 65 で止まる(初期ステートが書けない)。
+- **リトライの回数はステートに書かない**(書式に項目がない)。再開は、そのジョブを最初の実行から数え直す(`CONDUCTOR_ATTEMPT` は 1 に戻る)。v0.10.0 以降は、試行ごとの時刻(`[[job.attempt]]`)が残るので、試行の数は分かるが、`conductor` は回数として読まない(再開しても前の試行は消さず、後ろに足す)。
+- ステートは、定義ファイルのあるディレクトリに作られる。書き込めないディレクトリでは、最初のジョブの前に 65 で止まる(最初の試行の書き込みができない)。
+- (v0.10.0 以降)`conductor` が強制終了されたとき(`kill -9` など)、最後の試行は `ended_at` の無いまま残る。次にそのジョブを始めると、その試行を自身の `started_at` で閉じてから、新しい試行を足す(時刻を作らない)。
 - 古い run のステートは自動では消えない。`reset --all` か、`--remove-on-complete` で片づける。
 
 ---
@@ -428,6 +499,7 @@ README とステートの実装のあいだに、矛盾は見つからなかっ�
 | 4 | 読み込みの検査の順序と上限 | 1 MiB の上限、未知のキーの拒否、`format_version` の先行検査は、README に記述がない(README は「読めない・壊れている・版の不一致」とだけ書く) |
 | 5 | 理由文の言語 | 理由(例: `TOML として読めません`)は、ロケールに関わらず日本語の固定文。種類の文と案内はロケールに従う |
 | 6 | `definition_key` | 書式に残っているが、`definition_path` と同じ値で、照合に使わない |
+| 7 | `[[job.attempt]]` のキーの順(v0.10.0 以降) | README の例は `started_at`、`ended_at` の順に書くが、実装の出力は、ほかの表と同じくアルファベット順(`ended_at`、`started_at`)。読み込みは順序に依存しない |
 
 ## 12. 未確認
 
