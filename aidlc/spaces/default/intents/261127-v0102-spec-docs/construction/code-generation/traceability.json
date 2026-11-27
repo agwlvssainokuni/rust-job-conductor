@@ -1,0 +1,235 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": [
+    "FR1.1",
+    "FR1.2",
+    "FR1.3",
+    "FR1.4",
+    "FR1.5",
+    "FR1.6",
+    "FR1.7",
+    "FR1.8",
+    "FR1.9",
+    "FR1.10",
+    "FR1.11",
+    "FR1.12",
+    "FR2.1",
+    "FR2.2",
+    "FR2.3",
+    "FR2.4",
+    "FR3.1",
+    "FR3.2",
+    "FR4.1",
+    "FR5.1",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4",
+    "NFR5",
+    "BR1.1",
+    "BR1.2",
+    "BR1.3",
+    "BR2.1",
+    "BR2.2",
+    "BR2.3",
+    "BR2.4",
+    "BR3.1",
+    "BR4.1",
+    "BR5.1",
+    "BR6.1",
+    "BR6.2",
+    "BR6.3"
+  ],
+  "coverage": [
+    {
+      "id": "FR1.1",
+      "status": "OK",
+      "target": "docs/spec/rust/00-README.md"
+    },
+    {
+      "id": "FR1.2",
+      "status": "OK",
+      "target": "docs/spec/rust/02-architecture.md"
+    },
+    {
+      "id": "FR1.3",
+      "status": "OK",
+      "target": "docs/spec/rust/03-definition-format.md"
+    },
+    {
+      "id": "FR1.4",
+      "status": "OK",
+      "target": "docs/spec/rust/04-cli.md"
+    },
+    {
+      "id": "FR1.5",
+      "status": "OK",
+      "target": "docs/spec/rust/05-execution-flow.md"
+    },
+    {
+      "id": "FR1.6",
+      "status": "OK",
+      "target": "docs/spec/rust/06-state-file.md"
+    },
+    {
+      "id": "FR1.7",
+      "status": "OK",
+      "target": "docs/spec/rust/07-process-and-signals.md"
+    },
+    {
+      "id": "FR1.8",
+      "status": "OK",
+      "target": "docs/spec/rust/08-output-and-i18n.md"
+    },
+    {
+      "id": "FR1.9",
+      "status": "OK",
+      "target": "docs/spec/rust/10-errors-and-exit-codes.md"
+    },
+    {
+      "id": "FR1.10",
+      "status": "OK",
+      "target": "docs/spec/rust/11-quality-and-build.md"
+    },
+    {
+      "id": "FR1.11",
+      "status": "OK",
+      "target": "docs/spec/rust/12-rebuild-guide.md"
+    },
+    {
+      "id": "FR1.12",
+      "status": "OK",
+      "target": "docs/spec/rust/05-execution-flow.md"
+    },
+    {
+      "id": "FR2.1",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/05-execution-flow.md"
+    },
+    {
+      "id": "FR2.2",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "FR2.3",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/03-definition-format.md"
+    },
+    {
+      "id": "FR2.4",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/00-README.md"
+    },
+    {
+      "id": "FR3.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/memory/team.md"
+    },
+    {
+      "id": "FR3.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/memory/team.md"
+    },
+    {
+      "id": "FR4.1",
+      "status": "OK",
+      "target": "crates/runtime/src/lib.rs"
+    },
+    {
+      "id": "FR5.1",
+      "status": "OK",
+      "target": "crates/cli/Cargo.toml"
+    },
+    {
+      "id": "NFR1",
+      "status": "OK",
+      "target": "crates/cli/tests/binary_basic.rs"
+    },
+    {
+      "id": "NFR2",
+      "status": "OK",
+      "target": "docs/spec/rust/08-output-and-i18n.md"
+    },
+    {
+      "id": "NFR3",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/07-process-and-signals.md"
+    },
+    {
+      "id": "NFR4",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "NFR5",
+      "status": "OK",
+      "target": "Cargo.lock"
+    },
+    {
+      "id": "BR1.1",
+      "status": "OK",
+      "target": "docs/spec/rust/03-definition-format.md"
+    },
+    {
+      "id": "BR1.2",
+      "status": "OK",
+      "target": "docs/spec/rust/05-execution-flow.md"
+    },
+    {
+      "id": "BR1.3",
+      "status": "OK",
+      "target": "docs/spec/rust/07-process-and-signals.md"
+    },
+    {
+      "id": "BR2.1",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/05-execution-flow.md"
+    },
+    {
+      "id": "BR2.2",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "BR2.3",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "BR2.4",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/10-errors-and-exit-codes.md"
+    },
+    {
+      "id": "BR3.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/memory/team.md"
+    },
+    {
+      "id": "BR4.1",
+      "status": "OK",
+      "target": "crates/runtime/src/lib.rs"
+    },
+    {
+      "id": "BR5.1",
+      "status": "OK",
+      "target": "crates/cli/Cargo.toml"
+    },
+    {
+      "id": "BR6.1",
+      "status": "OK",
+      "target": "crates/runtime/src/lib.rs"
+    },
+    {
+      "id": "BR6.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation/code-summary.md"
+    },
+    {
+      "id": "BR6.3",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    }
+  ]
+}

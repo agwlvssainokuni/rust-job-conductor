@@ -268,3 +268,113 @@ Step 13 の範囲どおりに書いた。節ごとの数は変えていない。
 | 25 | `9b1426e` | docs: … watch --follow の受け入れテスト(4.27)を足す |
 | 25 | `d5f6976` | docs: … 非機能の検証に計画の模擬の性能(AC-573)を足す |
 | 26 | `c2d7f5e` | docs: language-agnostic 仕様書の 12 章に v0.10 の機能の段 14〜21 と受け入れテストの範囲を足す |
+
+## Step 27〜31 の記録
+
+### Step 10 の書き漏れの直し(FR1.10。`2dbc1c4`)
+
+Step 24〜26 の記録で「気になる点」に挙げた、rust 版の 11 章の書き漏れを直した。根拠は `demo/env.toml`・`demo/windows/env.toml`・`demo/scripts/show-env.sh`・`demo/run-demo.sh`・`demo/windows/run-demo.cmd`、`crates/cli/tests/unix_demo.rs`・`windows_demo.rs`、`crates/runtime/src/bin/conductor-test-helper.rs`・`crates/cli/src/bin/conductor-cli-test-helper.rs`。
+
+- 9.3: `env.toml` の `env_file = ["demo.env", { path = "local.env", required = false }]`(v0.9.x までは文字列)と `unset_env = ["DEMO_PROXY"]`、`show-env` の `DEMO_PROXY` の行(Windows 版も同じ)。
+- 9.4: 場面 11 に、親の `DEMO_PROXY=from-parent`(UNIX 版は `$ export DEMO_PROXY=from-parent` を見せてサブシェル、Windows 版は `setlocal` の中の `set`)と `pipeline --dry-run --config env.toml env-demo`、見せること(`DEMO_PROXY=(なし)`、`unset env: DEMO_PROXY`、無い `local.env` で止まらない)。場面 12 に `graph --format dot`(`digraph conductor {`)。
+- 9.5: `unix_demo.rs`・`windows_demo.rs` の行に、場面 11 の `DEMO_PROXY` と `unset env`、場面 12 の `digraph conductor {` の確かめを足した(9.5 は依頼の 9.3・9.4 の外だが、同じ書き漏れのため同じコミットで直した)。
+- 4.3: `conductor-test-helper` に `streams <n>`・`orphan [秒]`、`conductor-cli-test-helper` に `flood <bytes>` を足した(実装の既定値と終了コードを写した)。
+
+### Step 27: runtime の呼び出しの順序(BR4.1、FR4.1。`79d53dd`)
+
+- `crates/runtime/src/lib.rs` の「# 呼び出しの順序」の 2. の `Run` を、`start_attempt` → `write_state`(`Fast`)→ `run_job`(足す環境変数、消す名前、`LogTarget`)→ `end_attempt` → `classify_and_decide` → `apply_outcome` → `write_state`(`Durable`)に直した。最初の試行の書き込みが空のステートの初期化を兼ねること、リトライの待ち(試行を開いたまま、終わりの時刻はメモリ)、`cancel_attempt`、待ちの中断を添えた。根拠は `crates/cli/src/step.rs` の `run_step`・`run_job_with_retry` と `crates/core/src/flow/attempt.rs`。コードは変えていない。
+- `functional-spec.md` の 5 章は `classify_and_decide` → `end_attempt` の順を挙げるが、実装(`step.rs`)は `run_job_with_retry` の中で試行を閉じてから `classify_and_decide` を呼ぶので、実装の順で書いた。
+- `cargo test -p conductor-runtime --lib --locked`: 88 passed。`cargo doc -p conductor-runtime --no-deps --locked`: 警告 4 件(作業の前と同じ 4 件。新しいリンクは足していない)。
+
+### Step 28: team.md のテストの数(BR3.1、FR3。`c005e87`)
+
+数え直した値(作業の前と同じ): 統合テストのファイル core 36・runtime 16・cli 26・converter 2、`crates/cli/src/tests/` 12、`crates/converter/src/tests/` 4、`#[test]` 1,460。`git diff --stat` で `team.md` の 1 行だけが変わったことを確かめた。新しい行:
+
+```text
+- テストの種類: 各クレートの `tests/` に統合テスト(core 36、runtime 16、cli 26、converter 2 のファイル。`tests/` の直下の `.rs` の数)。単体テストは各モジュールの `mod tests` と、`crates/cli/src/tests/`(12 ファイル)、`crates/converter/src/tests/`(4 ファイル)(どちらも `mod.rs` と補助を含むすべての `.rs` の数)。`#[test]` は合計 1,460(`grep -rE '^\s*#\[test\]' crates --include='*.rs'` の行の数)。
+```
+
+### Step 29: 全体の確かめ(NFR1、NFR3)
+
+#### 付録 B(rust と language-agnostic。版の更新の前に走らせた。版の更新は版の数だけを変える)
+
+1. `grep -rn '33 種\|13 種' docs/spec/rust/ docs/spec/language-agnostic/`: rust の `12:105`・`12:107`(v0.9.0 の段の履歴)と、language-agnostic の `12:129`(段 10 の履歴。印つき)の 3 行だけ。
+2. `grep -rn '足すだけ\|取り除かない\|取り除く書き方\|読まない・保存しない\|1 回だけ書\|0〜14' ...`: rust の `05:170`・`05:277`・`05:713`・`03:394`、language-agnostic の `05:729`・`03:561`・`11:924`(AC-452)だけ。どれも付録 A の「残してよい記述」。
+3. `grep -rl` の各語の章:
+
+| 語 | rust | language-agnostic |
+|---|---|---|
+| `log_dir` | 00・01・02・03・04・05・07・08・09・10・11・12 | 同じ |
+| `unset_env` | 00・01・02・03・04・05・07・08・09・10・11・12 | 00〜12 のすべて |
+| `--follow` | 00・01・02・04・05・06・07・08・10・11・12 | 同じ |
+| `attempt` | 00・02・04・05・06・07・08・10・11・12 | 同じ |
+| `dot` | 00・01・02・04・05・08・10・11・12 | 同じ |
+
+   FR1 の各章(02・03・04・05・06・07・08・10・11・12)を、その機能と関わる語ですべて含む(現れない組は、Step 12 と Step 26 の記録のとおり、その機能と関わらない章)。
+4. 数: `PIPELINE_KEYS` 9・`JOB_KEYS` 9、デモの `scene` 16 個(場面 0〜15)を実装から数え直した。ほかの数(34 種・14 種、ステートのキー 10・5・2、試行の理由 3 つ、`watch` の 4 列、`--interval` 1〜3600 と 2 秒、`--format` 3 つ)は Step 12・23・26 の確かめから変わっていない(Step 27〜30 はそれらの記述に触れていない)。
+5. テストの数: Step 28 の値(作業の前と同じ)。
+
+#### 品質の検査(macOS のローカル)
+
+| コマンド | 結果 |
+|---|---|
+| `cargo fmt --all -- --check` | 差なし |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings` | 警告なし |
+| `cargo test --workspace --locked`(版の更新の前) | 1,437 passed、0 failed、1 ignored |
+| `cargo test --workspace --locked`(版の更新の後。Step 30) | 1,437 passed、0 failed、1 ignored |
+
+- `#[test]` の 1,460 との差(23)は、macOS では動かない Windows 向けのテスト(`cfg(windows)`)などで、作業の前からの差。
+- ubuntu・windows の `test`、`msrv-test`、`coverage`、`docs-check` は CI で確かめる(push は人が行う。この Step では走らせていない)。
+
+### Step 30: 版を 0.10.2 にする(BR5.1、FR5.1。`10ce84e`)
+
+- `git show --stat 152c4a1` と同じ 22 ファイル(`Cargo.lock`、4 つの `Cargo.toml`、`crates/cli/tests/binary_basic.rs`、rust の 00・03・04・09・11・12、language-agnostic の 00・01・02・04・05・06・07・08・11・12)で、各ファイルの変更の行の数も 152c4a1 と同じ(37 行の追加と 37 行の削除)。ファイルの集合が同じことは `diff` で確かめた。
+- 変えたのは今の版の表記だけ(「v0.10.1 までの挙動」、`0.10.1` の部品の版、`conductor 0.10.1` の表示、AC-345 の OUT、rust 00 の 3 行の「v0.10.2(v0.9.0 と v0.10.0 の機能、v0.10.1 の直しを含む)」)。「v0.10.1 以降」「v0.10.1 の直し」「段 21. v0.10.1 の直し」などの機能の版の注記は変えていない。rust の 11・12 の 3 行(「v0.10.0 の機能と v0.10.1 の直しを含む現在の実装」)は、152c4a1 の範囲の行ではなく、今も正しいので変えていない。
+- 件名はちょうど「版を 0.10.2 にする」。
+
+### 全体のまとめ
+
+#### 章ごとの変更
+
+- rust: Step 2〜12 の表(00・01・02・03・04・05・06・07・08・09・10・11・12)と、Step 10 の書き漏れの直し(11 の 4.3・9.3〜9.5)。
+- language-agnostic: Step 14〜23 の表(00〜10)、Step 24(11 の既存の AC の書き換え)、Step 25(11 の 4.21〜4.27 と AC-573)、Step 26(12 と 00 の 1 行)。
+- そのほか: `crates/runtime/src/lib.rs` のドキュメントコメント(Step 27)、`team.md` の 1 行(Step 28)、版(Step 30)。
+
+#### 既存の AC の洗い出しと新しい AC
+
+- 既存の AC の洗い出しの表は「Step 24 の記録」の 2 つの表(合わない行 15 件を書き換え、確かめて合う行)。
+- 新しい AC は AC-519〜AC-573 の 55 件(4.21〜4.27 と 4.16 の非機能の表の行)。範囲は「Step 13」と「Step 25」の表のとおりで、欠番・重複は無い。
+
+#### テストの結果
+
+- `cargo test --workspace --locked`: 1,437 passed、0 failed、1 ignored(版の更新の前と後)。`binary_basic` の `--version` の期待は `conductor 0.10.2`。
+- `cargo fmt`・`cargo clippy -D warnings`: 通る。`cargo doc -p conductor-runtime`: 警告 4 件(作業の前と同じ)。
+- 新しいテストは足していない(文書の変更のため。`unit-test-instructions.md` のとおり)。
+
+#### コミットの一覧(`afa741e` の後)
+
+| コミット | 件名 |
+|---|---|
+| `ff69396`〜`99877f6`(14 件) | rust 仕様書の章ごとの変更(Step 2〜12 の表) |
+| `78a446d` | aidlc: v0.10.2 のコード生成の Step 1〜12 の記録を書く |
+| `8f443e4` | aidlc: v0.10.2 のコード生成の計画の承認を記録する |
+| `1debf6c`〜`7b08b80`(15 件) | language-agnostic 仕様書の章ごとの変更(Step 14〜23 の表) |
+| `ef51981` | aidlc: v0.10.2 のコード生成の Step 13〜23 の記録を書く |
+| `aa1c9a6`〜`c2d7f5e`(10 件) | language-agnostic 仕様書の 11・12 章(Step 24〜26 の表) |
+| `b09fa8b` | aidlc: v0.10.2 のコード生成の Step 24〜26 の記録を書く |
+| `2dbc1c4` | docs: rust 仕様書の 11 章のデモとテスト補助に v0.10.0 の変更を足す |
+| `79d53dd` | runtime: 呼び出しの順序のドキュメントコメントを試行の時刻とログの後の形に直す |
+| `c005e87` | aidlc: team.md のテストの種類の行の数を今の値にする |
+| `10ce84e` | 版を 0.10.2 にする |
+| (この記録) | aidlc: v0.10.2 のコード生成の Step 27〜31 の記録と追跡の表を書く |
+
+#### 計画からのずれ
+
+- 小さな追記のコミット: 1 章 1 コミットの計画に対し、参照の番号や `[[job.attempt]]` の名前を添える小さな直しを、別のコミットにした(`aa30268`、`aad0e2c`、`99877f6`、`6342a8d`、`3d37e26`、`b5817ef`、`9110c65`、`7b08b80`)。
+- `6342a8d` に、作業の前から変更のあった監査ファイル(`audit/sakura-local-b8e59f4f277e.md`)と、途中の `code-summary.md`・`code-generation-plan.md` が紛れた(`git commit -a` を使ったため。amend・reset を使えないので、そのまま残した)。以後のコミットはパスを名指しして作った。
+- Step 10(rust の 11 章)のデモの `env.toml`・場面 11・12 と、テスト補助のモードの書き漏れを、Step 24〜26 の後に見つけ、この回に `2dbc1c4` で直した(Step 10 のコミット `10ceb5d` とは別)。
+- Step 27 の順序は、`functional-spec.md` の 5 章(`classify_and_decide` → `end_attempt`)ではなく、実装の順(`end_attempt` → `classify_and_decide`)で書いた。
+
+#### 追跡の表
+
+- `traceability.json` は `aidlc engine sensor-traceability --stage code-generation ... --write-upstream` で作り、FR1.1〜FR5.1、NFR1〜NFR5、BR1.1〜BR6.3 の 38 行の `status` を `OK`、`target` を変えたファイル 1 つにした。NFR4・BR6.3(CI)の `target` は `.github/workflows/ci.yml` で、ubuntu・windows の CI は push の後に確かめる。

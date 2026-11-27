@@ -80,27 +80,27 @@
 
 ### Step 27: runtime の呼び出しの順序(1 コミット。BR4.1)
 
-- [ ] `crates/runtime/src/lib.rs` の「# 呼び出しの順序」を `functional-spec.md` の 5 章のとおり直す。コードは変えない。
-- [ ] `cargo test -p conductor-runtime --lib --locked` と `cargo doc -p conductor-runtime --no-deps --locked` を走らせる。
+- [x] `crates/runtime/src/lib.rs` の「# 呼び出しの順序」を `functional-spec.md` の 5 章のとおり直す。コードは変えない。
+- [x] `cargo test -p conductor-runtime --lib --locked` と `cargo doc -p conductor-runtime --no-deps --locked` を走らせる。
 
 ### Step 28: team.md のテストの数(1 コミット。BR3.1、FR3)
 
-- [ ] テストの数を数え直す(付録 B の数のコマンド)。
-- [ ] `aidlc/spaces/default/memory/team.md` の Testing Posture の「テストの種類」の 1 行の数だけを今の値に置き換え、数え方を括弧で添える。その 1 行の外は変えない。`git diff` でその 1 行だけが変わったことを確かめる。
+- [x] テストの数を数え直す(付録 B の数のコマンド)。
+- [x] `aidlc/spaces/default/memory/team.md` の Testing Posture の「テストの種類」の 1 行の数だけを今の値に置き換え、数え方を括弧で添える。その 1 行の外は変えない。`git diff` でその 1 行だけが変わったことを確かめる。
 
 ### Step 29: 全体の確かめ
 
-- [ ] 付録 B の確かめをすべて走らせ、結果を `code-summary.md` に書く。
-- [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR1)。
+- [x] 付録 B の確かめをすべて走らせ、結果を `code-summary.md` に書く。
+- [x] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings`、`cargo test --workspace --locked` を走らせる(NFR1)。
 
 ### Step 30: 版を 0.10.2 にする(1 コミット。BR5.1)
 
-- [ ] v0.10.1 の 152c4a1 と同じ 22 ファイルの範囲で、版を 0.10.2 にする。件名は「版を 0.10.2 にする」。
-- [ ] `cargo test --workspace --locked` を走らせる。
+- [x] v0.10.1 の 152c4a1 と同じ 22 ファイルの範囲で、版を 0.10.2 にする。件名は「版を 0.10.2 にする」。
+- [x] `cargo test --workspace --locked` を走らせる。
 
 ### Step 31: 記録
 
-- [ ] `code-summary.md`(章ごとの変更、付録 B の結果、既存の AC の洗い出しの表、新しい AC の範囲、テストの結果、コミット)と `traceability.json` を書く。
+- [x] `code-summary.md`(章ごとの変更、付録 B の結果、既存の AC の洗い出しの表、新しい AC の範囲、テストの結果、コミット)と `traceability.json` を書く。
 
 ## コミット
 
