@@ -1,6 +1,6 @@
 # 12. 再構築の手引き(ゼロから実装する順序・落とし穴・差と未確認の一覧)
 
-対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。この文書は、03〜11 章の仕様に従って、ゼロから同じ挙動のツールを実装するための順序と、確認の観点をまとめる。仕様の本体は 03〜11 章にあり、この文書は指針と集約である。用語は [00-README.md](00-README.md) の用語集に従う。
+対象: `conductor` v0.10.0 の機能と v0.10.1 の直しを含む現在の実装(Rust 実装)。この文書は、03〜11 章の仕様に従って、ゼロから同じ挙動のツールを実装するための順序と、確認の観点をまとめる。仕様の本体は 03〜11 章にあり、この文書は指針と集約である。用語は [00-README.md](00-README.md) の用語集に従う。
 
 ## 1. 実装の順序
 
@@ -141,6 +141,89 @@
 
 デモ(`demo/`)に場面 11〜14 を足し、README に v0.9.0 の節(環境変数、`graph`、`--dry-run`、`init`)を、版(`v0.9.0 以降`)つきで書く(cli の単体テスト `src/tests/docs.rs` が、必須の語句と例を検査する。11 の 9 章)。
 
+### 段 14. v0.10.0 の機能 1: 既定のリトライ(`[pipeline.retry]`)と `retry = false`
+
+段 13 までで v0.9.x の挙動が揃ったあとに、v0.10.0 の機能を 1 つずつ、層の順(core → runtime → cli)に足す。定義の書き方(段 14〜16)、図(段 17)、出力とステート(段 18〜20)の順。各機能の最後に README とデモを直す。
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(core) | `definition/walk/mod.rs` の `PIPELINE_KEYS` に `retry`。`definition/walk/retry.rs` に、表 1 つの読み取りの共有(`retry_table`)、`[pipeline.retry]` の読み取り(`pipeline_retry`、`PipelineRetryDefault`。上限と間隔の大小はここで 1 回)、ジョブの `retry` の 3 つの書き方(`job_retry`、`JobRetrySetting { Absent, Disabled, Table }`)、既定との重なり(`check_retry`。ジョブの表の先頭の行)。定義の組み立てで、書かないジョブに既定を複製して入れる(`build_jobs`)。理由の文 `` `retry` はテーブルか `false` で書きます ``、`` `[pipeline.retry]` はテーブルで書きます `` |
+| 完了条件 | 03 の 6.8 の表と誤りの表が通る。既定を当てはめたジョブは、同じ値の表を書いたジョブと同じ定義になる。`retry = false` は既定が無くても誤りでない。`[pipeline]` の `name` に誤りがあっても、既定の誤りと既定との重なりを報告する |
+| 確認の観点 | 既定と自分の表を混ぜない。既定の `exit_codes` に誤りがあれば重なりを調べない。`JobDefinition.retry` は既定から来たかを持たない(05 の 7 章の判断と実行ループは変えない) |
+| 参照 | 03 の 6.5・6.8・7 章、05 の 7 章 |
+
+### 段 15. v0.10.0 の機能 2: `env_file` の表(無くてもよい `.env`)
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(core) | `types.rs` の `EnvFileRef { path, required }`、`PipelineDefinition`・`JobDefinition` の `env_file: Vec<EnvFileRef>`(v0.9.x の `Vec<String>` から)。`definition/walk/env.rs` の `env_file` に表 `{ path, required }`(`env_file_table`、`ENV_FILE_TABLE_KEYS`)と新しい理由の文。`envfile/mod.rs` の `env_file_refs` の戻り値を `Vec<EnvFileRef>` にし、同じパスの文字列の `required` を論理和にする |
+| 作るもの(runtime・cli) | `envfile.rs` の `load_env_files(definition_path, refs: &[EnvFileRef])`(解決済みのパスごとに `required` を論理和、必ず要らないパスが「存在しない」ときだけ読み飛ばして引き当てに載せない)。cli の `Runtime::load_env_files` の引数 |
+| 完了条件 | 03 の 6.6 の表の誤りと、6.7 の読み飛ばしが通る。読み飛ばしたファイルは、何も足さない(`merge_env` は引けない記述を無視する) |
+| 確認の観点 | あって読めない・大きすぎる・書式の誤りは、`required` によらず誤り。無いことの判断は「存在しない」だけ |
+| 参照 | 03 の 6.6・6.7、05 の 14.5 |
+
+### 段 16. v0.10.0 の機能 3: `unset_env`
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(core) | `error.rs` に `UnsetEnvConflict`(34 種)、`envfile/mod.rs` の `EnvFileErrorKind` に `UnsetConflict`(14 種)と日本語の文。`types.rs` の `unset_env: Vec<String>`(パイプラインとジョブ)。`PIPELINE_KEYS`・`JOB_KEYS` に `unset_env`。`definition/walk/env.rs` の `unset_env`(要素の検査、完全に同じ名前は最初の 1 つ)と `check_unset_env`(全ジョブのあと。ASCII の大文字小文字を区別せず比べる)。`EnvEntry.line`・`EnvFileContent.file`。`check_unset_conflicts`。`EffectiveEnv.removals` と `merge_unset_names`。計画の `PlanEntry.unset_names` |
+| 作るもの(runtime・cli) | `runner.rs` の `run_job` に `unset`(`env_remove` で消してから足す)。cli の `Runtime::run_job` の引数、`ctx.rs` の `load_env_files` の後の `check_unset_conflicts`、`step.rs` で `env.removals` を渡す。メッセージ(`unsetEnvConflict`・`unsetConflict` の英語、計画の `unset env:`) |
+| 完了条件 | 03 の 6.10 の表、`.env` の `unsetConflict`(03 の 6.7)、05 の 14 章の層(引き継いだ環境から消してから足す)が通る。実バイナリで、消した名前が子の環境に無い |
+| 確認の観点 | 比べ方は、定義と `.env` の検査ではどの OS でも大文字小文字を区別しないが、`env_remove` の比べ方は OS に任せる(07 の 8.1)。ジョブの `unset_env` は、ほかのジョブの `env` と比べない。誤りに値も名前も入れない |
+| 参照 | 03 の 6.7・6.10、05 の 14 章、07 の 4.1・4.2、08 の 4.3・4.12・11.6 |
+
+### 段 17. v0.10.0 の機能 4: `graph --format dot`
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(cli) | `types.rs` の `GraphFormat::Dot`、`args.rs` の `--format` の値 `dot`、`report/graph_dot.rs`(`render_dot`、`escape_dot_label`)、`aux_commands.rs` の `run_graph` の切り替え、`--help` の行 |
+| 完了条件 | 08 の 11.8 の G2 の全文が 1 文字も違わず一致する。`--state` の記号と再開位置の `penwidth=3`。節と辺の数が Mermaid と同じ。1 万ジョブの描画が 1 秒以内 |
+| 確認の観点 | 節の ID は連番で、ジョブ ID はラベルにだけ書く。`escape_full` のあとに `\` と `"` をエスケープする(DOT の `\n`・`\l` を働かせない)。`-v` は影響しない |
+| 参照 | 04 の 7.7、05 の 15.8、08 の 11.8 |
+
+### 段 18. v0.10.0 の機能 5: 時刻とログのファイル(`log_dir`)
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(core) | `time.rs`(`Timestamp`、`format_rfc3339`、`format_compact`、`parse_rfc3339`、`duration_secs`。年月日の変換を自前で書く)。`PIPELINE_KEYS` に `log_dir`、`PipelineDefinition.log_dir`(文字列でなければ `typeMismatch`、空なら `emptyField`) |
+| 作るもの(runtime) | `clock.rs`(`now`)、`log.rs`(`LogTarget`、`LogOutcome`、`safe_log_stem`、`open_log_file`)、`platform` の `restrict_to_owner`(UNIX 系は 0600)、`runner.rs` の `run_job` の `log` と戻り値の `LogOutcome`(パイプ、読み取りのスレッド、2 秒の待ち、「止める」印) |
+| 作るもの(cli) | `Runtime::now`、`step.rs` の `resolve_log_dir` と試行ごとの `LogTarget`、`report_execution` のログを作れなかった 1 行、`report_log_warnings`、メッセージの 3 つの文(08 の 4.14) |
+| 完了条件 | 07 の 4.5 の名前・番号・作れないときのパス・安全な ID の表が通る。端末に出る内容が `log_dir` のあり・なしで同じ。16 MiB の出力でも端末とファイルが一致する。作れなければ起動せず 127 と 1 行。`validate`・`graph`・`--dry-run` はディレクトリを作らない |
+| 確認の観点 | ファイルは「無いときだけ作る」で、上書きも追記もしない。`conductor` はログを消さない。待ち切れたあとに書き足さない。新しい外部の依存を足さない(時刻の書式は自前) |
+| 参照 | 03 の 6.9、05 の 18.1・19 章、07 の 4.5、08 の 4.14 |
+
+### 段 19. v0.10.0 の機能 6: 試行の時刻(`[[job.attempt]]`)と `watch` の所要時間
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(core) | `types.rs` の `Attempt`、`JobState.attempts`。`flow/attempt.rs`(`start_attempt`、`end_attempt`、`cancel_attempt`)。`time.rs` の `job_duration`、`JobDuration`、`format_duration` |
+| 作るもの(runtime) | `state/writer.rs` の `[[job.attempt]]` の書き出し(試行があるときだけ)、`state/reader.rs` の `JOB_KEYS` 5 個・`ATTEMPT_KEYS` 2 個と `walk_attempts`、理由の文 `NO_ATTEMPT`・`BAD_TIME`・`UNFINISHED_ATTEMPT` |
+| 作るもの(cli) | `step.rs` の `run_job_with_retry`(試行ごとに時刻を取り、`start_attempt` して `Fast` で書いてから起動、`cancel_attempt`・`end_attempt`、リトライの待ちの `pending_end`)。`run_step` は空のステートを書かない(最初の試行の書き込みが初期化を兼ねる)。`report/watch.rs` の所要時間の列(`now` を 1 回だけ取る) |
+| 完了条件 | 06 の 2.3a・2.4・3 章のとおりに書き、読む。v0.9.9 までのステート(動いたジョブに試行が無い)は 65 で `reset` を案内する。08 の 6 章の 4 列の表。05 の 18.3 の所要時間の表 |
+| 確認の観点 | ステートに書くのは開始と終了の時刻だけ(`nfr_content.rs` を、時刻だけを許すように直す)。起動しなかった試行は残さない。強制終了の後の開いた試行は、自身の `started_at` で閉じる。`--dry-run` は試行を記録せず、時刻も取らない |
+| 参照 | 05 の 18 章、06 の 2.3a・2.4・3 章、08 の 6 章、10 の 7.2 |
+
+### 段 20. v0.10.0 の機能 7: `watch --follow`
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの(core) | `flow/activity.rs`(`pipeline_activity`、`PipelineActivity`) |
+| 作るもの(cli) | `types.rs` の `follow`・`interval` と間隔の定数、`args.rs` の `--follow`・`--interval`(検査の順は `--follow` が先)、`aux_commands.rs` の `run_watch` のシグナルの準備と `follow_watch`・`FollowEnd`、`platform` の `clear_screen_supported`、`report` の `FramePrefix`・`WatchFrame`、`--help` の行 |
+| 完了条件 | 05 の 20 章の判定と読み直しの表、04 の 7.3 の終了コード、08 の 6.4 の描き方が通る。リトライの待ちのあいだは `Running` で続ける。1,000 回の繰り返しで、ステートに書き込まない |
+| 確認の観点 | 画面を消せるかは初めに 1 回だけ決める。パイプ・ファイルに制御の文字を出さない。読めないのは 1 秒おきに 3 回で 65、消えたのは 2 回続けて無いとき |
+| 参照 | 04 の 7.3、05 の 20 章、07 の 7.1・7.6、08 の 6.4、10 の 1・2 章 |
+
+デモに場面 4 の `watch --follow` と場面 15(ログのファイル。`demo/log.toml`)を足し、README に v0.10.0 の節を書き、版を 0.10.0 にする(11 の 9 章)。
+
+### 段 21. v0.10.1 の直し
+
+| 項目 | 内容 |
+|------|------|
+| 作るもの | `log.rs` の `safe_log_stem` で、予約名と比べる前に、最初の `.` より前の部分から前後の ASCII の空白を除く(名前そのものからは除かない)。`runner.rs` の `copy_stream` で、読む前にも「止める」印を見る。`flow` の計画の模擬の内部の入口(`decide_at`、`classify_and_decide_at`、目印つきの `apply_skip_in`・`apply_outcome_in`、`record_at`、`position_of`、`SimulationMarks`)と、それを使う `plan_pipeline`。デモの `DEMO_PAUSE=1` の場面 4 の `watch --follow` の前の待ち(UNIX 版) |
+| 完了条件 | 07 の 4.5 の安全な ID の例(`con ` → `_con_`、`nul .tar.gz` → `_nul .tar.gz`)。計画の出力は v0.10.0 と 1 文字も変わらず、1,000 ジョブの P1・P2 が 150 ms 以内 |
+| 確認の観点 | 内部の入口は `pub(crate)` で、公開の口を変えない。判断と記録の規則を模擬に書き写さない(05 の 16.2) |
+| 参照 | 05 の 16.2、07 の 4.5、11 の 3.1・9 章 |
+
 ## 2. 実装時の落とし穴
 
 03〜11 章の「実装と README の差」「未確認」から、実装を間違えやすい点を集約する。
@@ -158,7 +241,8 @@
 - 数値の範囲: `retry.exit_codes` は 1〜255(127 も可)、`max` は 1〜100、`multiplier` は 2〜10、間隔は 1 秒〜24 時間。`multiplier` と `max_interval` は両方書くか両方書かない。
 - 文法の誤りの表示は固定で、読み取り器のエラー文を使わない。
 - (v0.9.0 以降)`env` の検査は、キーの位置の順に、名前の形 → 予約名 → 大文字小文字の衝突 → 値の型 → NUL。予約名は ASCII の大文字小文字を区別しない(`conductor_x` も拒否)。同じ綴りの重複は TOML の文法の誤り(`syntax`)で、`envNameCaseConflict` は綴りが違うものだけ。`env_file = []` は誤りでなく、空の文字列は `emptyField`。
-- (v0.9.0 以降)`.env` の誤りは `DefinitionError` ではなく `EnvFileError`(13 種)で、理由は言語に従い、値を含めない。`env` の誤りの `quote_key` と違い、`.env` の表示は名前も出さない。
+- (v0.9.0 以降)`.env` の誤りは `DefinitionError` ではなく `EnvFileError`(14 種。v0.10.0 で `unsetConflict` の 1 種を足した)で、理由は言語に従い、値を含めない。`env` の誤りの `quote_key` と違い、`.env` の表示は名前も出さない。
+- (v0.10.0 以降)`[pipeline]` の `retry` は表だけ(`false` も `retryNotTable`)で、ジョブの `retry` は表か `false`。既定との重なりの誤りの行は、`exit_codes` のキーではなく、そのジョブの表の先頭。`log_dir` は `[pipeline]` だけのキー。`unset_env` と `env` の重なりは、全ジョブの検査のあとに、名前の要素の行で報告する。`env_file` の表の `required` を省くと `true`。
 
 ### 2.2 CLI(04)
 
@@ -179,8 +263,10 @@
 - 起動前の中断の終了コードは `is_error = false` で整形される(`128 + n` の下位 8 ビットが 0 なら 0 になりうる。実在のシグナル番号では起きない)。
 - リトライの知らせは「待機の前」に、常に標準エラーへ。`1 seconds`(単数形の処理なし)。リトライの回数はステートに書かず、再開では最初から数え直す。
 - 遷移でスキップしたあとのステートには、成功直後でも `resume_job_id` が入りうる(`apply_skip` が最初の `pending` を入れる)。
-- (v0.9.0 以降)環境変数は**足すだけ**(引き継いだ環境を残す。取り除かない)。完全に同じ名前は後ろの層が勝ち、大文字小文字だけが違う名前は別の名前(Windows だけ、後ろが前を置き換える。許容)。`CONDUCTOR_RUN_ID` は、run ID があるときだけ足す(無いとき、引き継いだ値は消さない)。`CONDUCTOR_ATTEMPT` は試行ごとに作り直し、再開で 1 に戻る。`.env` は、ステートを読む**前**に(run ID の決定のあと)読み、再開でも毎回読み直す。
+- (v0.9.0 以降)環境変数は、引き継いだ環境を残して、定義の層と自動の変数を**足す**。(v0.10.0 以降)`unset_env` を書いたときだけ、足す前に、その名前を引き継いだ環境から**消す**(`env_remove`。書かなければ何も消さない。消す名前と足す名前は検証で重ならない)。完全に同じ名前は後ろの層が勝ち、大文字小文字だけが違う名前は別の名前(Windows だけ、後ろが前を置き換える。許容)。`CONDUCTOR_RUN_ID` は、run ID があるときだけ足す(無いとき、引き継いだ値は消さない)。`CONDUCTOR_ATTEMPT` は試行ごとに作り直し、再開で 1 に戻る。`.env` は、ステートを読む**前**に(run ID の決定のあと)読み、再開でも毎回読み直す。
 - (v0.9.0 以降)`graph` の辺は、実行と同じ `resolve_transition` から取り出す。`--dry-run` は完了したステートを「ステートなし」として扱い(本番と同じ)、`graph --state` は完了したステートも読む(意図した違い)。`--dry-run` はシグナルを準備しない。`--dry-run` でも、`.env` は本番と同じ範囲を読み、誤りは 64。
+- (v0.10.0 以降)ステートは、試行の開始ごとに `Fast` で書く(リトライの各試行も)。リトライの待ちのあいだは、前の試行を閉じずに書かない(`pending_end`)。起動しなかった試行は取り除く。`apply_outcome` は試行を変えない。ログのファイルを作れないときは、起動の失敗(127)と同じで、リトライしない。
+- (v0.10.0 以降)`watch --follow` は、止まった(エラー、または再開位置のジョブが試行を持つ)と判定すると、その表で終わる。リトライの待ちのあいだは試行が開いているので続ける。
 
 ### 2.4 ステート(06)
 
@@ -190,6 +276,7 @@
 - `reset --all` は、長さ 0 のファイルを消さず、警告にも出さない。別の `run_id` を持つファイルは黙って残す。
 - 理由文(`TOML として読めません` など)は、ロケールによらず日本語。種類の文と案内だけがロケールに従う。
 - 排他制御はしない。書き込みは原子的だが、同時実行では後の書き込みが勝つ。
+- (v0.10.0 以降)`[[job.attempt]]` のキーはアルファベット順(`ended_at`、`started_at`)に書き出す。時刻の読み取りは `YYYY-MM-DDTHH:MM:SSZ` の形だけ。動いたジョブに試行が無いステート(v0.9.9 までに書いたもの)は 65。
 
 ### 2.5 プロセスとシグナル(07)
 
@@ -199,6 +286,8 @@
 - 登録はプロセスで 1 回だけ呼ぶ(`prepare_session` の 1 か所)。2 回呼んだときの動きは契約の外。
 - ほぼ同時に複数のシグナルが届くと、番号の小さい方が「最初」になりうる(`signal-hook` の返す順)。
 - `try_wait` の失敗も起動失敗(127)として扱う。
+- (v0.10.0 以降)`log_dir` があるときだけ、標準出力と標準エラーをパイプにする(標準入力は引き継ぐ)。子の終了の後の読み取りの待ちは、合わせて 2 秒。子の子がパイプを開いたままでも、そこで打ち切る。
+- (v0.10.0 以降)`watch --follow` は、`run`・`pipeline` と同じくシグナルを準備する(ほかの `watch` は準備しない)。
 
 ### 2.6 出力(08)
 
@@ -207,6 +296,7 @@
 - `--version`、パニックの文、シグナルの準備の失敗の文は、ロケールを判定しない(英語のみ)。
 - ロケールは `LC_ALL`、`LC_MESSAGES`、`LANG` の最初の空でない値だけで決める(大文字小文字を区別する)。
 - (v0.9.0 以降)`.env` の誤りの種類の文と理由は、言語に従う(定義の誤りの理由は日本語のまま)。図・計画・ひな形は、組み立て済みの文字列を標準出力に 1 回で書き、各行の末尾の空白を取り除く。計画の「仮定の補足」は、日本語は語のすぐあとに括弧(`実行する(仮定: …)`)、英語は空白を置く(`run (assumed: …)`)。レーンの図のラベルの位置は、分岐のあとの列の数 × 2。
+- (v0.10.0 以降)`watch` の表は 4 列(所要時間の列は、見出しの幅と値の幅の大きい方)。`watch --follow` は、UNIX 系の端末だけ `ESC[H ESC[2J` で画面を消し、ほかは 2 回目から空の 1 行を置いて追記する。ログの 2 つの警告は `conductor: warning: `、作れないのは `conductor: error: `。
 
 ### 2.7 変換(09)
 
@@ -274,7 +364,9 @@
 | 04 | `--dry-run` と `graph --state` の、完了したステートの扱い(v0.9.0 以降) | 計画は完了したステートをステートなしとして扱い、`graph --state` は完了したものも読む(意図した違い) | 一致(`read_state` と `read_state_raw`) |
 | 04 | `init` が作ったファイル(v0.9.0 以降) | 新規の作成の短い間と強制終了のあとに、空のファイルが見えることがある | 一致(`create_new` で作ってから書く。`--force` で直せる) |
 | 08 | `.env` の誤りの理由の言語(v0.9.0 以降) | — | 種類の文と理由が言語に従う(定義の誤りの理由は日本語のまま) |
-| 07 | 環境変数(v0.9.0 以降) | README の「環境変数の設定」の節 | 引き継いだ環境に、`env`・`.env`・自動の変数を足す(v0.8.0 以前は何も足さなかった) |
+| 07 | 環境変数(v0.9.0 以降) | README の「環境変数の設定」の節 | 引き継いだ環境に、`env`・`.env`・自動の変数を足す(v0.8.0 以前は何も足さなかった)。v0.10.0 以降は、足す前に `unset_env` の名前を消す |
+| 06 | `[[job.attempt]]` のキーの順(v0.10.0 以降) | 例は `started_at`、`ended_at` の順 | 書き出しはアルファベット順(`ended_at`、`started_at`)。読み込みは順に依存しない |
+| 10 | `watch --follow` の 65(v0.10.0 以降) | 65 の行は `watch` の標準出力に書けないときだけ | 加えて、読めないのが 3 回続いたとき、壊れている・大きすぎる・版の違い |
 
 ## 4. 未確認事項の一覧
 
@@ -318,9 +410,10 @@
 実装が仕様どおりかを、次の順で確かめる。
 
 1. **ユニット**: core の判断(05 の各表)、`split`(07 の 3 章)、`apply_*`(05 の 3 章)、`wait_loop`(間隔と転送)が、表の例のとおり。
-2. **定義の検証**: 03 の受理・拒否の例と、34 種の識別子、行番号、位置の昇順。`.env` の 13 種(03 の 6.7)。
+2. **定義の検証**: 03 の受理・拒否の例と、34 種の識別子、行番号、位置の昇順。`.env` の 14 種(03 の 6.7)。
 3. **ステート**: 書き込みの原子性、14 項目の読み込みの異常系(06 の 5 章)、`reset --all` の実測の例。
 4. **流れ**: 偽の `Runtime` で、`a → b → c` の再開、`@end`、リトライの待ち時間の列、中断の 4 つの契機。
 5. **実バイナリ**: 終了コードの全件(10 の 1 章)、SIGTERM → 143 と再開位置、`watch` の表、`convert` の往復、`--version`。
 6. **品質ゲート**: fmt、clippy、test(3 OS + MSRV)、行カバレッジ 80% 以上、禁止の依存がないこと、シェルを呼ばないこと、`unsafe` が 1 か所。
 7. **v0.9.0 の機能**: `env`・`.env` の値が子の環境に見え、値がどの出力にも出ない。`graph` の例(08 の 11 章)と配置の正解データ。`--dry-run` の計画の例と「本番と同じジョブ」。`init` の 69・`--force`・`--config -`、ひな形が `validate` に通る。
+8. **v0.10.0 の機能**: 既定のリトライと `retry = false`(03 の 6.8)、無くてもよい `.env`、`unset_env` で消した名前が子の環境に無い、DOT の例(08 の 11.8)、試行ごとのログのファイル(名前、0600、端末と同じ中身)、`[[job.attempt]]` の読み書きと v0.9.9 までのステートの 65、`watch` の 4 列、`watch --follow` の終わりの判定と終了コード、デモの場面 0〜15。
