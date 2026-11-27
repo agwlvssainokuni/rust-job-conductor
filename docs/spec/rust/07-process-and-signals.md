@@ -1,8 +1,8 @@
 # 07 プロセス起動とシグナル(`command` の分割・起動・待ち・中断)
 
-対象: `conductor` v0.9.0 の機能を含む現在の実装(Rust 実装)。根拠は `crates/runtime/src/{split,runner,wait,types,error,platform/*}.rs`、
-`crates/cli/src/{platform/*,ctx,pipeline,run,step,exit,panic_hook,main}.rs`、`crates/core/src/flow/{classify,resume}.rs`、
-および `crates/runtime/tests/{runner_*,wait_interruptible,nfr_*}.rs`、`crates/cli/tests/{signals_*,binary_signal}.rs`、
+対象: `conductor` v0.10.0 の機能(`unset_env` の `env_remove`、`log_dir` のログのファイル、`watch --follow` の待ち)を含む現在の実装(Rust 実装)。根拠は `crates/runtime/src/{split,runner,log,wait,types,error,platform/*}.rs`、
+`crates/cli/src/{platform/*,ctx,pipeline,run,step,aux_commands,exit,panic_hook,main}.rs`、`crates/core/src/flow/{classify,resume}.rs`、
+および `crates/runtime/tests/{runner_*,log_file,wait_interruptible,nfr_*}.rs`、`crates/cli/tests/{signals_*,binary_signal,binary_log}.rs`、
 `crates/cli/tests/WINDOWS_CTRL_C_CHECKLIST.md`。
 
 この文書は、`command` の文字列を分ける規則、ジョブ(子プロセス)の起動と待ち、シグナルによる中断、
@@ -16,7 +16,9 @@ OS ごとの違いを定める。ステートファイルの書式、定義フ�
 |------|------|------|
 | Split(分け方) | `conductor-runtime` の `split.rs` | `command` の文字列を、コマンド名と引数に分ける。文字を 1 つずつ読む状態機械(再帰なし)。3 OS で同じ規則 |
 | `check_command` | `split.rs`(公開) | `command` を起動せずに検査する。`Ok` なら分けた結果(`CommandLine`)を返す |
-| JobRunner(`run_job`) | `runner.rs`(公開) | 1 つのジョブを、シェルを介さず起動し、終了を待ち、`JobExecution` を返す。パニックしない |
+| JobRunner(`run_job`) | `runner.rs`(公開) | 1 つのジョブを、シェルを介さず起動し、終了を待ち、`JobExecution` と `LogOutcome` を返す。パニックしない |
+| Copier(v0.10.0 以降) | `runner.rs`(非公開) | `log_dir` があるときだけ、子の標準出力と標準エラーを 1 つずつ読むスレッド(`conductor-log-copier`)。読んだ分を端末とログのファイルへ書く(4.5) |
+| RuntimeLog(v0.10.0 以降) | `log.rs`(公開) | ログのファイルの名前(`safe_log_stem`)と作成(`open_log_file`)。`LogTarget`、`LogOutcome` |
 | WaitLoop | `runner.rs`(非公開) | `try_wait` を、1 ms から 10 ms の間隔でくり返す。シグナルの転送の判断もここ |
 | `wait_for` | `wait.rs`(公開) | リトライ前の待機。中断の合図を短い間隔で確かめる |
 | `InterruptSignal` | `types.rs`(公開) | 中断の合図。スレッド間で共有する、読み取り中心の値 |
@@ -178,22 +180,25 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 ### 4.1 手順(時系列)
 
-`run_job(line, env, signal) -> JobExecution`(v0.9.6 までは `run_job(job, line, env, signal)`。`line: &CommandLine` は、実行の前の検査で `check_command` が分割したコマンド。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数(v0.9.0 以降)。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
+`run_job(line, env, unset, signal, log) -> (JobExecution, LogOutcome)`(v0.10.0 以降。v0.9.7〜v0.9.9 は `run_job(line, env, signal) -> JobExecution`、v0.9.6 までは `run_job(job, line, env, signal)`。`line: &CommandLine` は、実行の前の検査で `check_command` が分割したコマンド。`env: &[(&str, &str)]` は、引き継いだ環境に足す環境変数(v0.9.0 以降)。`unset: &[&str]` は、足す前に引き継いだ環境から消す名前(v0.10.0 以降。`EffectiveEnv.removals`)。`log: Option<&LogTarget>` は、ログの置き場所の指定(v0.10.0 以降。`log_dir` があるときだけ `Some`)。v0.9.5 までは `run_job(job, env, signal)` で、中で分け直した。v0.8.0 以前は `run_job(job, signal)`)。失敗はすべて戻り値で返し、パニックしない。
 
-1. 返す `JobExecution` の結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。v0.9.6 までは、`job` から写した `job_id` と `command` も持った(読まれなかった)。
+1. 返す `JobExecution` の結果(`result: ExecutionResult`)は、下の手順で 3 つの場合のどれか 1 つに決まる(4.3)。v0.9.6 までは、`job` から写した `job_id` と `command` も持った(読まれなかった)。`LogOutcome` は、`log` が `None` のときと、下の 2・3 で返るときは空(3 つとも `None`)。
 2. `line.program` が空(空白だけを含む)なら、`StartFailed` で返す(分割はしない。この確認は、次の合図の確認より先)。
 3. **起動の前**に合図が立っていれば、起動せずに返す: `NotStarted { signal: 番号 }`。
-   (ジョブは実行されない。)
-4. `std::process::Command::new(program)` に `args` を渡して作り、`env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足し
+   (ジョブは実行されない。ログのファイルも作らない。)
+4. `std::process::Command::new(program)` に `args` を渡して作り、(v0.10.0 以降)`unset` の各名前を `Command::env_remove(name)` で引き継いだ環境から除き、続けて `env` の各 `(name, value)` を**並びの順に** `Command::env(name, value)` で足し
    (v0.9.0 以降。引き継いだ環境は残り、同じ名前は上書きされる。同じ名前が並びに 2 回あれば、後ろが勝つ)、`platform::configure_spawn` を適用する
-   (UNIX: 新しいプロセスグループ。Windows: 何もしない)。
-5. `spawn()`。失敗なら `StartFailed` で返す。
-6. WaitLoop で終了を待つ(5 章)。時間切れ(タイムアウト)はない。自動のリトライもしない(リトライは cli の層で行う。07 の範囲外)。
+   (UNIX: 新しいプロセスグループ。Windows: 何もしない)。`unset` の名前の比べ方は OS(標準ライブラリ)に任せる(8.1)。引き継いだ環境に無い名前は何もしない。
+   (v0.10.0 以降)続けて、`log` が `Some` なら、起動の前に `open_log_file` でログのファイルを作る(4.5)。作れなければ、起動せず `StartFailed` と `LogOutcome.log_not_created = Some(パス)` で返す(分類で 127)。作れたら、標準出力と標準エラーをパイプにする(標準入力は引き継ぐ)。
+5. `spawn()`。失敗なら `StartFailed` で返す(`log` があるときも、`LogOutcome` は空。作ったログのファイルは空のまま残る)。
+   (v0.10.0 以降)`log` があるとき、起動のあとに、標準出力と標準エラーのそれぞれに Copier のスレッドを 1 つずつ始める(4.5)。
+6. WaitLoop で終了を待つ(5 章)。時間切れ(タイムアウト)はない。自動のリトライもしない(リトライは cli の層で行う。07 の範囲外)。WaitLoop とシグナルの転送は、ログの有無によらず同じ。
 7. 終了を観測したら、`Exited { exit_code, terminated_by_signal, interrupted_by }` を返す:
    - `exit_code = status.code()`。
    - `terminated_by_signal = platform::termination_signal(status)`(UNIX: シグナルで終了したときのシグナル番号。Windows: 常に `None`)。
    - **この時点で** 合図が立っていれば `interrupted_by = Some(番号)`、立っていなければ `None`。
 8. `try_wait` が失敗したとき(終了の状態を取得できない)は、`StartFailed` で返す(分類で 127)。
+9. (v0.10.0 以降)`log` があるとき、7・8 のあと(中断のときも)、Copier の終わりを、合わせて最大 2 秒待つ(4.5)。`LogOutcome` に、ファイルへの書き込みの失敗(`write_failed`)と待ち切れ(`output_cut_short`)を入れて返す。
 
 ### 4.2 起動の条件
 
@@ -202,8 +207,9 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | シェル | 使わない。`sh -c` や `cmd /C` を挟まない(ソース検索のテストで、`"sh"`、`"cmd"`、`"bash"`、`"powershell"`、`"-c"`、`"/C"` の文字列と、`Command::new(&line.program)` 以外の `Command::new` がないことを確かめている) |
 | プログラムの探索 | 標準ライブラリ(`std::process::Command`)の規則に従う(`program` に区切り文字がなければ、OS の標準の探索。`PATH` など)。conductor 独自の探索はしない |
 | 作業ディレクトリ | 引き継ぐ(`conductor` を起動したときのカレントディレクトリ。定義ファイルの場所に移らない)。変更しない |
-| 環境変数 | すべて引き継ぐ。**v0.8.0 以前**は、追加・削除・上書きをせず、run ID も渡さなかった。**v0.9.0 以降**は、引き継いだ環境を残したまま、`run_job` の `env` 引数(定義の `env`・`.env` と自動の変数 `CONDUCTOR_PIPELINE`・`CONDUCTOR_JOB_ID`・`CONDUCTOR_RUN_ID`(run ID があるとき)・`CONDUCTOR_ATTEMPT`。05 の 14 章)を**足す**(同じ名前は上書き。取り除くことはしない)。値は、書いたとおりに渡す |
-| 標準入力・標準出力・標準エラー | すべて引き継ぐ(`Stdio` を指定しない)。ジョブの出力は、`conductor` を介さず、そのまま流れる。`conductor` は、ジョブの出力を読まない・保存しない・ステートに書かない |
+| 環境変数 | 引き継ぐ。**v0.8.0 以前**は、追加・削除・上書きをせず、run ID も渡さなかった。**v0.9.0 以降**は、引き継いだ環境に、`run_job` の `env` 引数(定義の `env`・`.env` と自動の変数 `CONDUCTOR_PIPELINE`・`CONDUCTOR_JOB_ID`・`CONDUCTOR_RUN_ID`(run ID があるとき)・`CONDUCTOR_ATTEMPT`。05 の 14 章)を**足す**(同じ名前は上書き)。**v0.10.0 以降**は、足す前に、`run_job` の `unset` 引数の名前(定義の `unset_env`。05 の 14 章)を、引き継いだ環境から `env_remove` で**消す**(`unset` が空なら何も消さない。v0.9.x までは取り除くことをしなかった)。値は、書いたとおりに渡す |
+| 標準入力 | 引き継ぐ(`Stdio` を指定しない) |
+| 標準出力・標準エラー | `log` が `None`(定義に `log_dir` が無い)なら、引き継ぐ(`Stdio` を指定しない)。ジョブの出力は、`conductor` を介さず、そのまま流れ、`conductor` は読まない。**v0.10.0 以降**、`log` が `Some`(`log_dir` がある)なら、パイプにして Copier が読み、読んだバイト列を、そのまま `conductor` の同じ流れ(標準出力は標準出力、標準エラーは標準エラー)とログのファイルへ書く(4.5)。どちらの場合も、ジョブの出力をステートには書かない |
 | 引数の渡し方 | 分割した各引数を、そのまま OS に渡す(メタ文字は注入にならない)。Windows で `.cmd` / `.bat` を起動するときの引数の安全は、標準ライブラリのエスケープ(または起動の拒否)に任せる。どちらでも、続くコマンドは実行されない(Windows のテストで確かめる) |
 | 起動できなかった場合 | `spawn` の失敗は、原因(見つからない・実行権限がない・実行できない形式・ディレクトリを指定した、など)を区別せず `StartFailed`。終了コードは 127(分類)。表示は `conductor: error: job '<ID>': cannot start command '<プログラム名>'`(英語)。`StartFailed` は、ジョブの終了コード・シグナルを持たない |
 | 時間の上限 | ない。ジョブが終わらなければ、`conductor` は待ち続ける |
@@ -241,6 +247,53 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 `conductor` の終了コードは、報告する終了コードを 0〜255 に合わせたもの(範囲内はそのまま。範囲外は下位 8 ビット。エラーで
 下位 8 ビットが 0 になるときは 1)。
+
+### 4.5 ログのファイル(`log_dir`。v0.10.0 以降)
+
+定義の `[pipeline].log_dir`(03 の 6.9)があるとき、cli(`step.rs` の `run_job_with_retry`)は、試行ごとに `LogTarget` を作って `run_job` に渡す。
+
+| `LogTarget` の項目 | 値 |
+|--------------------|----|
+| `dir` | 解決した `log_dir`(相対なら (定義ファイルのディレクトリ)/(`log_dir`)、絶対ならそのまま。`~` と変数は展開しない。`step.rs` の `resolve_log_dir`) |
+| `job_id` | 定義のジョブ ID |
+| `started_at` | その試行の前に時計から取った時刻(試行の `started_at` と同じ値。05 の 18 章) |
+| `attempt` | 1 から数える試行の番号(`CONDUCTOR_ATTEMPT` と同じ。再開で 1 に戻る) |
+
+**ファイルの作成**(`open_log_file(target) -> Result<(File, PathBuf), PathBuf>`):
+
+1. `dir` を、親を含めて作る(`create_dir_all`。権限は既定のまま)。失敗したら、番号なしの名前のパスで `Err`。
+2. 名前 `<安全な ID>.<詰めた時刻>.<試行の番号>.log` で、「無いときだけ作る」(`create_new`)で書き込み用に開く。UNIX 系は、作るときに権限 `0600` を付ける(`platform::restrict_to_owner`。Windows は何もしない)。既存のファイルを上書きも追記もしない。
+3. 「すでにある」なら、`<安全な ID>.<詰めた時刻>.<試行の番号>-2.log`、`-3` … `-1000` と番号を足して作り直す。ほかの失敗は、その名前のパスで `Err`。`-1000` まで使い切ったら、番号なしの名前のパスで `Err`。
+4. `<詰めた時刻>` は `format_compact(started_at)`(`YYYYMMDDTHHMMSSZ`。例 `20261125T091248Z`。UTC)。
+5. `conductor` は、ログのファイルを消さない(`reset` も触れない)。
+
+**安全な ID**(`safe_log_stem(job_id)`。どの OS でも同じ結果。ディレクトリの区切りは残らない):
+
+1. `/` `\` `:` `*` `?` `"` `<` `>` `|` と制御文字(U+0000〜U+001F、U+007F〜U+009F)を `_` にする。
+2. 先頭の `.` を `_` にする(隠しファイルや `..` を作らない)。
+3. 最初の `.` より前の部分から前後の ASCII の空白(` `)を除いた値が、大文字小文字を問わず Windows の予約名(`CON`、`PRN`、`AUX`、`NUL`、`COM1`〜`COM9`、`LPT1`〜`LPT9` の 22 個)なら、先頭に `_` を足す(`NUL.x` → `_NUL.x`、`con` → `_con`、`con ` → `_con_`、`nul .tar.gz` → `_nul .tar.gz`)。空白を除くのは比べるときだけで、名前そのものからは除かない(v0.10.1 以降。v0.10.0 は空白を除かずに比べた)。
+4. 100 バイトまでに切る(UTF-8 の文字の途中では切らない)。
+5. 末尾の `.` か空白を `_` にする(Windows が名前から落とすもの)。
+
+それ以外(日本語など)はそのまま。名前の全体は、最長でも 255 バイトを超えない。
+
+**出力の写し**(Copier。`copy_stream`):
+
+- 標準出力と標準エラーのそれぞれに、1 つの読み取りのスレッド(名前 `conductor-log-copier`)を作る。8 KiB ずつ読み、読んだバイト列を、そのまま(`conductor` は何も書き足さない)端末(`conductor` の同じ流れ)とログのファイルへ書く。端末へは書くたびに flush する。2 つの流れは、1 つの鍵(`Mutex`)で順にファイルへ書く(1 つのファイルに混ざる)。出力の全体を溜めない。
+- 端末への書き込みに失敗したら、端末へ書くのをやめるが、読み続けてファイルへは書く。
+- ファイルへの書き込みに失敗したら、以後ファイルには書かず、`write_failed` の印を立てる(端末へは書き続ける)。スレッドを作れなかったときも、その流れの出力をファイルに残せないので、同じ印を立てる。
+- 子の終了を観測した後(中断のときも)、読み取りのスレッドの終わりを、合わせて最大 **2 秒**(`DRAIN_LIMIT`)待つ。待ち切れたら(子の子がパイプを開いたまま動き続けるなど)、「止める」印を立て、`output_cut_short` とする。
+- 「止める」印は、**読む前**と**読んだ後**に見る(v0.10.1 以降は読む前にも見る)。読む前に立っていれば読まずに終わり、読んだ後に立っていれば、読んだ分をどこにも書かずに終わる。待ち切れたあとに、端末とファイルへ書き足さない。
+
+**`LogOutcome`**(3 つとも、起きたときに、そのログのファイルのパスを持つ。`log` が `None` なら、すべて `None`):
+
+| 項目 | 起きたとき | 表示(08 の 4.13) |
+|------|------------|--------------------|
+| `log_not_created` | 起動の前に、ディレクトリかファイルを作れなかった(ジョブは起動していない。`StartFailed`、127) | 起動の失敗の 1 行の代わりに、ログを作れなかった 1 行 |
+| `write_failed` | 実行中にファイルへの書き込みに失敗し、以後ファイルに書かなかった | 試行の後に警告の 1 行(終了コードは変えない) |
+| `output_cut_short` | 子の終了の後、出力の読み取りを待ち切れなかった | 試行の後に警告の 1 行(終了コードは変えない) |
+
+- `validate`・`graph`・`--dry-run` は、ジョブを起動しないので、ディレクトリもファイルも作らない。
 
 ---
 
@@ -288,6 +341,7 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 
 - `run` と `pipeline` だけが、**定義の検査より前**に、シグナルの監視を始める(`Ctx::prepare_session` の最初の `start_signals`。v0.9.6 までは `Ctx::prepare_run`・`Ctx::prepare_pipeline`)。
   `watch`・`reset`・`validate`・`convert` は監視せず、OS の既定の動作で終わる。v0.9.0 以降の `graph`・`init` も監視しない。
+  ただし、v0.10.0 以降の `watch --follow` だけは、中断の合図で 0 で終わるために、`run`・`pipeline` と同じく**ほかの検査より先**に監視を始める(`run_watch` の最初の `Ctx::start_signals`。失敗は 70。7.5)。`--follow` の無い `watch` は、今までどおり監視しない。
   `run`・`pipeline` の `--dry-run` も、監視を始めない(ジョブを起動しないので、中断の合図を待つものがない。`prepare_session` の代わりに、シグナルを除く `prepare_checked` を呼ぶ。検査の並び `check_job`・`check_pipeline` は本番と共有する)。
 - `InterruptSignal` を 1 つ作り、`Arc` で SignalWatcher に渡す。
 - 監視の登録(`Signals::start`)を呼ぶのは **プロセスで 1 回**(`prepare_session` の 1 か所。1 回の `run_cli` は
@@ -374,6 +428,13 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 - `secs = 0` は、合図が立っていなければ、すぐ `Elapsed`。合図が立っていれば `Interrupted`。
 - 複数の合図は、最初の番号を返す。
 
+### 7.6 `watch --follow` の待ち(v0.10.0 以降)
+
+- `watch --follow` は、1 回描くたびに、cli の `Runtime::wait`(本番は `wait_for`)で待つ。待つ秒は、ステートが有る・無いときは `--interval` の値(1〜3600。既定 2 秒)、ステートが読めない(`unreadable`)ときは、間隔によらず 1 秒。
+- 各回の初めに合図が立っていれば、読まずに終わる。待ちが `Interrupted` なら終わる。どちらも終了コード 0(08 の 6 章、10 の 1 章)。
+- ジョブを起動しないので、シグナルを転送する相手はいない。合図は、表示し直しを止めるためだけに使う。
+- 終わりの判定(完了・止まった・消えた)は 05 の 20 章、表示は 08 の 6 章。
+
 ---
 
 ## 8. プラットフォーム差と OS 分岐の規則
@@ -389,6 +450,9 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 終了コードの範囲 | 下位 8 ビット | 32 ビットのまま(`conductor` が報告する値は、0〜255 に合わせる) |
 | ステート書き込み後のディレクトリの同期 | `File::open(dir)` して `sync_all`。失敗は無視。親が空なら `.` | しない |
 | 端末の色 | 使える(`color_supported() = true`) | 使わない(色なし) |
+| `unset_env` の名前の比べ方(v0.10.0 以降) | `env_remove` は完全一致(大文字小文字を区別する) | `env_remove` は大文字小文字を区別しない(標準ライブラリの規則) |
+| ログのファイルの権限(v0.10.0 以降) | 作るときに `0600`(`platform::restrict_to_owner`) | 指定しない(既定の ACL) |
+| `watch --follow` の画面(v0.10.0 以降) | 標準出力が端末なら、毎回 `ESC[H ESC[2J` で画面を消して描く(`platform::clear_screen_supported() = true`) | 消さない。2 回目から空の 1 行を前に置いて追記する |
 | `unsafe` | `platform/unix.rs` の `libc::kill` 1 か所だけ | なし |
 | 依存クレート | `libc`(runtime)、`signal-hook`(cli) | `ctrlc`(cli) |
 | デモ・テスト | `demo/run-demo.sh`、`binary_signal.rs`、`signals_*.rs`、`runner_signal.rs` | `demo/windows/run-demo.cmd`、`windows_demo.rs`、手動のチェックリスト |
@@ -434,6 +498,10 @@ separator := ' ' (U+0020) | '\t' (U+0009) | '\n' (U+000A) | '\r' (U+000D)
 | 監視の登録(最初の番号が残る) | `crates/cli/tests/signals_real.rs`、`signals_order.rs`(UNIX。各ファイルにテストは 1 つだけで、登録は 1 回だけ。登録がプロセスで 1 回のため) |
 | Windows の Ctrl+C | 手動(`WINDOWS_CTRL_C_CHECKLIST.md`) |
 | `cmd` への危険な引数が注入にならない | `runner_basic.rs` の Windows 専用の 3 テスト |
+| (v0.10.0 以降)`unset` の名前が子の環境から消え、`env` の値は足される | `crates/runtime/tests/runner_basic.rs` |
+| (v0.10.0 以降)ログのファイルの名前・番号・0600・安全な ID・ディレクトリの作成 | `crates/runtime/tests/log_file.rs`、`crates/runtime/src/log.rs` の単体テスト |
+| (v0.10.0 以降)出力が端末とファイルの両方に流れる、書き込みの失敗、2 秒の待ち切れ、読む前の「止める」印 | `crates/runtime/tests/runner_log.rs`、`crates/runtime/src/runner.rs` の単体テスト |
+| (v0.10.0 以降)実バイナリでのログのファイルと表示 | `crates/cli/tests/binary_log.rs` |
 
 ---
 
@@ -451,7 +519,7 @@ README の「command の書き方」「シグナルの扱い」と実装は、�
 | 起動できなかった場合の 127 | 「ジョブを起動できなかった」 | `spawn` の失敗に加え、`try_wait` の失敗(終了の状態を取得できない)も、起動失敗として 127 にする |
 | 許可外の番号 | 記載なし | `run_job` に許可外の番号の合図が来ても送信しない。ただし `conductor` 本体は 4 つのシグナルだけを受けるため、通常は起こらない |
 | ジョブが 0 で終わったが合図が立っていたとき | 「ジョブの結果を、エラーとしてステートに記録」 | 終了の観測の直後に合図が立っていれば、ジョブの終了コードが 0 でもエラー(`128 + 番号`)。完了済みの最後のジョブの後に立った合図は無視(0 で終わる) |
-| ジョブの出力 | 「ジョブ本体の出力が、そのまま流れます」 | 標準入力・標準出力・標準エラー・環境変数・作業ディレクトリをすべて引き継ぐ(明記は一部)。v0.9.0 以降は、環境変数に、定義の `env`・`.env`・自動の変数を足す(README の「環境変数の設定」の節) |
+| ジョブの出力 | 「ジョブ本体の出力が、そのまま流れます」 | 標準入力・標準出力・標準エラー・環境変数・作業ディレクトリをすべて引き継ぐ(明記は一部)。v0.9.0 以降は、環境変数に、定義の `env`・`.env`・自動の変数を足す(README の「環境変数の設定」の節)。v0.10.0 以降は、足す前に `unset_env` の名前を消し、`log_dir` があれば標準出力と標準エラーをパイプで読んで、端末とログのファイルの両方へ流す(README の「ジョブの出力をファイルに残す」の節) |
 
 ## 12. 未確認の事項
 
