@@ -4152,3 +4152,322 @@
 **Summary Authorization Id**: ebd1765a2cf06d02e852a92314c2e450fc1c9c46695d229c662179a8641848e9
 
 ---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:52Z
+**Event**: SENSOR_FIRED
+**Fire id**: 55f3f371
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:52Z
+**Event**: SENSOR_PASSED
+**Fire id**: 55f3f371
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+**Duration ms**: 87
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:52Z
+**Event**: SENSOR_FIRED
+**Fire id**: 41959b2d
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/smoke-test-results.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:52Z
+**Event**: SENSOR_PASSED
+**Fire id**: 41959b2d
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/smoke-test-results.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:52Z
+**Event**: SENSOR_FIRED
+**Fire id**: f5770f70
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/health-check-report.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: f5770f70
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/health-check-report.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: 74995e85
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: 74995e85
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Duration ms**: 78
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: fecc3e88
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: fecc3e88
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: a0c37164
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_PASSED
+**Fire id**: a0c37164
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:53Z
+**Event**: SENSOR_FIRED
+**Fire id**: de6de1c4
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/smoke-test-results.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: de6de1c4
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/smoke-test-results.md
+**Duration ms**: 81
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: b12682a9
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/health-check-report.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: b12682a9
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/health-check-report.md
+**Duration ms**: 76
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: 3f68f648
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: 3f68f648
+**Sensor ID**: required-sections
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md
+**Duration ms**: 77
+
+---
+
+## Sensor Fired
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_FIRED
+**Fire id**: 04c5ab3a
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+
+---
+
+## Sensor Passed
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: SENSOR_PASSED
+**Fire id**: 04c5ab3a
+**Sensor ID**: upstream-coverage
+**Stage slug**: deployment-execution
+**Output path**: aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md
+**Duration ms**: 92
+
+---
+
+## Stage Awaiting Approval
+**Timestamp**: 2026-11-27T23:12:54Z
+**Event**: STAGE_AWAITING_APPROVAL
+**Stage**: deployment-execution
+**Next Stage**: none
+**Brief Digest**: none
+**Sensor State**: required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/smoke-test-results.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/health-check-report.md=passed; required-sections@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md=passed; upstream-coverage@aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-log.md=passed
+**Open Decisions**: 0
+**Question Id**: 2f09a538
+**Question Type**: gate
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:e44f363225460e60cec947eb769e89b4027e925b5082da043b2251fb3eb62c77
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-27T23:13:16Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["Approve"]
+**Message Id**: 0f1af4bd
+**Open Questions**: 49e78ca4, 2f09a538
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0102-spec-docs/operation/deployment-execution/deployment-execution-questions.md","entries":{"Q1":"ebe43ee7ee045e13","Q2":"e98f98b01aced574","Q3":"21ab5b6ba610ff69","Consolidated Summary Confirmation":"52aa34de8695aa3d"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-27T23:13:16Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: 配る作業(Deployment Execution)を承認しますか?(推奨: Approve)
+**Reply**: Approve
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-27T23:13:21Z
+**Event**: GATE_APPROVED
+**Stage**: deployment-execution
+**User Input**: Approve
+**Person Reply**: pushしました\nApprove
+**Message Id**: 0f1af4bd
+**Message Ids**: a8a2066d,0f1af4bd
+**Brief Digest**: none
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-27T23:13:21Z
+**Event**: STAGE_COMPLETED
+**Stage**: deployment-execution
+**Validation Basis**: {"graphContract":"sha256:9324fac9ed5362e892b6f0c448c7cd3701eec134e2e24178d842efc36efe955a","inputs":[{"artifact":"build-test-results","contentHash":"sha256:08bcf74d696ddc109248e0ad59dd33cc166efbdaca466c61cd470c0786f04409","instanceCount":1,"presentCount":1,"producer":"build-and-test","required":true,"structureHash":"sha256:b8230ac453bef325cbf9a1e6341584772e5ec9273f6f627b321d078da973a353"},{"artifact":"cd-config","contentHash":"sha256:3acef7ab23cd52637d50a3aaf802c20f8d57a75412e582d2595ae0df714bd961","instanceCount":1,"presentCount":1,"producer":"deployment-pipeline","required":true,"structureHash":"sha256:eba83114293311bda01c6a27786e83648fc1d07e0cd5139c8265b24ae1d93e41"},{"artifact":"deployment-strategy","contentHash":"sha256:322960af3e9359739a21e3ecd9f653d24e3a609153eb9813a39b635016ddbab0","instanceCount":1,"presentCount":1,"producer":"deployment-pipeline","required":true,"structureHash":"sha256:3d2e9582feae02ebbe13ca3adc0e4e754c32c05e9b0c535d2445e3d41207f352"},{"artifact":"environment-inventory","contentHash":"sha256:6075dc742b81265d54906df39511e41d7457b07eef2642c76368e9453eba4ecc","instanceCount":1,"presentCount":0,"producer":"environment-provisioning","required":true,"structureHash":"sha256:6ac40cdc68f0ecf4ad738d9c9c24d32a2b94478dd0de6c8f4b2d24e9b7d60e2e"}],"outputs":[{"artifact":"deployment-execution-questions","contentHash":"sha256:b56a9e58fa7eefa19e04fbe82616b0a6281e68371812a5dc74a289fdd8bb64fe","instanceCount":1,"presentCount":1,"producer":"deployment-execution","required":true,"structureHash":"sha256:5656b5a906eddef90d57a8eae00dc8e7714792f141f50461bcffeab3156e7c88"},{"artifact":"deployment-log","contentHash":"sha256:71cba795f417c48370ab9e51951a7d562cae370b44ce8a47aa379f4765be9b80","instanceCount":1,"presentCount":1,"producer":"deployment-execution","required":true,"structureHash":"sha256:6ed6f349cdc296e2c06de8bfc285c7ec279ec66754f1bc6ef65e2de60e64b6f2"},{"artifact":"health-check-report","contentHash":"sha256:3f208cd5e595c2a4088aaf7477600abb00d5a1db1999df8e0ceddbeb8a420fa9","instanceCount":1,"presentCount":1,"producer":"deployment-execution","required":true,"structureHash":"sha256:fa66fca742320c5317a9f820f678764e735cb8ba8b878ecdab5134f5aa5dbd5a"},{"artifact":"smoke-test-results","contentHash":"sha256:3b7bbf4298ef67ad91b355676303fdab0ddcce0b291afa8f6a05a81ee33bfcf3","instanceCount":1,"presentCount":1,"producer":"deployment-execution","required":true,"structureHash":"sha256:de2fe568e99916155002be2df00f50ce5b935b2b0649f7487764d3b5a3875437"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Deployment Execution approved by gate
+**Tokens In**: 42
+**Tokens Out**: 11411
+**Cache Read**: 16199381
+**Cache Write**: 16213
+**Cost USD**: 3.60
+**By Model**: opus-5-5=3.60
+**By Agent**: main=3.60
+**Tokens By Model**: opus-5-5=42/11.4k/16.2M/16.2k
+**Tokens By Agent**: main=42/11.4k/16.2M/16.2k
+
+---
+
+## Phase Completion
+**Timestamp**: 2026-11-27T23:13:21Z
+**Event**: PHASE_COMPLETED
+**From phase**: operation
+**To phase**: (end)
+**Stages completed**: 10
+
+---
+
+## Phase Verification
+**Timestamp**: 2026-11-27T23:13:21Z
+**Event**: PHASE_VERIFIED
+**Phase boundary**: operation → end
+
+---
+
+## Workflow Completion
+**Timestamp**: 2026-11-27T23:13:21Z
+**Event**: WORKFLOW_COMPLETED
+**Scope**: refactor
+**Details**: Scope: refactor, 10 stages completed
+**Tokens In**: 1354
+**Tokens Out**: 702799
+**Cache Read**: 265641570
+**Cache Write**: 3667095
+**Cost USD**: 87.44
+**By Model**: opus-5-5=86.28; sonnet-5-5=1.16
+**By Agent**: main=28.09; aidlc-developer-agent=58.19; aidlc-product-lead-agent=0.25; aidlc-architecture-reviewer-agent=0.91
+**Tokens By Model**: opus-5-5=1.3k/682.2k/263.6M/3.4M; sonnet-5-5=52/20.6k/2.1M/298.1k
+**Tokens By Agent**: main=256/119.4k/87.6M/1M; aidlc-developer-agent=1k/562.8k/176M/2.3M; aidlc-product-lead-agent=8/3.7k/202.7k/75.4k; aidlc-architecture-reviewer-agent=44/16.9k/1.9M/222.7k
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-27T23:13:21Z
+**Event**: MEMORY_EMPTY
+**Stage**: deployment-execution
+
+---
