@@ -76,10 +76,17 @@
 //! 2. ジョブごとに、`decide_from_state`(conductor-core)の判断に従う。
 //!    - `Reject`: ジョブを実行せず、ステートも変えない。
 //!    - `Skip`: `conductor_core::apply_skip` → [`write_state`]([`Durability::Durable`])。
-//!    - `Run`: ステートが空だったときは、最初のジョブの**前**に、初期ステートを
-//!      [`write_state`]([`Durability::Fast`])で書く(書けないディレクトリを、ジョブの前に検知する)。
-//!      そのあと、[`run_job`] → `classify_and_decide`(conductor-core)→ `conductor_core::apply_outcome` →
+//!    - `Run`: 試行ごとに、[`now`] で取った時刻で `conductor_core::start_attempt`(試行を足す)→
+//!      起動の**前**に [`write_state`]([`Durability::Fast`])→ [`run_job`](足す環境変数、消す名前、
+//!      `log_dir` があれば [`LogTarget`])→ 試行の後に [`now`] で取った時刻で `conductor_core::end_attempt`
+//!      (試行を閉じる)。ステートが空だったときは、初期ステート(`conductor_core::initial_state`)に最初の
+//!      試行を足した書き込みが、初期化の書き込みを兼ねる(書けないディレクトリを、ジョブの前に検知する。
+//!      v0.10.0 以降)。そのあと、`classify_and_decide`(conductor-core)→ `conductor_core::apply_outcome` →
 //!      [`write_state`]([`Durability::Durable`])。
+//!      リトライのときは、試行を開いたまま(終わりの時刻はメモリに持ち、書かずに)[`wait_for`] で待ち、次の
+//!      試行の始めに閉じてから新しい試行を足す。起動の前に中断の合図が立っていた試行は
+//!      `conductor_core::cancel_attempt` で取り除き、待ちの中断では持っていた時刻で閉じてから
+//!      `Durable` の書き込みに入る(呼び出すのは conductor-cli)。
 //! 3. 完了(`completed`)のとき、記録のあとに、呼び出し側が、削除を求められていれば [`reset_state`] を
 //!    呼ぶ。この Unit は、完了を判断せず、初期化の手段だけを提供する(`apply_skip` と
 //!    `apply_outcome` が、`completed` を書く)。完了のまま残ったステートは、[`read_state`] が空として
