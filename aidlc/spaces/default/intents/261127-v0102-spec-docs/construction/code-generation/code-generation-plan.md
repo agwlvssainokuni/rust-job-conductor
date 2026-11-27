@@ -25,25 +25,25 @@
 
 ### Step 1: 準備
 
-- [ ] `unit-test-instructions.md` のコマンドをそのまま走らせ、結果を `code-summary.md` に記録する(変更の前)。
-- [ ] 付録 B の確かめを変更の前に走らせ、出発点の結果を `code-summary.md` に記録する。
+- [x] `unit-test-instructions.md` のコマンドをそのまま走らせ、結果を `code-summary.md` に記録する(変更の前)。
+- [x] 付録 B の確かめを変更の前に走らせ、出発点の結果を `code-summary.md` に記録する。
 
 ### Step 2〜12: `docs/spec/rust/`(章ごとに 1 コミット。BR1.1〜BR1.3、BR6.2)
 
 各章は `functional-spec.md` の 2 章の手順(W1)で書く。差は引き渡しの「章ごとの差」の表。書き換えは付録 A.1。
 
-- [ ] Step 2: 03(定義の書式。FR1.3)
-- [ ] Step 3: 06(ステート。FR1.6)
-- [ ] Step 4: 07(プロセスとシグナル。FR1.7)
-- [ ] Step 5: 05(実行の流れ。FR1.5。v0.10.1 の内部の入口を 16.2 に)
-- [ ] Step 6: 04(CLI。FR1.4)
-- [ ] Step 7: 08(出力。FR1.8。`--help` の全文は `crates/cli/src/report/messages.rs` から写す)
-- [ ] Step 8: 10(誤りと終了コード。FR1.9)
-- [ ] Step 9: 02(構成。FR1.2)
-- [ ] Step 10: 11(品質とビルド。FR1.10)
-- [ ] Step 11: 12(作り直しの手引き。FR1.11。履歴の段は残す)
-- [ ] Step 12: 00・01(案内と概要。FR1.1)と 09 の版の記述
-- [ ] rust の付録 A.1 の各行が書き換わり、付録 B の rust の確かめが通ることを確かめる(FR1.12、NFR3)。
+- [x] Step 2: 03(定義の書式。FR1.3)
+- [x] Step 3: 06(ステート。FR1.6)
+- [x] Step 4: 07(プロセスとシグナル。FR1.7)
+- [x] Step 5: 05(実行の流れ。FR1.5。v0.10.1 の内部の入口を 16.2 に)
+- [x] Step 6: 04(CLI。FR1.4)
+- [x] Step 7: 08(出力。FR1.8。`--help` の全文は `crates/cli/src/report/messages.rs` から写す)
+- [x] Step 8: 10(誤りと終了コード。FR1.9)
+- [x] Step 9: 02(構成。FR1.2)
+- [x] Step 10: 11(品質とビルド。FR1.10)
+- [x] Step 11: 12(作り直しの手引き。FR1.11。履歴の段は残す)
+- [x] Step 12: 00・01(案内と概要。FR1.1)と 09 の版の記述
+- [x] rust の付録 A.1 の各行が書き換わり、付録 B の rust の確かめが通ることを確かめる(FR1.12、NFR3)。
 
 ### Step 13: language-agnostic の AC の節と番号の範囲を決める(R-04、BR2.2)
 
