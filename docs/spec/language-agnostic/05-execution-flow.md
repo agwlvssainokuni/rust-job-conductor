@@ -6,6 +6,8 @@
 
 実装の構成(推奨): 「判断」(分類・次の動き・起動前の判断・リトライの判断・再開位置)は、ファイルにもプロセスにも触れない**純粋な関数**にし、失敗させず必ず結果を返す。「記録」はステート値の更新(複製して更新。元は変えない)。「流れ」が、ファイルとプロセスを扱う。
 
+v0.10.0 以降の事柄: 既定のリトライ(`[pipeline.retry]`)と `retry = false`(§7)、`.env` と `unset_env` の重なりの検査(§5.1 の 5a)、試行ごとの時刻と `Fast` の書き込み(§5.1a、§7.5、§18)、`unset_env` の層(§14)、DOT(§15.8)、ログのファイル(§19)、`watch --follow` の終わりの判定(§20)。v0.10.1 では、計画の模擬の判断の手間を改めた(§16.2。挙動は変わらない)。
+
 ---
 
 ## 1. 用語とデータ
@@ -283,10 +285,10 @@ return low
 |---|---|---|
 | 1 | 中断の合図(「立った/立っていない」と最初のシグナル番号を保持する共有の旗)を作り、シグナルの監視を開始(定義の検査より前。登録はプロセスで 1 回だけ) | 準備の失敗: 70(`conductor: error: failed to set up signal handling`) |
 | 2 | 定義ファイルの読み込みと検証。`pipeline` は、引数の名前と定義の `[pipeline].name` を照合 | 64 |
-| 3 | 全ジョブの `command` の検査(引用符の閉じ忘れ・空) | 64 |
+| 3 | 全ジョブの `command` の検査(引用符の閉じ忘れ・空)。誤りは全ジョブ分を集めて表示する。分割したコマンドは、ジョブと同じ並びで持ち、実行(起動の失敗の表示)と `--dry-run` の計画が使い回す | 64 |
 | 4 | `run` のとき、ジョブIDが定義にあるか | 68(`unknown job`) |
 | 5 | run ID の決定(§6) | 68 |
-| 5a | (v0.9.0 以降)`.env` の読み取り(§14)。`pipeline` は `[pipeline].env_file` とすべてのジョブの `env_file`、`run` は `[pipeline].env_file` とそのジョブの `env_file`。誤りが 1 つでもあれば、ジョブを実行せず、ステートに触れずに止まる | 64 |
+| 5a | (v0.9.0 以降)`.env` の読み取り(§14)。`pipeline` は `[pipeline].env_file` とすべてのジョブの `env_file`、`run` は `[pipeline].env_file` とそのジョブの `env_file`。(v0.10.0 以降)`required = false` で無いファイルは読み飛ばす。すべて読めたら、同じ範囲のジョブについて、`.env` の名前と `unset_env` の名前の重なりを調べる(03 の 7.7。重なりは `unsetConflict`)。誤り(重なりを含む)が 1 つでもあれば、ジョブを実行せず、ステートに触れずに止まる | 64 |
 | 6 | ステートの読み込み([06-state-file.md](06-state-file.md) §5)。完了のまま残ったものは「空」 | 65 |
 | 7 | 空でなければ、定義との照合(06 §6) | 65 |
 | 8 | 実効の `remove_on_complete` = `--remove-on-complete` があれば true、なければ定義の `[pipeline].remove_on_complete`(省略時 false)。環境変数は見ない | - |
@@ -295,6 +297,22 @@ return low
 - 使い方の誤り(4 と 5 の 68)と `.env` の誤り(5a の 64)が同時にあるときは、先に検出する 68 が勝つ(5a は 5 のあと)。`--dry-run` は、この `prepare` の、シグナルを除く部分(1 を除く 2〜7)を共有する(§16)。
 - シグナルを受け取っても、1〜7 は最後まで進む。64・65・66・スキップ(0)の終了コードが、中断の終了コードに優先する。
 - `pipeline` で引数の名前が定義の名前と違う場合は 64(順 2)。引数の名前が無いのは使い方の誤り 68(コマンドライン解析。[04-cli.md](04-cli.md))。
+
+### 5.1a 1 つのジョブの手順(v0.10.0 以降)
+
+`run`(§5.2)と `pipeline`(§5.3)の `Run` は、次の手順を共有する。書く順序と耐久性は、この節にまとめる。書き込みの失敗は、誤りを表示して 65 を返し、呼び出し側はそれで終わる。
+
+```text
+run_step(session, base, job, command, mode):  # base は空のことがある。command は分割済み(5.1 の 3)
+  b = base か、(空なら) initial_state      # ここでは書かない(v0.9.x までは、ここで初期ステートを Fast で書いた)
+  (exec, log) = run_job_with_retry(job, command, b)   # §7.5。試行ごとに試行を足して Fast で書く(§18)
+                                              # 書けなければ 65、ジョブは起動しない
+  (outcome, next) = classify_and_decide(job, exec, b.job_states, def, mode)
+  表示(§5.5。ログのファイルを作れなかったときは、起動の失敗の代わりにその 1 行。§19)
+  rec = apply_outcome(b, job.id, exec, outcome, next)   # b は試行を閉じたもの
+  write(rec, Durable)                         # 失敗: 65、文脈=exec が起動前なら「起動していません」、そうでなければ「ジョブは実行されました」
+  return (rec, outcome, next)
+```
 
 ### 5.2 `conductor run <job-id>` の擬似アルゴリズム
 
@@ -316,12 +334,8 @@ match d:
     -v なら skipped 表示
     return 0
   Run:
-    base = session.state か、(空なら) initial_state を Fast で書いたもの   # 書けなければ 65、ジョブは起動しない
-    exec = run_job_with_retry(job)           # §7。ステートは書かない
-    (outcome, next) = classify_and_decide(job, exec, base.job_states, def, Individual)
-    表示(§5.5)
-    rec = apply_outcome(base, job_id, exec, outcome, next)
-    write(rec, Durable)                      # 失敗: 65、文脈=exec.started なら「ジョブは実行されました」、そうでなければ「起動していません」
+    (rec, outcome, next) = run_step(session, session.state, job, command, Individual)   # 5.1a。v0.10.0 以降
+                                             # (v0.9.x までは、initial_state を Fast で書いてから run_job_with_retry を呼び、結果を Durable で書いた)
     if next.completed and remove_on_complete:
         reset_state()                        # 失敗: 65
     return exit_code_for(outcome.reported_exit_code, outcome.classification == error)
@@ -331,7 +345,7 @@ match d:
 
 - Individual では、遷移でスキップが決まったジョブ(`byTransition`)は、`apply_outcome` で記録済みなので、後で `run` されると `Skip(SkipTarget)`。
 - 最後のジョブの `run` 完了、または `@end` 後の最後のジョブのスキップ記録で `completed = true`。
-- 初期ステートは `Run` と決まった後にだけ書く(Reject・Skip の前には書かない)。ただし Skip のときは、ステートが空なら `initial_state`(06 §2.6)を土台に記録が書かれる。
+- 初期ステートは `Run` と決まった後にだけ書く(Reject・Skip の前には書かない。v0.10.0 以降は、最初の試行の書き込みが初期化を兼ねる。§18)。ただし Skip のときは、ステートが空なら `initial_state`(06 §2.6)を土台に記録が書かれる。
 - `classify_and_decide(job, exec, states, def, mode)` は、`classify`(§2.3)で結果を作り、その分類を使って `next_step`(§3.2)で次の動きを決めて、組で返す。
 
 ### 5.3 `conductor pipeline <name>` の擬似アルゴリズム
@@ -353,12 +367,7 @@ for job in def.job (記述順):
       current = rec
       if rec.completed: return finish(...)   # 下記
     Run:
-      base = current、無ければ initial_state を Fast で書いたもの   # 失敗: 65
-      exec = run_job_with_retry(job)
-      (outcome, next) = classify_and_decide(job, exec, base.job_states, def, Pipeline)
-      表示
-      rec = apply_outcome(base, job.id, exec, outcome, next)
-      write(rec, Durable)                    # 失敗: 65
+      (rec, outcome, next) = run_step(session, current, job, command, Pipeline)   # 5.1a。v0.10.0 以降
       if outcome は error、または分類なし:
           return exit_code_for(outcome.reported_exit_code, classification == error)   # エラーで停止
       if next.completed: return finish(...)
@@ -451,7 +460,7 @@ else: parse(value) が失敗なら 68(`invalid value: '<subject>'`)、成功な�
 
 ---
 
-## 7. リトライ(`[job.retry]`、v0.8.0)
+## 7. リトライ(`[job.retry]`、v0.8.0。`[pipeline.retry]` と `retry = false`、v0.10.0 以降)
 
 ### 7.1 設定(検証済みの値。`RetryPolicy`)
 
@@ -465,7 +474,8 @@ else: parse(value) が失敗なら 68(`invalid value: '<subject>'`)、成功な�
 
 - `multiplier` と `max_interval` は両方書くか両方書かない。検証の詳細は [03-definition-format.md](03-definition-format.md)。
 - 内部の表現: 待ち時間は秒の**64 ビット符号なし整数**、倍率は 32 ビット符号なし整数。浮動小数点は使わない。
-- `[job.retry]` を書かないジョブは、従来どおり 1 回だけ実行する。
+- `[job.retry]` を書かないジョブは、従来どおり 1 回だけ実行する(v0.10.0 以降は、`[pipeline.retry]` が無いときだけ)。
+- (v0.10.0 以降)実効のリトライは、定義の読み込みで決まる(03 の 7.8): ジョブの `[job.retry]` があればその表を丸ごと、`retry` を書かなければ `[pipeline.retry]` の既定の写し、`retry = false` なら無し(リトライしない)。既定から来たかは持たないので、以下の判断と実行ループは、既定を当てはめたジョブも自分の表を書いたジョブも同じに扱う【必須】。受け入れテストは 11 章 4.21 節(AC-519〜AC-524)。
 
 ### 7.2 リトライの対象か(`is_retry_target`)
 
@@ -517,22 +527,37 @@ next_wait_secs:
 ### 7.5 実行ループ(`run_job_with_retry`)。`run` と `pipeline` の共通
 
 ```text
-retries_done = 0; last_wait_secs = 0
+retries_done = 0; last_wait_secs = 0; pending_end = 無し
+log_dir = def.log_dir を解決したもの(あれば。§19)
 loop:
     # v0.9.0 以降: 試行ごとに、足す環境を作り直す(§14)。attempt = retries_done + 1
     env  = merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: retries_done + 1 })
-    exec = run_job(job, 分割したコマンド, env の名前と値の並び, signal)   # 分割したコマンドは検査で作ったもの(どの試行も同じ)。v0.9.5 までは run_job(job, env の名前と値の並び, signal) で、中で分け直した。v0.8.0 以前は run_job(job, signal)
+    started_at = 時計の現在の時刻                  # v0.10.0 以降。試行ごとに 1 回だけ取る
+    if pending_end があれば: state = 試行を閉じる(state, job.id, pending_end)   # 前の試行(§18)
+    state = 試行を始める(state, job.id, started_at)
+    write(state, Fast)                             # 失敗: 65、文脈=ジョブ起動前。ジョブは起動しない
+    log  = log_dir があれば ログの指定{ dir, job.id, started_at, attempt: retries_done + 1 }
+    (exec, log_outcome) = run_job(job, 分割したコマンド, env の足す並び, env の消す名前, signal, log)
+                                                   # 分割したコマンドは検査で作ったもの(どの試行も同じ)。v0.9.6〜v0.9.9 は run_job(job, 分割したコマンド, env の足す並び, signal)、v0.9.5 までは run_job(job, env の名前と値の並び, signal) で、中で分け直した。v0.8.0 以前は run_job(job, signal)
+    ended_at = exec が起動前の中断なら(state = 試行を取り除く(state, job.id); 無し)、
+               そうでなければ 時計の現在の時刻
+    ログの警告(書けなかった、待ち切れなかった)を 1 行ずつ(§19)
     match retry_decision(job, exec, retries_done, last_wait_secs):
-        Stop: return exec                          # 最後の結果
-        Retry{wait_secs}:
+        Stop:
+            if ended_at: state = 試行を閉じる(state, job.id, ended_at)
+            return (exec, log_outcome)             # 最後の結果
+        Retry{wait_secs, last_exit_code, max}:
+            pending_end = ended_at                 # 試行は開いたまま。書かない(§18)
             表示: 常に 1 行(§7.7)。retry_number = retries_done + 1
             match wait(wait_secs, signal):
                 Elapsed:        retries_done += 1; last_wait_secs = wait_secs; continue
-                Interrupted(n): return JobExecution{ started=false, interrupted=true, signal_number=n,
-                                                      exit_code=無し, start_failure=false, terminated_by_signal=無し }
+                Interrupted(n):
+                    if pending_end: state = 試行を閉じる(state, job.id, pending_end)
+                    return (JobExecution{ started=false, interrupted=true, signal_number=n,
+                                          exit_code=無し, start_failure=false, terminated_by_signal=無し }, ログの結果は空)
 ```
 
-- 返された最後の結果だけが、分類・表示・ステート記録の対象(ステートは最終の結果で 1 回だけ書かれ、途中では書かれない)。リトライの回数・直前の待ち時間はローカルな値で、ステートファイルに書かない。
+- 返された最後の結果だけが、分類・表示・ステート記録(結果の記録と `Durable` の書き込み)の対象。v0.10.0 以降は、これとは別に、**試行の開始ごとに** `Fast` で書く(§18。v0.9.x までは、途中では書かず、最終の結果のときだけ書いた)。試行の開始の書き込みは、ジョブの状態・終了コード・再開位置を変えない(試行の時刻だけ)。リトライの回数・直前の待ち時間はローカルな値で、ステートファイルに書かない。
 - したがって、conductor が落ちたあとの再開では、そのジョブを最初の実行から数え直す。
 - 使い切った(`retries_done == max` で、まだ対象の終了コード): `Stop` → 通常のエラーと同じ(最後の実行の終了コードで終わり、再開位置はそのジョブ)。再実行の結果が成功・警告なら通常どおり遷移へ進む。
 - 総実行回数: 最大 `max + 1`。知らせの回数: 実際に実行し直す(または待機に入る)回数。
@@ -641,9 +666,9 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 
 ---
 
-## 14. 環境変数の注入(`env`、`env_file`、`.env`。v0.9.0 以降)
+## 14. 環境変数の注入(`env`、`env_file`、`.env`。v0.9.0 以降。`unset_env`、v0.10.0 以降)
 
-ジョブを起動するとき、引き継いだ環境(`conductor` が親から受け取った環境変数)に、定義で決めた変数を**足す**。書式は 03 の 7.6(`env`、`env_file`)と 7.7(`.env`)。取り除く書き方(`unset`)はない。ステートには、環境変数(名前も値も)を書かない(ステートの論理項目は変わらない)。
+ジョブを起動するとき、引き継いだ環境(`conductor` が親から受け取った環境変数)から、(v0.10.0 以降)定義の `unset_env` の名前を**消し**、そのうえで、定義で決めた変数を**足す**。書式は 03 の 7.6(`env`、`env_file`)、7.7(`.env`)、7.10(`unset_env`)。`unset_env` を書かなければ、何も消さない(v0.9.x までは、消す書き方が無かった)。消す名前と足す名前は、定義の検証(`unsetEnvConflict`)と `.env` の検査(`unsetConflict`)で重ならないようにしてある。ステートには、環境変数(名前も値も)を書かない(ステートの論理項目は変わらない)。
 
 ### 14.1 データ
 
@@ -653,17 +678,18 @@ end_reached   = 「skipped(byEnd)」のジョブが 1 つでもあれば true
 | `EnvFileContent` | 1 つの `.env` の解析結果。項目の並び(書いた順)、警告の並び |
 | `LoadedEnvFiles` | 1 回の呼び出しで読んだ、すべての `.env`。「定義に書かれた `env_file` の記述 → 内容」を引ける。同じ解決済みのパスは、1 つの内容を共有する |
 | `EnvContext` | `{ pipeline_name, job_id, run_id(無いことがある), attempt(1 から) }`。自動の変数の入力 |
-| `EffectiveEnv` | 1 回のジョブの起動に足す環境。`{ entries: list<{ name, value }> }`。「名前と値の並び」(起動に渡す)と、「名前の並び」(値を含まない要約)は、項目から取り出せる |
+| `EffectiveEnv` | 1 回のジョブの起動に渡す環境。`{ entries: list<{ name, value }>, removals: list<string> }`。「名前と値の並び」(起動に渡す)と、「名前の並び」(値を含まない要約)は、項目から取り出せる。`removals`(v0.10.0 以降)は、足す前に引き継いだ環境から消す名前(`unset_env` を書かなければ空) |
 
 ### 14.2 層と優先順位
 
 ジョブの環境は、後ろが勝つ順に、次の層を重ねて決まる。
 
 ```text
-引き継いだ環境  <  [pipeline].env_file  <  [pipeline.env]  <  [job].env_file  <  [job.env]  <  自動の変数
+(引き継いだ環境 − [pipeline].unset_env − [job].unset_env)  <  [pipeline].env_file  <  [pipeline.env]  <  [job].env_file  <  [job.env]  <  自動の変数
 ```
 
-- `env_file` が配列のときは、書いた順に読み、後ろのファイルが勝つ。
+- (v0.10.0 以降)`unset_env` の名前は、引き継いだ環境だけから消す(土台の層を削る)。消したあとに足す層には効かない(重なりは検証で止めてあるので、消した名前を足すことは、自動の変数を含めて起きない。`CONDUCTOR_` で始まる名前は `unset_env` に書けない)【必須】。
+- `env_file` が配列のときは、書いた順に読み、後ろのファイルが勝つ。(v0.10.0 以降)`required = false` で無かったファイルは、何も足さない(§14.5)。
 - 引き継いだ環境は、統合の結果に**含めない**(子プロセスが OS の規則で引き継ぐ。結果は「足すもの」だけ)。引き継いだ環境が数百の名前を持ちうるため、名前の要約にも含めない。
 
 ### 14.3 統合 `merge_env(def, job, files, ctx) -> EffectiveEnv`
@@ -684,11 +710,14 @@ put("CONDUCTOR_PIPELINE", ctx.pipeline_name)                       # 自動の�
 put("CONDUCTOR_JOB_ID",   ctx.job_id)
 if ctx.run_id がある: put("CONDUCTOR_RUN_ID", ctx.run_id)
 put("CONDUCTOR_ATTEMPT",  十進の整数の文字列(ctx.attempt))
-return EffectiveEnv { entries }
+removals = def.unset_env と job.unset_env を、この順に並べ、完全に同じ名前は最初の 1 つだけを残す   # v0.10.0 以降
+return EffectiveEnv { entries, removals }
 ```
 
 - 完全に同じ名前は、後ろの層が勝って 1 つになる(並びでは、後ろの層の位置に移る)。**大文字小文字だけが違う名前は、別の名前として**、層の順に並べる(`foo` と `FOO` は両方が残る)。
-- 引けない記述は、何も足さない(読み取りは、実行の前に済んでいる前提。誤りは返さない)。
+- 上の `put` は意味を示す書き方で、項目の数の二乗の時間にしてはならない。参照実装は、名前ごとの最後の位置を表で引き、最後の位置の項目だけを並びの順に残す(項目の数に比例する時間。上限の `.env` 10,000 項目でも、二乗の時間にならない)【目安】。
+- 引けない記述(v0.10.0 以降の、`required = false` で無かったファイルを含む)は、何も足さない(読み取りは、実行の前に済んでいる前提。誤りは返さない)。
+- `removals` は値を読まない。大文字小文字だけが違う名前(`a` と `A`)は、まとめずに両方を残す。`--dry-run` の計画の「消す環境変数」も同じ規則で作る(§16)。
 - 予約名の拒否は、`merge_env` では行わない(定義の読み取りと `.env` の解析が拒否済み。03 の 7.6、7.7)ので、`merge_env` は誤りを返さない。
 
 #### 自動の変数
@@ -705,7 +734,7 @@ return EffectiveEnv { entries }
 
 ### 14.4 起動への反映
 
-ジョブの起動(1.2 の `run_job`)は、足す環境変数(名前と値の並び)を受け取る。子プロセスを生成するとき、**並びの順に**、各 `(name, value)` を、引き継いだ環境に足す(同じ名前は上書き。引き継いだ環境は、残る)。同じ名前が並びに 2 回あれば、後ろが勝つ(`merge_env` は完全に同じ名前を 1 つにするので、通常は起きない)。値の展開はしない。
+ジョブの起動(1.2 の `run_job`)は、足す環境変数(名前と値の並び)と、(v0.10.0 以降)消す名前の並び(`removals`)を受け取る。子プロセスを生成するとき、(v0.10.0 以降)まず消す名前の各名前を引き継いだ環境から除き(引き継いだ環境に無い名前は何もしない。名前の比べ方は OS に任せる: UNIX 系は完全一致、Windows は大文字小文字を区別しない。07 の 8.1)、続けて**並びの順に**、各 `(name, value)` を、引き継いだ環境に足す(同じ名前は上書き。引き継いだ環境は、残る)。同じ名前が並びに 2 回あれば、後ろが勝つ(`merge_env` は完全に同じ名前を 1 つにするので、通常は起きない)。値の展開はしない。
 
 **受け入れる OS の違い**: 層をまたぐ、大文字小文字だけが違う名前(例: `[pipeline.env]` の `foo` と `[job.env]` の `FOO`)は、Linux と macOS では、子に両方が見える。Windows は環境変数の名前の大文字小文字を区別せず、並びの後ろに足した `FOO` だけが見える。完全に同じ名前の優先順位は、どの OS でも同じ。統合した環境の全体の大きさには、上限を設けない(OS の上限を超えて起動できないときは、従来の「起動の失敗」(終了コード 127)として扱う)。
 
@@ -718,7 +747,9 @@ return EffectiveEnv { entries }
 | `--dry-run`(`pipeline`・`run`) | 上の 2 行と同じ範囲(本番と同じ読み取り) | 準備の中(16 章) | 64(計画は出ない) |
 | `validate`、`graph` | `pipeline` と同じ範囲 | 定義と `command` の検査のあと | 64 |
 
-- 範囲は、次の関数が決める: `env_file_refs(def, job_id?)` = `[pipeline].env_file` を先に、続けて(`job_id` が無ければ全ジョブ、あればそのジョブだけの)`env_file` を、定義の記述順に並べ、同じ記述の文字列は 1 つにまとめる(書いた順を保つ)。一覧が空(`env_file = []` を含む)なら、読み取りは何もしない。
+- 範囲は、次の関数が決める: `env_file_refs(def, job_id?)` = `[pipeline].env_file` を先に、続けて(`job_id` が無ければ全ジョブ、あればそのジョブだけの)`env_file` を、定義の記述順に並べ、同じ記述の文字列は 1 つにまとめる(書いた順を保つ。v0.10.0 以降は、まとめるときに `required` を論理和にする)。一覧が空(`env_file = []` を含む)なら、読み取りは何もしない。
+- (v0.10.0 以降)必ず要らない(`required = false`)ファイルが無いときは、誤りにも警告にもせず読み飛ばす(03 の 7.7)。あって読めない・書式の誤りなどは、`required` によらず 64。
+- (v0.10.0 以降)すべて読めたら、同じ範囲のジョブについて、`.env` の項目の名前と `unset_env` の名前の重なりを調べる(03 の 7.7)。重なりは `.env` の誤りと同じく表示して 64。
 - 再開のときも、呼び出しごとに、現在のファイルを読み直す(ステートに内容を残さない)。
 - 誤りは、すべてのファイル分を集め、表示する(先頭の 20 件と「ほか N 件」。08 の 4.12)。終了コードは 64。
 - 読み取った結果は、その呼び出しの中だけで持つ。
@@ -735,7 +766,7 @@ return EffectiveEnv { entries }
 
 ## 15. `graph`: 図の構造と配置(v0.9.0 以降)
 
-`conductor graph` が出す図の、構造と配置の規則(純粋。ファイルにもプロセスにも環境変数にも触れない。文字への変換は 15.6、15.7)。コマンドの流れは 04 の 7.7、出力の全例は 08 の 11 章。
+`conductor graph` が出す図の、構造と配置の規則(純粋。ファイルにもプロセスにも環境変数にも触れない。文字への変換は 15.6、15.7、v0.10.0 以降の DOT は 15.8)。コマンドの流れは 04 の 7.7、出力の全例は 08 の 11 章。
 
 ### 15.1 データ
 
@@ -850,6 +881,18 @@ target_position(i, on):
 
 エスケープ(ラベルの中): `#` → `#35;`(**最初に**置き換える。置き換えで作った `#` は、さらに置き換えない)、`"` → `#quot;`、`<` → `#lt;`、`>` → `#gt;`、`&` → `#amp;`、`` ` `` → `#96;`、そのほかの制御文字 → `#<10 進>;`。
 
+### 15.8 DOT(v0.10.0 以降)
+
+`graph --format dot` の出力。Graphviz の DOT の文書で、Mermaid と同じ図の構造から、同じ節と辺を、同じ順で描く。形によらず常に出せる。`-v` は影響しない。次の順に出す(2 行目からの各行は、2 つの空白で字下げ)【必須】。
+
+1. `digraph conductor {`
+2. `rankdir=TB;`
+3. 節の定義(節の順): ジョブ `k`(0 始まりの位置)は `n<k> [label="<ラベル>", shape=box];`。再開位置のジョブ(`--state` のときだけ)は、`shape=box` のあとに `, penwidth=3` を足す(太い枠)。終点は `nend [label="@end", shape=oval];`。ラベル = 状態の記号(`--state` のとき。text と同じ `[OK] ` など)+ ジョブID。**ジョブIDは、二重引用符つきのラベルにだけ書く**(節の ID は連番)。
+4. 辺の定義(`flow_edges` の順): 主線の辺(`kinds` が 2 つで `skipped_jobs` が空)は `<元> -> <行き先>;`、それ以外は `<元> -> <行き先> [label="<種類>"];`(種類は text と同じ語。言語に従う)。行き先の節が見つからない辺は出さない(Mermaid と同じ)。
+5. `}`(最後に改行)
+
+エスケープ(ラベルの中): まず text と同じ見える形(改行は `\n`、書式の制御文字は `\u{..}` など。08 の 9 章)にし、そのあと `\` を `\\`、`"` を `\"` にする。これで、DOT の `\n`・`\l` などの特別な列がラベルの中で働かず、どのジョブ ID でも文書が壊れない。書く入力の値は、ジョブ ID だけ。出力の例は 08 の 11.8。受け入れテストは 11 章 4.24 節(AC-536〜AC-540)。
+
 ---
 
 ## 16. `--dry-run`: 実行計画(v0.9.0 以降)
@@ -863,7 +906,7 @@ target_position(i, on):
 | `Assumption` | `{ job_id, exit_code: 整数 }`。終了コードの範囲は 0〜255 |
 | `PlanDisposition` | `willRun`(実行する。模擬での結果 `SimulatedResult` を持つ)、`alreadyExecuted`(実行済み)、`skippedByTransition`(遷移でスキップ)、`skippedAfterEnd`(`@end` のあとでスキップ)、`notReached`(模擬でエラーの停止のあとのため、実行されない) |
 | `SimulatedResult` | `{ exit_code, classification, assumed: bool(--assume で指定したか。false は既定の成功)、retryable: bool(終了コードがリトライの対象に含まれるか。注記のためだけで、模擬はリトライを繰り返さない) }`。`willRun` が持つ |
-| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<{ name }>(試行 1 で渡される名前。並びの順), retry: RetryPolicy? }`(模擬の結果は `disposition` の `willRun` が持つ)。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
+| `PlanEntry` | `{ job_id, disposition, is_resume, command_words: list<string>(分割後。先頭がプログラム), env_names: list<{ name }>(試行 1 で渡される名前。並びの順), unset_names: list<{ name }>(v0.10.0 以降。引き継いだ環境から消す名前。§14.3 の `removals` と同じ並び。無ければ空), retry: RetryPolicy?(実効のリトライ。既定から来たものを含む) }`(模擬の結果は `disposition` の `willRun` が持つ)。`willRun` でないジョブにも、コマンドなどを持つ(表示は `willRun` だけ) |
 | 計画の方式 | `pipeline`、`individual` |
 | `ResumeInfo` | 3 つの場合のどれか: `fromStart`(ステートなし、または完了したステート)、`afterStop`(前回の停止で再開位置あり。再開位置のジョブ ID を持つ)、`individual`(`run` の対象。対象のジョブ ID を持つ) |
 | `PlanEnd` | `completed`、`endReached`(`@end` に到達)、`stoppedAtError(job_id)` |
@@ -902,6 +945,8 @@ unused_assumptions = 仮定のうち、willRun の項目にならなかったジ
 - `apply_result`(3.3 の `apply_outcome` と同じ結果にする): ジョブの状態を分類のとおり(success / warning / error)にし、`exit_code = code`、`skip_reason` を消す。次の動きの `skipped_job_ids`(自分自身を除く)を `skipped` にし、`exit_code` を消し、`skip_reason` = `skip_reason_kind`(無ければ `byTransition`)にする。再開位置と `end_reached` は、呼び出し側が次の動きから更新する。
 - 項目: `command_words` = `input.commands[index]`(無ければ空)、`retry` = `job.retry`、`env_names` = `merge_env(def, job, env_files, EnvContext{ pipeline_name, job.id, run_id, attempt: 1 })` の名前(値は持たない)。
 - 状態の探索は、ジョブの数に比例する時間で済むこと(起動前の判断は、記録が同じ位置にあればそれを使い、なければ、ジョブIDで探す。1,000 ジョブの計画の性能のため。挙動は変わらない)。
+- `unset_names`(v0.10.0 以降)= §14.3 の `removals` と同じ規則の並び(名前だけ。値は無い)。
+- (v0.10.1 以降)計画の模擬は、実行と同じ判断(§3、§4)を、ジョブの位置を使って、1 つの判断あたり定数の手間(ならし)で行う。前のジョブが済んでいるか(起動前の判断の規則)は、すでに済んだと分かった前の部分を覚えておいて、その続きから確かめる。判断と記録の規則は、実行と模擬で 1 か所にまとめ、模擬に書き写さない(参照実装は、位置と覚えた目印を持ち回る内部の入口を、公開の入口と同じ本体で通す。公開の口と結果は変わらない)【目安】。1,000 ジョブの計画の目安は、02 章と 11 章の性能の表(11 章 2.1、AC-573)。`plan_run` は位置を持ち回らない。
 
 ### 16.3 `plan_run(job_id, input)`
 
@@ -937,3 +982,94 @@ resume 情報 = individual(job_id)、entries = [項目]、unused_assumptions = �
 - ひな形は、`validate` に必ず通る定義(`[pipeline.env]` と `[job.retry]` の例を、有効な行として含む)。入力は、言語(ロケール)とパイプライン名だけで、利用者の環境変数や `.env`、既存のファイルの内容は入らない。
 - 名前は、TOML の基本文字列として、`"`、`\`、制御文字(U+0000〜U+001F、U+007F は `\uXXXX`)をエスケープして `[pipeline].name` に入れる。名前は、コメントには書かない。
 - 出力先が既にある(`--force` なし)と、何も変えず 69。`--force` は、同じディレクトリの一時ファイルに書いて、置き換える。`--config -` は標準出力。
+
+---
+
+## 18. 試行の時刻(v0.10.0 以降)
+
+ジョブを起動するたび(リトライと再開を含む)に、その試行の始まりと終わりの時刻を、ステートのジョブの試行の列に記録する(形式は 06 の 2.2a)。時刻は記録するだけで、判断(§3、§4、§7)には使わない。`watch` の所要時間の列(§18.3)と、`watch --follow` の終わりの判定(§20)が読む。受け入れテストは 11 章 4.26 節(AC-553〜AC-561)。
+
+### 18.1 データと時刻
+
+- 時刻: UTC の UNIX 時刻の秒(64 ビット符号なし整数で足りる)。範囲は 1970-01-01T00:00:00Z から 9999-12-31T23:59:59Z まで。範囲の外の値は作らない。年月日の変換はグレゴリオ暦(うるう年を含み、うるう秒は扱わない)。
+- 試行 = `{ started_at: 時刻, ended_at: 時刻? }`。ジョブの状態は、試行の列(古い順)を持つ。
+- 現在の時刻は、実行の部品の時計が取る(テストでは差し替える)。判断と記録の関数は、時計に触れない。
+
+| 処理 | 形 | 例 |
+|------|----|----|
+| ステート用の書式 | `YYYY-MM-DDTHH:MM:SSZ` | `2026-11-25T09:12:48Z` |
+| 詰めた書式 | `YYYYMMDDTHHMMSSZ`(ログのファイル名用。§19) | `20261125T091248Z` |
+| 読み取り | ステート用の書式の形だけを読む(06 の 2.2a) | 小数の秒・時差・小文字は受け付けない |
+| 差 | 2 つの時刻の差(秒。負にならない。終わりが前なら 0) | |
+| ジョブの所要時間 | §18.3 | |
+| 所要時間の短い形 | 1 分未満は `<秒>s`、1 時間未満は `<分>m<秒 2 桁>s`、それ以上は `<時>h<分 2 桁>m<秒 2 桁>s` | `17s`、`1m05s`、`2h03m04s` |
+
+### 18.2 記録の関数(純粋)
+
+| 関数 | 動き |
+|------|------|
+| 試行を始める(state, job_id, at) | そのジョブの最後の試行に `ended_at` が無ければ(`conductor` が強制終了された後の再開)、その試行を**自身の `started_at`** で閉じる(時刻を作らない)。その後ろに `{ started_at: at, ended_at: 無し }` を足す。前の試行は消さない |
+| 試行を閉じる(state, job_id, at) | 最後の試行の `ended_at` を `at` にする。試行が無ければ何もしない |
+| 試行を取り除く(state, job_id) | 最後の試行を取り除く(起動の前に中断の合図が立っていて、起動しなかった試行)。試行が無ければ何もしない |
+
+- どれも、ステートに無いジョブ ID は無視する(異常終了しない)。結果・スキップ・中断の記録(§3.3〜§3.5)は、試行を変えない。
+- 呼ぶ順(§7.5 の擬似アルゴリズム)【必須】:
+  1. 試行ごとに、起動の前に時計から時刻を 1 回だけ取る(`started_at`。ログのファイル名にも同じ値を使う)。
+  2. リトライの 2 回目以降なら、前の試行を、覚えていた終わりの時刻で閉じる。
+  3. 試行を足し、ステートを `Fast` で書く(文脈は「起動前」)。ステートが空なら、初期ステートに試行を足したものを書き、これが初期化の書き込みを兼ねる。書けなければ 65 で、ジョブを起動しない。
+  4. 起動する。
+  5. 起動の前の中断なら、試行を取り除く。それ以外(終わった、起動の失敗、ログのファイルを作れずに起動しなかった)なら、時計から終わりの時刻を取る。
+  6. リトライしないなら、終わりの時刻で閉じて返し、呼び出し側が結果を記録して `Durable` で書く。
+  7. リトライするなら、終わりの時刻を覚え、試行を**開いたまま書かずに**、知らせて待つ(待ちのあいだ、`watch --follow` からは動いている最中に見え、止まったと見えない。§20)。待ちが中断されたら、覚えていた時刻で閉じてから抜け、新しい試行を足さない(呼び出し側の `Durable` の書き込みに入る)。
+- 再開(conductor を呼び直す)では、前の試行を残したまま後ろに足す。リトライの回数(`CONDUCTOR_ATTEMPT`)は、ステートの試行の数から数えない(§7.5)。
+
+### 18.3 所要時間
+
+| ジョブ | 結果 |
+|--------|------|
+| 状態が `success`・`warning`・`error` で、最後の試行に `ended_at` がある | 終わった(最初の試行の `started_at` から、最後の試行の `ended_at` までの秒)(リトライの待ちと、再開までのあいだを含む) |
+| 状態が `pending` で、最後の試行に `ended_at` が無い | 動いている(最初の試行の `started_at` から今の時刻までの秒)(強制終了の後も同じ形で残るので、伸び続けて見える) |
+| 試行が無い、そのほか(中断で最後の試行が閉じた `pending`、`skipped` など) | 無し(空) |
+
+- 秒は「差」で、終わりが始まりより前なら 0(時計が戻った場合)。表示は「所要時間の短い形」。`watch` は、表を作る前に今の時刻を 1 回だけ取って、全ジョブに同じ時刻を使う(08 の 6 章)。
+
+---
+
+## 19. ジョブの出力をファイルに残す(`log_dir`。v0.10.0 以降)
+
+定義の `[pipeline].log_dir`(03 の 7.9)があるとき、`run`・`pipeline` は、試行ごとに、ジョブの標準出力と標準エラーを、端末へ流すのと同時に、1 つのログのファイルへ書く。ファイルの名前・作り方・出力の写し方は 07 の 4.5。受け入れテストは 11 章 4.25 節(AC-541〜AC-552)。
+
+- 解決: `log_dir` が相対なら (定義ファイルのディレクトリ)/(`log_dir`)、絶対ならそのまま(`env_file` と同じ規則)。`~` と変数は展開しない。
+- 試行ごとにログの指定(ディレクトリ、ジョブ ID、開始の時刻、試行の番号)を作り、起動に渡す(§7.5)。開始の時刻は試行の `started_at` と同じ値、試行の番号は `CONDUCTOR_ATTEMPT` と同じ値(1 から。再開で 1 に戻る)。リトライの試行ごとに、別のファイルができる。
+- `log_dir` が無ければ、ログの指定を作らず、出力は今までどおり引き継ぐだけ(パイプを作らない)。端末に出る内容は、`log_dir` のあり・なしで変わらない【必須】。
+- ログのファイルを作れなかったときは、ジョブを起動せず、起動の失敗(分類で 127)。表示は、起動の失敗の 1 行の代わりに、ログを作れなかった 1 行(08 の 4.14)。リトライの対象にならない(§7.2 の 1)。
+- 実行中のファイルへの書き込みの失敗と、出力の待ち切れは、試行の後に 1 行ずつ警告する(常に標準エラー。終了コードは変えない)。
+- `validate`・`graph`・`--dry-run` は、`log_dir` を検査するだけで、ディレクトリもファイルも作らない。
+- ステートに、ジョブの出力もログのファイルのパスも書かない。`conductor` は、ログのファイルを消さない(`reset` も触れない)。
+
+---
+
+## 20. `watch --follow` の終わりの判定(v0.10.0 以降)
+
+`watch --follow` は、ステートを読み直して表を描き、パイプラインが終わるまで繰り返す(流れは 04 の 7.3、待ちは 07 の 7.6、表示は 08 の 6 章)。ステートは読むだけで、書かない・消さない。描くたびに、読み直したステートから、純粋な関数で、続けるか終わるかを決める。判定の順は次のとおり(上から最初に当てはまるもの)【必須】。受け入れテストは 11 章 4.27 節(AC-562〜AC-572)。
+
+| 順 | 条件 | 判定 | `watch --follow` |
+|----|------|------|------------------|
+| 1 | `completed` が真 | 完了 | その表を最後に終わる(0) |
+| 2 | 終わりの時刻の無い試行を持つジョブがある(実行中、リトライの待ち、または強制終了の後) | 動いている | 続ける |
+| 3 | `error` のジョブがある、または再開位置(`resume_job_id`)のジョブが試行を持っている | 止まった | その表を最後に終わる(0) |
+| 4 | 上のどれでもない(まだ始まっていない、ジョブとジョブのあいだ) | あいだ | 続ける |
+
+- リトライの待ちのあいだは、最後の試行が開いたまま(§18.2 の 7)なので「動いている」になり、止まったと見えない。中断で止まった `pending`(再開位置のジョブが、閉じた試行を持つ)は「止まった」。
+- 読み直しの結果ごとの扱い:
+
+| 読んだ結果 | 扱い |
+|------------|------|
+| ステートが有る | 今の時刻を取って表を描き、上の判定。読めない回数と「無い」の続きを 0 に戻す。次は `--interval` 秒待つ |
+| ステートが無い(ファイルが無い、長さ 0)、まだ一度も見ていない | 「ステートが無い」を描いて待つ(`--interval` 秒) |
+| ステートが無い、一度見た後 | **2 回続けて**無いときだけ、消えたとして終わる(0)。1 回目は描かずに待つ(置き換えの瞬間に読めないことがある Windows のため) |
+| 読めない(`unreadable`) | 何も描かず、1 秒後に読み直す。**3 回続けば**、誤りを表示して 65。「無い」の続きを 0 に戻す |
+| ほかの誤り(壊れた、古い形、大きすぎる、版の違い) | `watch` と同じ誤りの表示で 65 |
+| 標準出力に書けない | 誤りを表示して 65 |
+
+- 各回の初めと待ちのあいだに中断の合図が立てば、0 で終わる(07 の 7.6)。
