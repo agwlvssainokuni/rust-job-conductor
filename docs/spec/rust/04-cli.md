@@ -17,16 +17,16 @@
 ```text
 conductor run [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]...] <job-id>
 conductor pipeline [-v] [--config <path>] [--run-id <id>] [--remove-on-complete] [--dry-run [--assume <job-id>=<code>]...] <pipeline-name>
-conductor watch [--config <path>] [--run-id <id>]
+conductor watch [--config <path>] [--run-id <id>] [--follow [--interval <seconds>]]
 conductor reset [--config <path>] [--run-id <id> | --all]
 conductor validate [-v] [--config <path>] [<pipeline-name>]
-conductor graph [-v] [--config <path>] [--format <text|mermaid>] [--state [--run-id <id>]] [<pipeline-name>]
+conductor graph [-v] [--config <path>] [--format <text|mermaid|dot>] [--state [--run-id <id>]] [<pipeline-name>]
 conductor init [--config <path>] [--force] [<pipeline-name>]
 conductor convert <file> --to <yaml|toml>
 conductor --help | --version
 ```
 
-(`--dry-run`・`--assume`・`graph`・`init`・`--format`・`--state`・`--force` は v0.9.0 以降。)
+(`--dry-run`・`--assume`・`graph`・`init`・`--format`・`--state`・`--force` は v0.9.0 以降。`--follow`・`--interval`・`--format dot` は v0.10.0 以降。)
 
 ## 3. オプションの一覧と、コマンドごとの可否
 
@@ -38,11 +38,13 @@ conductor --help | --version
 | `--remove-on-complete` | なし | なし | 可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
 | `--all` | なし | なし | 不可 | 不可 | 不可 | 可 | 不可 | 不可 | 不可 | 不可 |
 | `--to` | なし | `yaml` か `toml`(必須) | 不可 | 不可 | 不可 | 不可 | 不可 | 必須 | 不可 | 不可 |
-| `--format`(v0.9.0 以降) | なし | `text` か `mermaid` | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 | 不可 |
+| `--format`(v0.9.0 以降) | なし | `text`、`mermaid`、`dot`(`dot` は v0.10.0 以降) | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 | 不可 |
 | `--state`(同) | なし | なし | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 | 不可 |
 | `--dry-run`(同) | なし | なし | 可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
 | `--assume`(同) | なし | `<ジョブID>=<終了コード>`(複数回) | `--dry-run` と一緒のときだけ | `--dry-run` と一緒のときだけ | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 |
 | `--force`(同) | なし | なし | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 不可 | 可 |
+| `--follow`(v0.10.0 以降) | なし | なし | 不可 | 不可 | 可 | 不可 | 不可 | 不可 | 不可 | 不可 |
+| `--interval`(同) | なし | 秒(1〜3600 の整数) | 不可 | 不可 | `--follow` と一緒のときだけ | 不可 | 不可 | 不可 | 不可 | 不可 |
 | `--help` | `-h` | なし | どこでも | | | | | | | |
 | `--version` | `-V` | なし | どこでも | | | | | | | |
 
@@ -71,22 +73,24 @@ conductor --help | --version
 | `--remove-on-complete` | 完了時にステートファイルを削除する | 指定なし(定義の `[pipeline].remove_on_complete`、さらに既定は `false`) |
 | `--all` | 定義のステートを、run ID の有無によらず全部消す(`reset` のみ) | なし |
 | `--to <yaml\|toml>` | `convert` の出力形式。大文字小文字を区別し、`yaml` と `toml` 以外は `invalid value`(対象 `--to`。値は含めない。v0.9.4 までは、対象は値そのもの) | なし(必須) |
-| `--format <text\|mermaid>`(v0.9.0 以降) | `graph` の出力形式。大文字小文字を区別し、それ以外は `invalid value`(対象 `--format`。値は含めない) | `text` |
+| `--format <text\|mermaid\|dot>`(v0.9.0 以降。`dot` は v0.10.0 以降) | `graph` の出力形式。`dot` は Graphviz の DOT(05 の 15.8)。大文字小文字を区別し、それ以外は `invalid value`(対象 `--format`。値は含めない) | `text` |
 | `--state`(同) | `graph` で、ステートを読み、状態を図に重ねる(読むだけ) | 重ねない |
 | `--dry-run`(同) | `run`・`pipeline` で、ジョブを実行せず、ステートに書かず、シグナルも準備せずに、実行計画を標準出力に出す | 実行する |
 | `--assume <ジョブID>=<終了コード>`(同) | 計画の中のジョブの終了コード(0〜255)を仮定する。最初の `=` で分ける。複数回指定できる(指定順を保つ) | 指定のないジョブは 0 |
 | `--force`(同) | `init` で、既にあるファイルを上書きする(`--config -` のときは無視) | 上書きしない |
+| `--follow`(v0.10.0 以降) | `watch` で、1 回で終わらずに、パイプラインが終わるまで表示し直しを続ける(7.3) | 1 回だけ表示する |
+| `--interval <秒>`(同) | `watch --follow` の、読み直しの間隔。1〜3600 の整数の秒。数字だけを受け付ける(符号・小数点・空白・空・単位は不可)。違反は `invalid value`(対象 `--interval`。値は含めない) | 2 秒 |
 
 ## 4. 引数の字句規則
 
 | 規則 | 挙動 |
 |------|------|
-| `--opt value` と `--opt=value` | `--config`, `--run-id`, `--to`, `--format`, `--assume` の両方の形を受け付ける(`--assume=a=1` の値は `a=1`) |
+| `--opt value` と `--opt=value` | `--config`, `--run-id`, `--to`, `--format`, `--assume`, `--interval`(v0.10.0 以降)の両方の形を受け付ける(`--assume=a=1` の値は `a=1`) |
 | 値の取り方 | 値を取るオプションは、次の引数を、先頭が `-` でもそのまま値にする(例: `--config --help` は `--help` というパスを指す)。次の引数がなければ `option requires a value`(`MissingValue`。対象は `--config` など) |
 | 空の値 | `--config=`(空パス)は文字列として受理され、後段でファイルなしの誤りになる。`--run-id=` は有効(run ID なしに固定) |
 | 短縮形の連結 | lexopt の標準どおり。`-vh` は `-v` と `-h`(`-h` が勝つ)。`-vv` は `-v` が 2 回 |
 | `--` | オプションの終わり。以降はすべて位置引数(`-v` や `--help` も位置引数)。例: `run -- -weird` はジョブID `-weird`。`-- --help` は先頭の位置引数 `--help` がコマンド名として未知になり `unknown command` |
-| 値を取らないオプションに `=値` | `--verbose=x`, `--all=x`, `--remove-on-complete=x`, `--state=x`, `--dry-run=x`, `--force=x` は `invalid value`(対象はオプション名)。文法にない `--bogus=x` は `unknown option`(対象 `--bogus`) |
+| 値を取らないオプションに `=値` | `--verbose=x`, `--all=x`, `--remove-on-complete=x`, `--state=x`, `--dry-run=x`, `--force=x`, `--follow=x`(v0.10.0 以降)は `invalid value`(対象はオプション名)。文法にない `--bogus=x` は `unknown option`(対象 `--bogus`) |
 | 非 UTF-8 | 位置引数(コマンド名、ジョブID、パイプライン名)が UTF-8 でないと `invalid value`(対象は lossy 変換した文字列)。`--config` と convert の入力パスは `OsString` のまま通す。`--run-id` の値が非 UTF-8 だと `invalid value`(対象 `--run-id`)。`--to` の値が非 UTF-8 なら `invalid value`(対象 `--to`) |
 | `-h`/`-V` に `=値` | `--help=x`、`--version=x`、`-h=x`、`-V=1`、`-vh=x` のように `=値` が付いていても、help / version が優先され、誤りにならない(`-v=1` は `invalid value`、対象 `-v`) |
 | 単独の `-` | 位置引数。`run -` はジョブID `-` として扱われる |
@@ -101,11 +105,11 @@ conductor --help | --version
 3. 文法にないオプション(`unknown option`。複数あれば最初のもの)。
 4. 位置引数が 0 個: `missing argument`(対象なし)。例: 引数なし、`-v` だけ。
 5. 先頭の位置引数が 8 コマンド(v0.8.0 以前は 6 コマンド)のいずれでもない: `unknown command`(対象はその語。空文字も同じ)。
-6. そのコマンドで使えないオプション: `option not allowed for this command`。検査の順は `-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete`, `--dry-run`, `--force`(v0.9.0 以降。ここで `--force` が 2 回以上なら `invalid value`、対象 `--force`)、`--assume`(`--dry-run` なしの指定。同)、(`--dry-run` が 2 回以上なら `invalid value`、対象 `--dry-run`)、`--format`、`--state`(後ろの 2 つは `graph` 以外で不可)。`--run-id` は、`graph` では、ここでは許可し、`--state` なしの `--run-id` を、下の 8a の位置で拒否する。
-7. 重複: `--format`, `--state`(v0.9.0 以降)、`-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete` のどれかが 2 回以上 → `invalid value`(対象はそのオプション名。`-vv` は対象 `-v`)。
+6. そのコマンドで使えないオプション: `option not allowed for this command`。検査の順は `-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete`, `--dry-run`, `--force`(v0.9.0 以降。ここで `--force` が 2 回以上なら `invalid value`、対象 `--force`)、`--assume`(`--dry-run` なしの指定。同)、(`--dry-run` が 2 回以上なら `invalid value`、対象 `--dry-run`)、`--format`、`--state`(後ろの 2 つは `graph` 以外で不可)、(v0.10.0 以降)`--follow`(`watch` 以外で不可)、`--interval`(`--follow` なしで不可。`--follow` を先に見るので、`watch` 以外の `--follow --interval` は `--follow` の誤り)。`--run-id` は、`graph` では、ここでは許可し、`--state` なしの `--run-id` を、下の 8a の位置で拒否する。
+7. 重複: `--format`, `--state`(v0.9.0 以降)、`--follow`, `--interval`(v0.10.0 以降)、`-v`, `--config`, `--to`, `--run-id`, `--all`, `--remove-on-complete` のどれかが 2 回以上 → `invalid value`(対象はそのオプション名。`-vv` は対象 `-v`)。この順に検査する。
 8. `--all` と `--run-id` の併用 → `invalid value`(対象 `--all`)。
 8a. (v0.9.0 以降)`graph` で `--run-id` があり `--state` がない → `option not allowed for this command`(対象 `--run-id`)。
-8b. (v0.9.0 以降)値の検査。`--assume` の各値(指定順に): `=` がない、終了コードが整数でない、0〜255 の範囲外、同じジョブID の重複 → `invalid value`(対象 `--assume`。値は含めない)。`--format` の値が `text`・`mermaid` 以外 → `invalid value`(対象 `--format`)。ジョブID が定義にあるかは、ここでは調べない(定義を読んだあとに、流れが調べる。7.9)。
+8b. (v0.9.0 以降)値の検査。`--assume` の各値(指定順に): `=` がない、終了コードが整数でない、0〜255 の範囲外、同じジョブID の重複 → `invalid value`(対象 `--assume`。値は含めない)。`--format` の値が `text`・`mermaid`・`dot`(`dot` は v0.10.0 以降)以外 → `invalid value`(対象 `--format`)。(v0.10.0 以降)`--interval` の値が 1〜3600 の数字だけの整数でない → `invalid value`(対象 `--interval`。値は含めない)。ジョブID が定義にあるかは、ここでは調べない(定義を読んだあとに、流れが調べる。7.9)。
 9. `--run-id` の値の検査(下の 5.2)。違反は `invalid value`(対象 `--run-id`。値は含めない)。
 10. 位置引数の過不足: `run`/`pipeline`/`convert` で入力なし → `missing argument`。`watch`/`reset` でコマンド名の後ろに位置引数あり → `unexpected argument`(対象はその語)。それ以外のコマンドで、コマンド名を除く 2 個目の位置引数があれば `unexpected argument`(対象は 2 個目の語。`run a b` なら `b`)。`validate`・`graph`・`init` の位置引数(パイプライン名)は省略できる。`init` の名前が `trim` して空なら `invalid value`(対象 `pipeline name`。値は含めない)。
 11. `convert`: `--to` なし → `missing argument`(対象 `--to`)。`--to` の値が `yaml`/`toml` 以外(非 UTF-8 を含む)→ `invalid value`(対象 `--to`。値は含めない。v0.9.4 までは、対象は値そのもの)。
@@ -155,7 +159,7 @@ conductor --help | --version
 4a. (v0.9.0 以降)`[pipeline].env_file` と、そのジョブの `env_file` の `.env` をすべて読む(誤りは 64。ステートに触れない。05 の 14 章)。使い方の誤り(3、4 の 68)と `.env` の誤り(64)が同時にあれば、先に検出する 68 が勝つ。
 5. ステートの読み込み(65)と、定義との照合(65)。
 6. 起動前の判断: 実行 / スキップ(0)/ 拒否(66)。
-7. 実行なら、ステートが空のとき初期ステートを書き(`Fast`)、ジョブをリトライ込みで(試行ごとに環境変数を作り直して。v0.9.0 以降)実行し、結果を分類してステートを 1 回書き(`Durable`)、完了かつ削除指定ならステートを消す。終了コードはジョブの結果(10 章)。
+7. 実行なら、ジョブをリトライ込みで(試行ごとに環境変数を作り直して。v0.9.0 以降)実行し、結果を分類してステートを 1 回書き(`Durable`)、完了かつ削除指定ならステートを消す。v0.10.0 以降は、**試行ごとに**、起動の前に、試行の始まりの時刻を足したステートを `Fast` で書く(ステートが空なら、これが初期ステートの書き込みを兼ねる。書けなければ 65 で、起動しない。05 の 18 章)。v0.9.x までは、ステートが空のときだけ初期ステートを `Fast` で書いた。`log_dir` があれば、試行ごとにログのファイルを作る(05 の 19 章)。終了コードはジョブの結果(10 章)。
 8. スキップなら、記録が変わるときだけ書く。完了し削除指定なら消す。0 で終わる。
 
 `-v` のとき、結果行・遷移行・中断行を標準エラーに出す(08 章)。
@@ -164,7 +168,7 @@ conductor --help | --version
 
 `run` と同じ検査(パイプライン名は定義の `name` と照合。不一致は 64)を行い(`.env` は、`[pipeline].env_file` と**すべてのジョブ**の `env_file` を、最初のジョブを起動する前に読む。v0.9.0 以降)、定義の記述順にジョブを 1 つずつ、起動前の判断で処理する。
 
-- 実行 → 結果を記録。エラー(または分類なし=起動前の中断)で停止し、そのジョブの終了コードで終わる。自動の再開・リトライはしない(`[job.retry]` を除く)。
+- 実行 → 結果を記録(試行ごとの `Fast` の書き込みは `run` と同じ)。エラー(または分類なし=起動前の中断)で停止し、そのジョブの終了コードで終わる。自動の再開・リトライはしない(`[job.retry]` と、v0.10.0 以降の `[pipeline.retry]` の既定を当てはめたジョブを除く)。
 - スキップ → 記録して続ける。
 - 拒否 → 66 で終わる。
 - 完了(最後のジョブ、`@end`、スキップによる完了)したら、完了のステートを残して 0 で終わる。`--remove-on-complete` または定義の `remove_on_complete = true` のときだけステートを消す(消せなければ 65)。
@@ -173,7 +177,21 @@ conductor --help | --version
 
 ### 7.3 `watch`
 
-定義ファイルを検証しない。`--run-id`/環境変数で run ID を決め(5.3)、ステートを完了のものも含めて読み(`read_state_raw`)、表を標準出力に 1 回出して 0 で終わる。ファイルなし・長さ 0 のときだけ `no state (nothing has run yet)`。読めない・壊れているは 65(`reset` の案内は付かない文脈。08 章)。標準出力への書き込み失敗は `cannot write to standard output` を標準エラーに出して 65。表の形式は 08 章。
+定義ファイルを検証しない。`--run-id`/環境変数で run ID を決め(5.3)、ステートを完了のものも含めて読み(`read_state_raw`)、表を標準出力に 1 回出して 0 で終わる。ファイルなし・長さ 0 のときだけ `no state (nothing has run yet)`。読めない・壊れているは 65(`reset` の案内は付かない文脈。08 章)。標準出力への書き込み失敗は `cannot write to standard output` を標準エラーに出して 65。表の形式は 08 章。v0.10.0 以降、表は所要時間の列を含む 4 列で、表を作る前に今の時刻を 1 回だけ取る(動いている最中のジョブの経過時間。05 の 18.3)。
+
+**`watch --follow`(v0.10.0 以降)**: 1 回で終わらずに、ステートを読み直して表を描き、パイプラインが終わるまで繰り返す。実装は `crates/cli/src/aux_commands.rs` の `run_watch`・`follow_watch`。ステートは読むだけで、書かない・消さない。
+
+1. ほかの検査より先に、シグナルの監視を始める(`run`・`pipeline` と同じ `Ctx::start_signals`。失敗は 70)。`--follow` の無い `watch` は監視しない。
+2. run ID の決定(5.3。違反は 68)。
+3. 繰り返し: 合図が立っていれば終わる → ステートを読む(`read_state_raw`)→ 描く → 終わりの判定(05 の 20 章)→ `--interval` 秒(既定 2 秒)待つ(合図で打ち切る)。
+   - ステートが有る: 今の時刻を取って表を描く。完了か、止まった(エラー、または再開位置のジョブが試行を持つ)なら、その表を最後に 0 で終わる。
+   - ステートが無い: 一度も見ていなければ `no state (nothing has run yet)` を描いて待つ。一度見た後なら、2 回続けて無いときだけ、消えたとして 0 で終わる。
+   - 読めない(`unreadable`): 何も描かず、1 秒後に読み直す。3 回続けば、誤りを表示して 65。
+   - ほかの誤り(壊れた、古い形、大きすぎる、版の違い): `watch` と同じ誤りの表示で 65。
+4. 描き方(08 の 6.4): UNIX 系で標準出力が端末なら、毎回画面を消してから描く。そのほか(Windows、パイプ・ファイルへの出力)は、2 回目から空の 1 行を前に置いて追記する。画面を消せるかは、初めに 1 回だけ決める。
+5. 中断の合図(Ctrl-C など)で終わる。
+
+終了コード: 完了・止まった・消えた・中断は 0、ステートが読めない(3 回続けて)・壊れている・標準出力に書けないは 65、シグナルの準備の失敗は 70、使い方の誤り 68(`watch` 以外での `--follow`、`--follow` なしの `--interval`、`--interval` の値の誤り、`--follow`・`--interval` の重複)。
 
 ### 7.4 `reset`
 
@@ -206,12 +224,12 @@ conductor --help | --version
 
 1. `Ctx::check_definition_and_env`(`validate` と同じ検査): 定義の読み込みと検証(64)→ 全ジョブの `command` の検査(64)→ `pipeline` と同じ範囲の `.env` の読み取り(64)。名前を渡すと定義の名前と照合する(不一致は 64)。`.env` の重複キーの警告は標準エラーに出す(誤りではない)。`.env` の値は、図にも出力にも含めない(名前も出さない)。
 2. `--state` のときだけ: run ID の決定(`Ctx::definition_run_id`。`--run-id`、なければ定義の `run_id_env` の環境変数。違反は 68)→ ステートを、**完了したものも含めて**読む(`Ctx::read_checked_state` の `StateRead::Raw`、つまり `read_state_raw`。読めない・壊れている・版の不一致は 65。ファイルなし・長さ 0 は、ステートなし)→ 定義との照合(食い違いは 65)。ステートがなければ、すべてのジョブが未実行(`[  ]`)。ステートがあれば `overlay_from_state` で重ね合わせを作る(05 の 15 章)。
-3. 図の構造を作り(`build_graph`)、`--format text`(既定)なら配置を決めて(`layout_graph`)`render_text`、`--format mermaid` なら `render_mermaid` で、文字列を組み立てる。`-v` は text にだけ効く(Mermaid には影響しない)。
+3. 図の構造を作り(`build_graph`)、`--format text`(既定)なら配置を決めて(`layout_graph`)`render_text`、`--format mermaid` なら `render_mermaid`、`--format dot`(v0.10.0 以降)なら `render_dot`(05 の 15.8)で、文字列を組み立てる。`-v` は text にだけ効く(Mermaid と DOT には影響しない)。
 4. 組み立て終えた文字列を、標準出力に 1 回で書く。書けなければ(閉じたパイプなど)`cannot write to standard output` を標準エラーに出して 65(`watch` と同じ)。
 
 終了コード: 成功 0、定義・`command`・`.env` の誤り 64、ステートの誤りと標準出力に書けないとき 65、使い方の誤り 68(`--format` の値の誤り、`--format`・`--state` の重複、`graph` 以外での `--format`・`--state`、`--state` なしの `--run-id`、`-v` の重複など)。
 
-出力の形(text のレーンの図、辺の一覧、Mermaid、`--state`、`-v`)は 08 の 11 章に全例を載せ、図の構造と配置の規則は 05 の 15 章。
+出力の形(text のレーンの図、辺の一覧、Mermaid、DOT、`--state`、`-v`)は 08 の 11 章に全例を載せ、図の構造と配置の規則は 05 の 15 章。
 
 ### 7.8 `init [<pipeline-name>]`(v0.9.0 以降)
 
@@ -242,7 +260,7 @@ conductor --help | --version
 
 終了コード: 計画を出せたら 0(模擬の結果がエラーでの停止でも 0。実際の終了コードは示さない)、定義と `.env` の誤り 64、ステートの誤り・標準出力に書けない 65、拒否 66、使い方の誤り 68(`--assume` の書式、範囲外、重複、定義にないジョブID、`--dry-run` なしの `--assume`、`run`・`pipeline` 以外での `--dry-run`、`--dry-run` の重複)。`--assume` の誤りの表示に、入力の値を含めない(対象は `--assume`)。
 
-出力の形は 08 の 11 章、模擬の規則は 05 の 16 章。
+出力の形は 08 の 11 章、模擬の規則は 05 の 16 章。(v0.10.0 以降)計画は、ジョブごとに消す環境変数の名前(`unset_env`)も示す。`log_dir` があっても、ディレクトリもファイルも作らない。
 
 ## 8. ヘルプとバージョン
 
@@ -320,6 +338,29 @@ conductor: error: option not allowed for this command: '--run-id'
 $ conductor init                      # conductor.toml が既にある
 conductor: error: conductor.toml already exists (use --force to overwrite)
 [69]
+
+$ conductor watch --interval 5        # v0.10.0 以降。--follow なしの --interval
+conductor: error: option not allowed for this command: '--interval'
+[68]
+
+$ conductor watch --follow --interval 0
+conductor: error: invalid value: '--interval'
+[68]
+
+$ conductor run a --follow            # watch 以外での --follow
+conductor: error: option not allowed for this command: '--follow'
+[68]
+
+$ conductor graph --format svg
+conductor: error: invalid value: '--format'
+[68]
+
+$ conductor graph --format dot        # v0.10.0 以降。DOT を標準出力に(05 の 15.8、08 の 11.8)
+digraph conductor {
+  rankdir=TB;
+  ...
+}
+[0]
 ```
 
 ## 10. 実装と README の差
@@ -335,3 +376,4 @@ conductor: error: conductor.toml already exists (use --force to overwrite)
 | `--config=` の空値 | 記述なし | 空パスとして受理され、後段で `definition file does not exist` 等(64)になる |
 | `--dry-run` の計画と実際の実行の、完了したステートの扱い(v0.9.0 以降) | 「計画は、完了したステートを、ステートなしとして扱う。`graph --state` は完了したものも読む」 | 一致(`--dry-run` は `read_state`、`graph --state` は `read_state_raw`。目的の違いによる、意図した違い) |
 | `init` が作ったファイル(v0.9.0 以降) | 「新規の作成の短い間と強制終了のあとに、空のファイルが見えることがある」 | 一致(`create_new` で作ってから書くため。`--force` で直せる) |
+| `watch --follow` 以外での `--follow --interval`(v0.10.0 以降) | `watch` 以外では使えない(68) | 一致。対象は `--follow`(`--interval` より先に検査する) |
