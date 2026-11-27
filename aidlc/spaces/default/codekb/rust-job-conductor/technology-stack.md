@@ -5,9 +5,9 @@
 | 項目 | 値 | 根拠 |
 |------|----|------|
 | 言語 | Rust(edition 2024) | 根の `Cargo.toml` の `[workspace.package]` |
-| 最小の Rust(MSRV) | 1.100 | `rust-version = "1.100"`。CI の `build-check`・`msrv-test` が `1.100.0` で確かめる。README との一致は `crates/cli/tests/msrv_consistency.rs` |
+| 最小の Rust(MSRV) | 1.100 | `rust-version = "1.100"`。CI の `build-check`・`msrv-test` が `1.100.0` で確かめる。README と `ci.yml` との一致は `crates/cli/tests/msrv_consistency.rs` |
 | ビルド | Cargo ワークスペース(`resolver = "3"`、`members = ["crates/*"]`) | 根の `Cargo.toml` |
-| 版 | 4 クレートとも 0.10.1(`publish = false`) | `crates/*/Cargo.toml` |
+| 版 | 4 クレートとも 0.10.2(`publish = false`) | `crates/*/Cargo.toml` |
 | リリースの最適化 | `opt-level = 3`、`lto = "thin"`、`codegen-units = 1`、`strip = true` | `[profile.release]` |
 | 依存の固定 | `Cargo.lock` を追跡。CI は常に `--locked` | `ci.yml` |
 | 書式・静的検査 | `rustfmt`、`clippy -D warnings`(設定ファイルなし、既定) | `ci.yml` の `lint` |
@@ -33,7 +33,7 @@
 |----------|----|------|
 | `tempfile` | 3.27.0 | テストの一時ディレクトリ(4 クレート)。runtime の `log.rs` の単体テストでも使う |
 
-推移的な依存と依存の方針は `dependencies.md` を参照。v0.10.1 で `Cargo.lock` が変わったのは 4 クレートの版だけ。
+推移的な依存と依存の方針は `dependencies.md` を参照。v0.9.9 から v0.10.2 までで `Cargo.lock` が変わったのは 4 クレートの版だけ。
 
 ## 標準ライブラリで自前に書いているもの
 
@@ -47,11 +47,12 @@
 - `watch --follow` の描き直し(ANSI の `ESC[H ESC[2J`)、表示の escape、英日の文言、ロケールの判定、端末の色
 - ファイルの原子的な置き換え、上限つきの読み取り、ログのファイルの排他的な作成
 - 待機(`std::thread::sleep` と `Instant`)
+- 文書とソースを読むテスト(`std::fs::read_to_string` と `str` の検索。Markdown の解析器や正規表現のライブラリは使っていない)
 - 非同期ランタイム、ログの枠組み、日時のライブラリ、シリアライズの derive は使っていない
 
 ## 文書の技術
 
-- 仕様書(`docs/spec/`)と README は Markdown。図は文字の図(`text` のコードブロック)で、Mermaid の図は使っていない(`docs/spec/rust/` と `docs/spec/language-agnostic/` に mermaid のコードブロックは 0 件。Mermaid は `graph --format mermaid` の出力の例としてだけ現れる)。
+- 仕様書(`docs/spec/`)と README は Markdown。表は GitHub の Markdown の表(`| … |`)。図は文字の図(`text` のコードブロック)で、Mermaid は `graph --format mermaid` の出力の例としてだけ現れる。
 - 仕様書を生成・検査する道具は無い(手で書いた文書。テストと CI から読まれない)。
 
 ## 対象の OS と配布
@@ -71,8 +72,8 @@
 - `test`: ubuntu-24.04、macos-latest、windows-2022(stable)
 - `build-check`: ubuntu-24.04、windows-2022(1.100.0)
 - `msrv-test`、`coverage`、`lint`、`docs-check`: ubuntu-24.04
-- `startup-bench`: 3 つの OS(`continue-on-error`、`STARTUP_BENCH_ENFORCE=false`、`--release`)
-- 性能のテスト(`crates/core/tests/*_perf.rs` など)は、`test`・`msrv-test` では debug で、`coverage` では計測つきの debug で走る。上限は「debug の見積もりの約 5 倍」で決めている(例 `plan_simulate_perf.rs:39` の 150ms。v0.10.1 で下げずに、計画の模擬の内部の入口で走査を減らした)。
+- `startup-bench`: 3 つの OS(`continue-on-error`、`STARTUP_BENCH_ENFORCE: "false"`、`--release`)
+- 性能のテスト(`crates/core/tests/*_perf.rs` など)は、`test`・`msrv-test` では debug で、`coverage` では計測つきの debug で走る。上限は「debug の見積もりの約 5 倍」で決めた固定の時間で、超えれば不合格(例 `plan_simulate_perf.rs:39` の 150ms)。
 
 ## 開発環境
 

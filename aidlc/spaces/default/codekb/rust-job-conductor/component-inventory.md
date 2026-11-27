@@ -22,7 +22,7 @@
 
 ## core::error
 
-- 責務: `DefinitionErrorKind`(34 種)と `DefinitionError`、表示の escape(`escape_display`)、行番号の変換。
+- 責務: `DefinitionErrorKind`(34 変種。仕様の識別子は変種の名前の先頭を小文字にしたもの)と `DefinitionError`、表示の escape(`escape_display`)、行番号の変換。全種類の公開の配列は持たない。
 - 依存: `thiserror`
 - 場所: `crates/core/src/error.rs`
 
@@ -34,25 +34,25 @@
 
 ## core::definition
 
-- 責務: Intake → Parse → Depth → VersionCheck → Walk の順で、定義を `PipelineDefinition` にする。キーの許可、型、構造、遷移、終了コード、retry(`[pipeline.retry]` の既定の当てはめと `retry = false`)、env・env_file(テーブルの項目)・unset_env、`log_dir` を検査し、誤りをすべて集める。core で唯一ファイルに触れる(`intake`)。
+- 責務: Intake → Parse → Depth → VersionCheck → Walk の順で、定義を `PipelineDefinition` にする。キーの許可(`ROOT_KEYS` 3、`PIPELINE_KEYS` 9、`JOB_KEYS` 9、`TRANSITION_KEYS` 2、`RETRY_KEYS` 5。すべて private)、型、構造、遷移、終了コード、retry(`[pipeline.retry]` の既定の当てはめと `retry = false`)、env・env_file(テーブルの項目)・unset_env、`log_dir` を検査し、誤りをすべて集める。core で唯一ファイルに触れる(`intake`)。
 - 依存: `core::error`、`core::run_id`、`core::envfile`(予約名)、`core::types`、`toml`
 - 場所: `crates/core/src/definition/`
 
 ## core::envfile
 
-- 責務: `.env` の解析(`parse_env_file`)、層の統合(`merge_env`、名前だけの `merge_env_names`、消す名前の `merge_unset_names`)、読む対象の一覧(`env_file_refs`)、`unset_env` と足す名前の重なりの検査(`check_unset_conflicts`)、誤りの種類(14 種)と要約。
+- 責務: `.env` の解析(`parse_env_file`)、層の統合(`merge_env`、名前だけの `merge_env_names`、消す名前の `merge_unset_names`)、読む対象の一覧(`env_file_refs`)、`unset_env` と足す名前の重なりの検査(`check_unset_conflicts`)、誤りの種類(`EnvFileErrorKind` 14 変種)と要約。
 - 依存: `core::error`、`core::run_id`、`core::types`、`thiserror`
 - 場所: `crates/core/src/envfile/`
 
 ## core::flow
 
-- 責務: 純粋な判断(`decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision`)、ステートの記録(`initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`)、試行の時刻(`start_attempt`、`end_attempt`、`cancel_attempt`)、動きの様子(`pipeline_activity`)。v0.10.1 から、計画の模擬のための crate の中の入口(`decide_at`、`classify_and_decide_at`、`apply_outcome_in`、`apply_skip_in`)と、位置で引く補助(`record_at`、`status_at`、`position_of`)と目印(`SimulationMarks`)を持つ。公開の関数は目印を作り直して同じ本体を呼ぶ。
+- 責務: 純粋な判断(`decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision`)、ステートの記録(`initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt`)、試行の時刻(`start_attempt`、`end_attempt`、`cancel_attempt`)、動きの様子(`pipeline_activity`)。計画の模擬のための crate の中の入口(`decide_at`、`classify_and_decide_at`、`apply_outcome_in`、`apply_skip_in`)と、位置で引く補助(`record_at`、`status_at`、`position_of`)と目印(`SimulationMarks`)を持つ。公開の関数は目印を作り直して同じ本体を呼ぶ。
 - 依存: `core::types`、`core::time`
 - 場所: `crates/core/src/flow/`(`activity.rs`、`attempt.rs`、`classify.rs`、`decide.rs`、`mod.rs`、`next_step.rs`、`record.rs`、`resume.rs`、`retry.rs`)
 
 ## core::consistency
 
-- 責務: ステートと定義の照合(パイプライン名、ジョブIDの集合、並び)。
+- 責務: ステートと定義の照合(パイプライン名、ジョブIDの集合、並び。`MismatchKind` 3 種)。
 - 依存: `core::types`
 - 場所: `crates/core/src/consistency.rs`
 
@@ -64,7 +64,7 @@
 
 ## core::plan
 
-- 責務: `--dry-run` の計画の型(`ExecutionPlan`、`PlanEntry`(足す名前と消す名前)、`PlanDisposition`、`PlanEnd`)と模擬(`plan_pipeline`、`plan_run`)。本番と同じ判断と記録を使い、試行は記録しない。`plan_pipeline` は位置と目印を持ち回り、`flow` の内部の入口を呼ぶ(v0.10.1)。`plan_run` は公開の入口を使う。
+- 責務: `--dry-run` の計画の型(`ExecutionPlan`、`PlanEntry`(足す名前と消す名前)、`PlanDisposition`、`PlanEnd`)と模擬(`plan_pipeline`、`plan_run`)。本番と同じ判断と記録を使い、試行は記録しない。`plan_pipeline` は位置と目印を持ち回り、`flow` の内部の入口を呼ぶ。`plan_run` は公開の入口を使う。
 - 依存: `core::flow`、`core::envfile`、`core::types`
 - 場所: `crates/core/src/plan/`
 
@@ -82,7 +82,7 @@
 
 ## runtime::error
 
-- 責務: `CommandError`(2 種)、`StateError`(6 種)と固定の理由の文(試行の 3 つ `NO_ATTEMPT`・`BAD_TIME`・`UNFINISHED_ATTEMPT` を含む)。
+- 責務: `CommandError`(`CommandErrorKind` 2 種)、`StateError`(`StateErrorKind` 6 種)と固定の理由の文(`pub(crate) mod reason`。試行の 3 つ `NO_ATTEMPT`・`BAD_TIME`・`UNFINISHED_ATTEMPT` を含む)。
 - 依存: `thiserror`
 - 場所: `crates/runtime/src/error.rs`
 
@@ -94,13 +94,13 @@
 
 ## runtime::runner
 
-- 責務: `run_job`(消してから足す環境、直接起動、1〜10ms の `try_wait` のくり返し、シグナルの 1 回の転送)。ログの指定があるときは、出力をパイプにし、流れごとの読み取りのスレッドで端末とファイルへ書き、終了後に最大 2 秒待つ。「止める」印は読む前と読んだ後に見る(v0.10.1。`runner.rs:315`・`324`)。
+- 責務: `run_job`(消してから足す環境、直接起動、1〜10ms の `try_wait` のくり返し、シグナルの 1 回の転送)。ログの指定があるときは、出力をパイプにし、流れごとの読み取りのスレッドで端末とファイルへ書き、終了後に最大 2 秒待つ。「止める」印は読む前と読んだ後に見る(`runner.rs:315`・`324`)。
 - 依存: `runtime::log`、`runtime::platform`、`runtime::types`、`conductor-core`
 - 場所: `crates/runtime/src/runner.rs`
 
 ## runtime::log
 
-- 責務: `LogTarget`、`LogOutcome`、`safe_log_stem`(安全な名前。予約名は前後の空白を除いて比べる。v0.10.1、`log.rs:90`)、`open_log_file`(ディレクトリの作成、`create_new`、0600、`-2`〜`-1000`)。
+- 責務: `LogTarget`、`LogOutcome`、`safe_log_stem`(安全な名前。予約名は前後の空白を除いて比べる)、`open_log_file`(ディレクトリの作成、`create_new`、0600、`-2`〜`-1000`)。
 - 依存: `conductor-core`(`Timestamp`、`format_compact`)、`runtime::platform`
 - 場所: `crates/runtime/src/log.rs`
 
@@ -136,13 +136,13 @@
 
 ## runtime::file_create
 
-- 責務: `create_file`(`init` の排他的な作成、`--force` で置き換え)。
+- 責務: `create_file`(`init` の排他的な作成、`--force` で置き換え。`CreateError` 5 種)。
 - 依存: `runtime::temp_file`
 - 場所: `crates/runtime/src/file_create.rs`
 
 ## runtime::state
 
-- 責務: `read_state`・`read_state_raw`(厳格なキーの表、試行の検査)、`write_state`(原子的な置き換え。試行を書く)、`reset_state`、`reset_all_states`、古い一時ファイルの後始末。
+- 責務: `read_state`・`read_state_raw`(厳格なキーの表 `TOP_KEYS` 10・`JOB_KEYS` 5・`ATTEMPT_KEYS` 2、試行の検査)、`write_state`(原子的な置き換え。試行を書く)、`reset_state`、`reset_all_states`、古い一時ファイルの後始末。
 - 依存: `conductor-core`(型、`parse_rfc3339`、`format_rfc3339`)、`runtime::bounded_read`、`runtime::temp_file`、`toml`
 - 場所: `crates/runtime/src/state/`
 
@@ -154,7 +154,7 @@
 
 ## conductor-converter
 
-- 責務: YAML と TOML の相互変換(アンカー・エイリアス・マージキーの展開と上限)。定義のキーは知らない。
+- 責務: YAML と TOML の相互変換(アンカー・エイリアス・マージキーの展開と上限)。定義のキーは知らない。`ConversionErrorKind` 6 種。
 - 依存: `toml`、`thiserror`、`saphyr-parser`。`#![forbid(unsafe_code)]`。
 - 場所: `crates/converter/`
 
@@ -166,7 +166,7 @@
 
 ## cli::types
 
-- 責務: `CommandKind`(8 種、`ALL`)、`CliCommand`(`follow`、`interval` を含む)、`GraphFormat`(`Text`・`Mermaid`・`Dot`)、`InitTarget`、`UsageErrorKind`(8 種)、`Language`、`Level`、`--interval` の既定と範囲の定数。
+- 責務: `CommandKind`(8 種、公開の `ALL`)、`CliCommand`(`follow`、`interval` を含む)、`GraphFormat`(`Text`・`Mermaid`・`Dot`)、`InitTarget`、`UsageErrorKind`(8 種)、`Language`、`Level`、`--interval` の既定と範囲の定数(`DEFAULT_FOLLOW_INTERVAL_SECS = 2`、`MIN_FOLLOW_INTERVAL_SECS = 1`、`MAX_FOLLOW_INTERVAL_SECS = 3600`。`pub(crate)`)。
 - 依存: `conductor-core`、`conductor-converter`(`TargetFormat`)
 - 場所: `crates/cli/src/types.rs`
 
@@ -202,7 +202,7 @@
 
 ## cli::report
 
-- 責務: `DisplayEvent`(37 種)、`Reporter`(言語・色の遅延判定)、`FramePrefix`(`Nothing`・`ClearScreen`・`BlankLine`)、英日の文言(`messages.rs`。使い方の全文、ログの 3 つの文、所要時間の見出しを含む)、整形(`watch.rs`(4 列)、`graph_text.rs`、`graph_mermaid.rs`、`graph_dot.rs`、`plan_text.rs`、`init_template.rs`)。
+- 責務: `DisplayEvent`(37 種)、`Reporter`(言語・色の遅延判定)、`FramePrefix`(`Nothing`・`ClearScreen`・`BlankLine`)、英日の文言(`messages.rs`。使い方の全文 `USAGE`、ログの 3 つの文、所要時間の見出しを含む)、整形(`watch.rs`(4 列)、`graph_text.rs`、`graph_mermaid.rs`、`graph_dot.rs`、`plan_text.rs`、`init_template.rs`)。
 - 依存: `cli::types`、`conductor-core`、`conductor-runtime`(エラーの型)、`conductor-converter`(エラーの型)
 - 場所: `crates/cli/src/report/`
 
@@ -238,7 +238,7 @@
 
 ## demo
 
-- 責務: 主な動きを場面 0〜15 で見せるスクリプト(UNIX の `run-demo.sh`、Windows の `run-demo.cmd`)と、その定義(`conductor.toml`、`retry.toml`、`env.toml`、`log.toml`)・`.env`・ジョブのスクリプト。`DEMO_PAUSE=1` で場面ごとに Enter を待つ。場面 4 で `watch --follow` を呼び、その前に待つ(v0.10.1。`run-demo.sh:94-98`)。場面 15 はログのファイル。
+- 責務: 主な動きを場面 0〜15 で見せるスクリプト(UNIX の `run-demo.sh` の `scene` 16 個、Windows の `run-demo.cmd` の `call :scene` 16 個)と、その定義(`conductor.toml`、`retry.toml`、`env.toml`、`log.toml`)・`.env`・ジョブのスクリプト。`DEMO_PAUSE=1` で場面ごとに Enter を待つ。場面 4 で `watch --follow` を呼び、その前に待つ。場面 15 はログのファイル。始めに `LC_ALL`・`LC_MESSAGES`・run ID の環境変数を消す(`run-demo.sh:35-36`)。
 - 依存: ビルドした `conductor`(無ければ `cargo build --release`)
 - 場所: `demo/`
 

@@ -1,6 +1,6 @@
 # API の文書
 
-`conductor` には、ネットワークの API(HTTP、gRPC など)は無い。外部の面は、(1) コマンドライン、(2) 定義ファイルの書式、(3) `.env` の書式、(4) ステートファイルの書式、(5) ジョブへ渡す環境変数、(6) 終了コードと標準出力・標準エラー、(7) ログのファイル、の 7 つ。内部の面は、4 クレートの公開の関数と型(8)。仕様書(`docs/spec/`)がこれらをどこまで書いているかは `code-quality-assessment.md` の「仕様書と実装の差」を参照。
+`conductor` には、ネットワークの API(HTTP、gRPC など)は無い。外部の面は、(1) コマンドライン、(2) 定義ファイルの書式、(3) `.env` の書式、(4) ステートファイルの書式、(5) ジョブへ渡す環境変数、(6) 終了コードと標準出力・標準エラー、(7) ログのファイル、の 7 つ。内部の面は、4 クレートの公開の関数と型(8)。仕様書(`docs/spec/`)がこれらの数をどこに書いているかは `code-quality-assessment.md` の「仕様書の数と実装の取り出し口」を参照。
 
 ## 1. コマンドライン(`crates/cli/src/args.rs`、`types.rs`)
 
@@ -16,13 +16,15 @@ conductor convert  <ファイル> --to <yaml|toml>
 conductor --help | -h | --version | -V
 ```
 
+- コマンドは 8 つ(`CommandKind::ALL`、`types.rs:68`)。
 - オプションの性質(綴り、値の有無、許すコマンド)は `OPTIONS`(`args.rs`)の 1 か所に持つ。`--name value` と `--name=value` の両方を受け付ける。`--` 以降は位置引数。
-- `--follow`(値なし)は `watch` だけ。`--interval <秒>` は `--follow` と一緒のときだけで、1〜3600 の整数(数字だけ)。既定は 2(`DEFAULT_FOLLOW_INTERVAL_SECS`、`types.rs:215`)。`watch` 以外の `--follow --interval` は `--follow` の誤りとして報告する(`args.rs:295`)。
+- `--follow`(値なし)は `watch` だけ。`--interval <秒>` は `--follow` と一緒のときだけで、1〜3600 の整数(数字だけ)。既定は 2(`types.rs:215-219` の `DEFAULT_FOLLOW_INTERVAL_SECS`・`MIN_FOLLOW_INTERVAL_SECS`・`MAX_FOLLOW_INTERVAL_SECS`、検査は `args.rs:625`)。`watch` 以外の `--follow --interval` は `--follow` の誤りとして報告する。
 - `--format` は `text`(既定)・`mermaid`・`dot`(`GraphFormat`。`args.rs:608`)。
 - `--run-id` は空(run ID なしに固定)か、`RunId` の規則(`A-Za-z0-9._-`、1〜64 文字、先頭が `.` でない)。
 - `--assume` は `--dry-run` と一緒のときだけ。0〜255、同じジョブIDの重複は誤り。
 - 使い方の誤り(`UsageErrorKind`、8 種): `UnknownCommand`、`MissingArgument`、`UnexpectedArgument`、`UnknownOption`、`OptionNotAllowed`、`MissingValue`、`InvalidValue`、`UnknownJob`。表示に入力の値は含めない。
-- 使い方の全文(英日)は `report/messages.rs:78-136`。
+- 使い方の全文(英日)は `report/messages.rs` の `USAGE`。
+- `--version` は `conductor <版>`(`CARGO_PKG_VERSION`。今は `conductor 0.10.2`。期待値は `crates/cli/tests/binary_basic.rs:267`)。
 
 ### `watch --follow` の契約(`crates/cli/src/aux_commands.rs`、`crates/core/src/flow/activity.rs`)
 
@@ -30,7 +32,7 @@ conductor --help | -h | --version | -V
 |------|------|
 | 準備 | 最初にシグナルの準備(失敗は 70)。定義は検証せず、`run_id_env` だけをゆるく読む |
 | 1 回分 | 合図を見る → `read_state_raw` → 有れば今の時刻で表を描く → 終わりの判定 → `--interval` 秒待つ(合図で打ち切る) |
-| 描き方 | UNIX 系で標準出力が端末なら、1 回目から毎回 `ESC[H ESC[2J` を前に置く(`aux_commands.rs:142`)。ほか(Windows、パイプ、ファイル)は 2 回目から空の 1 行を前に置く |
+| 描き方 | UNIX 系で標準出力が端末なら、1 回目から毎回 `ESC[H ESC[2J` を前に置く。ほか(Windows、パイプ、ファイル)は 2 回目から空の 1 行を前に置く |
 | 完了で終わる | `completed = true`(0) |
 | 止まったで終わる | 終わりの時刻の無い試行が無く、かつ `error` のジョブがある、または `resume_job_id` のジョブが試行を持つ(0) |
 | 続ける | 終わりの時刻の無い試行がある(実行中、リトライの待ち、強制終了の後)、またはどれでもない(始まる前、ジョブのあいだ) |
@@ -62,23 +64,22 @@ conductor --help | -h | --version | -V
 | `[[job]]` | `retry` | テーブル(`exit_codes`、`max`、`interval`、任意の `multiplier` と `max_interval`)か `false`。書かなければ `[pipeline.retry]` の複製、表なら丸ごとそれ(既定と混ぜない)、`false` なら無し |
 | `[[job]]` | `env`、`env_file`、`unset_env` | `[pipeline]` と同じ(`log_dir` は書けない) |
 
-- キーの表: `PIPELINE_KEYS` 9 個、`JOB_KEYS` 9 個(`crates/core/src/definition/walk/mod.rs:47-70`)。許されないキーは `unknownKey`。
-- 誤りの種類は `DefinitionErrorKind` の 34 種(v0.10.0 で `UnsetEnvConflict` が増えた)。表示は `<ファイル>:<行>: <種類>: <理由>`。
-- v0.10.0 で増えた理由の文(固定): `` `log_dir` が空です ``(`emptyField`)、`` `unset_env` は、文字列の配列で書きます ``・`` `unset_env` の要素は、文字列で書きます ``(`typeMismatch`)、`` `unset_env` に空の文字列は書けません ``(`emptyField`)、`` `unset_env` の名前が、`env` の名前と重なっています ``(`unsetEnvConflict`)、`` `env_file` は、文字列かテーブル、またはその配列で書きます ``・`` `env_file` の配列の要素は、文字列かテーブルで書きます ``(`typeMismatch`)、`` `retry` はテーブルか `false` で書きます ``・`` `[pipeline.retry]` はテーブルで書きます ``(`retryNotTable`)、既定の `exit_codes` とジョブの成功・警告の重なり(`retryExitCodesOverlap`)。場所は `walk/mod.rs:359-367`、`walk/env.rs:107-281`、`walk/retry.rs:43-50`。
+- キーの表(private の `const`。`crates/core/src/definition/walk/mod.rs:47-70`、`walk/retry.rs:34-40`): 根 3、`[pipeline]` 9、`[[job]]` 9、遷移 2、`[job.retry]` 5。許されないキーは `unknownKey`。
+- 誤りの種類は `DefinitionErrorKind` の 34 種(`crates/core/src/error.rs:34-83`)。表示は `<ファイル>:<行>: <種類>: <理由>`。
 - 大きさの上限 1 MiB、入れ子 32 段。
 
 ## 3. `.env` の書式(`crates/core/src/envfile/parse.rs`)
 
 - `KEY=VALUE` の行、`#` のコメント、空行。単引用符・二重引用符(二重引用符の中のエスケープは `\n`、`\r`、`\t`、`\"`、`\\` だけ)。展開はしない。上限は 1 MiB、10,000 項目。UTF-8 だけ。
-- 誤りは `EnvFileErrorKind` の 14 種(`FileMissing`、`Unreadable`、`TooLarge`、`NotUtf8`、`TooManyEntries`、`InvalidName`、`ReservedName`、`CaseConflict`、`MissingEquals`、`UnterminatedQuote`、`InvalidEscape`、`TrailingGarbage`、`NulInValue`、`UnsetConflict`)。表示は最大 20 件と残りの件数。値は表示しない。`UnsetConflict` は v0.10.0(`envfile/mod.rs:89`)。
+- 誤りは `EnvFileErrorKind` の 14 種(`FileMissing`、`Unreadable`、`TooLarge`、`NotUtf8`、`TooManyEntries`、`InvalidName`、`ReservedName`、`CaseConflict`、`MissingEquals`、`UnterminatedQuote`、`InvalidEscape`、`TrailingGarbage`、`NulInValue`、`UnsetConflict`。`envfile/mod.rs:74-90`)。表示は最大 20 件と残りの件数。値は表示しない。
 - `required = false` のファイルが無いだけなら誤りでも警告でもない。あって読めないときは誤り。
 
 ## 4. ステートファイル(TOML。`crates/runtime/src/state/`)
 
 - 場所: 定義ファイルと同じディレクトリの `<定義ファイル名>.state`、run ID があれば `<定義ファイル名>.<run-id>.state`。
 - 最上位のキー(`TOP_KEYS`、10 個): `format_version`(1)、`run_id`(run ID があるときだけ)、`definition_key`、`definition_path`、`pipeline_name`、`job_order`、`job`、`resume_job_id`(任意)、`end_reached`、`completed`。
-- ジョブのキー(`JOB_KEYS`、5 個): `id`、`status`、`exit_code`、`skip_reason`、`attempt`。試行のキー(`ATTEMPT_KEYS`、2 個): `started_at`(必須)、`ended_at`(任意)。時刻は UTC の RFC 3339(秒まで、`Z`)。場所は `state/reader.rs:192-208`。
-- 読み取りは厳格: 知らないキー、型の誤り、状態と終了コードの不整合、`success`・`warning`・`error` のジョブに試行が無い(`NO_ATTEMPT`)、最後でない試行に終わりが無い(`UNFINISHED_ATTEMPT`)、時刻の書式の誤り(`BAD_TIME`)、`job_order` との不一致、ファイル名との run ID の不一致は、すべて誤り(65)。終わりが始まりより前でも誤りにしない(時計の戻り)。理由の文は `crates/runtime/src/error.rs:99-132`。
+- ジョブのキー(`JOB_KEYS`、5 個): `id`、`status`、`exit_code`、`skip_reason`、`attempt`。試行のキー(`ATTEMPT_KEYS`、2 個): `started_at`(必須)、`ended_at`(任意)。時刻は UTC の RFC 3339(秒まで、`Z`)。場所は `state/reader.rs:192-208`(private)。
+- 読み取りは厳格: 知らないキー、型の誤り、状態と終了コードの不整合、`success`・`warning`・`error` のジョブに試行が無い(`NO_ATTEMPT`)、最後でない試行に終わりが無い(`UNFINISHED_ATTEMPT`)、時刻の書式の誤り(`BAD_TIME`)、`job_order` との不一致、ファイル名との run ID の不一致は、すべて誤り(65)。終わりが始まりより前でも誤りにしない(時計の戻り)。理由の文は `crates/runtime/src/error.rs:98-135`。
 - 書き込みは原子的(一時ファイル → `Durable` なら同期 → `rename`)。試行を始めたときは `Fast`、結果は `Durable`。
 - `StateErrorKind`: `Unreadable`、`TooLarge`、`Corrupt`、`VersionMismatch`、`WriteFailed`、`RemoveFailed`。
 
@@ -105,15 +106,15 @@ conductor --help | -h | --version | -V
 | 127 | 起動できなかった(ログのファイルを作れず起動しなかったときを含む) |
 | 128 + 番号 | シグナルによる終了、または中断 |
 
-- 標準出力: `watch` の表(ジョブ・状態・所要時間・補足の 4 列。`--follow` の各回を含む)、`graph` の図、`--dry-run` の計画、`init -` のひな形、`convert` の結果。
-- 標準エラー: `conductor: error: ...` などの固定の文(英日)、`-v` の結果・スキップ・遷移、リトライの知らせ、ログの警告(`LogWriteFailed`、`LogOutputCutShort`)。ログの文は `messages.rs:501-508`。
-- 所要時間の列の見出しは `DURATION`/`所要時間`(`messages.rs:551`)。計算と書き方は core の `job_duration`・`format_duration`。
+- 標準出力: `watch` の表(ジョブ・状態・所要時間・補足の 4 列。見出し `JOB STATUS DURATION NOTE`。`--follow` の各回を含む)、`graph` の図、`--dry-run` の計画、`init -` のひな形、`convert` の結果、`--help`・`--version`。
+- 標準エラー: `conductor: error: ...` などの固定の文(英日)、`-v` の結果・スキップ・遷移、リトライの知らせ、ログの警告。
 - 色(ANSI)は `watch` の表だけで、UNIX 系の端末かつ `NO_COLOR` が未設定・空のとき。
+- 表示の言語は `LC_ALL` → `LC_MESSAGES` → `LANG` の最初の空でない値で決める(`ja` で始まれば日本語)。
 
-## 7. ログのファイル(`crates/runtime/src/log.rs`。v0.10.0、v0.10.1)
+## 7. ログのファイル(`crates/runtime/src/log.rs`)
 
 - 置き場所: 解決した `log_dir` の直下(無ければ親を含めて作る)。名前: `<safe_log_stem(ジョブID)>.<format_compact(開始の時刻)>.<試行の番号>.log`。衝突は `-2`〜`-1000` を試行の番号の後に足す。
-- `safe_log_stem`(`log.rs:82-105`)の手順: (1) `/` `\` `:` `*` `?` `"` `<` `>` `|` と制御文字を `_`、(2) 先頭の `.` を `_`、(3) 最初の `.` より前の部分から前後の半角空白を除いた値が Windows の予約名(`CON`、`PRN`、`AUX`、`NUL`、`COM1`〜`COM9`、`LPT1`〜`LPT9`。大文字小文字を問わない)なら先頭に `_`(空白を除くのは比べるときだけ。v0.10.1、`log.rs:90`)、(4) 100 バイトまでに切る、(5) 末尾の `.` か空白を `_`。
+- `safe_log_stem` の手順: (1) `/` `\` `:` `*` `?` `"` `<` `>` `|` と制御文字を `_`、(2) 先頭の `.` を `_`、(3) 最初の `.` より前の部分から前後の半角空白を除いた値が Windows の予約名(`CON`、`PRN`、`AUX`、`NUL`、`COM1`〜`COM9`、`LPT1`〜`LPT9`。大文字小文字を問わない)なら先頭に `_`、(4) 100 バイトまでに切る、(5) 末尾の `.` か空白を `_`。
 - UNIX 系は 0600、Windows は既定の権限。中身はジョブの出力のバイト列だけ。`conductor` は消さない。
 - 作れなければ起動せず 127 と `conductor: error:` の 1 行。書き込みの失敗と、終了後 2 秒の待ち切れは警告の 1 行(終了コードは変えない)。
 
@@ -126,16 +127,17 @@ conductor --help | -h | --version | -V
 | `load_definition`、`parse_definition` | 定義の読み込みと検証 → `PipelineDefinition` か `Vec<DefinitionError>` |
 | `decide_from_state`、`classify_and_decide`、`resume_point_on_interrupt`、`retry_decision` | 純粋な判断 |
 | `initial_state`、`apply_outcome`、`apply_skip`、`apply_interrupt` | ステートの更新(本番と模擬が共有) |
-| `start_attempt`、`end_attempt`、`cancel_attempt` | 試行の時刻の記録(本番だけ。v0.10.0) |
-| `pipeline_activity` → `PipelineActivity::{Completed, Running, Stopped, Between}` | 動きの様子(v0.10.0) |
+| `start_attempt`、`end_attempt`、`cancel_attempt` | 試行の時刻の記録(本番だけ) |
+| `pipeline_activity` → `PipelineActivity::{Completed, Running, Stopped, Between}` | 動きの様子 |
 | `check_consistency` | ステートと定義の照合 |
 | `parse_env_file`、`merge_env`、`env_file_refs`、`summarize_errors`、`check_unset_conflicts` | `.env` と環境の統合 |
-| `Timestamp`、`format_rfc3339`、`format_compact`、`parse_rfc3339`、`duration_secs`、`job_duration`、`format_duration`、`JobDuration` | 時刻(v0.10.0) |
+| `Timestamp`、`format_rfc3339`、`format_compact`、`parse_rfc3339`、`duration_secs`、`job_duration`、`format_duration`、`JobDuration` | 時刻 |
 | `graph::build_graph`、`overlay_from_state`、`pending_overlay`、`layout_graph` | 図の構造と配置 |
 | `plan_pipeline`、`plan_run` | `--dry-run` の計画 |
 | `RunId::parse`、`peek_run_id_env`、`escape_display` | run ID と表示の escape |
+| `DefinitionErrorKind`、`EnvFileErrorKind`(列挙。全種類の配列は公開しない) | 誤りの種類 |
 
-v0.10.1 の crate の中の入口(公開しない。`flow/mod.rs:23-185`): `decide_at`(`flow/decide.rs:128`)、`classify_and_decide_at`(`flow/next_step.rs:67`)、`apply_outcome_in`・`apply_skip_in`(`flow/record.rs:110`・`189`)、`record_at`、`status_at`、`position_of`、`SimulationMarks`(`settled_prefix`、`pending_prefix`、`error_records`)。使うのは `plan/simulate.rs` の `plan_pipeline` だけ。公開の口の並び(`lib.rs`)は v0.10.0 と同じ。
+crate の中の入口(公開しない): `decide_at`、`classify_and_decide_at`、`apply_outcome_in`・`apply_skip_in`、`record_at`、`status_at`、`position_of`、`SimulationMarks`。使うのは `plan/simulate.rs` の `plan_pipeline` だけ。
 
 ### conductor-runtime(`crates/runtime/src/lib.rs`)
 
@@ -150,7 +152,7 @@ v0.10.1 の crate の中の入口(公開しない。`flow/mod.rs:23-185`): `deci
 | `read_state`、`read_state_raw`、`write_state`、`reset_state`、`reset_all_states` | ステートの読み書きと削除 |
 | `create_file(path, bytes, force)` | → `CreateOutcome::{Created, Replaced}` か `CreateError`(`AlreadyExists`・`ParentMissing`・`IsDirectory`・`PermissionDenied`・`OtherIo`) |
 
-契約の表(`lib.rs` の `//!`)の `run_job` の行は v0.10.1 で `unset` を書き足した。同じファイルの「呼び出しの順序」(`lib.rs:72-82`)は、まだ「初期ステートを `Fast` で書く」の形。
+`lib.rs` の `//!` が、契約の表、ファイル・プロセス・時計に触れる関数の範囲、モジュールの表、呼び出しの順序(`lib.rs:72-93`。試行を始めて `Fast` で書く形)、保証の範囲、守る性質を書く。
 
 ### conductor-converter(`crates/converter/src/lib.rs`)
 
