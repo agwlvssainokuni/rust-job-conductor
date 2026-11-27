@@ -180,7 +180,7 @@ run ID の規則違反(`Empty`, `TooLong`, `InvalidChar`, `LeadingDot` の 4 通
 | `resume_job_id が job_order にありません` | `Corrupt` | 読み込み |
 | `completed と resume_job_id が両立しません` | `Corrupt` | 読み込み |
 | `run_id がファイル名の run ID と一致しません` | `Corrupt` | 読み込み(`reset --all` では「別の定義のステート」として扱い、消さない) |
-| `動いたジョブに試行の記録がありません(古い形式の可能性があります)`(v0.10.0 以降) | `Corrupt` | 読み込み(success・warning・error のジョブに試行が無い。v0.9.9 までに書いたステート。06 の 2.3) |
+| `動いたジョブに試行の記録がありません(古い形式の可能性があります)`(v0.10.0 以降) | `Corrupt` | 読み込み(success・warning・error のジョブに試行(`[[job.attempt]]`)が無い。v0.9.9 までに書いたステート。06 の 2.3) |
 | `時刻の書式が誤っています`(v0.10.0 以降) | `Corrupt` | 読み込み(試行の時刻が `YYYY-MM-DDTHH:MM:SSZ` の形でない) |
 | `終わりの時刻の無い試行が、最後の試行ではありません`(v0.10.0 以降) | `Corrupt` | 読み込み(最後でない試行に `ended_at` が無い) |
 | `書き込みに失敗しました` | `WriteFailed` | 書き込み |
