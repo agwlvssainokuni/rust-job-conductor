@@ -129,94 +129,94 @@
 
 ### Step 1: 準備(テストの道具と出発点)
 
-- [ ] `unit-test-instructions.md` のコマンドを変更の前に走らせ、結果を `code-summary.md` に記録する。記録するのは、テストの数、`#[test]` の数(1,472)、3 つのファイルの行数(746・695・679)。
+- [x] `unit-test-instructions.md` のコマンドを変更の前に走らせ、結果を `code-summary.md` に記録する。記録するのは、テストの数、`#[test]` の数(1,472)、3 つのファイルの行数(746・695・679)。
 
 ### Step 2〜4: `walk/mod.rs` を分ける(移すだけ。FR2、BR2.1〜BR2.4)
 
 各ステップでは、移した後に `cargo build -p conductor-core --locked` と、core のテスト(`unit-test-instructions.md`)を走らせてからコミットする。`env.rs`・`retry.rs` には差分を出さない。
 
-- [ ] Step 2: `string`、`boolean`、`exit_codes`、`command`、`exit_code_of`、`integer_of` を `walk/values.rs` に移す。
+- [x] Step 2: `string`、`boolean`、`exit_codes`、`command`、`exit_code_of`、`integer_of` を `walk/values.rs` に移す。
   - `mod.rs` に `mod values;` と `use values::{exit_code_of, integer_of};` を置く。
   - コミット: `core: walk の値の読み取りを values.rs に移す`
-- [ ] Step 3: `RawTransition`、`transitions`、`transition_on` を `walk/transition.rs` に移す。
+- [x] Step 3: `RawTransition`、`transitions`、`transition_on` を `walk/transition.rs` に移す。
   - `mod.rs` に `use transition::RawTransition;` を置く。
   - コミット: `core: walk の遷移を transition.rs に移す`
-- [ ] Step 4: `cross_check`、`check_exit_codes` を `walk/cross_check.rs` に移す。
+- [x] Step 4: `cross_check`、`check_exit_codes` を `walk/cross_check.rs` に移す。
   - `mod.rs` の `//!` にある子モジュールの説明と、`crates/core/src/lib.rs:57` の説明を、分けた後の形に直す。
   - `const PIPELINE_KEYS`・`const JOB_KEYS` を含む行を、今の定義より前に置かない(BR2.2)。
   - コミット: `core: walk のジョブをまたぐ検査を cross_check.rs に移す`
-- [ ] `cargo test -p conductor-core --locked` と `cargo test -p conductor-cli --test spec_numbers --locked` を走らせる。
+- [x] `cargo test -p conductor-core --locked` と `cargo test -p conductor-cli --test spec_numbers --locked` を走らせる。
 
 ### Step 5〜8: `args.rs` を分ける(FR3、BR3.1〜BR3.4)
 
-- [ ] Step 5: `git mv crates/cli/src/args.rs crates/cli/src/args/mod.rs` を行う。中身は変えない。
+- [x] Step 5: `git mv crates/cli/src/args.rs crates/cli/src/args/mod.rs` を行う。中身は変えない。
   - コミット: `cli: args.rs を args/mod.rs にする`
-- [ ] Step 6: `functional-spec.md` の 3.1 のとおり、オプションの表と検査を `args/options.rs` に、字句を `args/tokens.rs` に、値の解釈を `args/values.rs` に移す。子ごとに 1 コミット(3 コミット)にし、各コミットの前に args のテストを走らせる。
+- [x] Step 6: `functional-spec.md` の 3.1 のとおり、オプションの表と検査を `args/options.rs` に、字句を `args/tokens.rs` に、値の解釈を `args/values.rs` に移す。子ごとに 1 コミット(3 コミット)にし、各コミットの前に args のテストを走らせる。
   - コミット: `cli: args のオプションの表を options.rs に移す`
   - コミット: `cli: args の字句を tokens.rs に移す`
   - コミット: `cli: args の値の解釈を values.rs に移す`
-- [ ] Step 7: `build_command` を、3.2 の 6 つの関数と、`convert_operand`・`init_operand` に分ける(R-02 の受け渡しで)。
+- [x] Step 7: `build_command` を、3.2 の 6 つの関数と、`convert_operand`・`init_operand` に分ける(R-02 の受け渡しで)。
   - 返す誤りの種類、対象、順は変えない。
   - `args_grammar.rs` の 69 のテストと、cli の統合テストを走らせる。
   - コミット: `cli: build_command を手順ごとの関数に分ける`
-- [ ] Step 8: `crates/cli/src/lib.rs:47-59` のモジュールの表の `args` の行を直す。
+- [x] Step 8: `crates/cli/src/lib.rs:47-59` のモジュールの表の `args` の行を直す。
   - コミット: `cli: lib.rs のモジュールの表を args の分割に合わせる`
-- [ ] `cargo test -p conductor-cli --locked` を走らせる。
+- [x] `cargo test -p conductor-cli --locked` を走らせる。
 
 ### Step 9〜12: `report/mod.rs` を分ける(FR1、BR1.1〜BR1.5)
 
-- [ ] Step 9: `StateContext`、`ResultDetail`、`DisplayEvent` と `level`、`FramePrefix`、`CLEAR_SCREEN` を `report/event.rs` に移す。
+- [x] Step 9: `StateContext`、`ResultDetail`、`DisplayEvent` と `level`、`FramePrefix`、`CLEAR_SCREEN` を `report/event.rs` に移す。
   - `mod.rs` に `pub use event::{DisplayEvent, FramePrefix, ResultDetail, StateContext};` を置く。
   - コミット: `cli: report の出来事の定義を event.rs に移す`
-- [ ] Step 10: `MAX_DISPLAY_CHARS`、`escape_name`、`escape_full`、`push_line` を `report/escape.rs` に移す。
+- [x] Step 10: `MAX_DISPLAY_CHARS`、`escape_name`、`escape_full`、`push_line` を `report/escape.rs` に移す。
   - `mod.rs` に `pub(crate) use escape::{escape_full, escape_name, push_line};` を置く。
   - コミット: `cli: report のエスケープを escape.rs に移す`
-- [ ] Step 11: 1 行の組み立ての 12 の関数を `report/lines.rs` に移す。
+- [x] Step 11: 1 行の組み立ての 12 の関数を `report/lines.rs` に移す。
   - コミット: `cli: report の 1 行の組み立てを lines.rs に移す`
-- [ ] Step 12: `report/render.rs` を作る。`render` の 35 の枝の中身を、`functional-spec.md` の 4.2 の 9 つの節の、変種ごとのメソッドに写す。`render` は網羅の `match` で、各枝はメソッドを 1 つ呼ぶだけにする。
+- [x] Step 12: `report/render.rs` を作る。`render` の 35 の枝の中身を、`functional-spec.md` の 4.2 の 9 つの節の、変種ごとのメソッドに写す。`render` は網羅の `match` で、各枝はメソッドを 1 つ呼ぶだけにする。
   - `mod.rs` の `//!` と、`crates/cli/src/lib.rs` の `report` の行を直す。
   - `src/tests/report_messages.rs` の全テスト(特に 694 行と 726 行)と、cli の統合テストを走らせる。
   - コミット: `cli: render の枝を表示の形ごとのメソッドに分ける`
-- [ ] `cargo test -p conductor-cli --locked` と `cargo test -p conductor-cli --test nfr_source --locked` を走らせる。
+- [x] `cargo test -p conductor-cli --locked` と `cargo test -p conductor-cli --test nfr_source --locked` を走らせる。
 
 ### Step 13: 小さな直し(FR4.3、FR4.4、BR4.3、BR4.4)
 
-- [ ] `crates/core/src/error.rs:176` の `report::escape` を、`report::escape_full`(`report/escape.rs`)に直す。
+- [x] `crates/core/src/error.rs:176` の `report::escape` を、`report::escape_full`(`report/escape.rs`)に直す。
   - コミット: `core: error.rs の文書コメントの古い名前を直す`
-- [ ] `src/tests/report_messages.rs` の `with_all_events` に `DefinitionValid` と `ResetAllKept` を足し、そのテストを走らせる。
+- [x] `src/tests/report_messages.rs` の `with_all_events` に `DefinitionValid` と `ResetAllKept` を足し、そのテストを走らせる。
   - コミット: `cli: with_all_events に足りない 2 つの変種を足す`
 
 ### Step 14: 仕様書(FR4.1、BR4.1)
 
-- [ ] `functional-spec.md` の 6.1 の箇所を、分けた後の形に直す(02・07・08・12 章)。12 章の、段の時点の記述は残す。
-- [ ] `grep -rn 'args\.rs\|report/mod\.rs の\|walk/mod\.rs' docs/spec/rust/` で残りを確かめ、今の形として書いた行が無いことを `code-summary.md` に記録する。
-- [ ] コミット: `docs: rust 版の仕様書のモジュールの記述を分けた後の形にする`
+- [x] `functional-spec.md` の 6.1 の箇所を、分けた後の形に直す(02・07・08・12 章)。12 章の、段の時点の記述は残す。
+- [x] `grep -rn 'args\.rs\|report/mod\.rs の\|walk/mod\.rs' docs/spec/rust/` で残りを確かめ、今の形として書いた行が無いことを `code-summary.md` に記録する。
+- [x] コミット: `docs: rust 版の仕様書のモジュールの記述を分けた後の形にする`
 
 ### Step 15: team.md(FR4.2、BR4.2)
 
 付録 A の 1 行だけを書き換える。今の文の一部で場所を確かめ、見つからなければ止めて報告する。
 
-- [ ] `git diff aidlc/spaces/default/memory/team.md` で、その 1 行だけが変わったことを確かめる。
-- [ ] コミット: `aidlc: team.md の使い方の表の場所を args の分割に合わせる`
+- [x] `git diff aidlc/spaces/default/memory/team.md` で、その 1 行だけが変わったことを確かめる。
+- [x] コミット: `aidlc: team.md の使い方の表の場所を args の分割に合わせる`
 
 ### Step 16: 版を 0.10.4 にする(FR5.1、BR5.1)
 
-- [ ] `git show --stat ad775bc` で範囲を確かめる。同じ 22 ファイルの `0.10.3` を `0.10.4` にする。`Cargo.lock` は 4 つのクレートの版の行だけを直す。
-- [ ] 次の 4 つを通す。
+- [x] `git show --stat ad775bc` で範囲を確かめる。同じ 22 ファイルの `0.10.3` を `0.10.4` にする。`Cargo.lock` は 4 つのクレートの版の行だけを直す。
+- [x] 次の 4 つを通す。
   - `cargo build --locked`
   - `cargo test --workspace --locked`
   - `cargo fmt --all -- --check`
   - `cargo clippy --workspace --all-targets --locked -- -D warnings`
-- [ ] コミット: `版を 0.10.4 にする`
+- [x] コミット: `版を 0.10.4 にする`
 
 ### Step 17: まとめと記録
 
-- [ ] `code-summary.md` に次のことを書く。
+- [x] `code-summary.md` に次のことを書く。
   - 変えたファイル
   - 分け終わりの判定(R-01 の主な基準と、行数の実測)
   - テストの数(前後で同じであること)
   - 残した事項
-- [ ] `traceability.json` に、FR1.1〜FR5.1 と、それを満たすファイルを書く。v0.10.3 と同じく、`upstream_ids` には BR と NFR も含める。
+- [x] `traceability.json` に、FR1.1〜FR5.1 と、それを満たすファイルを書く。v0.10.3 と同じく、`upstream_ids` には BR と NFR も含める。
 
 ## 付録 A: team.md の書き換え(FR4.2。行は 43cc050 の時点の目安)
 
