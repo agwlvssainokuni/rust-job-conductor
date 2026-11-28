@@ -1229,7 +1229,7 @@ command = ["sh", "scripts/notify.sh"]
 | AC-427 | UNIX 系: 場面 8(run ID) | 同上 | 同上 | `conductor.toml.build-1.state` が一覧に現れる。再開のあと `completed`。`reset` のあと一覧は `(なし)` | 同上 |
 | AC-428 | UNIX 系: 場面 9(環境変数と後始末) | 同上 | 同上 | `conductor.toml.opt-1.state` が現れ、最後の `watch` が `no state` | 同上 |
 | AC-429 | UNIX 系: 場面 10(リトライ) | 同上 | 同上 | `conductor: retry: job 'flaky' exited with code 75; retry 1 of 3 in 1 seconds` と `… retry 2 of 3 in 1 seconds` の 2 行、`[flaky] 3 回目の実行`、`job=flaky result=success` が現れる | 同上 |
-| AC-430 | UNIX 系: 利用者の環境に左右されない | `CONDUCTOR_RUN_ID=zzz`、`DEMO_RUN_ID=zzz`、`LC_ALL=ja_JP.UTF-8`、`LC_MESSAGES=ja_JP.UTF-8`、`NO_COLOR=1` を設定 | 同上 | 出力に `zzz` が現れない。英語の表示(`DEMO_LANG` のとおり)。結果が上と同じ | 同上 |
+| AC-430 | UNIX 系: 利用者の環境に左右されない | `CONDUCTOR_RUN_ID=zzz`、`DEMO_RUN_ID=zzz`、`LC_ALL=C`、`LC_MESSAGES=C`、`NO_COLOR=1` を設定 | 同上 | 出力に `zzz` が現れない。英語の表示(`DEMO_LANG` のとおり)。結果が上と同じ。この前提では、デモが `LC_ALL` と `LC_MESSAGES` を消したかは、表示からは見分けられない | 同上 |
 | AC-431 | UNIX 系: 何も残さない | 同上 | 同上 | 終了後、一時ディレクトリの親 `D` に何も残らない。リポジトリの作業ツリーは変わらない | 同上 |
 | AC-432 | Windows 版: 定義 | 定義 `demo\windows\conductor.toml` | (検査) | 4 ジョブ(`extract`、`transform`、`load`、`notify`)と、`extract` の警告の遷移(`notify` へ)を持つ。`validate` が 0 | `windows_demo`。区分: Windows |
 | AC-433 | Windows 版: 場面 1〜2 | 一時ディレクトリに定義とスクリプトを写す | `pipeline nightly`(場面 1)、`DEMO_EXTRACT_EXIT=1` で `pipeline nightly`(場面 2) | 場面 1 は 0。場面 2 は `notify` へ進み 0 | 同上 |
