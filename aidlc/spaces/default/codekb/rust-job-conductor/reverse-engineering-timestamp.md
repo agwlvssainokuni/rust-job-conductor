@@ -3,17 +3,17 @@
 ## Run Record
 
 - Date: 2026-11-28
-- Commit: 8c5c21e5e2d8ad08768891a8381ec4594a044d14
+- Commit: 9376cb7b3791a48bd584dab803c43ecbff6b976d
 
-全体の再スキャン(Full rescan、深さ Minimal)。前回(v0102-spec-docs の intent、2026-11-28、`55958fd`)の 9 資料をすべて置き換えた。リポジトリの根(`./`)を対象に、`55958fd..8c5c21e` の変更(仕様書 `docs/spec/rust/`・`language-agnostic/` の全 26 章、`crates/runtime/src/lib.rs` の呼び出しの順序の文書、版 0.10.2)を確かめ、4 クレートの本体のコードは前回の知識ベースと突き合わせた(コードの動きの変更は無い)。この intent の対象のため、文書と実装の一致を確かめるテスト(`crates/cli/src/tests/docs.rs`、`crates/cli/tests/msrv_consistency.rs`、デモのテスト、`crates/core/tests/common/kinds.rs`)、数の取り出し口(誤りの種類の列挙、定義とステートのキーの表、`--interval` の定数、`CommandKind::ALL`)、仕様書の 2 版の数の記述と表の行の数、language-agnostic の 11 章の性能の表と受け入れテストの根拠の列、性能のテストの上限を、行の単位で読んだ。テストの数は `find` と `grep` で、履歴は `git rev-list` と `git tag` で数えた。ほかの 5 つの言語版の仕様書はファイルの数と版の記述だけ、converter(前回から変わっていない)、テストの fixtures とデモのジョブのスクリプトは構成だけを見た。ビルド出力(`target/`)、無視される個人の文書(`local-docs/`)、IDE の設定(`.idea/`)、AI-DLC の導入物は開いていない(`aidlc/spaces/default/memory/team.md` だけは、古い記述を並べるために読んだ。直していない)。テスト・ビルド・プログラムは実行していない。
+全体の再スキャン(Full rescan、深さ Minimal)。前回(v0103-spec-checks の intent、2026-11-28、`8c5c21e`)の 9 資料をすべて置き換えた。リポジトリの根(`./`)を対象に、`8c5c21e..9376cb7` の変更(`crates/cli/tests/spec_numbers.rs` の追加、版 0.10.3、テスト名 2 つ、仕様書 `docs/spec/rust/`・`language-agnostic/` の直し)を確かめ、4 クレートの本体のコードは前回の知識ベースと突き合わせた(本体のコードの動きの変更は無い)。この intent の対象のため、`crates/cli/src/report/mod.rs`、`crates/core/src/definition/walk/mod.rs`(と子の `env.rs`・`retry.rs` が親を使う箇所)、`crates/cli/src/args.rs` を全行、パスに依存するテスト(`spec_numbers.rs`、`src/tests/docs.rs`、`nfr_source.rs` 2 つ、`msrv_consistency.rs`)と、外からの参照(`use` の場所)を行の単位で読んだ。テストの数は `find` と `grep` で、履歴は `git rev-list`・`git tag`・`git log` で数えた。ほかの 5 つの言語版の仕様書はファイルの数と版の記述だけ、converter(前回から変わっていない)、テストの fixtures とデモのジョブのスクリプトは構成だけを見た。ビルド出力(`target/`)、無視される個人の文書(`local-docs/`)、IDE の設定(`.idea/`)、AI-DLC の導入物は開いていない(前回の知識ベースとこの intent の記録だけを読んだ)。テスト・ビルド・プログラムは実行していない。走査の結果の引き渡しは、intent の記録 `inception/reverse-engineering/developer-scan.md`。
 
 ## Scope of Analysis
 
 ```yaml
 scope_version: 1
 kind: full
-intent: v0103-spec-checks
-fingerprint: 2cbb02cbe41f9df5be056d41d8038bc802d45c2f
+intent: v0104-split-files
+fingerprint: be56b5dcc861ec45d3e6b28f9d831c79dabaf0d1
 analyzed:
   paths:
     - ./
@@ -57,6 +57,7 @@ analyzed:
     - cli::exit
     - cli::panic_hook
     - test-helpers
+    - repo-file-tests
     - demo
     - spec-docs
     - ci-workflows

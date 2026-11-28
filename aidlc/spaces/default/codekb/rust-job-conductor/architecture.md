@@ -11,12 +11,14 @@
 レイヤー型のモジュラー・モノリス(単一プロセス、単一バイナリ、同期処理。非同期ランタイムは無い)。
 
 - 依存は一方向: cli → {core, runtime, converter}、runtime → core。core と converter は、ほかのクレートに依存しない(詳細は `dependencies.md`)。
-- 「純粋な判断」と「入出力」の分離: core の `flow`(判断・記録・試行の時刻・動きの様子)、`time`、`consistency`、`envfile`、`graph`、`plan` は、引数だけから結果を決める純粋な関数。現在の時刻は runtime の `clock::now` だけが取り、cli が値として core に渡す。
-- 差し替え口(trait `Runtime`・`Sink`・`Env`・`Signals`。`crates/cli/src/deps.rs`)で、流れのテストに偽の実装を注入する。`Runtime::now` も差し替えられるため、時刻を使う流れ(所要時間、ログの名前、`watch --follow`)を偽の時計で試せる。
-- 公開の入口と内部の入口の分離: `flow` の判断と記録は、公開の関数(`decide_from_state`、`classify_and_decide`、`apply_skip`、`apply_outcome`)と、位置と目印(`SimulationMarks`)を受け取る crate の中の入口(`decide_at`、`classify_and_decide_at`、`apply_skip_in`、`apply_outcome_in`)の 2 層。計画の模擬(`plan_pipeline`)だけが内部の入口を使い、公開の関数は呼ぶたびに目印を作り直して同じ本体を呼ぶ。
+- 「純粋な判断」と「入出力」の分離: core の `flow`、`time`、`consistency`、`envfile`、`graph`、`plan` は、引数だけから結果を決める純粋な関数。現在の時刻は runtime の `clock::now` だけが取り、cli が値として core に渡す。
+- 差し替え口(trait `Runtime`・`Sink`・`Env`・`Signals`。`crates/cli/src/deps.rs`)で、流れのテストに偽の実装を注入する。`Runtime::now` も差し替えられる。
+- 公開の入口と内部の入口の分離: `flow` の判断と記録は、公開の関数と、位置と目印(`SimulationMarks`)を受け取る crate の中の入口(`decide_at` など)の 2 層。計画の模擬(`plan_pipeline`)だけが内部の入口を使う。
+- クレートの中の可視性: cli は `lib.rs` で全モジュールを private(`mod args;`、`mod report;` など)にし、公開は `run_cli`・`run_cli_with`・`install_panic_hook` と差し替え口だけ。core の `definition::walk` も private で、外の入口は `walk::walk` 1 つ(`definition/mod.rs:69`)。モジュールの中の `pub` は crate の中でだけ見える。
+- 大きな検査の子モジュール化: `definition/walk/` は、`Walker` の `impl` を子モジュール(`retry.rs`、`env.rs`)に分け、親が呼ぶ順を保つ形(前例 `c34d3f7`)。
 - OS 差は `platform` モジュールに閉じ込める(runtime と cli に各 1 つ)。本体の `cfg(unix)`/`cfg(windows)` はそこだけ(`nfr_source.rs` が検査)。
 - `unsafe` は runtime の `platform/unix.rs` の `libc::kill` 1 か所だけ(runtime は `#![deny(unsafe_code)]`、ほかのクレートは `#![forbid(unsafe_code)]`)。
-- 文書(README、仕様書)はコードから読まれない。README だけが、テスト(`crates/cli/src/tests/docs.rs`、`crates/cli/tests/msrv_consistency.rs`)と CI の `docs-check` で実装と結ばれる。仕様書 `docs/spec/` を読むテストは無い(`code-quality-assessment.md`)。
+- 文書と実装の結び: README はテスト(`crates/cli/src/tests/docs.rs`、`crates/cli/tests/msrv_consistency.rs`)と CI の `docs-check` で、仕様書 `docs/spec/rust/`・`language-agnostic/` の数は `crates/cli/tests/spec_numbers.rs`(v0.10.3)で実装と結ばれる。`spec_numbers.rs` は実装の値をソースのファイルを文字列として読んで数えるので、ソースのファイルのパスと決まった行の形に依存する(`code-quality-assessment.md`)。
 
 ### Component Relationships
 
@@ -31,10 +33,10 @@ flowchart TD
     ctx --> aux["aux_commands.rs (watch follow reset validate convert graph init)"]
     run --> step["step.rs (run_step record_skip retry attempts log)"]
     pipe --> step
-    ctx --> report["report/ (Reporter messages watch graph plan init)"]
+    ctx --> report["report/ (DisplayEvent Reporter messages watch graph plan init)"]
     ctx --> deps["deps.rs (Runtime Sink Env Signals)"]
     ctx --> plat["platform (signal watcher clear screen)"]
-    deps --> core["conductor-core"]
+    deps --> core["conductor-core (definition walk flow graph plan ...)"]
     deps --> rt["conductor-runtime"]
     deps --> conv["conductor-converter"]
     step --> core
@@ -43,39 +45,39 @@ flowchart TD
     rt --> core
 ```
 
-テキストの代替: `main` が `run_cli` を呼ぶ。`run_cli_with` は引数を解釈し(`args`)、`Ctx` を作って、コマンドごとに `run`・`pipeline`・`aux_commands` へ振り分ける(`run`・`pipeline` は `--dry-run` のとき `dry_run` へ入る)。`run` と `pipeline` は、1 つのジョブの手順(試行の時刻、ログ、リトライを含む)を `step` に任せる。`Ctx` は、表示(`report`)、差し替え口(`deps`)、シグナルと画面の消去の可否(`platform`)を持つ。`deps` の本番の実装が core・runtime・converter の関数を呼ぶ。`step`・`dry_run`・`aux_commands` は core の純粋な関数を直接呼ぶ。runtime は core の共有の型、時刻の型と整形、`.env` の解析に依存する。
+テキストの代替: `main` が `run_cli` を呼ぶ。`run_cli_with` は引数を解釈し(`args`)、`Ctx` を作って、コマンドごとに `run`・`pipeline`・`aux_commands` へ振り分ける(`run`・`pipeline` は `--dry-run` のとき `dry_run` へ入る)。`run` と `pipeline` は、1 つのジョブの手順を `step` に任せる。`Ctx` は、表示(`report`)、差し替え口(`deps`)、シグナルと画面の消去の可否(`platform`)を持つ。`deps` の本番の実装が core(定義の読み込みと `walk` の検査を含む)・runtime・converter の関数を呼ぶ。`step`・`dry_run`・`aux_commands` は core の純粋な関数を直接呼ぶ。runtime は core の共有の型、時刻、`.env` の解析に依存する。
 
 ### Data Flow
 
-1. 引数 → `ParsedArgs`(`CliCommand`。`follow`・`interval` を含む)。
-2. 定義ファイル → `load_definition`(Intake → Parse → Depth → VersionCheck → Walk)→ `PipelineDefinition`(`log_dir`、`unset_env`、実効の `retry` を含む)。
-3. `check_command` で全ジョブの command を、起動せずに分割・検査(`CommandLine` の並び。以後、分け直さない)。
+1. 引数 → `parse_args`(字句 → `build_command`)→ `ParsedArgs`(`CliCommand`)。誤りは最初の 1 つだけを `UsageError` で返す(68)。
+2. 定義ファイル → `load_definition`(Intake → Parse → Depth → VersionCheck → Walk)→ `PipelineDefinition`。Walk は誤りを位置つきで集め、位置で安定に並べて返す(64)。
+3. `check_command` で全ジョブの command を、起動せずに分割・検査。
 4. run ID の決定(`--run-id`、なければ環境変数 `run_id_env` または `CONDUCTOR_RUN_ID`)。
-5. `.env` の読み取り(`env_file_refs` → `load_env_files` → `LoadedEnvFiles`。`required = false` の無いファイルは読み飛ばす)と、`unset_env` との重なりの検査(`check_unset_conflicts`)。誤りは 64。
-6. ステートの読み込みと照合(`read_state`、`check_consistency`)。試行の記録が無い動いたジョブは壊れたステート(65)。
-7. ジョブごとに `decide_from_state` → `run_step`(試行ごとに `merge_env` → `now` → `start_attempt` → `write_state(Fast)` → `run_job`(ログの指定つき)→ `now` → `retry_decision` →(リトライなら試行を開いたまま知らせて `wait`)→ `end_attempt`)→ `classify_and_decide` → 表示 → `apply_outcome` → `write_state(Durable)`。ステートが空だったときは、初期ステートに最初の試行を足した `Fast` の書き込みが初期化を兼ねる(`crates/runtime/src/lib.rs:72-93` の「呼び出しの順序」。v0.10.2 で今の形に直した)。
+5. `.env` の読み取りと、`unset_env` との重なりの検査。誤りは 64。
+6. ステートの読み込みと照合(`read_state`、`check_consistency`)。
+7. ジョブごとに `decide_from_state` → `run_step`(試行ごとに `merge_env` → `now` → `start_attempt` → `write_state(Fast)` → `run_job` → `now` → `retry_decision` → `end_attempt`)→ `classify_and_decide` → 表示 → `apply_outcome` → `write_state(Durable)`。
 8. 完了で削除を求められていれば `reset_state`。
-9. 表示は `DisplayEvent`(37 種)を `Reporter` が英日の文にして、標準エラーに出す(`watch`・`graph`・`--dry-run`・`init -`・`convert` の結果は標準出力)。
+9. 表示は `DisplayEvent`(37 種)を `Reporter` が英日の文にして、水準(Error・Notice・Verbose・Output)に従って出す(Output は標準出力、ほかは標準エラー)。
 
 ### Key Design Decisions
 
-- ジョブはシェルを介さず直接起動する。command は定義のデータとして扱い、解釈・展開しない。分割は `split.rs` の状態機械で、定義の検査のときに 1 回だけ行う。
-- 環境は親から引き継ぎ、`unset_env` の名前を除いてから(`Command::env_remove`)、層を統合した変数を足す(`[pipeline].env_file` < `[pipeline.env]` < `[job].env_file` < `[job.env]` < 自動の変数)。消す名前の比べ方は OS に任せる(UNIX は完全一致、Windows は大文字小文字を区別しない)。重なりの検査はどの OS でも大文字小文字を区別しない。
-- ステートは原子的に置き換える(一時ファイル → `Durable` なら同期 → `rename`)。試行の開始は `Fast`、結果は `Durable` で書く。読み取りは厳格(知らないキーは壊れたステート)。`format_version` は 1 のままで、v0.9.9 までのステートは試行が無いため 65 になる(README に明記)。
-- 時刻は UTC の UNIX 秒(`Timestamp`)。暦の計算は core の `time` に自前で書く(新しい依存を使わない)。ステートは RFC 3339、ログの名前は詰めた形(`YYYYMMDDTHHMMSSZ`)。
-- リトライの待ちの間は、前の試行の終わりの時刻をメモリに持ち、試行を開いたまま書かない(`step.rs` の `pending_end`)。`watch --follow` から待ちの間が「止まった」に見えないため。
-- `watch --follow` の終わりは、読み直したステートの `pipeline_activity`(完了 → 動いている試行 → 止まった → 間)で決める。画面を消せるか(UNIX 系かつ標準出力が端末)は初めに 1 回だけ決め、消せるなら 1 回目から毎回 `ESC[H ESC[2J` を置く。消せないなら 2 回目から空の 1 行を置いて追記する。
-- `log_dir` は、指定があるときだけ子の標準出力・標準エラーをパイプにし、流れごとに 1 つの読み取りのスレッドが端末とファイルへ書く。子の終了の後、読み取りの終わりを合わせて最大 2 秒待ち、待ち切れたら「止める」印を立てる。スレッドは印を読む前と読んだ後に見る。ファイルは `create_new` で作り、UNIX 系は 0600、名前の衝突は `-2`〜`-1000`。
-- 計画の模擬は、定義の記述順に進むことを使い、ジョブの位置と目印(済んだ前置き、pending の無い前置き、`error` の数)を持ち回って、前のジョブから続けて走査する(1,000 ジョブの性能のテストのため)。目印は `flow` の記録の関数だけでステートを変える間は正しいまま。
-- シグナルは、ジョブの子プロセスの pid だけに、1 回だけ転送する(UNIX は子を新しいプロセスグループで起動)。Windows は同じコンソールのジョブに OS が配る。
-- エラー表示は固定の文だけで組み立て、入力に由来する文字列(キー名、ジョブID、パス)は escape して切り詰める。
-- 数の一覧の網羅は、本番に公開の配列を持たせず、テスト側の写しと網羅の `match` で保つ(`crates/core/tests/common/kinds.rs`)。公開の `ALL` を持つのは `CommandKind` だけ。
+- ジョブはシェルを介さず直接起動する。command は定義のデータとして扱い、解釈・展開しない。
+- 環境は親から引き継ぎ、`unset_env` の名前を除いてから、層を統合した変数を足す(`[pipeline].env_file` < `[pipeline.env]` < `[job].env_file` < `[job.env]` < 自動の変数)。
+- ステートは原子的に置き換える(一時ファイル → `Durable` なら同期 → `rename`)。読み取りは厳格(知らないキーは壊れたステート)。
+- 時刻は UTC の UNIX 秒(`Timestamp`)。暦の計算は core の `time` に自前で書く。
+- リトライの待ちの間は、前の試行の終わりの時刻をメモリに持ち、試行を開いたまま書かない(`step.rs` の `pending_end`)。
+- `watch --follow` の終わりは、読み直したステートの `pipeline_activity` で決める。画面を消せるかは初めに 1 回だけ決める。
+- 表示の言語と色は `Reporter` のインスタンスごとの遅延のセル(`OnceCell`)で、必要な表示のときだけ判定する。`render` は閉包で言語を必要な枝だけで取る(版とシグナルの準備の失敗は判定しない)。
+- エラー表示は固定の文だけで組み立て、入力に由来する文字列(キー名、ジョブID、パス)は escape して切り詰める(`report` の `escape_name` 64 文字、`escape_full` 切らない。本体は core の `escape_display`)。
+- 引数の性質は `args.rs` の表 `OPTIONS`(13 行)の 1 か所に置き、表と `Opt` の並びの一致をコンパイル時に確かめる(`const _`)。検査の順は表 `CHECKS`(25 行)で決める。
+- 数の一覧の網羅は、本番に公開の配列を持たせず、テスト側の写しと網羅の `match` で保つ。公開の `ALL` を持つのは `CommandKind` だけ。仕様書の数は、ソースを文字列として読んで数える(`spec_numbers.rs`。本番のコードを曲げない)。
 
 ### Improvement Opportunities
 
-- 仕様書と実装の数の一致を確かめる仕組みが無い。数の取り出し口の多くが private の `const`(`PIPELINE_KEYS`、`TOP_KEYS` など)で、テストからは値を取れない(この intent の A-3。`code-quality-assessment.md`)。
-- `watch --follow` の「止まった」の判定は、ステートだけを見るため、エラーで止まったステートと、再開の直前(再開のジョブが試行を書く前)を見分けられない。README の注意で補っている(判定は変えていない)。
-- 使い方の表が、`args.rs` の文書、`report/messages.rs` の USAGE、`README.md` の 3 か所にある(仕様書の `--help` の全文を含めると 4 か所)。`watch` の行だけはテスト(`docs.rs` の `u7_nfr1_10_…`)が揃いを確かめる。
+- 大きなファイル(この intent の対象): `crates/cli/src/report/mod.rs`(746 行。型の定義、表示の本体、1 行の組み立て、エスケープが 1 つのファイル。`render` は 188 行)、`crates/core/src/definition/walk/mod.rs`(695 行。`impl Walker` が 429 行)、`crates/cli/src/args.rs`(679 行。表、字句、組み立て、値の解釈が 1 つのファイル。`build_command` は 132 行)。分け方の材料は `code-structure.md` の「この intent の対象のファイル」。
+- 仕様書 `docs/spec/rust/` のモジュールの表(02 章)と、`lib.rs` の `//!` のモジュールの表は、ファイルの配置を手で書いており、検査が無い。ファイルを分けると古くなる。
+- `watch --follow` の「止まった」の判定は、エラーで止まったステートと、再開の直前を見分けられない(README の注意で補っている)。
+- 使い方の表が、`args.rs` の文書、`report/messages.rs` の USAGE、`README.md` の 3 か所にある。
 
 ## Interaction Diagrams
 
@@ -93,7 +95,7 @@ sequenceDiagram
     CLI->>CLI: parse_args
     CLI->>CTX: prepare_session(check_pipeline)
     CTX->>CTX: start_signals
-    CTX->>CORE: load_definition
+    CTX->>CORE: load_definition (walk)
     CTX->>RT: check_command (全ジョブ)
     CTX->>RT: load_env_files
     CTX->>CORE: check_unset_conflicts
@@ -110,7 +112,6 @@ sequenceDiagram
         else Skip
             CLI->>STEP: record_skip
             STEP->>CORE: apply_skip
-            STEP->>RT: write_state Durable (変わったとき)
         else Reject
             CLI-->>U: 終了コード 66
         end
@@ -119,9 +120,107 @@ sequenceDiagram
     CLI-->>U: 終了コード 0 またはジョブのコード
 ```
 
-テキストの代替: スケジューラが `pipeline` を呼ぶ。cli は引数を解釈し、シグナルの監視を始めてから、定義の読み込み、command の検査、`.env` の読み取り、`unset_env` との重なりの検査、ステートの読み込みと照合を行う。ジョブごとに起動前の判断をし、Run なら `run_step` が、今の時刻で試行を始めて `Fast` で書き、起動(ログとリトライを含む)、試行を閉じて分類、記録、`Durable` で書く。Skip なら `record_skip` がスキップを記録する。Reject なら 66 で終わる。エラーで止まればジョブの終了コード、ジョブのあいだで合図が立っていれば再開位置を書いて 128 + 番号で終わる。完了で削除を求められていれば `reset_state` を呼ぶ。
+テキストの代替: スケジューラが `pipeline` を呼ぶ。cli は引数を解釈し、シグナルの監視を始めてから、定義の読み込み(`walk` の検査を含む)、command の検査、`.env` の読み取り、`unset_env` との重なりの検査、ステートの読み込みと照合を行う。ジョブごとに起動前の判断をし、Run なら `run_step` が試行を始めて `Fast` で書き、起動、試行を閉じて分類、記録、`Durable` で書く。Skip なら `record_skip`。Reject なら 66。完了で削除を求められていれば `reset_state` を呼ぶ。
 
-### 取引 2: 1 回のジョブの起動とリトライ(`step::run_job_with_retry`)
+### 取引 2: 引数の解釈(`args::parse_args`。この intent の対象)
+
+```mermaid
+sequenceDiagram
+    participant L as lib run_cli_with
+    participant P as args parse_args
+    participant X as lexopt Parser
+    participant B as args build_command
+    participant V as args 値の解釈
+    L->>P: parse_args(args)
+    loop 引数ごと
+        P->>X: next
+        X-->>P: Short Long Value または UnexpectedValue
+        P->>P: spec_by_long で表を引き Token を積む (-h -V は先取り)
+    end
+    alt help または version
+        P-->>L: ParsedArgs Help または Version
+    else 字句の誤り
+        P-->>L: UsageError
+    else
+        P->>B: build_command(tokens)
+        B->>B: Given に集め 知らないオプション と コマンド名 を検査
+        B->>B: CHECKS の順に 使えない と 重複 を検査
+        B->>V: parse_assumptions parse_graph_format parse_interval parse_run_id_option
+        B->>B: operand_rule と コマンドの枝 (5 つ)
+        B->>V: parse_target (convert)
+        B-->>L: ParsedArgs Command または 最初の UsageError
+    end
+```
+
+テキストの代替: `parse_args` は `lexopt` で引数を 1 つずつ字句にし、長い名前は表 `OPTIONS` で引いて、値を取るなら値も読む。`-h`・`-V` は先に覚えておき、最後に誤りより先に返す。字句の誤り(`--bogus=x` など)があれば返す。そうでなければ `build_command` が、指定を集め、知らないオプション、コマンドの名前、`CHECKS` の順の「使えない」と「重複」、`--all` と `--run-id`、`graph` の `--run-id` を検査し、値を解釈し(`--assume`、`--format`、`--interval`、`--run-id` の順)、位置引数の数を確かめ、コマンドの枝(`Run`、`Pipeline | Validate | Graph`、`Convert`、`Init`、`Watch | Reset`)で残りを入れる。誤りは最初の 1 つだけ。
+
+### 取引 3: 定義の検査(`definition::walk::walk`。この intent の対象)
+
+```mermaid
+flowchart TD
+    a["walk(root)"] --> b["check_keys ROOT_KEYS"]
+    b --> c["pipeline_section"]
+    c --> c1["pipeline_retry (retry.rs)"]
+    c --> c2["pipeline_head: check_keys PIPELINE_KEYS, string, boolean, env_table env_file (env.rs), log_dir, unset_env (env.rs)"]
+    a --> d["job ごと: check_keys JOB_KEYS, string id, command, exit_codes, transitions, job_retry (retry.rs), env_table env_file unset_env (env.rs)"]
+    d --> e["cross_check: ID の一意, 遷移先, check_exit_codes, check_retry (retry.rs), check_unset_env (env.rs)"]
+    e --> f{"誤りが無い?"}
+    f -- yes --> g["build_jobs (build_retry) と PipelineDefinition"]
+    f -- no --> h["誤りを位置で安定に並べて返す"]
+```
+
+テキストの代替: `walk` は根のキーを検査し、`[pipeline]` を読む(既定のリトライを先に、続けてほかの値)。ジョブごとにキー、`id`、`command`、終了コード、遷移、`retry`、`env`・`env_file`・`unset_env` を読む。そのあと、ジョブをまたぐ検査(ID の一意、遷移先、終了コードの重なり、既定のリトライとの重なり、`unset_env` と `env` の重なり)をする。誤りが無ければジョブを組み立てて定義を返し、あれば誤りを位置で安定に並べて返す。同じ位置の誤りの並びは、呼ぶ順で決まる。
+
+### 取引 4: 表示(`Reporter::show`。この intent の対象)
+
+```mermaid
+sequenceDiagram
+    participant F as 流れ (ctx step run pipeline aux)
+    participant R as report Reporter
+    participant E as report DisplayEvent
+    participant M as report messages と 1 行の組み立て
+    participant S as deps Sink
+    F->>R: show(sink, event)
+    R->>E: level()
+    alt Error または Notice
+        R->>R: render(event)
+        R->>M: 種類の文 言語 escape
+        R->>S: write_err (失敗は無視)
+    else Verbose
+        R->>R: -v のときだけ render
+        R->>S: write_err
+    else Output
+        R->>R: render(event) (watch は色を判定 WatchFrame は再帰)
+        R->>S: write_out (失敗は false)
+    end
+```
+
+テキストの代替: 流れは `DisplayEvent` を作って `Reporter::show` に渡す。`show` はイベントの水準で出し方を決め、`render` で文を組み立てる。`render` は 35 の枝の `match` で、必要な枝だけが言語を判定し、`messages` の文と 1 行の組み立ての関数(`error_line`、`state_line` など)とエスケープを使う。Error と Notice は常に、Verbose は `-v` のときだけ標準エラーへ書き(失敗は無視)、Output は標準出力へ書いて結果を返す。
+
+### 取引 5: `conductor watch --follow`
+
+```mermaid
+flowchart TD
+    a["run_watch"] --> b["start_signals (失敗は 70)"]
+    b --> c["aux_run_id"]
+    c --> d["follow_watch: clear = UNIX かつ端末"]
+    d --> e{"合図が立っている?"}
+    e -- yes --> z0["Interrupted 0"]
+    e -- no --> f["read_state_raw"]
+    f --> g{"結果"}
+    g -- "有る" --> h["now と表を描く (WatchFrame)"]
+    h --> i{"pipeline_activity"}
+    i -- "Completed または Stopped" --> z1["0 で終わる"]
+    i -- "Running または Between" --> w["wait interval 秒"]
+    g -- "無い" --> j["一度見た後 2 回続けば Removed 0"]
+    j --> w
+    g -- "Unreadable 3 回 または ほかの誤り" --> z4["StateError 65"]
+    w --> e
+```
+
+テキストの代替: `run_watch` は `--follow` のとき、シグナルの準備をし(失敗は 70)、run ID を決めて `follow_watch` に入る。各回、合図が立っていれば 0、そうでなければステートを読み直し、有れば表を描いて完了か止まったなら 0、動いている・間なら `--interval` 秒待つ。一度見えたステートが 2 回続けて無ければ 0。読めないのが 3 回続くか、ほかの誤りは 65。
+
+### 取引 6: 1 回のジョブの起動とリトライ(`step::run_job_with_retry`)
 
 ```mermaid
 sequenceDiagram
@@ -137,110 +236,27 @@ sequenceDiagram
         S->>S: 前の試行を pending_end で閉じ start_attempt して Fast で書く
         S->>RT: run_job(line, additions, unset, signal, log)
         RT-->>S: JobExecution と LogOutcome
-        S->>C: now (終わり。起動しなかった中断は試行を取り除く)
-        S->>D: retry_decision(job, execution, n, last_wait)
+        S->>C: now (終わり)
+        S->>D: retry_decision
         alt Retry
-            S->>S: 終わりの時刻を pending_end に持ち RetryScheduled を表示
+            S->>S: pending_end に持ち RetryScheduled を表示
             S->>W: wait_for(secs, signal)
-            W-->>S: Elapsed または Interrupted
         else Stop
-            S->>S: end_attempt して最後の実行結果を返す
+            S->>S: end_attempt して結果を返す
         end
     end
 ```
 
-テキストの代替: 試行ごとに、層を統合した環境(`CONDUCTOR_ATTEMPT` は試行の番号)を作り直し、今の時刻を取る。リトライの 2 回目以降は、前の試行をメモリに持っていた終わりの時刻で閉じてから、新しい試行を足して `Fast` で 1 回書く。`run_job` に、足す変数、消す名前、合図、ログの指定(`log_dir` があるとき)を渡す。終わったら時刻を取り(起動前に合図が立っていたときは試行を取り除く)、core の `retry_decision` が再実行か停止かを決める。再実行なら試行を開いたまま知らせを出し、`wait_for`(合図を 50ms 以下の間隔で確認)で待つ。待機中に中断されたら、持っていた時刻で閉じて、起動していない中断の結果(`NotStarted`)を返す。
+テキストの代替: 試行ごとに層を統合した環境を作り直し、今の時刻を取って試行を始め `Fast` で書く。`run_job` に足す変数、消す名前、合図、ログの指定を渡す。終わったら時刻を取り、`retry_decision` が再実行か停止かを決める。再実行なら試行を開いたまま知らせを出して待つ。
 
-### 取引 3: `conductor watch --follow`
+### 取引 7: `graph`、`validate`、`convert`、`init`、`--dry-run`
 
-```mermaid
-flowchart TD
-    a["run_watch"] --> b["start_signals (失敗は 70)"]
-    b --> c["aux_run_id (定義をゆるく読む)"]
-    c --> d["follow_watch: clear = UNIX かつ端末"]
-    d --> e{"合図が立っている?"}
-    e -- yes --> z0["Interrupted 0"]
-    e -- no --> f["read_state_raw"]
-    f --> g{"結果"}
-    g -- "有る" --> h["now と表を描く (WatchFrame)"]
-    h --> i{"pipeline_activity"}
-    i -- "Completed" --> z1["Completed 0"]
-    i -- "Stopped" --> z2["Stopped 0"]
-    i -- "Running または Between" --> w["wait interval 秒"]
-    g -- "無い" --> j{"一度見た?"}
-    j -- "いいえ" --> k["no state を描く"] --> w
-    j -- "はい 1 回目" --> w
-    j -- "はい 2 回続けて" --> z3["Removed 0"]
-    g -- "Unreadable" --> l{"3 回続いた?"}
-    l -- "いいえ" --> w1["wait 1 秒"] --> e
-    l -- "はい" --> z4["StateError 65"]
-    g -- "ほかの誤り" --> z4
-    w --> e
-```
-
-テキストの代替: `run_watch` は `--follow` のとき、最初にシグナルの準備をし(失敗は 70)、run ID を決めて `follow_watch` に入る。初めに 1 回だけ、画面を消せるか(UNIX 系で標準出力が端末)を決める。各回は、合図が立っていれば 0 で終わり、そうでなければステートを読み直す。有れば今の時刻を取って表を描き(消せるなら毎回画面を消してから、消せないなら 2 回目から空の 1 行を前に置く)、`pipeline_activity` が完了か止まったならその表を最後に 0 で終わる。動いている・間なら `--interval` 秒(既定 2、1〜3600)待つ。無ければ、一度も見ていないなら `no state` を描いて待ち、見た後なら 2 回続けて無いときに 0 で終わる。読めない(`Unreadable`)ときは描かずに 1 秒後に読み直し、3 回続けば 65。ほかの誤りは 1 回の `watch` と同じ表示で 65。標準出力に書けなければ 65。待ちの途中の合図は 0。
-
-### 取引 4: `run_job` のログ(`log_dir`)
-
-```mermaid
-sequenceDiagram
-    participant R as runtime run_job
-    participant L as runtime log
-    participant P as 子プロセス
-    participant T as 読み取りのスレッド (stdout と stderr)
-    R->>R: program が空なら StartFailed / 合図が立っていれば NotStarted
-    R->>L: open_log_file (create_dir_all, create_new, 0600, -2 から -1000)
-    alt 作れない
-        L-->>R: Err(path)
-        R-->>R: StartFailed と log_not_created
-    else 作れた
-        R->>P: spawn (stdout と stderr はパイプ)
-        R->>T: start_copier を 2 つ
-        T->>T: 読む前と読んだ後に止める印を見て 端末とファイルへ書く
-        R->>P: wait_loop (try_wait とシグナルの転送)
-        R->>T: wait_copiers (合わせて最大 2 秒)
-        alt 待ち切れた
-            R->>T: stop を立てる
-            R-->>R: output_cut_short
-        end
-    end
-```
-
-テキストの代替: `run_job` は、空の program と起動前の合図を先に確かめる。ログの指定があれば、起動の前にディレクトリとファイルを作る(無いときだけ作る。UNIX 系は 0600。同じ名前があれば `-2` から `-1000` を足す)。作れなければ起動せず `StartFailed` と `log_not_created` を返す。作れたら標準出力と標準エラーをパイプにして起動し、流れごとの読み取りのスレッドが、読んだ分を端末とファイルへ書く(ファイルへの書き込みに失敗したら以後ファイルに書かない)。待ちのくり返しとシグナルの転送はログの有無によらず同じ。子の終了の後、読み取りの終わりを合わせて最大 2 秒待ち、待ち切れたら「止める」印を立てて `output_cut_short` を返す。スレッドは、読む前に印を見て立っていれば読まずに終わり、読んだ後に印を見て立っていれば読んだ分を書かずに終わる(`runner.rs:315`・`324`)。
-
-### 取引 5: `--dry-run` の計画の模擬(内部の入口)
-
-```mermaid
-sequenceDiagram
-    participant DR as cli dry_run
-    participant PL as core plan_pipeline
-    participant FL as core flow (内部の入口)
-    DR->>PL: plan_pipeline(input)
-    PL->>PL: marks = SimulationMarks::new()
-    loop 定義の記述順の各ジョブ (位置 index)
-        PL->>FL: decide_at(job, index, def, state, marks)
-        alt Skip
-            PL->>FL: apply_skip_in(state, index, job, reason, def, marks)
-        else Run
-            PL->>FL: classify_and_decide_at(job, index, 仮定の結果, ...)
-            PL->>FL: apply_outcome_in(state, ..., marks)
-        else Reject
-            PL-->>DR: PlanRejection
-        end
-    end
-    PL-->>DR: ExecutionPlan
-```
-
-テキストの代替: `plan_pipeline` は、目印を先頭から作り、定義の記述順にジョブの位置を持って進む。各ジョブで、内部の入口 `decide_at` に位置と目印を渡して起動前の判断をし、スキップなら `apply_skip_in`、実行なら仮定の終了コードで `classify_and_decide_at` と `apply_outcome_in` を呼ぶ。拒否なら `PlanRejection` を返す。公開の入口(`decide_from_state` など)は、呼ぶたびに目印を作り直して同じ本体を呼ぶので、本番の流れの判断は変わらない。`plan_run`(1 ジョブ)は公開の入口を使う。
-
-### 取引 6: `graph`、`validate`、`convert`、`init`
-
-- `graph`: `check_definition_and_env`(`validate` と同じ検査)→(`--state` のとき)run ID とステートの読み取り(`read_state_raw`)と照合 → 重ね合わせ → `build_graph` → `text` は `layout_graph` + `render_text`、`mermaid` は `render_mermaid`、`dot` は `render_dot` → 標準出力に 1 回。書けなければ 65。
-- `--dry-run`: `dry_run::enter_flow` → `prepare_checked`(シグナルの準備をしない)→ 取引 5 → `render_plan` → 標準出力。
-- `validate`: `check_definition_and_env` → 成功は `DefinitionValid`(`-v` のときだけ 1 行)で 0、誤りは 64。重複キーは警告。
-- `convert`: `conductor_converter::convert` → 成功は標準出力に 1 回、失敗は何も書かず 67。
-- `init`: `render_template`(英日)→ `--config -` なら標準出力、それ以外は `create_file`(排他の作成。`--force` で置き換え)。既にあれば 69。
+- `graph`: `check_definition_and_env` →(`--state` のとき)ステートの読み取りと照合 → `build_graph` → `render_text`・`render_mermaid`・`render_dot` → 標準出力に 1 回。書けなければ 65。
+- `--dry-run`: `dry_run::enter_flow` → `prepare_checked` → `plan_pipeline`(内部の入口で位置と目印を持ち回る)→ `render_plan` → 標準出力。
+- `validate`: `check_definition_and_env` → 成功は `DefinitionValid`(`-v` のときだけ 1 行)で 0、誤りは 64。
+- `convert`: `conductor_converter::convert` → 成功は標準出力に 1 回、失敗は 67。
+- `init`: `render_template` → `--config -` なら標準出力、それ以外は `create_file`。既にあれば 69。
 
 ## 並行性とシグナル
 
-cli は専用のスレッド(UNIX は `signal-hook` の `Signals`、Windows は `ctrlc` のハンドラ)でシグナルを受け、`InterruptSignal`(Atomic)に最初の番号を立てる。監視の開始は `run`・`pipeline` の `prepare_session` と、`watch --follow` の入口。runtime の待ちのくり返し(1ms から 10ms の `try_wait`)が、立っていれば子の pid に 1 回だけ転送する。リトライの待機と `watch --follow` の待ちは 50ms 以下の間隔で合図を見る。`log_dir` があるときは、さらに流れごとに 1 つの読み取りのスレッド(`conductor-log-copier`)が動く。補助のコマンド(`--follow` の無い `watch` など)と `--dry-run` は、シグナルの準備をせず、既定の動作で終わる。
+cli は専用のスレッド(UNIX は `signal-hook`、Windows は `ctrlc`)でシグナルを受け、`InterruptSignal`(Atomic)に最初の番号を立てる。runtime の待ちのくり返し(1〜10ms の `try_wait`)が、立っていれば子の pid に 1 回だけ転送する。リトライの待機と `watch --follow` の待ちは 50ms 以下の間隔で合図を見る。`log_dir` があるときは、流れごとに 1 つの読み取りのスレッドが動く。表示(`report`)、引数(`args`)、定義の検査(`walk`)は単一のスレッドで動き、共有の状態を持たない。

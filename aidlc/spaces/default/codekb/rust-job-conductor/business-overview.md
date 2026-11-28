@@ -7,7 +7,7 @@
 - 単一の実行ファイル(`conductor`)。外部のランタイムは要らない。Linux・macOS・Windows で、同じ定義に同じ結果を返す。
 - ネットワークに接続せず、利用状況の収集もしない(`crates/cli/tests/nfr_source.rs`、`crates/runtime/tests/nfr_source.rs` が検査)。
 - 表示は、ロケール(`LC_ALL`、`LC_MESSAGES`、`LANG`)に従って、英語と日本語を切り替える。
-- 現在の版は 0.10.2(4 クレートとも同じ版。`crates/*/Cargo.toml`)。ライセンスは Apache-2.0。
+- 現在の版は 0.10.3(4 クレートとも同じ版。`crates/*/Cargo.toml`)。ライセンスは Apache-2.0。
 
 ## 利用者とユースケース
 
@@ -17,9 +17,10 @@
 | ジョブの作者 | 定義ファイルに、ジョブ、警告・成功の終了コード、遷移(`@end` を含む)、リトライ(`[job.retry]`、全ジョブの既定 `[pipeline.retry]`、打ち消し `retry = false`)、環境変数(`env`、`env_file`、無くてもよい `.env`、`unset_env`)、ログの置き場所(`log_dir`)を書く。`init` でひな形を作る |
 | 障害対応の担当者 | エラーで止まったジョブから再実行する。`watch` で状態と所要時間の表を見る。`watch --follow` で終わるまで表示し直す。`graph --state` で止まった位置を図で見る。`log_dir` のファイルで試行ごとの出力を読む。`reset`(`--all`)でステートを消す |
 | 定義の整備者 | `validate` で定義と `.env` を実行せずに検査する。`--dry-run` で実行の計画を確かめる。`graph` で流れを図にする(text、Mermaid、DOT)。`convert` で YAML と TOML を相互に変換する |
-| 再実装する人(仕様書の読み手) | `docs/spec/` の仕様書だけを読んで、同じ挙動のツールを作る。`language-agnostic/` は受け入れ基準(AC 番号)を持つ。この intent の主な読み手 |
+| 再実装する人(仕様書の読み手) | `docs/spec/` の仕様書だけを読んで、同じ挙動のツールを作る。`language-agnostic/` は受け入れ基準(AC 番号)を持つ |
+| 開発者(このリポジトリの保守者) | Rust に不慣れな 1 人の開発者が、小さな単位で変更とレビューをする(`team.md`)。この intent の主な読み手 |
 
-## 主要な機能(0.10.2 時点)
+## 主要な機能(0.10.3 時点)
 
 1. 定義の読み込みと検証。誤りは 34 種(`DefinitionErrorKind`)、行番号つきで、まとめて報告する。
 2. ジョブの直接起動(シェルを介さない)。`command` は文字列(空白と引用符の規則で分割)または文字列の配列。
@@ -35,13 +36,13 @@
 12. 補助のコマンド: `watch`(状態・所要時間・補足の表。`--follow [--interval <秒>]` で表示し直しを続ける)、`reset`、`validate`、`convert`。
 13. 終了コードの規約は `api-documentation.md` の 6 を参照。
 
-版の歩み: v0.10.0 が機能の版(上の 4〜8 と 12 の v0.10.0 の部分)、v0.10.1 が修正の版、v0.10.2 が整理の版(仕様書 `docs/spec/rust/`・`language-agnostic/` に v0.10.0〜v0.10.1 を書き足し、`crates/runtime/src/lib.rs` の呼び出しの順序の文書を直した)。v0.10.1・v0.10.2 は利用者から見える動きを変えていない。
+版の歩み: v0.10.0 が機能の版、v0.10.1 が修正の版、v0.10.2 が仕様書の書き足しの版、v0.10.3 が仕様書の小さな粗の直しと、仕様書の数を実装と突き合わせるテスト(`crates/cli/tests/spec_numbers.rs`)の版。v0.10.1〜v0.10.3 は利用者から見える動きを変えていない。
 
 ## 保証と非目標
 
 - at-least-once: ジョブの終了とステートの書き込みのあいだに落ちると、そのジョブは再実行されうる。排他制御はしない。時間の上限(タイムアウト)は無い。
 - 入力に対してパニックしない。エラー表示に入力の値を含めない。ステートには開始と終了の時刻だけを足し、command・環境変数・出力は書かない。環境変数の値を持つ型の `Debug` は伏せ字。
-- ジョブの標準出力・標準エラーは加工しない。`log_dir` があるときだけ、パイプで受けて端末とファイルへ同じバイト列を書く(子からは端末に見えなくなる)。古いログは消さない。
+- ジョブの標準出力・標準エラーは加工しない。`log_dir` があるときだけ、パイプで受けて端末とファイルへ同じバイト列を書く。古いログは消さない。
 
 ## 業務上の主な取引(トランザクション)
 
@@ -58,17 +59,18 @@
 | ひな形の作成 | `conductor init [<名前>]` | 定義ファイル(または標準出力) |
 | 形式の変換 | `conductor convert <file> --to <yaml\|toml>` | 変換した文字列を標準出力へ |
 
-## この intent(v0103-spec-checks、v0.10.3)との関係
+## この intent(v0104-split-files、v0.10.4)との関係
 
-整理の intent で、`conductor` の動きは変えない。対象は 4 つ。
+整理(refactor)の intent で、`conductor` の動きは変えない。公開の範囲は `pub use` で今のまま保ち、最後に版を 0.10.4 にする。対象は 3 つのファイル。
 
-| 対象 | 関わる読み手 | 現状の要点(詳細の持ち主) |
-|------|--------------|----------------------------|
-| A-1 仕様書の小さな粗 | 再実装する人 | language-agnostic の 11 章の根拠の列で、テストの名前を `_` のまま書いた箇所が 14 個ある。AC-430 の前提が `LC_ALL=ja_JP.UTF-8` で、テストは `LC_ALL=C`。AC-573 は「目安」で、参照実装と rust 版は「強制」(`code-quality-assessment.md` の「仕様書の粗」) |
-| A-2 `team.md` の古い記述 | チーム(AI-DLC の規則の読み手) | コミットの数(867 → 1,088)、タグの範囲(`v0.9.9` まで → `v0.10.2` まで)、版の上げ方の例、v0.10.0 の intent だけの決まり、「v0.10.0 でも見送る」(行ごとの一覧は intent の記録 `inception/reverse-engineering/developer-scan.md` の 4) |
-| A-3 仕様書の数と実装の一致のテスト | 開発者 | 仕様書を読むテストは無い。数の記述の場所と、実装の取り出し口は `code-quality-assessment.md` の「仕様書の数と実装の取り出し口」 |
-| 版を 0.10.3 にする | 利用者 | 4 クレートの `Cargo.toml`、`Cargo.lock`、`binary_basic.rs` の期待値、仕様書の版の表記(`code-quality-assessment.md` の「技術的負債と、この intent への影響」) |
+| 対象 | 今の大きさ | 分け方の依頼 | 詳細の持ち主 |
+|------|------------|--------------|--------------|
+| `crates/cli/src/report/mod.rs` | 746 行。`Reporter::render` は 35 の枝(37 変種) | `DisplayEvent` の定義・1 行の組み立て・エスケープの 3 つに分ける。`render` を表示の種類ごとの関数に分ける | `code-structure.md` の「この intent の対象のファイル」、`component-inventory.md` の `cli::report` |
+| `crates/core/src/definition/walk/mod.rs` | 695 行 | 値の読み取り・遷移・ジョブをまたぐ検査を、`env.rs`・`retry.rs` と同じ形で外に出す | 同上、`component-inventory.md` の `core::definition` |
+| `crates/cli/src/args.rs` | 679 行。`build_command` は 132 行、コマンドの枝は 5 つ | オプションの表と検査・字句・値の解釈に分ける。`build_command` をコマンドの枝ごとに分ける | 同上、`component-inventory.md` の `cli::args` |
+
+利用者から見える面(コマンドライン、表示の文、終了コード、ステート)は変わらない。変わるのはファイルの配置と版だけ。パスや行に依存するテスト(`spec_numbers.rs` など)は `code-quality-assessment.md` の「パスに依存するテスト」を参照。
 
 ## 文書
 
-利用者向けは `README.md`(日本語、955 行。必須の語句は CI の `docs-check` が検査)と `demo/README.md`(69 行)。仕様書は `docs/spec/`(7 版 × 13 文書。`rust/` が Rust 版の構成を、`language-agnostic/` が言語に依らない挙動と受け入れ基準を書き、どちらも「v0.10.2 までの挙動」を名乗る。ほかの 5 版は、冒頭の版の記述が v0.8.0・v0.9.0)。
+利用者向けは `README.md`(日本語、955 行。必須の語句は CI の `docs-check` が検査)と `demo/README.md`(69 行)。仕様書は `docs/spec/`(7 版 × 13 文書。`rust/` が Rust 版の構成を、`language-agnostic/` が言語に依らない挙動と受け入れ基準を書き、どちらも「v0.10.3」を名乗る。ほかの 5 版は、冒頭の版の記述が v0.8.0・v0.9.0)。
