@@ -384,7 +384,7 @@ next = "nowhere"
 | AC-095 | 拒否: `\\"` で閉じない | `echo "a\\" b` | 同上 | 同上 |
 | AC-096 | 拒否: パスの末尾の `\"` | `prog "C:\dir\"` | 同上 | 同上 |
 | AC-097 | 拒否: 空の語だけ | `''`、`'' x` | `command is empty` | 同上 |
-| AC-097a | 拒否: 空白だけの先頭の語(v0.9.8 以降) | `'  '`、`'  ' x`、`"⇥"` | `command is empty`(64。ジョブを起動しない。v0.9.7 までは起動の失敗 127) | `split` の単体、`flow_validate::空白だけのコマンド名は_64_で_ジョブを起動しない` |
+| AC-097a | 拒否: 空白だけの先頭の語(v0.9.8 以降) | `'  '`、`'  ' x`、`"⇥"` | `command is empty`(64。ジョブを起動しない。v0.9.7 までは起動の失敗 127) | `split` の単体、`flow_validate::空白だけのコマンド名は 64 で ジョブを起動しない` |
 | AC-098 | 拒否: 区切りだけ | `␣⇥⏎`(TOML では `"  \t\n"`)。定義の検査が、空白だけの `command` を先に拒否する | `required value is empty`(定義の検査。64) | `core::definition_errors::fr1_5`(派生) |
 
 起動と実行環境。
@@ -596,23 +596,23 @@ job:
 
 | ID | 機能 | 前提 | 実行 | 期待 | 根拠 |
 |----|------|------|------|------|------|
-| AC-206 | TOML から YAML | `T/in.toml` = `CV1` | `convert in.toml --to yaml` | 終了 0。ERR 空。OUT は YAML で、`format_version: 1` と `id: extract` を含む。OUT を YAML として読んだ木が `CV1` の木と等しい。マップのキーは辞書順、インデントは 2 スペース、シーケンスは親のキーより 2 スペース深い(`job:` の次の行に `  - command: …`)。末尾は改行 | `convert_roundtrip::ac_7_1_1_toml_から_yaml`、`binary_basic::convert は変換結果だけを標準出力に出す` |
-| AC-207 | YAML から TOML(アンカー展開) | `T/in.yaml` = `CV2` | `convert in.yaml --to toml` | 0。OUT に `<<` がなく、`[[job]]` を含む。OUT を TOML として読んだ木が、`CV2` を展開した木と等しい(`transform` の `success_exit_codes` は `[0]`、`extract` は `[0, 2]`) | `convert_roundtrip::ac_7_1_2_アンカーつきの_yaml_から_toml` |
+| AC-206 | TOML から YAML | `T/in.toml` = `CV1` | `convert in.toml --to yaml` | 終了 0。ERR 空。OUT は YAML で、`format_version: 1` と `id: extract` を含む。OUT を YAML として読んだ木が `CV1` の木と等しい。マップのキーは辞書順、インデントは 2 スペース、シーケンスは親のキーより 2 スペース深い(`job:` の次の行に `  - command: …`)。末尾は改行 | `convert_roundtrip::ac_7_1_1 toml から yaml`、`binary_basic::convert は変換結果だけを標準出力に出す` |
+| AC-207 | YAML から TOML(アンカー展開) | `T/in.yaml` = `CV2` | `convert in.yaml --to toml` | 0。OUT に `<<` がなく、`[[job]]` を含む。OUT を TOML として読んだ木が、`CV2` を展開した木と等しい(`transform` の `success_exit_codes` は `[0]`、`extract` は `[0, 2]`) | `convert_roundtrip::ac_7_1_2 アンカーつきの yaml から toml` |
 | AC-208 | 変換の出力は標準出力だけ | `T/in.yaml` = `format_version: 1⏎pipeline:⏎  name: p⏎job:⏎  - id: a⏎    command: echo a` | `convert in.yaml --to toml` | 0。ERR 空。OUT に `[[job]]` と `format_version = 1` | `binary_basic::convert は変換結果だけを標準出力に出す` |
-| AC-209 | 入力形式は `--to` の反対で、拡張子は見ない | `T/looks-like.toml` = `a: 1⏎b: [x, y]` | `convert looks-like.toml --to toml` / `convert looks-like.toml --to yaml` | 前者: 0、OUT に `a = 1`。後者: 67(TOML として読んで `syntax error`) | `convert_ac::入力の形式は変換後の反対で_拡張子は見ない` |
+| AC-209 | 入力形式は `--to` の反対で、拡張子は見ない | `T/looks-like.toml` = `a: 1⏎b: [x, y]` | `convert looks-like.toml --to toml` / `convert looks-like.toml --to yaml` | 前者: 0、OUT に `a = 1`。後者: 67(TOML として読んで `syntax error`) | `convert_ac::入力の形式は変換後の反対で 拡張子は見ない` |
 | AC-210 | 文法の誤りは種類と行つき | `T/broken.yaml` = `a: [unclosed` | `convert broken.yaml --to toml` | 67。OUT 空。ERR の最初の行が `conductor: error: broken.yaml:1: syntax error: YAML として読めません`(v0.9.6 までは、理由が `文法の誤りです`) | `binary_basic::convert は…失敗: 標準出力は空 67`、`convert_ac::ac_7_1_3` |
 | AC-211 | 入力がない | なし | `convert nofile --to toml` | 67。ERR = `conductor: error: nofile: input file does not exist: 指定の場所にファイルがありません` | `flow_aux::convert の入力がないときも 67` |
 | AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to toml` | 67。`cannot read input file` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
-| AC-212a | 書き手のいない名前付きパイプを入力に(UNIX 系。v0.9.8 以降) | `T/pipe.toml` が名前付きパイプ(`mkfifo`) | `convert pipe.toml --to yaml` | 止まらずに 67。`cannot read input file`(理由 `通常のファイルではありません`。開かない)。v0.9.7 までは、開くところで止まった | `convert_ac::名前付きパイプの入力は開かずに_unreadable` |
+| AC-212a | 書き手のいない名前付きパイプを入力に(UNIX 系。v0.9.8 以降) | `T/pipe.toml` が名前付きパイプ(`mkfifo`) | `convert pipe.toml --to yaml` | 止まらずに 67。`cannot read input file`(理由 `通常のファイルではありません`。開かない)。v0.9.7 までは、開くところで止まった | `convert_ac::名前付きパイプの入力は開かずに unreadable` |
 | AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::ちょうど1_mibの正しい入力は変換できる` |
 | AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to toml` | 67。`cannot read input file`(文法を見る前) | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
-| AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to toml` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` | `flow_aux::convert は表せない値を場所つきで表示する`、`read_resolve::入力の順で最初の表せない値を_キーの場所つきで報告する` |
-| AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x`。TOML: `d = 1979-05-27T07:32:00Z` / `d = 1979-05-27` / `t = 07:32:00` | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(3 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(2 つ)、`文字列でないキーは表せません`(2 つ)、`日時の値は表せません`(3 つ) | `read_resolve::null_の書き方と_ほかの表せない種類 / toml_の日時は表せない` |
+| AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to toml` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` | `flow_aux::convert は表せない値を場所つきで表示する`、`read_resolve::入力の順で最初の表せない値を キーの場所つきで報告する` |
+| AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x`。TOML: `d = 1979-05-27T07:32:00Z` / `d = 1979-05-27` / `t = 07:32:00` | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(3 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(2 つ)、`文字列でないキーは表せません`(2 つ)、`日時の値は表せません`(3 つ) | `read_resolve::null の書き方と ほかの表せない種類 / toml の日時は表せない` |
 | AC-218 | 複数の文書 | `a: 1⏎---⏎b: 2` | `convert in.yaml --to toml` | 67。`value cannot be represented in the target format: 複数の文書は表せません` | `read_resolve::複数の文書は表せない` |
 | AC-219 | 最上位がマップでない | `- 1⏎- 2` | `convert in.yaml --to toml` | 67。`top level is not a map: 最上位がマップではありません`(行 1) | `read_resolve::最上位はマップでなければならない` |
 | AC-220 | 空の YAML | 空ファイル(または `# c` だけ) | `convert in.yaml --to toml` | 67。`top level is not a map: 文書が空です` | `read_resolve`(09 章 5.3 節) |
-| AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::コメントつきの入力は変換でき_コメントは捨てる` |
+| AC-221 | コメントは捨てられる | `# 先頭⏎a: 1 # 末尾` | `convert in.yaml --to toml` | 0。OUT = `a = 1`。OUT に `#` がない | `convert_ac::コメントつきの入力は変換でき コメントは捨てる` |
 | AC-222 | キーの順序は辞書順 | `b: 1⏎a: 2` | `convert in.yaml --to toml` | OUT = `a = 2`⏎`b = 1`(入力の順を保たない) | 09 章 8.1 節(`convert_ac::出力は毎回同じ`) |
 | AC-223 | 空のマップ | `{}`(YAML)、空(TOML) | `convert in.yaml --to toml` / `convert in.toml --to yaml` | 0。TOML の出力は空文字列。YAML の出力は `{}` | 09 章 9 節 |
 | AC-224 | アンカーとマージキー | `base: &b {x: 1, y: 2}⏎d:⏎  <<: *b⏎  y: 9` | `convert in.yaml --to toml` | 0。`d` は `x = 1`、`y = 9`(自身のキーが優先) | `read_resolve::マージキーの単独と並びと優先順位` |
@@ -620,12 +620,12 @@ job:
 | AC-226 | 重複するキー | `a: 1⏎b: 2⏎a: 3` | `convert in.yaml --to toml` | 67。`syntax error: キーが重複しています`(行 3) | `read_resolve`(09 章 5.1 節) |
 | AC-227 | 再帰するアンカー | `a: &r [*r]` | `convert in.yaml --to toml` | 67。`アンカーが自分自身を含んでいます` | `read_resolve`(09 章 5.1 節) |
 | AC-228 | スカラーの解決 | YAML: `a: yes`、`b: 0x1F`、`c: 007`、`d: '1'`、`e: 2001-01-01`、`f: 1_000` | `convert in.yaml --to toml` | `a = "yes"`、`b = 31`、`c = 7`、`d = "1"`、`e = "2001-01-01"`、`f = "1_000"`(キーは辞書順に並ぶ)。真偽値になるのは `true`/`false` の 3 通りの書き方だけ | `read_resolve::コアスキーマのスカラー`(09 章 5.2 節) |
-| AC-229 | 展開後の要素数の上限 | `a: [0, 0, …]`(0 を n 個) | `convert in.yaml --to toml` | n = 99,997 は 0。n = 99,998 は 67(`input is too large`。原因 `展開後の要素数が上限(100000)を超えています`)。TOML 入力(`a = [0, 0, …]`)も同じ境界 | `read_resolve::要素数ちょうど100000は受理し_1つ多いと大きすぎる / toml_の入力も要素数の上限は同じ` |
-| AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to toml` | 30 秒以内に 67(`input is too large`)。メモリを使い果たさない | `read_resolve::エイリアスの爆発は_メモリを使い果たさずに大きすぎる` |
-| AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 31 個 / 32 個(閉じも書く) | `convert in.yaml --to toml` | 31 個: 0。32 個: 67(`syntax error: 入れ子が深すぎます(上限 32)`) | `read_resolve::読み取りの深さの上限_32_と_33` |
-| AC-232 | 極端な深さでも異常終了しない | 1,000 段、100,000 段の入れ子(YAML・TOML) | `convert … ` | 67(`syntax error`)。異常終了しない | `read_resolve::極端に深い入力は_異常終了せずに文法の誤りで失敗する` |
-| AC-233 | 往復で木が等しい | `CV1` | `convert in.toml --to yaml` の OUT を `convert --to toml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`[job.retry]` の表も同じ | `convert_roundtrip::定義の形の_toml_は_yaml_を通って往復する`、`配列形式の_command_は往復する_*`、`retry_の表は往復する_*` |
-| AC-234 | 数値の往復 | 整数の端(`i64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`inf`、`nan`)、空の配列・マップ | 往復 | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別) | `convert_roundtrip::i64_の端は往復する / 浮動小数は両方向に往復する / スカラーの境界は往復する_*` |
+| AC-229 | 展開後の要素数の上限 | `a: [0, 0, …]`(0 を n 個) | `convert in.yaml --to toml` | n = 99,997 は 0。n = 99,998 は 67(`input is too large`。原因 `展開後の要素数が上限(100000)を超えています`)。TOML 入力(`a = [0, 0, …]`)も同じ境界 | `read_resolve::要素数ちょうど100000は受理し 1つ多いと大きすぎる / toml の入力も要素数の上限は同じ` |
+| AC-230 | アンカーの爆発は上限で止まる | アンカーの入れ子で、指数的に増える YAML | `convert in.yaml --to toml` | 30 秒以内に 67(`input is too large`)。メモリを使い果たさない | `read_resolve::エイリアスの爆発は メモリを使い果たさずに大きすぎる` |
+| AC-231 | 入れ子の深さの上限 | YAML: `a: ` に続けて `[` を 31 個 / 32 個(閉じも書く) | `convert in.yaml --to toml` | 31 個: 0。32 個: 67(`syntax error: 入れ子が深すぎます(上限 32)`) | `read_resolve::読み取りの深さの上限 32 と 33` |
+| AC-232 | 極端な深さでも異常終了しない | 1,000 段、100,000 段の入れ子(YAML・TOML) | `convert … ` | 67(`syntax error`)。異常終了しない | `read_resolve::極端に深い入力は 異常終了せずに文法の誤りで失敗する` |
+| AC-233 | 往復で木が等しい | `CV1` | `convert in.toml --to yaml` の OUT を `convert --to toml` に通す | 結果の木が `CV1` の木と等しい。`command` が配列形式の定義、`[job.retry]` の表も同じ | `convert_roundtrip::定義の形の toml は yaml を通って往復する`、`配列形式の command は往復する *`、`retry の表は往復する *` |
+| AC-234 | 数値の往復 | 整数の端(`i64` の最小・最大)、浮動小数(`1.0`、`-0.0`、`inf`、`nan`)、空の配列・マップ | 往復 | 型が変わらない(`1` と `1.0` を区別する。`0.0` と `-0.0` は別) | `convert_roundtrip::i64 の端は往復する / 浮動小数は両方向に往復する / スカラーの境界は往復する *` |
 | AC-235 | ファイルを作らず環境に左右されない | `T` に入力のみ | `convert` を、別のカレントディレクトリ・異なる環境変数で実行 | `T` のファイル一覧が実行の前後で同じ。結果が同じ | `converter::nfr_security`、`flow_aux::convert は定義もステートも読まず シグナルも準備しない` |
 | AC-236 | 標準出力に書けない(注入) | 正しい入力 | `convert`(標準出力を書き込み失敗にする) | 67。ERR = `conductor: error: cannot write to standard output` | `flow_aux::convert の標準出力が閉じていたら 67`。区分: 注入 |
 | AC-237 | 引数の誤り | なし | `convert f`(`--to` なし)/ `convert f --to json` / `convert f --to YAML` / `convert f --to yaml --config c` | 68。`missing argument: '--to'` / `invalid value: '--to'` / `invalid value: '--to'` / `option not allowed for this command: '--config'` | `args_grammar::to は convert だけで必須 / to の値は yaml か toml だけ / to の値の誤りの対象は to で値を含まない / config は convert に付けられない` |
