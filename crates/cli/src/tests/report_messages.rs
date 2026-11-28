@@ -190,6 +190,8 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
             context: StateContext::Read,
         });
     }
+    let kept = vec!["c.toml.state".to_string()];
+    f(&DisplayEvent::ResetAllKept { names: &kept });
     f(&DisplayEvent::Rejected {
         job_id: "b",
         reason: RejectReason::OutOfOrder,
@@ -271,6 +273,7 @@ fn with_all_events(f: impl Fn(&DisplayEvent<'_>)) {
         skipped: &[],
     });
     f(&DisplayEvent::Interrupted { signal: 15 });
+    f(&DisplayEvent::DefinitionValid { job_count: 3 });
     f(&DisplayEvent::RetryScheduled {
         job_id: "a",
         last_exit_code: 75,
@@ -338,7 +341,12 @@ fn エラーの行は_conductor_error_で始まり_場所を含む() {
     let env = env_for(Language::En);
     let reporter = Reporter::new(&env, false);
     with_all_events(|event| {
-        if event.level() != Level::Error || matches!(event, DisplayEvent::EnvWarnings(_)) {
+        if event.level() != Level::Error
+            || matches!(
+                event,
+                DisplayEvent::EnvWarnings(_) | DisplayEvent::ResetAllKept { .. }
+            )
+        {
             return;
         }
         let text = reporter.render(event);
