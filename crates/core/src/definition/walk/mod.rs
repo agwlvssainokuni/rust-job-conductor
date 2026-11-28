@@ -28,13 +28,13 @@
 
 mod env;
 mod retry;
+mod values;
 
 use std::collections::HashMap;
 
 use toml::Spanned;
 use toml::de::{DeTable, DeValue};
 
-use crate::definition::integer_value;
 use crate::definition::version::VERSION_KEY;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
@@ -43,6 +43,7 @@ use crate::types::{
     Transition, TransitionOn, TransitionTarget,
 };
 use retry::{JobRetrySetting, PipelineRetryDefault, build_retry};
+use values::{exit_code_of, integer_of};
 
 const ROOT_KEYS: &[&str] = &[VERSION_KEY, "pipeline", "job"];
 const PIPELINE_KEYS: &[&str] = &[
@@ -146,132 +147,6 @@ impl<'a> Walker<'a> {
                     Kind::UnknownKey,
                     format!("キー {} は定義にありません", quote_key(key.get_ref())),
                 );
-            }
-        }
-    }
-
-    /// 文字列の値を取り出す。必須で無ければ、親の位置で `typeMismatch`。
-    fn string(
-        &mut self,
-        table: &DeTable<'_>,
-        key: &'static str,
-        parent: usize,
-        required: bool,
-    ) -> Option<(String, usize)> {
-        let Some(value) = table.get(key) else {
-            if required {
-                self.type_error(parent, format!("必須の値 `{key}` がありません"));
-            }
-            return None;
-        };
-        match value.get_ref() {
-            DeValue::String(s) => Some((s.to_string(), value.span().start)),
-            _ => {
-                self.type_error(value.span().start, format!("`{key}` は文字列で書きます"));
-                None
-            }
-        }
-    }
-
-    /// 真偽値の値を取り出す。無ければ `false`。型が違えば `typeMismatch`(値は `false` とみなす)。
-    fn boolean(&mut self, table: &DeTable<'_>, key: &'static str) -> bool {
-        let Some(value) = table.get(key) else {
-            return false;
-        };
-        match value.get_ref() {
-            DeValue::Boolean(b) => *b,
-            _ => {
-                self.type_error(
-                    value.span().start,
-                    format!("`{key}` は真偽値(`true` または `false`)で書きます"),
-                );
-                false
-            }
-        }
-    }
-
-    /// 終了コードのリストを取り出す。型の誤りが 1 つでもあれば `None`(誤りは、要素ごとに報告する)。
-    fn exit_codes(&mut self, table: &DeTable<'_>, key: &'static str) -> Option<(Vec<i32>, usize)> {
-        let (key_span, value) = table.get_key_value(key)?;
-        let key_offset = key_span.span().start;
-        let DeValue::Array(items) = value.get_ref() else {
-            self.type_error(
-                value.span().start,
-                format!("`{key}` は整数のリストで書きます"),
-            );
-            return None;
-        };
-        let mut codes = Vec::with_capacity(items.len());
-        let mut ok = true;
-        for item in items.iter() {
-            match exit_code_of(item) {
-                Some(c) => codes.push(c),
-                None => {
-                    ok = false;
-                    self.type_error(
-                        item.span().start,
-                        format!("`{key}` の要素は、整数(32 ビットの範囲)で書きます"),
-                    );
-                }
-            }
-        }
-        ok.then_some((codes, key_offset))
-    }
-
-    /// `command` を取り出す。文字列(`Line`)または文字列の配列(`Argv`)。
-    ///
-    /// 配列は、空でなく、先頭の要素が空・空白だけでないこと。2 番目以降の空の文字列は有効。
-    /// 誤りのメッセージに、入力の値を入れない。
-    fn command(&mut self, table: &DeTable<'_>, parent: usize) -> Option<Command> {
-        let Some(value) = table.get("command") else {
-            self.type_error(parent, "必須の値 `command` がありません");
-            return None;
-        };
-        let start = value.span().start;
-        match value.get_ref() {
-            DeValue::String(s) => {
-                if s.trim().is_empty() {
-                    self.push(start, Kind::EmptyField, "`command` が空です");
-                    None
-                } else {
-                    Some(Command::Line(s.to_string()))
-                }
-            }
-            DeValue::Array(items) => {
-                if items.is_empty() {
-                    self.push(start, Kind::EmptyField, "`command` の配列が空です");
-                    return None;
-                }
-                let mut argv = Vec::with_capacity(items.len());
-                let mut ok = true;
-                for item in items.iter() {
-                    match item.get_ref() {
-                        DeValue::String(s) => argv.push(s.to_string()),
-                        _ => {
-                            ok = false;
-                            self.type_error(
-                                item.span().start,
-                                "`command` の配列の要素は、文字列で書きます",
-                            );
-                        }
-                    }
-                }
-                if !ok {
-                    return None;
-                }
-                if argv[0].trim().is_empty() {
-                    self.push(
-                        items[0].span().start,
-                        Kind::EmptyField,
-                        "`command` の配列の先頭の要素が空です",
-                    );
-                    return None;
-                }
-                Some(Command::Argv(argv))
-            }
-            _ => {
-                self.type_error(start, "`command` は文字列、または文字列の配列で書きます");
-                None
             }
         }
     }
@@ -551,19 +426,6 @@ impl<'a> Walker<'a> {
                 );
             }
         }
-    }
-}
-
-/// 終了コードの値を `i32` で取り出す(整数でない、または `i32` に収まらなければ `None`)。
-fn exit_code_of(item: &Spanned<DeValue<'_>>) -> Option<i32> {
-    integer_of(item).and_then(|v| i32::try_from(v).ok())
-}
-
-/// 整数の値を `i64` で取り出す(整数でない、または `i64` に収まらなければ `None`)。
-fn integer_of(item: &Spanned<DeValue<'_>>) -> Option<i64> {
-    match item.get_ref() {
-        DeValue::Integer(i) => integer_value(i),
-        _ => None,
     }
 }
 
