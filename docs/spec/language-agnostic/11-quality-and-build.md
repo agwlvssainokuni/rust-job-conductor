@@ -1,6 +1,6 @@
 # 11 品質・受け入れテスト・デモ・リリース
 
-対象: `conductor` v0.10.2 までの振る舞い。この文書は、実装言語やビルドの仕組みを問わず、`conductor` の実装が満たすべき品質の基準を定める。
+対象: `conductor` v0.10.3 までの振る舞い。この文書は、実装言語やビルドの仕組みを問わず、`conductor` の実装が満たすべき品質の基準を定める。
 
 | 章 | 内容 |
 |----|------|
@@ -778,7 +778,7 @@ UNIX 系の「実行」は、被試験体を起動し、`TJ sleep` の記録 `re
 | AC-342 | `--` のあとは位置引数 | `run -- -weird` / `-- --help` / `run a -- -v` | `job is not defined in the definition file: '-weird'`(68)/ `unknown command: '--help'`(68)/ `unexpected argument: '-v'`(68) | `args_grammar::ダブルハイフンのあとは位置引数 / ダブルハイフンのあとの help は処理しない` |
 | AC-343 | ヘルプ(英語) | `--help`、`-h` | 終了 0。OUT = 08 章 8.1 節の使い方の全文(末尾は改行)。ERR 空 | `flow_aux::help は使い方を標準出力に出して 0` |
 | AC-344 | ヘルプ(日本語) | `LANG=ja_JP.UTF-8` で `--help` | 0。OUT = 08 章 8.2 節の全文 | `report_messages::使い方は種類ごとの固定の文と使い方の一覧` |
-| AC-345 | バージョン | `--version`、`-V` | 0。OUT = `conductor 0.10.2`(版は配布の版)。ERR 空。`LANG=ja_JP.UTF-8` でも英語・同じ | `binary_basic::version は 0 で版を標準出力に出す / fr6_1`、`flow_aux::version は版を標準出力に出して 0` |
+| AC-345 | バージョン | `--version`、`-V` | 0。OUT = `conductor 0.10.3`(版は配布の版)。ERR 空。`LANG=ja_JP.UTF-8` でも英語・同じ | `binary_basic::version は 0 で版を標準出力に出す / fr6_1`、`flow_aux::version は版を標準出力に出して 0` |
 | AC-346 | `-h`/`-V` は最優先 | `-vh`、`bogus --help`、`run -vv --help`、`-V -h`、`-h -V` | `-vh` は help(0)。`bogus --help` も help(0)。`-V -h` は version、`-h -V` は help(先に現れた方) | `args_grammar::help と version は先に処理される` |
 | AC-347 | 使い方の誤りの形 | `bogus`(`LANG=C`)、`bogus`(`LANG=ja_JP.UTF-8`) | ERR の最初の行 = `conductor: error: unknown command: 'bogus'` / `conductor: error: 知らないコマンドです: 'bogus'`。2 行目は空行、3 行目以降は使い方の全文(英語 / 日本語)。OUT 空。ジョブは実行されない | `binary_basic::使い方の誤りは 68 で標準エラーに使い方を出す / 日本語のロケールでは エラーが日本語になる`、`flow_aux::使い方の誤りは日本語のロケールで日本語` |
 | AC-348 | 使い方の誤りの全種類 | 上の各種類 | 8 種類(`UnknownCommand`、`MissingArgument`、`UnexpectedArgument`、`UnknownOption`、`OptionNotAllowed`、`MissingValue`、`InvalidValue`、`UnknownJob`)が、すべて 68 で、08 章 4.2 節の英語・日本語の文になる | テストの側の種類の一覧の写し(`tests/common/kinds.rs`。網羅の `match` で、種類が増えるとコンパイルで止まる)、`report_messages::使い方は種類ごとの固定の文…` |
