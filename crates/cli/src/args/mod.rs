@@ -140,7 +140,29 @@ where
     build_command(tokens)
 }
 
+/// 字句から、使い方の指定を組み立てる。
+///
+/// 次の順に関数を呼び、最初の誤りを返す(誤りの報告の順は、この順と、各関数の中の順で決まる)。
+///
+/// 1. 字句を集める(知らないオプション)
+/// 2. コマンドの名前
+/// 3. オプションの「使えない」と「重複」、組み合わせ
+/// 4. オプションの値
+/// 5. 位置引数の数
+/// 6. コマンドごとの位置引数
 fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
+    let (mut given, positionals) = collect_tokens(tokens)?;
+    let mut positionals = positionals.into_iter();
+    let kind = command_kind(&mut positionals)?;
+    check_options(&given, kind)?;
+    let (mut command, to) = fill_options(&mut given, kind)?;
+    let operand = check_operands(kind, &mut positionals)?;
+    fill_operand(kind, &mut command, operand, to)?;
+    Ok(ParsedArgs::Command(command))
+}
+
+/// 手順 1: 字句を、オプションの指定と位置引数に分ける。知らないオプションがあれば、最初のものを誤りにする。
+fn collect_tokens(tokens: Vec<Token>) -> Result<(Given, Vec<OsString>), UsageError> {
     let mut given = Given::new();
     let mut unknown: Option<String> = None;
     let mut positionals: Vec<OsString> = Vec::new();
@@ -158,8 +180,12 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if let Some(name) = unknown {
         return Err(UsageError::with_subject(Kind::UnknownOption, name));
     }
+    Ok((given, positionals))
+}
 
-    let mut positionals = positionals.into_iter();
+/// 手順 2: 位置引数の先頭から、コマンドの種類を決める。無ければ `missingArgument`、知らなければ
+/// `unknownCommand`。
+fn command_kind(positionals: &mut std::vec::IntoIter<OsString>) -> Result<CommandKind, UsageError> {
     let Some(first) = positionals.next() else {
         return Err(UsageError::new(Kind::MissingArgument));
     };
@@ -167,7 +193,11 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     let Some(kind) = CommandKind::from_name(&first) else {
         return Err(UsageError::with_subject(Kind::UnknownCommand, first));
     };
+    Ok(kind)
+}
 
+/// 手順 3: オプションの「使えない」と「重複」と、組み合わせの検査。値は取り出さない(数だけを見る)。
+fn check_options(given: &Given, kind: CommandKind) -> Result<(), UsageError> {
     // 許されない場所のオプションと重複。CHECKS の順に検査し、最初の誤りを報告する(BR1.3)。
     let dry_run = given.count(Opt::DryRun) > 0;
     let follow = given.count(Opt::Follow) > 0;
@@ -190,9 +220,9 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     }
     // ここから先、`--assume` 以外のオプションは 0 回か 1 回。
 
-    let run_id = given.take(Opt::RunId).into_iter().next();
+    let has_run_id = given.count(Opt::RunId) > 0;
     // `--all` と `--run-id` は、一緒に使えない。
-    if given.once(Opt::All) && run_id.is_some() {
+    if given.once(Opt::All) && has_run_id {
         return Err(UsageError::with_subject(
             Kind::InvalidValue,
             Opt::All.subject(),
@@ -200,13 +230,22 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     }
 
     // `graph` の `--run-id` は、`--state` と一緒のときだけ(BR4.5)。
-    if kind == CommandKind::Graph && run_id.is_some() && !given.once(Opt::State) {
+    if kind == CommandKind::Graph && has_run_id && !given.once(Opt::State) {
         return Err(UsageError::with_subject(
             Kind::OptionNotAllowed,
             Opt::RunId.subject(),
         ));
     }
+    Ok(())
+}
 
+/// 手順 4: オプションの値を、コマンドに入れる。値の検査の順は `--assume` → `--format` → `--interval` →
+/// `--run-id`。`--to` の値は、コマンドごとの位置引数(`convert`)で使うので、そのまま返す。
+fn fill_options(
+    given: &mut Given,
+    kind: CommandKind,
+) -> Result<(CliCommand, Vec<OsString>), UsageError> {
+    let run_id = given.take(Opt::RunId).into_iter().next();
     let mut command = CliCommand::new(kind);
     command.verbose = given.once(Opt::Verbose);
     command.force = given.once(Opt::Force);
@@ -229,7 +268,14 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     // 値の検査は、ここで行う。誤りの文に、値は含めない(対象は、オプションの名前だけ)。
     command.run_id = run_id.map(parse_run_id_option).transpose()?;
     let to = given.take(Opt::To);
+    Ok((command, to))
+}
 
+/// 手順 5: 位置引数の数の検査。コマンドの名前の後ろの、1 つ目の位置引数を返す。
+fn check_operands(
+    kind: CommandKind,
+    positionals: &mut std::vec::IntoIter<OsString>,
+) -> Result<Option<OsString>, UsageError> {
     let operand = positionals.next();
     let extra = positionals.next();
     match (operand_rule(kind), &operand) {
@@ -240,35 +286,56 @@ fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
     if let Some(unexpected) = &extra {
         return Err(unexpected_argument(unexpected));
     }
+    Ok(operand)
+}
 
+/// 手順 6: コマンドごとに、位置引数(と `convert` の `--to`)をコマンドに入れる。
+fn fill_operand(
+    kind: CommandKind,
+    command: &mut CliCommand,
+    operand: Option<OsString>,
+    to: Vec<OsString>,
+) -> Result<(), UsageError> {
     match kind {
         CommandKind::Run => command.job_id = operand.map(to_text).transpose()?,
         CommandKind::Pipeline | CommandKind::Validate | CommandKind::Graph => {
             command.pipeline_name = operand.map(to_text).transpose()?;
         }
-        CommandKind::Convert => {
-            command.convert_input = operand;
-            let Some(target) = to.into_iter().next() else {
-                return Err(UsageError::with_subject(
-                    Kind::MissingArgument,
-                    Opt::To.subject(),
-                ));
-            };
-            command.convert_target = Some(parse_target(target)?);
-        }
-        CommandKind::Init => {
-            if let Some(name) = operand.map(to_text).transpose()? {
-                // 定義の検査と同じ規則(空でない。空白だけでもない)。値は、誤りの文に含めない(BR2.2)。
-                if name.trim().is_empty() {
-                    return Err(UsageError::with_subject(
-                        Kind::InvalidValue,
-                        "pipeline name",
-                    ));
-                }
-                command.pipeline_name = Some(name);
-            }
-        }
+        CommandKind::Convert => convert_operand(command, operand, to)?,
+        CommandKind::Init => init_operand(command, operand)?,
         CommandKind::Watch | CommandKind::Reset => {}
     }
-    Ok(ParsedArgs::Command(command))
+    Ok(())
+}
+
+/// `convert` の入力ファイルと、`--to` の形式。`--to` が無ければ `missingArgument`(対象は `--to`)。
+fn convert_operand(
+    command: &mut CliCommand,
+    operand: Option<OsString>,
+    to: Vec<OsString>,
+) -> Result<(), UsageError> {
+    command.convert_input = operand;
+    let Some(target) = to.into_iter().next() else {
+        return Err(UsageError::with_subject(
+            Kind::MissingArgument,
+            Opt::To.subject(),
+        ));
+    };
+    command.convert_target = Some(parse_target(target)?);
+    Ok(())
+}
+
+/// `init` のパイプライン名。空、または空白だけなら `invalidValue`。
+fn init_operand(command: &mut CliCommand, operand: Option<OsString>) -> Result<(), UsageError> {
+    if let Some(name) = operand.map(to_text).transpose()? {
+        // 定義の検査と同じ規則(空でない。空白だけでもない)。値は、誤りの文に含めない(BR2.2)。
+        if name.trim().is_empty() {
+            return Err(UsageError::with_subject(
+                Kind::InvalidValue,
+                "pipeline name",
+            ));
+        }
+        command.pipeline_name = Some(name);
+    }
+    Ok(())
 }
