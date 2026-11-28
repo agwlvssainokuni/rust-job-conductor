@@ -19,19 +19,24 @@
 //! 誤りは、すべて集めて返す。型の誤りで検査できなくなった子の後続の検査は、その子だけ省略する。
 //! 理由の文は、固定の文から組み立てる。入力に由来するのは、キー名(エスケープと切り詰めを行う)だけである。
 //!
-//! `[job.retry]` と `[pipeline.retry]` の検査と組み立ては `retry`、`env`・`env_file`・`unset_env` の検査は `env` の
-//! 子モジュールにある(どちらも `Walker` のメソッドで、ここから呼ぶ。呼ぶ順序は変わらない)。
+//! 次のものは子モジュールにある(どれも `Walker` のメソッドか補助の関数で、ここから呼ぶ。呼ぶ順序は
+//! 変わらない)。キーの表と、`[pipeline]`・ジョブの読み取り、入口と組み立ては、このモジュールに残す。
+//!
+//! - `values`: 値の読み取り(文字列、真偽値、終了コードのリスト、`command`、整数)
+//! - `transition`: 遷移(`transitions`)の読み取り
+//! - `cross_check`: ジョブをまたぐ検査(ジョブID、遷移先、終了コード)
+//! - `retry`: `[job.retry]` と `[pipeline.retry]` の検査と組み立て
+//! - `env`: `env`・`env_file`・`unset_env` の検査
 //!
 //! 実効のリトライは、検証の中で 1 度だけ決める(v0.10.0 の BR2.2、BR2.4)。ジョブの表があれば丸ごと
 //! それ、`retry = false` なら無し、書いていなければ既定(`[pipeline.retry]`)の複製。組み立て後の定義は
 //! 既定を持たない。
 
+mod cross_check;
 mod env;
 mod retry;
 mod transition;
 mod values;
-
-use std::collections::HashMap;
 
 use toml::Spanned;
 use toml::de::{DeTable, DeValue};
@@ -275,95 +280,6 @@ impl<'a> Walker<'a> {
         raw.unset_env = self.unset_env(table);
         raw.complete = self.errors.len() == errors_before;
         raw
-    }
-
-    /// ジョブごとの検査のうち、ほかのジョブとの関係を見るもの(ID、遷移先、終了コード、
-    /// 既定のリトライとの重なり、`unset_env` と `env` の重なり)。
-    fn cross_check(
-        &mut self,
-        pipeline: Option<&PipelineHead>,
-        jobs: &[RawJob],
-        retry_default: Option<&PipelineRetryDefault>,
-    ) {
-        // ジョブIDの検査と、一意の索引
-        let mut index: HashMap<&str, usize> = HashMap::new();
-        for (i, job) in jobs.iter().enumerate() {
-            let Some((id, offset)) = &job.id else {
-                continue;
-            };
-            if id.trim().is_empty() || id.starts_with('@') {
-                self.push(
-                    *offset,
-                    Kind::InvalidJobId,
-                    "ジョブID(`id`)は、空でなく、`@` で始まらない文字列で書きます",
-                );
-                continue;
-            }
-            if index.contains_key(id.as_str()) {
-                self.push(
-                    *offset,
-                    Kind::DuplicateJobId,
-                    "同じジョブID(`id`)が、すでに定義されています",
-                );
-            } else {
-                index.insert(id.as_str(), i);
-            }
-        }
-
-        for (i, job) in jobs.iter().enumerate() {
-            for t in &job.transitions {
-                let (Some(_), Some((next, offset))) = (t.on, &t.next) else {
-                    continue;
-                };
-                if next == TransitionTarget::END_LABEL {
-                    continue;
-                }
-                match index.get(next.as_str()) {
-                    None => self.push(
-                        *offset,
-                        Kind::UnknownTarget,
-                        "遷移先(`next`)のジョブが、定義にありません",
-                    ),
-                    Some(&target) if target <= i => self.push(
-                        *offset,
-                        Kind::BackwardOrSelfTarget,
-                        "遷移先(`next`)は、記述順で後ろのジョブまたは `@end` で書きます",
-                    ),
-                    Some(_) => {}
-                }
-            }
-            self.check_exit_codes(job);
-            self.check_retry(job, retry_default);
-        }
-        self.check_unset_env(pipeline, jobs);
-    }
-
-    fn check_exit_codes(&mut self, job: &RawJob) {
-        let zero_as_warning = match &job.warning {
-            Some((codes, offset)) if codes.contains(&0) => {
-                self.push(
-                    *offset,
-                    Kind::ZeroAsWarning,
-                    "0 は警告の終了コード(`warning_exit_codes`)にできません",
-                );
-                true
-            }
-            _ => false,
-        };
-        if let (Some((warning, offset)), SuccessCodes::Valid(success)) =
-            (&job.warning, &job.success)
-        {
-            let overlaps = warning
-                .iter()
-                .any(|w| success.contains(w) && !(zero_as_warning && *w == 0));
-            if overlaps {
-                self.push(
-                    *offset,
-                    Kind::OverlappingExitCodes,
-                    "`warning_exit_codes` と `success_exit_codes` に、同じ値があります",
-                );
-            }
-        }
     }
 }
 

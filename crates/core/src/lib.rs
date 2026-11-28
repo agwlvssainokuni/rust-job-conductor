@@ -54,7 +54,7 @@
 //! | `definition::parse` | 読み取り(Parse) | 位置を保つ文書の木にする。文法の誤りは `syntax` |
 //! | `definition::depth` | 深さの検査(Depth) | 入れ子 32 段の上限 |
 //! | `definition::version` | 版の確認(VersionCheck) | `format_version` が 1 であること。通らなければ、そこで終える |
-//! | `definition::walk` | 構造の検査(Walk) | キー、型、構造の制約、遷移、終了コード、名前。誤りはすべて集める |
+//! | `definition::walk` | 構造の検査(Walk) | キー、型、構造の制約、遷移、終了コード、名前。誤りはすべて集める(子モジュールの `values`・`transition`・`cross_check`・`retry`・`env` に分ける) |
 //! | [`flow`] | 判断(Flow) | 起動前の判断、分類、次の動き、完了、再開位置 |
 //! | `flow::record` | 記録(Recorder) | `initial_state`、`apply_*`(純粋。本番と模擬が共に使う) |
 //! | [`consistency`] | 照合(Consistency) | ステートと定義の、パイプライン名、ジョブIDの集合、並び(純粋) |
