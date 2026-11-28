@@ -55,6 +55,7 @@
 //! - `--help`・`-h`・`--version`・`-V` は、`--` より前に現れたとき、ほかの誤りより先に処理する。
 
 mod options;
+mod tokens;
 
 use std::ffi::OsString;
 
@@ -69,22 +70,7 @@ use crate::types::{
 use options::{
     CHECKS, Check, Given, Operand, Opt, operand_rule, spec, spec_by_long, unexpected_argument,
 };
-
-/// 字句に分けた 1 つの引数。
-enum Token {
-    /// 表にあるオプション。値を取るオプションなら `Some`(値は、字句の段階では検査しない)。
-    Opt(Opt, Option<OsString>),
-    /// 文法にないオプション(表示用の綴り)。
-    Unknown(String),
-    Positional(OsString),
-}
-
-/// 特別なオプション(コマンドの解釈より先に処理する)。
-#[derive(Clone, Copy)]
-enum Special {
-    Help,
-    Version,
-}
+use tokens::{Special, Token, map_unexpected_value, to_text};
 
 /// 引数(プログラム名を除く)を解釈する。
 ///
@@ -153,29 +139,6 @@ where
         return Err(e);
     }
     build_command(tokens)
-}
-
-/// `lexopt` の値の取り残し(`UnexpectedValue`)を、使い方の誤りにする。
-///
-/// `--bogus=x` は知らないオプション、`--verbose=x` は誤った値。
-/// 知っている、値を取らないオプションは、表の `takes_value` が偽の行と `-v`(BR1.2)。
-fn map_unexpected_value(option: &str) -> UsageError {
-    let known = option == "-v"
-        || option
-            .strip_prefix("--")
-            .is_some_and(|long| spec_by_long(long).is_some_and(|spec| !spec.takes_value));
-    if known {
-        UsageError::with_subject(Kind::InvalidValue, option.to_string())
-    } else {
-        UsageError::with_subject(Kind::UnknownOption, option.to_string())
-    }
-}
-
-/// 位置引数を、文字列にする。UTF-8 でなければ `invalidValue`。
-fn to_text(value: OsString) -> Result<String, UsageError> {
-    value
-        .into_string()
-        .map_err(|v| UsageError::with_subject(Kind::InvalidValue, v.to_string_lossy().into_owned()))
 }
 
 fn build_command(tokens: Vec<Token>) -> Result<ParsedArgs, UsageError> {
