@@ -30,6 +30,7 @@
 //!   単体テストの、同じ期待値の表で揃える。
 //! - 標準エラーへの書き込みの失敗は、無視する(本筋を止めない)。標準出力の失敗は、値で返す。
 
+mod escape;
 mod event;
 pub mod graph_dot;
 pub mod graph_mermaid;
@@ -39,6 +40,7 @@ pub(crate) mod messages;
 pub mod plan_text;
 mod watch;
 
+pub(crate) use escape::{escape_full, escape_name, push_line};
 pub use event::{DisplayEvent, FramePrefix, ResultDetail, StateContext};
 
 use std::cell::OnceCell;
@@ -46,8 +48,7 @@ use std::path::Path;
 
 use conductor_converter::ConversionError;
 use conductor_core::{
-    Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, escape_display,
-    summarize_errors,
+    Classification, DefinitionError, EnvFileError, EnvWarning, EnvWarningKind, summarize_errors,
 };
 use conductor_runtime::{CommandError, StateError};
 
@@ -373,25 +374,6 @@ fn env_warning_line(lang: Language, w: &EnvWarning) -> String {
         place_of(&w.file, Some(w.line)),
         env_duplicate_key(lang, &escape_name(&w.name))
     )
-}
-
-/// ジョブID・キー名などを表示するときの最大の文字数(NFR4.2。conductor-core と同じ 64)。
-const MAX_DISPLAY_CHARS: usize = conductor_core::MAX_KEY_DISPLAY_CHARS;
-
-/// ジョブID・名前など(64 文字で切る)。
-pub(crate) fn escape_name(input: &str) -> String {
-    escape_display(input, Some(MAX_DISPLAY_CHARS))
-}
-
-/// 64 文字で切らずに、エスケープだけ(パス、図と計画のジョブID・コマンドの語など)。
-pub(crate) fn escape_full(input: &str) -> String {
-    escape_display(input, None)
-}
-
-/// 1 行を足す(末尾の空白を取り除き、改行を足す)。graph・計画・watch の整形が使う。
-pub(crate) fn push_line(out: &mut String, line: &str) {
-    out.push_str(line.trim_end());
-    out.push('\n');
 }
 
 /// ジョブの場所 `job '<ID>'`(ジョブ ID はエスケープする)。
