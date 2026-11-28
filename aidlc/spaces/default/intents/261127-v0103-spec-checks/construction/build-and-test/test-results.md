@@ -45,10 +45,15 @@
 - 7b7db42: AC-214 のテスト名の `_` を空白にした。
 - 直した後に `spec_numbers` を走らせ、12 passed だった。
 
-## CI
+## CI 46092396041(コミット 56b3e8c)
 
-- まだ走っていない(push の前)。結果はここに書き足す。
+- 12 のジョブがすべて成功した。
+  - `lint`、`docs-check`、`coverage`、`msrv-test`
+  - `test`(ubuntu-24.04、macos-latest、windows-2022)
+  - `build-check`(ubuntu-24.04、windows-2022)
+  - `startup-bench`(ubuntu-24.04、macos-latest、windows-2022)
+- `spec_numbers` は Windows でも通った(NFR5)。
 
 ## Target Verification Matrix の最終の判定
 
-- CI の結果を待つ。
+- すべて Met(`build-and-test-summary.md`)。
