@@ -42,10 +42,15 @@
 - `render` は 188 行から 64 行になった。各枝は、メソッドを 1 つ呼ぶだけになっている。
 - `build_command` は 10 行になった。
 
-## CI
+## CI 46131106543(コミット cf9c6a3)
 
-- まだ走っていない(push の前)。結果は、走った後にここに書き足す。
+- 12 のジョブがすべて成功した。
+  - `lint`、`docs-check`、`coverage`、`msrv-test`
+  - `test`(ubuntu-24.04、macos-latest、windows-2022)
+  - `build-check`(ubuntu-24.04、windows-2022)
+  - `startup-bench`(ubuntu-24.04、macos-latest、windows-2022)
+- 新しいファイルを含めても、ソースの検査(`nfr_source`)は 3 つの OS で通った。
 
 ## Target Verification Matrix の最終の判定
 
-- CI の結果を待っている。
+- すべて Met(`build-and-test-summary.md`)。
