@@ -73,7 +73,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 作るもの | `types.rs`、`exit.rs`(定数と `exit_code_for`)、`args.rs`(`lexopt`、解釈の順序 11 段)、`run_id.rs`(`resolve_run_id`、`aux_run_id`)、`report/`(`Reporter`、メッセージカタログ英日、`watch` の表、エスケープ、遅延評価のロケール・色)、`deps.rs`(4 つの trait と本番の実装)、`panic_hook.rs` |
+| 作るもの | `types.rs`、`exit.rs`(定数と `exit_code_for`)、`args.rs`(`lexopt`、解釈の順序 11 段)、`run_id.rs`(`resolve_run_id`、`aux_run_id`)、`report/`(`Reporter`、メッセージカタログ英日、`watch` の表、エスケープ、遅延評価のロケール・色)、`deps.rs`(4 つの trait と本番の実装)、`panic_hook.rs`。v0.10.4 で、`args.rs` は `args/`(`mod.rs`、`options.rs`、`tokens.rs`、`values.rs`)に、`report/mod.rs` の中身は `event.rs`・`render.rs`・`lines.rs`・`escape.rs` に分けた(02 の 5.4。この段以降の `args.rs` の記述は、その段の時点のファイル) |
 | 完了条件 | 04 の 9 章の実行例が同じ結果。解釈の優先順位(04 の 4.1)のとおりに、同時に複数の誤りがあるとき最初のものが返る。10 の 4 章の終了コードの整形表のとおり。08 の各文言が、英語・日本語で一致する |
 | 確認の観点 | `-h`/`-V` はほかの誤りより先で、先に現れた方が勝つ。`--` 以降は位置引数。使い方の誤りは「1 行 + 空行 + 使い方全文」で 68。入力由来の文字列は、エスケープ・切り詰めして出す |
 | 参照 | 04、08、10 章 |

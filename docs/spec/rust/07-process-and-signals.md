@@ -41,7 +41,7 @@ OS ごとの分岐(`cfg(unix)` / `cfg(windows)`)と OS 固有の呼び出しは�
 | 文字列形式 | `command = "sh scripts/x.sh"` | `Command::Line(String)` | 3 章の規則で、コマンド名と引数に分ける |
 | 配列形式(v0.2.0 以降) | `command = ["sh", "-c", "echo hi"]` | `Command::Argv(Vec<String>)` | 要素をそのまま使う(分割・引用符の処理・展開をしない) |
 
-定義の読み込み時の検査(`definition/walk/mod.rs`。誤りは定義の誤り、終了コード 64):
+定義の読み込み時の検査(`definition/walk/values.rs` の `command`。v0.10.3 までは `definition/walk/mod.rs`。誤りは定義の誤り、終了コード 64):
 
 | 入力 | 判定 |
 |------|------|

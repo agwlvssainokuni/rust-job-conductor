@@ -332,7 +332,10 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `definition/parse.rs` | `toml` で、位置(バイト範囲)を保つ木に読む。文法の誤りの固定の文 |
 | `definition/depth.rs` | 入れ子の深さ(`MAX_NESTING_DEPTH` = 32 段)の検査。誤りの文の上限の数も、この定数から作る |
 | `definition/version.rs` | `format_version` の確認 |
-| `definition/walk/mod.rs` | 構造・型・遷移・終了コード・ジョブ間の検査と、`PipelineDefinition` の組み立て(`walk`) |
+| `definition/walk/mod.rs` | 入口の `walk`、キーの表(`ROOT_KEYS`、`PIPELINE_KEYS`、`JOB_KEYS`、`TRANSITION_KEYS`)、中間の型、構造の検査(`check_keys`)、`[pipeline]` とジョブの読み取り、`PipelineDefinition` の組み立て(`build_jobs`)。v0.10.4 で、値の読み取り・遷移・ジョブ間の検査を下の 3 つに分けた |
+| `definition/walk/values.rs`(v0.10.4 以降) | 値の読み取り(`string`、`boolean`、`exit_codes`、`command`)と、`exit_code_of`・`integer_of` |
+| `definition/walk/transition.rs`(同) | 遷移の読み取り(`RawTransition`、`transitions`、`transition_on`) |
+| `definition/walk/cross_check.rs`(同) | ジョブ間の検査(`cross_check`。ID の一意、遷移先、`check_exit_codes`) |
 | `definition/walk/retry.rs` | `[job.retry]` の読み取り(`RETRY_KEYS`、`RawRetry`)、ほかの値との関係の検査(`check_retry`)、`RetryPolicy` の組み立て(`build_retry`)。v0.10.0 以降は、`[pipeline.retry]` の既定(`pipeline_retry`、`PipelineRetryDefault`)、ジョブの `retry` の 3 つの書き方(`job_retry`、`JobRetrySetting { Absent, Disabled, Table }`)、既定との重なり |
 | `definition/walk/env.rs` | `env` の表と `env_file` の検査(`env_table`、`env_file`。v0.10.0 以降は表 `{ path, required }` も)。v0.10.0 以降: `unset_env` の検査(`unset_env`)と `env` との重なり(`check_unset_env`) |
 | `definition/duration.rs` | リトライの間隔の文字列(`<整数><s\|m\|h>`)→ 秒 |
@@ -392,7 +395,10 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 |----------|------|
 | `main.rs` | 入口(パニックのフック、`run_cli`、`process::exit` 1 回) |
 | `lib.rs` | 差し替え口と `install_panic_hook` の再公開、`run_cli`、`run_cli_with`。最後に単体テストの宣言 `#[cfg(test)] mod tests;` |
-| `args.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査) |
+| `args/mod.rs` | `lexopt` による引数の解釈(字句 → コマンドごとの文法の検査)。入口の `parse_args`、文法の表(`//!`)、組み立ての `build_command` と、その手順の関数(`collect_tokens`、`command_kind`、`check_options`、`fill_options`、`check_operands`、`fill_operand`)。v0.10.3 までは `args.rs` の 1 つのファイルだった |
+| `args/options.rs`(v0.10.4 以降) | オプションの表(`Opt`、`OPTIONS`)とコンパイル時の検査、検査の順(`CHECKS`)、指定の集計(`Given`)、位置引数の規則(`operand_rule`) |
+| `args/tokens.rs`(同) | 字句の型(`Token`、`Special`)と字句の誤り、位置引数の文字列への変換 |
+| `args/values.rs`(同) | 値の解釈(`parse_assumptions`、`parse_graph_format`、`parse_interval`、`parse_run_id_option`、`parse_target`) |
 | `run_id.rs` | run ID の解決(`resolve_run_id`。`watch`・`reset` の `aux_run_id`) |
 | `types.rs` | `CommandKind`、`CliCommand`、`ParsedArgs`、`UsageError`、`Language`、`Level`、`GraphFormat`、`GraphOptions`、`DryRunOptions`、`InitTarget`、`InitOptions`(後ろの 5 つは v0.9.0 以降) |
 | `deps.rs` | `Deps`、`Runtime`/`Sink`/`Env`/`Signals` と本番の実装 |
@@ -405,7 +411,11 @@ JobOutcome.reported_exit_code ──exit_code_for──▶ conductor の終了�
 | `exit.rs` | 終了コードの定数、`exit_code_for`、`signal_exit_code` |
 | `panic_hook.rs` | パニックのフック(英語 1 行、終了コード 70) |
 | `platform/mod.rs`、`unix.rs`、`windows.rs` | シグナルの監視(UNIX: `signal-hook` のスレッド、Windows: `ctrlc`)、`color_supported`、(v0.10.0 以降)`clear_screen_supported`(`watch --follow` で画面を消してよい OS か。UNIX 系だけ)。登録はプロセスで 1 回。入口の `start_signal_watcher` は、`mod.rs` が OS ごとの `spawn_watcher` を `#[cfg(unix)]`/`#[cfg(windows)]` の `pub(crate) use … as start_signal_watcher` で再公開したもの(runtime の `platform` と同じ再公開の形) |
-| `report/mod.rs` | `DisplayEvent`、`Reporter`(水準・言語・色の決定、文言の組み立て、`show`)、`StateContext`(`for_read(Option<&RunId>)` で読み取りの文脈 `Read`/`ReadRunId` を選ぶ。定義との食い違いの表示 `ConsistencyMismatch.context` と、案内の `messages::reset_hint(StateContext)` も同じ文脈を使う。v0.9.7 までは run ID の有無を真偽値 `with_run_id` で渡した)、`push_line`(graph・計画・watch が共有)、入力由来の文字列のエスケープ(`escape_name`、`escape_full`。conductor-core の `escape_display` の包み。計画・watch・図の整形も使う) |
+| `report/mod.rs` | `Reporter`(水準・言語・色の決定、`show`、変種ごとに振り分ける `render`)。子の型とエスケープを今の名前(`crate::report::DisplayEvent` など)で再公開する。v0.10.3 までは、下の 4 つの中身もこのファイルにあった |
+| `report/event.rs`(v0.10.4 以降) | `DisplayEvent` と水準(`level`)、`ResultDetail`、`FramePrefix`、`StateContext`(`for_read(Option<&RunId>)` で読み取りの文脈 `Read`/`ReadRunId` を選ぶ。定義との食い違いの表示 `ConsistencyMismatch.context` と、案内の `messages::reset_hint(StateContext)` も同じ文脈を使う。v0.9.7 までは run ID の有無を真偽値 `with_run_id` で渡した) |
+| `report/render.rs`(同) | 変種ごとの文言の組み立て(`Reporter` のメソッド。表示の形の 9 つの節に並べる。言語は必要なメソッドだけが判定し、色は `watch_table` だけが判定する) |
+| `report/lines.rs`(同) | 1 行の組み立て(`error_line`、`definition_line`、`state_line`、`job_result_line` など) |
+| `report/escape.rs`(同) | 入力由来の文字列のエスケープ(`escape_name`、`escape_full`。conductor-core の `escape_display` の包み。計画・watch・図の整形も使う)、`push_line`(graph・計画・watch が共有) |
 | `report/messages.rs` | 英語と日本語の文言の表、種類ごとの文、`--help` 全文 |
 | `report/watch.rs` | `watch` の表(列の幅、色。v0.10.0 以降は所要時間の列) |
 | `report/graph_text.rs`、`graph_mermaid.rs`(v0.9.0 以降) | `render_text`(レーンの図・辺の一覧)、`render_mermaid`、`escape_label` |
