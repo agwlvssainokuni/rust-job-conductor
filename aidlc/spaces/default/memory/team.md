@@ -29,7 +29,7 @@
 - **Methodology**: test-after
 - **Methodology evidence**: チームは test-after を続けると決めた(インタビュー Q3)。履歴も整合する。v0.9.0 の U4 では、`create_file` の追加(602d15c)の後にそのテスト(90a27fa)、ひな形の生成(0fbd466)の後にひな形のテスト(5b750f8)が続く。U3 も流れ(a9eb237)の後に流れのテスト(365f45c)と実バイナリのテスト(062c627)が続く。`code-quality-assessment.md` も「チームの方針(test-after、行カバレッジ 80%)と一致する」と記す。
 - **Ordering**: 各テスト可能な層を実装してから、その層のテストを書いて実行する。
-- テストの種類: 各クレートの `tests/` に統合テスト(core 36、runtime 16、cli 26、converter 2 のファイル。`tests/` の直下の `.rs` の数)。単体テストは各モジュールの `mod tests` と、`crates/cli/src/tests/`(12 ファイル)、`crates/converter/src/tests/`(4 ファイル)(どちらも `mod.rs` と補助を含むすべての `.rs` の数)。`#[test]` は合計 1,460(`grep -rE '^\s*#\[test\]' crates --include='*.rs'` の行の数)。
+- テストの種類: 各クレートの `tests/` に統合テスト(core 36、runtime 16、cli 27、converter 2 のファイル。`tests/` の直下の `.rs` の数)。単体テストは各モジュールの `mod tests` と、`crates/cli/src/tests/`(12 ファイル)、`crates/converter/src/tests/`(4 ファイル)(どちらも `mod.rs` と補助を含むすべての `.rs` の数)。`#[test]` は合計 1,472(`grep -rE '^\s*#\[test\]' crates --include='*.rs'` の行の数)。
 - 流れのテストは偽の `Runtime`/`Sink`/`Env`/`Signals` を注入する。実バイナリのテストは `conductor` とテスト専用の補助バイナリを動かす。非機能のテスト(`nfr_*.rs`、`*_perf.rs`)、網羅のテスト(`ALL` 配列)、参照出力との一致(`graph_layout_oracle.rs`)、文書との一致(`src/tests/docs.rs`、`msrv_consistency.rs`)、デモのテスト(`unix_demo.rs`、`windows_demo.rs`)を含む。テスト名は日本語。
 - テストの都合で本番のコードを曲げない。テスト専用の引数・`pub`・関数を本番に残さず、流れのテストは公開の入口と差し替え口で書く(インタビュー Q6)。
 - 行カバレッジ 80% を下限とする。CI の `coverage` ジョブが `cargo llvm-cov --fail-under-lines 80` で強制する(テスト専用の補助バイナリは除外)。
