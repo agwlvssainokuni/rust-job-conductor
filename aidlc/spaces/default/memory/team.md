@@ -64,7 +64,7 @@
 - `unsafe` は runtime の `platform/unix.rs` の 1 か所だけ。core・converter・cli は `#![forbid(unsafe_code)]`。`cfg(unix)`/`cfg(windows)` は runtime と cli の `platform` の外に置かない(テストの中を除く)。ネットワークのライブラリを使わない(`nfr_source.rs` が検査)。
 - 入出力の副作用は runtime と cli の `deps`・`platform` に閉じ込め、core は純粋に保つ。
 - エラーの表示に入力の値を含めない。ステートには開始と終了の時刻だけを書くことを認め、コマンド・環境変数・ジョブの出力は書かない(インタビュー Q7、`nfr_content.rs` が検査)。
-- README は必須語句の検査(`docs-check`)つきで保つ。使い方の表は `args.rs`、`report/messages.rs`、README の 3 か所を揃える。
+- README は必須語句の検査(`docs-check`)つきで保つ。使い方の表は `args/`(`mod.rs` の文法の表と `options.rs` のオプションの表)、`report/messages.rs`、README の 3 か所を揃える。
 - 機能を足す intent でも、新しい外部ライブラリ(依存)を追加しない。必要な処理(時刻の書式、DOT の整形、`watch` の表示し直しなど)は自前で書く。既存の規則(`project.md` の NEVER)をそのまま使う(インタビュー Q5)。
 
 ## Forbidden
