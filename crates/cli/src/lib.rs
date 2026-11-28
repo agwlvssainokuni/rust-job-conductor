@@ -49,7 +49,7 @@
 //! | モジュール | 部品 | 責務 |
 //! |------------|------|------|
 //! | `main.rs` | 入口(main) | パニックのフックを設定し、`run_cli` の結果で、1 回だけ `std::process::exit` |
-//! | `args` | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する |
+//! | `args` | 引数の解釈(ArgParser) | `lexopt` で字句に分け、コマンドごとの文法の表で検査する(`mod.rs` に入口・文法の表・組み立て、`options.rs` にオプションの表と検査の順、`tokens.rs` に字句、`values.rs` に値の解釈) |
 //! | `ctx`、`step`、`run`、`pipeline`、`dry_run`、`aux_commands` | 流れ(Orchestrator) | W2(run)、W3(pipeline)、1 つのジョブの共通の手順とリトライを含む実行(`step`)、`--dry-run`(計画。U3)、シグナルの準備をしない補助のコマンド(`aux_commands`。W4〜W6(watch・reset・validate・convert)、`graph`(図)、`init`(雛形)) |
 //! | `run_id` | run ID の解決 | `--run-id` の指定と環境変数から、この実行の run ID を決める(FR1.2〜FR1.4、FR4.3) |
 //! | `platform` | シグナルの監視(SignalWatcher)ほか | OS 固有のコードは、ここだけ(`cfg(unix)`/`cfg(windows)`) |
