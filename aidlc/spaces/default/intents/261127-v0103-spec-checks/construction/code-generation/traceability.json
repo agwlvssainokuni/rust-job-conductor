@@ -1,0 +1,181 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": [
+    "FR1.1",
+    "FR1.2",
+    "FR1.3",
+    "FR1.4",
+    "FR2.1",
+    "FR2.2",
+    "FR2.3",
+    "FR3.1",
+    "FR3.2",
+    "FR3.3",
+    "FR3.4",
+    "FR4.1",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4",
+    "NFR5",
+    "BR1.1",
+    "BR1.2",
+    "BR1.3",
+    "BR1.4",
+    "BR2.1",
+    "BR3.1",
+    "BR3.2",
+    "BR3.3",
+    "BR3.4",
+    "BR3.5",
+    "BR3.6",
+    "BR4.1"
+  ],
+  "coverage": [
+    {
+      "id": "FR1.1",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "FR1.2",
+      "status": "OK",
+      "target": "crates/core/tests/env_types.rs"
+    },
+    {
+      "id": "FR1.3",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "FR1.4",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "FR2.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/memory/team.md"
+    },
+    {
+      "id": "FR2.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/memory/team.md"
+    },
+    {
+      "id": "FR2.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-generation-plan.md"
+    },
+    {
+      "id": "FR3.1",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "FR3.2",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "FR3.3",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "FR3.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-summary.md"
+    },
+    {
+      "id": "FR4.1",
+      "status": "OK",
+      "target": "crates/cli/Cargo.toml"
+    },
+    {
+      "id": "NFR1",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "NFR2",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "NFR3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-summary.md"
+    },
+    {
+      "id": "NFR4",
+      "status": "OK",
+      "target": "Cargo.lock"
+    },
+    {
+      "id": "NFR5",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "BR1.1",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "BR1.2",
+      "status": "OK",
+      "target": "crates/core/tests/env_types.rs"
+    },
+    {
+      "id": "BR1.3",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "BR1.4",
+      "status": "OK",
+      "target": "docs/spec/language-agnostic/11-quality-and-build.md"
+    },
+    {
+      "id": "BR2.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/memory/team.md"
+    },
+    {
+      "id": "BR3.1",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "BR3.2",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "BR3.3",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "BR3.4",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "BR3.5",
+      "status": "OK",
+      "target": "crates/cli/tests/spec_numbers.rs"
+    },
+    {
+      "id": "BR3.6",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-summary.md"
+    },
+    {
+      "id": "BR4.1",
+      "status": "OK",
+      "target": "crates/cli/Cargo.toml"
+    }
+  ]
+}

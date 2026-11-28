@@ -111,41 +111,41 @@
 
 ### Step 1: 準備(テストの道具の確かめ)
 
-- [ ] `unit-test-instructions.md` のコマンドを変更の前に走らせ、結果を `code-summary.md` に記録する(既存のテストが通る出発点)。
-- [ ] 機能の設計の 2.1〜2.4 の確かめの `grep` を変更の前に走らせ、出発点を記録する。
+- [x] `unit-test-instructions.md` のコマンドを変更の前に走らせ、結果を `code-summary.md` に記録する(既存のテストが通る出発点)。
+- [x] 機能の設計の 2.1〜2.4 の確かめの `grep` を変更の前に走らせ、出発点を記録する。
 
 ### Step 2: テスト名の書き方をそろえる(FR1.1、BR1.1)
 
-- [ ] L11 の根拠の列で、関数名を `_` のまま書いた 14 個(AC-097a、AC-206〜234 の 13 個)の関数名の部分の `_` を空白にする。
-- [ ] `::` の後ろに `_` を含む根拠の書き方が残らないことを `grep` で確かめる(識別子だけの例外があれば `code-summary.md` に列挙する)。
-- [ ] コミット: `docs: テスト名の書き方をそろえる`
+- [x] L11 の根拠の列で、関数名を `_` のまま書いた 14 個(AC-097a、AC-206〜234 の 13 個)の関数名の部分の `_` を空白にする。
+- [x] `::` の後ろに `_` を含む根拠の書き方が残らないことを `grep` で確かめる(識別子だけの例外があれば `code-summary.md` に列挙する)。
+- [x] コミット: `docs: テスト名の書き方をそろえる`
 
 ### Step 3: env_types.rs のテスト名と AC-430(FR1.2、FR1.3、BR1.2、BR1.3)
 
-- [ ] `crates/core/tests/env_types.rs` の名前に「33 種」を含むテスト関数の名前を「34 種」にする。仕様書に同じ名前があれば同じに直す。
-- [ ] `cargo test -p conductor-core --test env_types --locked` を走らせる。
-- [ ] コミット: `core: env_types のテスト名を 34 種にする`
-- [ ] L11 の AC-430 の前提を `LC_ALL=C`、`LC_MESSAGES=C` にし、期待の列に「この前提では、デモが `LC_ALL` と `LC_MESSAGES` を消したかは、表示からは見分けられない」を書き足す。R11 は変えない。
-- [ ] コミット: `docs: AC-430 の前提を実際のテストに合わせる`
+- [x] `crates/core/tests/env_types.rs` の名前に「33 種」を含むテスト関数の名前を「34 種」にする。仕様書に同じ名前があれば同じに直す。
+- [x] `cargo test -p conductor-core --test env_types --locked` を走らせる。
+- [x] コミット: `core: env_types のテスト名を 34 種にする`
+- [x] L11 の AC-430 の前提を `LC_ALL=C`、`LC_MESSAGES=C` にし、期待の列に「この前提では、デモが `LC_ALL` と `LC_MESSAGES` を消したかは、表示からは見分けられない」を書き足す。R11 は変えない。
+- [x] コミット: `docs: AC-430 の前提を実際のテストに合わせる`
 
 ### Step 4: 性能の表の目安(FR1.4、BR1.4、R-02)
 
-- [ ] L11 の 2.1 の表で、強制の列が「目安」の 7 行を「目安(参照実装は強制として検査する)」にする。根拠の列は変えない。AC-573 の行(4.27)も変えない。
-- [ ] コミット: `docs: 性能の表の目安に参照実装の強制を書き添える`
+- [x] L11 の 2.1 の表で、強制の列が「目安」の 7 行を「目安(参照実装は強制として検査する)」にする。根拠の列は変えない。AC-573 の行(4.27)も変えない。
+- [x] コミット: `docs: 性能の表の目安に参照実装の強制を書き添える`
 
 ### Step 5: 決まった場所と手がかりの突き合わせ(R-01、R-03、R-04)
 
-- [ ] `functional-spec.md` の 3.1 の #1〜#12 について、次のことを仕様書の今の本文で確かめる。
+- [x] `functional-spec.md` の 3.1 の #1〜#12 について、次のことを仕様書の今の本文で確かめる。
   - 決まった場所の見出し・文の一部(R-01 の直しを含む)
   - 全体の探しの手がかりの語と数の並び
   - 版の注記で除く行
   - 対象外の行
-- [ ] 確かめた結果を付録 A の形の表として `code-summary.md` に書く。テストの中の決まった場所と手がかりは、この表と同じにする。
-- [ ] 実装と違う数(注記の無いずれ)が見つかったら、そのずれを `code-summary.md` に挙げる。仕様書を実装に合わせて直し、別のコミット `docs: 仕様書の数を実装に合わせる` にする。仕様書の書き方を検査に合わせて変えることはしない。
+- [x] 確かめた結果を付録 A の形の表として `code-summary.md` に書く。テストの中の決まった場所と手がかりは、この表と同じにする。
+- [x] 実装と違う数(注記の無いずれ)が見つかったら、そのずれを `code-summary.md` に挙げる。仕様書を実装に合わせて直し、別のコミット `docs: 仕様書の数を実装に合わせる` にする。仕様書の書き方を検査に合わせて変えることはしない。
 
 ### Step 6: 数の検査のテストを書いて走らせる(FR3.1〜FR3.3、BR3.1〜BR3.5)
 
-- [ ] `crates/cli/tests/spec_numbers.rs` を作る。
+- [x] `crates/cli/tests/spec_numbers.rs` を作る。
   - 根は `Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")` とする。読んだ文字列の `\r` を除いてから行に分ける。
   - 標準ライブラリだけを使う。
   - 補助の関数として次の 5 つを置く。
@@ -161,9 +161,9 @@
     - 相対のパスと行番号
     - 見出しか行の一部
     - 仕様書の値と実装の値
-- [ ] `cargo test -p conductor-cli --test spec_numbers --locked` を走らせ、通ることを確かめる。
-- [ ] `cargo fmt --all -- --check` と `cargo clippy --workspace --all-targets --locked -- -D warnings` を通す。
-- [ ] コミット: `cli: 仕様書の数を実装と突き合わせるテストを足す`
+- [x] `cargo test -p conductor-cli --test spec_numbers --locked` を走らせ、通ることを確かめる。
+- [x] `cargo fmt --all -- --check` と `cargo clippy --workspace --all-targets --locked -- -D warnings` を通す。
+- [x] コミット: `cli: 仕様書の数を実装と突き合わせるテストを足す`
 
 ### Step 7: 効くことの確かめ(FR3.4、BR3.6)
 
@@ -175,41 +175,41 @@
 
 それぞれ、ファイルの道具で書き換えてテストを走らせ、同じ道具で元の文に書き戻す。
 
-- [ ] 3 つのそれぞれで、落ちたテストの名前と失敗の文の 1 行目を `code-summary.md` に記録する。
-- [ ] 書き戻した後に `git diff --stat docs/` が空であることを確かめる。ずらした変更はコミットしない。
+- [x] 3 つのそれぞれで、落ちたテストの名前と失敗の文の 1 行目を `code-summary.md` に記録する。
+- [x] 書き戻した後に `git diff --stat docs/` が空であることを確かめる。ずらした変更はコミットしない。
 
 ### Step 8: team.md の古い記述(FR2.1〜FR2.3、BR2.1)
 
 付録 B の #1〜#10 を書き換える。各行は「今の文の一部」で場所を確かめ、見つからなければ止めて報告する。表の外は変えない。
 
-- [ ] 書き換えた後、`git diff aidlc/spaces/default/memory/team.md` の差分が付録 B の行だけであることを確かめる。
-- [ ] コミット: `aidlc: team.md の古い記述を今に合わせる`
+- [x] 書き換えた後、`git diff aidlc/spaces/default/memory/team.md` の差分が付録 B の行だけであることを確かめる。
+- [x] コミット: `aidlc: team.md の古い記述を今に合わせる`
 
 ### Step 9: team.md のテストの数を数え直す(付録 B の #11)
 
-- [ ] 次の数を数え直す。
+- [x] 次の数を数え直す。
   - `tests/` の直下の `.rs` の数(cli は 27 になる見込み)
   - `src/tests/` の `.rs` の数
   - `grep -rE '^\s*#\[test\]' crates --include='*.rs'` の行の数
-- [ ] 32 行目の数を、数え直した値に直す。
-- [ ] コミット: `aidlc: team.md のテストの数を数え直す`
+- [x] 32 行目の数を、数え直した値に直す。
+- [x] コミット: `aidlc: team.md のテストの数を数え直す`
 
 ### Step 10: 版を 0.10.3 にする(FR4.1、BR4.1)
 
-- [ ] 10ce84e と同じ 22 ファイルの `0.10.2` を `0.10.3` にする(`git show --stat 10ce84e` で範囲を確かめる)。
-- [ ] `cargo build --locked` が通ることを確かめる。
-- [ ] `cargo test --workspace --locked`、`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings` を通す。
-- [ ] コミット: `版を 0.10.3 にする`
+- [x] 10ce84e と同じ 22 ファイルの `0.10.2` を `0.10.3` にする(`git show --stat 10ce84e` で範囲を確かめる)。
+- [x] `cargo build --locked` が通ることを確かめる。
+- [x] `cargo test --workspace --locked`、`cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets --locked -- -D warnings` を通す。
+- [x] コミット: `版を 0.10.3 にする`
 
 ### Step 11: まとめと記録
 
-- [ ] `code-summary.md` に次のことを書く。
+- [x] `code-summary.md` に次のことを書く。
   - 変えたファイル
   - 付録 A の表
   - Step 7 の結果
   - テストの数
   - 残した事項(60 行目の `#[allow]` の記述は後の候補)
-- [ ] `traceability.json` に、FR1.1〜FR4.1 と、それを満たすステップ・ファイルを書く。
+- [x] `traceability.json` に、FR1.1〜FR4.1 と、それを満たすステップ・ファイルを書く。
 
 ## 付録 A: 数の検査の表(Step 5 で確かめて `code-summary.md` に写す)
 
