@@ -173,7 +173,7 @@ pub(crate) fn render_error(file: &str, line: Option<usize>, kind: &str, reason: 
 }
 
 /// 入力に由来する文字列を、表示用に整える(NFR4.2、NFR4.6)。表示のエスケープの本体
-/// (conductor-cli の `report::escape` が包む)。
+/// (conductor-cli の `report::escape_full`(`report/escape.rs`)が包む)。
 ///
 /// - 制御文字(U+0000〜U+001F、U+007F〜U+009F)と、書式・双方向の制御文字(U+200B〜U+200F、
 ///   U+2028、U+2029、U+202A〜U+202E、U+2060〜U+2064、U+2066〜U+2069、U+FEFF)を、`\u{..}` にする。
