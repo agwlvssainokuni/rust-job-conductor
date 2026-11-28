@@ -28,6 +28,7 @@
 
 mod env;
 mod retry;
+mod transition;
 mod values;
 
 use std::collections::HashMap;
@@ -39,10 +40,11 @@ use crate::definition::version::VERSION_KEY;
 use crate::error::{DefinitionError, DefinitionErrorKind as Kind, Locate, quote_key};
 use crate::run_id::{env_name_rule, is_valid_env_name};
 use crate::types::{
-    Classification, Command, EnvFileRef, EnvVar, JobDefinition, PipelineDefinition, RetryPolicy,
-    Transition, TransitionOn, TransitionTarget,
+    Command, EnvFileRef, EnvVar, JobDefinition, PipelineDefinition, RetryPolicy, Transition,
+    TransitionTarget,
 };
 use retry::{JobRetrySetting, PipelineRetryDefault, build_retry};
+use transition::RawTransition;
 use values::{exit_code_of, integer_of};
 
 const ROOT_KEYS: &[&str] = &[VERSION_KEY, "pipeline", "job"];
@@ -84,11 +86,6 @@ struct PipelineHead {
     log_dir: Option<String>,
     /// `unset_env` の名前と位置(`env` との重なりの誤りの位置。U3 の BR2.1)。
     unset_env: Vec<(String, usize)>,
-}
-
-struct RawTransition {
-    on: Option<TransitionOn>,
-    next: Option<(String, usize)>,
 }
 
 /// `success_exit_codes` の読み取りの結果。
@@ -240,65 +237,6 @@ impl<'a> Walker<'a> {
             return None;
         }
         Some(dir)
-    }
-
-    fn transitions(&mut self, job: &DeTable<'_>) -> Vec<RawTransition> {
-        let Some(value) = job.get("transitions") else {
-            return Vec::new();
-        };
-        let DeValue::Array(items) = value.get_ref() else {
-            self.type_error(
-                value.span().start,
-                "`transitions` はテーブルの配列で書きます",
-            );
-            return Vec::new();
-        };
-        let mut out: Vec<RawTransition> = Vec::new();
-        // 前に同じ結果(`on`)の遷移があったか。種類ごとの真偽値(`Success`、`Warning` の 2 つ)で持つ。
-        let mut seen = [false; 2];
-        for item in items.iter() {
-            let offset = item.span().start;
-            let DeValue::Table(t) = item.get_ref() else {
-                self.type_error(offset, "`transitions` の要素はテーブルで書きます");
-                continue;
-            };
-            self.check_keys(t, TRANSITION_KEYS);
-            let on = self.transition_on(t, offset);
-            let next = self.string(t, "next", offset, true);
-            if let Some(on) = on {
-                let slot = match on {
-                    TransitionOn::Success => &mut seen[0],
-                    TransitionOn::Warning => &mut seen[1],
-                };
-                if *slot {
-                    self.push(
-                        offset,
-                        Kind::DuplicateTransition,
-                        "同じ結果(`on`)の遷移が 2 つ以上あります",
-                    );
-                }
-                *slot = true;
-            }
-            out.push(RawTransition { on, next });
-        }
-        out
-    }
-
-    fn transition_on(&mut self, t: &DeTable<'_>, parent: usize) -> Option<TransitionOn> {
-        let (text, offset) = self.string(t, "on", parent, true)?;
-        if let Some(on) = TransitionOn::parse(&text) {
-            return Some(on);
-        }
-        if text == Classification::Error.as_str() {
-            self.push(
-                offset,
-                Kind::ErrorTransition,
-                "エラー結果(`error`)には遷移先を書けません",
-            );
-        } else {
-            self.type_error(offset, "`on` は `success` または `warning` で書きます");
-        }
-        None
     }
 
     fn job(&mut self, value: &Spanned<DeValue<'_>>) -> RawJob {
