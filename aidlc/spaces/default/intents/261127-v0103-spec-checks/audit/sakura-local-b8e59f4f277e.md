@@ -1780,3 +1780,153 @@
 **Question Shows**: sha256:93e2e59725ab73c6188a701a51aae516be4d10938024eb498afa3bbf2a3241fd
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-11-28T00:07:07Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: picker
+**Picked**: ["承認、R-01〜R-04 を直して、R-05 は当てはまらない"]
+**Message Id**: ca8f52a8
+**Open Questions**: 2b1b355b, 0281d32d
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/functional-design/functional-design-questions.md","entries":{"Q1":"819ce1fc40cbf818","Consolidated Summary Confirmation":"03a36683cd230141"}}
+
+---
+
+## Question Replied
+**Timestamp**: 2026-11-28T00:07:07Z
+**Event**: QUESTION_REPLIED
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question**: 設計をどうしますか?おすすめは「承認、R-01〜R-04 を直して、R-05 は当てはまらない」です。そうする場合は「Other」を選んで、その文を書いてください。
+**Reply**: 承認、R-01〜R-04 を直して、R-05 は当てはまらない
+**Options**: ["Approve","Request Changes"]
+
+---
+
+## Gate Approved
+**Timestamp**: 2026-11-28T00:07:16Z
+**Event**: GATE_APPROVED
+**Stage**: functional-design
+**User Input**: Approve
+**Person Reply**: 承認、R-01〜R-04 を直して、R-05 は当てはまらない
+**Message Id**: ca8f52a8
+**Review Finding Dispositions**: {"version":1,"dispositions":[{"artifact":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/functional-design/functional-spec.md","id":"R-01","fingerprint":"sha256:6ca91f763f2d9293ba83226c6722372e1b6844394de404758d540a7019cf1eb0","status":"Fix requested","decided_at_severity":"Major","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/0bb40e1118e7c8e4/1.json","digest":"sha256:c5769727fcdcc31f3c3a6c94340c82630d326554d72504631c6d83f58cfcf790"}},{"artifact":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/functional-design/functional-spec.md","id":"R-02","fingerprint":"sha256:679e23e94ba63b5d9fc2fb01d49f81aea14160c8542635fbe96531e377c67b3d","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/0bb40e1118e7c8e4/1.json","digest":"sha256:c5769727fcdcc31f3c3a6c94340c82630d326554d72504631c6d83f58cfcf790"}},{"artifact":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/functional-design/functional-spec.md","id":"R-03","fingerprint":"sha256:8596679d33202a6b084913daf43d5b263c995ae9e901dc7ab111bd8c06fcbd80","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/0bb40e1118e7c8e4/1.json","digest":"sha256:c5769727fcdcc31f3c3a6c94340c82630d326554d72504631c6d83f58cfcf790"}},{"artifact":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/functional-design/functional-spec.md","id":"R-04","fingerprint":"sha256:87a570535ec527119b536d0a8f2839032bd58b99753236d8160ba468f2ead5ce","status":"Fix requested","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/0bb40e1118e7c8e4/1.json","digest":"sha256:c5769727fcdcc31f3c3a6c94340c82630d326554d72504631c6d83f58cfcf790"}},{"artifact":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/functional-design/functional-spec.md","id":"R-05","fingerprint":"sha256:6681b9a5d1aecef9ebac12da471db2fc6b6584572590d47a783d5b63b8197356","status":"Accepted risk","decided_at_severity":"Minor","reviewed_record":{"path":".aidlc-engine/reviews/functional-design/stage/0bb40e1118e7c8e4/1.json","digest":"sha256:c5769727fcdcc31f3c3a6c94340c82630d326554d72504631c6d83f58cfcf790"}}]}
+**Brief Digest**: sha256:bebb7dba85d6f16436a2ae149c673b2464337de2fe9bea35ae4c8988d0902bba
+**Git Name**: agwlvssainokuni
+
+---
+
+## Stage Completion
+**Timestamp**: 2026-11-28T00:07:16Z
+**Event**: STAGE_COMPLETED
+**Stage**: functional-design
+**Validation Basis**: {"graphContract":"sha256:9bcda5bd8a06c0847db3e05cd9c841a992450b498f36fead53d3737b78517a4e","inputs":[{"artifact":"components","contentHash":"sha256:7414afcf759a6599aa9f30a3022480ac675b0108569143975412a7573cf54b32","instanceCount":1,"presentCount":0,"producer":"domain-design","required":true,"structureHash":"sha256:1a85f55ce0389ea9cf4cd057bebd37614420ba073a7cecf5aea5d79e34767b09"},{"artifact":"requirements","contentHash":"sha256:56df908c78a4504d9c4717a656855401b28b87a54cbb5c29496a37cb961b3364","instanceCount":1,"presentCount":1,"producer":"requirements-analysis","required":true,"structureHash":"sha256:b90c83e29a0ed8823470ba59a35a9ddeeb697cbb4ffc33031deb2e8d0b88d07d"},{"artifact":"unit-of-work","contentHash":"sha256:434ffd267a61b6ad5ee0c4d03c372fcb7c23bc94864da56300871a76aec998b3","instanceCount":1,"presentCount":0,"producer":"units-generation","required":true,"structureHash":"sha256:dc9dc53359830e3ff42aa85eea663843a1bb84d825009f06f8df9cb4312341f1"}],"outputs":[{"artifact":"entities","contentHash":"sha256:b673c7c318cf338a4cc1eb5baf47c42293c12d112f901d1116fe0930e80e467c","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:07b97068394519ab80a9024610d81756acd148a05b9a9f339137c87e9be3cbef"},{"artifact":"frontend-components","contentHash":"sha256:ef833ba80cbb07f2ff3bea441eb7e6b2cf8969167d87df8ac757bc65d8a590b7","instanceCount":1,"presentCount":1,"producer":"functional-design","required":false,"structureHash":"sha256:f0b002594d476625fec41c34749480e3fd4eeee62ca6fc9a7330afa1033dde55"},{"artifact":"functional-spec","contentHash":"sha256:de0a16059f4b9a52279f5e333fbdcfee39ef89722a272f9173a9b6e6d50a9d23","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:efd1d47fda471a9a4b29792feca3f708536e52392c22c5486d8552bb831615b5"},{"artifact":"rules","contentHash":"sha256:b7c3676cf45dddc683f891c492fb64a2b41ceaf05d765873c1176c50dca739c0","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:9d9ae0257ab6300f2d6dcd82cd7583b86a39520d0b126d961908e788fafe3df8"},{"artifact":"traceability","contentHash":"sha256:02a8139f638e51abcfde116936fc3aa5d0af4a1df8228ce406c3c0ad524f422a","instanceCount":1,"presentCount":1,"producer":"functional-design","required":true,"structureHash":"sha256:8718928d67bcaf609f6e2cf0e560ceda9026af2ebc21d68fc7ebb33a05bfc9ac"}],"projectType":"brownfield","schema":3}
+**Details**: Stage Functional Design approved by gate
+**Tokens In**: 76
+**Tokens Out**: 41295
+**Cache Read**: 12150523
+**Cache Write**: 277228
+**Cost USD**: 4.62
+**By Model**: opus-5-5=4.12; sonnet-5-5=0.50
+**By Agent**: main=4.12; aidlc-architecture-reviewer-agent=0.50
+**Tokens By Model**: opus-5-5=54/29.8k/11.2M/160k; sonnet-5-5=22/11.5k/953.9k/117.2k
+**Tokens By Agent**: main=54/29.8k/11.2M/160k; aidlc-architecture-reviewer-agent=22/11.5k/953.9k/117.2k
+
+---
+
+## Stage Start
+**Timestamp**: 2026-11-28T00:07:16Z
+**Event**: STAGE_STARTED
+**Stage**: code-generation
+**Agent**: aidlc-developer-agent
+**Source Baseline**: sha256:0b293fde6341925e7f8c5e336048b862031ec000972bead0bd0848a52cbb6cde
+
+---
+
+## Memory Empty
+**Timestamp**: 2026-11-28T00:07:17Z
+**Event**: MEMORY_EMPTY
+**Stage**: functional-design
+
+---
+
+## Plan Approval Blocked
+**Timestamp**: 2026-11-28T00:07:26Z
+**Event**: PLAN_APPROVAL_BLOCKED
+**Guard**: plan-approval-guard
+**Reason**: plan-approval
+**Tool**: Bash
+**Target**: P=aidlc/spaces/default/intents/261127-v0102-spec-docs/construction/code-generation; grep -n '^#' $P/code-generation-plan.md; wc -l $P/code-generation-plan.md $P
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Stage**: code-generation
+**Unit**: stage-level
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-28T00:08:40Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-generation-plan.md
+**Context**: construction > code-generation > code-generation-plan.md
+
+---
+
+## Artifact Created
+**Timestamp**: 2026-11-28T00:08:49Z
+**Event**: ARTIFACT_CREATED
+**Tool**: Write
+**File**: <project-dir>/aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/unit-test-instructions.md
+**Context**: construction > code-generation > unit-test-instructions.md
+
+---
+
+## Question Asked
+**Timestamp**: 2026-11-28T00:08:55Z
+**Event**: QUESTION_ASKED
+**Question Id**: 9f16e047
+**Question Type**: plan-approval
+**Question Chat**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Question Shows**: sha256:6b12eb4c15122e7996864c262be845dd2b4bd7577333307c939886be93ff844b
+**Stage**: code-generation
+**Ask Id**: 0c2e76b738b0d6707f334a8ff00468a9
+**Options**: ["Approve Plan","Request Changes","I'll edit the files"]
+**Question Text SHA-256**: f9130f37b257072ebbd4554a40a4fdb3e2d4ca6638e48c0ec54eb70feb460884
+**Questions File**: aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-generation-questions.md
+
+---
+
+## Human Turn
+**Timestamp**: 2026-11-28T00:11:59Z
+**Event**: HUMAN_TURN
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Origin**: person
+**Source**: typed
+**Message Id**: 276ce4d3
+**Open Questions**: 9f16e047
+**Questions Digest**: {"file":"aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-generation-questions.md","entries":{"Plan Approval":"882d278a862e3e28"}}
+
+---
+
+## Plan Approval Recorded
+**Timestamp**: 2026-11-28T00:12:05Z
+**Event**: PLAN_APPROVAL_RECORDED
+**Stage**: code-generation
+**Details**: Approve Plan
+**Checkpoint**: plan-approval
+**Plan Target**: stage:code-generation
+**Intent**: 01a21f5b-0331-74b3-9cbd-64ca393be87a
+**Directive Epoch**: sha256:f9e298619b786f4d249355af830357a349092863bba5d09fea7d20ec453f9856
+**Run floor**: STAGE_STARTED:2026-11-28T00:07:16Z#1
+**Approval Fingerprint**: sha256:v3:9a8a4764bb91bcc44eeb5eec2b0eda2f071c4c0e0e03151fb9c4e84c8941a8c6
+**Questions File**: aidlc/spaces/default/intents/261127-v0103-spec-checks/construction/code-generation/code-generation-questions.md
+**Questions SHA-256**: 9d32798a263818c9c001d2e20756214783a676976cfc0810a2a7bba29481b648
+**Prompt SHA-256**: 0eeab3eebe7a04c6e93edbf74e60c7bc71d6c36de38b63583729d31d4bdf3a83
+**Session**: dd80678b-ba44-4f24-bf2e-a3d054130915
+**Asked By**: engine
+**Person Reply**: 1
+**Message Id**: 276ce4d3
+**Git Name**: agwlvssainokuni
+
+---
