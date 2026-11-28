@@ -605,7 +605,7 @@ job:
 | AC-212 | ディレクトリを入力に | `T/d` がディレクトリ | `convert d --to toml` | 67。`cannot read input file` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-212a | 書き手のいない名前付きパイプを入力に(UNIX 系。v0.9.8 以降) | `T/pipe.toml` が名前付きパイプ(`mkfifo`) | `convert pipe.toml --to yaml` | 止まらずに 67。`cannot read input file`(理由 `通常のファイルではありません`。開かない)。v0.9.7 までは、開くところで止まった | `convert_ac::名前付きパイプの入力は開かずに unreadable` |
 | AC-213 | 入力が大きすぎる | 1,048,577 バイト(中身が壊れていてもよい) | `convert big.yaml --to toml` | 67。`input is too large` | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
-| AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::ちょうど1_mibの正しい入力は変換できる` |
+| AC-214 | ちょうど 1 MiB は受理 | `a: "xxx…"` で、ちょうど 1,048,576 バイト | `convert max.yaml --to toml` | 0。OUT が `a = "xxx` で始まる | `convert_ac::ちょうど1 mibの正しい入力は変換できる` |
 | AC-215 | UTF-8 でない入力 | `a: ` のあとに不正なバイト列 | `convert bad.yaml --to toml` | 67。`cannot read input file`(文法を見る前) | `convert_ac::変換はファイルの失敗を決まった順で報告する` |
 | AC-216 | 表せない値は場所つき | `T/in.yaml` = `job:⏎  - id: x⏎  - id: y⏎    note: ~` | `convert in.yaml --to toml` | 67。ERR に `value cannot be represented in the target format: null は表せません` と `(at: job[1].note)` | `flow_aux::convert は表せない値を場所つきで表示する`、`read_resolve::入力の順で最初の表せない値を キーの場所つきで報告する` |
 | AC-217 | 表せない値の種類 | YAML: `a: ~` / `a: null` / `a:` / `a: !!binary aGk=` / `a: !mytag 1` / `a: 9223372036854775808` / `a: 1e999` / `1: x` / `true: x`。TOML: `d = 1979-05-27T07:32:00Z` / `d = 1979-05-27` / `t = 07:32:00` | `convert … --to <変換後>` | いずれも 67。原因の文は、順に `null は表せません`(3 つ)、`タグつきの値は表せません`(2 つ)、`数値が表せる範囲を超えています`(2 つ)、`文字列でないキーは表せません`(2 つ)、`日時の値は表せません`(3 つ) | `read_resolve::null の書き方と ほかの表せない種類 / toml の日時は表せない` |
